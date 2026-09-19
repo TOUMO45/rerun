@@ -94,29 +94,39 @@ This project is being built in phases (see the directive, §11). Current state:
   an honest simplification, not a fake stream) and hosting on Nebius Serverless
   Endpoints are not yet built.
 
-Backend test suite: **210 passed, 4 skipped** (`cd backend && pytest -v`) — reconfirmed
+Backend test suite: **214 passed, 4 skipped** (`cd backend && pytest -v`) — reconfirmed
 from a genuinely fresh clone, not just the working session directory. 3 skips are the
 real Nebius Sandboxes integration test, honestly gated on `NEBIUS_API_KEY`; 1 is a
 network-dependent corpus-freshness check (`RERUN_VERIFY_CORPUS_NETWORK=1` to run it —
 confirmed passing against all 20 real repos as of 2026-09-19).
 
-Self-audit passes found and fixed **nine** real bugs this session (full detail in
-`DECISIONS.md`), most notably: both halves of §9's cost guard (daily USD ceiling,
-per-attempt token ceiling) were fully implemented and unit-tested in isolation but never
-actually called from the orchestrator; **Tavily was never called anywhere at all**
-despite being a named prize track — now fixed, with cited sources threaded into the
-repair prompt, recorded structurally on the certificate, and rendered as clickable links
-in the UI; even after the daily-ceiling call sites were added, the router constructed a
-**fresh `CostGuard` on every single request**, silently resetting the "daily" budget to
-full every time — fixed with a process-wide singleton; `config.py`'s `.env` loading used
-a bare relative path that **silently loaded nothing** depending on which directory the
-app was launched from — fixed by resolving the path from `config.py`'s own file location
-instead; and a systematic sweep of every settings field found `NEBIUS_SANDBOX_IMAGE`
-declared and documented but **never read anywhere** (`planner.py` hardcoded
-`python:3.11-slim` regardless of what was configured) — now threaded through properly.
-A reminder that isolated unit tests don't catch defects in the wiring *between*
-components, in instance lifecycle, or in environment-dependent path resolution — only
-exercising the seams does.
+Self-audit passes found and fixed **eleven** real bugs this session (full detail in
+`DECISIONS.md`). Two are worth calling out specifically because unit tests structurally
+could never have caught them — only running the real, deployed Docker image did:
+
+- **The persisted database volume mounted the wrong path.** `DATABASE_URL` defaulted to
+  a location outside `docker-compose.yml`'s declared `backend-data` volume entirely —
+  every run/certificate would have been silently discarded on every container
+  recreation, despite the volume declaration looking complete and correct.
+- **`git` was never installed in the backend Docker image.** `python:3.11-slim` doesn't
+  ship it, and `intake.py` shells out to the real binary for every clone — meaning **S1
+  intake, the literal first thing a user does, was completely broken** in the deployed
+  container, despite a clean `docker compose build` and a healthy `/healthz`. Found only
+  by creating a real run against the real running container and reading the traceback.
+
+Both are now fixed and verified live: rebuilt the image, created a real run against a
+real Python repo, confirmed the database file actually lives in the mounted volume, and
+confirmed the run survives a full `--force-recreate` (simulated redeploy).
+
+Other fixes from this session's audits: both halves of §9's cost guard (daily USD
+ceiling, per-attempt token ceiling) were implemented and unit-tested in isolation but
+never called from the orchestrator; **Tavily was never called anywhere at all** despite
+being a named prize track; the router built a **fresh `CostGuard` on every request**,
+silently resetting the "daily" budget each time; `.env` loading **silently loaded
+nothing** depending on launch directory; and `NEBIUS_SANDBOX_IMAGE` was declared but
+never read. A reminder that isolated unit tests don't catch defects in the wiring
+*between* components, in instance lifecycle, or in what the actual deployed artifact
+does versus what its source code claims — only running the real thing does.
 
 ## Repo layout
 

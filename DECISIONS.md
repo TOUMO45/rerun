@@ -951,6 +951,94 @@ worth repeating on any future settings additions.
 
 ---
 
+## 2026-09-19 — Bug found and fixed: the persisted DB volume mounted the wrong path
+
+**Audit method:** cross-checked `docker-compose.yml`'s declared persistence
+(`backend-data:/app/data`) against where the app would actually write, rather than
+trusting that a volume declaration existing means it's doing anything.
+
+**Bug:** `DATABASE_URL` defaulted to `sqlite:///./rerun.db` — a relative path resolving,
+inside the container, to `/app/rerun.db` (the container's cwd is always `/app`, fixed by
+`Dockerfile`'s `WORKDIR`). The `backend-data` volume is mounted at `/app/data` — a
+**different directory that nothing ever wrote to at all**. The volume declaration looked
+complete and correct in the compose file; in reality every run, certificate, and repair
+attempt would have lived in the container's ephemeral writable layer and been **silently
+discarded** the instant the container was recreated (`docker compose down && up`, or any
+redeploy) — exactly the kind of infrastructure claim ("this is persisted") that looks
+right at a glance and is wrong in a way no application-level test could ever catch,
+since the mismatch lives entirely in the relationship between two separate files
+(`config.py` and `docker-compose.yml`) that no single test exercises together.
+
+**Fixed:** changed the default to `sqlite:///./data/rerun.db` (in both `config.py` and
+`.env.example`, kept explicitly in sync via a comment in each), which resolves to
+`/app/data/rerun.db` inside the container — landing exactly inside the already-declared
+volume mount. Also fixed the other half of the same problem: SQLite itself never creates
+a missing parent directory, so a fresh volume (or fresh local checkout, `data/` doesn't
+exist yet) would fail outright on first write. Added `db.py::_ensure_sqlite_dir_exists`
+(using `sqlalchemy.engine.make_url()` to correctly parse the database path out of the
+URL — rather than hand-rolling `urlparse` logic and getting sqlite's eccentric
+3-slash-relative-vs-4-slash-absolute slash conventions subtly wrong, verified directly
+against the installed SQLAlchemy source per §2.4) that creates the parent directory
+before the engine is constructed.
+
+**Result:** `pytest tests/test_db.py -v` — 4/4 passed, including a real connection test
+(`test_make_engine_creates_missing_parent_directory`: creates a table, inserts a row,
+reads it back) proving the auto-created directory actually produces a usable database,
+not just that `mkdir` didn't raise. Full backend suite: **214 passed, 4 skipped**.
+Tenth real bug this session's audits have caught.
+
+---
+
+## 2026-09-19 — Bug found and fixed: `git` was never installed in the backend Docker image
+
+**How this was found:** while live-verifying the DB-volume fix above (rebuild, `docker
+compose up`, create a real run against the running container), `POST /runs` returned a
+raw 500. This was not found by inspection or by a unit test — every existing test
+either runs on the host machine (where `git` is genuinely installed) or monkeypatches
+around the credential boundary; nothing in the suite ever exercised `intake.py`'s real
+`subprocess.run(["git", ...])` calls *from inside the actual container image*.
+
+**Bug:** `backend/Dockerfile` is `FROM python:3.11-slim` and never installs `git`.
+`intake.py` shells out to the real `git` binary for every clone/`ls-remote`/`rev-parse`
+call — the very first step of the entire pipeline. The container log showed the exact
+failure: `FileNotFoundError: [Errno 2] No such file or directory: 'git'` from
+`intake.validate_repo_accessible`. This means the deployed Docker image, as it existed
+before this fix, could not complete **S1 intake at all** — not a downstream feature, the
+literal first thing a user does. `docker compose build` and `docker compose up` had both
+already succeeded earlier this session (§"docker-compose reproducibility gaps" entry)
+precisely because neither of those steps ever exercises the code path that needs `git`
+at runtime — a clean build and a healthy `/healthz` say nothing about whether the app's
+actual core feature works.
+
+**Fixed:** added `apt-get install -y --no-install-recommends git` (with the standard
+`apt-get update`/`rm -rf /var/lib/apt/lists/*` pairing to avoid leaving a stale package
+index bloating the image) to `backend/Dockerfile`, before the Python dependency install
+step.
+
+**Verified live, fully, after a transient first-attempt network blip:** the first
+rebuild failed with `Unable to connect to deb.debian.org`; a direct `docker run
+python:3.11-slim apt-get update` immediately afterward succeeded, showing it was a
+momentary DNS/network hiccup rather than a persistent restriction, and the rebuild
+succeeded on retry. Then, against the real rebuilt container:
+
+1. `POST /runs` with the exact same repo that previously 500'd
+   (`octocat/Hello-World`) now correctly clones and returns the honest
+   `"no Python code found in repo"` rejection (that repo genuinely isn't Python — the
+   *bug* was the 500 before ever reaching that check, not this rejection itself).
+2. `POST /runs` against a real Python repo (`pypa/sampleproject`) succeeds fully,
+   returning a real commit SHA.
+3. `docker compose exec backend ls -la /app/data/` shows `rerun.db` actually living
+   inside the mounted volume path — confirming the companion DB-path fix above lands
+   correctly together with this one.
+4. `docker compose up -d --force-recreate backend` (simulating a redeploy) followed by
+   re-fetching the same run by id returns the identical record — proving the data
+   survived container recreation, the exact failure mode the DB-path bug would have
+   caused silently.
+
+Torn down afterward (`docker compose down -v`) — no containers or volumes left running.
+
+---
+
 ## 2026-09-19 — Bug found and fixed: docker-compose.yml referenced Dockerfiles that didn't exist
 
 **Bug:** `docker-compose.yml` was written early (Phase 0 scaffolding, before either

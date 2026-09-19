@@ -49,7 +49,10 @@ class Settings(BaseSettings):
     tavily_api_key: str = ""
 
     # App
-    database_url: str = "sqlite:///./rerun.db"
+    # `./data/rerun.db` — kept in sync with docker-compose.yml's
+    # `backend-data` volume, mounted at /app/data (the container's cwd is
+    # always /app). See db.py's module docstring for why this matters.
+    database_url: str = "sqlite:///./data/rerun.db"
     demo_mode: bool = False
     daily_cost_ceiling_usd: float = 25.0
     max_attempts_per_run: int = 3
