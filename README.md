@@ -45,12 +45,18 @@ This project is being built in phases (see the directive, §11). Current state:
   whether it's acceptable — proven end-to-end by a test that feeds a proposal
   violating the tamper gate's rules straight through the real `check_patch()` and
   confirms it's rejected, not just described in a prompt.
-- 🚧 adjudicator (Nemotron Ultra certificate prose), SSE streaming, React UI, batch lab
-  corpus, orchestration wiring all these services into one `POST /runs` flow: not yet
-  built — see `DECISIONS.md` for the full trail of what's blocked on credentials vs.
-  ready to wire up.
+- ✅ `adjudicator.py`: Nemotron Ultra writes certificate prose but is structurally
+  barred from ever upgrading a verdict ("may only downgrade") — a fake client that
+  dishonestly tries to turn a `BLOCKED` run into `RUNS_CLEAN` is proven to be clamped
+  back. Falls back to honest templated prose whenever no model client is available.
+  This completes real, tested integration code for all three Nemotron-routed roles
+  (Nano/recon, Super/planning+repair, Ultra/adjudication) required by §12 — none has
+  hit the live API yet, but all are ready the moment `NEBIUS_API_KEY` exists.
+- 🚧 SSE streaming, React UI, batch lab corpus, and the orchestration wiring all these
+  services into one live `POST /runs` flow: not yet built — see `DECISIONS.md` for the
+  full trail of what's blocked on credentials vs. ready to wire up.
 
-Backend test suite: **141 passed, 3 skipped** (`cd backend && pytest -v`). The 3 skips
+Backend test suite: **149 passed, 3 skipped** (`cd backend && pytest -v`). The 3 skips
 are the real Nebius Sandboxes integration test, honestly gated on `NEBIUS_API_KEY`.
 
 ## Repo layout

@@ -356,3 +356,33 @@ now proven to compose correctly.
 **141 passed, 3 skipped**.
 
 ---
+
+## 2026-09-19 — adjudicator.py implemented and green; completes the Nano/Super/Ultra trio
+
+**Decision:** `adjudicator.py` (Nemotron Ultra) writes certificate prose but is
+explicitly barred from ever improving on the verdict deterministic upstream logic
+already fixed — the architecture diagram's own annotation is "certificate prose; may
+only downgrade." This is enforced as plain code (`_VERDICT_RANK` + `_clamp_verdict`),
+never as a prompt instruction trusted on faith: `test_adjudicator_rejects_a_model_attempted_upgrade`
+feeds a fake client that dishonestly returns `"verdict": "RUNS_CLEAN"` for an actually
+`BLOCKED` run, and asserts the clamp holds — the certificate still says `BLOCKED`, and
+`model_attempted_upgrade=True` is recorded so this event is itself visible/auditable
+rather than silently swallowed. An unrecognized verdict string from the model is
+treated the same as an upgrade attempt (never given the benefit of the doubt).
+
+**Templated fallback (§5 cut ladder item 1 — "Adjudicator prose polish -> fall back to
+templated certificate text"):** `templated_certificate_prose()` is used whenever no
+client is supplied, the model call fails, or the model returns empty prose — so this
+stage is a genuine should-have, never a hidden dependency for producing a valid
+certificate. The §8 S3 scope-boundary line ("Verifies that the artifact executes. Does
+not verify the paper's numerical results.") is force-appended to any model-written
+prose that omits it, so it is structurally impossible for a certificate to ship without
+it — directly closing one of §14's red-team questions ahead of time.
+
+**Result:** `pytest tests/test_adjudicator.py -v` — 8/8 passed. Full backend suite:
+**149 passed, 3 skipped**. All three Nemotron-routed roles (Nano/recon, Super/planning
++ repair, Ultra/adjudication) required by §12's compliance checklist now have real,
+tested integration code — none has been exercised against the live API yet (still
+blocked on `NEBIUS_API_KEY`), but all are structurally ready the moment it's supplied.
+
+---
