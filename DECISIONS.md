@@ -436,3 +436,39 @@ call `run_pipeline()` with real credentials and persist the result into
 **160 passed, 3 skipped**.
 
 ---
+
+## 2026-09-19 — orchestrator wired into the API: POST /runs/{id}/execute
+
+**Decision:** Added `POST /runs/{id}/execute` and `GET /runs/{id}/certificate` to
+`routers/runs.py`. Execute re-clones the repo fresh (a run's original `POST /runs`
+workdir is a throwaway tempdir, not persisted — re-cloning by URL is simpler and no
+more expensive than tracking/reusing a stale checkout), builds a `PipelineDeps` from
+real settings (one `NebiusChatClient` instance reused across all three model roles,
+since only the `model` argument differs per call), and calls
+`orchestrator.run_pipeline()` for real. A missing `NEBIUS_API_KEY` returns a clear 503
+*before* any clone or client construction happens — never a crash, never a silently
+empty/fake result, per §0.
+
+**Persistence split cleanly at the router boundary:** `_persist_pipeline_result()`
+writes the `Run` row's verdict/taxonomy/attempts_used, one `RepairAttempt` row per
+attempt (PASS/REJECT/DECLINED all recorded, matching what the certificate itself
+shows), and one `Certificate` row carrying the real passport hash — keeping
+`orchestrator.py` itself free of any SQLAlchemy dependency, as decided in the prior
+entry.
+
+**Testing approach:** the 503 fail-fast path is tested for real (no monkeypatch,
+no credentials needed — this is honest, not faked). The persistence path is tested by
+monkeypatching only the one credential-gated boundary (`run_pipeline` itself, plus
+`get_settings` to simulate `nebius_configured=True` without a real key) — everything
+downstream of that (the real clone via `fake_paper_repo`, the real DB writes, the real
+`GET /runs/{id}/certificate` read-back) is exercised for real. This mirrors the same
+testing discipline used everywhere else credentials are the boundary (sandbox.py,
+model_client.py): mock exactly the thing that needs a live network/API key, nothing
+more.
+
+**Result:** `pytest tests/test_runs_execute_router.py -v` — 4/4 passed. Full backend
+suite: **164 passed, 3 skipped**. Every piece of the pipeline described in §4's
+architecture diagram now has real, tested code reachable from an actual HTTP endpoint —
+the only remaining gap before a live end-to-end S1→S3 run is a real `NEBIUS_API_KEY`.
+
+---

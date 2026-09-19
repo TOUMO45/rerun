@@ -59,13 +59,19 @@ This project is being built in phases (see the directive, §11). Current state:
   Directly proves §14's red-team question: a scripted "delete the eval call" repair
   proposal is rejected by the real gate, a legitimate follow-up passes, and the file on
   disk is checked to confirm the bad patch was genuinely never applied.
-- 🚧 SSE streaming, React UI, batch lab corpus, and the FastAPI route that calls
-  `orchestrator.run_pipeline()` with real credentials and persists the result: not yet
-  built — see `DECISIONS.md` for the full trail of what's blocked on credentials vs.
-  ready to wire up.
+- ✅ `POST /runs/{id}/execute` + `GET /runs/{id}/certificate`: calls the real
+  orchestrator with real credentials from settings and persists the result
+  (`Run`/`RepairAttempt`/`Certificate` rows, including the real passport hash). Returns
+  a clear 503 — never a crash or a fake result — when `NEBIUS_API_KEY` is absent.
+- 🚧 SSE streaming (currently polling-only via `GET /runs/{id}`) and the React UI
+  (S1–S4 screens) and the batch lab corpus are not yet built — see `DECISIONS.md` for
+  the full trail.
 
-Backend test suite: **160 passed, 3 skipped** (`cd backend && pytest -v`). The 3 skips
+Backend test suite: **164 passed, 3 skipped** (`cd backend && pytest -v`). The 3 skips
 are the real Nebius Sandboxes integration test, honestly gated on `NEBIUS_API_KEY`.
+Every piece of the §4 architecture diagram now has real, tested code reachable from an
+actual HTTP endpoint — the only remaining gap before a live end-to-end run is a real
+Nebius API key.
 
 ## Repo layout
 
