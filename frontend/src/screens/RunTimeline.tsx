@@ -4,7 +4,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { api, ApiError, streamRun } from "../api";
 import { VerdictBadge } from "../components/VerdictBadge";
 import { RepairAttemptCard } from "../components/RepairAttemptCard";
-import { buildTimelineItems, parseLogLine } from "../lib/timeline";
+import { buildTimelineItems, extractLatestSandboxId, extractWallClockSeconds, parseLogLine } from "../lib/timeline";
 
 export function RunTimeline() {
   const { runId } = useParams<{ runId: string }>();
@@ -128,11 +128,14 @@ export function RunTimeline() {
 
       {!isDone && hasStarted && (
         <div className="rounded-sm border border-border bg-surface">
-          <div className="flex items-center gap-3 border-b border-border px-5 py-3">
-            <span className="h-2 w-2 animate-pulse rounded-full bg-signal" />
-            <p className="font-mono text-sm text-text-secondary">
-              Running — building the sandbox, executing, repairing if needed… ({elapsed}s elapsed)
-            </p>
+          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border px-5 py-3">
+            <div className="flex items-center gap-3">
+              <span className="h-2 w-2 animate-pulse rounded-full bg-signal" />
+              <p className="font-mono text-sm text-text-secondary">
+                Running — building the sandbox, executing, repairing if needed…
+              </p>
+            </div>
+            <SandboxBadge liveLines={liveLines} elapsed={elapsed} />
           </div>
           <div className="max-h-96 overflow-y-auto px-5 py-4">
             {liveLines.length === 0 ? (
@@ -203,6 +206,38 @@ export function RunTimeline() {
           </div>
         </>
       )}
+    </div>
+  );
+}
+
+/** §8 S2: "Live sandbox badge (id, elapsed time, wall-clock remaining)".
+ * `id` and the wall-clock ceiling only become knowable once specific log
+ * lines have streamed in (see lib/timeline.ts) — each shows "…" until
+ * then rather than a fabricated placeholder, since this badge's whole
+ * point is showing real sandbox state, not a guess. Wall-clock remaining
+ * counts down using the same client-side `elapsed` ticker already driving
+ * the "Running… (Ns elapsed)" text, so it moves smoothly between log
+ * lines rather than only updating when a new one arrives.
+ */
+function SandboxBadge({ liveLines, elapsed }: { liveLines: string[]; elapsed: number }) {
+  const wallClockSeconds = extractWallClockSeconds(liveLines);
+  const sandboxId = extractLatestSandboxId(liveLines);
+  const remaining = wallClockSeconds !== null ? Math.max(wallClockSeconds - elapsed, 0) : null;
+
+  return (
+    <div className="flex flex-wrap items-center gap-x-4 gap-y-1 rounded-sm border border-border bg-bg px-3 py-1.5 font-mono text-[11px] text-text-secondary">
+      <span>
+        sandbox: <span className="text-text-primary">{sandboxId ? sandboxId.slice(0, 8) : "…"}</span>
+      </span>
+      <span>
+        elapsed: <span className="text-text-primary">{elapsed}s</span>
+      </span>
+      <span>
+        wall-clock remaining:{" "}
+        <span className={remaining === 0 ? "text-alarm" : "text-text-primary"}>
+          {remaining !== null ? `${remaining}s` : "…"}
+        </span>
+      </span>
     </div>
   );
 }

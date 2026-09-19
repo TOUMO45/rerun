@@ -139,14 +139,24 @@ This project is being built in phases (see the directive, §11). Current state:
   dropped connection. The previous single blocking `/execute` call still exists and
   still works (used by the batch runner, curl, and tests). Nebius Serverless Endpoints
   hosting is not yet built.
+- ✅ S2's "Live sandbox badge (id, elapsed time, wall-clock remaining)" (§8) — found
+  missing by re-reading the UI spec line by line, then built rather than just
+  documented, since the underlying data (the real `contree_sdk` image's `.uuid`, and the
+  configured wall-clock ceiling) is real and needed no fabrication. Wall-clock remaining
+  is fully live, computed client-side from the existing elapsed ticker; the sandbox id
+  appears honestly once a real step has actually logged it, not a placeholder pretending
+  to be live from second one — that would need a larger redesign (a progress callback
+  threaded through the currently-blocking `sandbox.py` call) judged out of scope for
+  what this gap needed. Verified live against a real browser with realistic delays, not
+  just unit-tested.
 
-Backend test suite: **241 passed, 4 skipped** (`cd backend && pytest -v`) — reconfirmed
+Backend test suite: **243 passed, 4 skipped** (`cd backend && pytest -v`) — reconfirmed
 from a genuinely fresh clone, not just the working session directory. 3 skips are the
 real Nebius Sandboxes integration test, honestly gated on `NEBIUS_API_KEY`; 1 is a
 network-dependent corpus-freshness check (`RERUN_VERIFY_CORPUS_NETWORK=1` to run it —
 confirmed passing against all 20 real repos as of 2026-09-19).
 
-Self-audit passes found and fixed **twenty** real bugs this session (full detail in
+Self-audit passes found and fixed **twenty-two** real bugs/gaps this session (full detail in
 `DECISIONS.md`). Three are worth calling out specifically because unit tests
 structurally could never have caught them — only running the real, deployed Docker image
 did:

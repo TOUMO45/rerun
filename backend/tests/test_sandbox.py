@@ -121,10 +121,11 @@ class _FakeChainedImage:
     as a property delegating to .result.exit_code — verified against the
     installed SDK's real ImageLike._base.py."""
 
-    def __init__(self, recorded_timeouts, fake_clock, step_duration=50.0, exit_code=0):
+    def __init__(self, recorded_timeouts, fake_clock, step_duration=50.0, exit_code=0, uuid=None):
         self._recorded = recorded_timeouts
         self._clock = fake_clock
         self._step_duration = step_duration
+        self.uuid = uuid
         self.result = _FakeResult(
             exit_code=exit_code, stdout="ok", stderr="", elapsed_time=timedelta(seconds=1), cost=0.001
         )
@@ -145,12 +146,12 @@ class _FakeChainedImage:
         return self
 
 
-def _install_fake_contree_sync(monkeypatch, recorded_timeouts, fake_clock, step_duration=50.0):
+def _install_fake_contree_sync(monkeypatch, recorded_timeouts, fake_clock, step_duration=50.0, uuid=None):
     import app.services.sandbox as sandbox_module
 
     class _FakeImages:
         def docker(self, ref):
-            return _FakeChainedImage(recorded_timeouts, fake_clock, step_duration)
+            return _FakeChainedImage(recorded_timeouts, fake_clock, step_duration, uuid=uuid)
 
     class _FakeContreeSync:
         def __init__(self, token):
@@ -211,3 +212,37 @@ def test_run_build_and_execute_stops_before_exceeding_the_shared_deadline(monkey
     # Two 50s steps already exceed the 60s deadline - the third (execute)
     # command must never have been started.
     assert real_commands_run == ["pip install numpy", "pip install torch"]
+
+
+# --- sandbox_id (§8 S2: "Live sandbox badge (id, elapsed time, ...)") ------
+
+
+def test_run_build_and_execute_captures_the_real_sandbox_uuid(monkeypatch):
+    """The real contree_sdk image exposes `.uuid` once a step has actually
+    run (verified against installed source) — captured into
+    SandboxRunResult.sandbox_id so the frontend can show a real
+    identifier rather than nothing at all."""
+    import uuid as uuid_module
+
+    fake_uuid = uuid_module.uuid4()
+    recorded_timeouts: list[tuple[str, float]] = []
+    fake_clock = [0.0]
+    _install_fake_contree_sync(monkeypatch, recorded_timeouts, fake_clock, step_duration=1.0, uuid=fake_uuid)
+
+    result = run_build_and_execute(
+        api_key="fake-key",
+        base_image="python:3.11-slim",
+        install_commands=["pip install numpy"],
+        execute_command="python train.py",
+        wall_clock_seconds=60,
+    )
+
+    assert result.sandbox_id == str(fake_uuid)
+
+
+def test_run_build_and_execute_sandbox_id_is_none_when_the_sdk_never_sets_one():
+    """Negative control: a fake/duck-typed result with no .uuid attribute
+    at all (matching every other existing test in this file) must not
+    crash - sandbox_id degrades to None rather than raising."""
+    result = SandboxRunResult(steps=(StepResult("run", 0, "ok", "", 1.0, 0.001),))
+    assert result.sandbox_id is None

@@ -1867,3 +1867,56 @@ exist as a separate file, but its functionality — repo intake — is fully pre
 so this is a naming difference, not a missing capability.
 
 ---
+
+## 2026-09-19 — Built: the S2 "Live sandbox badge" §8 explicitly requires
+
+**Context:** continuing the fresh-directive-reading approach, checked §8's exact S2 spec
+line by line against the actual frontend: "Live sandbox badge (id, elapsed time,
+wall-clock remaining)." `RunTimeline.tsx` had only a generic "(Ns elapsed)" string in a
+sentence — no badge, no id, no wall-clock-remaining countdown. Unlike `DEMO_MODE` (which
+needed fabricated fixture data this session can't responsibly produce), this gap's
+underlying data is real and obtainable right now: the installed `contree_sdk`'s image
+object exposes a real `.uuid` (verified against source, `image_like/_base.py`), and
+`wall_clock_seconds` is already a real, known config value — nothing here needs guessing
+or recording a fake demo run, so it was built rather than just documented.
+
+**Architecture constraint, considered before building:** `run_build_and_execute` is one
+blocking call with no incremental progress callback into sandbox.py — a truly
+live-from-second-1 id isn't available without a much larger redesign (threading a
+progress callback down through the sandbox layer, mirroring `on_event`). Scoped the
+badge to what's honestly achievable without that redesign: wall-clock remaining is fully
+live (computed client-side from the existing elapsed ticker once the ceiling is known),
+and the sandbox id appears once a step has actually run and logged it — not a fabricated
+placeholder in the meantime, an honest "…" until real data arrives.
+
+**Built:**
+- `sandbox.py`: `SandboxRunResult` gained an optional `sandbox_id: str | None` field,
+  captured from the real image's `.uuid` after execution (defaults to `None` for every
+  existing fake/duck-typed test result, so this isn't a breaking change).
+- `orchestrator.py`: logs `[sandbox] starting build+execute (wall_clock_seconds=N)`
+  immediately before the blocking sandbox call (so a client watching the SSE stream
+  knows the ceiling from the first relevant event, not only after the whole step
+  finishes), and `[sandbox] id=<id> exit_code=<code>` after — plus the same `id=` field
+  added to the repair loop's re-execution log line, so the badge updates through repair
+  attempts too.
+- `lib/timeline.ts`: `extractWallClockSeconds()` / `extractLatestSandboxId()`, parsing
+  these exact log line shapes from the live `liveLines` array.
+- `RunTimeline.tsx`: a new `SandboxBadge` component showing all three pieces the spec
+  names, rendered next to the live-streaming panel.
+
+**Verified live, not just unit-tested:** added `test_run_build_and_execute_captures_the_real_sandbox_uuid`
+and a negative control (`..._is_none_when_the_sdk_never_sets_one`) to `test_sandbox.py`.
+Then ran a real Vite dev server against a real FastAPI backend with `run_pipeline`
+monkeypatched to emit realistic events with real `time.sleep()` delays between them (the
+same discipline as the SSE work earlier this session), and watched the badge in a real
+browser: wall-clock remaining counted down live and correctly (45s ceiling, showed 39s
+at t=6s, 15s at t=30s — computed client-side from real elapsed time, not just log
+arrival), and the sandbox id correctly showed "…" until the log line carrying a real
+UUID arrived. Also verified the two parsing regexes directly via the browser's own JS
+console against the exact real log line formats.
+
+**Verified:** full suite **243 passed, 4 skipped** (up from 241/4); `npx tsc --noEmit`
+and `npm run build` both clean. Cleaned up all seeded test runs, the scratch server
+script, and manually-started processes afterward.
+
+---

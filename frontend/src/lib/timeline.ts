@@ -16,6 +16,36 @@ export function parseLogLine(line: string): { stage: string; message: string } {
   return match ? { stage: match[1], message: match[2] } : { stage: "", message: line };
 }
 
+const WALL_CLOCK_LINE = /wall_clock_seconds=(\d+)/;
+const SANDBOX_ID_LINE = /(?:\[sandbox\] id=|re-execution id=)(\S+)/;
+
+/** §8 S2: "Live sandbox badge (id, elapsed time, wall-clock remaining)".
+ * orchestrator.py logs the configured ceiling once, right before the
+ * (blocking) sandbox call starts, specifically so this is knowable from
+ * the very first live event rather than only after the whole step
+ * finishes. Returns null until that line has streamed in. */
+export function extractWallClockSeconds(lines: string[]): number | null {
+  for (const line of lines) {
+    const match = line.match(WALL_CLOCK_LINE);
+    if (match) return Number(match[1]);
+  }
+  return null;
+}
+
+/** The real contree_sdk sandbox's own id, once a step has actually run —
+ * takes the LATEST match, since a repair loop's re-execution runs in a
+ * new sandbox with its own id. `"None"` (the Python string for an SDK
+ * that never set one — see sandbox.py) is treated as "no id available",
+ * not a literal identifier to display. */
+export function extractLatestSandboxId(lines: string[]): string | null {
+  let found: string | null = null;
+  for (const line of lines) {
+    const match = line.match(SANDBOX_ID_LINE);
+    if (match && match[1] !== "None") found = match[1];
+  }
+  return found;
+}
+
 /**
  * Turns orchestrator.py's real, ordered full_log lines into renderable
  * timeline items. Every "[repair N] ..." line is collapsed into a single

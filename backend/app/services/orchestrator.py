@@ -268,6 +268,13 @@ def run_pipeline(
         # step's real cost (SandboxRunResult.total_cost_usd, sourced from
         # Nebius's own per-run ContreeResult.cost) immediately after.
         cost_guard.check_daily_budget(0.0)
+        # §8 S2: "Live sandbox badge (id, elapsed time, wall-clock
+        # remaining)" — the wall-clock ceiling is logged here, before the
+        # (blocking) sandbox call, specifically so a client watching the
+        # SSE stream can start counting down "remaining" the instant this
+        # line arrives, rather than only after the whole build+execute
+        # step finishes.
+        _log(f"[sandbox] starting build+execute (wall_clock_seconds={deps.sandbox_wall_clock_seconds:.0f})")
         result = deps.sandbox_runner(
             api_key=deps.sandbox_api_key,
             base_image=plan.base_image,
@@ -302,7 +309,7 @@ def run_pipeline(
             commit_sha=commit_sha,
         )
 
-    _log(f"[sandbox] exit_code={sandbox_result.final.exit_code}")
+    _log(f"[sandbox] id={sandbox_result.sandbox_id} exit_code={sandbox_result.final.exit_code}")
 
     attempts: list[AttemptRecord] = []
     verdict = "RUNS_CLEAN" if sandbox_result.succeeded else None
@@ -391,7 +398,10 @@ def run_pipeline(
                     AttemptRecord(attempt_number, proposal.diff_text, "PASS", (), None, "", "", tavily_sources)
                 )
                 break
-            _log(f"[repair {attempt_number}] re-execution exit_code={rerun_result.final.exit_code}")
+            _log(
+                f"[repair {attempt_number}] re-execution id={rerun_result.sandbox_id} "
+                f"exit_code={rerun_result.final.exit_code}"
+            )
 
             attempts.append(
                 AttemptRecord(

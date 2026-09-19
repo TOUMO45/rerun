@@ -81,6 +81,13 @@ class StepResult:
 @dataclass(frozen=True)
 class SandboxRunResult:
     steps: tuple[StepResult, ...]
+    # §8 S2: "Live sandbox badge (id, elapsed time, wall-clock remaining)".
+    # The real contree_sdk image object carries a `.uuid` (verified against
+    # installed source) once a step has actually run — captured here so the
+    # frontend can show a real identifier, not a fabricated one. `None` for
+    # any fake/duck-typed result that doesn't set it (all existing tests),
+    # so this stays optional rather than a breaking required field.
+    sandbox_id: str | None = None
 
     @property
     def final(self) -> StepResult:
@@ -190,7 +197,8 @@ def run_build_and_execute(
             if executed.exit_code != 0:
                 break
 
-        return SandboxRunResult(steps=tuple(steps))
+        sandbox_id = str(current.uuid) if getattr(current, "uuid", None) is not None else None
+        return SandboxRunResult(steps=tuple(steps), sandbox_id=sandbox_id)
 
     except OperationTimedOutError as exc:
         raise SandboxError(f"sandbox execution exceeded {wall_clock_seconds}s wall clock: {exc}") from exc
