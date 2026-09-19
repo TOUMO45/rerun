@@ -231,3 +231,48 @@ def test_repo_has_python_code_negative_control_empty_repo(tmp_path):
     empty = tmp_path / "empty_repo"
     empty.mkdir()
     assert repo_has_python_code(empty) is False
+
+
+# --- symlinks must never let a scan escape the repo directory ---------------
+#
+# Found live during this session's audit: git's default core.symlinks=true
+# on Linux (the real deployment target) clones a committed symlink as a
+# real filesystem symlink, and a bare rglob()/is_file()/read_text() all
+# follow symlinks by default - a malicious repo could otherwise read
+# arbitrary files from the backend host. Creating a real symlink needs
+# elevated privileges on some platforms (notably Windows without Developer
+# Mode) - skipped there rather than faked, exactly like this codebase's
+# existing credential-gated skips (see test_sandbox_smoke.py).
+
+
+def _try_symlink(target: Path, link: Path, target_is_directory: bool = False) -> bool:
+    try:
+        link.symlink_to(target, target_is_directory=target_is_directory)
+        return True
+    except OSError:
+        return False
+
+
+def test_find_dependency_files_does_not_follow_a_symlinked_file(tmp_path):
+    outside = tmp_path / "outside_secret.txt"
+    outside.write_text("SECRET=abc123\n", encoding="utf-8")
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    if not _try_symlink(outside, repo / "requirements.txt"):
+        pytest.skip("cannot create symlinks without elevated privileges on this machine")
+
+    found = find_dependency_files(repo)
+    assert "requirements.txt" not in found
+
+
+def test_find_entrypoint_candidates_does_not_follow_a_symlinked_directory(tmp_path):
+    outside_dir = tmp_path / "outside"
+    outside_dir.mkdir()
+    (outside_dir / "secret.py").write_text("if __name__ == '__main__':\n    pass\n", encoding="utf-8")
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    if not _try_symlink(outside_dir, repo / "evil_link", target_is_directory=True):
+        pytest.skip("cannot create symlinks without elevated privileges on this machine")
+
+    candidates = find_entrypoint_candidates(repo)
+    assert candidates == ()

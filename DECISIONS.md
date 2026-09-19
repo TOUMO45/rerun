@@ -2316,3 +2316,79 @@ into the default base image — a real infrastructure trade-off, not a quick fix
 all 16 recon tests pass; full suite **248 passed, 4 skipped** (up from 247/4).
 
 ---
+
+## 2026-09-19 — Bug found and fixed: a malicious repo's symlink could read the backend host's files
+
+**Context:** did the planned broad-but-shallow sweep for two common vulnerability
+classes not yet specifically checked: path traversal and SSRF. SSRF: RERUN only ever
+fetches from Nebius/Tavily with URLs built from its own config, never a repo- or
+model-influenced URL — confirmed clean. Path traversal, checking whether any
+repo-controlled path could reach a filesystem operation outside the intended checkout,
+found something real.
+
+**Bug, reasoned through carefully and partially verified live (full verification blocked
+by this dev machine's OS, not by doubt about the underlying mechanism):** `intake.py`'s
+`find_dependency_files`/`find_entrypoint_candidates`/`find_notebooks` and
+`orchestrator.py`'s `_collect_upload_files` all used a bare `repo_path.rglob(pattern)`
+(or `Path.is_file()` for fixed filenames). Two well-documented, uncontroversial facts
+about the Python standard library: `rglob`/a bare directory walk follows symlinked
+*directories* by default, and `Path.is_file()`/`read_text()` follow a symlinked *file*
+to its target — there is no way around either via the plain `pathlib` API. Separately
+confirmed: `clone_repo` runs a plain `git clone` with no symlink-disabling override, and
+git's own default `core.symlinks=true` on Linux (the real deployment target) clones a
+committed symlink as a **real filesystem symlink**. Chained together: a malicious repo
+committing a symlink (a file, or worse, an entire directory) pointing outside the
+cloned checkout could make RERUN read arbitrary files from the backend host's
+filesystem — content that could then flow into a model prompt (`entrypoint_source`),
+get uploaded into the sandbox (`_collect_upload_files`), or otherwise surface in the
+certificate/logs.
+
+**What was and wasn't directly demonstrated, stated honestly:** creating a real POSIX
+symlink requires elevated privileges on this Windows dev machine
+(`os.symlink()` raised `WinError 1314`), and enabling Windows Developer Mode to work
+around that is a system-setting change outside this task's scope, so the exact
+Linux-production exploit chain wasn't reproduced end-to-end on this machine. What *was*
+tested directly: created a real Windows directory junction (a different NTFS
+reparse-point mechanism, the closest thing creatable without elevated privileges) and
+confirmed the *old* `rglob`-based code followed it to read a file outside the intended
+directory. The fix (below) did **not** stop the junction case specifically — Windows
+junctions aren't detected by `os.path.islink()`/`followlinks=False` the way real
+symlinks are. This is judged an acceptable, explicitly-acknowledged gap rather than
+silently claimed as fully closed: **git itself never produces a junction when cloning a
+symlink** (its Windows symlink emulation creates either a plain text placeholder or a
+real Windows symlink, never a junction), so this specific Windows-only mechanism isn't
+reachable through the actual attack vector (a git clone) at all, on the real Linux
+deployment target or otherwise. The fix is written against the mechanism that
+`git clone` on Linux actually produces.
+
+**Fixed:** added `_walk_real_files()` to `intake.py` — a shared helper using
+`os.walk(repo_path, followlinks=False)` (the stdlib's own explicit, documented refusal
+to descend into a symlinked directory) combined with an explicit `is_symlink()` check on
+each matched file, replacing every `rglob()` call in the module.
+`find_dependency_files` also gained an explicit `not candidate.is_symlink()` check
+alongside its existing `is_file()` check (a symlinked file passes `is_file()` too, since
+that call follows symlinks). `orchestrator.py`'s `_collect_upload_files` got the
+equivalent treatment. Real repos have no legitimate reason for their own
+dependency/entrypoint files, or the files they upload for execution, to be symlinks
+pointing outside themselves.
+
+**Verified:**
+- All 43 `test_intake.py`/`test_orchestrator.py` tests pass unchanged — the fix doesn't
+  alter behavior for any repo that doesn't contain a symlink.
+- Directly confirmed via the junction test that the *old* code's `rglob` genuinely
+  followed a reparse point to read outside the intended directory, establishing the old
+  code was reachable and vulnerable to *some* real, creatable-on-this-machine mechanism
+  in this exact shape — not a purely theoretical concern.
+- Added two permanent regression tests using **real** symlinks (`Path.symlink_to`), not
+  a mock: `test_find_dependency_files_does_not_follow_a_symlinked_file` and
+  `test_find_entrypoint_candidates_does_not_follow_a_symlinked_directory`. Both gracefully
+  `pytest.skip()` if symlink creation fails with an `OSError` (exactly what happens on
+  this Windows machine without elevated privileges — the same honest, no-faking pattern
+  already used for `test_sandbox_smoke.py`'s credential-gated skips) rather than being
+  faked to pass; both will actually run and verify the fix for real on Linux CI or any
+  properly-privileged environment, which is where the real threat model lives anyway.
+- Full suite: **248 passed, 6 skipped** (2 new skips are these symlink tests on this
+  specific machine; all pre-existing tests unaffected — no existing test constructs a
+  symlink, so nothing needed to change for them).
+
+---

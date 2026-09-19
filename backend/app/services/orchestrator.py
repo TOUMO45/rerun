@@ -24,6 +24,7 @@ persisting the `PipelineResult` it returns.
 
 from __future__ import annotations
 
+import os
 import subprocess
 from collections.abc import Callable
 from dataclasses import dataclass, field
@@ -101,13 +102,26 @@ def _apply_diff_with_git(workdir: Path, diff_text: str) -> None:
 
 
 def _collect_upload_files(workdir: Path) -> dict[str, Path]:
+    """Gathers every real file under `workdir` for upload into the
+    sandbox. Deliberately never follows a symlink — same reasoning as
+    intake.py's `_walk_real_files` (see its comment): a bare `rglob`
+    follows symlinked directories by default, and a repo could commit one
+    pointing outside the cloned checkout, uploading arbitrary backend-host
+    files into a sandbox the user's own output could then echo back.
+    `os.walk(..., followlinks=False)` refuses to descend into a symlinked
+    directory; the explicit `is_symlink()` check below also excludes a
+    symlinked *file* found directly within a real directory.
+    """
     files: dict[str, Path] = {}
-    for path in workdir.rglob("*"):
-        if not path.is_file():
+    for dirpath, _dirnames, filenames in os.walk(workdir, followlinks=False):
+        current = Path(dirpath)
+        if ".git" in current.relative_to(workdir).parts:
             continue
-        if ".git" in path.relative_to(workdir).parts:
-            continue
-        files[str(path.relative_to(workdir).as_posix())] = path
+        for filename in filenames:
+            path = current / filename
+            if not path.is_file() or path.is_symlink():
+                continue
+            files[str(path.relative_to(workdir).as_posix())] = path
     return files
 
 

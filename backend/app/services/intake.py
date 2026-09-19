@@ -13,6 +13,7 @@ only gathers the raw facts a model or a human could read directly off disk.
 
 from __future__ import annotations
 
+import os
 import re
 import shutil
 import stat
@@ -21,6 +22,32 @@ from dataclasses import dataclass, field
 from pathlib import Path
 
 import yaml
+
+# `git clone`'s default `core.symlinks=true` on Linux (the real deployment
+# target) clones a committed symlink as a real filesystem symlink. Found
+# live during this session's audit: a bare `repo_path.rglob(pattern)`
+# follows symlinked directories by default, and `Path.is_file()`/
+# `read_text()` follow a symlinked *file* to its target — so a malicious
+# repo committing a symlink (a file, or worse, a whole directory) pointing
+# outside the cloned checkout could make RERUN read, and potentially feed
+# into a model prompt or upload into the sandbox, arbitrary files from the
+# backend host's filesystem. `os.walk(..., followlinks=False)` is the
+# stdlib's own explicit, documented way to refuse to descend into a
+# symlinked directory; combined with skipping any symlinked *file* found
+# along the way, this closes both the directory- and file-level traversal
+# at the one place all of this module's scans go through. Real repos have
+# no legitimate reason for their own dependency/entrypoint files to be
+# symlinks pointing outside themselves.
+def _walk_real_files(repo_path: Path, suffix: str):
+    for dirpath, _dirnames, filenames in os.walk(repo_path, followlinks=False):
+        current = Path(dirpath)
+        for filename in filenames:
+            if not filename.endswith(suffix):
+                continue
+            file_path = current / filename
+            if file_path.is_symlink():
+                continue
+            yield file_path
 
 DEPENDENCY_FILENAMES = (
     "requirements.txt",
@@ -88,7 +115,7 @@ def repo_has_python_code(repo_path: Path, dependency_files: dict[str, str] | Non
     dependency file, or at least one .py file on disk."""
     if dependency_files:
         return True
-    return next(repo_path.rglob("*.py"), None) is not None
+    return next(_walk_real_files(repo_path, ".py"), None) is not None
 
 
 @dataclass(frozen=True)
@@ -215,7 +242,7 @@ def find_dependency_files(repo_path: Path) -> dict[str, str]:
     found: dict[str, str] = {}
     for name in DEPENDENCY_FILENAMES:
         candidate = repo_path / name
-        if candidate.is_file():
+        if candidate.is_file() and not candidate.is_symlink():
             try:
                 found[name] = candidate.read_text(encoding="utf-8", errors="replace")
             except OSError:
@@ -225,13 +252,17 @@ def find_dependency_files(repo_path: Path) -> dict[str, str]:
 
 def find_notebooks(repo_path: Path) -> tuple[str, ...]:
     return tuple(
-        sorted(str(p.relative_to(repo_path)) for p in repo_path.rglob("*.ipynb") if ".ipynb_checkpoints" not in p.parts)
+        sorted(
+            str(p.relative_to(repo_path))
+            for p in _walk_real_files(repo_path, ".ipynb")
+            if ".ipynb_checkpoints" not in p.parts
+        )
     )
 
 
 def find_entrypoint_candidates(repo_path: Path) -> tuple[str, ...]:
     candidates: set[str] = set()
-    for py_file in repo_path.rglob("*.py"):
+    for py_file in _walk_real_files(repo_path, ".py"):
         if any(part.startswith(".") for part in py_file.parts):
             continue
         rel = str(py_file.relative_to(repo_path))
