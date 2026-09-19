@@ -2433,4 +2433,18 @@ with it.
   negative control confirming a file just under the cap still matches normally.
 - Full suite: **250 passed, 6 skipped** (up from 248/6).
 
+**Related observation, not fixed — a judgment call, not a bug:** checked whether
+`docker-compose.yml` sets any container-level resource limit (`mem_limit`/`cpus`) as a
+backstop beyond this application-level fix. It doesn't, for either service. The
+application-level cap just added is the more precise, correctly-targeted fix for the
+*specific* vulnerability found (it only rejects the actual oversized files, rather than
+capping the whole container's memory and risking killing the process during some
+other, legitimate, memory-heavier operation) — but a container-level limit would still
+be reasonable, standard defense-in-depth against *other*, not-yet-found memory
+pressure. Not added here because the "right" number needs real operational data
+(typical prompt sizes, concurrent request load) this session has no way to measure
+without live traffic — picking one blind risks being either too tight (killing
+legitimate runs) or too loose (no real protection), the same reasoning already applied
+to the DEMO_MODE and cost-guard-model-pricing gaps elsewhere in this file.
+
 ---
