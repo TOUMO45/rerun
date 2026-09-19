@@ -134,3 +134,59 @@ Mock-injection detector originally required the mocked name to appear *after*
 assignment form — fixed to a per-line co-occurrence check instead of an ordered regex.
 
 ---
+
+## 2026-09-19 — passport.py + scripts/verify_passport.py implemented and green (§6.3)
+
+**Decision:** `backend/app/services/passport.py` computes a SHA-256 hash over a
+canonical (sorted-keys, no-whitespace, ASCII-only JSON) bundle of exactly seven fields:
+`repo_url`, `commit_sha`, `build_plan`, `full_log`, `diffs`, `verdict`, `timestamp`. The
+standalone judge-facing verifier, `scripts/verify_passport.py`, **intentionally
+duplicates** this canonicalization logic rather than importing the backend package —
+the point of an independent verifier is that it doesn't require installing or trusting
+RERUN's own codebase to check RERUN's own claim. A cross-check test
+(`test_standalone_script_hash_matches_backend_module`) guarantees the duplicate can
+never silently drift from the original without a test failing.
+
+**Result:** `pytest tests/test_passport.py -v` — 10/10 passed, including a subprocess
+invocation of the actual standalone script against a real tamper-then-detect scenario
+(`test_standalone_script_cli_detects_tampering`), not just an in-process function call.
+
+---
+
+## 2026-09-19 — cost_guard.py implemented and green (§9)
+
+**Decision:** `backend/app/services/cost_guard.py` is a plain in-memory `CostGuard`
+dataclass enforcing three ceilings in code (not just docs): a daily USD spend ceiling
+(rolls over at local midnight), a per-run repair-attempt ceiling (§5.4's max 3,
+counting REJECTs as consumed attempts, matching the repair loop's real behavior), and a
+per-attempt token ceiling. Persisting the day's running spend across process restarts
+is left to the orchestrator (e.g. the SQLite store) — this module owns only the
+arithmetic and the refusal, not durability, to keep it a pure/simple unit.
+
+**Result:** `pytest tests/test_cost_guard.py -v` — 9/9 passed.
+
+---
+
+## 2026-09-19 — intake.py implemented and green (§3 must-have #1, half of recon)
+
+**Decision:** `backend/app/services/intake.py` splits repo intake into a thin
+network/subprocess boundary (`clone_repo`: shallow `git clone` + `git rev-parse HEAD`,
+read-only per §2.5 — never pushes or authenticates) and pure parsing functions for
+`requirements.txt`, `setup.py` (`install_requires`), `environment.yml` (conda + nested
+pip deps), `pyproject.toml`, notebook discovery, and entrypoint-candidate detection
+(name hints like `train.py`/`main.py` plus a regex for `if __name__ == "__main__":`).
+The *semantic* judgment of which candidate is the real entrypoint is deliberately left
+to `recon.py`'s Nemotron Nano call (not yet built) — this module only gathers facts a
+human could read directly off disk, matching the "explicit code, not a hidden
+abstraction" spirit of §2.8's anti-goals.
+
+**Test approach:** `clone_repo` is tested against a **real local git repository**
+created on disk in the test (`git init` + real commits in a pytest `tmp_path`), not a
+mock — proving the subprocess/git integration actually works end-to-end, consistent
+with the directive's "never report done without a command that actually runs" rule.
+
+**Result:** `pytest tests/test_intake.py -v` — 16/16 passed. Full backend suite:
+`pytest -v` — **83/83 passed** across classifier, tamper_gate, passport, cost_guard,
+and intake.
+
+---
