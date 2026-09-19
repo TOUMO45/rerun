@@ -33,7 +33,7 @@ from pathlib import Path
 
 from app.services import adjudicator, classifier, passport, planner, recon, repairer, tavily
 from app.services.cost_guard import CostGuard, CostLimitExceeded
-from app.services.intake import RepoIntake
+from app.services.intake import RepoIntake, read_text_capped
 from app.services.model_client import NebiusChatClient
 from app.services.sandbox import SandboxError, SandboxRunResult, run_build_and_execute
 from app.services.tamper_gate import check_patch
@@ -239,7 +239,9 @@ def run_pipeline(
     for candidate in intake_result.entrypoint_candidates:
         candidate_path = workdir / candidate
         if candidate_path.is_file():
-            entrypoint_source[candidate] = candidate_path.read_text(encoding="utf-8", errors="replace")
+            content = read_text_capped(candidate_path)
+            if content is not None:
+                entrypoint_source[candidate] = content
 
     _log("[recon] calling Nemotron Nano")
     recon_result = recon.run_recon(
@@ -347,7 +349,7 @@ def run_pipeline(
 
             target_file = _target_file_for(classification, recon_result.entrypoint, intake_result.dependency_files)
             target_path = workdir / target_file
-            target_content = target_path.read_text(encoding="utf-8", errors="replace") if target_path.is_file() else ""
+            target_content = (read_text_capped(target_path) or "") if target_path.is_file() else ""
 
             try:
                 tavily_context = tavily.fetch_context(deps.tavily_client, classification.code, classification.evidence)

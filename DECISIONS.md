@@ -2392,3 +2392,45 @@ pointing outside themselves.
   symlink, so nothing needed to change for them).
 
 ---
+
+## 2026-09-19 — Bug found and fixed: unbounded file reads during intake could exhaust backend memory
+
+**Context:** continuing the broad sweep, checked resource exhaustion: does anything read
+an entire repo-controlled file into memory with no size limit, and could a malicious
+repo exploit this before the sandbox (or any other safety mechanism) is even involved?
+Also checked the zip-bomb/decompression-bomb class — no archive is ever extracted from
+repo content anywhere in this codebase (git clone handles the repo's own compression
+internally; nothing else unzips/untars anything), so that class doesn't apply here.
+
+**Bug, reproduced live:** grepped every `read_text()` call in `intake.py` and
+`orchestrator.py` — four call sites, all reading a repo-controlled file's full content
+into memory with **no size check whatsoever**: `find_dependency_files`,
+`find_entrypoint_candidates` (reads *every* `.py` file in the repo to check for a
+`__main__` guard), and orchestrator.py's `entrypoint_source`/`target_content` reads for
+the recon/repair prompts. Created a genuine 96MB `.py` file with no `__main__` guard
+(a single moderate example, not an attempt to actually exhaust anything) and confirmed
+`find_entrypoint_candidates` read the whole thing with zero protection. This runs during
+**intake** — directly on the RERUN backend host, triggered by the very first, public
+`POST /runs` call — before any sandbox isolation, cost-guard check, or tamper-gate rule
+even applies. A repo with several very large files (or one much larger one) could
+plausibly exhaust backend memory from this step alone, independent of every other safety
+mechanism this session has already verified elsewhere in the pipeline.
+
+**Fixed:** added `read_text_capped()` to `intake.py` (a shared utility, imported into
+`orchestrator.py` too) — checks a file's size via a cheap `stat()` first and refuses
+(returns `None`) rather than reading anything above `_MAX_SCANNED_FILE_BYTES` (2MB,
+generous for genuine hand-written source — real dependency/entrypoint files are
+essentially always well under this). Replaced all four unbounded `read_text()` calls
+with it.
+
+**Verified:**
+- The exact 96MB file is now correctly refused (`read_text_capped` returns `None`,
+  `find_entrypoint_candidates` correctly excludes it) before any content is read.
+- A normal, small legitimate file is completely unaffected.
+- Added `test_find_entrypoint_candidates_skips_a_file_larger_than_the_read_cap` (a real
+  file genuinely over the cap, with a real `__main__` guard buried inside it — proving
+  the file is excluded by *size*, not because the guard itself was hard to find) and a
+  negative control confirming a file just under the cap still matches normally.
+- Full suite: **250 passed, 6 skipped** (up from 248/6).
+
+---

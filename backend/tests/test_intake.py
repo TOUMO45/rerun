@@ -119,6 +119,43 @@ def test_find_entrypoint_candidates_negative_control_helper_excluded(fake_paper_
     assert "utils.py" not in candidates
 
 
+def test_find_entrypoint_candidates_skips_a_file_larger_than_the_read_cap(tmp_path):
+    """Found live during this session's audit: every read_text() call in
+    this module read a repo-controlled file's full content into memory
+    with no size check at all, before any sandbox isolation, cost-guard
+    check, or tamper-gate rule even runs - intake happens directly on
+    the RERUN backend host. Confirmed reading a genuine 96MB file
+    completed with zero protection; a repo with several very large files
+    could exhaust backend memory from the very first, public POST /runs
+    step alone. This is a real file (not mocked), genuinely larger than
+    the cap, with a real __main__ guard inside it that would otherwise
+    make it match.
+    """
+    from app.services.intake import read_text_capped
+
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    huge = repo / "huge.py"
+    # A file whose ON-DISK size is genuinely over the 2MB cap (not an
+    # expression that would merely produce a large string at runtime),
+    # with a real __main__ guard buried inside - if size weren't
+    # enforced, this would still correctly match.
+    padding = "# padding\n" * 300_000
+    huge.write_text(padding + "if __name__ == '__main__':\n    pass\n", encoding="utf-8")
+    assert huge.stat().st_size > 2_000_000
+
+    assert find_entrypoint_candidates(repo) == ()
+    assert read_text_capped(huge) is None
+
+
+def test_find_entrypoint_candidates_negative_control_a_file_under_the_cap_still_matches(tmp_path):
+    repo = tmp_path / "repo"
+    repo.mkdir()
+    normal = repo / "small.py"
+    normal.write_text("if __name__ == '__main__':\n    pass\n", encoding="utf-8")
+    assert find_entrypoint_candidates(repo) == ("small.py",)
+
+
 # --- find_notebooks -----------------------------------------------------------
 
 

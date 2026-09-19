@@ -185,7 +185,7 @@ This project is being built in phases (see the directive, §11). Current state:
   what this gap needed. Verified live against a real browser with realistic delays, not
   just unit-tested.
 
-Backend test suite: **248 passed, 6 skipped** (`cd backend && pytest -v`) — reconfirmed
+Backend test suite: **250 passed, 6 skipped** (`cd backend && pytest -v`) — reconfirmed
 from a genuinely fresh clone, not just the working session directory. 3 skips are the
 real Nebius Sandboxes integration test, honestly gated on `NEBIUS_API_KEY`; 1 is a
 network-dependent corpus-freshness check (`RERUN_VERIFY_CORPUS_NETWORK=1` to run it —
@@ -194,7 +194,7 @@ regression tests (see the security fix below) that skip only when the machine ru
 them can't create a symlink without elevated privileges — they run and verify for real
 on Linux CI or any properly-privileged environment.
 
-Self-audit passes found and fixed **twenty-eight** real bugs/gaps this session (full detail in
+Self-audit passes found and fixed **twenty-nine** real bugs/gaps this session (full detail in
 `DECISIONS.md`). Three are worth calling out specifically because unit tests
 structurally could never have caught them — only running the real, deployed Docker image
 did:
@@ -341,6 +341,21 @@ outside the intended directory (establishing this wasn't a purely theoretical co
 added two permanent regression tests using real symlinks, honestly gated to skip (not
 fake-pass) on a machine that can't create one without elevated privileges — they run for
 real on Linux CI, where the actual threat model lives.
+
+The same sweep's resource-exhaustion check also found something real: **every file read
+during intake had no size limit at all.** `find_dependency_files`,
+`find_entrypoint_candidates` (reads *every* `.py` file in the repo to check for a
+`__main__` guard), and the recon/repair prompt file reads in `orchestrator.py` all read
+a repo-controlled file's full content into memory unconditionally. This runs directly on
+the RERUN backend host during intake, triggered by the very first public `POST /runs`
+call, before any sandbox isolation, cost-guard check, or tamper-gate rule applies.
+Confirmed by creating a real 96MB file and watching it get fully read with zero
+protection — a repo with several very large files could plausibly exhaust backend
+memory from this step alone. Fixed with a shared `read_text_capped()` helper (a cheap
+`stat()` check before reading, refusing anything over 2MB — generous for genuine
+hand-written source) applied to all four read sites; verified the exact oversized file
+is now correctly refused while normal files are unaffected, with a real file's size (not
+a mock) driving both the positive and negative-control tests.
 
 Other fixes from this session's audits: both halves of §9's cost guard (daily USD
 ceiling, per-attempt token ceiling) were implemented and unit-tested in isolation but

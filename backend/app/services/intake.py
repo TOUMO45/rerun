@@ -49,6 +49,33 @@ def _walk_real_files(repo_path: Path, suffix: str):
                 continue
             yield file_path
 
+
+# Found live: every read_text() call in this module (and the analogous
+# ones in orchestrator.py) read a repo-controlled file's FULL content
+# into memory with no size check at all, before any sandbox isolation,
+# cost-guard check, or tamper-gate rule even runs — intake happens
+# directly on the RERUN backend host. Confirmed reading a genuine 96MB
+# file (a single moderately-sized example, not an attempt to actually
+# exhaust anything) completes with no protection whatsoever; a repo with
+# several very large files (or one much larger one) could exhaust
+# backend memory from the very first, public POST /runs step alone. Real
+# dependency/entrypoint source files are essentially always well under a
+# few hundred KB; this cap is generous, not tight.
+_MAX_SCANNED_FILE_BYTES = 2_000_000
+
+
+def read_text_capped(path: Path, max_bytes: int = _MAX_SCANNED_FILE_BYTES) -> str | None:
+    """Reads a file's text content, refusing (returning None) if it's
+    larger than `max_bytes` — checked with a cheap `stat()` first, never
+    by reading the whole file and discarding it afterward."""
+    try:
+        if path.stat().st_size > max_bytes:
+            return None
+        return path.read_text(encoding="utf-8", errors="replace")
+    except OSError:
+        return None
+
+
 DEPENDENCY_FILENAMES = (
     "requirements.txt",
     "requirements-dev.txt",
@@ -243,10 +270,9 @@ def find_dependency_files(repo_path: Path) -> dict[str, str]:
     for name in DEPENDENCY_FILENAMES:
         candidate = repo_path / name
         if candidate.is_file() and not candidate.is_symlink():
-            try:
-                found[name] = candidate.read_text(encoding="utf-8", errors="replace")
-            except OSError:
-                continue
+            content = read_text_capped(candidate)
+            if content is not None:
+                found[name] = content
     return found
 
 
@@ -269,9 +295,8 @@ def find_entrypoint_candidates(repo_path: Path) -> tuple[str, ...]:
         if py_file.name in ENTRYPOINT_NAME_HINTS:
             candidates.add(rel)
             continue
-        try:
-            text = py_file.read_text(encoding="utf-8", errors="replace")
-        except OSError:
+        text = read_text_capped(py_file)
+        if text is None:
             continue
         if re.search(r"""if\s+__name__\s*==\s*['"]__main__['"]\s*:""", text):
             candidates.add(rel)
