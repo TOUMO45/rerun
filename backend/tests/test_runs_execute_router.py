@@ -14,6 +14,7 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 
+from app.services.cost_guard import get_shared_cost_guard
 from app.services.orchestrator import AttemptRecord, PipelineResult
 from app.services.passport import verify_certificate
 
@@ -169,3 +170,58 @@ def test_get_certificate_404_before_execution(client, fake_paper_repo):
     created = client.post("/runs", json={"repo_url": str(fake_paper_repo)}).json()
     response = client.get(f"/runs/{created['id']}/certificate")
     assert response.status_code == 404
+
+
+def test_daily_cost_ceiling_is_shared_across_separate_execute_requests(client, fake_paper_repo, monkeypatch):
+    """A *daily* ceiling means nothing if every request builds its own
+    fresh CostGuard — this proves execute_run() uses the process-wide
+    shared instance (cost_guard.get_shared_cost_guard()), not a new one
+    per call, by recording real spend on the first request and asserting
+    it's still visible to the guard on a second, independent request.
+    """
+
+    class _FakeSettings:
+        nebius_configured = True
+        nebius_api_key = "fake-key-for-construction-only"
+        nebius_base_url = "https://api.tokenfactory.nebius.com/v1"
+        nebius_model_recon = "nvidia/nemotron-3-nano"
+        nebius_model_repairer = "nvidia/nemotron-3-super"
+        nebius_model_adjudicator = "nvidia/nemotron-3-ultra"
+        nebius_model_planner = "nvidia/nemotron-3-super"
+        nebius_sandbox_wall_clock_seconds = 60
+        max_attempts_per_run = 3
+        daily_cost_ceiling_usd = 100.0
+        tavily_configured = False
+
+    def _fake_run_pipeline_that_spends(**kwargs):
+        # Simulates what the real orchestrator does: record real spend
+        # against whatever cost_guard it was actually handed.
+        kwargs["cost_guard"].record_spend(3.0)
+        return PipelineResult(
+            verdict="RUNS_CLEAN",
+            taxonomy_code=None,
+            indeterminate_reason="",
+            attempts=(),
+            build_plan={},
+            full_log="[fake]",
+            certificate_prose="ok. Verifies that the artifact executes.",
+            reproduction_passport_hash="a" * 64,
+            timestamp=datetime.now(timezone.utc).isoformat(),
+            repo_url=kwargs["repo_url"],
+            commit_sha=kwargs["commit_sha"],
+        )
+
+    monkeypatch.setattr("app.routers.runs.get_settings", lambda: _FakeSettings())
+    monkeypatch.setattr("app.routers.runs.run_pipeline", _fake_run_pipeline_that_spends)
+
+    run_a = client.post("/runs", json={"repo_url": str(fake_paper_repo)}).json()
+    run_b = client.post("/runs", json={"repo_url": str(fake_paper_repo)}).json()
+
+    client.post(f"/runs/{run_a['id']}/execute")
+    assert get_shared_cost_guard().spent_today_usd == 3.0
+
+    client.post(f"/runs/{run_b['id']}/execute")
+    # If execute_run built a fresh CostGuard each time, this would still
+    # read 3.0 (or reset to 3.0) instead of accumulating — the whole point
+    # of this test.
+    assert get_shared_cost_guard().spent_today_usd == 6.0

@@ -17,6 +17,9 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from datetime import date
+from functools import lru_cache
+
+from app.config import get_settings
 
 
 class CostLimitExceeded(RuntimeError):
@@ -92,3 +95,27 @@ class CostGuard:
                 f"requested {requested_tokens} tokens exceeds the "
                 f"{self.max_tokens_per_attempt}-token per-attempt ceiling"
             )
+
+
+@lru_cache
+def get_shared_cost_guard() -> CostGuard:
+    """The one `CostGuard` instance the whole app shares for the process's
+    lifetime — a *daily* ceiling means nothing if every caller constructs
+    its own fresh guard (this module's docstring always said callers must
+    keep "a single guard instance"; nothing did until this function
+    existed, per DECISIONS.md). `lru_cache` gives a process-wide singleton
+    the same way `app.config.get_settings()` already does. This is
+    sufficient for the directive's fixed single-tenant, zero-ops SQLite
+    deployment (§4.1) — a multi-process/multi-worker deployment would need
+    the running total persisted somewhere shared (e.g. the SQLite store),
+    which is out of scope here and would be a real, separate piece of work,
+    not a one-line change.
+
+    Tests that need isolation should call `get_shared_cost_guard.cache_clear()`
+    (an `lru_cache`-provided method) between cases — see `conftest.py`.
+    """
+    settings = get_settings()
+    return CostGuard(
+        daily_cost_ceiling_usd=settings.daily_cost_ceiling_usd,
+        max_attempts_per_run=settings.max_attempts_per_run,
+    )

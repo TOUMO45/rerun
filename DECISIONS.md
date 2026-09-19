@@ -812,6 +812,62 @@ to a hackathon prize track rather than internal engineering discipline.
 
 ---
 
+## 2026-09-19 — Bug found and fixed: the "daily" cost ceiling reset to full on every request
+
+**User checkpoint:** after six consecutive wiring-gap fixes, asked the user directly
+whether to keep self-auditing, move to a specific feature, or stop — chose to keep
+self-auditing, since the pattern had a 6-for-6 hit rate on real bugs.
+
+**Bug:** Re-reading `routers/runs.py::execute_run()` line by line (rather than grepping
+for a missing call site this time — the call sites for `check_daily_budget`/
+`record_spend` were now correctly present after the earlier fix) found: `cost_guard =
+CostGuard(daily_cost_ceiling_usd=..., max_attempts_per_run=...)` was constructed **fresh,
+inline, on every single call to `execute_run`**. Since `CostGuard._spent_today_usd`
+starts at `0.0` for a new instance, this means the "daily" ceiling silently reset to
+full on every HTTP request — a user (or judge) triggering 50 executions in one day would
+each get a fresh, full budget, while the code believed it was enforcing a single shared
+$25/day cap. The daily-ceiling arithmetic itself was correct and already proven correct
+by both `test_cost_guard.py` and the orchestrator-level tests added in the prior two
+entries — none of those tests could ever have caught this, because they all construct
+one `CostGuard` and exercise it directly; the defect was entirely in application-level
+lifecycle (who owns the instance, for how long), a layer none of the existing tests
+touched. `cost_guard.py`'s own module docstring had said all along that "the orchestrator
+is responsible for persisting/loading the day's running total... this module only owns
+the arithmetic" — the docstring correctly anticipated the requirement; nothing had
+actually honored it.
+
+**Fixed:** added `cost_guard.get_shared_cost_guard()`, an `@lru_cache`d process-wide
+singleton — the same pattern `app.config.get_settings()` already uses for exactly this
+reason. `execute_run()` now calls it instead of constructing a `CostGuard` inline. This
+is deliberately scoped to what the directive's actual deployment model needs (§4.1:
+single-tenant SQLite, zero ops) — a real multi-process/multi-worker deployment would
+need the running total persisted somewhere shared (the SQLite store itself, most
+naturally), which is flagged in the new function's docstring as separate, real future
+work, not something this one-line-feeling fix silently also solved.
+
+**Test-isolation consequence, handled explicitly:** an `lru_cache`d singleton shared
+across the whole test process would otherwise leak spend from one test into every test
+that runs after it — added an autouse `conftest.py` fixture that clears the cache before
+and after every test. This is exactly the kind of collateral concern a
+process-singleton fix has to account for, not an afterthought.
+
+**Test that actually proves the fix, not just exercises the code path:**
+`test_daily_cost_ceiling_is_shared_across_separate_execute_requests` calls `POST
+/runs/{id}/execute` twice, against two different runs, with a fake `run_pipeline` that
+records $3 of real spend each time — then asserts the shared guard shows **$6** total
+after both, not $3 twice. Before this fix, that assertion would have seen $0.0 (a fresh,
+untouched guard, since the test reads `get_shared_cost_guard()` directly rather than
+whatever `execute_run` happened to construct) — confirming this test would have caught
+the original bug, not merely passed cosmetically alongside it.
+
+**Result:** `pytest tests/test_runs_execute_router.py -v` — 6/6 passed. Full backend
+suite: **204 passed, 4 skipped**. Seventh real wiring-gap bug this session's audits have
+caught — again a component (the arithmetic) fully correct and tested, with the actual
+defect in who owns and how long an instance lives, a dimension isolated unit tests
+structurally cannot see.
+
+---
+
 ## 2026-09-19 — Bug found and fixed: docker-compose.yml referenced Dockerfiles that didn't exist
 
 **Bug:** `docker-compose.yml` was written early (Phase 0 scaffolding, before either

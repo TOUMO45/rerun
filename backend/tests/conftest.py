@@ -15,6 +15,18 @@ from sqlalchemy.pool import StaticPool
 from app.db import get_db
 from app.main import app
 from app.models import Base
+from app.services.cost_guard import get_shared_cost_guard
+
+
+@pytest.fixture(autouse=True)
+def _reset_shared_cost_guard():
+    """`get_shared_cost_guard()` is an `lru_cache`d process-wide singleton
+    by design (see cost_guard.py) — without this, one test's recorded
+    spend/attempts would leak into every test that runs after it in the
+    same pytest process."""
+    get_shared_cost_guard.cache_clear()
+    yield
+    get_shared_cost_guard.cache_clear()
 
 
 def _git(*args: str, cwd) -> None:

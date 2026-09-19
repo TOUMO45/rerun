@@ -21,7 +21,7 @@ from app.schemas import CertificateOut, RunCreate, RunOut
 from tavily import TavilyClient
 
 from app.services import intake
-from app.services.cost_guard import CostGuard
+from app.services.cost_guard import get_shared_cost_guard
 from app.services.model_client import NebiusChatClient
 from app.services.orchestrator import PipelineDeps, PipelineResult, run_pipeline
 
@@ -161,10 +161,9 @@ def execute_run(run_id: str, db: Session = Depends(get_db)) -> Run:
         raise HTTPException(status_code=422, detail=f"re-clone for execution failed: {exc}") from exc
 
     deps = _build_pipeline_deps(settings)
-    cost_guard = CostGuard(
-        daily_cost_ceiling_usd=settings.daily_cost_ceiling_usd,
-        max_attempts_per_run=settings.max_attempts_per_run,
-    )
+    # A process-wide singleton — a *daily* ceiling means nothing if every
+    # request gets its own fresh guard (see cost_guard.get_shared_cost_guard).
+    cost_guard = get_shared_cost_guard()
 
     result = run_pipeline(
         repo_url=run.repo_url,
