@@ -183,7 +183,14 @@ def run_pipeline(
     log_lines.append(f"[planner] build plan: {plan.as_dict()}")
 
     def _execute(current_workdir: Path) -> SandboxRunResult:
-        return deps.sandbox_runner(
+        # §9: the daily cost ceiling must actually stop spend, not just be
+        # documented. There's no pre-flight cost quote from the sandbox
+        # API, so this refuses to start a step at all once today's real
+        # recorded spend has already reached the ceiling, and records the
+        # step's real cost (SandboxRunResult.total_cost_usd, sourced from
+        # Nebius's own per-run ContreeResult.cost) immediately after.
+        cost_guard.check_daily_budget(0.0)
+        result = deps.sandbox_runner(
             api_key=deps.sandbox_api_key,
             base_image=plan.base_image,
             install_commands=plan.as_shell_steps(),
@@ -191,10 +198,16 @@ def run_pipeline(
             wall_clock_seconds=deps.sandbox_wall_clock_seconds,
             upload_files=_collect_upload_files(current_workdir),
         )
+        cost_guard.record_spend(result.total_cost_usd)
+        log_lines.append(
+            f"[cost_guard] recorded ${result.total_cost_usd:.4f} sandbox spend, "
+            f"${cost_guard.remaining_today_usd:.4f} remaining today"
+        )
+        return result
 
     try:
         sandbox_result = _execute(workdir)
-    except SandboxError as exc:
+    except (SandboxError, CostLimitExceeded) as exc:
         log_lines.append(f"[sandbox] execution error: {exc}")
         return _finalize(
             verdict="TIMEOUT" if "wall clock" in str(exc) else "NOT_ATTEMPTABLE",
@@ -277,7 +290,14 @@ def run_pipeline(
 
             log_lines.append(f"[repair {attempt_number}] tamper gate PASS — applying and re-executing")
             deps.apply_diff(workdir, proposal.diff_text)
-            rerun_result = _execute(workdir)
+            try:
+                rerun_result = _execute(workdir)
+            except CostLimitExceeded as exc:
+                log_lines.append(f"[repair {attempt_number}] stopped: daily cost ceiling reached: {exc}")
+                attempts.append(
+                    AttemptRecord(attempt_number, proposal.diff_text, "PASS", (), None, "", "")
+                )
+                break
             log_lines.append(f"[repair {attempt_number}] re-execution exit_code={rerun_result.final.exit_code}")
 
             attempts.append(

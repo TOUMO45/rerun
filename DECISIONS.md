@@ -662,6 +662,48 @@ a real account to resolve, not more documentation reading).
 
 ---
 
+## 2026-09-19 — Bug found and fixed: orchestrator never actually enforced the daily cost ceiling
+
+**Bug:** A self-audit re-read of `orchestrator.py` against §9's own requirement ("hard
+daily cost ceiling on model + sandbox spend... enforced in `cost_guard.py`, not just
+documented") found that `run_pipeline()` only ever called
+`cost_guard.check_attempt_budget()`/`record_attempt()` — the per-run attempt-count
+ceiling. It never once called `check_daily_budget()` or `record_spend()`, even though
+`sandbox.SandboxRunResult.total_cost_usd` already carries a real cost figure straight
+from Nebius's own `ContreeResult.cost` (see the `sandbox.py` entry above). The daily USD
+ceiling was fully implemented and unit-tested in isolation in `cost_guard.py` and simply
+never wired into the one place that actually spends money — exactly the same shape of
+gap as the `certificate_prose` and cost-ceiling-adjacent bugs found earlier this
+session, caught the same way: by re-reading the code that claims to satisfy a directive
+requirement and checking whether it's actually true, not by re-reading the requirement's
+prose.
+
+**Fixed:** `_execute()` (the orchestrator's single sandbox-call chokepoint) now calls
+`cost_guard.check_daily_budget(0.0)` before every sandbox invocation — refusing to start
+a step at all once today's recorded spend has already reached the ceiling — and
+`cost_guard.record_spend(result.total_cost_usd)` immediately after, so every subsequent
+check reflects real spend. There is no pre-flight cost quote from the sandbox API, so
+"has the ceiling already been reached" (checking `+0.0`) is the correct question to ask
+before a step, not an estimate of that step's own cost. A `CostLimitExceeded` on the
+very first execution finalizes as `NOT_ATTEMPTABLE` (closest existing verdict to "an
+operational limit, not a code defect, stopped this"); one raised on a mid-repair-loop
+re-execution stops the loop gracefully (mirroring the existing attempt-budget-exhausted
+pattern) and finalizes as `BLOCKED` with the last known taxonomy code, rather than
+crashing or silently continuing to spend past the ceiling.
+
+**Tests added, not just the fix:** `test_sandbox_cost_is_actually_recorded_in_the_cost_guard`
+asserts the guard's own running total reflects the sandbox's real reported cost, not just
+that a method was called; `test_daily_cost_ceiling_already_exhausted_refuses_to_start_execution`
+proves the sandbox runner is never even invoked when the budget is already blown;
+`test_daily_cost_ceiling_hit_mid_repair_stops_the_loop_without_crashing` proves a
+mid-loop ceiling breach stops the re-execution that would have exceeded it, with the
+real reason recorded in the certificate's log — not a crash, not a silent continuation.
+
+**Result:** `pytest tests/test_orchestrator.py -v` — 10/10 passed. Full backend suite:
+**185 passed, 4 skipped**.
+
+---
+
 ## 2026-09-19 — Bug found and fixed: docker-compose.yml referenced Dockerfiles that didn't exist
 
 **Bug:** `docker-compose.yml` was written early (Phase 0 scaffolding, before either

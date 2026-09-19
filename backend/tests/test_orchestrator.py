@@ -17,6 +17,8 @@ import json
 import textwrap
 from pathlib import Path
 
+import pytest
+
 from app.services.cost_guard import CostGuard
 from app.services.intake import RepoIntake
 from app.services.orchestrator import PipelineDeps, run_pipeline
@@ -56,8 +58,8 @@ class _FakeSandboxRunner:
         return self._results.pop(0)
 
 
-def _sandbox_result(exit_code: int, stdout: str = "", stderr: str = "") -> SandboxRunResult:
-    return SandboxRunResult(steps=(StepResult("run", exit_code, stdout, stderr, 1.0, 0.001),))
+def _sandbox_result(exit_code: int, stdout: str = "", stderr: str = "", cost: float = 0.001) -> SandboxRunResult:
+    return SandboxRunResult(steps=(StepResult("run", exit_code, stdout, stderr, 1.0, cost),))
 
 
 def _intake(entrypoint_content: dict[str, str], dependency_files: dict[str, str] | None = None) -> RepoIntake:
@@ -402,3 +404,133 @@ def test_tampered_certificate_fails_verification():
     }
     certificate["full_log"] = certificate["full_log"] + "\n(tampered)"
     assert verify_certificate(certificate) is False
+
+
+# --- §9 cost guard: daily ceiling must actually stop spend, not just be
+# documented ------------------------------------------------------------
+
+
+def test_sandbox_cost_is_actually_recorded_in_the_cost_guard():
+    train_py = "def run():\n    print('ok')\n\nrun()\n"
+    import tempfile
+
+    with tempfile.TemporaryDirectory() as d:
+        workdir = Path(d)
+        _write_files(workdir, {"train.py": train_py})
+        intake = _intake({"train.py": train_py})
+
+        recon_client = _FakeChatClient([json.dumps({"entrypoint": "train.py", "confidence": 0.9})])
+        sandbox_runner = _FakeSandboxRunner([_sandbox_result(0, stdout="ok\n", cost=0.42)])
+        deps = _base_deps(recon_client, _FakeChatClient([]), None, sandbox_runner)
+        cost_guard = CostGuard(daily_cost_ceiling_usd=100)
+
+        run_pipeline(
+            repo_url="https://example.com/repo",
+            commit_sha="a" * 40,
+            workdir=workdir,
+            intake_result=intake,
+            deps=deps,
+            cost_guard=cost_guard,
+            run_id="run-8",
+        )
+
+    # Not just "was called" — the guard's own running total actually
+    # reflects the sandbox's real reported cost.
+    assert cost_guard.spent_today_usd == pytest.approx(0.42)
+
+
+def test_daily_cost_ceiling_already_exhausted_refuses_to_start_execution():
+    train_py = "def run():\n    print('ok')\n\nrun()\n"
+    import tempfile
+
+    with tempfile.TemporaryDirectory() as d:
+        workdir = Path(d)
+        _write_files(workdir, {"train.py": train_py})
+        intake = _intake({"train.py": train_py})
+
+        recon_client = _FakeChatClient([json.dumps({"entrypoint": "train.py", "confidence": 0.9})])
+        # Must never be called: the daily budget is already spent before
+        # run_pipeline is even invoked.
+        sandbox_runner = _FakeSandboxRunner([])
+        deps = _base_deps(recon_client, _FakeChatClient([]), None, sandbox_runner)
+
+        cost_guard = CostGuard(daily_cost_ceiling_usd=1.0)
+        cost_guard.record_spend(1.5)  # already over the ceiling
+
+        result = run_pipeline(
+            repo_url="https://example.com/repo",
+            commit_sha="a" * 40,
+            workdir=workdir,
+            intake_result=intake,
+            deps=deps,
+            cost_guard=cost_guard,
+            run_id="run-9",
+        )
+
+    assert result.verdict == "NOT_ATTEMPTABLE"
+    assert sandbox_runner.calls == []
+
+
+def test_daily_cost_ceiling_hit_mid_repair_stops_the_loop_without_crashing():
+    train_py = textwrap.dedent(
+        """\
+        def evaluate(m):
+            return m
+
+        def run():
+            x = 1 / 0
+            evaluate(None)
+
+        run()
+        """
+    )
+    import tempfile
+
+    with tempfile.TemporaryDirectory() as d:
+        workdir = Path(d)
+        _write_files(workdir, {"train.py": train_py})
+        intake = _intake({"train.py": train_py})
+
+        recon_client = _FakeChatClient(
+            [json.dumps({"entrypoint": "train.py", "confidence": 0.9, "eval_call_names": ["evaluate"]})]
+        )
+        good_diff = _unified_diff(
+            "train.py",
+            train_py,
+            textwrap.dedent(
+                """\
+                def evaluate(m):
+                    return m
+
+                def run():
+                    x = 1
+                    evaluate(None)
+
+                run()
+                """
+            ),
+        )
+        repair_client = _FakeChatClient([json.dumps({"diff": good_diff, "explanation": "fixed the division"})])
+
+        # The initial execution spends the entire daily ceiling for real;
+        # the re-execution after the gate-approved patch must never be
+        # attempted once that ceiling is reached.
+        sandbox_runner = _FakeSandboxRunner(
+            [_sandbox_result(1, stderr="ZeroDivisionError: division by zero", cost=1.5)]
+        )
+        deps = _base_deps(recon_client, repair_client, None, sandbox_runner)
+        cost_guard = CostGuard(daily_cost_ceiling_usd=1.0)
+
+        result = run_pipeline(
+            repo_url="https://example.com/repo",
+            commit_sha="a" * 40,
+            workdir=workdir,
+            intake_result=intake,
+            deps=deps,
+            cost_guard=cost_guard,
+            run_id="run-10",
+        )
+
+    assert result.verdict == "BLOCKED"
+    assert len(sandbox_runner.calls) == 1  # the re-execution never happened
+    assert "cost ceiling" in result.full_log
