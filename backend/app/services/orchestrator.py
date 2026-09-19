@@ -32,6 +32,7 @@ from pathlib import Path
 from app.services import adjudicator, classifier, passport, planner, recon, repairer, tavily
 from app.services.cost_guard import CostGuard, CostLimitExceeded
 from app.services.intake import RepoIntake
+from app.services.model_client import NebiusChatClient
 from app.services.sandbox import SandboxError, SandboxRunResult, run_build_and_execute
 from app.services.tamper_gate import check_patch
 
@@ -151,6 +152,45 @@ class PipelineDeps:
     # NEBIUS_SANDBOX_IMAGE — the base image planner.build_plan() falls back
     # to when recon can't pin an exact Python version from the repo.
     default_sandbox_image: str = "python:3.11-slim"
+
+
+def build_pipeline_deps(settings) -> PipelineDeps:
+    """Build a real `PipelineDeps` from app settings — the one place that
+    knows how to turn `.env` values into actual client objects. Shared by
+    `routers/runs.py::execute_run` (one HTTP request) and
+    `batch/run_single_repo.py` (one Batch Lab job), so a settings-to-deps
+    wiring fix (like the `NEBIUS_SANDBOX_IMAGE`/Tavily fixes logged in
+    DECISIONS.md) only ever needs to happen in one place. `settings` is
+    untyped here rather than importing `app.config.Settings` directly, to
+    keep this usable with the fake settings objects tests already inject.
+    """
+    # One client instance is reused across roles: it's the same
+    # base_url/api_key, only the `model` argument passed per-call differs
+    # (NebiusChatClient.chat_completion takes model as a parameter).
+    client = NebiusChatClient(api_key=settings.nebius_api_key, base_url=settings.nebius_base_url)
+    # Tavily is a should-have enrichment (§5 cut ladder): None when not
+    # configured, and the repair loop already handles that as a normal,
+    # non-fatal state (tavily.fetch_context returns an empty context).
+    tavily_client = None
+    if settings.tavily_configured:
+        from tavily import TavilyClient
+
+        tavily_client = TavilyClient(api_key=settings.tavily_api_key)
+    return PipelineDeps(
+        recon_client=client,
+        recon_model=settings.nebius_model_recon,
+        repair_client=client,
+        repair_model=settings.nebius_model_repairer,
+        adjudicator_client=client,
+        adjudicator_model=settings.nebius_model_adjudicator,
+        planner_client=client,
+        planner_model=settings.nebius_model_planner,
+        sandbox_api_key=settings.nebius_api_key,
+        sandbox_wall_clock_seconds=settings.nebius_sandbox_wall_clock_seconds,
+        max_attempts=settings.max_attempts_per_run,
+        tavily_client=tavily_client,
+        default_sandbox_image=settings.nebius_sandbox_image,
+    )
 
 
 def run_pipeline(

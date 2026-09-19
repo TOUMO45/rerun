@@ -1039,6 +1039,89 @@ Torn down afterward (`docker compose down -v`) — no containers or volumes left
 
 ---
 
+## 2026-09-19 — Batch job entrypoint built; found and fixed an unbounded disk-space leak
+
+**Context:** picked up the more self-contained of two options offered to the user
+(build the batch job entrypoint vs. true SSE streaming) after a self-audit round came
+back clean. Building `run_single_repo.py` required a way to clone a repo pinned to an
+**exact** commit SHA (not just HEAD) — `corpus.yaml` pins one per repo, and a plain
+shallow clone would silently drift to whatever HEAD happens to be on the day the batch
+runs, defeating the pin entirely (flagged as a known gap in the corpus-assembly entry
+above). Added `intake.clone_repo_at_commit()` (`git init` + `git fetch --depth 1 origin
+<sha>` + `git checkout FETCH_HEAD`, since a shallow `git clone` only ever fetches the
+default branch tip, not an arbitrary older commit) and `intake.parse_intake()`
+(extracted from `run_intake` so both it and the new script share the same "parse an
+already-cloned repo" logic instead of duplicating it).
+
+**Testing the new clone function surfaced a genuine git server-policy fact, not a bug in
+my code:** the first test attempt failed with `Server does not allow request for
+unadvertised object` — a plain local git repo doesn't allow fetching arbitrary commit
+SHAs by default; GitHub enables this for public repos via
+`uploadpack.allowReachableSHA1InWant`, which is exactly why the function's own docstring
+already said "requires the remote to allow fetching by commit SHA (GitHub does...)".
+Fixed the *test fixture* (not the implementation) by enabling that same git config on
+`fake_paper_repo`, so the shared fixture genuinely mirrors GitHub's real behavior instead
+of the more restrictive local-git default. Proved the pin actually works, not just that
+it doesn't error: committed a second change to the fixture repo after capturing the
+first commit's SHA, cloned "at the first commit," and asserted the second commit's
+content is genuinely absent — plus a negative control showing a plain HEAD clone
+resolves to a different SHA than the pinned clone.
+
+**While building this, refactored `_build_pipeline_deps` out of `routers/runs.py`
+(private, router-only) into `orchestrator.build_pipeline_deps` (public, shared) — the
+batch script needs the exact same settings-to-`PipelineDeps` wiring the API route uses,
+and duplicating it would have meant every future settings-wiring fix (like the
+`NEBIUS_SANDBOX_IMAGE`/Tavily ones above) needing to happen in two places instead of
+one.**
+
+**Then, testing `run_single_repo.py`'s own cleanup step surfaced a much bigger, real
+bug:** the test asserting the job's temp workdir gets deleted after running failed —
+`shutil.rmtree(workdir, ignore_errors=True)` silently leaves a real git clone's `.git`
+directory behind on Windows, because git writes its own object files read-only and
+Windows refuses to unlink a read-only file; `ignore_errors=True` swallows the resulting
+`PermissionError` with no error surfaced anywhere. Confirmed directly with a standalone
+repro before touching any code. **Then checked whether this pattern existed anywhere
+else with `grep -rn "mkdtemp\|rmtree" app/` and found something far more serious than
+the one Windows-specific case that started this: `routers/runs.py` creates a fresh
+`tempfile.mkdtemp()` workdir in *both* `POST /runs` and `POST /runs/{id}/execute` and
+had never once called `rmtree` on either — every single S1 intake and every single
+execution permanently leaked a full git clone on disk, unbounded, forever, on any
+platform, not just Windows.** This is arguably the most operationally serious bug this
+session found: a production RERUN deployment would have silently filled its disk with
+old clones from ordinary use, with no error, no warning, and no code path that ever
+looked like it should have cleaned up.
+
+**Fixed with one shared, robust helper:** `intake.cleanup_workdir()` uses `shutil.rmtree`
+with an `onerror` callback that clears the read-only bit and retries (verified this
+actually deletes a real git clone's read-only objects, where the naive version left them
+behind) — `onerror` rather than the newer `onexc` since the latter isn't available on
+Python 3.11, this project's floor. Wired into all three leak sites: both `routers/runs.py`
+endpoints (wrapped in `try/finally` around the existing logic) and `run_single_repo.py`'s
+own cleanup.
+
+**Concrete evidence of how real this was:** swept this session's own system temp
+directory for `rerun_run_*`/`rerun_exec_*`/`rerun_batch_*` leftovers accumulated from
+testing before the fix existed — **317 leaked directories**, cleaned up using the very
+fix that now prevents this going forward.
+
+**A second real bug found while wiring the tests:** `run_one_repo`'s `run_pipeline_fn`
+parameter defaulted to `run_pipeline` as a function-signature default — which Python
+binds once at module-import time, not per call. A test's `monkeypatch.setattr(
+"app.batch.run_single_repo.run_pipeline", fake)` therefore had **no effect** on any call
+that relied on the default, and the test made a real, live `openai.AuthenticationError`-
+raising network call with a fake API key instead of exercising the fake. Fixed by
+defaulting to `None` and resolving the real function from the module namespace inside
+the function body instead, so a call-time lookup (which monkeypatching does affect) is
+what actually happens.
+
+**Result:** `pytest tests/test_intake.py tests/test_run_single_repo.py -v` — new tests
+all passing. Full backend suite: **223 passed, 4 skipped**. Twelfth and thirteenth real
+bugs this session's audits have caught — the temp-directory leak in particular is a
+strong argument for why "does the deployed thing actually behave correctly under real,
+repeated use" deserves the same scrutiny as "does it start up and answer one request."
+
+---
+
 ## 2026-09-19 — Bug found and fixed: docker-compose.yml referenced Dockerfiles that didn't exist
 
 **Bug:** `docker-compose.yml` was written early (Phase 0 scaffolding, before either

@@ -42,6 +42,13 @@ def fake_paper_repo(tmp_path):
     _git("init", "-b", "main", cwd=src)
     _git("config", "user.email", "test@example.com", cwd=src)
     _git("config", "user.name", "Test", cwd=src)
+    # GitHub allows fetching a specific commit SHA directly for public
+    # repos (what intake.clone_repo_at_commit relies on); a plain local
+    # git repo does NOT allow this by default (`Server does not allow
+    # request for unadvertised object`). Enabling it here makes this
+    # fixture actually mirror GitHub's real behavior for tests that need
+    # fetch-by-commit, rather than everyone needing to remember to set it.
+    _git("config", "uploadpack.allowReachableSHA1InWant", "true", cwd=src)
 
     (src / "requirements.txt").write_text("numpy==1.26.0\ntorch>=2.0\n# a comment\n-e .\n", encoding="utf-8")
     (src / "train.py").write_text(

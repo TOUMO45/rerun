@@ -9,12 +9,15 @@ without a command that actually runs" ethos.
 
 from __future__ import annotations
 
+import subprocess
+
 import pytest
 
 from app.services.intake import (
     IntakeError,
     RepoNotFoundError,
     clone_repo,
+    clone_repo_at_commit,
     detect_python_version_hint,
     find_dependency_files,
     find_entrypoint_candidates,
@@ -43,6 +46,51 @@ def test_clone_repo_raises_intake_error_for_bad_url(tmp_path):
     dest = tmp_path / "cloned_bad"
     with pytest.raises(IntakeError):
         clone_repo(str(tmp_path / "does_not_exist_repo"), dest)
+
+
+# --- clone_repo_at_commit: pins to a SPECIFIC commit, not just HEAD ---------
+
+
+def test_clone_repo_at_commit_pins_to_an_older_commit_not_head(fake_paper_repo, tmp_path):
+    # fake_paper_repo has one commit at fixture-creation time; capture its
+    # SHA, then add a SECOND commit that changes train.py, so cloning "at
+    # the first commit" is verifiably different from cloning HEAD.
+    first_sha = subprocess.run(
+        ["git", "-C", str(fake_paper_repo), "rev-parse", "HEAD"],
+        capture_output=True, text=True, check=True,
+    ).stdout.strip()
+
+    (fake_paper_repo / "train.py").write_text("def main():\n    return 'CHANGED AFTER PINNED COMMIT'\n", encoding="utf-8")
+    subprocess.run(["git", "add", "-A"], cwd=fake_paper_repo, check=True, capture_output=True)
+    subprocess.run(["git", "commit", "-m", "second commit"], cwd=fake_paper_repo, check=True, capture_output=True)
+
+    dest = tmp_path / "pinned_clone"
+    resolved_sha = clone_repo_at_commit(str(fake_paper_repo), dest, first_sha)
+
+    assert resolved_sha == first_sha
+    assert "CHANGED AFTER PINNED COMMIT" not in (dest / "train.py").read_text(encoding="utf-8")
+
+
+def test_clone_repo_at_commit_negative_control_head_differs_from_pinned(fake_paper_repo, tmp_path):
+    first_sha = subprocess.run(
+        ["git", "-C", str(fake_paper_repo), "rev-parse", "HEAD"],
+        capture_output=True, text=True, check=True,
+    ).stdout.strip()
+
+    (fake_paper_repo / "train.py").write_text("def main():\n    return 'HEAD VERSION'\n", encoding="utf-8")
+    subprocess.run(["git", "add", "-A"], cwd=fake_paper_repo, check=True, capture_output=True)
+    subprocess.run(["git", "commit", "-m", "second commit"], cwd=fake_paper_repo, check=True, capture_output=True)
+
+    head_sha = clone_repo(str(fake_paper_repo), tmp_path / "head_clone", shallow=False)
+    pinned_sha = clone_repo_at_commit(str(fake_paper_repo), tmp_path / "pinned_clone", first_sha)
+
+    assert head_sha != pinned_sha
+    assert pinned_sha == first_sha
+
+
+def test_clone_repo_at_commit_raises_intake_error_for_bad_commit(fake_paper_repo, tmp_path):
+    with pytest.raises(IntakeError):
+        clone_repo_at_commit(str(fake_paper_repo), tmp_path / "bad_commit_clone", "a" * 40)
 
 
 # --- run_intake: end-to-end on the real cloned repo --------------------------

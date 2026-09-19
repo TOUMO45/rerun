@@ -14,44 +14,15 @@ from pathlib import Path
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
-from app.config import Settings, get_settings
+from app.config import get_settings
 from app.db import get_db
 from app.models import Certificate, RepairAttempt, Run
 from app.schemas import CertificateOut, RunCreate, RunOut
-from tavily import TavilyClient
-
 from app.services import intake
 from app.services.cost_guard import get_shared_cost_guard
-from app.services.model_client import NebiusChatClient
-from app.services.orchestrator import PipelineDeps, PipelineResult, run_pipeline
+from app.services.orchestrator import PipelineResult, build_pipeline_deps, run_pipeline
 
 router = APIRouter()
-
-
-def _build_pipeline_deps(settings: Settings) -> PipelineDeps:
-    # One client instance is reused across roles: it's the same
-    # base_url/api_key, only the `model` argument passed per-call differs
-    # (NebiusChatClient.chat_completion takes model as a parameter).
-    client = NebiusChatClient(api_key=settings.nebius_api_key, base_url=settings.nebius_base_url)
-    # Tavily is a should-have enrichment (§5 cut ladder): None when not
-    # configured, and the repair loop already handles that as a normal,
-    # non-fatal state (tavily.fetch_context returns an empty context).
-    tavily_client = TavilyClient(api_key=settings.tavily_api_key) if settings.tavily_configured else None
-    return PipelineDeps(
-        recon_client=client,
-        recon_model=settings.nebius_model_recon,
-        repair_client=client,
-        repair_model=settings.nebius_model_repairer,
-        adjudicator_client=client,
-        adjudicator_model=settings.nebius_model_adjudicator,
-        planner_client=client,
-        planner_model=settings.nebius_model_planner,
-        sandbox_api_key=settings.nebius_api_key,
-        sandbox_wall_clock_seconds=settings.nebius_sandbox_wall_clock_seconds,
-        max_attempts=settings.max_attempts_per_run,
-        tavily_client=tavily_client,
-        default_sandbox_image=settings.nebius_sandbox_image,
-    )
 
 
 def _persist_pipeline_result(run: Run, result: PipelineResult, db: Session) -> None:
@@ -109,29 +80,36 @@ def create_run(payload: RunCreate, db: Session = Depends(get_db)) -> Run:
 
     workdir = Path(tempfile.mkdtemp(prefix="rerun_run_"))
     try:
-        result = intake.run_intake(repo_url, workdir)
-    except intake.IntakeError as exc:
-        raise HTTPException(status_code=422, detail=f"clone failed: {exc}") from exc
+        try:
+            result = intake.run_intake(repo_url, workdir)
+        except intake.IntakeError as exc:
+            raise HTTPException(status_code=422, detail=f"clone failed: {exc}") from exc
 
-    if not intake.repo_has_python_code(workdir, result.dependency_files):
-        raise HTTPException(status_code=422, detail="no Python code found in repo")
+        if not intake.repo_has_python_code(workdir, result.dependency_files):
+            raise HTTPException(status_code=422, detail="no Python code found in repo")
 
-    run = Run(
-        repo_url=repo_url,
-        commit_sha=result.commit_sha,
-        stage="RECON_PENDING",
-        build_plan={
-            "dependency_files": sorted(result.dependency_files.keys()),
-            "declared_dependencies": sorted(result.declared_dependencies),
-            "entrypoint_candidates": list(result.entrypoint_candidates),
-            "notebook_paths": list(result.notebook_paths),
-            "python_version_hint": result.python_version_hint,
-        },
-    )
-    db.add(run)
-    db.commit()
-    db.refresh(run)
-    return run
+        run = Run(
+            repo_url=repo_url,
+            commit_sha=result.commit_sha,
+            stage="RECON_PENDING",
+            build_plan={
+                "dependency_files": sorted(result.dependency_files.keys()),
+                "declared_dependencies": sorted(result.declared_dependencies),
+                "entrypoint_candidates": list(result.entrypoint_candidates),
+                "notebook_paths": list(result.notebook_paths),
+                "python_version_hint": result.python_version_hint,
+            },
+        )
+        db.add(run)
+        db.commit()
+        db.refresh(run)
+        return run
+    finally:
+        # This clone was only ever needed to build the build_plan summary
+        # above — POST /runs/{id}/execute clones fresh again later.
+        # Leaving it on disk would leak a full git clone per S1 intake,
+        # unbounded, on every real request.
+        intake.cleanup_workdir(workdir)
 
 
 @router.get("/runs/{run_id}", response_model=RunOut)
@@ -157,28 +135,37 @@ def execute_run(run_id: str, db: Session = Depends(get_db)) -> Run:
 
     workdir = Path(tempfile.mkdtemp(prefix="rerun_exec_"))
     try:
-        intake_result = intake.run_intake(run.repo_url, workdir)
-    except intake.IntakeError as exc:
-        raise HTTPException(status_code=422, detail=f"re-clone for execution failed: {exc}") from exc
+        try:
+            intake_result = intake.run_intake(run.repo_url, workdir)
+        except intake.IntakeError as exc:
+            raise HTTPException(status_code=422, detail=f"re-clone for execution failed: {exc}") from exc
 
-    deps = _build_pipeline_deps(settings)
-    # A process-wide singleton — a *daily* ceiling means nothing if every
-    # request gets its own fresh guard (see cost_guard.get_shared_cost_guard).
-    cost_guard = get_shared_cost_guard()
+        deps = build_pipeline_deps(settings)
+        # A process-wide singleton — a *daily* ceiling means nothing if
+        # every request gets its own fresh guard (see
+        # cost_guard.get_shared_cost_guard).
+        cost_guard = get_shared_cost_guard()
 
-    result = run_pipeline(
-        repo_url=run.repo_url,
-        commit_sha=intake_result.commit_sha,
-        workdir=workdir,
-        intake_result=intake_result,
-        deps=deps,
-        cost_guard=cost_guard,
-        run_id=run.id,
-    )
+        result = run_pipeline(
+            repo_url=run.repo_url,
+            commit_sha=intake_result.commit_sha,
+            workdir=workdir,
+            intake_result=intake_result,
+            deps=deps,
+            cost_guard=cost_guard,
+            run_id=run.id,
+        )
 
-    run.commit_sha = intake_result.commit_sha
-    _persist_pipeline_result(run, result, db)
-    return run
+        run.commit_sha = intake_result.commit_sha
+        _persist_pipeline_result(run, result, db)
+        return run
+    finally:
+        # The whole pipeline's file-level work happens against this
+        # checkout (including applying gate-approved patches) — once
+        # run_pipeline has returned and the certificate is persisted,
+        # nothing needs the clone on disk anymore. Leaving it would leak
+        # a full git clone per execution, unbounded, on every real run.
+        intake.cleanup_workdir(workdir)
 
 
 @router.get("/runs/{run_id}/certificate", response_model=CertificateOut)

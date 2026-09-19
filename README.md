@@ -83,18 +83,25 @@ This project is being built in phases (see the directive, §11). Current state:
   real bug (`requires-python` blocked this exact machine's Python 3.14) that had been
   latent all session because the working dev environment was never itself built via the
   documented command.
+- ✅ `batch/run_single_repo.py`: the actual job-container entrypoint (clone at a pinned
+  commit via the new `intake.clone_repo_at_commit`, run the pipeline, print a JSON
+  verdict) — real and tested, closing the gap `runner.py`'s docstring had explicitly
+  flagged as not built. Building this surfaced and fixed an unbounded disk-space leak:
+  `routers/runs.py` created a temp git clone on *every* `POST /runs` and every
+  `POST /runs/{id}/execute` and never once deleted it — confirmed with 317 leaked
+  directories found in this session's own system temp folder from testing alone.
 - 🟡 `batch/runner.py`: the Nebius Serverless Jobs REST client and the pure
   `batch_results.json` aggregation logic are real and tested, but — unlike everything
   else — this is **not** verified against an installed SDK or a live account (no ready
-  Python bindings exist for this API yet); the job container's actual entrypoint script
-  and the full submit-and-poll loop are not yet built. See `DECISIONS.md` for exactly
-  what's solid vs. still speculative here.
+  Python bindings exist for this API yet); the full submit-and-poll loop tying it to
+  `run_single_repo.py` is not yet built. See `DECISIONS.md` for exactly what's solid vs.
+  still speculative here.
 - 🚧 True SSE live-streaming for S2 (currently a single blocking `/execute` call, so S2
   shows a "Running…" state and then renders the timeline retrospectively once done —
   an honest simplification, not a fake stream) and hosting on Nebius Serverless
   Endpoints are not yet built.
 
-Backend test suite: **214 passed, 4 skipped** (`cd backend && pytest -v`) — reconfirmed
+Backend test suite: **223 passed, 4 skipped** (`cd backend && pytest -v`) — reconfirmed
 from a genuinely fresh clone, not just the working session directory. 3 skips are the
 real Nebius Sandboxes integration test, honestly gated on `NEBIUS_API_KEY`; 1 is a
 network-dependent corpus-freshness check (`RERUN_VERIFY_CORPUS_NETWORK=1` to run it —

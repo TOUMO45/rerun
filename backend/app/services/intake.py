@@ -14,6 +14,8 @@ only gathers the raw facts a model or a human could read directly off disk.
 from __future__ import annotations
 
 import re
+import shutil
+import stat
 import subprocess
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -111,6 +113,26 @@ class RepoIntake:
         }
 
 
+def cleanup_workdir(path: Path) -> None:
+    """Delete a cloned repo's working directory, robustly.
+
+    Plain `shutil.rmtree(path, ignore_errors=True)` **silently fails to
+    fully delete a real git clone on Windows** — confirmed directly (not
+    assumed): git's own object files are written read-only, and Windows
+    refuses to unlink a read-only file, so `rmtree` hits a
+    `PermissionError` partway through and `ignore_errors=True` just
+    swallows it, leaving most of the tree behind with no error raised
+    anywhere. Every caller that clones a repo into a temp directory and
+    relies on cleanup afterward needs this, not a bare `rmtree` call.
+    """
+
+    def _on_rm_error(func, target_path, exc_info):
+        Path(target_path).chmod(stat.S_IWRITE)
+        func(target_path)
+
+    shutil.rmtree(path, onerror=_on_rm_error)
+
+
 def clone_repo(url: str, dest: Path, shallow: bool = True) -> str:
     """Shallow-clone `url` into `dest` (read-only) and return the checked-out
     commit SHA. Never pushes, never authenticates — public clone only,
@@ -132,6 +154,60 @@ def clone_repo(url: str, dest: Path, shallow: bool = True) -> str:
     )
     if sha_result.returncode != 0:
         raise IntakeError(f"could not read commit SHA for '{dest}': {sha_result.stderr.strip()}")
+    return sha_result.stdout.strip()
+
+
+def clone_repo_at_commit(url: str, dest: Path, commit_sha: str) -> str:
+    """Fetch and check out one *specific* pinned commit — not just the
+    default branch's current HEAD, which is what a plain shallow
+    `clone_repo()` gets. This is what the Batch Lab actually needs
+    (`corpus.yaml` pins an exact commit per repo, per METHODOLOGY.md): a
+    plain shallow clone would silently drift to whatever HEAD happens to
+    be on the day the batch runs, not the commit the corpus was assembled
+    against and its `selection_note` was written about.
+
+    Uses `git init` + `git fetch --depth 1 origin <sha>` + `git checkout
+    FETCH_HEAD` rather than `git clone` followed by a checkout, since a
+    shallow clone's single fetched commit is the default branch tip, not
+    an arbitrary older SHA — fetching the SHA directly is the only way to
+    get exactly that commit without downloading the repo's full history.
+    Requires the remote to allow fetching by commit SHA (GitHub does, for
+    public repos; not guaranteed for every git host — if this fails, the
+    error message says so explicitly rather than silently falling back to
+    HEAD, which would defeat the whole point of pinning).
+    """
+    dest.mkdir(parents=True, exist_ok=True)
+    init_result = subprocess.run(["git", "init", str(dest)], capture_output=True, text=True, timeout=30)
+    if init_result.returncode != 0:
+        raise IntakeError(f"git init failed for '{dest}': {init_result.stderr.strip()}")
+
+    fetch_result = subprocess.run(
+        ["git", "-C", str(dest), "fetch", "--depth", "1", url, commit_sha],
+        capture_output=True,
+        text=True,
+        timeout=300,
+    )
+    if fetch_result.returncode != 0:
+        raise IntakeError(
+            f"could not fetch pinned commit '{commit_sha}' from '{url}' — the remote may not allow "
+            f"fetching by commit SHA, or the commit no longer exists: {fetch_result.stderr.strip()}"
+        )
+
+    checkout_result = subprocess.run(
+        ["git", "-C", str(dest), "checkout", "FETCH_HEAD"],
+        capture_output=True,
+        text=True,
+        timeout=30,
+    )
+    if checkout_result.returncode != 0:
+        raise IntakeError(f"could not check out fetched commit in '{dest}': {checkout_result.stderr.strip()}")
+
+    sha_result = subprocess.run(
+        ["git", "-C", str(dest), "rev-parse", "HEAD"],
+        capture_output=True,
+        text=True,
+        timeout=30,
+    )
     return sha_result.stdout.strip()
 
 
@@ -257,10 +333,11 @@ def parse_declared_dependencies(dependency_files: dict[str, str]) -> frozenset[s
     return frozenset(names)
 
 
-def run_intake(repo_url: str, workdir: Path, shallow: bool = True) -> RepoIntake:
-    """Full intake: clone, then parse. The only network/subprocess call is
-    the clone itself; everything after is local file parsing."""
-    commit_sha = clone_repo(repo_url, workdir, shallow=shallow)
+def parse_intake(workdir: Path, commit_sha: str) -> RepoIntake:
+    """Parse an already-cloned repo on disk into a `RepoIntake` — the
+    local-file-only half of intake, shared by `run_intake` (clones HEAD
+    itself) and the batch runner's `run_single_repo` (clones a pinned
+    commit via `clone_repo_at_commit` first)."""
     dependency_files = find_dependency_files(workdir)
     return RepoIntake(
         local_path=workdir,
@@ -271,3 +348,10 @@ def run_intake(repo_url: str, workdir: Path, shallow: bool = True) -> RepoIntake
         entrypoint_candidates=find_entrypoint_candidates(workdir),
         python_version_hint=detect_python_version_hint(dependency_files),
     )
+
+
+def run_intake(repo_url: str, workdir: Path, shallow: bool = True) -> RepoIntake:
+    """Full intake: clone, then parse. The only network/subprocess call is
+    the clone itself; everything after is local file parsing."""
+    commit_sha = clone_repo(repo_url, workdir, shallow=shallow)
+    return parse_intake(workdir, commit_sha)
