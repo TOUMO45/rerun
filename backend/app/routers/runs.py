@@ -50,6 +50,7 @@ def _build_pipeline_deps(settings: Settings) -> PipelineDeps:
         sandbox_wall_clock_seconds=settings.nebius_sandbox_wall_clock_seconds,
         max_attempts=settings.max_attempts_per_run,
         tavily_client=tavily_client,
+        default_sandbox_image=settings.nebius_sandbox_image,
     )
 
 

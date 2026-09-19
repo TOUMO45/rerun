@@ -912,6 +912,45 @@ audits have caught.
 
 ---
 
+## 2026-09-19 — Bug found and fixed: `NEBIUS_SANDBOX_IMAGE` was declared but never read
+
+**Audit method this time:** rather than tracing one specific requirement end-to-end (the
+approach that found the prior eight), swept every field in `config.py` with `grep -rn
+"settings\.<field>"` across the whole app to find which settings are declared,
+documented in `.env.example`, and yet never actually referenced anywhere outside
+`config.py` itself. Two came back with zero hits: `nebius_sandbox_image` and
+`nebius_project_id`.
+
+**`nebius_sandbox_image` — a real bug, fixed.** `planner.py`'s `_base_image_for()` had
+`"python:3.11-slim"` hardcoded as its fallback default, completely bypassing the
+configurable setting a user could set in `.env` and see zero effect from, with no error.
+Fixed by threading a `default_image` parameter from `config.py` through
+`PipelineDeps.default_sandbox_image` (analogous to how `tavily_client` and `cost_guard`
+are already injected) into `planner.build_plan()`, replacing the hardcoded literal.
+4 new tests prove it: two directly on `build_plan()` (the no-hint case and the
+range-specifier-fallback case both now respect a custom `default_image`, not just the
+one hardcoded string that happened to match the test's expectations before), and one
+orchestrator-level integration test confirming the configured image reaches both the
+certificate's `build_plan` and the actual sandbox call.
+
+**`nebius_project_id` — audited, not a bug, left alone.** This setting is intended for
+Nebius Serverless Jobs (`metadata.parentId` in `batch/runner.py`'s REST payload — see
+the earlier `runner.py` entry), a feature that is real, tested in isolation, but not yet
+wired into any router endpoint at all. An unread setting for a feature that
+legitimately doesn't have a caller yet is a documented gap, not a silent wiring defect
+like the other nine — wiring it in now, with nothing to consume it, would just be
+speculative code. Recorded here so it isn't mistaken for an oversight later: when
+`batch/runner.py` gets an actual router/CLI entrypoint, `NebiusJobsClient` construction
+should read `settings.nebius_project_id`, not a hardcoded or missing value.
+
+**Result:** `pytest tests/test_planner.py tests/test_orchestrator.py -v` — 29/29
+passed. Full backend suite: **210 passed, 4 skipped**. Ninth real bug this session's
+self-audits have caught — this time found by a systematic settings sweep rather than
+tracing one directive requirement at a time, which suggests the sweep method itself is
+worth repeating on any future settings additions.
+
+---
+
 ## 2026-09-19 — Bug found and fixed: docker-compose.yml referenced Dockerfiles that didn't exist
 
 **Bug:** `docker-compose.yml` was written early (Phase 0 scaffolding, before either

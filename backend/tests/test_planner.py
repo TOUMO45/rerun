@@ -74,6 +74,19 @@ def test_base_image_negative_control_falls_back_on_range_specifier():
     assert plan.base_image == "python:3.11-slim"
 
 
+def test_base_image_respects_configured_default_when_no_version_hint():
+    # NEBIUS_SANDBOX_IMAGE must actually change the plan, not just exist
+    # as an unread setting — this is what threading default_image through
+    # from config all the way to planner.build_plan() is for.
+    plan = build_plan(_intake({}), _recon(python_version=None), default_image="python:3.12-bullseye")
+    assert plan.base_image == "python:3.12-bullseye"
+
+
+def test_base_image_configured_default_also_applies_to_range_specifier_fallback():
+    plan = build_plan(_intake({}), _recon(python_version=">=3.8,<3.11"), default_image="python:3.12-bullseye")
+    assert plan.base_image == "python:3.12-bullseye"
+
+
 # --- known apt-needs table ----------------------------------------------------
 
 

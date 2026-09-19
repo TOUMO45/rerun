@@ -168,6 +168,37 @@ def test_runs_clean_first_try():
     assert len(sandbox_runner.calls) == 1
 
 
+def test_configured_default_sandbox_image_reaches_the_build_plan_and_sandbox_call():
+    # NEBIUS_SANDBOX_IMAGE (PipelineDeps.default_sandbox_image) must
+    # actually change what the sandbox is asked to run, not just exist as
+    # an unread setting between config.py and planner.py.
+    train_py = "def run():\n    print('ok')\n\nrun()\n"
+    import tempfile
+
+    with tempfile.TemporaryDirectory() as d:
+        workdir = Path(d)
+        _write_files(workdir, {"train.py": train_py})
+        intake = _intake({"train.py": train_py})
+
+        recon_client = _FakeChatClient([json.dumps({"entrypoint": "train.py", "confidence": 0.9})])
+        sandbox_runner = _FakeSandboxRunner([_sandbox_result(0, stdout="ok\n")])
+        deps = _base_deps(recon_client, _FakeChatClient([]), None, sandbox_runner)
+        deps.default_sandbox_image = "python:3.12-bullseye"
+
+        result = run_pipeline(
+            repo_url="https://example.com/repo",
+            commit_sha="a" * 40,
+            workdir=workdir,
+            intake_result=intake,
+            deps=deps,
+            cost_guard=CostGuard(daily_cost_ceiling_usd=100),
+            run_id="run-15",
+        )
+
+    assert result.build_plan["base_image"] == "python:3.12-bullseye"
+    assert sandbox_runner.calls[0]["base_image"] == "python:3.12-bullseye"
+
+
 # --- THE §14 red-team scenario: REJECT then PASS -> RUNS_AFTER_REPAIR ------
 
 

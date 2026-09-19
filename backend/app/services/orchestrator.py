@@ -148,6 +148,9 @@ class PipelineDeps:
     # string: a real query needs the failure's classification, which only
     # exists mid-repair-loop, not before the pipeline starts.
     tavily_client: object = None
+    # NEBIUS_SANDBOX_IMAGE — the base image planner.build_plan() falls back
+    # to when recon can't pin an exact Python version from the repo.
+    default_sandbox_image: str = "python:3.11-slim"
 
 
 def run_pipeline(
@@ -191,7 +194,12 @@ def run_pipeline(
     log_lines.append(f"[recon] entrypoint={recon_result.entrypoint} confidence={recon_result.confidence:.2f}")
 
     plan = planner.build_plan(
-        intake_result, recon_result, client=deps.planner_client, model=deps.planner_model, cost_guard=cost_guard
+        intake_result,
+        recon_result,
+        client=deps.planner_client,
+        model=deps.planner_model,
+        cost_guard=cost_guard,
+        default_image=deps.default_sandbox_image,
     )
     log_lines.append(f"[planner] build plan: {plan.as_dict()}")
 

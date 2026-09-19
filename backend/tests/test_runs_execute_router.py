@@ -46,6 +46,7 @@ def test_execute_run_persists_pipeline_result(client, fake_paper_repo, monkeypat
         max_attempts_per_run = 3
         daily_cost_ceiling_usd = 25.0
         tavily_configured = False
+        nebius_sandbox_image = "python:3.11-slim"
 
     fake_result = PipelineResult(
         verdict="RUNS_AFTER_REPAIR",
@@ -117,6 +118,7 @@ def test_certificate_fetched_via_api_still_verifies_against_its_own_passport_has
         max_attempts_per_run = 3
         daily_cost_ceiling_usd = 25.0
         tavily_configured = False
+        nebius_sandbox_image = "python:3.11-slim"
 
     fake_result = PipelineResult(
         verdict="RUNS_CLEAN",
@@ -192,6 +194,7 @@ def test_daily_cost_ceiling_is_shared_across_separate_execute_requests(client, f
         max_attempts_per_run = 3
         daily_cost_ceiling_usd = 100.0
         tavily_configured = False
+        nebius_sandbox_image = "python:3.11-slim"
 
     def _fake_run_pipeline_that_spends(**kwargs):
         # Simulates what the real orchestrator does: record real spend

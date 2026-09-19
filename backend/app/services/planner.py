@@ -69,18 +69,16 @@ class BuildPlan:
         return tuple(steps)
 
 
-def _base_image_for(python_version_hint: str | None) -> str:
-    default = "python:3.11-slim"
+def _base_image_for(python_version_hint: str | None, default_image: str = "python:3.11-slim") -> str:
     if not python_version_hint:
-        return default
+        return default_image
     # Only trust an exact-looking "3.x" hint for the image tag; anything
     # more complex (range specifiers like ">=3.8,<3.11") stays on the
-    # directive's fixed 3.11 default rather than guessing which point
-    # release to pick.
+    # configured default rather than guessing which point release to pick.
     digits = python_version_hint.strip()
     if digits.replace(".", "").isdigit() and digits.count(".") == 1:
         return f"python:{digits}-slim"
-    return default
+    return default_image
 
 
 def _deterministic_install_commands(intake: RepoIntake) -> tuple[str, ...]:
@@ -114,18 +112,23 @@ def build_plan(
     client=None,
     model: str | None = None,
     cost_guard=None,
+    default_image: str = "python:3.11-slim",
 ) -> BuildPlan:
     """Build the deterministic base plan, then optionally enrich apt
     packages via Nemotron Super. `client`/`model` are optional — omitting
     them (or the model call failing) still produces a valid, honest plan
     from the deterministic table alone; a `notes` entry records which path
-    was taken so the certificate is never silent about it.
+    was taken so the certificate is never silent about it. `default_image`
+    is the sandbox base image to fall back to when recon can't pin an
+    exact Python version — should come from settings
+    (`NEBIUS_SANDBOX_IMAGE`), not be hardcoded, so that setting actually
+    does something.
     """
     if recon.is_indeterminate or not recon.entrypoint:
         raise ValueError("build_plan requires a non-indeterminate recon result with a chosen entrypoint")
 
     notes: list[str] = []
-    base_image = _base_image_for(recon.python_version or intake.python_version_hint)
+    base_image = _base_image_for(recon.python_version or intake.python_version_hint, default_image)
     install_commands = _deterministic_install_commands(intake)
     apt_packages = set(_known_apt_packages(intake.declared_dependencies))
 
