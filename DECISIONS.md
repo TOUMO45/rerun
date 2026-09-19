@@ -1355,3 +1355,35 @@ produces a real `batch_results.json` at the repo root, it will be picked up by t
 mount with no further changes.
 
 ---
+
+## 2026-09-19 — Bug found and fixed: missing React key on S4's expandable table rows
+
+**Context:** continuing to self-audit, checked the S4 Batch Lab screen live in a real
+browser against a real (fixture) `batch_results.json` served through the real backend,
+rather than only reading the component.
+
+**Bug:** `frontend/src/screens/BatchLab.tsx`'s `RepoTable` maps each repo to a `<>...</>`
+shorthand fragment containing two `<tr>` elements (the row itself, plus a conditionally
+rendered expanded-detail row), with `key={repo.name}` placed on the inner `<tr>` instead
+of the fragment. React's shorthand `<>` fragment syntax cannot accept a `key` prop at
+all, and a key on a descendant does nothing for reconciling the list of fragments
+`.map()` actually returns — so every one of these fragments was, from React's
+perspective, an unkeyed list item. This is exactly the kind of thing that looks fine in
+every static screenshot and reads fine in the source, but only reproduces by actually
+running it: confirmed live via `read_console_messages`, which showed React's real "Each
+child in a list should have a unique key prop" warning firing on every render of the
+Batch Lab table.
+
+**Fixed:** replaced the shorthand fragment with an explicit `<Fragment key={repo.name}>`
+(imported from `react`), matching the two `<tr>` children under one correctly-keyed list
+item per repo.
+
+**Verified live:** created a real, valid `batch_results.json` fixture, pointed a locally
+running backend at it via `BATCH_RESULTS_PATH`, loaded `/batch` in the browser pane, and
+confirmed via `read_console_messages` (using a freshly opened tab, to rule out a stale
+console buffer from an earlier client-side navigation) that the key warning is gone
+before the fix reproduces it, and confirmed it's gone after the fix, on the identical
+data. Also clicked a table row to exercise the expand/collapse interaction the missing
+key put at risk and confirmed no new warnings or misbehavior. `npx tsc --noEmit` clean.
+
+---

@@ -119,7 +119,7 @@ real Nebius Sandboxes integration test, honestly gated on `NEBIUS_API_KEY`; 1 is
 network-dependent corpus-freshness check (`RERUN_VERIFY_CORPUS_NETWORK=1` to run it —
 confirmed passing against all 20 real repos as of 2026-09-19).
 
-Self-audit passes found and fixed **fifteen** real bugs this session (full detail in
+Self-audit passes found and fixed **sixteen** real bugs this session (full detail in
 `DECISIONS.md`). Three are worth calling out specifically because unit tests
 structurally could never have caught them — only running the real, deployed Docker image
 did:

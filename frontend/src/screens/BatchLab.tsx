@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { Fragment, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { api, ApiError, type BatchRepoResult } from "../api";
 import { VerdictBadge } from "../components/VerdictBadge";
@@ -138,9 +138,8 @@ function RepoTable({ repos }: { repos: BatchRepoResult[] }) {
         </thead>
         <tbody>
           {repos.map((repo) => (
-            <>
+            <Fragment key={repo.name}>
               <tr
-                key={repo.name}
                 onClick={() => setExpanded(expanded === repo.name ? null : repo.name)}
                 className="cursor-pointer border-t border-border hover:bg-surface"
               >
@@ -159,7 +158,7 @@ function RepoTable({ repos }: { repos: BatchRepoResult[] }) {
                   </td>
                 </tr>
               )}
-            </>
+            </Fragment>
           ))}
         </tbody>
       </table>
