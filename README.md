@@ -31,11 +31,16 @@ This project is being built in phases (see the directive, §11). Current state:
   Sandboxes SDK (`contree-sdk`), but its live gate — `pytest tests/test_sandbox_smoke.py`,
   3 real sandboxes created and destroyed — is honestly **skipped**, not faked, until
   `NEBIUS_API_KEY` is supplied. This is the single remaining blocker on Phase 0.
-- 🚧 recon/planner/repairer/adjudicator (Nemotron model calls), FastAPI + SSE, React UI,
-  batch lab: not yet built — see `DECISIONS.md` for the full trail of what's blocked on
-  credentials vs. ready to wire up.
+- ✅ FastAPI orchestrator skeleton: `POST /runs` performs real S1 intake (clone +
+  parse + Python-code detection) against any real git repo today; `GET /batch/results`
+  fails loudly (502) instead of rendering a fake zero when `batch_results.json` is
+  missing; `GET /healthz` reports real Nebius/Tavily configuration state.
+- 🚧 recon/planner/repairer/adjudicator (Nemotron model calls via Token Factory), SSE
+  streaming, React UI, batch lab corpus: not yet built — see `DECISIONS.md` for the full
+  trail of what's blocked on credentials vs. ready to wire up.
 
-Backend test suite: **89 passed, 3 skipped** (`cd backend && pytest -v`).
+Backend test suite: **104 passed, 3 skipped** (`cd backend && pytest -v`). The 3 skips
+are the real Nebius Sandboxes integration test, honestly gated on `NEBIUS_API_KEY`.
 
 ## Repo layout
 
