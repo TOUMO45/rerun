@@ -118,13 +118,13 @@ This project is being built in phases (see the directive, §11). Current state:
   still works (used by the batch runner, curl, and tests). Nebius Serverless Endpoints
   hosting is not yet built.
 
-Backend test suite: **236 passed, 4 skipped** (`cd backend && pytest -v`) — reconfirmed
+Backend test suite: **238 passed, 4 skipped** (`cd backend && pytest -v`) — reconfirmed
 from a genuinely fresh clone, not just the working session directory. 3 skips are the
 real Nebius Sandboxes integration test, honestly gated on `NEBIUS_API_KEY`; 1 is a
 network-dependent corpus-freshness check (`RERUN_VERIFY_CORPUS_NETWORK=1` to run it —
 confirmed passing against all 20 real repos as of 2026-09-19).
 
-Self-audit passes found and fixed **eighteen** real bugs this session (full detail in
+Self-audit passes found and fixed **nineteen** real bugs this session (full detail in
 `DECISIONS.md`). Three are worth calling out specifically because unit tests
 structurally could never have caught them — only running the real, deployed Docker image
 did:
@@ -175,7 +175,14 @@ excluding locally-nested functions from the lookup table (module-level functions
 class methods are still resolved by name, unchanged); verified both that the fix closes
 the false positive and that the actual attack this mechanism defends against (moving a
 real eval call into a same-named function defined *after* the original, so the later
-definition shadows it) is still correctly rejected.
+definition shadows it) is still correctly rejected. The same audit pass found the exact
+same false-positive shape one rule over, in `STUBBED_MODEL_CALL`: it scanned the *whole*
+patched file for any trivial stub matching a model-call name, so a file that already had
+a `pass`-bodied abstract base-class placeholder (an entirely ordinary override pattern)
+would fail *any* unrelated patch touching that file. Fixed the same way `DELETED_EVAL_CALL`
+already works — comparing trivial-stub *counts* before and after, flagging only a genuine
+increase — and verified a real attack (stubbing the actual implementation) is still
+caught even when an untouched, already-trivial same-named stub exists elsewhere.
 
 Other fixes from this session's audits: both halves of §9's cost guard (daily USD
 ceiling, per-attempt token ceiling) were implemented and unit-tested in isolation but

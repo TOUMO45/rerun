@@ -280,6 +280,118 @@ def test_stubbed_model_call_negative_control_real_fix():
     assert GateRule.STUBBED_MODEL_CALL not in rules_hit(result)
 
 
+def test_stubbed_model_call_negative_control_preexisting_untouched_stub():
+    """Found live during this session's audit: an entirely unrelated,
+    genuinely correct one-line fix (bumping a learning-rate constant)
+    could get falsely rejected purely because the file *already*
+    contained, before this patch, a pass-bodied base-class placeholder
+    method sharing a name with the real model call — an extremely common,
+    entirely legitimate pattern (an abstract method meant to be
+    overridden). Neither the base class stub nor the real implementation
+    is touched by this patch at all; a correct gate must pass it.
+    """
+    old = textwrap.dedent(
+        """\
+        class BaseModel:
+            def forward(self, x):
+                pass
+
+        class RealModel(BaseModel):
+            def forward(self, x):
+                return self.layer(x)
+
+        def train():
+            lr = 0.01
+            model = RealModel()
+            out = model.forward(x)
+            evaluate(out)
+
+        train()
+        """
+    )
+    new = textwrap.dedent(
+        """\
+        class BaseModel:
+            def forward(self, x):
+                pass
+
+        class RealModel(BaseModel):
+            def forward(self, x):
+                return self.layer(x)
+
+        def train():
+            lr = 0.001
+            model = RealModel()
+            out = model.forward(x)
+            evaluate(out)
+
+        train()
+        """
+    )
+    diff = make_diff("train.py", old, new)
+    result = check_patch(
+        diff,
+        {"train.py": old},
+        eval_call_names=frozenset({"evaluate"}),
+        model_call_names=frozenset({"forward"}),
+    )
+    assert result.decision == "PASS"
+    assert rules_hit(result) == set()
+
+
+def test_stubbed_model_call_catches_a_new_stub_added_alongside_a_preexisting_one():
+    """Companion to the negative control above: proves the count-based
+    comparison still catches a genuine attack even when a same-named,
+    already-trivial function exists elsewhere — the count must still
+    increase (1 -> 2), not just be nonzero, for a violation to fire.
+    """
+    old = textwrap.dedent(
+        """\
+        class BaseModel:
+            def forward(self, x):
+                pass
+
+        class RealModel(BaseModel):
+            def forward(self, x):
+                return self.layer(x)
+
+        def train():
+            model = RealModel()
+            out = model.forward(x)
+            evaluate(out)
+
+        train()
+        """
+    )
+    new = textwrap.dedent(
+        """\
+        class BaseModel:
+            def forward(self, x):
+                pass
+
+        class RealModel(BaseModel):
+            def forward(self, x):
+                return [0.0]
+
+        def train():
+            model = RealModel()
+            out = model.forward(x)
+            evaluate(out)
+
+        train()
+        """
+    )
+    diff = make_diff("train.py", old, new)
+    result = check_patch(
+        diff,
+        {"train.py": old},
+        eval_call_names=frozenset({"evaluate"}),
+        model_call_names=frozenset({"forward"}),
+    )
+    assert result.decision == "REJECT"
+    assert GateRule.STUBBED_MODEL_CALL in rules_hit(result)
+
+
 # --- Rule 3: REDUCED_SCALE ---------------------------------------------------
 
 

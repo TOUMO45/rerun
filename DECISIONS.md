@@ -1609,3 +1609,63 @@ from outside their own enclosing function.
   design, so it was never exposed to this bug).
 
 ---
+
+## 2026-09-19 — Bug found and fixed: STUBBED_MODEL_CALL false-positive on pre-existing stubs
+
+**Context:** immediately following the previous entry's discipline — applying the same
+"stress-test with novel adversarial inputs" approach to the tamper gate's *other* rules,
+not just re-running the existing suite. Turned to `STUBBED_MODEL_CALL` (rule 2), noting
+it was flagged during the DELETED_EVAL_CALL investigation as "iterates every def
+independent of reachability/scope by design" — worth checking whether that design choice
+itself hides a false-positive edge case.
+
+**Bug, reproduced live:** `_check_stubbed_model_call` scanned the *entire* reconstructed
+post-patch file for *any* function matching a `model_call_name` with a trivial (`pass` or
+hardcoded-literal-return) body — with no comparison against the pre-patch file at all. A
+completely unrelated, genuinely correct one-line fix (bumping a learning-rate constant)
+in a file that *already contained*, before any patching, a `pass`-bodied abstract
+base-class placeholder method sharing a name with the real model call (an extremely
+common, entirely legitimate Python pattern — a base class method meant to be overridden
+by a real subclass) got **falsely rejected as `STUBBED_MODEL_CALL`**, even though neither
+the base-class stub nor the real implementation was touched by the patch at all.
+
+**Why this is worse than a generic false positive, same as the last entry:** a spurious
+rejection here burns a bounded repair attempt (§5.4) on a patch that was actually fine,
+which can push a run to `BLOCKED` when it should have recovered — directly against the
+Recovery Rate metric (§6.2). Base classes with placeholder `forward`/`predict`/`generate`
+methods meant for subclass override are ubiquitous in real ML research code, making this
+plausibly *more* likely to occur in practice than the previous DELETED_EVAL_CALL bug.
+
+**Fixed:** applied the same before/after *count* comparison pattern `_check_deleted_eval_call`
+already uses successfully, rather than a single-snapshot scan. `_check_stubbed_model_call`
+now takes `old_tree` too, counts trivially-stubbed matches in both the old and new trees
+via a new `_count_trivial_matches()` helper, and only flags a violation if the count
+*increased* — i.e. this patch genuinely introduced a new trivial stub, regardless of how
+many pre-existing, untouched ones already existed. Chose count comparison over trying to
+identify "which specific occurrence changed" by name, since two same-named functions
+(the base-class stub and the real one) can't be distinguished by name alone, and count
+comparison is a proven pattern already validated in this exact file.
+
+**A residual limitation, considered and accepted rather than silently ignored:** a
+sufficiently deliberate adversary could in principle "trade" counts — stub the real
+function while *also* removing an existing stub elsewhere in the same patch, keeping the
+aggregate count unchanged and evading detection. Judged an acceptable trade-off: this
+project's actual threat model (§14) is a model proposing patches that try to cheat
+evaluation, not a sophisticated adversary computing count-preserving evasions, and a
+model naively stubbing the one function it's supposed to fix — by far the realistic
+failure mode — still increases the count and is still caught (verified below).
+
+**Verified:**
+- The false positive is gone: the crafted unrelated one-line fix now correctly `PASS`es.
+- A genuine attack (stubbing the *real* implementation while an unrelated, already-trivial
+  same-named stub exists elsewhere) is still correctly `REJECT`ed — added as its own test
+  specifically to prove the count-based fix isn't itself hiding a new false negative.
+- Both existing positive-case tests (`test_stubbed_model_call_trivial_return_is_rejected`,
+  `..._mock_injection_is_rejected`) and the existing negative control
+  (`..._negative_control_real_fix`) still pass unchanged.
+- Added `test_stubbed_model_call_negative_control_preexisting_untouched_stub` and
+  `test_stubbed_model_call_catches_a_new_stub_added_alongside_a_preexisting_one`.
+- All 26 tamper-gate tests pass (up from 24); full suite **238 passed, 4 skipped** (up
+  from 236/4).
+
+---

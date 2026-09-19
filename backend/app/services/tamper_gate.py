@@ -312,28 +312,54 @@ def _is_literal_expr(node: ast.expr) -> bool:
     return False
 
 
+def _count_trivial_matches(tree: ast.Module | None, target_lower: set[str]) -> int:
+    if tree is None:
+        return 0
+    return sum(
+        1
+        for node in ast.walk(tree)
+        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef))
+        and node.name.lower() in target_lower
+        and _is_trivial_stub_body(node.body)
+    )
+
+
 def _check_stubbed_model_call(
+    old_tree: ast.Module | None,
     new_tree: ast.Module | None,
     new_source: str,
     model_call_names: frozenset[str],
     path: str,
 ) -> Violation | None:
+    """Compares the *count* of trivially-stubbed functions matching a model
+    call name before and after the patch, rather than flagging any match
+    found anywhere in the new file — found live: a completely unrelated,
+    untouched patch to a file could otherwise get falsely rejected purely
+    because that file already contained, before any patching, a
+    pass-bodied placeholder sharing a name with the real model call (an
+    extremely common, entirely legitimate pattern: an abstract base
+    class's method meant to be overridden by a real subclass). Comparing
+    counts — the same before/after pattern _check_deleted_eval_call
+    already uses — only flags a genuine *increase*, i.e. this patch
+    actually introduced a new trivial stub, without needing to identify
+    which specific occurrence changed. See DECISIONS.md.
+    """
     if not model_call_names or new_tree is None:
         return None
     target_lower = {n.lower() for n in model_call_names}
 
-    for node in ast.walk(new_tree):
-        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
-            if node.name.lower() in target_lower and _is_trivial_stub_body(node.body):
-                return Violation(
-                    rule=GateRule.STUBBED_MODEL_CALL,
-                    reason=(
-                        f"function '{node.name}' matches a model/inference call "
-                        f"identified during recon but its new body is a trivial "
-                        f"stub (pass or a hardcoded literal return)"
-                    ),
-                    file=path,
-                )
+    old_count = _count_trivial_matches(old_tree, target_lower)
+    new_count = _count_trivial_matches(new_tree, target_lower)
+    if new_count > old_count:
+        return Violation(
+            rule=GateRule.STUBBED_MODEL_CALL,
+            reason=(
+                f"trivially-stubbed functions matching a model/inference call "
+                f"identified during recon increased from {old_count} to {new_count} "
+                f"after the patch (a pass body or a hardcoded literal return)"
+            ),
+            file=path,
+        )
 
     mock_call_re = re.compile(r"\b(Mock|MagicMock)\s*\(|@?patch\s*\(", re.IGNORECASE)
     name_re = re.compile(r"\b(" + "|".join(re.escape(n) for n in model_call_names) + r")\b")
@@ -511,7 +537,7 @@ def check_patch(
 
         for check in (
             _check_deleted_eval_call(old_tree, new_tree, eval_call_names, path),
-            _check_stubbed_model_call(new_tree, new_source, model_call_names, path),
+            _check_stubbed_model_call(old_tree, new_tree, new_source, model_call_names, path),
             _check_reduced_scale(patched_file, old_source, path),
             _check_broad_exception_swallow(new_tree, _added_target_lines(patched_file), path),
         ):
