@@ -9,12 +9,11 @@ without a command that actually runs" ethos.
 
 from __future__ import annotations
 
-import subprocess
-
 import pytest
 
 from app.services.intake import (
     IntakeError,
+    RepoNotFoundError,
     clone_repo,
     detect_python_version_hint,
     find_dependency_files,
@@ -24,37 +23,10 @@ from app.services.intake import (
     parse_environment_yml,
     parse_requirements_txt,
     parse_setup_py,
+    repo_has_python_code,
     run_intake,
+    validate_repo_accessible,
 )
-
-
-def _git(*args: str, cwd) -> None:
-    subprocess.run(["git", *args], cwd=cwd, check=True, capture_output=True, text=True)
-
-
-@pytest.fixture
-def fake_paper_repo(tmp_path):
-    """A minimal but realistic fake 'paper repo' committed to a real local
-    git repository, so cloning it is a real filesystem+git operation."""
-    src = tmp_path / "source_repo"
-    src.mkdir()
-    _git("init", "-b", "main", cwd=src)
-    _git("config", "user.email", "test@example.com", cwd=src)
-    _git("config", "user.name", "Test", cwd=src)
-
-    (src / "requirements.txt").write_text("numpy==1.26.0\ntorch>=2.0\n# a comment\n-e .\n", encoding="utf-8")
-    (src / "train.py").write_text(
-        "def main():\n    pass\n\nif __name__ == '__main__':\n    main()\n",
-        encoding="utf-8",
-    )
-    (src / "utils.py").write_text("def helper():\n    return 1\n", encoding="utf-8")
-    notebooks_dir = src / "notebooks"
-    notebooks_dir.mkdir()
-    (notebooks_dir / "explore.ipynb").write_text("{}", encoding="utf-8")
-
-    _git("add", "-A", cwd=src)
-    _git("commit", "-m", "initial", cwd=src)
-    return src
 
 
 # --- clone_repo: real local git operations -----------------------------------
@@ -186,3 +158,28 @@ def test_parse_declared_dependencies_merges_all_sources():
         "environment.yml": "dependencies:\n  - torch\n",
     }
     assert parse_declared_dependencies(files) == frozenset({"numpy", "torch"})
+
+
+# --- validate_repo_accessible (S1 pre-flight, real local git, no network) ---
+
+
+def test_validate_repo_accessible_accepts_reachable_repo(fake_paper_repo):
+    validate_repo_accessible(str(fake_paper_repo))  # must not raise
+
+
+def test_validate_repo_accessible_negative_control_missing_repo(tmp_path):
+    with pytest.raises(RepoNotFoundError):
+        validate_repo_accessible(str(tmp_path / "no_such_repo_here"))
+
+
+# --- repo_has_python_code -----------------------------------------------------
+
+
+def test_repo_has_python_code_detects_py_files(fake_paper_repo):
+    assert repo_has_python_code(fake_paper_repo) is True
+
+
+def test_repo_has_python_code_negative_control_empty_repo(tmp_path):
+    empty = tmp_path / "empty_repo"
+    empty.mkdir()
+    assert repo_has_python_code(empty) is False

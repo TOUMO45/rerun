@@ -257,3 +257,39 @@ or hardcoded to pass) until `NEBIUS_API_KEY` is supplied; this is the one remain
 must-do before Phase 0 can be marked green. Full backend suite: **89 passed, 3 skipped**.
 
 ---
+
+## 2026-09-19 — FastAPI skeleton wired up (§4, start of Phase 3)
+
+**Decision:** Built `config.py` (pydantic-settings, one field per `.env.example`
+variable, `nebius_configured`/`tavily_configured` computed properties so routes never
+re-derive "is this feature usable" logic themselves), `db.py` (SQLAlchemy engine +
+session, SQLite per §4.1), `models.py` (`Run`, `RepairAttempt`, `Certificate` — shaped
+directly around §5.1's verdict grades and §5.4's bounded repair loop), `schemas.py`,
+and `main.py`, plus real routers:
+
+- `POST /runs` / `GET /runs/{id}`: performs **real** S1 intake today — `git ls-remote`
+  pre-flight (distinct errors for "not reachable" vs the empty/whitespace-URL case),
+  then a real `intake.run_intake()` clone + parse, then a real "has Python code" check
+  — all backed by the already-tested `intake.py`. It does **not** fake the
+  recon/planning/sandbox/repair stages: a created run is persisted with
+  `stage="RECON_PENDING"` and stops there honestly, since those stages need
+  credential-backed model/sandbox calls that don't exist yet. Added
+  `validate_repo_accessible`, `repo_has_python_code`, and the `RepoNotFoundError` /
+  `RepoPrivateError` exception split to `intake.py` to support this (4 new intake tests).
+- `GET /batch/results`: implements §7's "never render a zero or placeholder if
+  `batch_results.json` is missing — fail loudly instead" as a real 502 with a specific
+  message, plus an internal-consistency check (`n` must equal `len(repos)`) that
+  directly forecloses the §14 red-team question "does any code path let
+  `batch_results.json` render a percentage without the raw N visible/consistent?".
+- `GET /healthz`: reports whether Nebius/Tavily are actually configured, for §12's
+  "`/healthz` all green" Phase 6 gate.
+
+**Verification beyond TestClient:** booted the real server with `uvicorn app.main:app`
+and hit `/healthz` and `POST /runs` (against a deliberately bad URL) with `curl` — real
+process, real HTTP, real git-not-found error message — not just an in-process
+TestClient call. Both matched expectations exactly.
+
+**Result:** `pytest -v` — **104 passed, 3 skipped** (the sandbox smoke test, still
+honestly blocked on `NEBIUS_API_KEY`).
+
+---

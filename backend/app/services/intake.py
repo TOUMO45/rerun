@@ -46,6 +46,49 @@ class IntakeError(RuntimeError):
     pass
 
 
+class RepoNotFoundError(IntakeError):
+    pass
+
+
+class RepoPrivateError(IntakeError):
+    pass
+
+
+class RepoNotPythonError(IntakeError):
+    pass
+
+
+def validate_repo_accessible(url: str, timeout: float = 30.0) -> None:
+    """Cheap pre-flight check (S1 intake, §8): confirm `url` is a reachable,
+    public git repo before paying for a full clone. Raises a specific
+    subclass so the API layer can return a distinct error message per §8
+    ("private repo / not python / no code found" must each be distinct).
+
+    Uses `git ls-remote`, which talks to the remote without downloading
+    any repo content — read-only, per §2.5.
+    """
+    result = subprocess.run(
+        ["git", "ls-remote", "--exit-code", url, "HEAD"],
+        capture_output=True,
+        text=True,
+        timeout=timeout,
+    )
+    if result.returncode == 0:
+        return
+    stderr = result.stderr.lower()
+    if "authentication" in stderr or "could not read username" in stderr or "permission denied" in stderr:
+        raise RepoPrivateError(f"'{url}' appears to require authentication (private repo?): {result.stderr.strip()}")
+    raise RepoNotFoundError(f"'{url}' is not reachable as a public git repo: {result.stderr.strip()}")
+
+
+def repo_has_python_code(repo_path: Path, dependency_files: dict[str, str] | None = None) -> bool:
+    """True if the repo has any signal of being a Python project: a known
+    dependency file, or at least one .py file on disk."""
+    if dependency_files:
+        return True
+    return next(repo_path.rglob("*.py"), None) is not None
+
+
 @dataclass(frozen=True)
 class RepoIntake:
     local_path: Path
