@@ -1193,3 +1193,56 @@ type. This is the strongest form of verification this session performed for §13
 short of an actual second machine.
 
 ---
+
+## 2026-09-19 — Feature: true SSE streaming for `GET /runs/{id}/stream`, and a bug found in the test fixture that exercised it
+
+**Context:** §4's architecture diagram names `SSE /runs/{id}/stream` as the live-progress
+endpoint for S2. Prior to this, only a synchronous `POST /runs/{id}/execute` existed —
+correct, but it blocks until the whole pipeline finishes and returns nothing until then,
+which doesn't match what the architecture actually specifies or what S2's live timeline
+UI needs.
+
+**Built:** Threaded a `on_event: Callable[[str], None] | None` callback through
+`orchestrator.run_pipeline()` and its internal `_finalize()`, replacing every
+`log_lines.append(...)` call site with a local `_log()` closure that both appends (for
+the final `full_log`) and, when given, calls `on_event` immediately — so a caller can
+observe progress line-by-line while the pipeline is still running, not just after it
+returns. Added `GET /runs/{run_id}/stream` in `backend/app/routers/runs.py`: runs the
+real pipeline in a background `threading.Thread`, bridged to a `StreamingResponse`
+generator via a `queue.Queue`. If the run already finished, it replays the persisted
+`full_log` instead of re-executing — a client reloading S2 after completion gets a real
+timeline, not an error or a silent no-op. Extracted `_execute_pipeline_for_run()` as
+shared logic between the synchronous `/execute` route and the new stream route's worker
+thread.
+
+**Bug found while testing the new endpoint (not by inspection):** the background
+worker thread calls `SessionLocal()` directly (imported from `app.db`) rather than via
+FastAPI's `Depends(get_db)`. `backend/tests/conftest.py`'s `client` fixture isolates
+tests from the real `rerun.db` by overriding `app.dependency_overrides[get_db]` — but
+that override only intercepts request-scoped dependency injection. A background thread
+calling `SessionLocal()` directly bypasses it entirely and silently talks to the real
+default engine, which the test fixture deliberately never initializes (to avoid
+touching the real database file). Result: `sqlite3.OperationalError: no such table:
+runs` — but only inside the background thread, so the two tests that actually let a
+background execution run (`test_stream_delivers_live_events_from_a_background_execution`,
+`test_stream_surfaces_an_unexpected_worker_error_instead_of_hanging`) failed while three
+other stream tests (404, 503, replay-without-executing) passed, since none of those three
+ever reach the worker thread. This is the same category of bug this session has hit
+repeatedly: correct component, correct wiring, but a lifecycle/instance mismatch — this
+time in test infrastructure rather than production code, since a background thread
+opening its own DB session from the shared engine is the *correct* production pattern
+and needed no fix there.
+
+**Fixed:** `conftest.py`'s `client` fixture now also does
+`monkeypatch.setattr("app.routers.runs.SessionLocal", TestingSessionLocal)`, redirecting
+the router's direct import to the same isolated in-memory sessionmaker the rest of the
+test already uses.
+
+**Verified:** all 5 tests in the new `backend/tests/test_runs_stream_router.py` pass
+(including the two that previously failed with the table-not-found error), and the full
+suite runs clean at **231 passed, 4 skipped** (up from 226/4 before this feature) — no
+regressions in anything the SessionLocal redirect could have affected (e.g. the
+synchronous `/execute` route, which doesn't touch `SessionLocal` at all and was
+unaffected either way).
+
+---

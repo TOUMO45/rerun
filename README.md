@@ -96,18 +96,21 @@ This project is being built in phases (see the directive, §11). Current state:
   Python bindings exist for this API yet); the full submit-and-poll loop tying it to
   `run_single_repo.py` is not yet built. See `DECISIONS.md` for exactly what's solid vs.
   still speculative here.
-- 🚧 True SSE live-streaming for S2 (currently a single blocking `/execute` call, so S2
-  shows a "Running…" state and then renders the timeline retrospectively once done —
-  an honest simplification, not a fake stream) and hosting on Nebius Serverless
-  Endpoints are not yet built.
+- ✅ `GET /runs/{id}/stream`: true SSE live-streaming for S2, per §4's named endpoint.
+  Runs the real pipeline in a background thread and streams each log line the instant
+  `orchestrator.run_pipeline` produces it via an `on_event` callback threaded through the
+  whole pipeline; replays the persisted log instead of re-executing if the run already
+  finished. The previous single blocking `/execute` call still exists and still works
+  (used by the batch runner, curl, and tests), but S2 no longer has to fake a "Running…"
+  state and render retrospectively. Nebius Serverless Endpoints hosting is not yet built.
 
-Backend test suite: **223 passed, 4 skipped** (`cd backend && pytest -v`) — reconfirmed
+Backend test suite: **231 passed, 4 skipped** (`cd backend && pytest -v`) — reconfirmed
 from a genuinely fresh clone, not just the working session directory. 3 skips are the
 real Nebius Sandboxes integration test, honestly gated on `NEBIUS_API_KEY`; 1 is a
 network-dependent corpus-freshness check (`RERUN_VERIFY_CORPUS_NETWORK=1` to run it —
 confirmed passing against all 20 real repos as of 2026-09-19).
 
-Self-audit passes found and fixed **eleven** real bugs this session (full detail in
+Self-audit passes found and fixed **fourteen** real bugs this session (full detail in
 `DECISIONS.md`). Two are worth calling out specifically because unit tests structurally
 could never have caught them — only running the real, deployed Docker image did:
 
@@ -130,10 +133,16 @@ ceiling, per-attempt token ceiling) were implemented and unit-tested in isolatio
 never called from the orchestrator; **Tavily was never called anywhere at all** despite
 being a named prize track; the router built a **fresh `CostGuard` on every request**,
 silently resetting the "daily" budget each time; `.env` loading **silently loaded
-nothing** depending on launch directory; and `NEBIUS_SANDBOX_IMAGE` was declared but
-never read. A reminder that isolated unit tests don't catch defects in the wiring
-*between* components, in instance lifecycle, or in what the actual deployed artifact
-does versus what its source code claims — only running the real thing does.
+nothing** depending on launch directory; `NEBIUS_SANDBOX_IMAGE` was declared but never
+read; a temp git clone was leaked on every `POST /runs` and `/execute` call with no
+cleanup, confirmed with 317 leaked directories in this session's own temp folder; a
+late-binding function-default bug made a test silently skip its monkeypatch and make a
+real network call; and, most recently, the new SSE stream route's background worker
+thread bypassed the test suite's DB-isolation fixture entirely by calling `SessionLocal`
+directly instead of through FastAPI's request-scoped override. A reminder that isolated
+unit tests don't catch defects in the wiring *between* components, in instance
+lifecycle, or in what the actual deployed artifact does versus what its source code
+claims — only running the real thing does.
 
 ## Repo layout
 

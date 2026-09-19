@@ -1,21 +1,29 @@
-"""§4 architecture: `POST /runs` (S1 intake) and `POST /runs/{id}/execute`
-(recon -> planner -> sandbox -> classifier -> repair loop -> adjudicator
--> passport, via `orchestrator.run_pipeline`). Execution requires real
-Nebius Token Factory credentials — this endpoint returns a clear 503
+"""§4 architecture: `POST /runs` (S1 intake), `GET /runs/{id}/stream` (the
+SSE live-progress endpoint the architecture diagram actually names), and
+`POST /runs/{id}/execute` (a synchronous alternative — useful for the
+batch runner, curl, and tests — kept working exactly as before). Both
+execution paths run the identical pipeline via `orchestrator.run_pipeline`
+and persist through the same `_execute_pipeline_for_run` helper.
+Execution requires real Nebius Token Factory credentials — a clear 503
 rather than crashing or faking a result when they're absent, per §0's
 "never fake a result."
 """
 
 from __future__ import annotations
 
+import json
+import queue
 import tempfile
+import threading
+from collections.abc import Callable
 from pathlib import Path
 
 from fastapi import APIRouter, Depends, HTTPException
+from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
 
 from app.config import get_settings
-from app.db import get_db
+from app.db import SessionLocal, get_db
 from app.models import Certificate, RepairAttempt, Run
 from app.schemas import CertificateOut, RunCreate, RunOut
 from app.services import intake
@@ -23,6 +31,10 @@ from app.services.cost_guard import get_shared_cost_guard
 from app.services.orchestrator import PipelineResult, build_pipeline_deps, run_pipeline
 
 router = APIRouter()
+
+
+def _sse_event(data: dict) -> str:
+    return f"data: {json.dumps(data)}\n\n"
 
 
 def _persist_pipeline_result(run: Run, result: PipelineResult, db: Session) -> None:
@@ -120,12 +132,19 @@ def get_run(run_id: str, db: Session = Depends(get_db)) -> Run:
     return run
 
 
-@router.post("/runs/{run_id}/execute", response_model=RunOut)
-def execute_run(run_id: str, db: Session = Depends(get_db)) -> Run:
-    run = db.get(Run, run_id)
-    if run is None:
-        raise HTTPException(status_code=404, detail=f"run '{run_id}' not found")
-
+def _execute_pipeline_for_run(
+    run: Run,
+    db: Session,
+    on_event: Callable[[str], None] | None = None,
+) -> Run:
+    """The real execute-and-persist logic, shared by the synchronous
+    `POST /execute` route (passes its own request-scoped `db`) and the
+    `GET /stream` route's background thread (passes its own freshly
+    created session, since a background thread must never touch a
+    request-scoped session that FastAPI may close the moment the route
+    handler returns). `on_event`, if given, is forwarded straight into
+    `orchestrator.run_pipeline` for real-time progress.
+    """
     settings = get_settings()
     if not settings.nebius_configured:
         raise HTTPException(
@@ -154,6 +173,7 @@ def execute_run(run_id: str, db: Session = Depends(get_db)) -> Run:
             deps=deps,
             cost_guard=cost_guard,
             run_id=run.id,
+            on_event=on_event,
         )
 
         run.commit_sha = intake_result.commit_sha
@@ -166,6 +186,79 @@ def execute_run(run_id: str, db: Session = Depends(get_db)) -> Run:
         # nothing needs the clone on disk anymore. Leaving it would leak
         # a full git clone per execution, unbounded, on every real run.
         intake.cleanup_workdir(workdir)
+
+
+@router.post("/runs/{run_id}/execute", response_model=RunOut)
+def execute_run(run_id: str, db: Session = Depends(get_db)) -> Run:
+    run = db.get(Run, run_id)
+    if run is None:
+        raise HTTPException(status_code=404, detail=f"run '{run_id}' not found")
+    return _execute_pipeline_for_run(run, db)
+
+
+@router.get("/runs/{run_id}/stream")
+def stream_run(run_id: str, db: Session = Depends(get_db)) -> StreamingResponse:
+    """The architecture's actual named SSE endpoint (§4: `SSE
+    /runs/{id}/stream`). If the run has already finished, replays its
+    certificate's full_log as a burst of events instead of re-executing —
+    a client that reloads S2 after completion still gets a real, honest
+    timeline, not an error or an empty stream. If not yet executed, runs
+    the real pipeline in a background thread and streams each log line as
+    `orchestrator.run_pipeline`'s `on_event` callback produces it, live.
+    """
+    run = db.get(Run, run_id)
+    if run is None:
+        raise HTTPException(status_code=404, detail=f"run '{run_id}' not found")
+
+    if run.stage == "DONE":
+        # Extract plain values now, while this request's session is still
+        # open — the generator below runs after this function returns,
+        # by which point FastAPI may have already closed `db` and touching
+        # a lazy-loaded ORM relationship then would raise.
+        full_log = run.certificate.full_log if run.certificate else ""
+        verdict = run.verdict
+
+        def _replay():
+            for line in full_log.split("\n"):
+                if line:
+                    yield _sse_event({"line": line})
+            yield _sse_event({"done": True, "verdict": verdict})
+
+        return StreamingResponse(_replay(), media_type="text/event-stream")
+
+    settings = get_settings()
+    if not settings.nebius_configured:
+        raise HTTPException(
+            status_code=503,
+            detail="Nebius Token Factory is not configured (NEBIUS_API_KEY missing) — cannot execute this run",
+        )
+
+    event_queue: queue.Queue = queue.Queue()
+
+    def _worker() -> None:
+        worker_db = SessionLocal()
+        try:
+            worker_run = worker_db.get(Run, run_id)
+            _execute_pipeline_for_run(worker_run, worker_db, on_event=event_queue.put)
+        except HTTPException as exc:
+            event_queue.put(f"[error] {exc.detail}")
+        except Exception as exc:  # a live stream must never just hang forever on an unexpected error
+            event_queue.put(f"[error] unexpected error: {exc}")
+        finally:
+            worker_db.close()
+            event_queue.put(None)  # sentinel: no more events
+
+    threading.Thread(target=_worker, daemon=True).start()
+
+    def _stream():
+        while True:
+            item = event_queue.get()
+            if item is None:
+                break
+            yield _sse_event({"line": item})
+        yield _sse_event({"done": True})
+
+    return StreamingResponse(_stream(), media_type="text/event-stream")
 
 
 @router.get("/runs/{run_id}/certificate", response_model=CertificateOut)

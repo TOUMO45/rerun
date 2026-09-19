@@ -25,6 +25,7 @@ persisting the `PipelineResult` it returns.
 from __future__ import annotations
 
 import subprocess
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from pathlib import Path
@@ -202,8 +203,23 @@ def run_pipeline(
     deps: PipelineDeps,
     cost_guard: CostGuard,
     run_id: str,
+    on_event: Callable[[str], None] | None = None,
 ) -> PipelineResult:
-    log_lines: list[str] = [f"[intake] cloned {repo_url}@{commit_sha}"]
+    """`on_event`, if given, is called with each log line the instant it
+    happens — not just accumulated into the final `PipelineResult.full_log`
+    — so a caller (the SSE route) can stream real progress to a client
+    while this function is still running, rather than only after it
+    returns. Optional and side-effect-only: omitting it changes nothing
+    about `run_pipeline`'s own behavior or return value.
+    """
+    log_lines: list[str] = []
+
+    def _log(line: str) -> None:
+        log_lines.append(line)
+        if on_event is not None:
+            on_event(line)
+
+    _log(f"[intake] cloned {repo_url}@{commit_sha}")
 
     entrypoint_source = {}
     for candidate in intake_result.entrypoint_candidates:
@@ -211,13 +227,13 @@ def run_pipeline(
         if candidate_path.is_file():
             entrypoint_source[candidate] = candidate_path.read_text(encoding="utf-8", errors="replace")
 
-    log_lines.append("[recon] calling Nemotron Nano")
+    _log("[recon] calling Nemotron Nano")
     recon_result = recon.run_recon(
         deps.recon_client, deps.recon_model, intake_result, entrypoint_source, cost_guard=cost_guard
     )
 
     if recon_result.is_indeterminate:
-        log_lines.append(f"[recon] INDETERMINATE: {recon_result.indeterminate_reason}")
+        _log(f"[recon] INDETERMINATE: {recon_result.indeterminate_reason}")
         return _finalize(
             verdict="INDETERMINATE",
             taxonomy_code=None,
@@ -227,11 +243,12 @@ def run_pipeline(
             log_lines=log_lines,
             deps=deps,
             cost_guard=cost_guard,
+            on_event=on_event,
             attempts_used=0,
             repo_url=repo_url,
             commit_sha=commit_sha,
         )
-    log_lines.append(f"[recon] entrypoint={recon_result.entrypoint} confidence={recon_result.confidence:.2f}")
+    _log(f"[recon] entrypoint={recon_result.entrypoint} confidence={recon_result.confidence:.2f}")
 
     plan = planner.build_plan(
         intake_result,
@@ -241,7 +258,7 @@ def run_pipeline(
         cost_guard=cost_guard,
         default_image=deps.default_sandbox_image,
     )
-    log_lines.append(f"[planner] build plan: {plan.as_dict()}")
+    _log(f"[planner] build plan: {plan.as_dict()}")
 
     def _execute(current_workdir: Path) -> SandboxRunResult:
         # §9: the daily cost ceiling must actually stop spend, not just be
@@ -260,7 +277,7 @@ def run_pipeline(
             upload_files=_collect_upload_files(current_workdir),
         )
         cost_guard.record_spend(result.total_cost_usd)
-        log_lines.append(
+        _log(
             f"[cost_guard] recorded ${result.total_cost_usd:.4f} sandbox spend, "
             f"${cost_guard.remaining_today_usd:.4f} remaining today"
         )
@@ -269,7 +286,7 @@ def run_pipeline(
     try:
         sandbox_result = _execute(workdir)
     except (SandboxError, CostLimitExceeded) as exc:
-        log_lines.append(f"[sandbox] execution error: {exc}")
+        _log(f"[sandbox] execution error: {exc}")
         return _finalize(
             verdict="TIMEOUT" if "wall clock" in str(exc) else "NOT_ATTEMPTABLE",
             taxonomy_code=None,
@@ -279,12 +296,13 @@ def run_pipeline(
             log_lines=log_lines,
             deps=deps,
             cost_guard=cost_guard,
+            on_event=on_event,
             attempts_used=0,
             repo_url=repo_url,
             commit_sha=commit_sha,
         )
 
-    log_lines.append(f"[sandbox] exit_code={sandbox_result.final.exit_code}")
+    _log(f"[sandbox] exit_code={sandbox_result.final.exit_code}")
 
     attempts: list[AttemptRecord] = []
     verdict = "RUNS_CLEAN" if sandbox_result.succeeded else None
@@ -298,7 +316,7 @@ def run_pipeline(
             declared_deps=intake_result.declared_dependencies,
         )
         taxonomy_code = classification.code
-        log_lines.append(f"[classifier] {classification.code}: {classification.evidence}")
+        _log(f"[classifier] {classification.code}: {classification.evidence}")
 
         for attempt_number in range(1, deps.max_attempts + 1):
             try:
@@ -313,10 +331,10 @@ def run_pipeline(
             try:
                 tavily_context = tavily.fetch_context(deps.tavily_client, classification.code, classification.evidence)
             except tavily.TavilyError as exc:
-                log_lines.append(f"[tavily] search failed, continuing without cited context: {exc}")
+                _log(f"[tavily] search failed, continuing without cited context: {exc}")
                 tavily_context = tavily.TavilyContext(query="", sources=())
             if tavily_context.has_sources:
-                log_lines.append(
+                _log(
                     f"[tavily] {len(tavily_context.sources)} source(s) for '{tavily_context.query}'"
                 )
 
@@ -333,7 +351,7 @@ def run_pipeline(
             tavily_sources = tuple(s.as_dict() for s in tavily_context.sources)
 
             if not proposal.has_diff:
-                log_lines.append(f"[repair {attempt_number}] declined: {proposal.explanation}")
+                _log(f"[repair {attempt_number}] declined: {proposal.explanation}")
                 attempts.append(
                     AttemptRecord(attempt_number, "", "DECLINED", (), None, "", "", tavily_sources)
                 )
@@ -348,7 +366,7 @@ def run_pipeline(
 
             if gate_result.decision == "REJECT":
                 reasons = "; ".join(v.reason for v in gate_result.violations)
-                log_lines.append(f"[repair {attempt_number}] tamper gate REJECT: {reasons}")
+                _log(f"[repair {attempt_number}] tamper gate REJECT: {reasons}")
                 attempts.append(
                     AttemptRecord(
                         attempt_number,
@@ -363,17 +381,17 @@ def run_pipeline(
                 )
                 continue
 
-            log_lines.append(f"[repair {attempt_number}] tamper gate PASS — applying and re-executing")
+            _log(f"[repair {attempt_number}] tamper gate PASS — applying and re-executing")
             deps.apply_diff(workdir, proposal.diff_text)
             try:
                 rerun_result = _execute(workdir)
             except CostLimitExceeded as exc:
-                log_lines.append(f"[repair {attempt_number}] stopped: daily cost ceiling reached: {exc}")
+                _log(f"[repair {attempt_number}] stopped: daily cost ceiling reached: {exc}")
                 attempts.append(
                     AttemptRecord(attempt_number, proposal.diff_text, "PASS", (), None, "", "", tavily_sources)
                 )
                 break
-            log_lines.append(f"[repair {attempt_number}] re-execution exit_code={rerun_result.final.exit_code}")
+            _log(f"[repair {attempt_number}] re-execution exit_code={rerun_result.final.exit_code}")
 
             attempts.append(
                 AttemptRecord(
@@ -401,11 +419,11 @@ def run_pipeline(
             )
             taxonomy_code = classification.code
             sandbox_result = rerun_result
-            log_lines.append(f"[classifier] {classification.code}: {classification.evidence}")
+            _log(f"[classifier] {classification.code}: {classification.evidence}")
 
         if verdict is None:
             verdict = "BLOCKED"
-            log_lines.append(f"[verdict] BLOCKED after {len(attempts)} attempt(s): {taxonomy_code}")
+            _log(f"[verdict] BLOCKED after {len(attempts)} attempt(s): {taxonomy_code}")
 
     return _finalize(
         verdict=verdict,
@@ -416,6 +434,7 @@ def run_pipeline(
         log_lines=log_lines,
         deps=deps,
         cost_guard=cost_guard,
+        on_event=on_event,
         attempts_used=len(attempts),
         repo_url=repo_url,
         commit_sha=commit_sha,
@@ -435,7 +454,13 @@ def _finalize(
     attempts_used: int,
     repo_url: str,
     commit_sha: str,
+    on_event: Callable[[str], None] | None = None,
 ) -> PipelineResult:
+    def _log(line: str) -> None:
+        log_lines.append(line)
+        if on_event is not None:
+            on_event(line)
+
     evidence_summary = "; ".join(log_lines[-5:])
     adjudication = adjudicator.adjudicate(
         deps.adjudicator_client,
@@ -447,9 +472,9 @@ def _finalize(
         cost_guard=cost_guard,
     )
     if adjudication.was_downgraded:
-        log_lines.append(f"[adjudicator] downgraded verdict to {adjudication.verdict}: {adjudication.downgrade_reason}")
+        _log(f"[adjudicator] downgraded verdict to {adjudication.verdict}: {adjudication.downgrade_reason}")
     elif adjudication.model_attempted_upgrade:
-        log_lines.append("[adjudicator] model attempted to upgrade the verdict — rejected by the fixed clamp")
+        _log("[adjudicator] model attempted to upgrade the verdict — rejected by the fixed clamp")
 
     timestamp = datetime.now(timezone.utc).isoformat()
     full_log = "\n".join(log_lines)

@@ -66,7 +66,7 @@ def fake_paper_repo(tmp_path):
 
 
 @pytest.fixture
-def client():
+def client(monkeypatch):
     engine = create_engine(
         "sqlite:///:memory:",
         connect_args={"check_same_thread": False},
@@ -83,6 +83,16 @@ def client():
             db.close()
 
     app.dependency_overrides[get_db] = _override_get_db
+    # GET /runs/{id}/stream's background worker thread creates its own
+    # session by calling `SessionLocal()` directly (a background thread
+    # can't use a request-scoped `Depends(get_db)` — FastAPI's dependency
+    # override mechanism only applies to request-time DI, not code that
+    # imports and calls a session factory itself). Without also
+    # redirecting that direct import, the worker thread would silently
+    # talk to the real default `rerun.db` engine — uninitialized in tests
+    # — instead of this fixture's isolated in-memory one. Found by
+    # actually running the stream test, not by inspection.
+    monkeypatch.setattr("app.routers.runs.SessionLocal", TestingSessionLocal)
     # Deliberately not using `with TestClient(...)`: that would trigger the
     # app's startup event, which calls init_db() against the REAL default
     # engine (rerun.db), not this test's in-memory one. Tests only need the

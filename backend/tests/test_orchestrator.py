@@ -721,3 +721,93 @@ def test_tavily_search_failure_does_not_crash_the_pipeline():
 
     assert result.verdict == "BLOCKED"  # not a crash
     assert "search failed" in result.full_log
+
+
+# --- on_event: real-time progress streaming (§4: SSE /runs/{id}/stream) ----
+
+
+def test_on_event_fires_for_every_log_line_in_real_time_order():
+    train_py = "def run():\n    print('ok')\n\nrun()\n"
+    import tempfile
+
+    with tempfile.TemporaryDirectory() as d:
+        workdir = Path(d)
+        _write_files(workdir, {"train.py": train_py})
+        intake = _intake({"train.py": train_py})
+
+        recon_client = _FakeChatClient([json.dumps({"entrypoint": "train.py", "confidence": 0.9})])
+        sandbox_runner = _FakeSandboxRunner([_sandbox_result(0, stdout="ok\n")])
+        deps = _base_deps(recon_client, _FakeChatClient([]), None, sandbox_runner)
+
+        received: list[str] = []
+        result = run_pipeline(
+            repo_url="https://example.com/repo",
+            commit_sha="a" * 40,
+            workdir=workdir,
+            intake_result=intake,
+            deps=deps,
+            cost_guard=CostGuard(daily_cost_ceiling_usd=100),
+            run_id="run-16",
+            on_event=received.append,
+        )
+
+    # on_event received exactly the same lines, in the same order, as the
+    # final full_log — not a subset, not reordered, not "only the summary".
+    assert received == result.full_log.split("\n")
+    assert received[0].startswith("[intake]")
+    assert any("[recon]" in line for line in received)
+    assert any("[sandbox]" in line for line in received)
+
+
+def test_on_event_is_optional_and_changes_nothing_when_omitted():
+    train_py = "def run():\n    print('ok')\n\nrun()\n"
+    import tempfile
+
+    with tempfile.TemporaryDirectory() as d:
+        workdir = Path(d)
+        _write_files(workdir, {"train.py": train_py})
+        intake = _intake({"train.py": train_py})
+
+        recon_client = _FakeChatClient([json.dumps({"entrypoint": "train.py", "confidence": 0.9})])
+        sandbox_runner = _FakeSandboxRunner([_sandbox_result(0, stdout="ok\n")])
+        deps = _base_deps(recon_client, _FakeChatClient([]), None, sandbox_runner)
+
+        result = run_pipeline(
+            repo_url="https://example.com/repo",
+            commit_sha="a" * 40,
+            workdir=workdir,
+            intake_result=intake,
+            deps=deps,
+            cost_guard=CostGuard(daily_cost_ceiling_usd=100),
+            run_id="run-17",
+        )
+
+    assert result.verdict == "RUNS_CLEAN"
+
+
+def test_on_event_fires_even_on_the_indeterminate_short_circuit_path():
+    train_py = "def run():\n    pass\n"
+    import tempfile
+
+    with tempfile.TemporaryDirectory() as d:
+        workdir = Path(d)
+        _write_files(workdir, {"train.py": train_py})
+        intake = _intake({"train.py": train_py})
+
+        recon_client = _FakeChatClient([json.dumps({"entrypoint": "train.py", "confidence": 0.1})])
+        deps = _base_deps(recon_client, _FakeChatClient([]), None, _FakeSandboxRunner([]))
+
+        received: list[str] = []
+        result = run_pipeline(
+            repo_url="https://example.com/repo",
+            commit_sha="a" * 40,
+            workdir=workdir,
+            intake_result=intake,
+            deps=deps,
+            cost_guard=CostGuard(daily_cost_ceiling_usd=100),
+            run_id="run-18",
+            on_event=received.append,
+        )
+
+    assert result.verdict == "INDETERMINATE"
+    assert any("INDETERMINATE" in line for line in received)
