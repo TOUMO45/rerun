@@ -1,16 +1,28 @@
 """Cost guard (RERUN directive §9).
 
 PURE arithmetic/state bookkeeping — no network, no model call. Enforces a
-hard daily cost ceiling on model + sandbox spend, and per-run token/attempt
-caps, *in code*, not just in documentation. Every model call and every
-sandbox-second the orchestrator wants to spend must be checked against a
-`CostGuard` instance first; a denial must actually stop the caller, not
-just log a warning.
+hard daily USD cost ceiling, a per-run repair-attempt ceiling, and a
+per-attempt token ceiling, *in code*, not just in documentation. A denial
+must actually stop the caller, not just log a warning.
 
 This module tracks spend in-process for a single guard instance. The
 orchestrator is responsible for persisting/loading the day's running total
 across process restarts (e.g. via the SQLite store) if that durability is
 needed — this module only owns the arithmetic and the refusal decision.
+
+**Corrected, found live during this session's audit (see DECISIONS.md):**
+this docstring previously claimed the daily USD ceiling covers "model +
+sandbox spend." It doesn't. `record_spend`/`check_daily_budget` are only
+ever called from `orchestrator.py` for real, measured *sandbox* cost
+(`ContreeResult.cost`, a real number the SDK returns). Every Nemotron
+model call (recon, planner, up to `max_attempts_per_run` repairer calls,
+adjudicator) is bounded only by `check_token_budget` — a per-call TOKEN
+COUNT ceiling, not a USD cost tracked against the daily total — because
+no per-token USD pricing for these models exists anywhere in this
+codebase to convert one into the other, and fabricating a pricing table
+without a verified source would be worse than leaving this honestly
+documented. A run with heavy, repeated model usage and zero/cheap sandbox
+time is not actually capped by `daily_cost_ceiling_usd` at all today.
 """
 
 from __future__ import annotations
@@ -54,6 +66,21 @@ class CostGuard:
         """Raise CostLimitExceeded if spending `estimated_cost_usd` more
         would breach the daily ceiling. Does not record the spend — call
         `record_spend` only after the call/sandbox time actually happened.
+
+        Known limitation, found live and documented rather than silently
+        left (see DECISIONS.md): this check and `record_spend` are two
+        separate calls with real, non-trivial work (a real sandbox run)
+        happening in between. Reproduced with two real threads and a
+        simulated delay: two concurrent runs can each pass this check
+        before either calls `record_spend`, together exceeding the
+        ceiling by up to one run's worth of spend. Closing this properly
+        would need an atomic "reserve the estimate, then adjust once the
+        real cost is known" pattern — not implementable for the sandbox
+        spend path specifically, since there is no pre-flight cost quote
+        to reserve (see orchestrator.py's `_execute`, which already
+        passes `estimated_cost_usd=0.0` for exactly this reason). Judged
+        an acceptable residual risk for §4.1's single-tenant, zero-ops
+        deployment target, not silently ignored.
         """
         self._roll_day_if_needed()
         if self._spent_today_usd + estimated_cost_usd > self.daily_cost_ceiling_usd:

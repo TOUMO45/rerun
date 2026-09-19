@@ -105,6 +105,18 @@ This project is being built in phases (see the directive, §11). Current state:
   across them, so a full batch run isn't actually capped in aggregate the way a single
   web request is. See `DECISIONS.md` for why this needs shared infrastructure to fix
   properly rather than a code change.
+- Two more gaps in the same cost guard, found the same way (adversarial testing, not
+  code reading) and documented rather than fixed: (1) a genuine TOCTOU race — reproduced
+  live with two real threads — where two *different* runs executing concurrently can
+  each pass the daily-ceiling check before either records its spend, together exceeding
+  the ceiling; closing it properly would need a pre-flight cost quote the sandbox API
+  doesn't provide, or a lock that would serialize all concurrent sandbox execution
+  process-wide. (2) the daily USD ceiling **never actually covered model/inference
+  spend** — only sandbox cost is ever recorded against it; every Nemotron call is bounded
+  by a per-call token-count ceiling, never converted to USD or accumulated toward the
+  daily total, because no verified per-token pricing exists anywhere in this codebase to
+  do that conversion honestly. `cost_guard.py`'s own module docstring previously claimed
+  otherwise — corrected.
 - ✅ `GET /runs/{id}/stream`: true SSE live-streaming for S2, per §4's named endpoint,
   and the frontend actually consumes it. Runs the real pipeline in a background thread
   and streams each log line the instant `orchestrator.run_pipeline` produces it via an

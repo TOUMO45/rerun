@@ -1721,3 +1721,60 @@ any try/except block not entirely within newly-added lines. No new bug found the
 (up from 238/4).
 
 ---
+
+## 2026-09-19 — Two real gaps found in §9's cost guard, documented rather than fixed
+
+**Context:** the sandbox wall-clock fix (previous entry) was the second time this
+session a "shared budget/ceiling" turned out not to actually behave as shared (the first
+was the per-container cost guard singleton gap in the batch path). That pattern was
+specifically re-audited in `cost_guard.py`'s own accounting with fresh, adversarial eyes
+— not by re-reading the existing tests, by trying to actually break it.
+
+**Finding 1 — a real TOCTOU race, reproduced live:** `check_daily_budget()` and
+`record_spend()` are two separate calls with real, non-trivial work (an actual sandbox
+run) happening in between. Wrote a probe with two real threads sharing one `CostGuard`,
+each checking a $10 ceiling with $8 already spent, wanting to spend $1.50 more, with a
+real `time.sleep(0.2)` between check and record standing in for the sandbox call's real
+duration. Both threads passed the check (neither had recorded yet when the other
+checked) and the total landed at $11.00 — **over the $10.00 ceiling.** This is reachable
+in practice: nothing prevents the web app from executing two *different* runs
+concurrently (the duplicate-execution guard added earlier this session only protects one
+run from racing itself, not two different runs from racing each other).
+
+**Finding 2 — the daily ceiling doesn't cover model spend at all, and the module's own
+docstring said otherwise:** grepped every call site of `record_spend`/`check_daily_budget`
+— both are called only from `orchestrator.py`'s sandbox-execution closure, using
+`SandboxRunResult.total_cost_usd` (a real number the Nebius SDK returns). Every Nemotron
+model call (recon, planner, up to `max_attempts_per_run` repairer calls, adjudicator) is
+bounded only by `check_token_budget` — a per-call *token count* ceiling, never converted
+to USD or accumulated toward the daily total. `cost_guard.py`'s own module docstring
+claimed the ceiling covers "model + sandbox spend" — it never did. A run with heavy,
+repeated model usage and cheap/zero sandbox time is not capped by
+`daily_cost_ceiling_usd` today, at all, regardless of concurrency.
+
+**Why neither was fixed, considered explicitly rather than assumed:**
+- Finding 1: the standard fix for a check-then-act race — atomically reserving the
+  *estimated* cost, then adjusting once the real cost is known — can't be implemented
+  for the sandbox path specifically, because there is no pre-flight cost quote to
+  reserve at all (`orchestrator.py` already passes `estimated_cost_usd=0.0` for exactly
+  this reason, predating this audit). The alternative, a lock held across the whole real
+  sandbox call, would serialize *all* concurrent sandbox execution process-wide, even
+  for two runs that would both individually fit the budget — a bigger architectural
+  trade-off than this fix is worth for §4.1's stated single-tenant, zero-ops deployment
+  target.
+- Finding 2: fixing this for real needs a verified per-token USD price for each Nemotron
+  model (Nano/Super/Ultra) to convert token usage into a comparable daily-spend number.
+  No such pricing exists anywhere in this codebase, and fabricating one without a
+  verified source would be strictly worse than the current honest gap — exactly the kind
+  of guess this session's whole discipline has avoided everywhere else (real SDK source,
+  real docs, real installed package behavior; never invented facts).
+
+**Documented, not silently left implicit:** `cost_guard.py`'s module docstring corrected
+to state what it actually enforces; `check_daily_budget`'s own docstring now explains the
+race with the same specificity as this entry. No test added — there's nothing new to
+assert without either fixing the race (not done, for the reason above) or fabricating
+pricing data (refused, for the same reason); the existing single-process-sharing tests
+remain correct and unaffected by this. Full suite still **240 passed, 4 skipped** — this
+pass changed only comments/docstrings.
+
+---
