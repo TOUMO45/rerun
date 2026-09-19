@@ -106,6 +106,35 @@ def test_run_recon_no_candidates_short_circuits_without_calling_model():
     assert "no runnable entrypoint discoverable" in result.indeterminate_reason
 
 
+def test_run_recon_notebook_only_repo_gets_a_specific_honest_reason():
+    """Found live during this session's audit: find_entrypoint_candidates
+    only scans for *.py files, so a repo whose only code is a Jupyter
+    notebook (a common, realistic shape for paper repos) always has zero
+    entrypoint candidates - there is no notebook execution path anywhere
+    in this pipeline (planner.py's execute_command only ever runs
+    `python <file>.py`). Before this fix, that repo got the exact same
+    generic "no candidate scripts found" message as a repo with no code
+    at all, actively hiding the fact that real code (a notebook) WAS
+    found. Still correctly INDETERMINATE, never a crash and never a
+    silent guess - just an honest, specific reason instead of a
+    misleading generic one.
+    """
+    intake = RepoIntake(
+        local_path=Path("/fake"),
+        commit_sha="a" * 40,
+        dependency_files={"requirements.txt": "numpy\n"},
+        declared_dependencies=frozenset({"numpy"}),
+        notebook_paths=("analysis.ipynb",),
+        entrypoint_candidates=(),
+        python_version_hint=None,
+    )
+    client = _FakeClient(raise_error=RuntimeError("should never be called"))
+    result = run_recon(client, "nvidia/nemotron-3-nano", intake)
+    assert result.is_indeterminate is True
+    assert "analysis.ipynb" in result.indeterminate_reason
+    assert "notebook execution is not yet supported" in result.indeterminate_reason
+
+
 def test_run_recon_happy_path():
     intake = _intake_with_candidates("train.py")
     client = _FakeClient(response_text=json.dumps({"entrypoint": "train.py", "confidence": 0.85}))

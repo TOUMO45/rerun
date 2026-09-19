@@ -203,6 +203,21 @@ def run_recon(
     repo failure.
     """
     if not intake.entrypoint_candidates:
+        if intake.notebook_paths:
+            # Found live: without this branch, a repo whose only code is a
+            # notebook got the exact same message as a repo with no code
+            # at all — actively misleading, since a notebook genuinely
+            # was found. Still INDETERMINATE, not a silent guess: notebook
+            # EXECUTION isn't wired anywhere in this pipeline yet
+            # (planner.py's execute_command only ever runs `python
+            # <file>.py`; no jupyter/nbconvert execution path exists) —
+            # see DECISIONS.md for why that's a real, separately-scoped
+            # gap rather than fixed here.
+            return _indeterminate(
+                f"found {len(intake.notebook_paths)} notebook(s) "
+                f"({', '.join(intake.notebook_paths)}) but no runnable .py entrypoint — "
+                "notebook execution is not yet supported by this pipeline"
+            )
         return _indeterminate(
             "no runnable entrypoint discoverable in recon: no candidate scripts found "
             "(no train.py/main.py/run.py-style file, and no file with a __main__ guard)"

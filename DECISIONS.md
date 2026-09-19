@@ -2266,3 +2266,53 @@ rendered as inert text, exactly as intended. Clean console throughout. `npx tsc
 afterward. No backend change; full suite unaffected at 247 passed, 4 skipped.
 
 ---
+
+## 2026-09-19 — Real gap found: notebook-only repos are never actually executable
+
+**Context:** live-tested a scenario noted but never actually exercised this session:
+§3 must-have #1 lists "notebooks" alongside requirements.txt/setup.py/environment.yml
+as something intake should parse. Constructed a real fake repo whose *only* code is a
+Jupyter notebook (a minimal valid `.ipynb` JSON structure, no `.py` files at all — a
+common, realistic shape for paper repos) and ran it through the real `intake.py` +
+`recon.py` functions, not just read the code.
+
+**Confirmed:** `find_entrypoint_candidates()` only globs `*.py` — it never looks at
+`.ipynb` files at all, so `entrypoint_candidates` is empty for this repo regardless of
+what runnable code the notebook contains. `find_notebooks()` does correctly discover
+the notebook and record it in `notebook_paths`, and `recon.py`'s prompt does mention it
+to the model as a "fact" — but since `parse_recon_response` only ever accepts an
+`entrypoint` that's a member of `entrypoint_candidates`, a notebook can **never** be
+selected as the entrypoint, model opinion notwithstanding. Confirmed further:
+`planner.py`'s `execute_command` is unconditionally `f"python {shlex.quote(...)}"` —
+there is no `jupyter nbconvert`/`jupyter execute`/`papermill` code path anywhere in this
+pipeline. Net result: `run_recon()` short-circuits straight to `INDETERMINATE` for a
+notebook-only repo, without even calling the model, regardless of whether the notebook
+itself would actually run cleanly.
+
+**Fixed, the safely-completable piece:** the `INDETERMINATE` reason string was
+previously identical for "no code at all" and "only notebook code" — actively
+misleading, since a notebook genuinely was found. `run_recon()` now checks
+`intake.notebook_paths` in that branch and returns a specific, honest reason naming the
+notebook(s) found and stating plainly that notebook execution isn't supported yet,
+instead of the generic "no candidate scripts found" message. Added
+`test_run_recon_notebook_only_repo_gets_a_specific_honest_reason` to `test_recon.py`.
+
+**Not fixed — documented as a real, separately-scoped gap, not silently left implicit:**
+actually executing a notebook needs real design work this session judged out of scope
+for a live-testing pass: (1) treating a notebook path as a distinct kind of entrypoint
+candidate, since `parse_recon_response`'s current model assumes every entrypoint is a
+plain `.py` file; (2) a different `execute_command` shape for that case (e.g.
+`jupyter execute <notebook>`, which does exist as a real Jupyter CLI subcommand for
+exactly this — running all cells and reporting success via exit code — verified by
+name, not yet by installing and running it); (3) ensuring `jupyter`/`nbconvert` is
+actually present in the sandbox image, which `python:3.11-slim` does **not** ship by
+default — an install-command change with real cost/time implications for every run,
+not just notebook-only ones. None of this is verifiable without either live Nebius
+credentials to test the real sandbox image, or a deliberate decision to bundle Jupyter
+into the default base image — a real infrastructure trade-off, not a quick fix.
+
+**Verified:** the notebook-only scenario reproduced with a real fake repo and the real
+`intake.py`/`recon.py` functions (not mocked); the improved message confirmed correct;
+all 16 recon tests pass; full suite **248 passed, 4 skipped** (up from 247/4).
+
+---

@@ -116,6 +116,20 @@ This project is being built in phases (see the directive, §11). Current state:
   already-documented incomplete state above; building the frontend piece alone, ahead of
   deciding the real output schema, risks locking in a shape that has to change again
   once the batch runner is finished. Scoped and ready to pick up — see `DECISIONS.md`.
+- **A notebook-only repo can never actually be executed**, found by live-testing a real
+  fake repo whose only code is a `.ipynb` file against the real `intake.py`/`recon.py`.
+  `find_entrypoint_candidates()` only scans `*.py` files; notebooks are discovered and
+  mentioned to the model as a fact, but can never be selected as the entrypoint, and
+  there's no `jupyter execute`/`nbconvert` code path anywhere — `planner.py`'s
+  `execute_command` is unconditionally `python <file>.py`. Such a repo always gets
+  `INDETERMINATE` without even calling the model, regardless of whether the notebook
+  itself would run cleanly. Fixed the misleading part now (the reason string used to be
+  identical to "no code at all" — now it specifically names the notebook(s) found and
+  says plainly that notebook execution isn't supported yet); the actual execution
+  support needs real design work (a distinct entrypoint kind, a different execute
+  command, and a decision about bundling Jupyter into the sandbox image — `python:3.11-
+  slim` doesn't ship it) that's a real feature, not a quick fix, and isn't verifiable
+  without live Nebius credentials to test the real sandbox image.
 - **Two real npm CVEs, found while re-verifying the README's fresh-clone setup**:
   `esbuild` (dev-server-only — doesn't affect the deployed production build) and
   `react-router` (a real runtime dependency; an open-redirect and an SSR-hydration CVE).
@@ -171,13 +185,13 @@ This project is being built in phases (see the directive, §11). Current state:
   what this gap needed. Verified live against a real browser with realistic delays, not
   just unit-tested.
 
-Backend test suite: **247 passed, 4 skipped** (`cd backend && pytest -v`) — reconfirmed
+Backend test suite: **248 passed, 4 skipped** (`cd backend && pytest -v`) — reconfirmed
 from a genuinely fresh clone, not just the working session directory. 3 skips are the
 real Nebius Sandboxes integration test, honestly gated on `NEBIUS_API_KEY`; 1 is a
 network-dependent corpus-freshness check (`RERUN_VERIFY_CORPUS_NETWORK=1` to run it —
 confirmed passing against all 20 real repos as of 2026-09-19).
 
-Self-audit passes found and fixed **twenty-six** real bugs/gaps this session (full detail in
+Self-audit passes found and fixed **twenty-seven** real bugs/gaps this session (full detail in
 `DECISIONS.md`). Three are worth calling out specifically because unit tests
 structurally could never have caught them — only running the real, deployed Docker image
 did:
