@@ -57,6 +57,37 @@ def test_stream_returns_503_when_not_configured_and_not_yet_run(client, fake_pap
     assert response.status_code == 503
 
 
+def test_stream_refuses_to_start_a_second_execution_while_one_is_already_executing(client, fake_paper_repo):
+    """Companion to test_execute_run_refuses_to_re_execute_an_already_done_run:
+    a run already marked EXECUTING (e.g. a prior /stream or /execute call
+    kicked off a still-running background execution, and the page was
+    reloaded and 'Start reproduction run' clicked again) must not have a
+    second background execution started against it, racing the first one
+    to persist the same run's one-to-one certificate.
+    """
+    # Imported from app.routers.runs, NOT app.db: the `client` fixture
+    # monkeypatches app.routers.runs.SessionLocal to the test's isolated
+    # in-memory engine (see conftest.py) — importing SessionLocal fresh
+    # from app.db here would bypass that and hit the real, uninitialized
+    # production DB instead, the exact bug already found once this
+    # session for the stream route's own background worker.
+    from app.models import Run
+    from app.routers.runs import SessionLocal
+
+    created = client.post("/runs", json={"repo_url": str(fake_paper_repo)}).json()
+
+    db = SessionLocal()
+    run = db.get(Run, created["id"])
+    run.stage = "EXECUTING"
+    db.add(run)
+    db.commit()
+    db.close()
+
+    response = client.get(f"/runs/{created['id']}/stream")
+    assert response.status_code == 409
+    assert "already executing" in response.json()["detail"].lower()
+
+
 def test_stream_delivers_live_events_from_a_background_execution(client, fake_paper_repo, monkeypatch):
     created = client.post("/runs", json={"repo_url": str(fake_paper_repo)}).json()
 

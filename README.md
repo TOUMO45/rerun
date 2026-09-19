@@ -113,13 +113,13 @@ This project is being built in phases (see the directive, §11). Current state:
   still works (used by the batch runner, curl, and tests). Nebius Serverless Endpoints
   hosting is not yet built.
 
-Backend test suite: **232 passed, 4 skipped** (`cd backend && pytest -v`) — reconfirmed
+Backend test suite: **234 passed, 4 skipped** (`cd backend && pytest -v`) — reconfirmed
 from a genuinely fresh clone, not just the working session directory. 3 skips are the
 real Nebius Sandboxes integration test, honestly gated on `NEBIUS_API_KEY`; 1 is a
 network-dependent corpus-freshness check (`RERUN_VERIFY_CORPUS_NETWORK=1` to run it —
 confirmed passing against all 20 real repos as of 2026-09-19).
 
-Self-audit passes found and fixed **sixteen** real bugs this session (full detail in
+Self-audit passes found and fixed **seventeen** real bugs this session (full detail in
 `DECISIONS.md`). Three are worth calling out specifically because unit tests
 structurally could never have caught them — only running the real, deployed Docker image
 did:
@@ -141,9 +141,19 @@ did:
   container, despite a clean `docker compose build` and a healthy `/healthz`. Found only
   by creating a real run against the real running container and reading the traceback.
 
-Both are now fixed and verified live: rebuilt the image, created a real run against a
-real Python repo, confirmed the database file actually lives in the mounted volume, and
-confirmed the run survives a full `--force-recreate` (simulated redeploy).
+All three are now fixed and verified live: rebuilt the image, created a real run against
+a real Python repo, confirmed the database file actually lives in the mounted volume,
+and confirmed the run survives a full `--force-recreate` (simulated redeploy).
+
+One more is worth calling out on its own: **a double-click, browser back-then-resubmit,
+or a page reload mid-run could crash or silently corrupt a run's final state.**
+`Certificate.run_id` is a one-to-one DB column; nothing stopped `POST /execute` (or a
+second `GET /stream`) from being called a second time against the same run, and doing so
+crashed with an unhandled `sqlite3.IntegrityError` — reproduced with no concurrency at
+all, just two sequential calls. Fixed with an `EXECUTING` stage marker committed before
+any real work starts, refusing a second execution with a clean `409` instead; the
+frontend now shows "already in progress, checking back automatically" instead of
+re-exposing the start button after a reload.
 
 Other fixes from this session's audits: both halves of §9's cost guard (daily USD
 ceiling, per-attempt token ceiling) were implemented and unit-tested in isolation but

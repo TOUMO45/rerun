@@ -1425,3 +1425,84 @@ permanent regression check future changes can't silently break.
 Deleted the seeded demo run from the dev DB and all scratch files afterward.
 
 ---
+
+## 2026-09-19 — Bug found and fixed: duplicate/concurrent execution corrupted or crashed a run
+
+**Context:** continuing to self-audit, investigated a specific question the SSE work
+raised: `stream_run()`'s background thread has no cancellation and `Run.stage` only ever
+transitions `RECON_PENDING` -> `DONE`, with nothing in between. What actually happens if
+a run gets executed a second time — e.g. a page reload during a real run resets S2's
+local `hasStarted` state, exposing the "Start reproduction run" button again while the
+first execution is still running server-side?
+
+**Bug, reproduced live, no concurrency even required:** `Certificate.run_id` is a
+one-to-one DB column (`unique=True`). Calling `POST /runs/{id}/execute` a **second time**
+on an already-DONE run — a double-click, a browser back-then-resubmit, or exactly the
+reload scenario above — crashed with an unhandled `sqlite3.IntegrityError: UNIQUE
+constraint failed: certificates.run_id`, surfaced as a raw, unhandled exception (a 500 in
+any real deployment). Reproduced with a standalone script hitting the real router twice
+in a row against a real (if fake-pipeline) execution — no threading needed. A true
+concurrent variant (two overlapping executions racing each other) was also probed with
+real threads and a synchronization barrier; it additionally surfaced a SQLAlchemy
+`StaleDataError` on the losing thread's `UPDATE`, and left the run's final DB state
+matching *neither* execution's real outcome.
+
+**Fixed:** `_execute_pipeline_for_run()` (shared by both `POST /execute` and the
+`GET /stream` background worker) now refuses immediately with a clean `409` if
+`run.stage` is already `"EXECUTING"` or `"DONE"`, before doing any real work. A run is
+marked `"EXECUTING"` and committed *immediately* on the way in — before the real clone or
+any model/sandbox call — so the guard's cost is one fast DB round-trip, not something a
+real double-click can race past. If execution fails for *any* reason after that point
+(intake error, an unexpected exception from `run_pipeline` itself), the `except` clause
+rolls back the failed transaction first (a failed commit otherwise leaves the session
+unable to run a second commit — this would have masked the real error with a
+`PendingRollbackError` instead of resetting anything) and resets `run.stage` back to
+`"RECON_PENDING"` so the run can still be retried cleanly. `stream_run()` gets the same
+`"EXECUTING"` check up front, before spawning a background thread at all, so a second
+`GET /stream` call against an in-flight run gets an immediate, clear 409 instead of
+racing the first execution's background worker.
+
+**Known, accepted, documented limitation, not silently left unstated:** this closes the
+easily-reachable case (sequential re-execution, and the realistic "reload mid-run and
+click again" case, which under normal request/thread scheduling loses the race to the
+already-committed `EXECUTING` marker in practice). It does **not** perfectly eliminate a
+true, adversarially-timed simultaneous race — two requests could still both read
+`RECON_PENDING` before either commits `EXECUTING`, in a window now measured in
+milliseconds rather than the entire pipeline's duration. Fully closing that would need a
+compare-and-swap `UPDATE ... WHERE stage != 'EXECUTING'` checked against rowcount, or
+real row-level locking — SQLite doesn't make either of those clean, and the residual risk
+for a hackathon-scale, single-tenant SQLite app is judged not worth that complexity.
+
+**Frontend UX gap this exposed, also fixed:** before this fix, a reload mid-run silently
+re-exposed the "Start reproduction run" button with no way to know a real execution was
+already in flight. `RunTimeline.tsx` now distinguishes `stage === "EXECUTING"` from the
+not-yet-started case: instead of the button, it shows "a reproduction run is already in
+progress… checking back automatically," backed by a `refetchInterval` that polls every 3s
+while in that state (using TanStack Query's default `refetchIntervalInBackground: false`,
+so a backgrounded/unfocused tab correctly doesn't hammer the backend — verified this is
+exactly why polling didn't fire in the browser pane during testing, since
+`document.hasFocus()` is `false` there; a real focused tab polls normally, confirmed by
+forcing a reload and observing the DONE state render correctly once the seeded run was
+marked complete server-side).
+
+**Verified:**
+- Reproduced the original crash with a standalone script calling the real router twice
+  sequentially on the same run (`sqlite3.IntegrityError`), and with two real threads
+  racing via a `threading.Barrier` (`StaleDataError`, wrong final state).
+- Re-ran both after the fix: sequential double-execute now returns a clean `409`,
+  `run_pipeline` is called exactly once, and the final state correctly reflects the one
+  real execution.
+- Added two permanent regression tests:
+  `test_execute_run_refuses_to_re_execute_an_already_done_run` (`test_runs_execute_router.py`)
+  and `test_stream_refuses_to_start_a_second_execution_while_one_is_already_executing`
+  (`test_runs_stream_router.py` — this one had to import `SessionLocal` from
+  `app.routers.runs`, not `app.db`, to correctly target the test's isolated DB rather
+  than hitting the exact `SessionLocal`-bypass bug already fixed once this session).
+- Live-verified the new frontend `EXECUTING` state: seeded a run directly into the dev DB
+  with `stage="EXECUTING"`, loaded it in a real browser with a fresh tab (clean console),
+  confirmed the new message renders instead of the button, then marked it `DONE`
+  server-side and confirmed a reload correctly picks up the completed timeline.
+- Full suite: **234 passed, 4 skipped** (up from 232/4). `npx tsc --noEmit` clean.
+- Cleaned up all seeded demo runs, scratch probe scripts, and manually-started processes.
+
+---

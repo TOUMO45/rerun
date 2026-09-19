@@ -81,6 +81,70 @@ def test_execute_run_persists_pipeline_result(client, fake_paper_repo, monkeypat
     assert cert["reproduction_passport_hash"] == "a" * 64
 
 
+def test_execute_run_refuses_to_re_execute_an_already_done_run(client, fake_paper_repo, monkeypatch):
+    """Found live during this session's audit: `Certificate.run_id` is a
+    one-to-one DB column (`unique=True`), so calling POST /execute a
+    second time on an already-DONE run — no concurrency needed, just a
+    double-click, a browser back-then-resubmit, or a page reload
+    re-triggering execution — crashed with an unhandled
+    sqlite3.IntegrityError on the second Certificate insert. This is the
+    permanent regression test for the fix: a second call must get a clean
+    409, run_pipeline must not be called a second time, and the run's
+    original DONE state/verdict must be untouched.
+    """
+
+    class _FakeSettings:
+        nebius_configured = True
+        nebius_api_key = "fake-key-for-construction-only"
+        nebius_base_url = "https://api.tokenfactory.nebius.com/v1"
+        nebius_model_recon = "nvidia/nemotron-3-nano"
+        nebius_model_repairer = "nvidia/nemotron-3-super"
+        nebius_model_adjudicator = "nvidia/nemotron-3-ultra"
+        nebius_model_planner = "nvidia/nemotron-3-super"
+        nebius_sandbox_wall_clock_seconds = 60
+        max_attempts_per_run = 3
+        daily_cost_ceiling_usd = 25.0
+        tavily_configured = False
+        nebius_sandbox_image = "python:3.11-slim"
+
+    call_count = {"n": 0}
+
+    def _fake_run_pipeline(**kwargs):
+        call_count["n"] += 1
+        return PipelineResult(
+            verdict="RUNS_CLEAN",
+            taxonomy_code=None,
+            indeterminate_reason="",
+            attempts=(),
+            build_plan={},
+            full_log=f"[fake] execution #{call_count['n']}",
+            certificate_prose="ok",
+            reproduction_passport_hash=f"{call_count['n']}" * 64,
+            timestamp=datetime.now(timezone.utc).isoformat(),
+            repo_url=kwargs["repo_url"],
+            commit_sha=kwargs["commit_sha"],
+        )
+
+    monkeypatch.setattr("app.routers.runs.get_settings", lambda: _FakeSettings())
+    monkeypatch.setattr("app.routers.runs.run_pipeline", _fake_run_pipeline)
+
+    created = client.post("/runs", json={"repo_url": str(fake_paper_repo)}).json()
+
+    first = client.post(f"/runs/{created['id']}/execute")
+    assert first.status_code == 200
+    assert first.json()["verdict"] == "RUNS_CLEAN"
+
+    second = client.post(f"/runs/{created['id']}/execute")
+    assert second.status_code == 409
+    assert "already" in second.json()["detail"].lower()
+
+    assert call_count["n"] == 1  # run_pipeline was never called a second time
+
+    final = client.get(f"/runs/{created['id']}").json()
+    assert final["stage"] == "DONE"
+    assert final["verdict"] == "RUNS_CLEAN"
+
+
 def test_certificate_fetched_via_api_still_verifies_against_its_own_passport_hash(client, fake_paper_repo, monkeypatch):
     """§13 definition-of-done item 6: a downloaded certificate's hash must
     verify independently. This specifically guards against the timestamp

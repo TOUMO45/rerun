@@ -19,9 +19,15 @@ export function RunTimeline() {
     queryKey: ["run", runId],
     queryFn: () => api.getRun(runId!),
     enabled: !!runId,
+    // If a reload lands on a run some other tab/session already kicked
+    // off (stage === "EXECUTING" — see the backend's duplicate-execution
+    // guard), poll instead of leaving the user stuck on a dead page with
+    // no way to find out when it finishes short of manually refreshing.
+    refetchInterval: (query) => (query.state.data?.stage === "EXECUTING" ? 3000 : false),
   });
 
   const isDone = runQuery.data?.stage === "DONE";
+  const isExecutingElsewhere = runQuery.data?.stage === "EXECUTING" && !hasStarted;
 
   const certificateQuery = useQuery({
     queryKey: ["certificate", runId],
@@ -96,7 +102,17 @@ export function RunTimeline() {
         {run.verdict && <VerdictBadge verdict={run.verdict} size="lg" />}
       </div>
 
-      {!isDone && !hasStarted && (
+      {!isDone && !hasStarted && isExecutingElsewhere && (
+        <div className="rounded-sm border border-border bg-surface px-5 py-6 text-center">
+          <span className="mb-2 inline-block h-2 w-2 animate-pulse rounded-full bg-signal" />
+          <p className="font-mono text-sm text-text-secondary">
+            A reproduction run is already in progress for this run — started from another
+            tab, or from before this page was reloaded. Checking back automatically…
+          </p>
+        </div>
+      )}
+
+      {!isDone && !hasStarted && !isExecutingElsewhere && (
         <div className="rounded-sm border border-border bg-surface px-5 py-6 text-center">
           <p className="mb-4 font-mono text-sm text-text-secondary">
             Intake complete. Ready to build the environment and execute.

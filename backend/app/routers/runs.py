@@ -144,13 +144,40 @@ def _execute_pipeline_for_run(
     request-scoped session that FastAPI may close the moment the route
     handler returns). `on_event`, if given, is forwarded straight into
     `orchestrator.run_pipeline` for real-time progress.
+
+    Refuses to run a second time for a run that is already `DONE` or
+    already `EXECUTING`: `Certificate.run_id` is a one-to-one DB column
+    (`unique=True`), so a second execution's `_persist_pipeline_result`
+    would crash with an unhandled `IntegrityError` on insert — reproduced
+    live by simply calling `POST /execute` twice on the same run, no
+    concurrency even required. The `EXECUTING` marker is set and committed
+    immediately, before any real work starts, and reset back to
+    `RECON_PENDING` if execution fails for any reason, so a genuine
+    failure can still be retried. This narrows, but does not perfectly
+    eliminate, the window for two truly simultaneous requests to both pass
+    the check before either commits — closing that completely would need
+    a compare-and-swap UPDATE or row-level locking, out of scope for this
+    fix; see DECISIONS.md.
     """
+    if run.stage in ("EXECUTING", "DONE"):
+        raise HTTPException(
+            status_code=409,
+            detail=(
+                f"run '{run.id}' is already {'executing' if run.stage == 'EXECUTING' else 'done'} — "
+                "refusing a duplicate/overlapping execution"
+            ),
+        )
+
     settings = get_settings()
     if not settings.nebius_configured:
         raise HTTPException(
             status_code=503,
             detail="Nebius Token Factory is not configured (NEBIUS_API_KEY missing) — cannot execute this run",
         )
+
+    run.stage = "EXECUTING"
+    db.add(run)
+    db.commit()
 
     workdir = Path(tempfile.mkdtemp(prefix="rerun_exec_"))
     try:
@@ -179,6 +206,18 @@ def _execute_pipeline_for_run(
         run.commit_sha = intake_result.commit_sha
         _persist_pipeline_result(run, result, db)
         return run
+    except Exception:
+        # A failed commit (e.g. a genuinely concurrent execution losing
+        # the narrow race noted above) leaves the session in a state that
+        # requires a rollback before it can be used again — without this,
+        # the recovery commit below would itself raise (a
+        # PendingRollbackError), masking the real error instead of
+        # resetting the run for a clean retry.
+        db.rollback()
+        run.stage = "RECON_PENDING"
+        db.add(run)
+        db.commit()
+        raise
     finally:
         # The whole pipeline's file-level work happens against this
         # checkout (including applying gate-approved patches) — once
@@ -205,10 +244,25 @@ def stream_run(run_id: str, db: Session = Depends(get_db)) -> StreamingResponse:
     timeline, not an error or an empty stream. If not yet executed, runs
     the real pipeline in a background thread and streams each log line as
     `orchestrator.run_pipeline`'s `on_event` callback produces it, live.
+
+    If a previous call already kicked off a still-running execution for
+    this run (e.g. the page was reloaded mid-run and "Start reproduction
+    run" was clicked again), refuses with a 409 rather than starting a
+    second background thread racing the first one to persist the same
+    run's one-to-one certificate — see `_execute_pipeline_for_run`'s
+    docstring. This does not (yet) reattach the new request to the
+    already-running execution's live events; it just fails safely instead
+    of corrupting state.
     """
     run = db.get(Run, run_id)
     if run is None:
         raise HTTPException(status_code=404, detail=f"run '{run_id}' not found")
+
+    if run.stage == "EXECUTING":
+        raise HTTPException(
+            status_code=409,
+            detail=f"run '{run.id}' is already executing — refusing to start a second, overlapping execution",
+        )
 
     if run.stage == "DONE":
         # Extract plain values now, while this request's session is still
