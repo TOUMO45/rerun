@@ -41,11 +41,12 @@ class CertificateOut(BaseModel):
 
     run_id: str
     verdict: str
+    certificate_prose: str
     full_log: str
     build_plan: dict
     diffs: list
     reproduction_passport_hash: str
-    timestamp: datetime
+    timestamp: str
 
 
 class HealthOut(BaseModel):

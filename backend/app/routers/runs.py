@@ -9,7 +9,6 @@ rather than crashing or faking a result when they're absent, per §0's
 from __future__ import annotations
 
 import tempfile
-from datetime import datetime
 from pathlib import Path
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -75,11 +74,12 @@ def _persist_pipeline_result(run: Run, result: PipelineResult, db: Session) -> N
         Certificate(
             run_id=run.id,
             verdict=result.verdict,
+            certificate_prose=result.certificate_prose,
             full_log=result.full_log,
             build_plan=result.build_plan or {},
             diffs=[a.as_dict() for a in result.attempts],
             reproduction_passport_hash=result.reproduction_passport_hash,
-            timestamp=datetime.fromisoformat(result.timestamp),
+            timestamp=result.timestamp,
         )
     )
     db.commit()

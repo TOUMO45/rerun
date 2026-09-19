@@ -472,3 +472,47 @@ architecture diagram now has real, tested code reachable from an actual HTTP end
 the only remaining gap before a live end-to-end S1→S3 run is a real `NEBIUS_API_KEY`.
 
 ---
+
+## 2026-09-19 — Bug found and fixed: certificate_prose was never persisted; timestamp round-trip risk
+
+**Bug 1 (missing field):** while building the frontend's S3 certificate screen, noticed
+`Certificate` (the SQLAlchemy model) and `CertificateOut` (the API schema) had no
+`certificate_prose` field at all — `adjudicator.py`'s entire output (the human-readable
+summary §8 S3 explicitly requires) was computed in `orchestrator._finalize` and then
+silently dropped on the way into the database. Fixed: added the column, the schema
+field, and the assignment in `_persist_pipeline_result`. This is exactly the kind of
+gap that only surfaces when you build the consumer (the UI) of a producer's output —
+logged here as a reminder that a green test suite for each piece separately doesn't
+guarantee the wiring between them is complete.
+
+**Bug 2 (found by a new test, not inspection — real correctness risk, not yet
+manifested in the wild):** `Certificate.timestamp` was a SQLAlchemy `DateTime(timezone=True)`
+column, populated by parsing `result.timestamp` (the exact ISO string `passport.py`
+hashed) with `datetime.fromisoformat()`. Re-serializing that `datetime` object back out
+through Pydantic's JSON encoding on `GET /runs/{id}/certificate` is not guaranteed to
+reproduce the *exact same string* that was originally hashed (microsecond/timezone
+formatting is an implementation detail of the serializer, not a contract) — which would
+make a real certificate's own passport hash fail to verify against itself the moment a
+judge downloaded it, directly breaking §13's definition-of-done item 6 and the entire
+point of §6.3. Fixed by changing `Certificate.timestamp` to a plain `String` column
+storing the exact hashed string verbatim, with zero parse/reformat round-trip, and
+removed the now-unnecessary `datetime.fromisoformat()` call in the router.
+
+**How this was caught:** `test_certificate_fetched_via_api_still_verifies_against_its_own_passport_hash`
+(added specifically to test the DB-round-trip, not just the in-memory
+`orchestrator.PipelineResult`, which `test_orchestrator.py`'s existing passport tests
+already covered) exercises the full path: create a run, execute it (with `run_pipeline`
+monkeypatched but the DB layer real), fetch the certificate back over the real API, and
+assert `passport.verify_certificate()` on the *reconstructed-from-JSON* certificate.
+This test initially failed for an unrelated reason (a test-construction bug — a
+hardcoded fake `commit_sha` that didn't match what the router's real re-clone produces,
+since `execute_run()` always overwrites `run.commit_sha` from a real `intake.run_intake`
+call, not from the possibly-monkeypatched `PipelineResult`), which was itself a useful
+finding: it confirmed the real production invariant (`intake_result.commit_sha` and
+`PipelineResult.commit_sha` must always agree, since the orchestrator only ever echoes
+the value it's given) and the test was corrected to respect it rather than the
+production code being changed to satisfy a wrong test.
+
+**Result:** `pytest -v` — **165 passed, 3 skipped**.
+
+---

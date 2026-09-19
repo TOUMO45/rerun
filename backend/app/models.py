@@ -69,10 +69,15 @@ class Certificate(Base):
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=_uuid_str)
     run_id: Mapped[str] = mapped_column(String(36), ForeignKey("runs.id"), unique=True)
     verdict: Mapped[str] = mapped_column(String(32))
+    certificate_prose: Mapped[str] = mapped_column(Text, default="")
     full_log: Mapped[str] = mapped_column(Text)
     build_plan: Mapped[dict] = mapped_column(JSON)
     diffs: Mapped[list] = mapped_column(JSON)
     reproduction_passport_hash: Mapped[str] = mapped_column(String(64))
-    timestamp: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_utcnow)
+    # Stored as the EXACT isoformat string that was hashed (not a DateTime
+    # column) — round-tripping through DateTime -> JSON serialization could
+    # reformat microseconds/timezone representation and silently break the
+    # passport hash's verifiability. See DECISIONS.md.
+    timestamp: Mapped[str] = mapped_column(String(64))
 
     run: Mapped[Run] = relationship(back_populates="certificate")
