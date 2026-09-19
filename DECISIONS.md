@@ -293,3 +293,41 @@ TestClient call. Both matched expectations exactly.
 honestly blocked on `NEBIUS_API_KEY`).
 
 ---
+
+## 2026-09-19 — model_client.py, recon.py, planner.py implemented and green
+
+**Decision:** Introduced one shared `model_client.py` as the *only* place
+`openai.OpenAI(...)` is ever constructed (confirmed constructor and
+`chat.completions.create` signatures by reading the installed `openai` package's
+source, per §2.4, not guessed). Every model-calling service takes an injected client
+object satisfying a one-method Protocol (`chat_completion`) rather than importing
+`openai` directly — this is what makes `recon.py` and `planner.py`'s decision logic
+fully unit-testable without a live API key: tests inject a small fake object, never a
+mock of the real SDK's internals. `call_json_model()` centralizes response parsing
+(including stripping a markdown code fence some models wrap JSON in) and raises
+`ModelResponseParseError` — never guesses a partial result — on malformed output.
+
+**recon.py implements §6.1's calibrated abstention as actual enforced code, not just a
+prompt instruction:** the model's chosen entrypoint is checked against the candidate
+list `intake.py` itself already found — a confident-sounding hallucinated entrypoint
+not in that list is still rejected into `INDETERMINATE` (see
+`test_parse_recon_response_rejects_hallucinated_entrypoint_not_in_candidates`). A
+confidence below `MIN_CONFIDENCE = 0.6` is likewise `INDETERMINATE`, and so is any
+model-call failure (bad credentials, timeout, unparseable JSON) — recon never lets an
+infrastructure problem get misreported as a taxonomy failure against the repo, which is
+exactly the protection §6.1 asks for.
+
+**planner.py is deliberately mostly deterministic, plain code:** which install command
+to run is decided purely by which dependency file `intake.py` found (a lookup table, no
+model call), per §2.8's anti-goal that the pipeline must be explicit code a judge can
+read, not a hidden framework/LLM decision. Nemotron Super is consulted for exactly one
+narrow, genuinely-ambiguous thing — inferring apt packages a declared pip dependency
+might need (e.g. `opencv-python` -> `libgl1`) — and a small deterministic table
+(`_KNOWN_APT_NEEDS`) covers the common cases as a floor even when no model client is
+supplied or the call fails, so a valid build plan is never blocked on model
+availability the way recon's entrypoint choice legitimately is.
+
+**Result:** `pytest tests/test_model_client.py tests/test_recon.py tests/test_planner.py -v`
+— 7 + 11 + 12 = 30/30 passed. Full backend suite: **134 passed, 3 skipped**.
+
+---

@@ -35,11 +35,17 @@ This project is being built in phases (see the directive, §11). Current state:
   parse + Python-code detection) against any real git repo today; `GET /batch/results`
   fails loudly (502) instead of rendering a fake zero when `batch_results.json` is
   missing; `GET /healthz` reports real Nebius/Tavily configuration state.
-- 🚧 recon/planner/repairer/adjudicator (Nemotron model calls via Token Factory), SSE
-  streaming, React UI, batch lab corpus: not yet built — see `DECISIONS.md` for the full
-  trail of what's blocked on credentials vs. ready to wire up.
+- ✅ `model_client.py` (shared, testable Nebius/Nemotron chat-completion wrapper),
+  `recon.py` (§6.1 calibrated abstention — a hallucinated or low-confidence entrypoint
+  is rejected into `INDETERMINATE`, enforced in code, not just prompted for),
+  `planner.py` (mostly-deterministic build-plan construction, model used only to
+  enrich apt-package inference). All tested against fake injected model clients — no
+  live Nemotron call has been made yet (needs `NEBIUS_API_KEY`).
+- 🚧 repairer/adjudicator (Nemotron model calls), SSE streaming, React UI, batch lab
+  corpus: not yet built — see `DECISIONS.md` for the full trail of what's blocked on
+  credentials vs. ready to wire up.
 
-Backend test suite: **104 passed, 3 skipped** (`cd backend && pytest -v`). The 3 skips
+Backend test suite: **134 passed, 3 skipped** (`cd backend && pytest -v`). The 3 skips
 are the real Nebius Sandboxes integration test, honestly gated on `NEBIUS_API_KEY`.
 
 ## Repo layout

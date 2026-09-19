@@ -1,0 +1,113 @@
+"""Shared Nebius Token Factory inference client (§4.1: OpenAI-compatible API).
+
+This is the ONLY place `openai.OpenAI(...)` gets constructed. Every
+model-calling service (`recon.py`, `planner.py`, `repairer.py`,
+`adjudicator.py`) takes a client as a constructor/function argument rather
+than building its own — that's what makes `call_json_model`'s parsing
+logic testable without a live API key: tests inject a fake client that
+mimics `client.chat.completions.create(...).choices[0].message.content`
+without touching the network.
+
+Ground truth for the constructor and `chat.completions.create` signature
+was read from the installed `openai` package
+(`openai.OpenAI.__init__`, `openai.resources.chat.completions.completions.Completions.create`),
+not guessed.
+"""
+
+from __future__ import annotations
+
+import json
+from dataclasses import dataclass
+from typing import Any, Protocol
+
+from openai import OpenAI
+
+
+class ModelCallError(RuntimeError):
+    pass
+
+
+class ModelCredentialsError(ModelCallError):
+    pass
+
+
+class ModelResponseParseError(ModelCallError):
+    """The model responded, but its content wasn't valid JSON matching what
+    the caller asked for. Callers must treat this as a reason to fall back
+    (e.g. §6.1 INDETERMINATE), never as a reason to guess."""
+
+
+class _ChatClientLike(Protocol):
+    """The minimal surface every service actually uses — real `OpenAI()`
+    satisfies this, and tests can inject a tiny fake satisfying just this."""
+
+    def chat_completion(self, *, model: str, system_prompt: str, user_prompt: str, temperature: float) -> str: ...
+
+
+@dataclass(frozen=True)
+class NebiusChatClient:
+    """Thin, real wrapper around `openai.OpenAI` pointed at Nebius Token
+    Factory. Exists so call sites depend on one small method
+    (`chat_completion`) instead of the full OpenAI SDK surface."""
+
+    api_key: str
+    base_url: str
+
+    def __post_init__(self):
+        if not self.api_key:
+            raise ModelCredentialsError(
+                "NEBIUS_API_KEY is not set — cannot call Token Factory inference. "
+                "Populate .env from .env.example first."
+            )
+
+    def _client(self) -> OpenAI:
+        return OpenAI(api_key=self.api_key, base_url=self.base_url)
+
+    def chat_completion(self, *, model: str, system_prompt: str, user_prompt: str, temperature: float = 0.0) -> str:
+        response = self._client().chat.completions.create(
+            model=model,
+            messages=[
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": user_prompt},
+            ],
+            temperature=temperature,
+        )
+        content = response.choices[0].message.content
+        if content is None:
+            raise ModelCallError(f"model '{model}' returned an empty message content")
+        return content
+
+
+def call_json_model(
+    client: _ChatClientLike,
+    *,
+    model: str,
+    system_prompt: str,
+    user_prompt: str,
+    temperature: float = 0.0,
+) -> dict[str, Any]:
+    """Call a model expected to answer with a single JSON object, and parse
+    it. Raises ModelResponseParseError (never guesses / never returns a
+    partially-parsed dict) if the response isn't valid JSON — callers
+    (recon.py in particular) are expected to treat that as grounds for
+    §6.1's INDETERMINATE, not as a crash.
+    """
+    raw = client.chat_completion(
+        model=model,
+        system_prompt=system_prompt,
+        user_prompt=user_prompt,
+        temperature=temperature,
+    )
+    text = raw.strip()
+    if text.startswith("```"):
+        text = text.strip("`")
+        if text.startswith("json"):
+            text = text[4:]
+        text = text.strip()
+    try:
+        parsed = json.loads(text)
+    except json.JSONDecodeError as exc:
+        raise ModelResponseParseError(f"model response was not valid JSON: {exc}\n---\n{raw[:2000]}") from exc
+    if not isinstance(parsed, dict):
+        raise ModelResponseParseError(f"model response was valid JSON but not a JSON object: {type(parsed).__name__}")
+    return parsed
