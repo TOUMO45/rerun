@@ -868,6 +868,50 @@ structurally cannot see.
 
 ---
 
+## 2026-09-19 — Bug found and fixed: `.env` loading silently depended on invocation directory
+
+**Bug:** `config.py` had `env_file="../.env"` — a bare relative string. Verified
+empirically (not just reasoned about) with a real subprocess: this correctly loaded a
+real repo-root `.env` when the process was launched from `backend/`, but **silently
+found nothing and fell back to all-default values, with zero error**, when launched
+from the repo root itself — because pydantic-settings resolves a relative `env_file`
+against the process's actual current working directory at `Settings()` construction
+time, and `../.env` from the repo root points one directory *above* the repo root,
+where nothing exists. `config.py` had no test file at all before this entry — every
+other settings-dependent test in the suite either monkeypatches `get_settings` directly
+or never exercises real `.env` loading, so nothing had ever caught this.
+
+**Why this one is a lower-severity but still real bug, not a false alarm:** Docker
+deployment was never actually broken by it — `docker-compose.yml`'s `env_file:`
+directive injects variables straight into the container process's real environment,
+and pydantic-settings' `BaseSettings` always reads `os.environ` regardless of whether
+its own file-based `env_file` loading found anything. The actual harm is local,
+non-Docker development: a developer following this project's own README (`cp
+.env.example .env` at the repo root) and then running the app or `pytest` from a
+different working directory would silently get all-default settings — features quietly
+reporting as unconfigured — with no error message pointing at why, which is exactly the
+"reproducibility tool with an irreproducible setup" failure mode §4.1 explicitly warns
+against, just at the config-loading layer rather than the dependency-install layer this
+session's earlier `requires-python` fix addressed.
+
+**Fixed:** resolved the `.env` path from `config.py`'s own file location
+(`Path(__file__).resolve().parent.parent.parent / ".env"`) instead of a bare relative
+string, so it is correct regardless of the process's cwd at construction time.
+
+**Verified for real, twice:** first by hand — writing a real temporary `.env` at the
+repo root and running a one-line script from both `backend/` and the repo root, before
+and after the fix, confirming the exact failure and the fix — then by a proper test file
+(`test_config.py`, which had never existed for this module before): two tests spawn
+real subprocesses from each directory with a real temporary `.env` and assert the
+loaded value, plus a structural check that the resolved path's parent really is the
+repo root where `.env.example` actually lives.
+
+**Result:** `pytest tests/test_config.py -v` — 3/3 passed. Full backend suite:
+**207 passed, 4 skipped**. Eighth real wiring/configuration-gap bug this session's
+audits have caught.
+
+---
+
 ## 2026-09-19 — Bug found and fixed: docker-compose.yml referenced Dockerfiles that didn't exist
 
 **Bug:** `docker-compose.yml` was written early (Phase 0 scaffolding, before either

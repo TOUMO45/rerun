@@ -94,25 +94,26 @@ This project is being built in phases (see the directive, §11). Current state:
   an honest simplification, not a fake stream) and hosting on Nebius Serverless
   Endpoints are not yet built.
 
-Backend test suite: **204 passed, 4 skipped** (`cd backend && pytest -v`) — reconfirmed
+Backend test suite: **207 passed, 4 skipped** (`cd backend && pytest -v`) — reconfirmed
 from a genuinely fresh clone, not just the working session directory. 3 skips are the
 real Nebius Sandboxes integration test, honestly gated on `NEBIUS_API_KEY`; 1 is a
 network-dependent corpus-freshness check (`RERUN_VERIFY_CORPUS_NETWORK=1` to run it —
 confirmed passing against all 20 real repos as of 2026-09-19).
 
-Self-audit passes found and fixed **seven** real wiring gaps this session (full detail
-in `DECISIONS.md`), most notably: both halves of §9's cost guard (daily USD ceiling,
+Self-audit passes found and fixed **eight** real bugs this session (full detail in
+`DECISIONS.md`), most notably: both halves of §9's cost guard (daily USD ceiling,
 per-attempt token ceiling) were fully implemented and unit-tested in isolation but never
 actually called from the orchestrator; **Tavily was never called anywhere at all**
 despite being a named prize track — now fixed, with cited sources threaded into the
 repair prompt, recorded structurally on the certificate, and rendered as clickable links
-in the UI; and even after the daily-ceiling call sites were added, the router
-constructed a **fresh `CostGuard` on every single request**, silently resetting the
-"daily" budget to full every time — fixed with a process-wide singleton
-(`get_shared_cost_guard()`), proven by a test showing spend actually accumulates across
-two separate HTTP requests. A reminder that isolated unit tests don't catch defects in
-the wiring *between* components, or in who owns an instance and for how long — only
-exercising the seams does.
+in the UI; even after the daily-ceiling call sites were added, the router constructed a
+**fresh `CostGuard` on every single request**, silently resetting the "daily" budget to
+full every time — fixed with a process-wide singleton; and `config.py`'s `.env` loading
+used a bare relative path that **silently loaded nothing** (falling back to all-default
+settings with zero error) depending on which directory the app was launched from — fixed
+by resolving the path from `config.py`'s own file location instead. A reminder that
+isolated unit tests don't catch defects in the wiring *between* components, in instance
+lifecycle, or in environment-dependent path resolution — only exercising the seams does.
 
 ## Repo layout
 

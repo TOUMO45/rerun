@@ -8,12 +8,29 @@ codebase once it's listed here.
 from __future__ import annotations
 
 from functools import lru_cache
+from pathlib import Path
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
+# The repo root's .env, resolved from this file's own location — NOT a
+# bare relative string. A relative `env_file="../.env"` is resolved
+# against the process's current working directory at Settings()
+# construction time, which silently changes depending on whether the app
+# is launched from the repo root, from backend/, or from inside a Docker
+# container's WORKDIR — with no error if it resolves to nothing, just
+# quietly-empty defaults. Verified empirically: `env_file="../.env"` did
+# load a repo-root .env correctly when run from backend/, but silently
+# found nothing (falling back to all-defaults) when run from the repo
+# root itself. Docker deployment was never actually affected by this
+# (docker-compose's `env_file:` injects vars straight into the process
+# environment, which pydantic-settings also always reads), but local,
+# non-Docker usage was fragile in exactly the way a "reproducibility
+# tool with an irreproducible setup" (§4.1) must not be.
+_REPO_ROOT_ENV_FILE = Path(__file__).resolve().parent.parent.parent / ".env"
+
 
 class Settings(BaseSettings):
-    model_config = SettingsConfigDict(env_file="../.env", env_file_encoding="utf-8", extra="ignore")
+    model_config = SettingsConfigDict(env_file=_REPO_ROOT_ENV_FILE, env_file_encoding="utf-8", extra="ignore")
 
     # Nebius Token Factory (inference)
     nebius_api_key: str = ""
