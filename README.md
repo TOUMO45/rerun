@@ -171,13 +171,13 @@ This project is being built in phases (see the directive, §11). Current state:
   what this gap needed. Verified live against a real browser with realistic delays, not
   just unit-tested.
 
-Backend test suite: **244 passed, 4 skipped** (`cd backend && pytest -v`) — reconfirmed
+Backend test suite: **246 passed, 4 skipped** (`cd backend && pytest -v`) — reconfirmed
 from a genuinely fresh clone, not just the working session directory. 3 skips are the
 real Nebius Sandboxes integration test, honestly gated on `NEBIUS_API_KEY`; 1 is a
 network-dependent corpus-freshness check (`RERUN_VERIFY_CORPUS_NETWORK=1` to run it —
 confirmed passing against all 20 real repos as of 2026-09-19).
 
-Self-audit passes found and fixed **twenty-three** real bugs/gaps this session (full detail in
+Self-audit passes found and fixed **twenty-four** real bugs/gaps this session (full detail in
 `DECISIONS.md`). Three are worth calling out specifically because unit tests
 structurally could never have caught them — only running the real, deployed Docker image
 did:
@@ -260,6 +260,23 @@ the one call site and folding it into the bounded loop's existing "this attempt 
 work, try again" path; verified live that the crash reproduces beforehand, disappears
 after, the file on disk is confirmed untouched by the failed apply, and the run still
 reaches `BLOCKED` with an honest per-attempt record of what happened.
+
+One more, found by checking for the same shape immediately after the bug above: **an
+unvalidated model response could inject an arbitrary shell command.** `planner.py`'s
+apt-package list is the union of a fixed, trusted table and whatever a Nemotron
+enrichment call's JSON response says, with zero validation on the latter before this
+fix — and `as_shell_steps()` interpolates that list directly into a real shell command
+string with no escaping at all. The attack surface is realistic, not contrived: the
+enrichment prompt embeds the *target repo's own* declared dependencies (untrusted
+content from whatever repo a user pastes in) verbatim, so the chain is untrusted repo
+content → model prompt → model's JSON response → an unescaped shell command actually
+executed in the sandbox — and outright model hallucination alone could produce it too,
+no adversarial repo required. Blast radius is contained to the disposable sandbox, not
+RERUN's own infrastructure, but still a real gap in not scrutinizing model output before
+a consequential sink. Fixed by only accepting names matching real Debian/Ubuntu
+package-name syntax and rejecting (with a logged reason, never silently) anything else;
+verified the exact crafted injection is neutralized while legitimate suggestions like
+`ffmpeg` still pass through unaffected.
 
 Other fixes from this session's audits: both halves of §9's cost guard (daily USD
 ceiling, per-attempt token ceiling) were implemented and unit-tested in isolation but

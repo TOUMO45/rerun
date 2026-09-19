@@ -18,11 +18,39 @@ enhancement, not a dependency, unlike recon's entrypoint decision.
 
 from __future__ import annotations
 
+import re
 from dataclasses import dataclass, field
 
 from app.services.intake import RepoIntake
 from app.services.model_client import ModelCallError, call_json_model
 from app.services.recon import ReconResult
+
+# `as_shell_steps()` interpolates apt_install directly into a real shell
+# command string ("apt-get install -y " + " ".join(apt_install)) with no
+# further escaping — so every package name reaching it must already be
+# safe. Found live: apt_packages includes whatever a Nemotron enrichment
+# call's JSON response says, completely unvalidated, and that call's own
+# prompt embeds the target repo's own declared_dependencies (untrusted
+# text from the cloned repo's requirements.txt/setup.py) verbatim. A
+# crafted "dependency" name, a prompt-injected suggestion, or an outright
+# model hallucination could reach a real shell command inside the
+# sandbox unescaped. Real Debian/Ubuntu package names are a well-defined,
+# narrow character set — anything outside it is rejected rather than
+# risking shell interpretation of it.
+_SAFE_APT_PACKAGE_NAME = re.compile(r"^[a-z0-9][a-z0-9+.-]*$")
+
+
+def _sanitize_apt_package_names(names, notes: list[str]) -> set[str]:
+    safe: set[str] = set()
+    for raw_name in names:
+        name = str(raw_name).strip()
+        if not name:
+            continue
+        if _SAFE_APT_PACKAGE_NAME.match(name):
+            safe.add(name)
+        else:
+            notes.append(f"rejected suggested apt package '{name}': not a valid package name")
+    return safe
 
 _APT_SYSTEM_PROMPT = """You install system (apt) packages for Python ML/data-science \
 repos before pip install runs, based on their declared pip dependencies. Respond with \
@@ -143,8 +171,10 @@ def build_plan(
             )
             model_apt = raw.get("apt_packages") or []
             if isinstance(model_apt, list):
-                apt_packages |= {str(p) for p in model_apt}
-                notes.append("apt package list enriched by Nemotron Super")
+                safe_model_apt = _sanitize_apt_package_names(model_apt, notes)
+                apt_packages |= safe_model_apt
+                if safe_model_apt:
+                    notes.append("apt package list enriched by Nemotron Super")
         except ModelCallError as exc:
             notes.append(f"apt-package model enrichment skipped: {exc}")
     else:

