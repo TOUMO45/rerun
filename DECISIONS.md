@@ -386,3 +386,53 @@ tested integration code — none has been exercised against the live API yet (st
 blocked on `NEBIUS_API_KEY`), but all are structurally ready the moment it's supplied.
 
 ---
+
+## 2026-09-19 — orchestrator.py: the full pipeline wired together and proven end-to-end
+
+**Decision:** `orchestrator.py` is the first module that actually runs the whole
+sequence from §4's architecture diagram in one place: recon -> (§6.1 INDETERMINATE
+short-circuit) -> planner -> sandbox execute -> classifier (on failure) -> bounded
+repair loop (repairer proposes, `tamper_gate.check_patch` — the real, unmocked one —
+decides, PASS applies via `git apply` and re-executes, REJECT records and asks again,
+both consuming one of `cost_guard`'s attempt-budget slots per §5.4) -> adjudicator ->
+`passport.compute_passport_hash`. Every model/sandbox call is injected via a
+`PipelineDeps` dataclass rather than imported concretely, which is what makes the
+*whole loop* — not just each piece separately — testable without a live API key.
+
+**This directly answers §14's first red-team question with a real test, not an
+argument:** "Can a rejected-then-corrected repair actually reach RUNS_AFTER_REPAIR
+without the gate ever seeing the final diff? (It must not — trace the code path.)"
+`test_reject_then_pass_reaches_runs_after_repair` scripts a fake repair model that
+proposes exactly the shortcut forbidden by its own system prompt (delete the
+`evaluate()` call) on attempt 1, and a legitimate fix on attempt 2. The test asserts:
+attempt 1 is recorded `REJECT` by the real gate, attempt 2 is recorded `PASS`, the
+run reaches `RUNS_AFTER_REPAIR`, exactly one re-execution happens (only after the
+PASS, never after a REJECT), and — the strongest check — **the file on disk still
+contains the `evaluate(None)` call**, proving the bad diff was genuinely never
+applied, not just logged as rejected while sneaking through some other path.
+
+**Other properties proven, not just implemented:** `test_indeterminate_recon_never_calls_sandbox`
+confirms §6.1's abstention actually prevents any sandbox spend, not just a label change
+after the fact; `test_blocked_after_exhausting_attempts` confirms a fully-declining
+repair model still consumes exactly `max_attempts` budget slots and produces `BLOCKED`
+with zero re-executions; `test_final_certificate_passport_hash_verifies` /
+`test_tampered_certificate_fails_verification` confirm the orchestrator's own output
+round-trips through `passport.verify_certificate` correctly, both for an honest
+certificate and a tampered one.
+
+**Design choice — no direct database writes in this module:** `run_pipeline()` takes
+plain data in and returns a `PipelineResult` dataclass; SQLAlchemy persistence is left
+to the FastAPI layer (not yet wired to this module — `POST /runs` still only performs
+intake). This keeps the orchestrator testable with zero DB fixtures and keeps the
+purity boundary between "what happened" (this module) and "how it's stored" (the
+router layer) explicit.
+
+**What remains unverified:** the real Nebius sandbox/model calls themselves (still
+blocked on `NEBIUS_API_KEY`, per every prior entry), and the FastAPI route that would
+call `run_pipeline()` with real credentials and persist the result into
+`Run`/`RepairAttempt`/`Certificate` — that wiring is the next piece, not yet built.
+
+**Result:** `pytest tests/test_orchestrator.py -v` — 7/7 passed. Full backend suite:
+**160 passed, 3 skipped**.
+
+---

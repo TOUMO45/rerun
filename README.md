@@ -52,11 +52,19 @@ This project is being built in phases (see the directive, §11). Current state:
   This completes real, tested integration code for all three Nemotron-routed roles
   (Nano/recon, Super/planning+repair, Ultra/adjudication) required by §12 — none has
   hit the live API yet, but all are ready the moment `NEBIUS_API_KEY` exists.
-- 🚧 SSE streaming, React UI, batch lab corpus, and the orchestration wiring all these
-  services into one live `POST /runs` flow: not yet built — see `DECISIONS.md` for the
-  full trail of what's blocked on credentials vs. ready to wire up.
+- ✅ `orchestrator.py`: the full pipeline (recon → §6.1 abstention → planner → sandbox
+  → classifier → bounded repair loop against the real tamper gate → adjudicator →
+  passport) wired together and proven end-to-end with injected fakes for the model/
+  sandbox layer, while `classifier.py` and `tamper_gate.py` run for real, unmocked.
+  Directly proves §14's red-team question: a scripted "delete the eval call" repair
+  proposal is rejected by the real gate, a legitimate follow-up passes, and the file on
+  disk is checked to confirm the bad patch was genuinely never applied.
+- 🚧 SSE streaming, React UI, batch lab corpus, and the FastAPI route that calls
+  `orchestrator.run_pipeline()` with real credentials and persists the result: not yet
+  built — see `DECISIONS.md` for the full trail of what's blocked on credentials vs.
+  ready to wire up.
 
-Backend test suite: **149 passed, 3 skipped** (`cd backend && pytest -v`). The 3 skips
+Backend test suite: **160 passed, 3 skipped** (`cd backend && pytest -v`). The 3 skips
 are the real Nebius Sandboxes integration test, honestly gated on `NEBIUS_API_KEY`.
 
 ## Repo layout
