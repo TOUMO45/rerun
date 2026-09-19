@@ -1300,3 +1300,58 @@ which is the strongest verification available without live Nebius credentials on
 machine.
 
 ---
+
+## 2026-09-19 — Bug found and fixed: S4 Batch Lab's data file could never reach the deployed container
+
+**Context:** continuing to self-audit, checked whether `GET /batch/results` (which serves
+§7's precomputed corpus results to S4) actually works in the real deployed Docker
+container the way it's proven to work locally.
+
+**Bug:** `config.py`'s `batch_results_path` defaults to `"../batch_results.json"` — a
+CWD-relative path that correctly resolves to the repo root when the app is launched from
+`backend/` (the documented local-dev convention), matching the existing comment "§7:
+committed at repo root, precomputed by the offline batch runner." But
+`backend/Dockerfile`'s build context is `./backend` only (per `docker-compose.yml`) —
+this means a file living at the *repo root* is structurally outside what `COPY` can ever
+reach in that image, no matter how the path resolution is written. `docker-compose.yml`
+had no volume or bind mount for it either. Net effect: **S4 could never have worked
+against the deployed container**, even after a real batch corpus run produced a real
+`batch_results.json` — the file would have had nowhere to go. This is the same category
+as two Docker bugs found earlier this session (the DB volume path mismatch, the missing
+`git` binary): correct application code, broken by what the deployment configuration
+actually does versus what its own comments claim.
+
+**Fixed:** added a bind mount in `docker-compose.yml`:
+`./batch_results.json:/batch_results.json:ro`. Because `batch_results_path`'s existing
+default is CWD-relative and the container's WORKDIR is `/app`, `"../batch_results.json"`
+already resolves to exactly `/batch_results.json` — no code change needed, only the
+missing infrastructure wiring.
+
+**A real risk checked before committing to this fix, not assumed:** the batch corpus
+runner isn't fully built yet (`batch/runner.py` is 🟡 per the README — no live Nebius
+Serverless Jobs account to test the submit-and-poll loop against), so
+`batch_results.json` does not exist at the repo root in this environment. A required
+bind mount for a missing host file could plausibly either break `docker compose up`
+entirely or silently mount something unexpected — verified empirically with a disposable
+throwaway `docker compose` project rather than assumed: mounting a nonexistent host file
+path causes Docker to auto-create an **empty directory** at that path on both host and
+container, `docker compose up` does not fail, and `Path.is_file()` on that directory
+correctly returns `False` inside the container. That means `batch.py`'s existing
+`load_batch_results()` correctly raises `BatchResultsUnavailable` -> the honest 502
+"Batch Lab has not been run yet" — never a fake or empty-looking success — exactly what
+§7 requires ("never render a placeholder"), and `docker compose up` keeps working out of
+the box for everything else.
+
+**Verified live, not just reasoned about:** ran the empirical bind-mount test above in a
+scratch `docker compose` project first; then `docker compose build backend` and
+`docker compose up -d backend` against the real project with no `batch_results.json`
+present, and `curl http://localhost:8000/batch/results` returned exactly
+`HTTP 502 {"detail":"batch_results.json not found at '../batch_results.json' — Batch Lab
+has not been run yet"}` — no crash, no fake data. Confirmed the predicted stray empty
+`batch_results.json/` directory did appear at the repo root on the host (a known,
+harmless, one-time Docker bind-mount side effect) and removed it; torn down the
+container, network, and the test's own docker volume afterward. Once a real corpus run
+produces a real `batch_results.json` at the repo root, it will be picked up by this same
+mount with no further changes.
+
+---

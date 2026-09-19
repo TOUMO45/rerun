@@ -11,6 +11,19 @@ services:
         required: false
     volumes:
       - backend-data:/app/data
+      # §7's Batch Lab corpus artifact is produced OUTSIDE this container
+      # (the offline batch runner), then committed at the repo root — the
+      # Dockerfile's build context is `./backend` only, so it can never be
+      # baked into the image via COPY. Bind-mounted instead. `config.py`'s
+      # `batch_results_path` default ("../batch_results.json") resolves
+      # from WORKDIR /app to exactly this path, so no code change is
+      # needed. If the host file doesn't exist yet, Docker mounts an empty
+      # directory here instead of erroring — verified empirically — which
+      # correctly fails `Path.is_file()` and produces the honest "batch
+      # results not available" 502 that batch.py already returns, per §7's
+      # "never render a placeholder" rule, rather than either breaking
+      # `docker compose up` entirely or silently faking data.
+      - ./batch_results.json:/batch_results.json:ro
 
   frontend:
     build:

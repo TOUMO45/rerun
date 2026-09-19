@@ -95,7 +95,11 @@ This project is being built in phases (see the directive, §11). Current state:
   else — this is **not** verified against an installed SDK or a live account (no ready
   Python bindings exist for this API yet); the full submit-and-poll loop tying it to
   `run_single_repo.py` is not yet built. See `DECISIONS.md` for exactly what's solid vs.
-  still speculative here.
+  still speculative here. Once it does produce a real `batch_results.json`, it's picked
+  up correctly: `docker-compose.yml` bind-mounts the repo root's `batch_results.json`
+  into the backend container (verified live — see the bug below), a gap that would
+  otherwise have made S4 unreachable in production regardless of how solid the runner
+  itself is.
 - ✅ `GET /runs/{id}/stream`: true SSE live-streaming for S2, per §4's named endpoint,
   and the frontend actually consumes it. Runs the real pipeline in a background thread
   and streams each log line the instant `orchestrator.run_pipeline` produces it via an
@@ -115,10 +119,18 @@ real Nebius Sandboxes integration test, honestly gated on `NEBIUS_API_KEY`; 1 is
 network-dependent corpus-freshness check (`RERUN_VERIFY_CORPUS_NETWORK=1` to run it —
 confirmed passing against all 20 real repos as of 2026-09-19).
 
-Self-audit passes found and fixed **fourteen** real bugs this session (full detail in
-`DECISIONS.md`). Two are worth calling out specifically because unit tests structurally
-could never have caught them — only running the real, deployed Docker image did:
+Self-audit passes found and fixed **fifteen** real bugs this session (full detail in
+`DECISIONS.md`). Three are worth calling out specifically because unit tests
+structurally could never have caught them — only running the real, deployed Docker image
+did:
 
+- **S4's data file could never reach the deployed container.** `batch_results.json` is
+  meant to live at the repo root, but the backend's Docker build context is `./backend`
+  only — no `COPY` in the Dockerfile could ever have reached it, and no volume mount
+  existed either. Fixed with a bind mount in `docker-compose.yml`; verified live,
+  including that a *missing* `batch_results.json` (true today — the batch corpus hasn't
+  been run yet) still fails loudly with a 502 rather than crashing `docker compose up`
+  or silently mounting something broken.
 - **The persisted database volume mounted the wrong path.** `DATABASE_URL` defaulted to
   a location outside `docker-compose.yml`'s declared `backend-data` volume entirely —
   every run/certificate would have been silently discarded on every container
