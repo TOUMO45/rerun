@@ -116,6 +116,16 @@ This project is being built in phases (see the directive, §11). Current state:
   already-documented incomplete state above; building the frontend piece alone, ahead of
   deciding the real output schema, risks locking in a shape that has to change again
   once the batch runner is finished. Scoped and ready to pick up — see `DECISIONS.md`.
+- **Two real npm CVEs, found while re-verifying the README's fresh-clone setup**:
+  `esbuild` (dev-server-only — doesn't affect the deployed production build) and
+  `react-router` (a real runtime dependency; an open-redirect and an SSR-hydration CVE).
+  Checked exploitability for this specific app rather than assuming the worst: RERUN has
+  no SSR at all, and every navigation target is a hardcoded route or a backend-issued
+  UUID, never user-controlled input — so neither CVE has real attack surface here. Not
+  fixed: confirmed via `npm view` that no non-breaking patch exists (the latest 6.x is
+  still vulnerable); only a major-version jump to `react-router-dom@7` fixes it, and a
+  core-routing-library major upgrade this late, without dedicated regression testing
+  across all four screens, is judged a worse trade than the negligible actual risk.
 - Two more gaps in the same cost guard, found the same way (adversarial testing, not
   code reading) and documented rather than fixed: (1) a genuine TOCTOU race — reproduced
   live with two real threads — where two *different* runs executing concurrently can

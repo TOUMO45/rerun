@@ -1981,3 +1981,43 @@ land both together. Documented here and in README so this is a known, scoped, re
 pick-up piece of work, not a silently missing feature.
 
 ---
+
+## 2026-09-19 — Fresh-clone re-verification found real npm dependency CVEs
+
+**Context:** re-ran §11 Phase 6's exact gate ("a fresh git clone + README steps work on
+a machine that never touched this project") given how many commits have landed since it
+was last checked mid-session. Backend: genuinely fresh clone, fresh venv,
+`pip install -e ".[dev]"`, `pytest -v` -> **243 passed, 4 skipped**, identical to the
+working session's own state — zero drift. While re-verifying the frontend side the same
+way (`npm install` from the fresh clone), `npm audit` surfaced something not checked
+anywhere yet this session: real, disclosed CVEs in runtime dependencies.
+
+**Found:**
+- `esbuild <=0.24.2` (via `vite`), moderate: allows any website to send requests to the
+  dev server and read the response. **Dev-server-only** — does not affect the deployed
+  production build (`vite build` output), only a developer's local `npm run dev`
+  session.
+- `react-router` (via `react-router-dom ^6.27.0`, actually resolving to the latest 6.x,
+  `6.30.6` — confirmed by checking the installed version directly, not assumed), 1
+  moderate + 1 high: an open-redirect CVE in `<Link>`/`useNavigate`, and an SSR-hydration
+  constructor-injection CVE. Checked exploitability for RERUN specifically rather than
+  treating the CVE as automatically applicable: RERUN is a client-only SPA with **no
+  SSR** (the hydration CVE doesn't apply at all), and every navigation target in the app
+  is a hardcoded route or a backend-issued UUID (`run.id`) — **never** user-controlled
+  input like a query-string redirect parameter — so the open-redirect vector has no
+  actual attack surface in this app's current routing usage either.
+
+**Why not fixed:** confirmed via `npm view` that no non-breaking patch exists — the
+latest 6.x (`6.30.6`) is still in the vulnerable range; only jumping to
+`react-router-dom@7.18.4` (a major version) fixes it, and `npm audit fix --force`
+confirms this and the `vite@8` bump are both breaking changes. A major-version upgrade
+to the core routing library this late, without dedicated regression testing across all
+four screens' navigation, risks introducing new bugs to fix a CVE with negligible actual
+exploitability for this specific app's architecture — a worse trade than the residual
+risk of leaving it. Documented rather than silently carried forward or riskily patched.
+
+**Verified:** confirmed the same audit result in the actual working repo (not just the
+fresh-clone scratch copy), so this isn't a fresh-clone-specific artifact. No code
+change; full suite unaffected.
+
+---
