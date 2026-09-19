@@ -1548,3 +1548,64 @@ tests don't already cover correctly (they correctly test *single-process* sharin
 is real and unaffected by this).
 
 ---
+
+## 2026-09-19 — Bug found and fixed: tamper gate false-positive on unrelated name collisions
+
+**Context:** continuing to self-audit, stress-tested `tamper_gate.py`'s reachability
+analysis (the project's core differentiator, §5.3/§14) with genuinely novel adversarial
+inputs rather than just re-running the existing 22 tests. The module's own docstring
+already and honestly discloses that it "does not follow imports or track dynamic
+dispatch" — that's a known, accepted limitation, not a new finding. But two different
+novel probes were tried against the *specific* mechanism it does claim to handle
+(transitive reachability through locally-defined functions):
+
+1. A shadow-redefinition attack (a second `def train():` added *after* the real one,
+   with the same name — real Python semantics mean the later definition is what actually
+   runs). **Correctly rejected** — `_reachable_matching_calls`'s `funcdefs` dict happens
+   to get overwritten in source order during `ast.walk`, which coincidentally matches
+   real "last definition wins" shadowing semantics. No bug.
+2. A purely benign, unrelated patch: adding a new, never-called helper function
+   (`other()`) that happens to define a **locally-nested** function sharing a name with
+   the real, actually-called module-level function (both named `train`). This patch does
+   not touch the real `train()`'s behavior in any way.
+
+**Bug, reproduced live:** probe #2 was **incorrectly REJECTED** with `DELETED_EVAL_CALL`.
+Root cause: `funcdefs` was built as a single flat, name-keyed dict via `ast.walk(tree)`
+over *every* `FunctionDef`/`AsyncFunctionDef` in the file regardless of lexical scope,
+with later-encountered definitions silently overwriting earlier ones on a name
+collision. A function nested inside a completely unrelated, never-called helper has zero
+effect on the real module-level call's target in actual Python — nested/local functions
+are only resolvable as a name inside their own enclosing function's body, never from
+outside it — but the tool's scope-blind dict let the irrelevant nested `train` overwrite
+the real module-level `train` in `funcdefs["train"]`. When the BFS then resolved the
+real, unrelated `train()` call at module level, it traced into the wrong (irrelevant,
+eval-free) function body and reported the eval call as no longer reachable.
+
+**Why this matters more here than a generic false positive would:** a spurious
+`DELETED_EVAL_CALL` rejection burns one of §5.4's bounded repair attempts on a patch that
+was actually fine, and could push a run to `BLOCKED` when it should have legitimately
+recovered — directly undermining the Recovery Rate metric (§6.2) the whole pitch is built
+around. This is the opposite failure mode from letting a real attack through, but for
+this specific project it's arguably just as damaging to the product's core promise.
+
+**Fixed:** added `_non_local_funcdefs()`, which builds a parent map (`ast.iter_child_nodes`
+over every node) and excludes any `FunctionDef`/`AsyncFunctionDef` that is nested inside
+another function — keeping module-level functions and class methods (still resolvable by
+short/attribute name from anywhere, an existing, unchanged, separate approximation) but
+correctly excluding local/closure functions that can never be reached by a bare call
+from outside their own enclosing function.
+
+**Verified:**
+- Both probes re-run after the fix: the shadow-redefinition attack is still correctly
+  `REJECT`ed; the unrelated-nested-name-collision patch now correctly `PASS`es with zero
+  violations.
+- Added both as permanent regression tests:
+  `test_deleted_eval_call_shadow_redefinition_is_rejected` and
+  `test_deleted_eval_call_negative_control_unrelated_nested_name_collision` in
+  `test_tamper_gate.py`.
+- All 24 tamper-gate tests pass (up from 22); full suite **236 passed, 4 skipped** (up
+  from 234/4). No other check in `tamper_gate.py` builds a similarly scope-blind dict
+  (`_check_stubbed_model_call` iterates every def independent of reachability/scope by
+  design, so it was never exposed to this bug).
+
+---

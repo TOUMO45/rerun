@@ -118,13 +118,13 @@ This project is being built in phases (see the directive, §11). Current state:
   still works (used by the batch runner, curl, and tests). Nebius Serverless Endpoints
   hosting is not yet built.
 
-Backend test suite: **234 passed, 4 skipped** (`cd backend && pytest -v`) — reconfirmed
+Backend test suite: **236 passed, 4 skipped** (`cd backend && pytest -v`) — reconfirmed
 from a genuinely fresh clone, not just the working session directory. 3 skips are the
 real Nebius Sandboxes integration test, honestly gated on `NEBIUS_API_KEY`; 1 is a
 network-dependent corpus-freshness check (`RERUN_VERIFY_CORPUS_NETWORK=1` to run it —
 confirmed passing against all 20 real repos as of 2026-09-19).
 
-Self-audit passes found and fixed **seventeen** real bugs this session (full detail in
+Self-audit passes found and fixed **eighteen** real bugs this session (full detail in
 `DECISIONS.md`). Three are worth calling out specifically because unit tests
 structurally could never have caught them — only running the real, deployed Docker image
 did:
@@ -159,6 +159,23 @@ all, just two sequential calls. Fixed with an `EXECUTING` stage marker committed
 any real work starts, refusing a second execution with a clean `409` instead; the
 frontend now shows "already in progress, checking back automatically" instead of
 re-exposing the start button after a reload.
+
+And one in the tamper gate itself (§5.3, the project's differentiator): **an unrelated,
+completely benign patch could get falsely rejected as a tampering attempt.**
+`_reachable_matching_calls`'s function-lookup table was a flat, name-keyed dict built
+without regard for lexical scope — a never-called helper function that happened to
+define a *locally-nested* function sharing a name with the real, actually-called
+function corrupted resolution of the real call, making an entirely unrelated addition
+look exactly like a deleted eval call. Found by stress-testing the gate with novel
+adversarial inputs, not by re-running the existing suite. This one cuts the wrong way for
+this project specifically: a false rejection burns a bounded repair attempt (§5.4) on a
+patch that was actually fine, which can push a run to `BLOCKED` when it should have
+recovered — directly against the Recovery Rate metric the pitch is built on. Fixed by
+excluding locally-nested functions from the lookup table (module-level functions and
+class methods are still resolved by name, unchanged); verified both that the fix closes
+the false positive and that the actual attack this mechanism defends against (moving a
+real eval call into a same-named function defined *after* the original, so the later
+definition shadows it) is still correctly rejected.
 
 Other fixes from this session's audits: both halves of §9's cost guard (daily USD
 ceiling, per-attempt token ceiling) were implemented and unit-tested in isolation but

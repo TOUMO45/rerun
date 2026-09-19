@@ -180,6 +180,42 @@ def _matches_target(node: ast.Call, target_names_lower: frozenset[str]) -> bool:
     return short in target_names_lower or full in target_names_lower
 
 
+def _non_local_funcdefs(tree: ast.Module) -> dict[str, ast.AST]:
+    """Functions resolvable by a bare/attribute call from anywhere in the
+    file: module-level functions and class methods. Deliberately EXCLUDES
+    functions nested inside another function (local/closure defs) — those
+    are only reachable as a name inside their own enclosing function's
+    body, never as `name()` from anywhere else, so including them in a
+    single flat, name-keyed dict is a scope error, not a scope
+    *approximation*. Found live: an entirely unrelated, never-called
+    helper function containing a locally-nested function that happens to
+    share a name with a real, actually-called module-level function (e.g.
+    both named `train`) previously corrupted resolution of the real
+    call — `ast.walk`'s traversal order let the irrelevant nested
+    definition overwrite the real one in the flat dict, making a
+    completely benign patch look like it deleted the reachable eval call.
+    See DECISIONS.md.
+    """
+    parent_of: dict[ast.AST, ast.AST] = {}
+    for parent in ast.walk(tree):
+        for child in ast.iter_child_nodes(parent):
+            parent_of[child] = parent
+
+    def is_nested_in_function(node: ast.AST) -> bool:
+        current = parent_of.get(node)
+        while current is not None:
+            if isinstance(current, (ast.FunctionDef, ast.AsyncFunctionDef)):
+                return True
+            current = parent_of.get(current)
+        return False
+
+    funcdefs: dict[str, ast.AST] = {}
+    for node in ast.walk(tree):
+        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)) and not is_nested_in_function(node):
+            funcdefs[node.name] = node
+    return funcdefs
+
+
 def _reachable_matching_calls(tree: ast.Module, target_names: frozenset[str]) -> list[ast.Call]:
     """Best-effort, single-file call graph: which calls to `target_names`
     are actually reachable from module-level execution, transitively
@@ -190,10 +226,7 @@ def _reachable_matching_calls(tree: ast.Module, target_names: frozenset[str]) ->
     if not target_lower:
         return []
 
-    funcdefs: dict[str, ast.AST] = {}
-    for node in ast.walk(tree):
-        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
-            funcdefs[node.name] = node
+    funcdefs = _non_local_funcdefs(tree)
 
     def calls_in(node: ast.AST) -> list[ast.Call]:
         return [n for n in ast.walk(node) if isinstance(n, ast.Call)]

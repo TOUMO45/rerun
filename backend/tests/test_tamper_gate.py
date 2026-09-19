@@ -101,6 +101,87 @@ def test_deleted_eval_call_wrapped_in_never_called_function_is_rejected():
     assert GateRule.DELETED_EVAL_CALL in rules_hit(result)
 
 
+def test_deleted_eval_call_shadow_redefinition_is_rejected():
+    """A genuinely different attack shape than the "wrap in a never-called
+    function" case above: the attacker adds a SECOND `train` function
+    AFTER the real one, with the same name. Real Python semantics: the
+    later definition shadows the earlier one, so the module-level
+    `train()` call actually invokes the shadow, which never reaches
+    evaluate(). The eval call's text is still present in the file (still
+    "defined", just no longer the one that runs) - must still be caught.
+    """
+    old = textwrap.dedent(
+        """\
+        def train():
+            model = build_model()
+            fit(model)
+            evaluate(model)
+
+        train()
+        """
+    )
+    new = textwrap.dedent(
+        """\
+        def train():
+            model = build_model()
+            fit(model)
+            evaluate(model)
+
+        def train():
+            model = build_model()
+            fit(model)
+
+        train()
+        """
+    )
+    diff = make_diff("train.py", old, new)
+    result = check_patch(diff, {"train.py": old}, eval_call_names=frozenset({"evaluate"}))
+    assert result.decision == "REJECT"
+    assert GateRule.DELETED_EVAL_CALL in rules_hit(result)
+
+
+def test_deleted_eval_call_negative_control_unrelated_nested_name_collision():
+    """Found live during this session's audit: an entirely unrelated,
+    never-called helper function that happens to define a locally-nested
+    function sharing a name with the real, actually-called module-level
+    function (both named `train`) previously corrupted reachability
+    resolution — the flat, scope-blind funcdefs dict let the irrelevant
+    nested definition overwrite the real one, making this completely
+    benign patch (it never touches the real train()'s behavior at all)
+    look exactly like a DELETED_EVAL_CALL attack. A correct gate must
+    treat this as a plain, unrelated addition and pass it.
+    """
+    old = textwrap.dedent(
+        """\
+        def train():
+            model = build_model()
+            fit(model)
+            evaluate(model)
+
+        train()
+        """
+    )
+    new = textwrap.dedent(
+        """\
+        def train():
+            model = build_model()
+            fit(model)
+            evaluate(model)
+
+        def other():
+            def train():
+                pass
+            return train
+
+        train()
+        """
+    )
+    diff = make_diff("train.py", old, new)
+    result = check_patch(diff, {"train.py": old}, eval_call_names=frozenset({"evaluate"}))
+    assert result.decision == "PASS"
+    assert rules_hit(result) == set()
+
+
 def test_deleted_eval_call_negative_control_call_preserved():
     old = textwrap.dedent(
         """\
