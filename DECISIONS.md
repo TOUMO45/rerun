@@ -1387,3 +1387,41 @@ data. Also clicked a table row to exercise the expand/collapse interaction the m
 key put at risk and confirmed no new warnings or misbehavior. `npx tsc --noEmit` clean.
 
 ---
+
+## 2026-09-19 — Confirmed clean + coverage gap closed: §6.1 INDETERMINATE end-to-end
+
+**Context:** continuing to self-audit, checked whether §6.1's calibrated-abstention
+INDETERMINATE verdict — previously covered only by unit tests on `recon.py` and
+`adjudicator.py` and one orchestrator-level test (`test_indeterminate_recon_never_calls_sandbox`)
+— had ever actually been exercised through real DB persistence, real API serialization,
+and the real frontend UI. Grepping the router test files
+(`test_runs_router.py`, `test_runs_execute_router.py`, `test_runs_stream_router.py`)
+for "INDETERMINATE" found nothing — a genuine, previously-unverified gap at that layer.
+
+**No bug found**, but verified live rather than assumed: seeded a realistic
+INDETERMINATE `Run` + `Certificate` (real `indeterminate_reason` text, empty diffs,
+`build_plan=None`) directly into the dev DB using the app's own models and
+`passport.compute_passport_hash`, then loaded it in a real browser with a fresh tab
+(clean console, no errors). Confirmed: the amber INDETERMINATE badge and reason banner
+render correctly on S2; S3 correctly omits the "Repair attempts" section and "Export
+patch" button (since `diffs` is empty, exactly as their existing conditionals require);
+and reconstructed the exact certificate-download JSON from the real API responses,
+running it through the real `scripts/verify_passport.py` — `PASSPORT VERIFIED`, hash
+matching what was shown on screen. Also re-read `adjudicator.py`'s `_clamp_verdict` and
+confirmed by inspection (backed by existing passing tests using other base verdicts,
+since the clamp logic is fully generic and not verdict-specific) that an
+INDETERMINATE-ranked verdict is just as protected against a model "upgrade" attempt as
+any other rank.
+
+**Closed the coverage gap for real** (not just noted it): added
+`test_indeterminate_verdict_persists_and_serializes_correctly` to
+`test_runs_execute_router.py`, asserting the full INDETERMINATE shape — populated
+`indeterminate_reason`, `taxonomy_code=None`, `attempts_used=0`, empty `diffs`, empty
+`build_plan` — survives `POST /execute` -> DB -> `GET /certificate` exactly as manually
+observed in the browser. This turns today's one-off manual verification into a
+permanent regression check future changes can't silently break.
+
+**Verified:** new test passes; full suite **232 passed, 4 skipped** (up from 231/4).
+Deleted the seeded demo run from the dev DB and all scratch files afterward.
+
+---

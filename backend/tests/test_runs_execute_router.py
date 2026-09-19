@@ -174,6 +174,63 @@ def test_get_certificate_404_before_execution(client, fake_paper_repo):
     assert response.status_code == 404
 
 
+def test_indeterminate_verdict_persists_and_serializes_correctly(client, fake_paper_repo, monkeypatch):
+    """§6.1 calibrated abstention: run_pipeline's real INDETERMINATE
+    short-circuit (proven in test_orchestrator.py) has never had a
+    router-level check that it survives persistence and API serialization
+    with an empty attempts/diffs list and a populated indeterminate_reason
+    — the one field this verdict uniquely needs. Manually verified live in
+    a real browser during this session's audit; this makes that a
+    permanent regression check.
+    """
+    created = client.post("/runs", json={"repo_url": str(fake_paper_repo)}).json()
+
+    class _FakeSettings:
+        nebius_configured = True
+        nebius_api_key = "fake-key-for-construction-only"
+        nebius_base_url = "https://api.tokenfactory.nebius.com/v1"
+        nebius_model_recon = "nvidia/nemotron-3-nano"
+        nebius_model_repairer = "nvidia/nemotron-3-super"
+        nebius_model_adjudicator = "nvidia/nemotron-3-ultra"
+        nebius_model_planner = "nvidia/nemotron-3-super"
+        nebius_sandbox_wall_clock_seconds = 60
+        max_attempts_per_run = 3
+        daily_cost_ceiling_usd = 25.0
+        tavily_configured = False
+        nebius_sandbox_image = "python:3.11-slim"
+
+    indeterminate_reason = "No entrypoint candidate matched a file actually present on disk."
+    fake_result = PipelineResult(
+        verdict="INDETERMINATE",
+        taxonomy_code=None,
+        indeterminate_reason=indeterminate_reason,
+        attempts=(),
+        build_plan=None,
+        full_log="[recon] INDETERMINATE: " + indeterminate_reason,
+        certificate_prose="RERUN could not confidently identify this repository's entrypoint.",
+        reproduction_passport_hash="a" * 64,
+        timestamp=datetime.now(timezone.utc).isoformat(),
+        repo_url=str(fake_paper_repo),
+        commit_sha="c" * 40,
+    )
+
+    monkeypatch.setattr("app.routers.runs.get_settings", lambda: _FakeSettings())
+    monkeypatch.setattr("app.routers.runs.run_pipeline", lambda **kwargs: fake_result)
+
+    response = client.post(f"/runs/{created['id']}/execute")
+    assert response.status_code == 200
+    body = response.json()
+    assert body["verdict"] == "INDETERMINATE"
+    assert body["indeterminate_reason"] == indeterminate_reason
+    assert body["taxonomy_code"] is None
+    assert body["attempts_used"] == 0
+
+    cert = client.get(f"/runs/{created['id']}/certificate").json()
+    assert cert["verdict"] == "INDETERMINATE"
+    assert cert["diffs"] == []
+    assert cert["build_plan"] == {}
+
+
 def test_daily_cost_ceiling_is_shared_across_separate_execute_requests(client, fake_paper_repo, monkeypatch):
     """A *daily* ceiling means nothing if every request builds its own
     fresh CostGuard — this proves execute_run() uses the process-wide
