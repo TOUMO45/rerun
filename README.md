@@ -1,0 +1,63 @@
+# RERUN
+
+RERUN takes a published paper's code repository, rebuilds its environment from scratch
+inside an isolated **Nebius Token Factory Sandbox**, actually runs it, issues an
+evidence-backed reproducibility verdict, and — when it can — proposes a minimal patch
+that is verified by a deterministic **tamper gate** before it is ever accepted. The
+tamper gate exists so that a reported "fix" can never be the model quietly making the
+code do less (deleting the eval call, stubbing a model call, shrinking the dataset,
+swallowing the error) to force a pass.
+
+**Scope, stated honestly:** RERUN verifies that the artifact **executes** (`SMOKE`
+level: exit code 0 + non-trivial output). It does **not** verify that the paper's
+numerical results are reproduced.
+
+Full specification: [RERUN_BUILD_DIRECTIVE.md](RERUN_BUILD_DIRECTIVE.md). Build decisions
+and their rationale: [DECISIONS.md](DECISIONS.md).
+
+## Status
+
+This project is being built in phases (see the directive, §11). Current state:
+
+- ✅ Phase 1 core — `classifier.py`: pure, deterministic failure-taxonomy classifier
+  (§5.2). 26/26 tests green, every taxonomy code has a positive + negative-control test.
+- ✅ Phase 2 core — `tamper_gate.py`: the differentiator (§5.3). 22/22 tests green,
+  every rejection rule has a negative control, including the required hand-crafted
+  "delete the eval call" rejection test.
+- 🚧 Sandbox lifecycle (`sandbox.py`), recon/planner/repairer model integration, API +
+  UI, batch lab: in progress — see `DECISIONS.md` for exactly what's blocked on Nebius
+  Token Factory credentials vs. what's pure scaffolding ready to wire up.
+
+## Repo layout
+
+See §4.2 of the build directive. Backend is FastAPI + SQLite (Python 3.11), frontend is
+React + Vite + Tailwind, tests are `pytest`.
+
+## Running the backend tests
+
+```bash
+cd backend
+python -m venv .venv
+./.venv/Scripts/activate   # Windows; use `source .venv/bin/activate` on macOS/Linux
+pip install -e ".[dev]"
+pytest -v
+```
+
+Only `classifier.py` and `tamper_gate.py` (plus their tests) require no external
+credentials — they are pure, network-free Python. Everything touching the Nebius Token
+Factory (sandboxes, Nemotron inference) or Tavily needs `.env` populated from
+`.env.example` first.
+
+## NVIDIA / Nebius usage (hackathon requirement)
+
+- **Nebius Token Factory** — inference for Nemotron 3 Nano (recon), Super (planning +
+  repair), Ultra (adjudication); and **Sandboxes** for isolated, destroyed-after-use
+  execution of target repos.
+- **Nebius Serverless Jobs** — runs the 20-repo Batch Lab corpus in parallel.
+- **Nebius Serverless Endpoints** — hosts the deployed app.
+- **Tavily** — runtime-called for dependency/environment context injected into the
+  repair prompt and cited in the certificate.
+
+## License
+
+Apache-2.0 — see [LICENSE](LICENSE).
