@@ -1,0 +1,273 @@
+# RERUN Batch Lab corpus (§7). 20 real, public, Python paper/research repos.
+#
+# Every entry below was verified to actually exist by this session, live,
+# via `git ls-remote` (real network call, real commit SHA returned) plus a
+# GitHub API root-listing check for declared dependency files — not
+# assumed from memory or an LLM's summary of search results. See
+# METHODOLOGY.md for the full selection rationale, known limitations, and
+# why the mix looks the way it does.
+#
+# `commit_sha` is the exact commit each repo's default branch pointed to
+# when this corpus was assembled (2026-09-19) — the Batch Lab runner
+# should pin to this SHA (or re-verify/re-pin immediately before an actual
+# run) so results are attributable to a known, fixed code state, not a
+# moving target. NOTE: a shallow `git clone --depth 1` (as
+# `intake.clone_repo` does today) only fetches the CURRENT tip of the
+# default branch — if a repo has been pushed to since this SHA was
+# captured, the runner needs `git fetch --depth 1 origin <sha>` followed
+# by a checkout to actually pin to it, not a plain shallow clone. This is
+# a real gap `batch/runner.py` (not yet built) needs to handle, logged
+# here rather than silently glossed over.
+#
+# `dependency_files_observed` and `entrypoint_hint` are facts read
+# directly from each repo's real file listing at commit time, not
+# predictions about what RERUN will find during recon — recon.py's job is
+# to (re)discover these facts itself when the repo is actually cloned.
+#
+# `selection_note` explains why this repo earns a spot in a corpus that
+# has to "span multiple failure modes" (§7) — it is NOT a prediction of
+# the taxonomy code RERUN will actually assign. That can only be known
+# once the Batch Lab actually executes each repo against a live sandbox,
+# which requires NEBIUS_API_KEY and has not happened yet (see
+# DECISIONS.md). Presenting a guessed verdict as if it were measured would
+# violate the "never fake a result" rule.
+
+repos:
+  - name: nanoGPT
+    repo_url: https://github.com/karpathy/nanoGPT
+    commit_sha: 3adf61e154c3fe3fca428ad6bc3818b27a3b8291
+    stars_observed: 63225
+    dependency_files_observed: []
+    entrypoint_hint: train.py
+    selection_note: >
+      Actively maintained (pushed Nov 2025) until its own README marked it
+      deprecated in favor of nanochat; no requirements.txt at all — a real
+      "install instructions live only in the README" case, good for
+      testing DEP_MISSING / undeclared-dependency handling.
+
+  - name: minGPT
+    repo_url: https://github.com/karpathy/minGPT
+    commit_sha: 37baab71b9abea1b76ab957409a1cc2fbfba8a26
+    stars_observed: 24902
+    dependency_files_observed: [setup.py]
+    entrypoint_hint: "projects/ (multiple demo/training scripts; no single obvious root entrypoint)"
+    selection_note: >
+      Explicitly "semi-archived" since Jan 2023 per its own README; has a
+      proper setup.py but no single obvious top-level entrypoint script —
+      a genuine calibrated-abstention (§6.1) test case for recon.
+
+  - name: VIBE
+    repo_url: https://github.com/mkocabas/VIBE
+    commit_sha: 851f779407445b75cd1926402f61c931568c6947
+    stars_observed: 3209
+    dependency_files_observed: [requirements.txt]
+    entrypoint_hint: demo.py (also train.py, eval.py)
+    selection_note: >
+      CVPR 2020 official implementation, last pushed 2023; pinned older
+      computer-vision dependency stack (SMPL body models, older torch) —
+      a realistic candidate for dependency-resolution or data-download
+      failures rather than a synthetic one.
+
+  - name: ReBias
+    repo_url: https://github.com/clovaai/rebias
+    commit_sha: 79d1d1d892412a5e3b07fbea8b776461bed0e096
+    stars_observed: 174
+    dependency_files_observed: [requirements.txt]
+    entrypoint_hint: main_biased_mnist.py (also main_action.py, main_imagenet.py)
+    selection_note: >
+      ICML 2020 official implementation, small/low-star research repo —
+      representative of the long tail of academic code that gets far less
+      maintenance attention than a famous lab's flagship repo.
+
+  - name: neural-imaging
+    repo_url: https://github.com/pkorus/neural-imaging
+    commit_sha: c75a2b1deaa571d857f565e7bd68b2dde2d88733
+    stars_observed: 165
+    dependency_files_observed: [requirements.txt]
+    entrypoint_hint: "train_nip.py / train_dcn.py / train_manipulation.py (multiple, ambiguous)"
+    selection_note: >
+      CVPR'19/ICLR'20 toolbox with several plausible entrypoints and a
+      git submodule (.gitmodules) — realistic complexity beyond a single
+      clean train.py.
+
+  - name: LinCIR
+    repo_url: https://github.com/navervision/lincir
+    commit_sha: 1dec42d118da816be2a43fd43cc0746e05f63881
+    stars_observed: 149
+    dependency_files_observed: []
+    entrypoint_hint: train_phi.py (also validate.py, demo.py)
+    selection_note: >
+      CVPR 2024 official implementation, most recently pushed of the
+      whole corpus (Jan 2026) — genuinely has NO requirements.txt, setup.py,
+      or environment.yml at all, confirmed by direct API listing. A clean
+      real-world test of RERUN's undeclared-dependency path on a modern,
+      actively-maintained repo (not just old abandoned ones).
+
+  - name: nxtp
+    repo_url: https://github.com/kaiyuyue/nxtp
+    commit_sha: 8134a7c85b6f05bc2f2ff4aa8bc7d67db05034fc
+    stars_observed: 180
+    dependency_files_observed: []
+    entrypoint_hint: src/train.py
+    selection_note: >
+      CVPR'24 Highlight paper; code lives under src/ rather than repo
+      root, and no dependency file was found at a shallow listing depth —
+      tests recon's entrypoint search beyond the top level.
+
+  - name: Ref-MC2-Code
+    repo_url: https://github.com/zhutengjie/Ref-MC2-Code
+    commit_sha: b70b9a8ffa67a3eef407b89a9462c97e3915a232
+    stars_observed: 22
+    dependency_files_observed: [learning_materials/requirements.txt]
+    entrypoint_hint: learning_materials/train.py
+    selection_note: >
+      NeurIPS 2024 paper; the actual runnable code (train.py,
+      requirements.txt) is nested inside a learning_materials/ subfolder,
+      not the repo root at all — deliberately included because it's a real
+      example of the "entrypoint isn't where you'd assume" case, not a
+      contrived one.
+
+  - name: SAAS
+    repo_url: https://github.com/tanshuai0219/SAAS
+    commit_sha: 1c344d7e922f715c2829611ab59c121c6300f9bb
+    stars_observed: 11
+    dependency_files_observed: [requirement.txt]
+    entrypoint_hint: "audio_driven/ or video_driven/ (ambiguous, no root entrypoint)"
+    selection_note: >
+      AAAI 2024, very low-star/low-attention repo; dependency file is
+      misspelled "requirement.txt" (singular) rather than the conventional
+      "requirements.txt" — a real example of the kind of small deviation
+      that breaks naive tooling.
+
+  - name: TTPT
+    repo_url: https://github.com/gaozhengqing/TTPT
+    commit_sha: 7d6a26246882e830c76a27b2bd669f399f824037
+    stars_observed: 3
+    dependency_files_observed: [requirements.txt]
+    entrypoint_hint: train.py
+    selection_note: >
+      PRCV 2024, the lowest-star repo in the corpus — represents the
+      typical unglamorous single-author academic release most
+      reproducibility tooling never gets tested against.
+
+  - name: gpt-2
+    repo_url: https://github.com/openai/gpt-2
+    commit_sha: 9b63575ef42771a015060c964af2c3da4cf7c8ab
+    stars_observed: 25010
+    dependency_files_observed: [requirements.txt, Dockerfile.cpu, Dockerfile.gpu]
+    entrypoint_hint: src/ (interactive_conditional_samples.py, etc.)
+    selection_note: >
+      2019, TensorFlow 1.x era; ships CPU/GPU Dockerfiles (a strong signal
+      the authors already knew plain pip install wasn't enough) — a
+      strong candidate for real dependency-version or Python-version
+      incompatibility today.
+
+  - name: bert
+    repo_url: https://github.com/google-research/bert
+    commit_sha: eedf5716ce1268e56f0a50264a88cafad334ac61
+    stars_observed: 40041
+    dependency_files_observed: [requirements.txt]
+    entrypoint_hint: run_classifier.py (also run_squad.py, run_pretraining.py)
+    selection_note: >
+      2018, TensorFlow 1.x, effectively unmaintained since — one of the
+      most-cited ML repos ever, and a canonical "famous but now genuinely
+      hard to reproduce as-is" case.
+
+  - name: fairseq
+    repo_url: https://github.com/facebookresearch/fairseq
+    commit_sha: 3d262bb25690e4eb2e7d3c1309b1e9c406ca4b99
+    stars_observed: 32223
+    dependency_files_observed: [pyproject.toml, setup.py, setup.cfg]
+    entrypoint_hint: train.py
+    selection_note: >
+      Actively maintained (pushed Sep 2025), full modern packaging
+      (pyproject.toml + setup.py + setup.cfg) — a positive control for a
+      well-engineered repo that should have a much better chance at
+      RUNS_CLEAN or RUNS_AFTER_REPAIR than the corpus's older entries.
+
+  - name: baselines
+    repo_url: https://github.com/openai/baselines
+    commit_sha: ea25b9e8b234e6ee1bca43083f8f3cf974143998
+    stars_observed: 16760
+    dependency_files_observed: [setup.py, setup.cfg]
+    entrypoint_hint: baselines/ (multiple algorithm entrypoints, no single root script)
+    selection_note: >
+      2017-era OpenAI Gym RL codebase; gym's API has changed substantially
+      since — a strong real candidate for dependency-resolution conflicts
+      given how much the RL/gym ecosystem has shifted underneath it.
+
+  - name: detectron2
+    repo_url: https://github.com/facebookresearch/detectron2
+    commit_sha: a2f4a8771ab77e8411c26b27f24f9489a28a2453
+    stars_observed: 34713
+    dependency_files_observed: [setup.py, setup.cfg]
+    entrypoint_hint: demo/demo.py (also tools/train_net.py)
+    selection_note: >
+      Actively maintained, but its install docs and demos generally assume
+      a CUDA GPU — a strong real candidate for RERUN's GPU_REQUIRED
+      taxonomy code on a CPU-only sandbox, which is exactly the resource
+      boundary §5.2 exists to name explicitly rather than misreport as a
+      generic runtime error.
+
+  - name: pytorch-examples
+    repo_url: https://github.com/pytorch/examples
+    commit_sha: acc295dc7b90714f1bf47f06004fc19a7fe235c4
+    stars_observed: 24044
+    dependency_files_observed: [runtime.txt]
+    entrypoint_hint: "mnist/main.py, dcgan/main.py, vae/main.py, ... (a monorepo of ~15 independent examples)"
+    selection_note: >
+      Official PyTorch example collection — deliberately included as a
+      monorepo with MANY independently-valid entrypoint candidates
+      (mnist, dcgan, vae, word_language_model, ...), a genuine stress test
+      for recon's confidence calibration (§6.1): a low-confidence,
+      multiple-equally-plausible-candidates INDETERMINATE is the *correct*
+      answer here unless recon has some way to disambiguate, not a bug to
+      work around by picking one arbitrarily.
+
+  - name: rllab
+    repo_url: https://github.com/rll/rllab
+    commit_sha: ba78e4c16dc492982e648f117875b22af3965579
+    stars_observed: 3078
+    dependency_files_observed: [environment.yml, setup.py]
+    entrypoint_hint: examples/
+    selection_note: >
+      2016-era reinforcement learning framework, last pushed 2023 (mostly
+      dormant); has an environment.yml pinned to what was almost certainly
+      Python 2 or an early Python 3 — a strong real
+      PY_VERSION_INCOMPAT/DEP_UNPINNED_CONFLICT candidate.
+
+  - name: PyTorch-GAN
+    repo_url: https://github.com/eriklindernoren/PyTorch-GAN
+    commit_sha: 36d3c77e5ff20ebe0aeefd322326a134a279b93e
+    stars_observed: 17452
+    dependency_files_observed: [requirements.txt]
+    entrypoint_hint: "implementations/<gan-variant>/<name>.py (~20 independent implementations)"
+    selection_note: >
+      A popular community reference-implementation collection (not a
+      single paper's official repo) rather than novel research code —
+      included deliberately as a likely-easier positive control alongside
+      fairseq, to keep the corpus from being "all clean or all broken"
+      per §7's own warning that either extreme proves nothing.
+
+  - name: awd-lstm-lm
+    repo_url: https://github.com/salesforce/awd-lstm-lm
+    commit_sha: 1d466ec5875675ca6b6f0caacbb741240a29da9e
+    stars_observed: 1990
+    dependency_files_observed: []
+    entrypoint_hint: main.py
+    selection_note: >
+      2017 language-model paper code, last pushed 2022, no dependency file
+      at all — a small, single-entrypoint repo that's nonetheless old
+      enough that its implicit PyTorch API assumptions have likely drifted.
+
+  - name: SimCLR
+    repo_url: https://github.com/google-research/simclr
+    commit_sha: 383d4143fd8cf7879ae10f1046a9baeb753ff438
+    stars_observed: 4502
+    dependency_files_observed: [requirements.txt]
+    entrypoint_hint: run.py
+    selection_note: >
+      2023-era TensorFlow (not PyTorch) self-supervised learning repo —
+      the corpus's only TensorFlow entry, included so the batch isn't
+      accidentally a PyTorch-only sample despite RERUN's v1 scope being
+      framework-agnostic.

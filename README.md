@@ -13,7 +13,8 @@ level: exit code 0 + non-trivial output). It does **not** verify that the paper'
 numerical results are reproduced.
 
 Full specification: [RERUN_BUILD_DIRECTIVE.md](RERUN_BUILD_DIRECTIVE.md). Build decisions
-and their rationale: [DECISIONS.md](DECISIONS.md).
+and their rationale: [DECISIONS.md](DECISIONS.md). Batch Lab corpus selection and
+limitations: [METHODOLOGY.md](METHODOLOGY.md).
 
 ## Status
 
@@ -68,16 +69,22 @@ This project is being built in phases (see the directive, §11). Current state:
   browser against a running backend, not just code review. The tamper-gate REJECT card
   is the one deliberately loud, animated visual moment, per §8 S2. Run it with
   `cd frontend && npm install && npm run dev` (proxies `/api` to `localhost:8000`).
+- ✅ Batch Lab corpus ([corpus.yaml](backend/app/batch/corpus.yaml), 20 repos): every
+  entry verified live (`git ls-remote` + a GitHub API file listing) at assembly time —
+  see [METHODOLOGY.md](METHODOLOGY.md) for selection criteria and known limitations.
+  The corpus has not been *executed* yet (needs `NEBIUS_API_KEY` + Nebius Serverless
+  Jobs) — `batch/runner.py` is the one piece of §7 not yet built.
 - 🚧 True SSE live-streaming for S2 (currently a single blocking `/execute` call, so S2
   shows a "Running…" state and then renders the timeline retrospectively once done —
-  an honest simplification, not a fake stream), the batch lab corpus, and hosting on
+  an honest simplification, not a fake stream), `batch/runner.py`, and hosting on
   Nebius Serverless Endpoints are not yet built — see `DECISIONS.md` for the full trail.
 
-Backend test suite: **164 passed, 3 skipped** (`cd backend && pytest -v`). The 3 skips
-are the real Nebius Sandboxes integration test, honestly gated on `NEBIUS_API_KEY`.
-Every piece of the §4 architecture diagram now has real, tested code reachable from an
-actual HTTP endpoint — the only remaining gap before a live end-to-end run is a real
-Nebius API key.
+Backend test suite: **172 passed, 4 skipped** (`cd backend && pytest -v`). 3 skips are
+the real Nebius Sandboxes integration test, honestly gated on `NEBIUS_API_KEY`; 1 is a
+network-dependent corpus-freshness check (`RERUN_VERIFY_CORPUS_NETWORK=1` to run it —
+confirmed passing against all 20 real repos as of 2026-09-19). Every piece of the §4
+architecture diagram now has real, tested code reachable from an actual HTTP endpoint —
+the only remaining gaps are a real Nebius API key and the batch runner.
 
 ## Repo layout
 

@@ -575,3 +575,51 @@ architecture, not a fake live stream). Also not yet built: `docker-compose` veri
 of the frontend service, and hosting on Nebius Serverless Endpoints (§12).
 
 ---
+
+## 2026-09-19 — Batch Lab corpus assembled: 20 real repos, every fact verified live
+
+**Decision:** Rather than recall candidate paper repos from memory or trust an LLM web
+search's prose summary of what a repo contains, every one of the 20 entries in
+`backend/app/batch/corpus.yaml` was checked with two independent, real, live calls
+during this session: `git ls-remote --exit-code <url> HEAD` (confirms the repo is
+genuinely public and reachable, and captures the real commit SHA now pinned in the
+corpus) and a GitHub API root-directory listing (confirms which dependency files are
+actually present). This caught two real problems before they became false claims: (1) a
+web-search-suggested repo (`zhutengjie/Ref-MC2-Code`) initially looked like it might
+lack real code at all from a shallow root listing — direct inspection of its
+`learning_materials/` subfolder confirmed genuine train.py + requirements.txt nested
+there, so it was kept, accurately described as "entrypoint nested, not at root," rather
+than dropped on a wrong assumption or kept with a wrong claim; (2) `facebookresearch/moco`
+returned an inconsistent/empty GitHub API file listing despite reporting nonzero repo
+size, and was dropped in favor of `google-research/simclr` (independently verified
+complete) rather than included on unverified faith. See `METHODOLOGY.md` for the full
+selection rationale.
+
+**Explicit non-claim:** no `selection_note` in `corpus.yaml` predicts which taxonomy
+code or verdict a repo will receive — the Batch Lab has not been executed (needs
+`NEBIUS_API_KEY` + Nebius Serverless Jobs, `batch/runner.py` itself is not yet built).
+Presenting a guessed outcome as if it were a measured one would violate §0's "never fake
+a result" — `METHODOLOGY.md` says this explicitly and up front, not as a footnote.
+
+**Structural guarantees added, not just documentation:** `backend/app/batch/corpus.py`'s
+`load_corpus()` enforces exactly the invariants a real batch run needs — unique names,
+unique URLs, full 40-character commit SHAs, and (per §7's "never shrink silently" rule)
+a test (`test_corpus_loads_with_exactly_twenty_entries`) that fails loudly the moment the
+corpus count changes, forcing any future shrink to be a deliberate, visible edit rather
+than an accidental drift. A separate, explicitly-opt-in test
+(`test_every_corpus_repo_is_still_reachable`, gated behind `RERUN_VERIFY_CORPUS_NETWORK=1`
+so the normal suite stays network-free) re-verifies all 20 URLs live — run once during
+this session and confirmed **all 20 still reachable** as of 2026-09-19.
+
+**Known gap flagged, not solved:** `corpus.yaml` pins an exact commit SHA per repo, but
+`intake.py`'s `clone_repo()` only shallow-clones the *current* HEAD of the default
+branch — it does not yet support fetching an arbitrary older pinned SHA. `batch/runner.py`
+will need `git fetch --depth 1 origin <sha>` plus a checkout, not a plain shallow clone,
+to actually honor the pin if any corpus repo is pushed to between now and the real batch
+run. Documented in `METHODOLOGY.md` rather than silently left for whoever builds
+`runner.py` to discover the hard way.
+
+**Result:** `pytest tests/test_corpus.py -v` — 7/7 passed (plus the network test, run
+manually and passing). Full backend suite: **172 passed, 4 skipped**.
+
+---
