@@ -5,22 +5,20 @@ services:
     ports:
       - "8000:8000"
     env_file:
-      - .env
+      # optional: `docker compose build`/`up` must work out of the box even
+      # before a real .env exists (copy .env.example to get real credentials).
+      - path: .env
+        required: false
     volumes:
-      - ./backend:/app
       - backend-data:/app/data
-    command: uvicorn app.main:app --host 0.0.0.0 --port 8000
 
   frontend:
     build:
       context: ./frontend
     ports:
-      - "5173:5173"
-    environment:
-      - VITE_API_BASE_URL=http://localhost:8000
+      - "5173:80"
     depends_on:
       - backend
-    command: npm run dev -- --host 0.0.0.0
 
 volumes:
   backend-data:

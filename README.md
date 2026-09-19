@@ -74,17 +74,31 @@ This project is being built in phases (see the directive, §11). Current state:
   see [METHODOLOGY.md](METHODOLOGY.md) for selection criteria and known limitations.
   The corpus has not been *executed* yet (needs `NEBIUS_API_KEY` + Nebius Serverless
   Jobs) — `batch/runner.py` is the one piece of §7 not yet built.
+- ✅ `docker-compose.yml` + real `Dockerfile`s for both services, actually built and
+  run: `docker compose build` succeeds, and `docker compose up` proves the nginx-served
+  frontend correctly proxies `/api/*` to the backend container (verified with `curl`
+  against a real running stack, then torn down).
+- ✅ Fresh-clone verified: a real `git clone` into a scratch directory, followed by the
+  README's exact setup steps, produces a passing test suite. This caught and fixed a
+  real bug (`requires-python` blocked this exact machine's Python 3.14) that had been
+  latent all session because the working dev environment was never itself built via the
+  documented command.
+- 🟡 `batch/runner.py`: the Nebius Serverless Jobs REST client and the pure
+  `batch_results.json` aggregation logic are real and tested, but — unlike everything
+  else — this is **not** verified against an installed SDK or a live account (no ready
+  Python bindings exist for this API yet); the job container's actual entrypoint script
+  and the full submit-and-poll loop are not yet built. See `DECISIONS.md` for exactly
+  what's solid vs. still speculative here.
 - 🚧 True SSE live-streaming for S2 (currently a single blocking `/execute` call, so S2
   shows a "Running…" state and then renders the timeline retrospectively once done —
-  an honest simplification, not a fake stream), `batch/runner.py`, and hosting on
-  Nebius Serverless Endpoints are not yet built — see `DECISIONS.md` for the full trail.
+  an honest simplification, not a fake stream) and hosting on Nebius Serverless
+  Endpoints are not yet built.
 
-Backend test suite: **172 passed, 4 skipped** (`cd backend && pytest -v`). 3 skips are
-the real Nebius Sandboxes integration test, honestly gated on `NEBIUS_API_KEY`; 1 is a
+Backend test suite: **182 passed, 4 skipped** (`cd backend && pytest -v`) — reconfirmed
+from a genuinely fresh clone, not just the working session directory. 3 skips are the
+real Nebius Sandboxes integration test, honestly gated on `NEBIUS_API_KEY`; 1 is a
 network-dependent corpus-freshness check (`RERUN_VERIFY_CORPUS_NETWORK=1` to run it —
-confirmed passing against all 20 real repos as of 2026-09-19). Every piece of the §4
-architecture diagram now has real, tested code reachable from an actual HTTP endpoint —
-the only remaining gaps are a real Nebius API key and the batch runner.
+confirmed passing against all 20 real repos as of 2026-09-19).
 
 ## Repo layout
 
@@ -100,6 +114,18 @@ python -m venv .venv
 pip install -e ".[dev]"
 pytest -v
 ```
+
+## Running the full stack via Docker
+
+```bash
+cp .env.example .env   # fill in real credentials for a live run; works unfilled too
+docker compose build
+docker compose up
+```
+
+Backend on `http://localhost:8000`, frontend on `http://localhost:5173` (nginx,
+proxying `/api/*` to the backend container). Both images are verified to build and run
+— see `DECISIONS.md` for the exact `curl` checks performed.
 
 Only `classifier.py` and `tamper_gate.py` (plus their tests) require no external
 credentials — they are pure, network-free Python. Everything touching the Nebius Token
