@@ -331,3 +331,28 @@ availability the way recon's entrypoint choice legitimately is.
 — 7 + 11 + 12 = 30/30 passed. Full backend suite: **134 passed, 3 skipped**.
 
 ---
+
+## 2026-09-19 — repairer.py implemented and green; closes the model-to-gate loop
+
+**Decision:** `repairer.py` asks Nemotron Super for one candidate unified diff given a
+`Classification` and the one target file's content, and **never** decides whether that
+diff is acceptable — `parse_repair_response`/`propose_repair` only ever produce a
+`RepairProposal` (diff text + explanation, or `declined=True`). Acceptance is
+exclusively `tamper_gate.check_patch()`'s call, keeping §2.1's purity boundary intact:
+the model proposes, the deterministic gate disposes. The system prompt does list the
+§5.3 rules in plain language (so Nemotron isn't blindly trying shortcuts it could avoid
+for free), but the prompt is explicitly *not* trusted as the enforcement mechanism —
+proven by `test_repair_proposal_that_deletes_eval_call_is_caught_by_the_real_gate`,
+which feeds a proposal that violates the very rule the prompt just told it not to
+violate, straight through the real (not mocked) `tamper_gate.check_patch`, and asserts
+it's REJECTED. This directly answers §14's first red-team question ("can a
+rejected-then-corrected repair reach RUNS_AFTER_REPAIR without the gate ever seeing the
+final diff?") for the proposal-generation half of the loop: no, because nothing short
+of a passing `check_patch()` call ever would be applied — the orchestrator that will
+call both in sequence doesn't exist yet, but the two pieces it will wire together are
+now proven to compose correctly.
+
+**Result:** `pytest tests/test_repairer.py -v` — 7/7 passed. Full backend suite:
+**141 passed, 3 skipped**.
+
+---

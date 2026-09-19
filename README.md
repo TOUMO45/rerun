@@ -41,11 +41,16 @@ This project is being built in phases (see the directive, §11). Current state:
   `planner.py` (mostly-deterministic build-plan construction, model used only to
   enrich apt-package inference). All tested against fake injected model clients — no
   live Nemotron call has been made yet (needs `NEBIUS_API_KEY`).
-- 🚧 repairer/adjudicator (Nemotron model calls), SSE streaming, React UI, batch lab
-  corpus: not yet built — see `DECISIONS.md` for the full trail of what's blocked on
-  credentials vs. ready to wire up.
+- ✅ `repairer.py`: proposes a minimal diff via Nemotron Super but never decides
+  whether it's acceptable — proven end-to-end by a test that feeds a proposal
+  violating the tamper gate's rules straight through the real `check_patch()` and
+  confirms it's rejected, not just described in a prompt.
+- 🚧 adjudicator (Nemotron Ultra certificate prose), SSE streaming, React UI, batch lab
+  corpus, orchestration wiring all these services into one `POST /runs` flow: not yet
+  built — see `DECISIONS.md` for the full trail of what's blocked on credentials vs.
+  ready to wire up.
 
-Backend test suite: **134 passed, 3 skipped** (`cd backend && pytest -v`). The 3 skips
+Backend test suite: **141 passed, 3 skipped** (`cd backend && pytest -v`). The 3 skips
 are the real Nebius Sandboxes integration test, honestly gated on `NEBIUS_API_KEY`.
 
 ## Repo layout
