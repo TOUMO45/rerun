@@ -105,6 +105,17 @@ This project is being built in phases (see the directive, §11). Current state:
   across them, so a full batch run isn't actually capped in aggregate the way a single
   web request is. See `DECISIONS.md` for why this needs shared infrastructure to fix
   properly rather than a code change.
+- **S4's "click a row → the frozen S3 certificate" (§8) isn't built**, found by
+  re-reading the S4 spec line by line. `RepoTable`'s row click only expands an inline
+  `repo_url`/`duration` detail today. Traced why this isn't a simple frontend add:
+  `run_single_repo.py`'s own job output only carries summary fields (verdict, taxonomy
+  code, attempts, duration) — no build plan, diffs, full log, or passport hash — so
+  there's nothing for a "frozen certificate" view to render yet even if built. This is
+  three layers deep (the batch job's output schema, `aggregate_batch_results()` passing
+  it through, and a new frontend rendering path) and entangled with `batch/runner.py`'s
+  already-documented incomplete state above; building the frontend piece alone, ahead of
+  deciding the real output schema, risks locking in a shape that has to change again
+  once the batch runner is finished. Scoped and ready to pick up — see `DECISIONS.md`.
 - Two more gaps in the same cost guard, found the same way (adversarial testing, not
   code reading) and documented rather than fixed: (1) a genuine TOCTOU race — reproduced
   live with two real threads — where two *different* runs executing concurrently can

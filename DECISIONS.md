@@ -1920,3 +1920,64 @@ and `npm run build` both clean. Cleaned up all seeded test runs, the scratch ser
 script, and manually-started processes afterward.
 
 ---
+
+## 2026-09-19 — Fresh re-read continued: §5.2/§13/§14 confirmed clean; one real S4 gap found
+
+**Context:** continuing the fresh-directive-reading approach across the sections not yet
+checked this way.
+
+**Confirmed clean, checked line by line, no gap found:**
+- §5.2's failure taxonomy: all 12 named codes exist in `TaxonomyCode`; 10 have real
+  regex rules wired into `classify()`, `RUNTIME_ERROR_OTHER` is the intentional
+  no-rule-matched fallback, and `ENTRYPOINT_UNCLEAR` is correctly handled outside
+  `classify()` entirely (via recon.py's INDETERMINATE path) exactly as the table's own
+  "detection signal" column describes it — not a gap, a deliberate design the table
+  itself documents. Every code that should have positive+negative tests has them
+  (`test_classifier.py`), satisfying Phase 1's exact gate wording.
+- §13 item 5 ("a known bad patch, available as a fixture, that the gate rejects every
+  time"): satisfied by the 26 tamper-gate tests, each a real, deterministic, on-demand
+  reproduction via `pytest tests/test_tamper_gate.py -v` — "fixture" in the directive's
+  sense doesn't require a separate standalone file distinct from test setup code.
+- §14's "estimated researcher-hours saved... without the word 'estimate'" question:
+  the number and the "Estimate — not measured" label are rendered inside the same
+  unconditional JSX block in `BatchLab.tsx` — there is no code path where one renders
+  without the other.
+- §14's "patch shape that deletes the eval call indirectly... that the current gate
+  rules would miss": already re-verified as part of the `_non_local_funcdefs` fix
+  earlier today, with a dedicated shadow-redefinition regression test proving the
+  mechanism still catches it after that fix.
+- S1's three named error states (private repo / not Python / no code found) are
+  genuinely distinct backend messages (`"private repo: ..."`, `"repo not found: ..."`,
+  `"no Python code found in repo"`), passed through to the UI verbatim — already
+  confirmed live in the browser earlier this session, re-confirmed here by reading the
+  exact response strings. S3's every named element (verdict badge, repo/commit/timestamp,
+  build plan, taxonomy chips, applied/rejected patches, full log download, export patch,
+  passport hash + verify instructions, scope line) is present in `Certificate.tsx`.
+
+**Gap found — S4's "click a row → the frozen S3 certificate" isn't built, and isn't a
+simple frontend fix.** `BatchLab.tsx`'s `RepoTable` only expands an inline detail row
+(`repo_url`, `duration_seconds`) on click — it never renders anything resembling an S3
+certificate. Traced why: `run_single_repo.py`'s own job output (the JSON line a batch
+job prints) only carries summary fields (`name`, `repo_url`, `verdict`, `taxonomy_code`,
+`attempts_used`, `duration_seconds`) — no `build_plan`, `diffs`, `full_log`, or
+`reproduction_passport_hash`. `aggregate_batch_results()` only passes through whatever
+it's given. This means the gap is three layers deep: the batch job's own output schema
+would need to carry full certificate data, the aggregation function would need to pass
+it through into `batch_results.json`, and the frontend would need a new "frozen
+certificate" rendering path (reusing most of `Certificate.tsx`'s JSX, but fed from
+embedded static data instead of live `/runs/{id}` API queries).
+
+**Why not built now:** all three layers are entangled with `batch/runner.py` and
+`run_single_repo.py`'s already-documented incomplete state (🟡 in README — no live
+Nebius Serverless Jobs credentials to test the real end-to-end flow). Building just the
+frontend rendering path in isolation, without the corresponding schema change to what a
+real batch job actually outputs, would produce a component with nothing real to render
+it against — the exact kind of half-finished, disconnected feature this session has
+avoided everywhere else. The frontend piece *could* be built and verified against a
+hand-built test fixture (the same discipline used for every other S1-S4 verification
+this session), but doing so before deciding the real output schema risks committing to a
+shape that has to change again once the batch runner is actually finished — better to
+land both together. Documented here and in README so this is a known, scoped, ready-to-
+pick-up piece of work, not a silently missing feature.
+
+---
