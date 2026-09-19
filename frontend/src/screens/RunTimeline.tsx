@@ -1,15 +1,19 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link, useParams } from "react-router-dom";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { api, ApiError } from "../api";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { api, ApiError, streamRun } from "../api";
 import { VerdictBadge } from "../components/VerdictBadge";
 import { RepairAttemptCard } from "../components/RepairAttemptCard";
-import { buildTimelineItems } from "../lib/timeline";
+import { buildTimelineItems, parseLogLine } from "../lib/timeline";
 
 export function RunTimeline() {
   const { runId } = useParams<{ runId: string }>();
   const queryClient = useQueryClient();
+  const [hasStarted, setHasStarted] = useState(false);
+  const [liveLines, setLiveLines] = useState<string[]>([]);
+  const [streamError, setStreamError] = useState<string | null>(null);
   const [elapsed, setElapsed] = useState(0);
+  const logEndRef = useRef<HTMLDivElement>(null);
 
   const runQuery = useQuery({
     queryKey: ["run", runId],
@@ -25,19 +29,45 @@ export function RunTimeline() {
     enabled: !!runId && isDone,
   });
 
-  const executeMutation = useMutation({
-    mutationFn: () => api.executeRun(runId!),
-    onMutate: () => {
-      setElapsed(0);
-      const timer = setInterval(() => setElapsed((s) => s + 1), 1000);
-      return { timer };
-    },
-    onSettled: (_data, _err, _vars, context) => {
-      if (context?.timer) clearInterval(context.timer);
-      queryClient.invalidateQueries({ queryKey: ["run", runId] });
-      queryClient.invalidateQueries({ queryKey: ["certificate", runId] });
-    },
-  });
+  // Opens the real SSE connection (§4: `GET /runs/{id}/stream`) the moment
+  // the user starts the run, rendering each log line the instant the
+  // backend produces it rather than only after the whole pipeline finishes.
+  // The effect's own cleanup closes the EventSource, so navigating away
+  // mid-run never leaves a dangling connection.
+  useEffect(() => {
+    if (!hasStarted || !runId || isDone) return;
+
+    setLiveLines([]);
+    setStreamError(null);
+    setElapsed(0);
+    const timer = setInterval(() => setElapsed((s) => s + 1), 1000);
+
+    const close = streamRun(
+      runId,
+      (event) => {
+        if ("line" in event) {
+          setLiveLines((lines) => [...lines, event.line]);
+        } else {
+          clearInterval(timer);
+          queryClient.invalidateQueries({ queryKey: ["run", runId] });
+          queryClient.invalidateQueries({ queryKey: ["certificate", runId] });
+        }
+      },
+      () => {
+        clearInterval(timer);
+        setStreamError("Lost connection to the run stream.");
+      },
+    );
+
+    return () => {
+      clearInterval(timer);
+      close();
+    };
+  }, [hasStarted, runId, isDone, queryClient]);
+
+  useEffect(() => {
+    logEndRef.current?.scrollIntoView({ block: "nearest" });
+  }, [liveLines]);
 
   if (runQuery.isLoading) {
     return <p className="font-mono text-sm text-text-secondary">Loading run…</p>;
@@ -66,13 +96,13 @@ export function RunTimeline() {
         {run.verdict && <VerdictBadge verdict={run.verdict} size="lg" />}
       </div>
 
-      {!isDone && !executeMutation.isPending && (
+      {!isDone && !hasStarted && (
         <div className="rounded-sm border border-border bg-surface px-5 py-6 text-center">
           <p className="mb-4 font-mono text-sm text-text-secondary">
             Intake complete. Ready to build the environment and execute.
           </p>
           <button
-            onClick={() => executeMutation.mutate()}
+            onClick={() => setHasStarted(true)}
             className="rounded-sm bg-signal px-5 py-2.5 font-mono text-sm font-medium text-bg transition-opacity hover:opacity-90"
           >
             Start reproduction run
@@ -80,20 +110,39 @@ export function RunTimeline() {
         </div>
       )}
 
-      {executeMutation.isPending && (
-        <div className="flex items-center gap-3 rounded-sm border border-border bg-surface px-5 py-6">
-          <span className="h-2 w-2 animate-pulse rounded-full bg-signal" />
-          <p className="font-mono text-sm text-text-secondary">
-            Running — building the sandbox, executing, repairing if needed… ({elapsed}s elapsed)
-          </p>
+      {!isDone && hasStarted && (
+        <div className="rounded-sm border border-border bg-surface">
+          <div className="flex items-center gap-3 border-b border-border px-5 py-3">
+            <span className="h-2 w-2 animate-pulse rounded-full bg-signal" />
+            <p className="font-mono text-sm text-text-secondary">
+              Running — building the sandbox, executing, repairing if needed… ({elapsed}s elapsed)
+            </p>
+          </div>
+          <div className="max-h-96 overflow-y-auto px-5 py-4">
+            {liveLines.length === 0 ? (
+              <p className="font-mono text-xs text-text-secondary">Waiting for the first event…</p>
+            ) : (
+              <ol className="space-y-1.5">
+                {liveLines.map((rawLine, index) => {
+                  const { stage, message } = parseLogLine(rawLine);
+                  const isError = rawLine.startsWith("[error]");
+                  return (
+                    <li key={index} className={`font-mono text-xs ${isError ? "text-alarm" : ""}`}>
+                      {stage && <span className="text-text-secondary">[{stage}]</span>}{" "}
+                      <span className={isError ? "" : "text-text-primary/90"}>{message}</span>
+                    </li>
+                  );
+                })}
+              </ol>
+            )}
+            <div ref={logEndRef} />
+          </div>
         </div>
       )}
 
-      {executeMutation.isError && (
+      {streamError && (
         <div className="mt-4 rounded-sm border border-alarm-dim bg-alarm-dim/10 px-4 py-3 font-mono text-xs text-alarm">
-          {executeMutation.error instanceof ApiError
-            ? executeMutation.error.message
-            : "The run failed to execute."}
+          {streamError}
         </div>
       )}
 

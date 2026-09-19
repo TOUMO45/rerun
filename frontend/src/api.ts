@@ -112,4 +112,48 @@ export const api = {
   executeRun: (id: string) => request<RunOut>(`/runs/${id}/execute`, { method: "POST" }),
   getCertificate: (id: string) => request<CertificateOut>(`/runs/${id}/certificate`),
   getBatchResults: () => request<BatchResults>("/batch/results"),
+  streamRunUrl: (id: string) => `${API_BASE}/runs/${id}/stream`,
 };
+
+/** One event from `GET /runs/{id}/stream` (§4's named SSE endpoint):
+ * either a log line as it's produced, or the terminal `done` event —
+ * mirrors exactly the two shapes `backend/app/routers/runs.py::_sse_event`
+ * emits. */
+export type RunStreamEvent = { line: string } | { done: true; verdict?: Verdict };
+
+/**
+ * Opens the live SSE connection for a run and starts it executing on the
+ * backend if it hasn't run yet (the route itself starts execution — this
+ * is not a passive subscription). Returns a close function; the caller
+ * must call it on unmount/completion to stop the underlying EventSource.
+ * Uses the native EventSource API rather than a manual fetch+reader since
+ * this is a plain unauthenticated GET, which is exactly what EventSource
+ * is for.
+ *
+ * Deliberately closes the connection itself on any error rather than
+ * letting EventSource use its default auto-reconnect behavior: a
+ * reconnect here means the backend starts executing the *entire pipeline
+ * again* (it isn't a passive subscription), so silently retrying would
+ * silently re-run — and re-bill — a real reproduction attempt. Also closes
+ * itself the moment the `done` event arrives and suppresses the error
+ * callback for the `onerror` that otherwise inevitably follows: a normal
+ * server-side stream close is indistinguishable, from EventSource's point
+ * of view, from a dropped connection.
+ */
+export function streamRun(id: string, onEvent: (event: RunStreamEvent) => void, onError: () => void): () => void {
+  const source = new EventSource(api.streamRunUrl(id));
+  let finished = false;
+  source.onmessage = (message) => {
+    const event = JSON.parse(message.data) as RunStreamEvent;
+    if ("done" in event) {
+      finished = true;
+      source.close();
+    }
+    onEvent(event);
+  };
+  source.onerror = () => {
+    source.close();
+    if (!finished) onError();
+  };
+  return () => source.close();
+}

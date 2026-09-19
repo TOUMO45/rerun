@@ -96,13 +96,18 @@ This project is being built in phases (see the directive, §11). Current state:
   Python bindings exist for this API yet); the full submit-and-poll loop tying it to
   `run_single_repo.py` is not yet built. See `DECISIONS.md` for exactly what's solid vs.
   still speculative here.
-- ✅ `GET /runs/{id}/stream`: true SSE live-streaming for S2, per §4's named endpoint.
-  Runs the real pipeline in a background thread and streams each log line the instant
-  `orchestrator.run_pipeline` produces it via an `on_event` callback threaded through the
-  whole pipeline; replays the persisted log instead of re-executing if the run already
-  finished. The previous single blocking `/execute` call still exists and still works
-  (used by the batch runner, curl, and tests), but S2 no longer has to fake a "Running…"
-  state and render retrospectively. Nebius Serverless Endpoints hosting is not yet built.
+- ✅ `GET /runs/{id}/stream`: true SSE live-streaming for S2, per §4's named endpoint,
+  and the frontend actually consumes it. Runs the real pipeline in a background thread
+  and streams each log line the instant `orchestrator.run_pipeline` produces it via an
+  `on_event` callback threaded through the whole pipeline; replays the persisted log
+  instead of re-executing if the run already finished. S2 (`RunTimeline.tsx`) opens this
+  stream with the native `EventSource` API on "Start reproduction run" and renders each
+  line live in a scrollable panel, closing the connection itself on both completion and
+  error rather than trusting `EventSource`'s default auto-reconnect — which, for this
+  particular endpoint, would otherwise silently re-execute the whole pipeline on every
+  dropped connection. The previous single blocking `/execute` call still exists and
+  still works (used by the batch runner, curl, and tests). Nebius Serverless Endpoints
+  hosting is not yet built.
 
 Backend test suite: **231 passed, 4 skipped** (`cd backend && pytest -v`) — reconfirmed
 from a genuinely fresh clone, not just the working session directory. 3 skips are the

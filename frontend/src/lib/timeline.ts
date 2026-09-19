@@ -7,6 +7,15 @@ export type TimelineItem =
 const REPAIR_LINE = /^\[repair (\d+)\]/;
 const GENERIC_LINE = /^\[(.+?)\]\s*(.*)$/;
 
+/** Splits one orchestrator log line into its `[stage]` tag and message, the
+ * same parsing `buildTimelineItems` uses for the finished full_log — shared
+ * so a live-streamed line and its replay after the run finishes render
+ * identically. */
+export function parseLogLine(line: string): { stage: string; message: string } {
+  const match = line.match(GENERIC_LINE);
+  return match ? { stage: match[1], message: match[2] } : { stage: "", message: line };
+}
+
 /**
  * Turns orchestrator.py's real, ordered full_log lines into renderable
  * timeline items. Every "[repair N] ..." line is collapsed into a single
@@ -36,12 +45,8 @@ export function buildTimelineItems(fullLog: string, diffs: RepairAttemptDiff[]):
       continue;
     }
 
-    const genericMatch = line.match(GENERIC_LINE);
-    if (genericMatch) {
-      items.push({ type: "log", stage: genericMatch[1], message: genericMatch[2], key: `log-${index}` });
-    } else {
-      items.push({ type: "log", stage: "", message: line, key: `log-${index}` });
-    }
+    const { stage, message } = parseLogLine(line);
+    items.push({ type: "log", stage, message, key: `log-${index}` });
   }
 
   return items;

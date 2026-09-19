@@ -1246,3 +1246,57 @@ synchronous `/execute` route, which doesn't touch `SessionLocal` at all and was
 unaffected either way).
 
 ---
+
+## 2026-09-19 — Gap found: the new SSE endpoint was built but S2 never called it
+
+**Context:** continuing the "keep self-auditing for more gaps" mandate immediately after
+building `GET /runs/{id}/stream` (previous entry). Checked whether the frontend actually
+uses it.
+
+**Gap:** it didn't. `frontend/src/screens/RunTimeline.tsx` (S2) still called the
+synchronous `POST /runs/{id}/execute` via a `useMutation`, and rendered nothing but a
+static pulsing "Running… (Ns elapsed)" placeholder for the entire duration of the
+pipeline — the backend had a real live-progress endpoint that nothing consumed. Exactly
+the shape of gap this session's self-audits keep finding: a component built and tested
+in isolation, disconnected from the thing that was supposed to call it.
+
+**Built:** `frontend/src/api.ts::streamRun()` opens the SSE connection via the native
+`EventSource` API and reports each parsed event back to the caller. `RunTimeline.tsx`
+now opens this stream when the user clicks "Start reproduction run," rendering each log
+line live in a scrollable panel (reusing a new `parseLogLine` helper factored out of
+`lib/timeline.ts` so a live line and its post-completion replay render identically), and
+switches over to the existing certificate-based rendering once the `done` event lands
+and the run/certificate queries refetch.
+
+**Two more bugs found by actually clicking through it in a real browser against a real
+(unconfigured, so 503-returning) backend, not by reading the code:**
+
+1. **Auto-reconnect would have silently re-executed the entire pipeline.** Browsers'
+   native `EventSource` retries automatically on any connection error by design. This
+   endpoint is not a passive subscription — every `GET` while a run isn't `DONE` starts
+   a *new* background execution. Left alone, a single dropped connection (or the 503
+   this manual test hit) would have looped: reconnect -> re-execute -> (if it also drops)
+   reconnect again, silently burning cost-guard budget and sandbox time with no user
+   visibility. Fixed by having `streamRun()` call `source.close()` itself in `onerror`
+   before invoking the caller's error callback, so a failure surfaces once and stops.
+2. **A normal, successful completion would have shown a false "connection lost" error.**
+   When the backend finishes and closes the stream normally, `EventSource` cannot tell
+   that apart from a dropped connection and fires `onerror` regardless. Without a guard,
+   every successful run would flash an error message right after succeeding. Fixed by
+   having `streamRun()` close itself and set an internal `finished` flag the moment the
+   `{done: true}` event is parsed, and having `onerror` check that flag before calling
+   back.
+
+**Verified live:** ran the real Vite dev server against a real (locally started, no
+Nebius credentials) FastAPI backend in the browser pane; created a run against a real
+local git repo; clicked "Start reproduction run"; confirmed via
+`read_network_requests` that exactly **one** request hit `/stream` (no reconnect loop)
+and the UI surfaced a clean, terminal "Lost connection to the run stream." message
+instead of hanging, looping, or crashing. `npx tsc --noEmit` and `npm run build` both
+clean. The full positive path (live lines arriving, then the switch to the certificate
+view) is exercised by `test_runs_stream_router.py`'s use of FastAPI's real ASGI
+`TestClient` against a real background thread and queue — not a mock of the transport —
+which is the strongest verification available without live Nebius credentials on this
+machine.
+
+---
