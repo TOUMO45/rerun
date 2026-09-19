@@ -18,6 +18,8 @@ from app.config import Settings, get_settings
 from app.db import get_db
 from app.models import Certificate, RepairAttempt, Run
 from app.schemas import CertificateOut, RunCreate, RunOut
+from tavily import TavilyClient
+
 from app.services import intake
 from app.services.cost_guard import CostGuard
 from app.services.model_client import NebiusChatClient
@@ -31,6 +33,10 @@ def _build_pipeline_deps(settings: Settings) -> PipelineDeps:
     # base_url/api_key, only the `model` argument passed per-call differs
     # (NebiusChatClient.chat_completion takes model as a parameter).
     client = NebiusChatClient(api_key=settings.nebius_api_key, base_url=settings.nebius_base_url)
+    # Tavily is a should-have enrichment (§5 cut ladder): None when not
+    # configured, and the repair loop already handles that as a normal,
+    # non-fatal state (tavily.fetch_context returns an empty context).
+    tavily_client = TavilyClient(api_key=settings.tavily_api_key) if settings.tavily_configured else None
     return PipelineDeps(
         recon_client=client,
         recon_model=settings.nebius_model_recon,
@@ -43,6 +49,7 @@ def _build_pipeline_deps(settings: Settings) -> PipelineDeps:
         sandbox_api_key=settings.nebius_api_key,
         sandbox_wall_clock_seconds=settings.nebius_sandbox_wall_clock_seconds,
         max_attempts=settings.max_attempts_per_run,
+        tavily_client=tavily_client,
     )
 
 

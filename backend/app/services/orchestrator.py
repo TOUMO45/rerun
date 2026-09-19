@@ -29,7 +29,7 @@ from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from pathlib import Path
 
-from app.services import adjudicator, classifier, passport, planner, recon, repairer
+from app.services import adjudicator, classifier, passport, planner, recon, repairer, tavily
 from app.services.cost_guard import CostGuard, CostLimitExceeded
 from app.services.intake import RepoIntake
 from app.services.sandbox import SandboxError, SandboxRunResult, run_build_and_execute
@@ -49,6 +49,7 @@ class AttemptRecord:
     exit_code: int | None
     stdout_tail: str
     stderr_tail: str
+    tavily_sources: tuple[dict, ...] = ()
 
     def as_dict(self) -> dict:
         return {
@@ -59,6 +60,7 @@ class AttemptRecord:
             "exit_code": self.exit_code,
             "stdout_tail": self.stdout_tail,
             "stderr_tail": self.stderr_tail,
+            "tavily_sources": list(self.tavily_sources),
         }
 
 
@@ -139,7 +141,13 @@ class PipelineDeps:
     max_attempts: int = 3
     sandbox_runner: callable = run_build_and_execute
     apply_diff: callable = _apply_diff_with_git
-    tavily_context: str | None = None
+    # A real tavily.TavilyClient (or a fake satisfying its one-method
+    # surface in tests) — None means "no Tavily configured," which is a
+    # supported, non-fatal state (§5 cut ladder: repair still functions
+    # without cited context). Deliberately a client, not a precomputed
+    # string: a real query needs the failure's classification, which only
+    # exists mid-repair-loop, not before the pipeline starts.
+    tavily_client: object = None
 
 
 def run_pipeline(
@@ -254,21 +262,32 @@ def run_pipeline(
             target_path = workdir / target_file
             target_content = target_path.read_text(encoding="utf-8", errors="replace") if target_path.is_file() else ""
 
+            try:
+                tavily_context = tavily.fetch_context(deps.tavily_client, classification.code, classification.evidence)
+            except tavily.TavilyError as exc:
+                log_lines.append(f"[tavily] search failed, continuing without cited context: {exc}")
+                tavily_context = tavily.TavilyContext(query="", sources=())
+            if tavily_context.has_sources:
+                log_lines.append(
+                    f"[tavily] {len(tavily_context.sources)} source(s) for '{tavily_context.query}'"
+                )
+
             proposal = repairer.propose_repair(
                 deps.repair_client,
                 deps.repair_model,
                 classification,
                 target_file,
                 target_content,
-                external_context=deps.tavily_context,
+                external_context=tavily_context.as_prompt_context() or None,
                 cost_guard=cost_guard,
             )
             cost_guard.record_attempt(run_id)
+            tavily_sources = tuple(s.as_dict() for s in tavily_context.sources)
 
             if not proposal.has_diff:
                 log_lines.append(f"[repair {attempt_number}] declined: {proposal.explanation}")
                 attempts.append(
-                    AttemptRecord(attempt_number, "", "DECLINED", (), None, "", "")
+                    AttemptRecord(attempt_number, "", "DECLINED", (), None, "", "", tavily_sources)
                 )
                 continue
 
@@ -291,6 +310,7 @@ def run_pipeline(
                         None,
                         "",
                         "",
+                        tavily_sources,
                     )
                 )
                 continue
@@ -302,7 +322,7 @@ def run_pipeline(
             except CostLimitExceeded as exc:
                 log_lines.append(f"[repair {attempt_number}] stopped: daily cost ceiling reached: {exc}")
                 attempts.append(
-                    AttemptRecord(attempt_number, proposal.diff_text, "PASS", (), None, "", "")
+                    AttemptRecord(attempt_number, proposal.diff_text, "PASS", (), None, "", "", tavily_sources)
                 )
                 break
             log_lines.append(f"[repair {attempt_number}] re-execution exit_code={rerun_result.final.exit_code}")
@@ -316,6 +336,7 @@ def run_pipeline(
                     rerun_result.final.exit_code,
                     rerun_result.final.stdout[-2000:],
                     rerun_result.final.stderr[-2000:],
+                    tavily_sources,
                 )
             )
 

@@ -94,16 +94,22 @@ This project is being built in phases (see the directive, §11). Current state:
   an honest simplification, not a fake stream) and hosting on Nebius Serverless
   Endpoints are not yet built.
 
-Backend test suite: **191 passed, 4 skipped** (`cd backend && pytest -v`) — reconfirmed
+Backend test suite: **203 passed, 4 skipped** (`cd backend && pytest -v`) — reconfirmed
 from a genuinely fresh clone, not just the working session directory. 3 skips are the
 real Nebius Sandboxes integration test, honestly gated on `NEBIUS_API_KEY`; 1 is a
 network-dependent corpus-freshness check (`RERUN_VERIFY_CORPUS_NETWORK=1` to run it —
-confirmed passing against all 20 real repos as of 2026-09-19). Self-audit passes found
-and fixed five real wiring gaps this session (listed in full in `DECISIONS.md`),
-including both halves of §9's cost guard (daily USD ceiling, per-attempt token ceiling)
-being fully implemented and unit-tested in isolation but never actually called from the
-orchestrator — a reminder that isolated unit tests don't catch defects in the wiring
-*between* components.
+confirmed passing against all 20 real repos as of 2026-09-19).
+
+Self-audit passes found and fixed **six** real wiring gaps this session (full detail in
+`DECISIONS.md`), most notably: both halves of §9's cost guard (daily USD ceiling,
+per-attempt token ceiling) were fully implemented and unit-tested in isolation but never
+actually called from the orchestrator; and **Tavily was never called anywhere at all**
+despite being a named prize track (`tavily.py` didn't exist, `PipelineDeps` only had an
+unused precomputed-string field) — now fixed, with `tavily.fetch_context()` called per
+repair attempt using the failure's real classification, cited sources threaded into the
+repair prompt and recorded structurally on the certificate, and rendered as clickable
+links in the S2/S3 UI. A reminder that isolated unit tests don't catch defects in the
+wiring *between* components — only exercising the seams does.
 
 ## Repo layout
 

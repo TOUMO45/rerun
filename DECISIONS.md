@@ -751,6 +751,67 @@ gets built next: test the seams, not just the pieces.
 
 ---
 
+## 2026-09-19 — Bug found and fixed: Tavily was never actually called anywhere (§12 prize eligibility)
+
+**Bug:** Continued the self-audit pattern one step further, this time checking a
+directive requirement tied directly to hackathon prize eligibility, not just internal
+safety: §12's checklist requires "Tavily called at runtime, cited in the certificate —
+Best Use of Tavily eligibility" (a named $3,000 track). `grep -rn "tavily" app/`
+found `tavily_api_key`/`tavily_configured` in `config.py` (used only by `/healthz`) and
+a `PipelineDeps.tavily_context: str | None` field referenced exactly once in
+`orchestrator.py` — but **nothing anywhere ever called the Tavily API or set that field
+to anything other than `None`**. Had this shipped as-is, the certificate would never
+cite a real source, and the project would have been ineligible for the track it's
+explicitly built to compete in, despite `tavily-python` sitting in `pyproject.toml`
+the whole time.
+
+**Root design flaw, not just a missing call:** the original `tavily_context: str | None`
+field modeled Tavily as a single precomputed string handed to the pipeline before it
+starts — but a real, meaningful Tavily query needs the failure's *classification*
+(taxonomy code + evidence line), which only exists mid-repair-loop, after a sandbox
+execution has actually failed. A precomputed-string design could never have been wired
+correctly no matter how hard the missing call was searched for.
+
+**Fixed:** built `tavily.py` against the real installed `tavily-python` package
+(confirmed via source: `TavilyClient.__init__`/`search()` signatures, and that
+`search()` always returns a dict with a `"results"` key defaulting to `[]`; the exact
+keys *within* each result item aren't independently source-confirmed — this client has
+no bundled response schema — so they're read defensively). `build_query()` constructs a
+deterministic, explainable query directly from the taxonomy code and evidence — never
+left to a model to phrase, so a reviewer can see exactly what was searched and why,
+right next to the citation it produced. Replaced `PipelineDeps.tavily_context` with
+`tavily_client: object = None` (a real injectable client, matching every other
+credential-gated dependency in this codebase) and wired `tavily.fetch_context()` into
+the repair loop itself, called fresh for each attempt's current classification, with
+its result threaded into the repair prompt as citable context AND recorded structurally
+on `AttemptRecord.tavily_sources` — so the certificate's `diffs` JSON carries real,
+structured citations, not just prose a judge has to trust was actually looked up. A
+Tavily search failure is caught and logged, never crashes the pipeline (§5 cut ladder:
+Tavily-cited repair context is a should-have — repair must still function without it).
+`routers/runs.py::_build_pipeline_deps` now constructs a real `TavilyClient` whenever
+`settings.tavily_configured`.
+
+**Frontend also updated** (`RepairAttemptCard.tsx`): cited sources now render as
+clickable links under any attempt that has them (DECLINED, REJECT, and PASS cards
+alike) — verified visually via the same temporary-debug-route technique used earlier
+in the session, removed before committing.
+
+**Tests:** `test_tavily.py` (9 tests) covers `fetch_context`/`build_query` in isolation
+against a fake client. Three new orchestrator-level integration tests prove the whole
+chain for real: `test_tavily_is_called_during_repair_and_cited_on_the_attempt` asserts
+the actual query sent, that the cited URL appears in the real prompt text Nemotron Super
+would see, AND that it lands in the certificate's structured attempt record — not just
+one of those three; `test_tavily_not_configured_still_completes_the_repair_loop` proves
+the should-have degrades gracefully; `test_tavily_search_failure_does_not_crash_the_pipeline`
+proves a Tavily outage never blocks a repair attempt.
+
+**Result:** `pytest tests/test_tavily.py tests/test_orchestrator.py -v` —
+9 + 14 = 23/23 passed. Full backend suite: **203 passed, 4 skipped**. This is the sixth
+real wiring-gap bug this session's self-audits have caught, and the first tied directly
+to a hackathon prize track rather than internal engineering discipline.
+
+---
+
 ## 2026-09-19 — Bug found and fixed: docker-compose.yml referenced Dockerfiles that didn't exist
 
 **Bug:** `docker-compose.yml` was written early (Phase 0 scaffolding, before either

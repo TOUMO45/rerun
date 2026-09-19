@@ -1,5 +1,30 @@
-import type { RepairAttemptDiff } from "../api";
+import type { RepairAttemptDiff, TavilySource } from "../api";
 import { DiffView } from "./DiffView";
+
+function TavilySources({ sources }: { sources?: TavilySource[] }) {
+  if (!sources || sources.length === 0) return null;
+  return (
+    <div className="mt-3 border-t border-border/60 pt-2">
+      <p className="font-mono text-[11px] uppercase tracking-wide text-text-secondary">
+        Cited sources (Tavily)
+      </p>
+      <ul className="mt-1 space-y-1">
+        {sources.map((source, i) => (
+          <li key={i} className="font-mono text-[11px]">
+            <a
+              href={source.url}
+              target="_blank"
+              rel="noreferrer"
+              className="text-signal underline decoration-signal-dim underline-offset-2 hover:opacity-80"
+            >
+              [{i + 1}] {source.title || source.url}
+            </a>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
 
 /**
  * The tamper-gate REJECT state is the project's differentiator (see
@@ -16,6 +41,7 @@ export function RepairAttemptCard({ attempt }: { attempt: RepairAttemptDiff }) {
         <p className="mt-2 font-mono text-xs text-text-secondary">
           The repair model did not propose a fix it was confident about for this attempt.
         </p>
+        <TavilySources sources={attempt.tavily_sources} />
       </div>
     );
   }
@@ -39,6 +65,7 @@ export function RepairAttemptCard({ attempt }: { attempt: RepairAttemptDiff }) {
             <DiffView diff={attempt.diff_text} />
           </div>
         </details>
+        <TavilySources sources={attempt.tavily_sources} />
       </div>
     );
   }
@@ -58,6 +85,7 @@ export function RepairAttemptCard({ attempt }: { attempt: RepairAttemptDiff }) {
           <DiffView diff={attempt.diff_text} />
         </div>
       </details>
+      <TavilySources sources={attempt.tavily_sources} />
     </div>
   );
 }

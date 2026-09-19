@@ -47,6 +47,12 @@ export interface RunOut {
   updated_at: string;
 }
 
+export interface TavilySource {
+  title: string;
+  url: string;
+  content: string;
+}
+
 export interface RepairAttemptDiff {
   attempt_number: number;
   diff_text: string;
@@ -55,6 +61,7 @@ export interface RepairAttemptDiff {
   exit_code: number | null;
   stdout_tail?: string;
   stderr_tail?: string;
+  tavily_sources?: TavilySource[];
 }
 
 export interface CertificateOut {

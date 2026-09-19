@@ -80,7 +80,7 @@ def _write_files(workdir: Path, files: dict[str, str]) -> None:
         (workdir / rel_path).write_text(content, encoding="utf-8")
 
 
-def _base_deps(recon_client, repair_client, adjudicator_client, sandbox_runner) -> PipelineDeps:
+def _base_deps(recon_client, repair_client, adjudicator_client, sandbox_runner, tavily_client=None) -> PipelineDeps:
     # adjudicator_client=None (the common case in these tests) means
     # adjudicator.adjudicate() takes its templated-fallback path — these
     # tests are about orchestration wiring, not adjudicator prose, so most
@@ -96,6 +96,7 @@ def _base_deps(recon_client, repair_client, adjudicator_client, sandbox_runner) 
         sandbox_api_key="fake-key-for-test-construction-only",
         sandbox_wall_clock_seconds=60,
         sandbox_runner=sandbox_runner,
+        tavily_client=tavily_client,
     )
 
 
@@ -568,3 +569,124 @@ def test_token_ceiling_already_exhausted_makes_recon_indeterminate_not_a_crash()
     assert result.verdict == "INDETERMINATE"
     assert "recon model call failed" in result.indeterminate_reason
     assert sandbox_runner.calls == []
+
+
+# --- Tavily: called at runtime, cited in the certificate --------------------
+
+
+class _FakeTavilyClient:
+    def __init__(self, response: dict):
+        self.response = response
+        self.last_call: dict | None = None
+
+    def search(self, query, *, max_results, search_depth):
+        self.last_call = {"query": query, "max_results": max_results, "search_depth": search_depth}
+        return self.response
+
+
+def test_tavily_is_called_during_repair_and_cited_on_the_attempt():
+    train_py = "def run():\n    raise RuntimeError('boom')\n\nrun()\n"
+    import tempfile
+
+    with tempfile.TemporaryDirectory() as d:
+        workdir = Path(d)
+        _write_files(workdir, {"train.py": train_py})
+        intake = _intake({"train.py": train_py})
+
+        recon_client = _FakeChatClient([json.dumps({"entrypoint": "train.py", "confidence": 0.9})])
+        repair_client = _FakeChatClient([json.dumps({"diff": None, "explanation": "cannot fix"})])
+        sandbox_runner = _FakeSandboxRunner([_sandbox_result(1, stderr="RuntimeError: boom")])
+        tavily_client = _FakeTavilyClient(
+            response={
+                "results": [
+                    {"title": "Fixing RuntimeError: boom", "url": "https://example.com/fix", "content": "do the thing"}
+                ]
+            }
+        )
+        deps = _base_deps(recon_client, repair_client, None, sandbox_runner, tavily_client=tavily_client)
+
+        result = run_pipeline(
+            repo_url="https://example.com/repo",
+            commit_sha="a" * 40,
+            workdir=workdir,
+            intake_result=intake,
+            deps=deps,
+            cost_guard=CostGuard(daily_cost_ceiling_usd=100, max_attempts_per_run=1),
+            run_id="run-12",
+        )
+
+    # Tavily was actually queried (not skipped just because a client exists).
+    assert tavily_client.last_call is not None
+    assert "boom" in tavily_client.last_call["query"]
+
+    # The cited source reached the repair prompt Nemotron Super actually saw...
+    sent_prompt = repair_client.calls[0]["user_prompt"]
+    assert "https://example.com/fix" in sent_prompt
+
+    # ...and reached the certificate's structured attempt record, not just
+    # the prompt text — this is what "cited in the certificate" means.
+    assert len(result.attempts) == 1
+    assert result.attempts[0].tavily_sources == (
+        {"title": "Fixing RuntimeError: boom", "url": "https://example.com/fix", "content": "do the thing"},
+    )
+
+
+def test_tavily_not_configured_still_completes_the_repair_loop():
+    # §5 cut ladder: repair must still function without Tavily.
+    train_py = "def run():\n    raise RuntimeError('boom')\n\nrun()\n"
+    import tempfile
+
+    with tempfile.TemporaryDirectory() as d:
+        workdir = Path(d)
+        _write_files(workdir, {"train.py": train_py})
+        intake = _intake({"train.py": train_py})
+
+        recon_client = _FakeChatClient([json.dumps({"entrypoint": "train.py", "confidence": 0.9})])
+        repair_client = _FakeChatClient([json.dumps({"diff": None, "explanation": "cannot fix"})])
+        sandbox_runner = _FakeSandboxRunner([_sandbox_result(1, stderr="RuntimeError: boom")])
+        deps = _base_deps(recon_client, repair_client, None, sandbox_runner, tavily_client=None)
+
+        result = run_pipeline(
+            repo_url="https://example.com/repo",
+            commit_sha="a" * 40,
+            workdir=workdir,
+            intake_result=intake,
+            deps=deps,
+            cost_guard=CostGuard(daily_cost_ceiling_usd=100, max_attempts_per_run=1),
+            run_id="run-13",
+        )
+
+    assert result.verdict == "BLOCKED"
+    assert result.attempts[0].tavily_sources == ()
+
+
+def test_tavily_search_failure_does_not_crash_the_pipeline():
+    train_py = "def run():\n    raise RuntimeError('boom')\n\nrun()\n"
+    import tempfile
+
+    class _RaisingTavilyClient:
+        def search(self, query, *, max_results, search_depth):
+            raise RuntimeError("connection refused")
+
+    with tempfile.TemporaryDirectory() as d:
+        workdir = Path(d)
+        _write_files(workdir, {"train.py": train_py})
+        intake = _intake({"train.py": train_py})
+
+        recon_client = _FakeChatClient([json.dumps({"entrypoint": "train.py", "confidence": 0.9})])
+        repair_client = _FakeChatClient([json.dumps({"diff": None, "explanation": "cannot fix"})])
+        sandbox_runner = _FakeSandboxRunner([_sandbox_result(1, stderr="RuntimeError: boom")])
+        deps = _base_deps(recon_client, repair_client, None, sandbox_runner, tavily_client=_RaisingTavilyClient())
+
+        result = run_pipeline(
+            repo_url="https://example.com/repo",
+            commit_sha="a" * 40,
+            workdir=workdir,
+            intake_result=intake,
+            deps=deps,
+            cost_guard=CostGuard(daily_cost_ceiling_usd=100, max_attempts_per_run=1),
+            run_id="run-14",
+        )
+
+    assert result.verdict == "BLOCKED"  # not a crash
+    assert "search failed" in result.full_log

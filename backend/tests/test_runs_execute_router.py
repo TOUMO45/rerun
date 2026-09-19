@@ -44,6 +44,7 @@ def test_execute_run_persists_pipeline_result(client, fake_paper_repo, monkeypat
         nebius_sandbox_wall_clock_seconds = 60
         max_attempts_per_run = 3
         daily_cost_ceiling_usd = 25.0
+        tavily_configured = False
 
     fake_result = PipelineResult(
         verdict="RUNS_AFTER_REPAIR",
@@ -114,6 +115,7 @@ def test_certificate_fetched_via_api_still_verifies_against_its_own_passport_has
         nebius_sandbox_wall_clock_seconds = 60
         max_attempts_per_run = 3
         daily_cost_ceiling_usd = 25.0
+        tavily_configured = False
 
     fake_result = PipelineResult(
         verdict="RUNS_CLEAN",
