@@ -63,9 +63,15 @@ This project is being built in phases (see the directive, §11). Current state:
   orchestrator with real credentials from settings and persists the result
   (`Run`/`RepairAttempt`/`Certificate` rows, including the real passport hash). Returns
   a clear 503 — never a crash or a fake result — when `NEBIUS_API_KEY` is absent.
-- 🚧 SSE streaming (currently polling-only via `GET /runs/{id}`) and the React UI
-  (S1–S4 screens) and the batch lab corpus are not yet built — see `DECISIONS.md` for
-  the full trail.
+- ✅ Frontend (React + Vite + Tailwind): all 4 screens (S1 Intake, S2 Run Timeline, S3
+  Certificate, S4 Batch Lab) built and wired to the real API — verified live in a
+  browser against a running backend, not just code review. The tamper-gate REJECT card
+  is the one deliberately loud, animated visual moment, per §8 S2. Run it with
+  `cd frontend && npm install && npm run dev` (proxies `/api` to `localhost:8000`).
+- 🚧 True SSE live-streaming for S2 (currently a single blocking `/execute` call, so S2
+  shows a "Running…" state and then renders the timeline retrospectively once done —
+  an honest simplification, not a fake stream), the batch lab corpus, and hosting on
+  Nebius Serverless Endpoints are not yet built — see `DECISIONS.md` for the full trail.
 
 Backend test suite: **164 passed, 3 skipped** (`cd backend && pytest -v`). The 3 skips
 are the real Nebius Sandboxes integration test, honestly gated on `NEBIUS_API_KEY`.

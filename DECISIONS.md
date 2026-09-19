@@ -516,3 +516,62 @@ production code being changed to satisfy a wrong test.
 **Result:** `pytest -v` — **165 passed, 3 skipped**.
 
 ---
+
+## 2026-09-19 — Frontend scaffolded: React + Vite + Tailwind, all 4 screens wired to the real API
+
+**Design approach:** ran the `frontend` skill's design process before writing any UI
+code. Concept: RERUN is an audit instrument, not a product pitch — the design leans
+into a technical "lab instrument / terminal" aesthetic (near-black teal-tinted
+background, phosphor-teal signal color, monospace evidence/log text, Space Grotesk for
+UI chrome) rather than a generic SaaS look, specifically because the project's whole
+credibility rests on looking like something a skeptical engineer would trust. The one
+deliberate animated moment is a single strobe pulse on the tamper-gate REJECT card —
+everywhere else stays quiet by design, per §8 S2's explicit requirement that a REJECT
+"must be visually loud."
+
+**Stack:** Vite + React 18 + TypeScript + Tailwind (scaffolded by hand, not
+`create-vite`, since the interactive CLI prompt doesn't work in this non-interactive
+shell) + TanStack Query for data fetching/polling (per §4.1's fixed stack) +
+react-router-dom for the 4 screens (S1 Intake, S2 RunTimeline, S3 Certificate, S4
+BatchLab).
+
+**All 4 screens call the real backend, no mocked data:** verified live against a
+running `uvicorn` + `vite dev` pair in the browser, not just code review —
+  - S1: submitted a real invalid path (got the real git error message back verbatim)
+    and a real public repo (`github.com/pypa/sampleproject` — real network clone, real
+    commit SHA shown).
+  - S2: clicked "Start reproduction run" against the real `/execute` endpoint with no
+    `NEBIUS_API_KEY` configured and got the real, honest 503 message rendered — proving
+    the fail-fast path end-to-end through the UI, not just at the API layer.
+  - S4: confirmed the real fail-loud 502 state renders as a loud, distinct panel (not a
+    silent 0%) when `batch_results.json` is absent, per §7 — then temporarily wrote a
+    sample `batch_results.json` to verify the populated-data rendering (headline
+    Recovery Rate + N, the "Estimate — not measured" label at equal visual weight to
+    the estimate itself, the taxonomy breakdown bar chart, the repo table with
+    click-to-expand rows), and deleted the fixture afterward — it was never committed,
+    since no real batch run exists yet and committing a fake one would violate §0's
+    "never fake a result."
+  - The REJECT/PASS repair-attempt cards (the differentiator's visual centerpiece) were
+    verified via a temporary debug route with representative sample data, since no live
+    Nebius credentials exist yet to produce a real one — confirmed the REJECT card
+    renders with a thick alarm-red border and the strobe animation, visually
+    unmistakable from the PASS card's quiet signal-teal styling. The debug route and its
+    file were removed before committing; nothing built for that check ships.
+
+**A `.claude/launch.json` config was added** so the frontend dev server can be started
+via `preview_start` (`npm --prefix frontend run dev`) in future sessions, and a Vite
+dev-server proxy (`/api` -> `http://localhost:8000`) avoids CORS friction against the
+local backend.
+
+**Verified beyond dev-server behavior:** `npx tsc -b` (strict mode, no errors) and
+`npm run build` (a real production Vite build) both succeed cleanly.
+
+**What's not yet built:** an actual S2 live-streaming view (no SSE endpoint exists yet
+— `POST /runs/{id}/execute` is a single blocking call, so S2 currently shows a
+"Running…" state with an elapsed-time counter while the request is in flight, then
+renders the full timeline retrospectively by parsing the completed run's `full_log` —
+this is an honest simplification of §8 S2's "live screen" given the current backend
+architecture, not a fake live stream). Also not yet built: `docker-compose` verification
+of the frontend service, and hosting on Nebius Serverless Endpoints (§12).
+
+---
