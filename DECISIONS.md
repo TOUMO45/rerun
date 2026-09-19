@@ -2021,3 +2021,47 @@ fresh-clone scratch copy), so this isn't a fresh-clone-specific artifact. No cod
 change; full suite unaffected.
 
 ---
+
+## 2026-09-19 — Built: `SUBMISSION_CHECKLIST.md`, required by §13 item 7 but never created
+
+**Context:** re-verified §9's token/attempt caps are genuinely wired at every model-call
+site (all four services — recon, planner, repairer, adjudicator — pass a real, non-`None`
+`cost_guard` through to `call_json_model`, confirmed by reading every call site, not
+assumed) — no gap, already correctly enforced. Then did a skeptical read of `DECISIONS.md`
+itself against §13 item 8's exact wording ("reads as a coherent record... the human
+should be able to audit the whole build from this file plus the git log alone"): found
+the "not yet built" phrasing scattered through early entries is the *correct*,
+expected shape of a chronological log (each superseded by a later entry actually
+building that thing), not a contradiction — and the running bug count is a reasonable
+approximation of session activity, not a precise, false claim. No issue found there.
+
+**Then checked §12's compliance checklist itself — not the code, the checklist as a
+deliverable.** §13 item 7 explicitly requires: "Every item in §12 is checked, with
+evidence (a link, a screenshot, or a file) next to each line in the submission notes."
+No such file existed anywhere in the repo. This is exactly the category of gap this
+session's fresh-directive-reading pass exists to catch: not a code bug, a missing
+*deliverable* the definition of done explicitly names.
+
+**Built `SUBMISSION_CHECKLIST.md`** at the repo root, mapping all 13 of §12's items to
+their real, current, honestly-assessed status:
+- 6 items are genuinely ✅ done today (both NVIDIA-model-usage items, the two README
+  content requirements, the "not built from pre-existing code" explanation, and Tavily
+  citation) — verified against the actual code, not assumed.
+- 3 items are ❌ not done and explicitly blocking (working demo URL, the demo video, and
+  the public repo — confirmed via `git remote -v` that this repo has never been pushed
+  anywhere).
+- 1 item (running live against real Nebius credentials) is 🧩 code-ready but
+  live-unverified, consistent with everything else this session has honestly flagged the
+  same way.
+- 4 items are 👤 pure human/process actions (category selection, feedback submission,
+  Builders & Brews, the actual submission deadline) that no amount of code auditing can
+  satisfy — named explicitly rather than silently omitted, since forgetting one of these
+  at actual submission time is a real risk this file now exists specifically to prevent.
+
+Ends with a concrete, priority-ordered "what this means concretely" list (get live
+credentials → deploy → record the video → push publicly → close out the human items) so
+whoever picks this up next has an actual sequence, not just a checklist.
+
+**Verified:** no code change; full suite unaffected — **243 passed, 4 skipped**.
+
+---

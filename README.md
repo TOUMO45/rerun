@@ -306,6 +306,13 @@ Factory (sandboxes, Nemotron inference) or Tavily needs `.env` populated from
 - **Tavily** — runtime-called for dependency/environment context injected into the
   repair prompt and cited in the certificate.
 
+## Before submitting
+
+See [`SUBMISSION_CHECKLIST.md`](SUBMISSION_CHECKLIST.md) — §12's full hackathon
+compliance checklist with real, current evidence per item (what's done, what's
+code-ready but needs live credentials, and what's a genuinely blocking human step like
+deploying, recording the demo video, and pushing to a public repo).
+
 ## License
 
 Apache-2.0 — see [LICENSE](LICENSE).
