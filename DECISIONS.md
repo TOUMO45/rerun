@@ -1778,3 +1778,40 @@ remain correct and unaffected by this. Full suite still **240 passed, 4 skipped*
 pass changed only comments/docstrings.
 
 ---
+
+## 2026-09-19 — Confirmed clean + coverage gap closed: §5.4's bounded repair loop
+
+**Context:** continuing the self-audit, checked whether the repair loop's bounded-attempts
+guarantee (§5.4: `max_attempts_per_run`, default 3) actually stops at exactly that count
+in every code path, not just the one the existing test exercises.
+
+**What was already tested:** `test_blocked_after_exhausting_attempts` proves the loop
+stops at 3 when the repairer **declines** every attempt (never even proposes a diff) —
+but that path never reaches `apply_diff`, re-execution, or a second/third real gate
+check; the loop's `continue` after a DECLINED attempt is trivial to get right.
+
+**What wasn't tested, until now:** whether the loop is *still* bounded to exactly
+`max_attempts_per_run` when every single attempt takes the full, expensive path — a
+genuinely gate-**passing** diff is proposed, applied to real files on disk, and
+re-executed, but the underlying bug is never actually fixed, so the loop must keep
+going. This exercises far more of the loop body per iteration than the declined-only
+test, and is the more realistic failure shape for a model that keeps trying honestly but
+unsuccessfully (as opposed to giving up outright).
+
+**No bug found — verified live with a genuinely adversarial test, not assumed correct
+from reading the `for attempt_number in range(1, deps.max_attempts + 1)` loop bound
+alone:** wrote a fake repairer that proposes a real, harmless, gate-passing unified diff
+(a benign comment, never touching the crash) on all 3 attempts, each computed against
+the *previous* attempt's own on-disk output (since `apply_diff` really writes to disk
+between attempts, using the real tamper gate and real diff-application every time, per
+this test file's own stated philosophy). Verdict came back `BLOCKED` with **exactly** 3
+attempts recorded, all `PASS`, `cost_guard.attempts_used()` exactly 3, exactly 3
+repair-model calls, exactly 4 sandbox calls (the initial execution plus one
+re-execution per attempt, never a 5th), and the file on disk correctly reflecting all
+three sequentially-applied patches in order.
+
+**Added as a permanent regression test:**
+`test_blocked_after_exactly_max_attempts_even_when_every_patch_passes_the_gate` in
+`test_orchestrator.py`. Full suite: **241 passed, 4 skipped** (up from 240/4).
+
+---

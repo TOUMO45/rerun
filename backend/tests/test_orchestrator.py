@@ -292,6 +292,83 @@ def test_reject_then_pass_reaches_runs_after_repair(tmp_path):
     assert len(sandbox_runner.calls) == 2
 
 
+# --- BLOCKED: repair keeps passing-but-not-fixing until attempts exhausted --
+
+
+def test_blocked_after_exactly_max_attempts_even_when_every_patch_passes_the_gate(tmp_path):
+    """Different code path than test_blocked_after_exhausting_attempts:
+    that test only exercises DECLINED proposals (the repairer never even
+    proposes a diff), so the loop never reaches apply_diff/re-execute at
+    all. This test's repairer proposes a genuinely gate-PASSING diff on
+    every attempt (a harmless comment, real unified diff, real gate,
+    real re-execution) that never actually fixes the crash — verifying
+    the bounded loop (§5.4: max_attempts_per_run) stops at EXACTLY that
+    many attempts, not one more or one fewer, even when every single
+    attempt takes the full apply-and-re-execute path rather than being
+    declined or rejected up front.
+    """
+    train_py = textwrap.dedent(
+        """\
+        def run():
+            raise RuntimeError('boom')
+
+        run()
+        """
+    )
+    _write_files(tmp_path, {"train.py": train_py})
+    intake = _intake({"train.py": train_py})
+
+    recon_client = _FakeChatClient([json.dumps({"entrypoint": "train.py", "confidence": 0.9})])
+
+    # Each successive diff is computed against the PREVIOUS attempt's own
+    # output, since apply_diff really writes to disk between attempts —
+    # a harmless, additive comment that never touches the real bug.
+    contents = [train_py]
+    diffs = []
+    for i in range(1, 4):
+        previous = contents[-1]
+        updated = previous + f"# repair attempt {i} note\n"
+        diffs.append(_unified_diff("train.py", previous, updated))
+        contents.append(updated)
+
+    repair_client = _FakeChatClient(
+        [json.dumps({"diff": d, "explanation": f"attempt {i}"}) for i, d in enumerate(diffs, start=1)]
+    )
+
+    # Initial failure, then one re-execution failure per repair attempt —
+    # the crash is never actually fixed by any of the three patches.
+    sandbox_runner = _FakeSandboxRunner(
+        [_sandbox_result(1, stderr="RuntimeError: boom") for _ in range(4)]
+    )
+
+    deps = _base_deps(recon_client, repair_client, None, sandbox_runner)
+    cost_guard = CostGuard(daily_cost_ceiling_usd=100, max_attempts_per_run=3)
+
+    result = run_pipeline(
+        repo_url="https://example.com/repo",
+        commit_sha="a" * 40,
+        workdir=tmp_path,
+        intake_result=intake,
+        deps=deps,
+        cost_guard=cost_guard,
+        run_id="run-max-attempts",
+    )
+
+    assert result.verdict == "BLOCKED"
+    assert len(result.attempts) == 3
+    assert all(a.gate_decision == "PASS" for a in result.attempts)
+    assert cost_guard.attempts_used("run-max-attempts") == 3
+    # Exactly 3 repair-model calls (one per attempt), not 2 or 4.
+    assert len(repair_client.calls) == 3
+    # Exactly 4 sandbox calls: the initial execution plus one
+    # re-execution per attempt — never a 5th (a 4th repair attempt).
+    assert len(sandbox_runner.calls) == 4
+    # All three patches really were applied to disk in order.
+    final_content = (tmp_path / "train.py").read_text(encoding="utf-8")
+    assert final_content == contents[-1]
+    assert final_content.count("# repair attempt") == 3
+
+
 # --- BLOCKED: repair keeps declining until attempts are exhausted -----------
 
 
