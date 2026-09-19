@@ -117,6 +117,16 @@ This project is being built in phases (see the directive, §11). Current state:
   daily total, because no verified per-token pricing exists anywhere in this codebase to
   do that conversion honestly. `cost_guard.py`'s own module docstring previously claimed
   otherwise — corrected.
+- 🚧 **`DEMO_MODE`'s recorded fixtures (§9) were never actually built**, found by
+  re-reading the directive fresh rather than by testing existing code. `demo_mode` is a
+  real config flag (default `False`, surfaced in `/healthz`), but nothing anywhere reads
+  it to change behavior — no fixture file, no fixture directory, no conditional branch.
+  The flag's existence could look like this requirement is satisfied; it isn't. Not
+  built now rather than faked: a real implementation needs actual recorded output from a
+  genuine clean run and a genuine repair-then-pass run, which needs live Nebius
+  credentials this session doesn't have — fabricating placeholder fixture content to
+  stand in for "the guaranteed demo fallback" would risk exactly the "never fake a
+  result" violation §0 forbids. See `DECISIONS.md`.
 - ✅ `GET /runs/{id}/stream`: true SSE live-streaming for S2, per §4's named endpoint,
   and the frontend actually consumes it. Runs the real pipeline in a background thread
   and streams each log line the instant `orchestrator.run_pipeline` produces it via an

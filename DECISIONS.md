@@ -1815,3 +1815,55 @@ three sequentially-applied patches in order.
 `test_orchestrator.py`. Full suite: **241 passed, 4 skipped** (up from 240/4).
 
 ---
+
+## 2026-09-19 — Fresh directive re-read: one file gap fixed, one real feature gap found
+
+**Context:** switched approach for this audit pass — instead of adversarial testing of
+existing code, re-read `RERUN_BUILD_DIRECTIVE.md` in full, fresh, specifically looking
+for requirements that might have been overlooked *entirely* rather than imperfectly
+built, since that's a different failure mode than anything the testing-focused passes
+so far could catch.
+
+**Gap 1, fixed — `docs/demo_script.md` was missing.** §4.2's repo structure explicitly
+lists this file; the `docs/` directory existed (from the initial skeleton) but was
+empty. §10 already fully specifies the narration and timing directly in the directive —
+extracted it into its own file as required, plus a short "before recording" checklist
+covering the things §14's red-team pass calls out as load-bearing (the tamper-gate
+REJECT must be genuine, not staged; the Recovery Rate number must show its N).
+
+**Gap 2, found and documented, not fabricated — `DEMO_MODE`'s recorded fixtures were
+never actually built.** §9 requires: "`DEMO_MODE`: recorded fixtures for at least one
+guaranteed-clean and one guaranteed-repair-then-pass repo, so the live demo never
+depends on network/model flakiness." Checked every reference to `demo_mode` in the
+codebase: it's declared in `config.py` (`bool = False`), surfaced in the `/healthz`
+response (`schemas.py`, `routers/health.py`), and mentioned once in a `planner.py`
+comment about an unrelated code path (graceful degradation when no model client is
+supplied) — and that's the entire footprint. **No fixture file, no fixture directory,
+and no conditional branch anywhere reads `settings.demo_mode` to actually change
+behavior.** The flag's mere existence could give a false impression this requirement is
+satisfied; it isn't — this is a fully unbuilt feature, not a subtle implementation bug,
+and the kind of gap that only shows up by checking the spec against the code line by
+line rather than by testing what already runs.
+
+**Why not fixed now:** a real implementation needs actual recorded fixture data (a real
+`PipelineResult` for a genuine clean run and a genuine repair-then-pass run) to play back
+when `DEMO_MODE` is on. This session has no live Nebius credentials to produce that
+recording honestly. Fabricating plausible-looking fixture content now, to be presented
+later as "the guaranteed demo fallback," would risk exactly the failure mode §0
+explicitly forbids ("never fake a result... no hardcoded 'success' outputs") if it were
+ever mistaken for a real recorded run rather than a placeholder — the same reasoning
+already applied to the cost-guard model-pricing gap and the batch cost-guard limitation
+earlier this session. Documented here and in `README.md` instead, so whoever next has
+live credentials knows exactly what's missing and why it wasn't stubbed with fake data.
+
+**Nothing else missing found in this pass:** cross-checked §12's compliance checklist
+items against the repo — `LICENSE` (Apache-2.0) exists at repo root, `METHODOLOGY.md`
+exists, `corpus.yaml` exists, and `README.md` has a dedicated "NVIDIA / Nebius usage"
+section explicitly naming Token Factory, Nemotron (Nano/Super/Ultra), Sandboxes,
+Serverless Jobs, Serverless Endpoints, and Tavily — all present and substantive, not
+token mentions. `routers/repos.py` (named in §4.2's illustrative structure) doesn't
+exist as a separate file, but its functionality — repo intake — is fully present in
+`routers/runs.py`'s `create_run`; §0 explicitly gives full authority over file layout,
+so this is a naming difference, not a missing capability.
+
+---
