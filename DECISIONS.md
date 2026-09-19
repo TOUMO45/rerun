@@ -1506,3 +1506,45 @@ marked complete server-side).
 - Cleaned up all seeded demo runs, scratch probe scripts, and manually-started processes.
 
 ---
+
+## 2026-09-19 — Limitation found and documented: §9's daily cost ceiling doesn't span a batch run
+
+**Context:** the previous entry's duplicate-execution bug was found by asking "does this
+same 'no re-entrancy guard' shape recur elsewhere?" Following that thread into
+`batch/run_single_repo.py` and `batch/runner.py` — checking whether the batch tooling has
+the same class of bug, or a related one.
+
+**Not the same bug** (`run_single_repo.py` doesn't touch the `runs`/`certificates` tables
+at all — it's a stateless one-shot script per §7's design, so there's no unique-constraint
+class of corruption possible there), **but a real, previously-unstated limitation found
+while checking:** `cost_guard.get_shared_cost_guard()` is a process-wide `@lru_cache`d
+singleton — correct and sufficient for the web app (one long-running process handling
+every HTTP request). But per `runner.py`'s own design, each of the 20 corpus repos in a
+batch run executes inside its **own separate Nebius Serverless Job container** — a
+genuinely separate OS process with its own memory. `get_shared_cost_guard()` returns a
+*fresh*, independently-zeroed guard in every one of those containers. §9's daily USD
+ceiling (`daily_cost_ceiling_usd`, default $25) is real and enforced *within* any single
+container, but there is **no coordination across containers** — a 20-repo batch run could
+spend up to roughly 20x the configured ceiling in aggregate before any individual
+container's own local check would ever trip, since none of them can see what the others
+have spent.
+
+**Why this wasn't fixed rather than just documented:** closing this for real needs spend
+tracked in a resource actually shared across separate containers (a DB row every
+container reads/writes before spending, or an external budget service) — a real
+infrastructure addition, not a bug-shaped code change, and not something verifiable
+without live Nebius Serverless Jobs credentials this session doesn't have (the same
+honest limitation `runner.py`'s own module docstring already states about the Jobs API
+itself). Silently leaving this unstated would have been worse than either fixing or
+flagging it — §9 states the daily ceiling as a general safety guarantee, and this is a
+real, specific gap in that guarantee for the one execution path (batch) where it matters
+most (the most repos run in the least supervised way, in parallel, unattended).
+
+**Documented, not silently assumed away:** added a detailed comment directly at the call
+site in `run_single_repo.py` (`run_one_repo`, right where `get_shared_cost_guard()` is
+called) explaining exactly why the singleton doesn't help here, plus this entry. No test
+change — there's nothing to newly assert that the existing `get_shared_cost_guard`
+tests don't already cover correctly (they correctly test *single-process* sharing, which
+is real and unaffected by this).
+
+---

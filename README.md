@@ -99,7 +99,12 @@ This project is being built in phases (see the directive, §11). Current state:
   up correctly: `docker-compose.yml` bind-mounts the repo root's `batch_results.json`
   into the backend container (verified live — see the bug below), a gap that would
   otherwise have made S4 unreachable in production regardless of how solid the runner
-  itself is.
+  itself is. One more real limitation, found and documented rather than fixed: §9's
+  daily cost ceiling is a process-wide singleton, correct for the web app but each batch
+  corpus repo runs in its own separate Nebius Job container — there's no coordination
+  across them, so a full batch run isn't actually capped in aggregate the way a single
+  web request is. See `DECISIONS.md` for why this needs shared infrastructure to fix
+  properly rather than a code change.
 - ✅ `GET /runs/{id}/stream`: true SSE live-streaming for S2, per §4's named endpoint,
   and the frontend actually consumes it. Runs the real pipeline in a background thread
   and streams each log line the instant `orchestrator.run_pipeline` produces it via an

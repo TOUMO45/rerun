@@ -61,6 +61,21 @@ def run_one_repo(
     settings = settings or get_settings()
     run_pipeline_fn = run_pipeline_fn or run_pipeline
     clone_fn = clone_fn or intake.clone_repo_at_commit
+    # §9's daily cost ceiling is a PROCESS-WIDE in-memory singleton
+    # (cost_guard.get_shared_cost_guard, @lru_cache'd). That's correct and
+    # sufficient for the web app, which is one long-running process
+    # handling every request. It is NOT sufficient here: each corpus
+    # repo's batch job is its own separate Nebius Serverless Job
+    # container — a genuinely separate OS process with its own memory —
+    # so `get_shared_cost_guard()` returns a *fresh*, independently-zeroed
+    # guard in every container. A 20-repo batch run can spend up to 20x
+    # the configured daily ceiling in aggregate before any single
+    # container's own local check would ever trip. Fixing this for real
+    # would need spend tracked in some resource shared across containers
+    # (a DB row, an external service) — out of scope for this fix; noted
+    # here, not silently assumed away, since §9 states the ceiling as a
+    # general safety guarantee and this is a real gap in it for the batch
+    # path specifically. See DECISIONS.md.
     started = time.monotonic()
     workdir = Path(tempfile.mkdtemp(prefix=f"rerun_batch_{name}_"))
     try:
