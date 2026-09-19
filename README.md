@@ -94,14 +94,16 @@ This project is being built in phases (see the directive, §11). Current state:
   an honest simplification, not a fake stream) and hosting on Nebius Serverless
   Endpoints are not yet built.
 
-Backend test suite: **185 passed, 4 skipped** (`cd backend && pytest -v`) — reconfirmed
+Backend test suite: **191 passed, 4 skipped** (`cd backend && pytest -v`) — reconfirmed
 from a genuinely fresh clone, not just the working session directory. 3 skips are the
 real Nebius Sandboxes integration test, honestly gated on `NEBIUS_API_KEY`; 1 is a
 network-dependent corpus-freshness check (`RERUN_VERIFY_CORPUS_NETWORK=1` to run it —
-confirmed passing against all 20 real repos as of 2026-09-19). A self-audit pass also
-found and fixed a real gap: the daily cost ceiling (§9) was implemented and tested in
-isolation but never actually wired into the orchestrator's sandbox calls — see
-`DECISIONS.md`.
+confirmed passing against all 20 real repos as of 2026-09-19). Self-audit passes found
+and fixed five real wiring gaps this session (listed in full in `DECISIONS.md`),
+including both halves of §9's cost guard (daily USD ceiling, per-attempt token ceiling)
+being fully implemented and unit-tested in isolation but never actually called from the
+orchestrator — a reminder that isolated unit tests don't catch defects in the wiring
+*between* components.
 
 ## Repo layout
 

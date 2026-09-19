@@ -704,6 +704,53 @@ real reason recorded in the certificate's log — not a crash, not a silent cont
 
 ---
 
+## 2026-09-19 — Bug found and fixed (again): the per-attempt token ceiling was also orphaned
+
+**Bug:** Immediately after fixing the daily-cost-ceiling wiring gap, checked the other
+half of §9 ("per-run token/attempt caps") the same way: `grep -rn "check_token_budget"
+app/` found exactly one hit — the definition in `cost_guard.py` itself. Nothing in the
+codebase ever called it. Same shape of gap as the daily ceiling: fully implemented,
+fully unit-tested in isolation, never wired into anything that actually calls a model.
+
+**Fixed at the single real chokepoint, not at each of the four call sites separately:**
+`model_client.call_json_model()` — already the one place every model-calling service
+routes through — now takes an optional `cost_guard` parameter and checks
+`check_token_budget()` against an *estimated* token count (via `tiktoken`'s
+`cl100k_base` encoding over the combined system+user prompt; Nemotron's own tokenizer
+isn't available locally, so this is a stated estimate, not a billing-accurate count)
+before the network call is made, never after. The new `ModelCostLimitError` is
+deliberately a `ModelCallError` subclass, so `recon.py`/`planner.py`/`repairer.py`/
+`adjudicator.py`'s existing `except ModelCallError:` fallbacks (§6.1 INDETERMINATE, a
+declined repair proposal, templated adjudicator prose) already handle a cost-guard trip
+correctly with **zero changes** to their exception-handling structure — only a
+pass-through `cost_guard=cost_guard` parameter was added to each. `orchestrator.py`
+threads the one `cost_guard` instance it already owns into all four call sites
+(`recon.run_recon`, `planner.build_plan`, `repairer.propose_repair` inside the repair
+loop, `adjudicator.adjudicate` inside `_finalize`).
+
+**Tests:** `test_model_client.py` gained direct proof the check happens *before* the
+network call (`test_call_json_model_never_calls_the_network_when_over_budget` uses a
+fake client that raises `AssertionError` if ever invoked at all), that omitting
+`cost_guard` changes nothing (backward compatibility for every existing call site), and
+that `ModelCostLimitError` really is a `ModelCallError` subclass (the property every
+existing caller's fallback logic depends on). `test_orchestrator.py` gained
+`test_token_ceiling_already_exhausted_makes_recon_indeterminate_not_a_crash`, proving
+the wiring reaches all the way from `run_pipeline`'s `cost_guard` argument through to a
+graceful `INDETERMINATE` verdict with the sandbox never even touched.
+
+**Pattern worth naming:** this is the second cost-guard-shaped gap and fifth real bug
+this session's self-audits have caught (`certificate_prose` dropped; the passport
+timestamp round-trip risk; `requires-python` blocking this machine; the daily ceiling;
+now the token ceiling) — in every case a component was fully correct and fully tested
+in isolation, and the actual defect was in the *wiring between* components, which no
+amount of isolated unit testing could ever have caught. Worth remembering for whatever
+gets built next: test the seams, not just the pieces.
+
+**Result:** `pytest tests/test_model_client.py tests/test_orchestrator.py -v` —
+12 + 11 = 23/23 passed. Full backend suite: **191 passed, 4 skipped**.
+
+---
+
 ## 2026-09-19 — Bug found and fixed: docker-compose.yml referenced Dockerfiles that didn't exist
 
 **Bug:** `docker-compose.yml` was written early (Phase 0 scaffolding, before either

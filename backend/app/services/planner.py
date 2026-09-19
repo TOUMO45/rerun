@@ -113,6 +113,7 @@ def build_plan(
     *,
     client=None,
     model: str | None = None,
+    cost_guard=None,
 ) -> BuildPlan:
     """Build the deterministic base plan, then optionally enrich apt
     packages via Nemotron Super. `client`/`model` are optional — omitting
@@ -135,6 +136,7 @@ def build_plan(
                 model=model,
                 system_prompt=_APT_SYSTEM_PROMPT,
                 user_prompt=f"Declared pip dependencies: {sorted(intake.declared_dependencies)}",
+                cost_guard=cost_guard,
             )
             model_apt = raw.get("apt_packages") or []
             if isinstance(model_apt, list):

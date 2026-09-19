@@ -88,6 +88,7 @@ def propose_repair(
     target_file_path: str,
     target_file_content: str,
     external_context: str | None = None,
+    cost_guard=None,
 ) -> RepairProposal:
     """Ask Nemotron Super for one candidate patch. A model-call failure
     (bad credentials, timeout, unparseable JSON) is surfaced as a declined
@@ -101,6 +102,7 @@ def propose_repair(
             model=model,
             system_prompt=_SYSTEM_PROMPT,
             user_prompt=build_repair_user_prompt(classification, target_file_path, target_file_content, external_context),
+            cost_guard=cost_guard,
         )
     except ModelCallError as exc:
         return RepairProposal(diff_text=None, explanation=f"repair model call failed: {exc}", declined=True)

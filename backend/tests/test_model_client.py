@@ -11,7 +11,9 @@ from __future__ import annotations
 
 import pytest
 
+from app.services.cost_guard import CostGuard
 from app.services.model_client import (
+    ModelCostLimitError,
     ModelCredentialsError,
     ModelResponseParseError,
     NebiusChatClient,
@@ -77,3 +79,63 @@ def test_nebius_chat_client_fails_fast_without_api_key():
 def test_nebius_chat_client_negative_control_accepts_real_looking_key():
     client = NebiusChatClient(api_key="sk-fake-for-construction-only", base_url="https://api.tokenfactory.nebius.com/v1")
     assert client.api_key == "sk-fake-for-construction-only"
+
+
+# --- §9 per-attempt token ceiling (a real chokepoint, not just documented) --
+
+
+def test_call_json_model_without_cost_guard_never_checks_token_budget():
+    # Backward-compat/default path: omitting cost_guard entirely must not
+    # change behavior for any existing caller.
+    client = _FakeClient('{"ok": true}')
+    result = call_json_model(client, model="m", system_prompt="s" * 100_000, user_prompt="u", cost_guard=None)
+    assert result == {"ok": True}
+
+
+def test_call_json_model_blocks_a_prompt_that_exceeds_the_token_ceiling():
+    guard = CostGuard(daily_cost_ceiling_usd=100, max_tokens_per_attempt=5)
+    client = _FakeClient('{"ok": true}')
+    with pytest.raises(ModelCostLimitError):
+        call_json_model(
+            client,
+            model="m",
+            system_prompt="this is a long enough prompt to exceed a five token ceiling easily",
+            user_prompt="another chunk of text that adds even more tokens",
+            cost_guard=guard,
+        )
+
+
+def test_call_json_model_never_calls_the_network_when_over_budget():
+    # The check must happen BEFORE the network call, not after — the fake
+    # client raises if it's ever invoked at all.
+    guard = CostGuard(daily_cost_ceiling_usd=100, max_tokens_per_attempt=1)
+
+    class _ExplodingClient:
+        def chat_completion(self, **kwargs):
+            raise AssertionError("chat_completion must never be called once the token budget is exceeded")
+
+    with pytest.raises(ModelCostLimitError):
+        call_json_model(
+            _ExplodingClient(),
+            model="m",
+            system_prompt="a prompt with clearly more than one token in it",
+            user_prompt="u",
+            cost_guard=guard,
+        )
+
+
+def test_call_json_model_negative_control_small_prompt_under_ceiling_passes():
+    guard = CostGuard(daily_cost_ceiling_usd=100, max_tokens_per_attempt=1000)
+    client = _FakeClient('{"ok": true}')
+    result = call_json_model(client, model="m", system_prompt="short", user_prompt="also short", cost_guard=guard)
+    assert result == {"ok": True}
+
+
+def test_model_cost_limit_error_is_a_model_call_error_subclass():
+    # This is load-bearing: every existing caller (recon/planner/repairer/
+    # adjudicator) only catches ModelCallError, and must gracefully fall
+    # back (§6.1 INDETERMINATE / declined proposal / templated prose) on a
+    # cost-limit trip too, without needing its own special-case handling.
+    from app.services.model_client import ModelCallError
+
+    assert issubclass(ModelCostLimitError, ModelCallError)

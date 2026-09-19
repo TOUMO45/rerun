@@ -12,6 +12,14 @@ Ground truth for the constructor and `chat.completions.create` signature
 was read from the installed `openai` package
 (`openai.OpenAI.__init__`, `openai.resources.chat.completions.completions.Completions.create`),
 not guessed.
+
+`call_json_model` is also the single chokepoint for §9's per-attempt token
+ceiling (`cost_guard.CostGuard.check_token_budget`) — every caller gets
+this for free rather than needing to remember to check it themselves. The
+token count is an *estimate* (via `tiktoken`'s `cl100k_base` encoding,
+counted over the combined system+user prompt) since Nemotron's own
+tokenizer isn't available locally — good enough for a circuit-breaker
+against a runaway prompt, not a billing-accurate count.
 """
 
 from __future__ import annotations
@@ -20,7 +28,19 @@ import json
 from dataclasses import dataclass
 from typing import Any, Protocol
 
+import tiktoken
 from openai import OpenAI
+
+from app.services.cost_guard import CostGuard, CostLimitExceeded
+
+_ENCODING = None  # lazy singleton; loading the encoding table isn't free
+
+
+def _estimate_tokens(text: str) -> int:
+    global _ENCODING
+    if _ENCODING is None:
+        _ENCODING = tiktoken.get_encoding("cl100k_base")
+    return len(_ENCODING.encode(text))
 
 
 class ModelCallError(RuntimeError):
@@ -35,6 +55,15 @@ class ModelResponseParseError(ModelCallError):
     """The model responded, but its content wasn't valid JSON matching what
     the caller asked for. Callers must treat this as a reason to fall back
     (e.g. §6.1 INDETERMINATE), never as a reason to guess."""
+
+
+class ModelCostLimitError(ModelCallError):
+    """The prompt's estimated token count would exceed cost_guard's
+    per-attempt ceiling. Deliberately a ModelCallError subclass so every
+    existing caller's `except ModelCallError:` fallback (§6.1
+    INDETERMINATE, a declined repair proposal, templated adjudicator
+    prose) already handles this correctly with zero extra code — a
+    cost-guard trip must never crash the pipeline."""
 
 
 class _ChatClientLike(Protocol):
@@ -85,13 +114,28 @@ def call_json_model(
     system_prompt: str,
     user_prompt: str,
     temperature: float = 0.0,
+    cost_guard: CostGuard | None = None,
 ) -> dict[str, Any]:
     """Call a model expected to answer with a single JSON object, and parse
     it. Raises ModelResponseParseError (never guesses / never returns a
     partially-parsed dict) if the response isn't valid JSON — callers
     (recon.py in particular) are expected to treat that as grounds for
     §6.1's INDETERMINATE, not as a crash.
+
+    If `cost_guard` is supplied, the prompt's estimated token count is
+    checked against its per-attempt ceiling *before* the network call is
+    made — refusing to spend on a call that's already known to be too
+    large, rather than checking only after the fact.
     """
+    if cost_guard is not None:
+        estimated_tokens = _estimate_tokens(system_prompt) + _estimate_tokens(user_prompt)
+        try:
+            cost_guard.check_token_budget(estimated_tokens)
+        except CostLimitExceeded as exc:
+            raise ModelCostLimitError(
+                f"prompt estimated at {estimated_tokens} tokens exceeds the per-attempt ceiling: {exc}"
+            ) from exc
+
     raw = client.chat_completion(
         model=model,
         system_prompt=system_prompt,

@@ -534,3 +534,37 @@ def test_daily_cost_ceiling_hit_mid_repair_stops_the_loop_without_crashing():
     assert result.verdict == "BLOCKED"
     assert len(sandbox_runner.calls) == 1  # the re-execution never happened
     assert "cost ceiling" in result.full_log
+
+
+def test_token_ceiling_already_exhausted_makes_recon_indeterminate_not_a_crash():
+    # Proves the cost_guard threaded into recon.run_recon via orchestrator
+    # actually reaches model_client.call_json_model — a per-attempt token
+    # ceiling exhausted before recon even calls the model must produce a
+    # graceful INDETERMINATE (§6.1), never an uncaught exception.
+    train_py = "def run():\n    pass\n\nrun()\n"
+    import tempfile
+
+    with tempfile.TemporaryDirectory() as d:
+        workdir = Path(d)
+        _write_files(workdir, {"train.py": train_py})
+        intake = _intake({"train.py": train_py})
+
+        recon_client = _FakeChatClient([json.dumps({"entrypoint": "train.py", "confidence": 0.9})])
+        sandbox_runner = _FakeSandboxRunner([])  # must never be reached
+        deps = _base_deps(recon_client, _FakeChatClient([]), None, sandbox_runner)
+
+        cost_guard = CostGuard(daily_cost_ceiling_usd=100, max_tokens_per_attempt=1)
+
+        result = run_pipeline(
+            repo_url="https://example.com/repo",
+            commit_sha="a" * 40,
+            workdir=workdir,
+            intake_result=intake,
+            deps=deps,
+            cost_guard=cost_guard,
+            run_id="run-11",
+        )
+
+    assert result.verdict == "INDETERMINATE"
+    assert "recon model call failed" in result.indeterminate_reason
+    assert sandbox_runner.calls == []

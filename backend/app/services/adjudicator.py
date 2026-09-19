@@ -105,6 +105,7 @@ def adjudicate(
     taxonomy_code: str | None = None,
     attempts_used: int = 0,
     evidence_summary: str = "",
+    cost_guard=None,
 ) -> AdjudicationResult:
     if client is None or model is None:
         return AdjudicationResult(
@@ -121,7 +122,7 @@ def adjudicate(
         f"Evidence: {evidence_summary}"
     )
     try:
-        raw = call_json_model(client, model=model, system_prompt=_SYSTEM_PROMPT, user_prompt=user_prompt)
+        raw = call_json_model(client, model=model, system_prompt=_SYSTEM_PROMPT, user_prompt=user_prompt, cost_guard=cost_guard)
     except ModelCallError:
         return AdjudicationResult(
             verdict=verdict,

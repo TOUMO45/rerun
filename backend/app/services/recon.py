@@ -192,6 +192,7 @@ def run_recon(
     model: str,
     intake: RepoIntake,
     entrypoint_file_contents: dict[str, str] | None = None,
+    cost_guard=None,
 ) -> ReconResult:
     """Full recon: build the prompt from real intake facts (optionally
     including entrypoint source, so the model can name eval/model call
@@ -213,6 +214,7 @@ def run_recon(
             model=model,
             system_prompt=_SYSTEM_PROMPT,
             user_prompt=build_recon_user_prompt(intake, entrypoint_file_contents),
+            cost_guard=cost_guard,
         )
     except ModelCallError as exc:
         return _indeterminate(f"recon model call failed: {exc}")

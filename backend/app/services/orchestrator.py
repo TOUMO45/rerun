@@ -161,7 +161,9 @@ def run_pipeline(
             entrypoint_source[candidate] = candidate_path.read_text(encoding="utf-8", errors="replace")
 
     log_lines.append("[recon] calling Nemotron Nano")
-    recon_result = recon.run_recon(deps.recon_client, deps.recon_model, intake_result, entrypoint_source)
+    recon_result = recon.run_recon(
+        deps.recon_client, deps.recon_model, intake_result, entrypoint_source, cost_guard=cost_guard
+    )
 
     if recon_result.is_indeterminate:
         log_lines.append(f"[recon] INDETERMINATE: {recon_result.indeterminate_reason}")
@@ -173,13 +175,16 @@ def run_pipeline(
             build_plan_dict=None,
             log_lines=log_lines,
             deps=deps,
+            cost_guard=cost_guard,
             attempts_used=0,
             repo_url=repo_url,
             commit_sha=commit_sha,
         )
     log_lines.append(f"[recon] entrypoint={recon_result.entrypoint} confidence={recon_result.confidence:.2f}")
 
-    plan = planner.build_plan(intake_result, recon_result, client=deps.planner_client, model=deps.planner_model)
+    plan = planner.build_plan(
+        intake_result, recon_result, client=deps.planner_client, model=deps.planner_model, cost_guard=cost_guard
+    )
     log_lines.append(f"[planner] build plan: {plan.as_dict()}")
 
     def _execute(current_workdir: Path) -> SandboxRunResult:
@@ -217,6 +222,7 @@ def run_pipeline(
             build_plan_dict=plan.as_dict(),
             log_lines=log_lines,
             deps=deps,
+            cost_guard=cost_guard,
             attempts_used=0,
             repo_url=repo_url,
             commit_sha=commit_sha,
@@ -255,6 +261,7 @@ def run_pipeline(
                 target_file,
                 target_content,
                 external_context=deps.tavily_context,
+                cost_guard=cost_guard,
             )
             cost_guard.record_attempt(run_id)
 
@@ -339,6 +346,7 @@ def run_pipeline(
         build_plan_dict=plan.as_dict(),
         log_lines=log_lines,
         deps=deps,
+        cost_guard=cost_guard,
         attempts_used=len(attempts),
         repo_url=repo_url,
         commit_sha=commit_sha,
@@ -354,6 +362,7 @@ def _finalize(
     build_plan_dict: dict | None,
     log_lines: list[str],
     deps: PipelineDeps,
+    cost_guard: CostGuard,
     attempts_used: int,
     repo_url: str,
     commit_sha: str,
@@ -366,6 +375,7 @@ def _finalize(
         taxonomy_code=taxonomy_code,
         attempts_used=attempts_used,
         evidence_summary=evidence_summary,
+        cost_guard=cost_guard,
     )
     if adjudication.was_downgraded:
         log_lines.append(f"[adjudicator] downgraded verdict to {adjudication.verdict}: {adjudication.downgrade_reason}")
