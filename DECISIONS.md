@@ -1669,3 +1669,55 @@ failure mode — still increases the count and is still caught (verified below).
   from 236/4).
 
 ---
+
+## 2026-09-19 — Bug found and fixed: sandbox wall-clock ceiling was per-step, not per-attempt
+
+**Context:** moving to the next area in the self-audit plan — verifying `sandbox.py`'s
+timeout enforcement. Real Nebius SDK enforcement behavior was already honestly disclosed
+earlier this session as unverified without live credentials (see the Phase 0 entries).
+But a *different*, verifiable-without-credentials question remained: independent of
+whatever the real SDK's `timeout=` parameter actually does, does RERUN's own code turn
+one configured `wall_clock_seconds` value into a single ceiling for the whole attempt?
+
+**Bug, reproduced live with a fake `ContreeSync`-shaped client (verified against the
+real installed SDK's `ImageLike._base.py` for the exact `.exit_code`/`.result` shape,
+not guessed):** `run_build_and_execute`'s loop passed the *full, unchanged*
+`wall_clock_seconds` to `timeout=` on **every** step — every install command and the
+final execute command each got their own complete budget. A configured 60-second ceiling
+could let a real multi-step build (e.g. two install commands plus execution) consume up
+to 180+ seconds in aggregate, scaling with however many install commands a given repo's
+build plan happens to need — directly contradicting §4's "hard limits (wall clock...)"
+and the `TIMEOUT` verdict's own meaning ("exceeded wall-clock ceiling", singular), and
+undermining the cost-predictability §9's cost guard exists to provide.
+
+**Fixed:** track one shared `deadline = time.monotonic() + wall_clock_seconds` before the
+loop starts; each step's `timeout=` is now the *remaining* time until that deadline, and
+if the deadline is already passed before a step would start, the attempt fails with a
+clear `SandboxError` naming which command it stopped before — rather than starting that
+step with a fresh full budget it was never entitled to.
+
+**Verified with a clock-controlled fake** (a real elapsed-time simulation, not just a
+call-count check): first confirmed the *old* behavior with a fake client recording every
+`timeout=` value passed, proving each step got the full configured value regardless of
+prior steps. After the fix, re-ran with a mocked `time.monotonic()` advancing 50
+simulated seconds per step: the second step's timeout correctly shrank to reflect the
+first step's real elapsed time (10s remaining, not a fresh 60s), and a third step was
+correctly refused before starting at all once the 60s deadline was exhausted (two 50s
+steps already exceed it) — an outcome the old code could never produce. Added two
+permanent regression tests:
+`test_run_build_and_execute_shrinks_the_remaining_budget_across_steps` and
+`test_run_build_and_execute_stops_before_exceeding_the_shared_deadline`, both using a
+mocked clock so they run instantly rather than needing real sleeps.
+
+**Scope check on the other two tamper-gate rules, done the same day, reported honestly
+even though nothing new was found:** `REDUCED_SCALE` and `BROAD_EXCEPTION_SWALLOW` were
+checked for the same "whole-file scan without before/after comparison" root cause that
+hit `DELETED_EVAL_CALL` and `STUBBED_MODEL_CALL`. Both are already correctly diff-scoped
+by construction — `REDUCED_SCALE` compares removed-vs-added lines within each hunk
+directly, and `BROAD_EXCEPTION_SWALLOW` explicitly checks its `added_lines` set and skips
+any try/except block not entirely within newly-added lines. No new bug found there.
+
+**Verified:** all 8 sandbox tests pass (up from 6); full suite **240 passed, 4 skipped**
+(up from 238/4).
+
+---

@@ -110,3 +110,104 @@ def test_run_build_and_execute_fails_fast_without_api_key():
             execute_command="python train.py",
             wall_clock_seconds=60,
         )
+
+
+# --- wall_clock_seconds is a single shared deadline, not a per-step budget --
+
+
+class _FakeChainedImage:
+    """Duck-typed stand-in for the full contree_sdk chaining shape (image
+    -> .run(...).wait() -> another chainable image), matching .exit_code
+    as a property delegating to .result.exit_code — verified against the
+    installed SDK's real ImageLike._base.py."""
+
+    def __init__(self, recorded_timeouts, fake_clock, step_duration=50.0, exit_code=0):
+        self._recorded = recorded_timeouts
+        self._clock = fake_clock
+        self._step_duration = step_duration
+        self.result = _FakeResult(
+            exit_code=exit_code, stdout="ok", stderr="", elapsed_time=timedelta(seconds=1), cost=0.001
+        )
+
+    @property
+    def exit_code(self):
+        return self.result.exit_code
+
+    def apply_files(self, files):
+        return self
+
+    def run(self, *, shell, timeout, disposable, preserve_env=None):
+        self._recorded.append((shell, timeout))
+        self._clock[0] += self._step_duration
+        return self
+
+    def wait(self):
+        return self
+
+
+def _install_fake_contree_sync(monkeypatch, recorded_timeouts, fake_clock, step_duration=50.0):
+    import app.services.sandbox as sandbox_module
+
+    class _FakeImages:
+        def docker(self, ref):
+            return _FakeChainedImage(recorded_timeouts, fake_clock, step_duration)
+
+    class _FakeContreeSync:
+        def __init__(self, token):
+            self.images = _FakeImages()
+
+    monkeypatch.setattr(sandbox_module, "ContreeSync", _FakeContreeSync)
+    monkeypatch.setattr(sandbox_module.time, "monotonic", lambda: fake_clock[0])
+
+
+def test_run_build_and_execute_shrinks_the_remaining_budget_across_steps(monkeypatch):
+    """Found live during this session's audit: passing the full
+    wall_clock_seconds unchanged to every step's own timeout= would let a
+    multi-step build consume up to len(commands) * wall_clock_seconds in
+    aggregate (e.g. a configured 60s ceiling silently allowing 120s across
+    two install commands), rather than a single ceiling for the whole
+    attempt. Each real command here "takes" 20 simulated seconds; the
+    second command's timeout must reflect the 20s already spent, not a
+    fresh full 60s.
+    """
+    recorded_timeouts: list[tuple[str, float]] = []
+    fake_clock = [0.0]
+    _install_fake_contree_sync(monkeypatch, recorded_timeouts, fake_clock, step_duration=20.0)
+
+    run_build_and_execute(
+        api_key="fake-key",
+        base_image="python:3.11-slim",
+        install_commands=["pip install numpy"],
+        execute_command="python train.py",
+        wall_clock_seconds=60,
+    )
+
+    real_timeouts = [t for shell, t in recorded_timeouts if shell != "true"]
+    assert len(real_timeouts) == 2
+    assert real_timeouts[0] == pytest.approx(60.0)
+    assert real_timeouts[1] == pytest.approx(40.0)  # 60 - 20 already spent, not a fresh 60
+
+
+def test_run_build_and_execute_stops_before_exceeding_the_shared_deadline(monkeypatch):
+    """Companion test: once the shared deadline is exhausted, a further
+    step must not be started at all (with its own fresh timeout) - the
+    attempt fails clearly instead of silently running past the configured
+    ceiling.
+    """
+    recorded_timeouts: list[tuple[str, float]] = []
+    fake_clock = [0.0]
+    _install_fake_contree_sync(monkeypatch, recorded_timeouts, fake_clock, step_duration=50.0)
+
+    with pytest.raises(SandboxError, match="exceeded 60s wall clock for the whole attempt"):
+        run_build_and_execute(
+            api_key="fake-key",
+            base_image="python:3.11-slim",
+            install_commands=["pip install numpy", "pip install torch"],
+            execute_command="python train.py",
+            wall_clock_seconds=60,
+        )
+
+    real_commands_run = [shell for shell, _ in recorded_timeouts if shell != "true"]
+    # Two 50s steps already exceed the 60s deadline - the third (execute)
+    # command must never have been started.
+    assert real_commands_run == ["pip install numpy", "pip install torch"]

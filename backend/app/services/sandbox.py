@@ -39,6 +39,7 @@ run against the live API.
 
 from __future__ import annotations
 
+import time
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Iterable, Protocol
@@ -154,11 +155,31 @@ def run_build_and_execute(
         if not commands:
             raise SandboxError("no commands to run: install_commands and execute_command are both empty")
 
+        # `wall_clock_seconds` is meant to be a single hard ceiling for the
+        # WHOLE attempt (§4: "hard limits (wall clock...)"; the TIMEOUT
+        # verdict means "exceeded wall-clock ceiling", singular). Found
+        # live: passing the full `wall_clock_seconds` unchanged to every
+        # step's own `timeout=` would let a multi-step build (each install
+        # command plus the execute command) consume up to
+        # len(commands) * wall_clock_seconds in aggregate — e.g. a
+        # configured 60s ceiling silently allowing 180s for a 2-install
+        # build. Tracking one shared deadline across all steps makes the
+        # configured value an actual ceiling on the whole attempt,
+        # matching §9's cost-predictability goal, rather than a per-step
+        # allowance that scales with how many install commands a given
+        # repo happens to need.
+        deadline = time.monotonic() + wall_clock_seconds
         for i, cmd in enumerate(commands):
             is_last = i == len(commands) - 1
+            remaining = deadline - time.monotonic()
+            if remaining <= 0:
+                raise SandboxError(
+                    f"sandbox execution exceeded {wall_clock_seconds}s wall clock "
+                    f"for the whole attempt (stopped before running '{cmd}')"
+                )
             executed = current.run(
                 shell=cmd,
-                timeout=wall_clock_seconds,
+                timeout=remaining,
                 disposable=is_last,
                 preserve_env=not is_last,
             ).wait()

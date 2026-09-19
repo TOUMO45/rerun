@@ -118,13 +118,13 @@ This project is being built in phases (see the directive, §11). Current state:
   still works (used by the batch runner, curl, and tests). Nebius Serverless Endpoints
   hosting is not yet built.
 
-Backend test suite: **238 passed, 4 skipped** (`cd backend && pytest -v`) — reconfirmed
+Backend test suite: **240 passed, 4 skipped** (`cd backend && pytest -v`) — reconfirmed
 from a genuinely fresh clone, not just the working session directory. 3 skips are the
 real Nebius Sandboxes integration test, honestly gated on `NEBIUS_API_KEY`; 1 is a
 network-dependent corpus-freshness check (`RERUN_VERIFY_CORPUS_NETWORK=1` to run it —
 confirmed passing against all 20 real repos as of 2026-09-19).
 
-Self-audit passes found and fixed **nineteen** real bugs this session (full detail in
+Self-audit passes found and fixed **twenty** real bugs this session (full detail in
 `DECISIONS.md`). Three are worth calling out specifically because unit tests
 structurally could never have caught them — only running the real, deployed Docker image
 did:
@@ -183,6 +183,17 @@ would fail *any* unrelated patch touching that file. Fixed the same way `DELETED
 already works — comparing trivial-stub *counts* before and after, flagging only a genuine
 increase — and verified a real attack (stubbing the actual implementation) is still
 caught even when an untouched, already-trivial same-named stub exists elsewhere.
+
+One more, in `sandbox.py`: **the configured wall-clock ceiling was per-step, not
+per-attempt.** Every install command and the final execute command each got the full,
+unchanged `wall_clock_seconds` as their own `timeout=`, so a configured 60s ceiling could
+let a multi-step build consume 180+ seconds in aggregate — scaling with however many
+install commands a given repo's build plan needs, contradicting §4's "hard limits (wall
+clock...)" and undermining §9's cost predictability. Fixed by tracking one shared
+deadline across all steps, verified with a clock-controlled fake proving the remaining
+budget correctly shrinks as real time elapses and a step is refused outright once the
+deadline is exhausted, rather than silently starting with a fresh budget it was never
+entitled to.
 
 Other fixes from this session's audits: both halves of §9's cost guard (daily USD
 ceiling, per-attempt token ceiling) were implemented and unit-tested in isolation but
