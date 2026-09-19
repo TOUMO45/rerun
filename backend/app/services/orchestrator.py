@@ -389,7 +389,29 @@ def run_pipeline(
                 continue
 
             _log(f"[repair {attempt_number}] tamper gate PASS — applying and re-executing")
-            deps.apply_diff(workdir, proposal.diff_text)
+            try:
+                deps.apply_diff(workdir, proposal.diff_text)
+            except OrchestratorError as exc:
+                # Found live: the tamper gate's own AST reconstruction
+                # (_apply_patched_file) never cross-validates a diff's
+                # claimed context/removed lines against the real file —
+                # it just trusts the diff's structure. A diff based on a
+                # model's slightly-stale or misremembered view of the
+                # file (a realistic LLM failure mode, not a contrived
+                # one) can therefore PASS the gate yet still be rejected
+                # by the real `git apply` this line runs. Previously
+                # uncaught here, this crashed the whole pipeline with an
+                # unhandled OrchestratorError instead of producing an
+                # honest verdict — this attempt is recorded as a failed
+                # application and the bounded loop simply moves on,
+                # exactly like a REJECT or a declined proposal does.
+                _log(f"[repair {attempt_number}] gate-approved patch failed to apply cleanly: {exc}")
+                attempts.append(
+                    AttemptRecord(
+                        attempt_number, proposal.diff_text, "PASS", (), None, "", str(exc)[-2000:], tavily_sources
+                    )
+                )
+                continue
             try:
                 rerun_result = _execute(workdir)
             except CostLimitExceeded as exc:

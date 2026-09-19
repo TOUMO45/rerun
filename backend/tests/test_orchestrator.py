@@ -369,6 +369,68 @@ def test_blocked_after_exactly_max_attempts_even_when_every_patch_passes_the_gat
     assert final_content.count("# repair attempt") == 3
 
 
+def test_gate_approved_patch_that_fails_real_git_apply_does_not_crash_the_pipeline(tmp_path):
+    """Found live during this session's audit: tamper_gate.py's own AST
+    reconstruction (_apply_patched_file) never cross-validates a diff's
+    claimed context/removed lines against the real file it was given —
+    it only trusts the diff's own structure. A diff built against a
+    slightly stale or misremembered view of the file (a realistic model
+    failure mode, not contrived) can therefore PASS the gate yet still
+    be refused by the real `git apply` orchestrator.py's
+    _apply_diff_with_git runs next. That raised OrchestratorError was
+    never caught anywhere in orchestrator.py, crashing the whole pipeline
+    with an unhandled exception instead of producing an honest verdict —
+    directly against §0's "never fake a result... the taxonomy/verdict
+    system exists precisely to say so honestly."
+    """
+    real_content = textwrap.dedent(
+        """\
+        def train():
+            model = build_model()
+            fit(model)
+            evaluate(model)
+
+        train()
+        """
+    )
+    _write_files(tmp_path, {"train.py": real_content})
+    intake = _intake({"train.py": real_content})
+
+    # The diff's own claimed "before" text doesn't match the real file —
+    # git apply will refuse it on context mismatch, even though the gate,
+    # which never checks this, will pass it.
+    claimed_original = real_content.replace("build_model()", "SOME_STALE_HALLUCINATED_CALL()")
+    bad_diff = _unified_diff("train.py", claimed_original, real_content)
+
+    recon_client = _FakeChatClient([json.dumps({"entrypoint": "train.py", "confidence": 0.9})])
+    repair_client = _FakeChatClient(
+        [
+            json.dumps({"diff": bad_diff, "explanation": "fix"}),
+            json.dumps({"diff": None, "explanation": "giving up"}),
+            json.dumps({"diff": None, "explanation": "giving up"}),
+        ]
+    )
+    sandbox_runner = _FakeSandboxRunner([_sandbox_result(1, stderr="RuntimeError: boom")])
+    deps = _base_deps(recon_client, repair_client, None, sandbox_runner)
+
+    result = run_pipeline(
+        repo_url="https://example.com/repo",
+        commit_sha="a" * 40,
+        workdir=tmp_path,
+        intake_result=intake,
+        deps=deps,
+        cost_guard=CostGuard(daily_cost_ceiling_usd=100, max_attempts_per_run=3),
+        run_id="run-bad-apply",
+    )
+
+    assert result.verdict == "BLOCKED"
+    assert len(result.attempts) == 3
+    assert result.attempts[0].gate_decision == "PASS"  # the gate really did PASS it
+    assert "failed to apply" in result.attempts[0].stderr_tail
+    # The failed apply must never have touched the file on disk.
+    assert (tmp_path / "train.py").read_text(encoding="utf-8") == real_content
+
+
 # --- BLOCKED: repair keeps declining until attempts are exhausted -----------
 
 

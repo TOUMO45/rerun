@@ -2065,3 +2065,58 @@ whoever picks this up next has an actual sequence, not just a checklist.
 **Verified:** no code change; full suite unaffected — **243 passed, 4 skipped**.
 
 ---
+
+## 2026-09-19 — Bug found and fixed: a gate-approved-but-inapplicable patch crashed the pipeline
+
+**Context:** pivoted from fresh-directive-reading back to adversarial testing, per the
+session's own established discipline (verify by running things, not by re-reading spec
+prose). Targeted `repairer.py`/the repair loop's handling of a genuinely malformed model
+response — not the already-tested "no diff" or "invalid JSON" cases, but a diff that
+*is* present, well-formed, and passes the gate, yet is still garbage relative to the
+real file.
+
+**Bug, reproduced live in three steps, not assumed:**
+1. Read `tamper_gate.py`'s `_apply_patched_file` closely: it reconstructs "new content"
+   using only a diff's own `hunk.source_start`/`source_length` and its context/added
+   lines — it never cross-checks that the diff's claimed context/removed lines actually
+   match the real original file it was given. Confirmed with a crafted diff whose
+   claimed "before" text (`model = SOME_STALE_HALLUCINATED_CALL()`) didn't match the
+   real file's actual content (`model = build_model()`) at all: `check_patch()` returned
+   a clean `PASS`, zero violations.
+2. Confirmed the REAL `git apply` (`orchestrator.py`'s `_apply_diff_with_git`, what
+   actually applies a gate-approved patch to the sandbox workdir) correctly refuses this
+   exact same diff against the exact same real file — `error: patch does not apply` —
+   exactly the safety net a real, battle-tested tool is supposed to provide.
+3. Ran the SAME scenario through the real `run_pipeline()`, not just `check_patch()` in
+   isolation, using a fake repairer scripted to propose this diff: the pipeline
+   **crashed with an uncaught `OrchestratorError`**. `deps.apply_diff(...)`'s call site
+   in the repair loop had no surrounding `try/except` at all — the function's own
+   docstring already said this "must not be silently ignored," but nothing ever wired a
+   handler, so "not silently ignored" became "crashes the whole run" instead of
+   "produces an honest verdict," directly against §0's core philosophy.
+
+**Why this is a realistic bug, not a contrived one:** a repair model proposing a diff
+against a slightly stale or misremembered view of a file it was shown is an ordinary
+LLM failure mode (especially for a longer file, or a second/third repair attempt after
+several conversation turns) — not an adversarial edge case requiring a determined
+attacker. This could plausibly have surfaced in a real Batch Lab run and aborted that
+repo's measurement entirely instead of correctly recording a `BLOCKED` verdict.
+
+**Fixed:** wrapped `deps.apply_diff(...)` in a `try/except OrchestratorError`. On
+failure, the attempt is recorded with `gate_decision="PASS"` (factually accurate — the
+gate really did pass it) and the apply error in `stderr_tail`, then the bounded loop
+`continue`s to the next attempt exactly like a `REJECT` or a declined proposal already
+does — no special-casing needed, this failure mode just joins the existing "this
+attempt didn't work out, try again within the ceiling" pattern.
+
+**Verified:**
+- Re-ran the exact crash scenario after the fix: no crash, `verdict=BLOCKED` after 3
+  attempts, attempt 1 correctly shows `gate_decision=PASS` with the apply error
+  preserved, and the file on disk is confirmed **unchanged** by the failed apply (`git
+  apply` is all-or-nothing, verified rather than assumed).
+- Added `test_gate_approved_patch_that_fails_real_git_apply_does_not_crash_the_pipeline`
+  to `test_orchestrator.py`, using the real tamper gate and real `git apply` (per this
+  test file's own stated philosophy — nothing about this failure mode is faked).
+- Full suite: **244 passed, 4 skipped** (up from 243/4).
+
+---

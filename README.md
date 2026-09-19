@@ -171,13 +171,13 @@ This project is being built in phases (see the directive, §11). Current state:
   what this gap needed. Verified live against a real browser with realistic delays, not
   just unit-tested.
 
-Backend test suite: **243 passed, 4 skipped** (`cd backend && pytest -v`) — reconfirmed
+Backend test suite: **244 passed, 4 skipped** (`cd backend && pytest -v`) — reconfirmed
 from a genuinely fresh clone, not just the working session directory. 3 skips are the
 real Nebius Sandboxes integration test, honestly gated on `NEBIUS_API_KEY`; 1 is a
 network-dependent corpus-freshness check (`RERUN_VERIFY_CORPUS_NETWORK=1` to run it —
 confirmed passing against all 20 real repos as of 2026-09-19).
 
-Self-audit passes found and fixed **twenty-two** real bugs/gaps this session (full detail in
+Self-audit passes found and fixed **twenty-three** real bugs/gaps this session (full detail in
 `DECISIONS.md`). Three are worth calling out specifically because unit tests
 structurally could never have caught them — only running the real, deployed Docker image
 did:
@@ -247,6 +247,19 @@ deadline across all steps, verified with a clock-controlled fake proving the rem
 budget correctly shrinks as real time elapses and a step is refused outright once the
 deadline is exhausted, rather than silently starting with a fresh budget it was never
 entitled to.
+
+One more worth calling out: **a gate-approved patch that turned out to be inapplicable
+crashed the entire pipeline.** `tamper_gate.py`'s own diff reconstruction never
+cross-checks a diff's claimed context lines against the real file — it just trusts the
+diff's structure. A repair model proposing a diff against a slightly stale or
+misremembered view of the file (an ordinary LLM failure mode, not a contrived one) could
+therefore pass the gate cleanly, only for the real `git apply` step to correctly refuse
+it — and that refusal was never caught anywhere, crashing the whole run with an unhandled
+exception instead of the honest `BLOCKED` verdict §0 requires. Fixed by catching it at
+the one call site and folding it into the bounded loop's existing "this attempt didn't
+work, try again" path; verified live that the crash reproduces beforehand, disappears
+after, the file on disk is confirmed untouched by the failed apply, and the run still
+reaches `BLOCKED` with an honest per-attempt record of what happened.
 
 Other fixes from this session's audits: both halves of §9's cost guard (daily USD
 ceiling, per-attempt token ceiling) were implemented and unit-tested in isolation but
