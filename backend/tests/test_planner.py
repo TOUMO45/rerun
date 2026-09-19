@@ -100,6 +100,27 @@ def test_execute_command_uses_recon_entrypoint():
     assert plan.execute_command == "python run_experiment.py"
 
 
+def test_execute_command_shell_quotes_an_entrypoint_with_shell_metacharacters():
+    """Found live during this session's audit: entrypoint_candidates are
+    real filenames pulled straight from the repo's own directory tree
+    with no sanitization (intake.py's find_entrypoint_candidates) — a
+    POSIX/NTFS filename can legally contain shell metacharacters. Before
+    this fix, a file literally named "innocent; touch pwned.py" would
+    have produced the shell command "python innocent; touch pwned.py",
+    letting a malicious repo's own filename inject an arbitrary second
+    command with zero model involvement — unlike the apt-package
+    injection, this needs no model cooperation or hallucination at all.
+    """
+    malicious_name = "innocent; touch pwned_marker.py"
+    plan = build_plan(_intake({"requirements.txt": "numpy\n"}), _recon(entrypoint=malicious_name))
+    assert plan.execute_command == "python 'innocent; touch pwned_marker.py'"
+    # The whole filename must be a single shell-safe token - splitting it
+    # with shlex must reproduce exactly the two argv entries intended.
+    import shlex
+
+    assert shlex.split(plan.execute_command) == ["python", malicious_name]
+
+
 def test_build_plan_rejects_indeterminate_recon():
     bad_recon = ReconResult(is_indeterminate=True, indeterminate_reason="no entrypoint")
     with pytest.raises(ValueError):

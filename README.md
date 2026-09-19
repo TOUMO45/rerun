@@ -171,13 +171,13 @@ This project is being built in phases (see the directive, §11). Current state:
   what this gap needed. Verified live against a real browser with realistic delays, not
   just unit-tested.
 
-Backend test suite: **246 passed, 4 skipped** (`cd backend && pytest -v`) — reconfirmed
+Backend test suite: **247 passed, 4 skipped** (`cd backend && pytest -v`) — reconfirmed
 from a genuinely fresh clone, not just the working session directory. 3 skips are the
 real Nebius Sandboxes integration test, honestly gated on `NEBIUS_API_KEY`; 1 is a
 network-dependent corpus-freshness check (`RERUN_VERIFY_CORPUS_NETWORK=1` to run it —
 confirmed passing against all 20 real repos as of 2026-09-19).
 
-Self-audit passes found and fixed **twenty-four** real bugs/gaps this session (full detail in
+Self-audit passes found and fixed **twenty-five** real bugs/gaps this session (full detail in
 `DECISIONS.md`). Three are worth calling out specifically because unit tests
 structurally could never have caught them — only running the real, deployed Docker image
 did:
@@ -277,6 +277,22 @@ a consequential sink. Fixed by only accepting names matching real Debian/Ubuntu
 package-name syntax and rejecting (with a logged reason, never silently) anything else;
 verified the exact crafted injection is neutralized while legitimate suggestions like
 `ffmpeg` still pass through unaffected.
+
+Immediately after that fix, checked every other use of the same tainted value
+(`recon.entrypoint`) and found a **second, more severe injection needing no model
+involvement at all**: `execute_command=f"python {recon.entrypoint}"` was also
+interpolated with zero shell-quoting. `recon.entrypoint` is constrained to a real
+filename `intake.py` found by scanning the repo's own directory tree — but that scan
+copies filenames verbatim, and a POSIX/NTFS filename can legally contain shell
+metacharacters. A real file named `innocent; touch pwned_marker.py` (created and
+confirmed directly) becomes a valid entrypoint candidate, and would have produced the
+literal shell command `python innocent; touch pwned_marker.py` — a complete injection
+driven **entirely by the repo's own filename**, no model hallucination or prompt
+injection needed, unlike the apt-package case. Fixed with `shlex.quote()` — the
+standard, correct way to make any string a single safe shell argument regardless of its
+contents — rather than policing what real filenames are allowed to look like. Verified
+the exact crafted filename now produces a properly quoted, harmless command, and that
+ordinary filenames are byte-for-byte unaffected.
 
 Other fixes from this session's audits: both halves of §9's cost guard (daily USD
 ceiling, per-attempt token ceiling) were implemented and unit-tested in isolation but

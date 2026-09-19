@@ -19,6 +19,7 @@ enhancement, not a dependency, unlike recon's entrypoint decision.
 from __future__ import annotations
 
 import re
+import shlex
 from dataclasses import dataclass, field
 
 from app.services.intake import RepoIntake
@@ -184,6 +185,19 @@ def build_plan(
         base_image=base_image,
         apt_install=tuple(sorted(apt_packages)),
         install_commands=install_commands,
-        execute_command=f"python {recon.entrypoint}",
+        # `recon.entrypoint` is constrained to one of intake.py's own
+        # discovered candidates (parse_recon_response rejects anything
+        # else), but those candidates are real filenames pulled straight
+        # from the repo's own directory tree with no sanitization — a
+        # POSIX (and NTFS) filename can legally contain shell
+        # metacharacters. Found live: a file literally named
+        # "innocent; touch pwned.py" becomes a valid entrypoint candidate,
+        # and without shlex.quote() here this string would have been
+        # interpolated straight into a real shell command, letting a
+        # malicious repo's own filename inject an arbitrary second
+        # command — no model involvement needed at all, unlike the
+        # apt-package injection fixed earlier. shlex.quote() makes the
+        # whole filename, however strange, a single safe argument.
+        execute_command=f"python {shlex.quote(recon.entrypoint)}",
         notes=tuple(notes),
     )

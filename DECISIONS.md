@@ -2178,3 +2178,58 @@ deterministic table is already a fixed, trusted, closed set that needs no re-val
 - All 16 planner tests pass; full suite **246 passed, 4 skipped** (up from 244/4).
 
 ---
+
+## 2026-09-19 — Bug found and fixed: a malicious repo's own filename could inject a shell command, no model involved
+
+**Context:** continuing to hunt for the same "unvalidated value reaches an unescaped
+shell command" shape, immediately after fixing the apt-package injection. Traced every
+use of `recon.entrypoint` across the codebase and found a second, more severe instance:
+`planner.py`'s `execute_command=f"python {recon.entrypoint}"` — also interpolated with
+zero shell-quoting.
+
+**Bug, reproduced live, no model cooperation required at all (unlike the apt-package
+bug):** `recon.entrypoint` is constrained to one of `intake.py`'s own discovered
+candidates (`parse_recon_response` rejects anything else) — but
+`find_entrypoint_candidates()` builds those candidates straight from
+`repo_path.rglob("*.py")`, using `str(py_file.relative_to(repo_path))` **as-is**, with
+zero sanitization of the filename itself. A POSIX (and, verified directly, NTFS)
+filename can legally contain shell metacharacters. Created a real file named
+`innocent; touch pwned_marker.py` (with an `if __name__ == "__main__":` guard so it
+qualifies as a candidate) and confirmed: `find_entrypoint_candidates()` returned it
+verbatim, and `build_plan()` produced the literal `execute_command`
+`"python innocent; touch pwned_marker.py"` — a complete command injection, ready to run
+inside the sandbox exactly as written, driven **entirely by the repo's own filename**.
+No model hallucination, no prompt injection needed — any user submitting a repo
+containing such a file reaches this path deterministically.
+
+**Why this is more severe than the apt-package injection fixed just before it:** that
+one needed the model to actually echo back or hallucinate something dangerous. This one
+is 100% attacker-controlled and 100% reliable — a malicious (or just a repo with an
+unusually-named file) reaches the exact same unescaped-shell-interpolation sink with no
+model behavior in the loop at all.
+
+**Fixed:** `shlex.quote(recon.entrypoint)` before interpolating it into
+`execute_command` — the standard, correct stdlib way to make an arbitrary string a
+single safe shell argument, regardless of what characters it contains. Chose quoting
+over rejecting unusual filenames (the approach used for the apt-package fix) because a
+legitimate repo is entitled to name its own files however it likes — including spaces,
+which are unusual but completely valid and would break an un-quoted command even
+without malicious intent; the correct fix here is to always quote a dynamic shell
+argument, not to police what real filenames are allowed to look like.
+
+**Verified:**
+- The exact crafted filename now produces `execute_command =
+  "python 'innocent; touch pwned_marker.py'"` — the whole filename is one safe,
+  quoted argument; `shlex.split()` on the result reproduces exactly `["python",
+  "innocent; touch pwned_marker.py"]`, proving it behaves as "run python against a file
+  with this literal (harmless, if odd) name," not as an injected command.
+- Normal filenames (`train.py`, `src/models/train.py`) produce byte-identical,
+  unaffected commands — `shlex.quote()` only adds quoting when a character actually
+  requires it.
+- Added `test_execute_command_shell_quotes_an_entrypoint_with_shell_metacharacters` to
+  `test_planner.py`; the pre-existing `test_execute_command_uses_recon_entrypoint`
+  (plain filename, no quoting needed) still passes unchanged, confirming no regression
+  for the common case.
+- Full suite: **247 passed, 4 skipped** (up from 246/4).
+
+---
