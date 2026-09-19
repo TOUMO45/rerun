@@ -127,3 +127,55 @@ def test_run_recon_unparseable_response_becomes_indeterminate():
     client = _FakeClient(response_text="not json")
     result = run_recon(client, "nvidia/nemotron-3-nano", intake)
     assert result.is_indeterminate is True
+
+
+# --- eval_call_names / model_call_names extraction + validation ------------
+
+
+def test_parse_recon_response_extracts_and_validates_call_names_against_source():
+    raw = {
+        "entrypoint": "train.py",
+        "confidence": 0.9,
+        "eval_call_names": ["evaluate"],
+        "model_call_names": ["generate"],
+    }
+    source = {"train.py": "def evaluate(m): pass\ndef run():\n    generate(x)\n    evaluate(m)\n"}
+    result = parse_recon_response(raw, candidates=("train.py",), source_by_path=source)
+    assert result.eval_call_names == ("evaluate",)
+    assert result.model_call_names == ("generate",)
+
+
+def test_parse_recon_response_drops_hallucinated_call_name_not_in_source():
+    raw = {
+        "entrypoint": "train.py",
+        "confidence": 0.9,
+        "eval_call_names": ["evaluate", "totally_made_up_function"],
+    }
+    source = {"train.py": "def evaluate(m): pass\nevaluate(m)\n"}
+    result = parse_recon_response(raw, candidates=("train.py",), source_by_path=source)
+    assert result.eval_call_names == ("evaluate",)
+
+
+def test_parse_recon_response_trusts_names_when_no_source_was_shown():
+    # If the caller never passed entrypoint source at all, there's nothing
+    # to validate against — names pass through rather than being wiped out.
+    raw = {"entrypoint": "train.py", "confidence": 0.9, "eval_call_names": ["evaluate"]}
+    result = parse_recon_response(raw, candidates=("train.py",), source_by_path=None)
+    assert result.eval_call_names == ("evaluate",)
+
+
+def test_run_recon_passes_entrypoint_source_into_the_prompt_and_validates_names():
+    intake = _intake_with_candidates("train.py")
+    response = json.dumps(
+        {
+            "entrypoint": "train.py",
+            "confidence": 0.9,
+            "eval_call_names": ["evaluate", "hallucinated_eval"],
+            "model_call_names": ["generate"],
+        }
+    )
+    client = _FakeClient(response_text=response)
+    source = {"train.py": "def evaluate(m): pass\ndef generate(x): pass\nevaluate(1)\ngenerate(2)\n"}
+    result = run_recon(client, "nvidia/nemotron-3-nano", intake, entrypoint_file_contents=source)
+    assert result.eval_call_names == ("evaluate",)
+    assert result.model_call_names == ("generate",)
