@@ -24,9 +24,18 @@ This project is being built in phases (see the directive, §11). Current state:
 - ✅ Phase 2 core — `tamper_gate.py`: the differentiator (§5.3). 22/22 tests green,
   every rejection rule has a negative control, including the required hand-crafted
   "delete the eval call" rejection test.
-- 🚧 Sandbox lifecycle (`sandbox.py`), recon/planner/repairer model integration, API +
-  UI, batch lab: in progress — see `DECISIONS.md` for exactly what's blocked on Nebius
-  Token Factory credentials vs. what's pure scaffolding ready to wire up.
+- ✅ `passport.py` + `scripts/verify_passport.py` (§6.3), `cost_guard.py` (§9),
+  `intake.py` (repo clone + dependency/entrypoint parsing) — all green, no credentials
+  required.
+- 🚧 `sandbox.py` is implemented against the real, source-verified Nebius Token Factory
+  Sandboxes SDK (`contree-sdk`), but its live gate — `pytest tests/test_sandbox_smoke.py`,
+  3 real sandboxes created and destroyed — is honestly **skipped**, not faked, until
+  `NEBIUS_API_KEY` is supplied. This is the single remaining blocker on Phase 0.
+- 🚧 recon/planner/repairer/adjudicator (Nemotron model calls), FastAPI + SSE, React UI,
+  batch lab: not yet built — see `DECISIONS.md` for the full trail of what's blocked on
+  credentials vs. ready to wire up.
+
+Backend test suite: **89 passed, 3 skipped** (`cd backend && pytest -v`).
 
 ## Repo layout
 

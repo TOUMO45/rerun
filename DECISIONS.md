@@ -190,3 +190,70 @@ with the directive's "never report done without a command that actually runs" ru
 and intake.
 
 ---
+
+## 2026-09-19 — Nebius Token Factory Sandboxes SDK researched from installed source
+
+**Action:** Before writing `sandbox.py`, per §2.4 ("read the actual installed library
+source/docs when unsure of an API — never invent a method signature and hope"),
+installed the real PyPI package (`pip install contree-sdk`, resolved to v0.3.6) into
+the backend venv and read its source directly, rather than trusting the hosted docs
+alone (`docs.tokenfactory.nebius.com/sandboxes/...`), which a WebFetch pass had already
+shown to be incomplete/inconsistent in places (e.g. the getting-started page's
+`Contree(api_client)` construction pattern does not match the installed package's
+actual `ContreeSync(token=...)` constructor — likely stale docs vs. a newer SDK
+version). Files actually read: `sdk/client/_base.py`, `sdk/client/_sync.py`,
+`sdk/managers/images/_base.py`, `sdk/managers/images/_sync.py`,
+`sdk/objects/image_like/_base.py`, `sdk/objects/image_like/_sync.py`,
+`sdk/objects/image/_sync.py`, `sdk/objects/image_like/result.py`, `config.py`,
+`sdk/exceptions/__init__.py`.
+
+**Key ground-truth facts this changed vs. my initial assumption from the directive:**
+
+1. **There is no explicit `sandbox.destroy()` call in this SDK.** The execution
+   primitive is `image.run(..., disposable: bool = True).wait()`, and `disposable=True`
+   is the library's *own default* — the resulting image and its backing compute are
+   discarded automatically the instant that run completes. Chaining steps (upload
+   files -> install -> execute, each building on the previous result) requires
+   `disposable=False` on every non-final step so the backend doesn't discard the
+   intermediate image before the next step can reference it.
+2. Given fact 1, §2.6 ("every sandbox session must be destroyed after use... enforced
+   with a finally/context-manager, not discipline") is satisfied by: (a) always running
+   the *last* command in a chain with `disposable=True`, and (b) wrapping the whole
+   chain in try/finally, where `finally` explicitly disposes of every intermediate
+   `disposable=False` image via a trivial `disposable=True` no-op run — so a
+   mid-chain exception (e.g. install times out) can never leave a retained image
+   behind. This is what `sandbox.py`'s `retained_images` list + `finally` block does.
+3. `client.images.docker(ref)` (aliased `oci`/`podman`/`pull_by_oci`) is the right call
+   for a public Docker Hub base image like `python:3.11-slim` — it tries `use(strict=True)`
+   first and imports only if not already resolvable, which is cheaper than always
+   forcing an import via `import_from()`.
+4. Every completed step's `ContreeResult` carries a real `cost: float` (USD) — wired
+   directly into `sandbox.py`'s `StepResult.cost_usd`, so `cost_guard.py` can eventually
+   record actual measured sandbox spend, not an estimate.
+5. Inference base URL from the real Token Factory quickstart docs is
+   `https://api.tokenfactory.nebius.com/v1/` via the standard OpenAI Python client —
+   **not** `https://api.studio.nebius.com/v1` as originally guessed in `.env.example`;
+   corrected.
+
+**What is still not verified:** the *async* client's public method names (this
+research and `sandbox.py`'s implementation both use the synchronous `ContreeSync`
+client, called from FastAPI's async routes via a threadpool executor rather than the
+async client, specifically because the sync surface's method names were confirmed by
+reading real source while the async naming was not independently re-confirmed in this
+pass — a reasonable, boring choice per §0's "prefer boring, maintained" guidance, not a
+stack renegotiation since both are the same SDK). Also unverified: real per-run cost
+magnitudes, real timeout/wall-clock enforcement behavior, and whether `python:3.11-slim`
+is already resolvable without an import round-trip — all of which require the actual
+API key this environment doesn't have.
+
+**Result:** `backend/app/services/sandbox.py` implements the full build-and-execute
+chain against this real, source-verified API shape.
+`pytest tests/test_sandbox.py -v` — 6/6 passed (pure mapping/aggregation logic and the
+fail-fast credentials check, using a duck-typed stand-in for `ContreeResult` since a
+live image object can't be constructed without the real API).
+`tests/test_sandbox_smoke.py` — the actual Phase 0 kill gate (3 real sandboxes created
+and destroyed) — is written but **honestly skipped** (`pytest.mark.skipif`, not fudged
+or hardcoded to pass) until `NEBIUS_API_KEY` is supplied; this is the one remaining
+must-do before Phase 0 can be marked green. Full backend suite: **89 passed, 3 skipped**.
+
+---
