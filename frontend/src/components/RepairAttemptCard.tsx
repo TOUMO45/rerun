@@ -1,6 +1,20 @@
 import type { RepairAttemptDiff, TavilySource } from "../api";
 import { DiffView } from "./DiffView";
 
+/** Defense in depth: `source.url` comes from a real Tavily search result,
+ * not directly attacker-controlled, but nothing between that API response
+ * and this render validates it's actually an http(s) link before it
+ * becomes a clickable `href` — a `javascript:` (or other) URL scheme
+ * would execute on click rather than navigate. Cheap and zero-cost to
+ * guard regardless of how the URL got here. */
+function isSafeHttpUrl(url: string): boolean {
+  try {
+    return ["http:", "https:"].includes(new URL(url).protocol);
+  } catch {
+    return false;
+  }
+}
+
 function TavilySources({ sources }: { sources?: TavilySource[] }) {
   if (!sources || sources.length === 0) return null;
   return (
@@ -9,18 +23,24 @@ function TavilySources({ sources }: { sources?: TavilySource[] }) {
         Cited sources (Tavily)
       </p>
       <ul className="mt-1 space-y-1">
-        {sources.map((source, i) => (
-          <li key={i} className="font-mono text-[11px]">
-            <a
-              href={source.url}
-              target="_blank"
-              rel="noreferrer"
-              className="text-signal underline decoration-signal-dim underline-offset-2 hover:opacity-80"
-            >
-              [{i + 1}] {source.title || source.url}
-            </a>
-          </li>
-        ))}
+        {sources.map((source, i) =>
+          isSafeHttpUrl(source.url) ? (
+            <li key={i} className="font-mono text-[11px]">
+              <a
+                href={source.url}
+                target="_blank"
+                rel="noreferrer"
+                className="text-signal underline decoration-signal-dim underline-offset-2 hover:opacity-80"
+              >
+                [{i + 1}] {source.title || source.url}
+              </a>
+            </li>
+          ) : (
+            <li key={i} className="font-mono text-[11px] text-text-secondary">
+              [{i + 1}] {source.title || "(source with an unrecognized URL scheme, not linked)"}
+            </li>
+          ),
+        )}
       </ul>
     </div>
   );

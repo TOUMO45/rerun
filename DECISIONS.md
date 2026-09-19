@@ -2233,3 +2233,36 @@ argument, not to police what real filenames are allowed to look like.
 - Full suite: **247 passed, 4 skipped** (up from 246/4).
 
 ---
+
+## 2026-09-19 — Bug found and fixed: an unvalidated URL scheme could execute on click
+
+**Context:** extended the "does anything trust downstream content in a dangerous sink
+without validating it" hunt to the frontend, having just closed it out on the backend
+(the two shell-injection fixes). Checked every `href=` in the frontend for a
+dynamically-sourced URL.
+
+**Bug, reproduced live:** `RepairAttemptCard.tsx`'s `TavilySources` renders
+`<a href={source.url}>` directly from a real Tavily search result, with no scheme
+validation before it becomes a clickable link. A `javascript:` (or other non-http(s))
+URL scheme would execute on click rather than navigate — a real XSS-via-click vector,
+even though `source.url` isn't directly attacker-controlled the way a repo's own
+filename is (Tavily is a legitimate third-party search API, not something a malicious
+repo author can reliably control the returned URLs of). Lower probability than the
+shell-injection bugs, but the same shape of gap and a zero-cost fix, so worth closing
+rather than leaving on the theory that the attack chain is unlikely.
+
+**Fixed:** added `isSafeHttpUrl()`, parsing the URL and checking its `protocol` is
+`http:` or `https:` before rendering it as a link; anything else renders as plain,
+non-interactive text instead, with a note that its scheme wasn't recognized (never
+silently dropped without a trace).
+
+**Verified live, not just unit-reasoned:** seeded a real completed run with one
+legitimate `https://` Tavily source and one crafted `javascript:alert(document.cookie)`
+source, loaded the real certificate view in a real browser, and confirmed via the
+accessibility tree that the legitimate source is a real `link` element with the correct
+`href`, while the malicious source does not appear as an interactive element at all —
+rendered as inert text, exactly as intended. Clean console throughout. `npx tsc
+--noEmit` and `npm run build` both clean. Cleaned up the seeded run and scratch script
+afterward. No backend change; full suite unaffected at 247 passed, 4 skipped.
+
+---

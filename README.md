@@ -177,7 +177,7 @@ real Nebius Sandboxes integration test, honestly gated on `NEBIUS_API_KEY`; 1 is
 network-dependent corpus-freshness check (`RERUN_VERIFY_CORPUS_NETWORK=1` to run it —
 confirmed passing against all 20 real repos as of 2026-09-19).
 
-Self-audit passes found and fixed **twenty-five** real bugs/gaps this session (full detail in
+Self-audit passes found and fixed **twenty-six** real bugs/gaps this session (full detail in
 `DECISIONS.md`). Three are worth calling out specifically because unit tests
 structurally could never have caught them — only running the real, deployed Docker image
 did:
@@ -293,6 +293,17 @@ standard, correct way to make any string a single safe shell argument regardless
 contents — rather than policing what real filenames are allowed to look like. Verified
 the exact crafted filename now produces a properly quoted, harmless command, and that
 ordinary filenames are byte-for-byte unaffected.
+
+Extended the same hunt to the frontend and found one more, lower-probability but
+zero-cost-to-fix instance: `RepairAttemptCard.tsx` rendered a Tavily search result's
+`source.url` as a clickable `<a href>` with no scheme validation — a `javascript:` URL
+would execute on click instead of navigating. `source.url` isn't directly
+attacker-controlled the way a repo's own filename is (Tavily is a real third-party
+search API), but the fix is free, so it wasn't left on the theory that the attack chain
+is unlikely. Fixed by only rendering as a link when the URL's protocol is `http:` or
+`https:`, otherwise as inert text; verified live in a real browser with a seeded
+malicious source, confirming via the accessibility tree it never becomes a clickable
+element.
 
 Other fixes from this session's audits: both halves of §9's cost guard (daily USD
 ceiling, per-attempt token ceiling) were implemented and unit-tested in isolation but
