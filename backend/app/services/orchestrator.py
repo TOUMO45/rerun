@@ -32,6 +32,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 from app.services import adjudicator, classifier, passport, planner, recon, repairer, tavily
+from app.services import compute_sandbox
 from app.services.cost_guard import CostGuard, CostLimitExceeded
 from app.services.intake import RepoIntake, read_text_capped
 from app.services.model_client import NebiusChatClient
@@ -152,6 +153,11 @@ class PipelineDeps:
     adjudicator_model: str
     sandbox_api_key: str
     sandbox_wall_clock_seconds: float
+    # Token Factory's project id, passed alongside sandbox_api_key. Unused
+    # by the Compute backend (see _make_compute_sandbox_runner below) —
+    # Compute is a separate Nebius product/credential (this session's
+    # Nebius integration audit; see DECISIONS.md).
+    sandbox_project_id: str = ""
     planner_client: object = None
     planner_model: str | None = None
     max_attempts: int = 3
@@ -167,6 +173,45 @@ class PipelineDeps:
     # NEBIUS_SANDBOX_IMAGE — the base image planner.build_plan() falls back
     # to when recon can't pin an exact Python version from the repo.
     default_sandbox_image: str = "python:3.11-slim"
+
+
+def _make_compute_sandbox_runner(settings) -> callable:
+    """Adapter so the Compute backend can be dropped into
+    `PipelineDeps.sandbox_runner` without changing run_pipeline's call
+    site: it accepts the same (api_key, project_id, base_image,
+    install_commands, execute_command, wall_clock_seconds, upload_files)
+    shape as sandbox.run_build_and_execute, but api_key/project_id here are
+    Token Factory's and are intentionally unused — Compute authenticates
+    with a separate service-account credential (settings.nebius_compute_*),
+    bound here via closure instead."""
+
+    def _run(
+        *,
+        api_key: str,  # noqa: ARG001 - Token Factory credential, not used by Compute
+        project_id: str,  # noqa: ARG001 - Token Factory credential, not used by Compute
+        base_image: str,
+        install_commands,
+        execute_command: str,
+        wall_clock_seconds: float,
+        upload_files=None,
+    ) -> SandboxRunResult:
+        return compute_sandbox.run_build_and_execute(
+            credentials_file=settings.nebius_compute_credentials_file,
+            project_id=settings.nebius_compute_project_id,
+            subnet_id=settings.nebius_compute_subnet_id,
+            platform=settings.nebius_compute_platform,
+            preset=settings.nebius_compute_preset,
+            image_family=settings.nebius_compute_image_family,
+            ssh_username=settings.nebius_compute_ssh_username,
+            boot_disk_gib=settings.nebius_compute_boot_disk_gib,
+            base_image=base_image,
+            install_commands=install_commands,
+            execute_command=execute_command,
+            wall_clock_seconds=wall_clock_seconds,
+            upload_files=upload_files,
+        )
+
+    return _run
 
 
 def build_pipeline_deps(settings) -> PipelineDeps:
@@ -191,6 +236,14 @@ def build_pipeline_deps(settings) -> PipelineDeps:
         from tavily import TavilyClient
 
         tavily_client = TavilyClient(api_key=settings.tavily_api_key)
+    # RERUN directive §3 must-have #3: which backend actually executes
+    # untrusted repo code. "token_factory" (default) uses sandbox.py's
+    # already-verified contree_sdk path; "compute" provisions a real
+    # Nebius AI Cloud Compute VM per run (see compute_sandbox.py's module
+    # docstring for what is and isn't live-verified about that path).
+    sandbox_runner = run_build_and_execute
+    if settings.nebius_sandbox_backend == "compute":
+        sandbox_runner = _make_compute_sandbox_runner(settings)
     return PipelineDeps(
         recon_client=client,
         recon_model=settings.nebius_model_recon,
@@ -201,7 +254,9 @@ def build_pipeline_deps(settings) -> PipelineDeps:
         planner_client=client,
         planner_model=settings.nebius_model_planner,
         sandbox_api_key=settings.nebius_api_key,
+        sandbox_project_id=settings.nebius_project_id,
         sandbox_wall_clock_seconds=settings.nebius_sandbox_wall_clock_seconds,
+        sandbox_runner=sandbox_runner,
         max_attempts=settings.max_attempts_per_run,
         tavily_client=tavily_client,
         default_sandbox_image=settings.nebius_sandbox_image,
@@ -293,6 +348,7 @@ def run_pipeline(
         _log(f"[sandbox] starting build+execute (wall_clock_seconds={deps.sandbox_wall_clock_seconds:.0f})")
         result = deps.sandbox_runner(
             api_key=deps.sandbox_api_key,
+            project_id=deps.sandbox_project_id,
             base_image=plan.base_image,
             install_commands=plan.as_shell_steps(),
             execute_command=plan.execute_command,

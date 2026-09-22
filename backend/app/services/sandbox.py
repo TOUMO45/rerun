@@ -45,6 +45,8 @@ from pathlib import Path
 from typing import Iterable, Protocol
 
 from contree_sdk import ContreeSync
+from contree_sdk.auth import IAMAuth
+from contree_sdk.config import ContreeConfig
 from contree_sdk.sdk.exceptions import ContreeError, OperationTimedOutError
 
 
@@ -126,6 +128,7 @@ def step_result_from_image(image, command: str) -> StepResult:
 def run_build_and_execute(
     *,
     api_key: str,
+    project_id: str = "",
     base_image: str,
     install_commands: Iterable[str],
     execute_command: str,
@@ -139,6 +142,20 @@ def run_build_and_execute(
     failure (§2.6): every intermediate retained (`disposable=False`) image
     is disposed of in `finally`, and the final step always runs with
     `disposable=True`.
+
+    `project_id` is passed explicitly into `IAMAuth` rather than left to
+    `ContreeSync(token=api_key)`'s shorthand. Found live during this
+    session's Nebius integration audit: that shorthand only overrides
+    `token`, leaving `IAMAuth.project_id` at its dataclass default — the
+    literal string `"NEBIUS_PROJECT_ID"` (an env-var *name*, not a value).
+    `Auth.resolve()` (contree_sdk/auth.py) only turns that into a real
+    project id if an OS environment variable literally named
+    NEBIUS_PROJECT_ID exists — true under docker-compose's `env_file:`
+    (which does inject real OS env vars), false when running via bare
+    uvicorn/pytest, since this codebase loads `.env` through
+    pydantic-settings only and never calls `os.environ`/`load_dotenv`.
+    Passing project_id explicitly makes the sandbox's `Project` auth header
+    correct regardless of how the process was started.
     """
     if not api_key:
         raise SandboxCredentialsError(
@@ -146,7 +163,7 @@ def run_build_and_execute(
             "Populate .env from .env.example before running a real sandbox."
         )
 
-    client = ContreeSync(token=api_key)
+    client = ContreeSync(config=ContreeConfig(auth=IAMAuth(token=api_key, project_id=project_id)))
     image = client.images.docker(base_image)
 
     steps: list[StepResult] = []

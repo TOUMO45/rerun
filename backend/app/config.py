@@ -45,6 +45,30 @@ class Settings(BaseSettings):
     nebius_sandbox_image: str = "python:3.11-slim"
     nebius_sandbox_wall_clock_seconds: float = 600.0
 
+    # Which backend actually executes untrusted repo code (RERUN directive
+    # §3 must-have #3). "token_factory" = contree_sdk against Nebius Token
+    # Factory Sandboxes (sandbox.py) — the only backend live-verified so
+    # far (see DECISIONS.md's 2026-09-19 entry). "compute" = provision a
+    # real Nebius AI Cloud Compute VM per run (compute_sandbox.py) — a
+    # SEPARATE Nebius product with a separate credential (see this
+    # session's Nebius integration audit), scaffolded but NOT yet
+    # exercised against a live account.
+    nebius_sandbox_backend: str = "token_factory"
+
+    # --- Nebius AI Cloud (Compute) ------------------------------------
+    # Only read when nebius_sandbox_backend == "compute". Deliberately
+    # separate from nebius_api_key/nebius_project_id above: Compute uses
+    # Nebius's general Cloud IAM (a service-account JSON key downloaded
+    # from the console), not Token Factory's bearer API key.
+    nebius_compute_credentials_file: str = ""
+    nebius_compute_project_id: str = ""
+    nebius_compute_subnet_id: str = ""
+    nebius_compute_platform: str = "cpu-e2"
+    nebius_compute_preset: str = "4vcpu-16gb"
+    nebius_compute_image_family: str = ""
+    nebius_compute_ssh_username: str = "ubuntu"
+    nebius_compute_boot_disk_gib: int = 20
+
     # Tavily
     tavily_api_key: str = ""
 
@@ -62,6 +86,10 @@ class Settings(BaseSettings):
     @property
     def nebius_configured(self) -> bool:
         return bool(self.nebius_api_key)
+
+    @property
+    def nebius_compute_configured(self) -> bool:
+        return bool(self.nebius_compute_credentials_file)
 
     @property
     def tavily_configured(self) -> bool:

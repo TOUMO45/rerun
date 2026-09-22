@@ -31,6 +31,8 @@ class _FakeSettings:
     daily_cost_ceiling_usd = 25.0
     tavily_configured = False
     nebius_sandbox_image = "python:3.11-slim"
+    nebius_project_id = ""
+    nebius_sandbox_backend = "token_factory"
 
 
 def _fake_run_pipeline(**kwargs) -> PipelineResult:

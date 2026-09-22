@@ -3,11 +3,13 @@
 No live Nebius call: `run_pipeline` itself is already proven end-to-end
 against the real classifier/tamper_gate in test_orchestrator.py. What's
 tested here is the router's OWN responsibility — the 503 fail-fast when
-credentials are absent (real, no monkeypatch needed), and that a
-successful PipelineResult is persisted into Run/RepairAttempt/Certificate
-correctly (achieved by monkeypatching only the credential-gated boundary:
-`run_pipeline` itself, plus `get_settings` to simulate credentials being
-present without needing a real key).
+credentials are absent, and that a successful PipelineResult is persisted
+into Run/RepairAttempt/Certificate correctly. Both cases monkeypatch only
+the credential-gated boundary (`get_settings`), never `run_pipeline`'s own
+logic — this keeps the test honest about ambient environment state (a
+developer machine with the live sandbox gate activated has a real
+NEBIUS_API_KEY in `.env`, so the 503 case can't rely on credentials being
+absent by default) without needing a real key either way.
 """
 
 from __future__ import annotations
@@ -19,8 +21,14 @@ from app.services.orchestrator import AttemptRecord, PipelineResult
 from app.services.passport import verify_certificate
 
 
-def test_execute_run_returns_503_when_nebius_not_configured(client, fake_paper_repo):
+def test_execute_run_returns_503_when_nebius_not_configured(client, fake_paper_repo, monkeypatch):
     created = client.post("/runs", json={"repo_url": str(fake_paper_repo)}).json()
+
+    class _FakeUnconfiguredSettings:
+        nebius_configured = False
+
+    monkeypatch.setattr("app.routers.runs.get_settings", lambda: _FakeUnconfiguredSettings())
+
     response = client.post(f"/runs/{created['id']}/execute")
     assert response.status_code == 503
     assert "not configured" in response.json()["detail"].lower()
@@ -47,6 +55,8 @@ def test_execute_run_persists_pipeline_result(client, fake_paper_repo, monkeypat
         daily_cost_ceiling_usd = 25.0
         tavily_configured = False
         nebius_sandbox_image = "python:3.11-slim"
+        nebius_project_id = ""
+        nebius_sandbox_backend = "token_factory"
 
     fake_result = PipelineResult(
         verdict="RUNS_AFTER_REPAIR",
@@ -106,6 +116,8 @@ def test_execute_run_refuses_to_re_execute_an_already_done_run(client, fake_pape
         daily_cost_ceiling_usd = 25.0
         tavily_configured = False
         nebius_sandbox_image = "python:3.11-slim"
+        nebius_project_id = ""
+        nebius_sandbox_backend = "token_factory"
 
     call_count = {"n": 0}
 
@@ -183,6 +195,8 @@ def test_certificate_fetched_via_api_still_verifies_against_its_own_passport_has
         daily_cost_ceiling_usd = 25.0
         tavily_configured = False
         nebius_sandbox_image = "python:3.11-slim"
+        nebius_project_id = ""
+        nebius_sandbox_backend = "token_factory"
 
     fake_result = PipelineResult(
         verdict="RUNS_CLEAN",
@@ -262,6 +276,8 @@ def test_indeterminate_verdict_persists_and_serializes_correctly(client, fake_pa
         daily_cost_ceiling_usd = 25.0
         tavily_configured = False
         nebius_sandbox_image = "python:3.11-slim"
+        nebius_project_id = ""
+        nebius_sandbox_backend = "token_factory"
 
     indeterminate_reason = "No entrypoint candidate matched a file actually present on disk."
     fake_result = PipelineResult(
@@ -316,6 +332,8 @@ def test_daily_cost_ceiling_is_shared_across_separate_execute_requests(client, f
         daily_cost_ceiling_usd = 100.0
         tavily_configured = False
         nebius_sandbox_image = "python:3.11-slim"
+        nebius_project_id = ""
+        nebius_sandbox_backend = "token_factory"
 
     def _fake_run_pipeline_that_spends(**kwargs):
         # Simulates what the real orchestrator does: record real spend
