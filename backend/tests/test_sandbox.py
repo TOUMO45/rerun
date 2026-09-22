@@ -154,7 +154,7 @@ def _install_fake_contree_sync(monkeypatch, recorded_timeouts, fake_clock, step_
             return _FakeChainedImage(recorded_timeouts, fake_clock, step_duration, uuid=uuid)
 
     class _FakeContreeSync:
-        def __init__(self, token):
+        def __init__(self, config):
             self.images = _FakeImages()
 
     monkeypatch.setattr(sandbox_module, "ContreeSync", _FakeContreeSync)

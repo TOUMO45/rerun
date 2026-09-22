@@ -26,6 +26,7 @@ import pytest
 from app.services.sandbox import run_build_and_execute
 
 NEBIUS_API_KEY = os.environ.get("NEBIUS_API_KEY", "")
+NEBIUS_PROJECT_ID = os.environ.get("NEBIUS_PROJECT_ID", "")
 
 pytestmark = pytest.mark.skipif(
     not NEBIUS_API_KEY,
@@ -48,6 +49,7 @@ pytestmark = pytest.mark.skipif(
 def test_sandbox_created_executed_and_destroyed(base_image, command, capsys):
     result = run_build_and_execute(
         api_key=NEBIUS_API_KEY,
+        project_id=NEBIUS_PROJECT_ID,
         base_image=base_image,
         install_commands=[],
         execute_command=command,

@@ -10,6 +10,7 @@ Python-level state doesn't reliably simulate for a library that may use
 
 from __future__ import annotations
 
+import os
 import subprocess
 import sys
 from pathlib import Path
@@ -26,9 +27,19 @@ _LOAD_AND_PRINT_KEY = (
 
 
 def _run_from(cwd: Path, env_file_content: str) -> str:
+    # A real .env (real credentials) may legitimately exist at the repo
+    # root on a developer machine that has the live sandbox gate activated
+    # — back it up and restore it verbatim afterward rather than refusing
+    # to run, so this test doesn't require a credential-free checkout.
     env_path = REPO_ROOT / ".env"
-    assert not env_path.exists(), "a real .env already exists at the repo root — refusing to overwrite it"
+    backup_content = env_path.read_bytes() if env_path.exists() else None
     env_path.write_text(env_file_content, encoding="utf-8")
+    # pydantic-settings gives real OS environment variables priority over
+    # the .env file it loads — if the calling shell has actually exported
+    # NEBIUS_API_KEY (e.g. to run the live sandbox smoke gate in the same
+    # session), that would leak into the subprocess and silently defeat
+    # this test's whole point of proving what the .env FILE resolves to.
+    subprocess_env = {k: v for k, v in os.environ.items() if k != "NEBIUS_API_KEY"}
     try:
         result = subprocess.run(
             [sys.executable, "-c", _LOAD_AND_PRINT_KEY],
@@ -36,9 +47,13 @@ def _run_from(cwd: Path, env_file_content: str) -> str:
             capture_output=True,
             text=True,
             timeout=30,
+            env=subprocess_env,
         )
     finally:
-        env_path.unlink(missing_ok=True)
+        if backup_content is None:
+            env_path.unlink(missing_ok=True)
+        else:
+            env_path.write_bytes(backup_content)
     assert result.returncode == 0, f"subprocess failed: {result.stderr}"
     return result.stdout.strip()
 

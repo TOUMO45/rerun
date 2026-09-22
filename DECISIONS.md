@@ -2448,3 +2448,159 @@ legitimate runs) or too loose (no real protection), the same reasoning already a
 to the DEMO_MODE and cost-guard-model-pricing gaps elsewhere in this file.
 
 ---
+
+## 2026-09-20 — Nebius integration audit: Token Factory Sandboxes vs. real AI Cloud Compute
+
+**Context:** The user requested a read-only audit of every Nebius call site, classified
+by actual endpoint/SDK (not comments/naming, which this session's own code had already
+gotten wrong once — see below), given their explicit framing: Nebius Token Factory is
+inference-only and cannot execute arbitrary code; Nebius AI Cloud (Compute) is real
+VMs/containers, a separate product with a separate credential.
+
+**Finding 1 — confirmed via installed `contree_sdk` source, not guessed:**
+`sandbox.py`'s `ContreeSync(token=api_key)` (no `base_url` override) resolves, via
+`IAMAuth`'s dataclass default, to `ContreeEndpoint.TOKEN_FACTORY_SANDBOXES` =
+`https://api.tokenfactory.nebius.com/sandboxes/` — a real, executing container runtime
+(confirmed against Nebius's own docs at docs.tokenfactory.nebius.com: "VM-level
+isolation... secure environment for executing untrusted code"), but published under the
+Token Factory brand and authenticated with the same `NEBIUS_API_KEY` as inference. This
+module's own docstring already called this "Token Factory Sandboxes" — not a mistake
+introduced this session; `RERUN_BUILD_DIRECTIVE.md` itself (lines 51, 115, 416, 446)
+groups "Sandboxes + inference" under one Token Factory credential. The user confirmed
+directly (asked, not assumed) that their real Nebius AI Cloud Compute credential is
+separate from this — so the existing code was reaching a real, executing sandbox, but
+not the specific product the user meant by "Compute."
+
+**Finding 2 — a genuine bug, independent of Finding 1:** `NEBIUS_PROJECT_ID` was declared
+in `config.py` and `.env.example` but never forwarded to `ContreeSync` anywhere.
+`IAMAuth.project_id` defaults to the literal string `"NEBIUS_PROJECT_ID"` (an env-var
+*name*), resolved to a real value only via `Auth.resolve()`'s `os.environ[<name>]`
+lookup — which only succeeds when something puts `.env`'s values into the OS
+environment (true under docker-compose's `env_file:`, false under bare uvicorn/pytest,
+since this codebase loads `.env` through pydantic-settings only). Fixed by passing
+`project_id` explicitly into `IAMAuth(token=api_key, project_id=project_id)` in
+`sandbox.py::run_build_and_execute`, wired end-to-end via a new
+`PipelineDeps.sandbox_project_id` field in `orchestrator.py`.
+
+**Decision, per the user's explicit choice ("support both, decide later which is
+default"):** kept the Token Factory Sandboxes path as the default backend
+(`NEBIUS_SANDBOX_BACKEND=token_factory`) — it is real, it executes code, and it's the
+only backend anyone has actually run against a live account (see the 2026-09-19 entry
+above). Added `backend/app/services/compute_sandbox.py` as a second, selectable backend
+(`NEBIUS_SANDBOX_BACKEND=compute`) that reaches genuine Nebius AI Cloud Compute VMs, so
+the choice between them can be made later with real cost/latency/isolation data instead
+of guessed now.
+
+**How compute_sandbox.py was built — ground truth read from the installed `nebius`
+v0.6.11 package, not invented:**
+- Auth: a service-account "authorized key" JSON file, consumed via
+  `SDK(credentials_file_name=...)` — documented in `nebius/sdk.py`'s own docstring,
+  cross-checked against `nebius/base/service_account/credentials_file.py`'s exact JSON
+  schema (`{"subject-credentials": {"alg": "RS256", "private-key": ..., "kid": ...,
+  "iss": ..., "sub": ...}}`) and confirmed as a real service-account model against
+  docs.nebius.com's own service-account authentication page (Cloud IAM, not Token
+  Factory's bearer key — genuinely a separate credential, matching what the user
+  described).
+- VM lifecycle: `nebius.api.nebius.compute.v1.InstanceServiceClient` — every message
+  field used (`InstanceSpec`, `ResourcesSpec.platform/preset`,
+  `AttachedDiskSpec`/`DiskSpec`/`SourceImageFamily`, `NetworkInterfaceSpec`/
+  `PublicIPAddress`, `cloud_init_user_data`) read from the package's own `.pyi` stubs
+  and verified by actually constructing real message objects and enum members at a
+  Python prompt against the installed package — not copied from documentation that
+  could be stale. `Operation.successful()`/`.status()`/`.resource_id` (not a fabricated
+  `OperationError` type — an earlier draft of this module imported one that doesn't
+  exist; caught by actually importing the module before writing tests, per §2.4).
+- There is no "run this command" RPC on `InstanceServiceClient` — SSH is the only path
+  once a VM is up. Cloud-init installs Docker on first boot specifically so `base_image`
+  keeps the exact same meaning it has for the Token Factory backend (a container image
+  reference), rather than needing every Nebius image family to already have the right
+  Python version baked in.
+- Teardown: `InstanceServiceClient.delete` "Also deletes all the managed disks,
+  declared in the instance spec" per its own docstring — one call covers instance +
+  boot disk, matching §2.6's always-destroy guarantee via the same try/finally shape
+  sandbox.py already uses.
+
+**What is honestly NOT verified (same standard as the existing `NebiusJobsClient` in
+`batch/runner.py`, which already carries this kind of disclosure):** there is no real
+Nebius Compute credential, subnet, or image family in this environment. Unverified:
+exact valid `platform`/`preset`/image-family strings for a real account (left as
+required config, not guessed defaults); that a real image family's cloud-init accepts
+this exact `#cloud-config` shape and has outbound internet for `get.docker.com`; SSH/
+Docker readiness timing under real cloud-init boot; and real per-VM cost (this API
+doesn't return per-instance billing the way `ContreeResult.cost` does, so `cost_usd` is
+reported as `0.0` per step — a documented gap, not a fabricated number). Added
+`test_compute_sandbox_smoke.py`, skipped until `NEBIUS_COMPUTE_CREDENTIALS_FILE` is set,
+mirroring `test_sandbox_smoke.py`'s existing pattern — this backend should not be
+trusted the way the Token Factory path is until that gate has actually been run once.
+
+**Tests:** `test_compute_sandbox.py` (12 tests) covers ephemeral SSH keypair generation
+against real `cryptography`/`paramiko`, cloud-init YAML rendering, `_shell_quote`'s
+command-injection boundary, the fail-fast credential check, `_wait_for_running_instance`
+against the *real* `InstanceStatus.InstanceState` enum (not a lookalike), and the full
+create -> SSH -> run -> always-delete orchestration (including the delete-on-failure and
+delete-when-SSH-never-becomes-ready paths) against fakes for `InstanceServiceClient` and
+paramiko's `SSHClient`/`Channel`. Full suite: **262 passed, 7 skipped** (up from 250/6).
+
+---
+
+## 2026-09-22 — Phase 0's live gate finally run for real: `NEBIUS_API_KEY` activated
+
+**Action:** The user populated the repo-root `.env` with a real Nebius Token Factory
+`NEBIUS_API_KEY`/`NEBIUS_PROJECT_ID` and asked to complete the sandbox work. Exported
+those into the shell (`set -a; . ../.env; set +a`, per `test_sandbox_smoke.py`'s own
+documented invocation) and ran `pytest tests/test_sandbox_smoke.py -v -s` — the Phase 0
+kill gate that every entry since 2026-09-19 has honestly reported as skipped, never
+faked.
+
+**Result — real, not simulated:** all 3 parametrized runs created a real sandbox,
+executed a real command, and destroyed it: `python:3.11-slim` reported real interpreter
+version `3.11.15`, both `print()` and `echo` commands returned their real stdout, and
+each step carried a real nonzero `cost_usd` (~$0.0002/run) straight from
+`ContreeResult.cost` — confirming `sandbox.py`'s `IAMAuth(token=..., project_id=...)`
+fix from the prior Nebius-audit entry works end-to-end against the live API, not just
+in the unit-test's duck-typed stand-in. Phase 0's §11 gate is now genuinely green.
+
+**Three environment-conflict bugs surfaced by running the FULL suite with real
+credentials active (not new production bugs — the suite had simply never been run
+this way before), all fixed rather than glossed over:**
+
+1. `test_execute_run_returns_503_when_nebius_not_configured` assumed credentials would
+   be ambiently absent (its own docstring said "real, no monkeypatch needed") — true
+   only on a checkout with no `.env`. On a machine with the live gate activated,
+   `get_settings().nebius_configured` is genuinely `True`, so the route correctly
+   returned 200, and the test's assumption was the thing that was wrong. Fixed by
+   monkeypatching `get_settings` to force `nebius_configured = False`, mirroring the
+   sibling test three lines down that already forces it `True` the same way — the test
+   no longer depends on what happens to be in the environment.
+2. `test_settings_config_points_at_a_real_existing_directory` asserted `.env.example`
+   exists at the repo root. It had been deleted from the working tree (uncommitted;
+   `git status` showed it as `D`) — restored via `git checkout -- .env.example`, then
+   updated to add the `NEBIUS_SANDBOX_BACKEND`/`NEBIUS_COMPUTE_*` keys that the
+   2026-09-20 compute-sandbox entry added to `config.py` and the real `.env` but never
+   mirrored into the template. Same "wiring gap" shape as every earlier bug in this
+   file: a component (the template) correct in isolation, never kept in sync with a
+   sibling that changed.
+3. `test_settings_loads_repo_root_env_when_invoked_from_backend_dir`/
+   `_from_repo_root` write a throwaway `.env`, spawn a subprocess to read it back, and
+   originally refused to run at all if a real `.env` already existed (to avoid
+   clobbering it) — which now means never, on any activated machine. Fixed properly
+   rather than deleting the safety check: back up the real file's bytes, write the
+   fake content, run, restore the real bytes in `finally`, regardless of outcome. A
+   second, subtler leak in the same two tests: pydantic-settings gives real OS
+   environment variables priority over a `.env` file, so this session's own exported
+   `NEBIUS_API_KEY` (needed to run the live gate above) was leaking into the spawned
+   subprocess and silently defeating the test's actual assertion — fixed by passing an
+   explicit `env=` to `subprocess.run` with `NEBIUS_API_KEY` stripped, so the test
+   proves what the `.env` *file* resolves to, independent of the calling shell's own
+   state.
+
+**Verification:** ran the full suite twice — once with `NEBIUS_API_KEY`/
+`NEBIUS_PROJECT_ID` exported (**265 passed, 4 skipped**, including the 3 real smoke
+sandboxes), once without (**262 passed, 7 skipped**, the sandbox/compute-smoke tests
+honestly skipping again exactly as designed). Confirmed `.env`'s real credentials were
+byte-for-byte intact after the `test_config.py` backup/restore path ran. The Compute
+backend (`compute_sandbox.py`) remains genuinely unverified — `NEBIUS_COMPUTE_*` are
+still unset in this environment — so its smoke test correctly continues to skip; only
+the Token Factory Sandboxes path (the default backend) has now been proven live.
+
+---
