@@ -35,10 +35,10 @@ class Settings(BaseSettings):
     # Nebius Token Factory (inference)
     nebius_api_key: str = ""
     nebius_base_url: str = "https://api.tokenfactory.nebius.com/v1"
-    nebius_model_recon: str = "nvidia/nemotron-3-nano"
-    nebius_model_planner: str = "nvidia/nemotron-3-super"
-    nebius_model_repairer: str = "nvidia/nemotron-3-super"
-    nebius_model_adjudicator: str = "nvidia/nemotron-3-ultra"
+    nebius_model_recon: str = "nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B"
+    nebius_model_planner: str = "nvidia/nemotron-3-super-120b-a12b"
+    nebius_model_repairer: str = "nvidia/nemotron-3-super-120b-a12b"
+    nebius_model_adjudicator: str = "nvidia/Nemotron-3-Ultra-550b-a55b"
 
     # Nebius Sandboxes / Serverless Jobs
     nebius_project_id: str = ""

@@ -2678,3 +2678,34 @@ fixing requires a vitest major (3/4) that needs vite ≥6, a breaking bump not w
 taking this late for a test-only tool.
 
 ---
+
+## 2026-09-23 — Step 4: live ping of every Nemotron role on Token Factory
+
+One minimal call per role (`max_tokens=20`, `temperature=0`, prompt "Reply with the
+single word OK."), against the model IDs in the real `.env`:
+
+| Role | Model ID | Resolves | Latency | `content` | Extra fields | finish |
+|---|---|---|---|---|---|---|
+| recon | `nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B` | yes | 1.24 s | `null` | `reasoning` | length |
+| planner | `nvidia/nemotron-3-super-120b-a12b` | yes | 0.68 s | `null` | `reasoning`, `reasoning_content` | length |
+| repairer | `nvidia/nemotron-3-super-120b-a12b` | yes | 0.68 s | `null` | `reasoning`, `reasoning_content` | length |
+| adjudicator | `nvidia/Nemotron-3-Ultra-550b-a55b` | yes | 0.65 s | `"OK"` | `reasoning_content` | stop |
+
+All four roles have a working model. All are reasoning models: the chain-of-thought
+arrives in `message.model_extra["reasoning"]`/`["reasoning_content"]`, and the answer
+in `message.content` only *after* reasoning finishes — with a 20-token cap, Nano and
+Super spent the whole budget reasoning and returned `content=None`. `model_client.py`
+passes no `max_tokens` and raises `ModelCallError` on `content=None`, so a real call
+that hits a server-side length limit mid-reasoning would surface as a model error
+(→ recon INDETERMINATE / declined repair / templated prose), never as a silent guess.
+Watched for in the first live run rather than pre-emptively changed.
+
+**Bug found and fixed:** `.env.example` and `config.py`'s defaults used short slugs
+(`nvidia/nemotron-3-nano`, `-super`, `-ultra`). All three return **404 "model does
+not exist"** on Token Factory (checked live). Anyone following the README from a fresh
+clone would have had every model call fail. Replaced with the IDs the catalog
+(`GET /v1/models`) actually lists — the same ones the working `.env` already used.
+(The catalog also lists `nvidia/Nemotron-3_5-Lightning`; not adopted — no reason to
+change a role's model the same day it was first verified.)
+
+---
