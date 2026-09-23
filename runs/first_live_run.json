@@ -1,0 +1,60 @@
+{
+  "run_kind": "first live end-to-end run",
+  "started_at": "2026-09-23T20:42:46.458431+00:00",
+  "corpus_entry": {
+    "name": "gpt-2",
+    "repo_url": "https://github.com/openai/gpt-2",
+    "commit_sha": "9b63575ef42771a015060c964af2c3da4cf7c8ab"
+  },
+  "config": {
+    "models": {
+      "recon": "nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B",
+      "planner": "nvidia/nemotron-3-super-120b-a12b",
+      "repairer": "nvidia/nemotron-3-super-120b-a12b",
+      "adjudicator": "nvidia/Nemotron-3-Ultra-550b-a55b"
+    },
+    "sandbox_backend": "token_factory",
+    "sandbox_image_default": "python:3.11-slim",
+    "sandbox_wall_clock_seconds": 600.0,
+    "max_attempts": 3,
+    "tavily_configured": false,
+    "cost_cap_usd": 2.0
+  },
+  "intake": {
+    "duration_s": 1.68,
+    "resolved_sha": "9b63575ef42771a015060c964af2c3da4cf7c8ab",
+    "dependency_files": [
+      "requirements.txt"
+    ],
+    "declared_dependencies": [
+      "fire",
+      "regex",
+      "requests",
+      "tqdm"
+    ],
+    "entrypoint_candidates": [
+      "src\\generate_unconditional_samples.py",
+      "src\\interactive_conditional_samples.py"
+    ],
+    "notebook_paths": []
+  },
+  "error": "ValueError: Encountered text corresponding to disallowed special token '<|endoftext|>'.\nIf you want this text to be encoded as a special token, pass it to `allowed_special`, e.g. `allowed_special={'<|endoftext|>', ...}`.\nIf you want this text to be encoded as normal text, disable the check for this token by passing `disallowed_special=(enc.special_tokens_set - {'<|endoftext|>'})`.\nTo disable this check for all special tokens, pass `disallowed_special=()`.\n",
+  "finished_at": "2026-09-23T20:42:48.294995+00:00",
+  "events": [
+    {
+      "t_s": 0.0,
+      "at": "2026-09-23T20:42:48.142046+00:00",
+      "line": "[intake] cloned https://github.com/openai/gpt-2@9b63575ef42771a015060c964af2c3da4cf7c8ab"
+    },
+    {
+      "t_s": 0.0,
+      "at": "2026-09-23T20:42:48.142712+00:00",
+      "line": "[recon] calling Nemotron Nano"
+    }
+  ],
+  "model_calls": [],
+  "cost_guard": {
+    "spent_usd": 0.0,
+    "remaining_usd": 2.0
+  }
+}

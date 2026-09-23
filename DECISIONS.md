@@ -2709,3 +2709,42 @@ clone would have had every model call fail. Replaced with the IDs the catalog
 change a role's model the same day it was first verified.)
 
 ---
+
+## 2026-09-23 — Step 5: first LIVE end-to-end run — FAILED at recon (real bug, not patched)
+
+**Target:** `gpt-2` from `corpus.yaml` (`openai/gpt-2@9b63575e`) — the corpus entry with
+the lightest declared install (`fire`, `regex`, `requests`, `tqdm`; no torch/TF in
+requirements.txt) and short scripts. Driver: `scripts/live_run.py` (runs the production
+`orchestrator.run_pipeline` with `build_pipeline_deps(settings)`; only adds per-line
+timestamps, a usage-recording wrapper around the real OpenAI client, and a run-local
+`CostGuard(daily_cost_ceiling_usd=2.0)`). Raw record: `runs/first_live_run.json`.
+
+**What happened:** intake succeeded live (shallow clone pinned to the corpus SHA,
+1.68 s; 2 entrypoint candidates under `src/`). Recon then crashed with an uncaught
+`ValueError` **before any network call** — 0 model calls, 0 sandboxes, $0.00 spent.
+
+**Root cause:** `model_client._estimate_tokens` (the §9 per-attempt token-budget
+pre-check) calls `tiktoken`'s `encode(text)` with default `disallowed_special`, which
+*raises* when the text contains a special-token string. `gpt-2`'s own source (which
+recon includes in the prompt) contains the literal `<|endoftext|>`. So any repo whose
+code mentions a GPT special token crashes the pipeline in the cost guard. Reproduced
+offline: `call_json_model(..., user_prompt='... "<|endoftext|>" ...', cost_guard=...)`
+→ `ValueError` at `model_client.py:43`. Aggravating: it's a `ValueError`, not a
+`ModelCallError`, so recon's §6.1 fallback doesn't catch it and `run_pipeline` raises
+out entirely — via the API this would be a crashed run with no verdict/certificate.
+
+**Not fixed in this pass, deliberately:** the instruction for Step 5 was to report
+the failing stage and root cause and not patch the pipeline mid-run. The likely fix
+is one line (`_ENCODING.encode(text, disallowed_special=())` — count the string as
+plain text, which is also the honest estimate), plus a regression test with
+`<|endoftext|>` in the prompt; left for the next pass.
+
+**Second bug observed in the same record (not yet exercised live):** entrypoint
+candidates are recorded as `src\generate_unconditional_samples.py` — intake uses
+`str(Path.relative_to(...))`, which yields Windows backslashes when the backend runs
+on Windows. The planner turns that into `python src\...py` executed inside a *Linux*
+sandbox, where the backslash is part of the filename → file not found → would be
+misclassified as a repo failure. Only affects a Windows-hosted backend (Docker deploy
+is Linux), but that's exactly how local runs happen today. Fix: `.as_posix()`.
+
+---
