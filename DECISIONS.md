@@ -2637,3 +2637,15 @@ low-confidence-among-candidates positive, and two negative controls (confident c
 `test_orchestrator.py` asserts the prefix reaches `indeterminate_reason`.
 
 ---
+
+## 2026-09-23 — Phase 2 gap closed: protected-path rule tested for classifier + corpus
+
+The audit found `PROTECTED_PATH_MODIFIED` was only exercised against `tamper_gate.py`
+and a test file, although §5.3 also names the classifier and the corpus. Added
+negative controls (parametrized over both the `app/...` and `backend/app/...` path
+forms a model diff could use) asserting a patch to `classifier.py` and a patch to
+`corpus.yaml` are each REJECTED with `PROTECTED_PATH_MODIFIED`, and that the violation
+reason names the offending path. No gate code changed — the rule already covered both
+paths; only the proof was missing. `pytest tests/test_tamper_gate.py -v`: 30 passed.
+
+---

@@ -539,6 +539,38 @@ def test_protected_path_test_file_is_rejected():
     assert GateRule.PROTECTED_PATH_MODIFIED in rules_hit(result)
 
 
+@pytest.mark.parametrize(
+    "path",
+    ["app/services/classifier.py", "backend/app/services/classifier.py"],
+)
+def test_protected_path_classifier_is_rejected(path):
+    """§5.3: a patch may never touch the taxonomy classifier — e.g. by
+    widening a rule so a real failure gets a friendlier code."""
+    old = "def classify(exit_code, stderr):\n    return RUNTIME_ERROR_OTHER\n"
+    new = "def classify(exit_code, stderr):\n    return None\n"
+    diff = make_diff(path, old, new)
+    result = check_patch(diff, {path: old})
+    assert result.decision == "REJECT"
+    assert GateRule.PROTECTED_PATH_MODIFIED in rules_hit(result)
+    assert any(path in v.reason for v in result.violations)
+
+
+@pytest.mark.parametrize(
+    "path",
+    ["app/batch/corpus.yaml", "backend/app/batch/corpus.yaml"],
+)
+def test_protected_path_corpus_is_rejected(path):
+    """§5.3: a patch may never edit the corpus — e.g. dropping a repo that
+    keeps failing so the Batch Lab number looks better."""
+    old = "repos:\n  - name: nanoGPT\n  - name: minGPT\n"
+    new = "repos:\n  - name: nanoGPT\n"
+    diff = make_diff(path, old, new)
+    result = check_patch(diff, {path: old})
+    assert result.decision == "REJECT"
+    assert GateRule.PROTECTED_PATH_MODIFIED in rules_hit(result)
+    assert any(path in v.reason for v in result.violations)
+
+
 def test_protected_path_negative_control_ordinary_repo_file():
     old = "x = 1\n"
     new = "x = 2\n"
