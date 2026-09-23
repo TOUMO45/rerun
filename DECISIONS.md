@@ -2604,3 +2604,36 @@ still unset in this environment — so its smoke test correctly continues to ski
 the Token Factory Sandboxes path (the default backend) has now been proven live.
 
 ---
+
+## 2026-09-23 — Phase 1 gap closed: `ENTRYPOINT_UNCLEAR` is now actually emitted (by recon)
+
+**Found by:** the 2026-09-23 status audit. `ENTRYPOINT_UNCLEAR` was defined in
+`classifier.py` but no code path ever emitted it, and no test asserted it positively —
+so the Phase 1 gate ("every taxonomy code has ≥1 passing + ≥1 negative-control test")
+was not literally met.
+
+**Decision (made by the human, not renegotiated):** `ENTRYPOINT_UNCLEAR` is a
+recon-stage *reason* for `INDETERMINATE`, not a runtime classifier code.
+`classify()` still never returns it (its existing negative test is kept).
+
+**Implementation:**
+- `ReconResult` gains `indeterminate_code`. Every entrypoint-related abstention (no
+  candidates, notebook-only, model returned null, model picked a non-candidate, low or
+  non-numeric confidence) carries `ENTRYPOINT_UNCLEAR`.
+- A failed/unparseable Nemotron recon call carries a *different* code,
+  `RECON_MODEL_ERROR`. Judgment call: that failure is RERUN's own, and labelling it
+  "the repo's entrypoint is unclear" would blame the repo for our outage — exactly
+  what §6.1 exists to prevent.
+- The orchestrator prefixes the code onto `indeterminate_reason`
+  (`"ENTRYPOINT_UNCLEAR: <human reason>"`). Chosen over a new DB column/schema field
+  because `indeterminate_reason` already flows DB → API → `Certificate.tsx` →
+  passport bundle unchanged; no migration needed.
+
+**Tests:** positive control in `test_recon.py` builds a real on-disk fixture repo
+(requirements.txt + library-only modules, no entrypoint name, no `__main__` guard),
+runs real `parse_intake` then `run_recon`, asserts `ENTRYPOINT_UNCLEAR`. Plus a
+low-confidence-among-candidates positive, and two negative controls (confident choice
+→ no code; model failure → `RECON_MODEL_ERROR`, not `ENTRYPOINT_UNCLEAR`).
+`test_orchestrator.py` asserts the prefix reaches `indeterminate_reason`.
+
+---

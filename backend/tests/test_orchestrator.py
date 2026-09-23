@@ -134,6 +134,10 @@ def test_indeterminate_recon_never_calls_sandbox(tmp_path):
     )
 
     assert result.verdict == "INDETERMINATE"
+    # The stable recon code travels in indeterminate_reason, which is what
+    # the API stores and Certificate.tsx renders.
+    assert result.indeterminate_reason.startswith("ENTRYPOINT_UNCLEAR: ")
+    assert result.taxonomy_code is None
     assert sandbox_runner.calls == []
 
 
@@ -738,6 +742,7 @@ def test_token_ceiling_already_exhausted_makes_recon_indeterminate_not_a_crash()
 
     assert result.verdict == "INDETERMINATE"
     assert "recon model call failed" in result.indeterminate_reason
+    assert result.indeterminate_reason.startswith("RECON_MODEL_ERROR: ")
     assert sandbox_runner.calls == []
 
 

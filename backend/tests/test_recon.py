@@ -208,3 +208,59 @@ def test_run_recon_passes_entrypoint_source_into_the_prompt_and_validates_names(
     result = run_recon(client, "nvidia/nemotron-3-nano", intake, entrypoint_file_contents=source)
     assert result.eval_call_names == ("evaluate",)
     assert result.model_call_names == ("generate",)
+
+
+# --- ENTRYPOINT_UNCLEAR is a recon-stage INDETERMINATE reason (§5.2 / §6.1) --
+
+
+def test_entrypoint_unclear_emitted_for_fixture_repo_with_no_clear_entrypoint(tmp_path):
+    """Positive control for ENTRYPOINT_UNCLEAR: a real on-disk fixture repo
+    with a requirements file and Python code, but only library modules (no
+    train.py/main.py-style name, no __main__ guard). Intake finds zero
+    candidates; recon must abstain with ENTRYPOINT_UNCLEAR without ever
+    calling the model."""
+    from app.services.intake import parse_intake
+    from app.services.recon import ENTRYPOINT_UNCLEAR
+
+    (tmp_path / "requirements.txt").write_text("numpy\n", encoding="utf-8")
+    (tmp_path / "model.py").write_text("def build():\n    return 1\n", encoding="utf-8")
+    (tmp_path / "utils.py").write_text("def helper(x):\n    return x * 2\n", encoding="utf-8")
+    intake = parse_intake(tmp_path, "b" * 40)
+    assert intake.entrypoint_candidates == ()
+
+    client = _FakeClient(raise_error=RuntimeError("should never be called"))
+    result = run_recon(client, "nvidia/nemotron-3-nano", intake)
+    assert result.is_indeterminate is True
+    assert result.indeterminate_code == ENTRYPOINT_UNCLEAR
+    assert result.as_dict()["indeterminate_code"] == "ENTRYPOINT_UNCLEAR"
+
+
+def test_entrypoint_unclear_emitted_when_model_is_not_confident_among_candidates():
+    from app.services.recon import ENTRYPOINT_UNCLEAR
+
+    intake = _intake_with_candidates("train.py", "run_experiment.py", "main.py")
+    client = _FakeClient(response_text=json.dumps({"entrypoint": None, "confidence": 0.2}))
+    result = run_recon(client, "nvidia/nemotron-3-nano", intake)
+    assert result.is_indeterminate is True
+    assert result.indeterminate_code == ENTRYPOINT_UNCLEAR
+
+
+def test_entrypoint_unclear_negative_control_confident_choice_has_no_code():
+    intake = _intake_with_candidates("train.py")
+    client = _FakeClient(response_text=json.dumps({"entrypoint": "train.py", "confidence": 0.85}))
+    result = run_recon(client, "nvidia/nemotron-3-nano", intake)
+    assert result.is_indeterminate is False
+    assert result.indeterminate_code is None
+
+
+def test_entrypoint_unclear_negative_control_model_failure_is_not_blamed_on_repo():
+    """A failed Nemotron call is RERUN's own problem, not evidence that the
+    repo's entrypoint is unclear — it must carry a distinct code."""
+    from app.services.recon import ENTRYPOINT_UNCLEAR, RECON_MODEL_ERROR
+
+    intake = _intake_with_candidates("train.py")
+    client = _FakeClient(raise_error=ModelCallError("connection refused"))
+    result = run_recon(client, "nvidia/nemotron-3-nano", intake)
+    assert result.is_indeterminate is True
+    assert result.indeterminate_code == RECON_MODEL_ERROR
+    assert result.indeterminate_code != ENTRYPOINT_UNCLEAR

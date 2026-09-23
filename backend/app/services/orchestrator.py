@@ -304,11 +304,17 @@ def run_pipeline(
     )
 
     if recon_result.is_indeterminate:
-        _log(f"[recon] INDETERMINATE: {recon_result.indeterminate_reason}")
+        # Prefix the stable code so it survives into the stored run, the API,
+        # the certificate (Certificate.tsx renders indeterminate_reason) and
+        # the passport bundle without a schema change.
+        reason = recon_result.indeterminate_reason
+        if recon_result.indeterminate_code:
+            reason = f"{recon_result.indeterminate_code}: {reason}"
+        _log(f"[recon] INDETERMINATE: {reason}")
         return _finalize(
             verdict="INDETERMINATE",
             taxonomy_code=None,
-            indeterminate_reason=recon_result.indeterminate_reason,
+            indeterminate_reason=reason,
             attempts=(),
             build_plan_dict=None,
             log_lines=log_lines,

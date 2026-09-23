@@ -36,10 +36,20 @@ import json
 import re
 from dataclasses import dataclass
 
+from app.services.classifier import TaxonomyCode
 from app.services.intake import RepoIntake
 from app.services.model_client import ModelCallError, call_json_model
 
 MIN_CONFIDENCE = 0.6
+
+# Why a recon run ended INDETERMINATE, as a stable machine-readable code.
+# ENTRYPOINT_UNCLEAR is the §5.2 taxonomy code, but it is emitted HERE, before
+# anything executes — classifier.classify() never returns it (it only sees
+# post-execution exit codes/stderr). RECON_MODEL_ERROR is RERUN's own failure
+# (the Nemotron call itself failed), deliberately kept distinct so it is never
+# reported as the repo's entrypoint being unclear.
+ENTRYPOINT_UNCLEAR = TaxonomyCode.ENTRYPOINT_UNCLEAR
+RECON_MODEL_ERROR = "RECON_MODEL_ERROR"
 _MAX_FILE_CHARS_IN_PROMPT = 4000
 
 _SYSTEM_PROMPT = """You are a careful research-software recon assistant. You are given \
@@ -82,6 +92,7 @@ class ReconResult:
     model_call_names: tuple[str, ...] = ()
     reasoning: str = ""
     indeterminate_reason: str = ""
+    indeterminate_code: str | None = None
 
     def as_dict(self) -> dict:
         return {
@@ -94,11 +105,12 @@ class ReconResult:
             "model_call_names": list(self.model_call_names),
             "reasoning": self.reasoning,
             "indeterminate_reason": self.indeterminate_reason,
+            "indeterminate_code": self.indeterminate_code,
         }
 
 
-def _indeterminate(reason: str) -> ReconResult:
-    return ReconResult(is_indeterminate=True, indeterminate_reason=reason)
+def _indeterminate(reason: str, code: str = ENTRYPOINT_UNCLEAR) -> ReconResult:
+    return ReconResult(is_indeterminate=True, indeterminate_reason=reason, indeterminate_code=code)
 
 
 def build_recon_user_prompt(intake: RepoIntake, entrypoint_file_contents: dict[str, str] | None = None) -> str:
@@ -232,6 +244,6 @@ def run_recon(
             cost_guard=cost_guard,
         )
     except ModelCallError as exc:
-        return _indeterminate(f"recon model call failed: {exc}")
+        return _indeterminate(f"recon model call failed: {exc}", code=RECON_MODEL_ERROR)
 
     return parse_recon_response(raw, intake.entrypoint_candidates, entrypoint_file_contents)
