@@ -2649,3 +2649,32 @@ reason names the offending path. No gate code changed — the rule already cover
 paths; only the proof was missing. `pytest tests/test_tamper_gate.py -v`: 30 passed.
 
 ---
+
+## 2026-09-23 — Phase 3 gap closed: frontend component test for rejected-patch rendering
+
+§11 Phase 3's gate requires "component test asserts a rejected patch never renders as
+applied"; no frontend test runner existed. Added `vitest@2` (the line compatible with
+the pinned `vite@5`), `jsdom`, `@testing-library/react` + `@testing-library/dom`, a
+`vitest.config.ts`, and `npm test` (`vitest run`).
+
+`src/screens/Certificate.test.tsx` renders the real `Certificate` screen (real
+`RepairAttemptCard`/`DiffView`; only `api.getRun`/`api.getCertificate` are stubbed)
+and asserts: a REJECT attempt shows its rule + reason and "rejected diff (never
+applied)"; nothing on the page says "Applied diff"/"tamper gate PASSED"/exit code; no
+"Export patch" button is offered. A second case (REJECT then PASS) asserts the
+rejected diff's content appears only in the rejected card and exactly one "Applied
+diff" exists. A third asserts an `ENTRYPOINT_UNCLEAR: …` `indeterminate_reason` renders.
+
+**Proved the test can fail:** temporarily made `RepairAttemptCard`'s REJECT branch
+unreachable (so a REJECT fell through to the PASS rendering) → 2 of 3 tests failed;
+reverted, 3/3 pass. `npm run build` (which type-checks the test file via `tsc -b`)
+stays green.
+
+**New audit findings (dev-only):** `npm audit` now also flags `vitest` (critical: file
+read/exec *when the Vitest UI server is listening* — we never run `--ui`) and
+`@vitest/mocker` (moderate). Both are devDependencies used only by `vitest run`, never
+shipped in the `vite build` output. Same trade-off as the earlier esbuild/vite entry:
+fixing requires a vitest major (3/4) that needs vite ≥6, a breaking bump not worth
+taking this late for a test-only tool.
+
+---
