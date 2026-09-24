@@ -108,7 +108,7 @@ def main(argv: list[str] | None = None) -> int:
         print(f"[{time.monotonic() - t0:7.1f}s] {line[:300]}", flush=True)
 
     record: dict = {
-        "run_kind": "first live end-to-end run",
+        "run_kind": "live end-to-end run",
         "started_at": _now(),
         "corpus_entry": {"name": entry.name, "repo_url": entry.repo_url, "commit_sha": entry.commit_sha},
         "config": {

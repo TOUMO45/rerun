@@ -2923,3 +2923,75 @@ fixture's tampering `str.replace` used the wrong indentation after `dedent`, whi
 produced an empty diff; it now asserts the tampered source differs.)
 
 ---
+
+## 2026-09-24 — Step 5: two LIVE end-to-end runs — both reached a verdict with a verified passport
+
+Driver `scripts/live_run.py` (production `run_pipeline` + `build_pipeline_deps`;
+observation only), `CostGuard(daily_cost_ceiling_usd=2.0)` per run, Tavily not
+configured (`TAVILY_API_KEY` empty, so no Tavily call). Records: `runs/live_run_gpt2.json`,
+`runs/live_run_simple.json`. Both certificates checked with the standalone
+`python scripts/verify_passport.py` → **PASSPORT VERIFIED** (exit 0).
+
+**Choice of the "simple" repo: TTPT** (`gaozhengqing/TTPT@7d6a2624`). No repo in the
+corpus is truly pure-Python/CPU-only — all are ML code. TTPT has the smallest declared
+install in the corpus (3 packages: `ftfy==6.1.1`, `regex`, `tqdm`) and a single root
+entrypoint (`train.py`, `__main__` guard) — cheapest and fastest to reach a real
+outcome. Stated up front: its real code imports `torch` and Dassl (not on PyPI), so a
+real failure was the expected outcome, not a clean run.
+
+| | gpt-2 | TTPT |
+|---|---|---|
+| Verdict | **BLOCKED** `SYS_LIB_MISSING` | **BLOCKED** `DEP_YANKED_GONE` |
+| Attempts | 3 (PASS→apply failed, DECLINED, PASS→re-exec failed) | 3 (PASS, PASS, PASS; all re-exec failed) |
+| Intake (clone) | 1.6 s | 7.7 s |
+| Recon (Nano) | 8.8 s → `src/generate_unconditional_samples.py` @0.80 | 13.9 s → `train.py` @0.85 |
+| Planner | 2.7 s | 2.8 s |
+| Initial sandbox | 50.3 s, exit 1 | 70.9 s, exit 1 |
+| Repair model time | 32.0 / 42.5 / 16.2 s | 2.1 / 2.2 / 7.9 s |
+| Re-exec sandboxes | 69.3 s | 223.9 / 52.5 / 34.5 s |
+| Adjudicator + passport | ~1.8 s | ~2.2 s |
+| Pipeline total | 223.6 s | 413.0 s |
+| Sandbox spend (cost_guard) | $0.0462 | $0.5010 |
+| Tokens Nano (prompt/completion) | 2,305 / 933 (1 call) | 2,993 / 1,521 (1 call) |
+| Tokens Super | 4,140 / 17,384 (4 calls) | 2,023 / 1,524 (4 calls) |
+| Tokens Ultra | 611 / 345 (1 call) | 606 / 486 (1 call) |
+
+Model-token *dollar* cost is not reported: `cost_guard` only records sandbox spend
+(from Nebius's own per-run cost), and I did not invent per-token prices. Every model
+call finished with `finish_reason=stop` (no budget retries were needed).
+
+**Diffs and gate decisions.** TTPT: `+torch` → gate PASS → re-run gets past torch,
+fails on `dassl`; `+dassl` → PASS → pip: no distribution; `dassl`→`dassl.pytorch` →
+PASS → pip: no distribution. All three are honest minimal requirement fixes; the
+last two can't work because Dassl is GitHub-only. gpt-2: attempt 1's diff (headers
+`--- src/…`, no `a/`/`b/` prefix, duplicated imports + a TF env var) PASSED the gate
+but `git apply -p1` stripped `src/` → "No such file"; recorded as a failed
+application, loop continued (the 2026-09-19 handling works). Attempt 2: Super's reply
+was invalid JSON → declined (consumed an attempt). Attempt 3: `--- /src/…` header,
+added `os.environ['TF_ENABLE_ONEDNN_OPTS']='0'` → applied → install still fails
+(`regex==2017.4.5` needs gcc).
+
+**Bugs / findings from these runs (not patched — Step 5 is observe-and-report):**
+1. **CRITICAL — the tamper gate does not check files it wasn't given.** `check_patch`
+   analyzes only paths present in `originals`; the orchestrator passes only
+   `{target_file: content}`. A diff that edits any *other* file PASSes with zero
+   violations and is then `git apply`-ed. Reproduced offline: a diff deleting
+   `evaluate(model)` from `src/other.py` → PASS when the gate is handed
+   `src/target.py`, REJECT `DELETED_EVAL_CALL` when handed `src/other.py`. Not
+   triggered in these runs, but it defeats the gate. Fix direction: reject any diff
+   touching a path other than the target (or load and check every touched file),
+   and normalize/validate `a/`/`b/`/absolute headers before both gate and apply.
+2. `SYS_LIB_MISSING` is unrepairable by design today: `_target_file_for` sends it to
+   the entrypoint, but the fix lives in the build plan (apt `gcc`/`build-essential`)
+   or the pin (`regex==2017.4.5`), neither of which the repairer may touch. gpt-2 spent
+   3 attempts editing Python that never ran.
+3. Classifier evidence is truncated at `No matching distribution found for` (the
+   package name is cut off), and a never-on-PyPI package is labelled
+   `DEP_YANKED_GONE` ("no longer on the index") — wrong family member for Dassl.
+4. `sandbox_id` is `None` for 2 of TTPT's 4 sandboxes (logged `id=None`); breaks the
+   S2 live-sandbox badge and weakens the audit trail.
+5. The repairer's JSON output can be invalid (gpt-2 attempt 2), which costs an
+   attempt. The Super repair calls also used 17k completion tokens across 4 calls on
+   gpt-2 — heavy reasoning, but no budget exhaustion.
+
+---
