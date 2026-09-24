@@ -3517,3 +3517,57 @@ cloned LF-only script stays byte-identical. The TTPT classification should then 
 re-measured.
 
 ---
+
+## 2026-09-24 — Clone integrity: CRLF fix, pre-upload tree gate, INVALID_HARNESS, retroactive audit
+
+1. **Fix.** Every RERUN git call that materializes a checkout runs with
+   `-c core.autocrlf=false -c core.eol=lf` (and `git clone --config …`, plus the same
+   settings written into the checkout's own config), with `GIT_LFS_SKIP_SMUDGE=1` so LFS
+   pointer files stay exactly what was committed.
+2. **Gate (`tree_integrity.verify_upload`)**, run inside `_execute` right before every
+   sandbox upload: git blob SHA-1 (`sha1("blob <len>\0" + bytes)`) of every file about to
+   be uploaded vs `git ls-tree -r <commit>`. A changed file or a file the commit doesn't
+   contain → `HarnessIntegrityError` → verdict **INVALID_HARNESS** (reason code
+   `INVALID_HARNESS: <files>`), baseline stays `NOT_RUN` (never FAILS), nothing uploaded.
+   It's an "our fault" code, so it's excluded from the Batch Lab denominator; it's never
+   adjudicated, and it's not in the adjudicator's verdict ranking — I first gave it rank 0,
+   then removed it, because that also listed it in the model's prompt as a legal
+   *downgrade*, which would have let a model void a real run. Paths changed by
+   gate-approved patches are excluded (and listed); everything else must match. A workdir
+   that isn't a git checkout can't be verified and fails the gate. Known edge: a repo whose
+   own `.gitattributes` forces `eol=crlf` would fail this gate (INVALID_HARNESS, honestly),
+   not be silently converted.
+3. **Passport bundle v3** = v2 + `tree_integrity` (`status`, git `tree_sha`,
+   `files_checked`, `excluded_patched`) + `corpus_hash` (null for ad-hoc runs; set by the
+   frozen corpus in Step 6). Both verifiers select fields by version; v1 and v2
+   certificates still verify (tested against the committed records). New certificate
+   columns + migration, API fields, UI line under the passport, `INVALID (HARNESS)` badge.
+4. **Tests** (`tests/test_tree_integrity.py`, real gate): blob SHA equals `git
+   hash-object`; **regression** — an upstream repo with an LF `.sh`, cloned under a
+   `GIT_CONFIG_GLOBAL` with `core.autocrlf=true` (a plain clone there *does* convert — the
+   test checks that first), stays byte-identical through both `clone_repo_at_commit` and
+   `clone_repo` and passes the gate; a converted file is named; an uncommitted file is
+   named; patched paths are excluded; non-git dirs are refused; end to end, a verified tree
+   lands in a v3 passport (tampering breaks it), and a CRLF-corrupted tree ends
+   INVALID_HARNESS with zero uploads. **Mutation check:** clone flags + checkout config
+   removed → 6 tests red, including the regression test. The unit suite uses a labelled
+   test double (`status: "test-double"`) for the gate because most tests use fake SHAs in
+   non-git temp dirs.
+5. **Retroactive audit** (`scripts/audit_crlf.py`, results written into each record; no
+   record deleted, embedded certificates untouched and all still verify). Rule: invalidated
+   if the sandbox executed a repository shell script, or the output shows CR artifacts
+   (CRLF pairs, an escaped `\r` in an error, `invalid option name`, `bad interpreter`).
+   Python-only runs are not affected (CPython and pip accept CRLF; the commands are
+   RERUN's own strings). **Found while auditing:** my first detector also counted bare `\r`
+   and flagged the gpt-2 v4 success — its 3 CRs are tqdm progress-bar redraws from
+   `download_model.py` (0 CRLF pairs), so bare `\r` no longer counts. Result:
+   **1 of 9 records invalidated — `live_run_ttpt_v4.json`** (executed `run_ttpt.sh`;
+   `invalid option name`). gpt-2 v4's RUNS_AFTER_REPAIR stands. Each record is now also
+   tagged `repair_mode` (`deterministic` | `model_assisted`: model_assisted iff the
+   repair model was consulted in any attempt); `PipelineResult.repair_mode`, the live
+   driver and per-repo batch records carry it going forward. Audit rules tested
+   (`tests/test_audit_crlf.py`, 8).
+
+Backend 550 passed, 8 skipped; frontend 8 passed; build green.
+
+---

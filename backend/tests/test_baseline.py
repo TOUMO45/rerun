@@ -139,7 +139,7 @@ def test_baseline_failure_then_completion_is_a_recovery(tmp_path):
     assert result.baseline["install_commands"] == ["pip install -r requirements.txt"]
     assert result.recovery is True
     cert = result.certificate()
-    assert cert["bundle_version"] == 2 and cert["recovery"] is True
+    assert cert["bundle_version"] == 3 and cert["recovery"] is True
     assert verify_certificate(cert)
 
 

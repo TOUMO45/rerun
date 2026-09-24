@@ -57,6 +57,9 @@ export function Certificate() {
       ...(cert.bundle_version && cert.bundle_version >= 2
         ? { bundle_version: cert.bundle_version, baseline: cert.baseline, recovery: cert.recovery }
         : {}),
+      ...(cert.bundle_version && cert.bundle_version >= 3
+        ? { tree_integrity: cert.tree_integrity, corpus_hash: cert.corpus_hash }
+        : {}),
     };
     triggerDownload(`rerun-certificate-${run.id}.json`, JSON.stringify(payload, null, 2));
   };
@@ -143,6 +146,13 @@ export function Certificate() {
       <section className="rounded-sm border border-signal-dim bg-signal-dim/10 px-5 py-4">
         <h2 className="font-mono text-xs uppercase tracking-wide text-signal">Reproduction Passport</h2>
         <p className="mt-2 break-all font-mono text-xs text-text-primary">{cert.reproduction_passport_hash}</p>
+        {cert.tree_integrity && (
+          <p className="mt-1 break-all font-mono text-[11px] text-text-secondary">
+            tree integrity: {cert.tree_integrity.status}
+            {cert.tree_integrity.tree_sha ? ` (tree ${cert.tree_integrity.tree_sha})` : ""}
+            {cert.tree_integrity.mismatched?.length ? ` — differs: ${cert.tree_integrity.mismatched.join(", ")}` : ""}
+          </p>
+        )}
         <p className="mt-2 font-mono text-[11px] leading-relaxed text-text-secondary">
           Download the certificate below, then verify it independently — this does not
           require trusting RERUN's own UI:

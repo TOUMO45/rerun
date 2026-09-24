@@ -50,6 +50,8 @@ class CertificateOut(BaseModel):
     bundle_version: int | None = 1
     baseline: dict | None = None
     recovery: bool | None = None
+    tree_integrity: dict | None = None
+    corpus_hash: str | None = None
 
 
 class HealthOut(BaseModel):

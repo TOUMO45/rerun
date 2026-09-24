@@ -125,3 +125,17 @@ def _no_real_uv_in_time_machine(monkeypatch):
         raise RuntimeError("real uv disabled in tests")
 
     monkeypatch.setattr(time_machine, "_default_runner", _blocked)
+
+
+@pytest.fixture(autouse=True)
+def _tree_integrity_test_double(monkeypatch):
+    """Most unit tests fake commit SHAs ("a" * 40) in non-git temp dirs, which
+    the real clone-integrity gate would (correctly) refuse. They get a double
+    whose record says so; tests/test_tree_integrity.py exercises the real gate
+    by passing `tree_verifier=verify_upload` explicitly."""
+    from app.services import tree_integrity
+
+    def _double(workdir, commit, upload_files, patched_paths=frozenset()):
+        return tree_integrity.IntegrityRecord("test-double", "", len(upload_files), list(patched_paths))
+
+    monkeypatch.setattr(tree_integrity, "verify_upload", _double)

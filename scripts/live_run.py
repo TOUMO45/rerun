@@ -164,6 +164,7 @@ def main(argv: list[str] | None = None) -> int:
             documented_command=entry.command,
         )
         record["pipeline_duration_s"] = round(time.monotonic() - t0, 2)
+        record["repair_mode"] = result.repair_mode
         record["result"] = {
             "verdict": result.verdict,
             "taxonomy_code": result.taxonomy_code,

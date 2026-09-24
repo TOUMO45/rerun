@@ -74,6 +74,8 @@ def _persist_pipeline_result(run: Run, result: PipelineResult, db: Session) -> N
             bundle_version=result.bundle_version,
             baseline=result.baseline,
             recovery=result.recovery,
+            tree_integrity=result.tree_integrity,
+            corpus_hash=result.corpus_hash,
         )
     )
     db.commit()

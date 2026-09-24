@@ -38,8 +38,12 @@ CANONICAL_FIELDS: tuple[str, ...] = (
 CANONICAL_FIELDS_BY_VERSION: dict[int, tuple[str, ...]] = {
     1: CANONICAL_FIELDS,
     2: CANONICAL_FIELDS + ("bundle_version", "baseline", "recovery"),
+    # v3 (2026-09-24): + tree_integrity (the uploaded tree was verified to be
+    #     the committed tree, with its git tree sha) and corpus_hash (the frozen
+    #     corpus the run belongs to; null for ad-hoc runs).
+    3: CANONICAL_FIELDS + ("bundle_version", "baseline", "recovery", "tree_integrity", "corpus_hash"),
 }
-CURRENT_BUNDLE_VERSION = 2
+CURRENT_BUNDLE_VERSION = 3
 
 PASSPORT_FIELD = "reproduction_passport_hash"
 

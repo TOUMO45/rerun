@@ -117,6 +117,7 @@ def run_one_repo(
             # turned that failure into a completed run (passport bundle v2).
             "baseline": (result.baseline or {}).get("result"),
             "recovery": bool(result.recovery),
+            "repair_mode": result.repair_mode,
             "attempts_used": sum(1 for a in result.attempts if a.origin == "model"),
             "duration_seconds": round(time.monotonic() - started, 1),
         }

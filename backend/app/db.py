@@ -52,6 +52,8 @@ _ADDED_COLUMNS = {
         ("bundle_version", "INTEGER DEFAULT 1"),
         ("baseline", "JSON"),
         ("recovery", "BOOLEAN"),
+        ("tree_integrity", "JSON"),
+        ("corpus_hash", "VARCHAR(64)"),
     ),
 }
 

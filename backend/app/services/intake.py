@@ -187,16 +187,29 @@ def cleanup_workdir(path: Path) -> None:
     shutil.rmtree(path, onerror=_on_rm_error)
 
 
+# Byte-exact checkouts (found live 2026-09-24, TTPT): this Windows host has
+# global core.autocrlf=true, which rewrote every text file to CRLF; shell
+# scripts then broke in the Linux sandbox and the failure was blamed on the
+# repo. These flags override any user/system config for RERUN's own git calls;
+# GIT_LFS_SKIP_SMUDGE keeps LFS pointer files exactly as committed.
+# tree_integrity.verify_upload proves the result before every upload.
+_GIT_BYTE_EXACT = ["-c", "core.autocrlf=false", "-c", "core.eol=lf"]
+
+
+def _git_env() -> dict:
+    return {**os.environ, "GIT_LFS_SKIP_SMUDGE": "1"}
+
+
 def clone_repo(url: str, dest: Path, shallow: bool = True) -> str:
     """Shallow-clone `url` into `dest` (read-only) and return the checked-out
     commit SHA. Never pushes, never authenticates — public clone only,
     per §2.5."""
     dest.parent.mkdir(parents=True, exist_ok=True)
-    cmd = ["git", "clone"]
+    cmd = ["git", *_GIT_BYTE_EXACT, "clone", "--config", "core.autocrlf=false", "--config", "core.eol=lf"]
     if shallow:
         cmd += ["--depth", "1"]
     cmd += [url, str(dest)]
-    result = subprocess.run(cmd, capture_output=True, text=True, timeout=300)
+    result = subprocess.run(cmd, capture_output=True, text=True, timeout=300, env=_git_env())
     if result.returncode != 0:
         raise IntakeError(f"git clone failed for '{url}': {result.stderr.strip()}")
 
@@ -234,12 +247,17 @@ def clone_repo_at_commit(url: str, dest: Path, commit_sha: str) -> str:
     init_result = subprocess.run(["git", "init", str(dest)], capture_output=True, text=True, timeout=30)
     if init_result.returncode != 0:
         raise IntakeError(f"git init failed for '{dest}': {init_result.stderr.strip()}")
+    # Persist the byte-exact settings in the checkout itself too, so any later
+    # git command on it (e.g. `git apply`) behaves the same.
+    for key, value in (("core.autocrlf", "false"), ("core.eol", "lf")):
+        subprocess.run(["git", "-C", str(dest), "config", key, value], capture_output=True, timeout=30)
 
     fetch_result = subprocess.run(
-        ["git", "-C", str(dest), "fetch", "--depth", "1", url, commit_sha],
+        ["git", *_GIT_BYTE_EXACT, "-C", str(dest), "fetch", "--depth", "1", url, commit_sha],
         capture_output=True,
         text=True,
         timeout=300,
+        env=_git_env(),
     )
     if fetch_result.returncode != 0:
         raise IntakeError(
@@ -248,10 +266,11 @@ def clone_repo_at_commit(url: str, dest: Path, commit_sha: str) -> str:
         )
 
     checkout_result = subprocess.run(
-        ["git", "-C", str(dest), "checkout", "FETCH_HEAD"],
+        ["git", *_GIT_BYTE_EXACT, "-C", str(dest), "checkout", "FETCH_HEAD"],
         capture_output=True,
         text=True,
         timeout=30,
+        env=_git_env(),
     )
     if checkout_result.returncode != 0:
         raise IntakeError(f"could not check out fetched commit in '{dest}': {checkout_result.stderr.strip()}")

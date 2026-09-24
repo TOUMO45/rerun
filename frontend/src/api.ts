@@ -32,7 +32,9 @@ export type Verdict =
   | "BLOCKED"
   | "INDETERMINATE"
   | "NOT_ATTEMPTABLE"
-  | "TIMEOUT";
+  | "TIMEOUT"
+  /** RERUN's own harness failed its integrity check — not a verdict on the repository. */
+  | "INVALID_HARNESS";
 
 export interface RunOut {
   id: string;
@@ -121,6 +123,9 @@ export interface CertificateOut {
   baseline?: Baseline | null;
   /** True iff the baseline failed and RERUN's final run completed. */
   recovery?: boolean | null;
+  /** v3: proof the uploaded files were the committed tree. */
+  tree_integrity?: { status: string; tree_sha?: string; files_checked?: number; mismatched?: string[]; not_in_commit?: string[] } | null;
+  corpus_hash?: string | null;
 }
 
 export interface Baseline {

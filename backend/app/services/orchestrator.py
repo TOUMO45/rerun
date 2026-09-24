@@ -44,6 +44,7 @@ from app.services import (
     repairer,
     tavily,
     time_machine,
+    tree_integrity,
 )
 from app.services import compute_sandbox
 from app.services.cost_guard import CostGuard, CostLimitExceeded
@@ -67,7 +68,7 @@ class OrchestratorError(RuntimeError):
 # Batch Lab reproducibility denominator (runner.aggregate_batch_results) —
 # counting our own crash against a paper repo would be a false measurement.
 PIPELINE_ERROR = "PIPELINE_ERROR"
-OUR_FAULT_CODES: tuple[str, ...] = (PIPELINE_ERROR, recon.RECON_MODEL_ERROR)
+OUR_FAULT_CODES: tuple[str, ...] = (PIPELINE_ERROR, recon.RECON_MODEL_ERROR, tree_integrity.INVALID_HARNESS)
 
 _REASON_CODE_RE = re.compile(r"^([A-Z][A-Z_]*(?::[A-Za-z0-9_.]+)*): ")
 
@@ -99,6 +100,11 @@ class _RunState:
     # The naive, as-is run (declared install + documented command), recorded
     # before RERUN changes anything. Stays NOT_RUN if the run never got there.
     baseline: dict = field(default_factory=lambda: {"result": "NOT_RUN"})
+    # Clone integrity: the latest verification record, and the paths that
+    # gate-approved patches changed (expected to differ from the commit).
+    tree_integrity: dict = field(default_factory=lambda: {"status": "not_checked"})
+    patched_paths: set = field(default_factory=set)
+    corpus_hash: str | None = None
 
 
 @dataclass(frozen=True)
@@ -161,6 +167,14 @@ class PipelineResult:
     bundle_version: int = passport.CURRENT_BUNDLE_VERSION
     baseline: dict | None = None
     recovery: bool = False
+    tree_integrity: dict | None = None
+    corpus_hash: str | None = None
+
+    @property
+    def repair_mode(self) -> str:
+        """"model_assisted" iff the repair model was consulted in any attempt;
+        otherwise "deterministic" (no repair, or only the time machine)."""
+        return "model_assisted" if any(a.origin == "model" for a in self.attempts) else "deterministic"
 
     def certificate(self) -> dict:
         """The exact downloadable certificate (what S3 exports and
@@ -176,6 +190,8 @@ class PipelineResult:
             "bundle_version": self.bundle_version,
             "baseline": self.baseline,
             "recovery": self.recovery,
+            "tree_integrity": self.tree_integrity,
+            "corpus_hash": self.corpus_hash,
             "reproduction_passport_hash": self.reproduction_passport_hash,
         }
 
@@ -301,6 +317,9 @@ class PipelineDeps:
     # time_machine.compile_lock-compatible callable; None = the real uv
     # resolver. Tests inject a fake (no uv, no network).
     lock_compiler: callable = None
+    # tree_integrity.verify_upload-compatible callable; None = the real gate,
+    # resolved at call time.
+    tree_verifier: callable = None
     # NEBIUS_SANDBOX_IMAGE — the base image planner.build_plan() falls back
     # to when recon can't pin an exact Python version from the repo.
     default_sandbox_image: str = "python:3.11-slim"
@@ -405,6 +424,7 @@ def run_pipeline(
     run_id: str,
     on_event: Callable[[str], None] | None = None,
     documented_command: str | None = None,
+    corpus_hash: str | None = None,
 ) -> PipelineResult:
     """`on_event`, if given, is called with each log line the instant it
     happens — not just accumulated into the final `PipelineResult.full_log`
@@ -421,6 +441,7 @@ def run_pipeline(
     lifecycle (sandbox.run_build_and_execute destroys it in `finally`).
     """
     state = _RunState()
+    state.corpus_hash = corpus_hash
     try:
         return _run_stages(
             repo_url=repo_url,
@@ -433,6 +454,10 @@ def run_pipeline(
             on_event=on_event,
             state=state,
             documented_command=documented_command,
+        )
+    except tree_integrity.HarnessIntegrityError as exc:
+        return _finalize_invalid_harness(
+            exc, state=state, repo_url=repo_url, commit_sha=commit_sha, on_event=on_event
         )
     except Exception as exc:  # noqa: BLE001 - this IS the boundary
         return _finalize_pipeline_error(
@@ -545,6 +570,17 @@ def _run_stages(
         # SSE stream can start counting down "remaining" the instant this
         # line arrives, rather than only after the whole build+execute
         # step finishes.
+        upload_files = _collect_upload_files(current_workdir)
+        # Clone integrity gate: the uploaded bytes must be the committed bytes
+        # (except files changed by gate-approved patches). Raises
+        # HarnessIntegrityError -> INVALID_HARNESS, never a repo verdict.
+        verifier = deps.tree_verifier or tree_integrity.verify_upload
+        record = verifier(current_workdir, commit_sha, upload_files, frozenset(state.patched_paths))
+        state.tree_integrity = record.as_dict()
+        _log(
+            f"[integrity] verified {record.files_checked} file(s) against tree {record.tree_sha or '?'}"
+            + (f"; excluded patched: {sorted(state.patched_paths)}" if state.patched_paths else "")
+        )
         _log(f"[sandbox] starting build+execute (wall_clock_seconds={deps.sandbox_wall_clock_seconds:.0f})")
         result = deps.sandbox_runner(
             api_key=deps.sandbox_api_key,
@@ -553,7 +589,7 @@ def _run_stages(
             install_commands=plan.as_shell_steps(),
             execute_command=plan.execute_command,
             wall_clock_seconds=deps.sandbox_wall_clock_seconds,
-            upload_files=_collect_upload_files(current_workdir),
+            upload_files=upload_files,
         )
         cost_guard.record_spend(result.total_cost_usd)
         _log(
@@ -913,6 +949,7 @@ def _run_stages(
                 state.stage = "apply_diff"
                 try:
                     deps.apply_diff(workdir, checked_diff)
+                    state.patched_paths.update(prepare_patch(checked_diff).paths)
                 except OrchestratorError as exc:
                     # Found live: the tamper gate's own AST reconstruction
                     # (_apply_patched_file) never cross-validates a diff's
@@ -1059,6 +1096,8 @@ def _finalize(
         "bundle_version": passport.CURRENT_BUNDLE_VERSION,
         "baseline": baseline,
         "recovery": recovery,
+        "tree_integrity": dict(state.tree_integrity) if state is not None else {"status": "not_checked"},
+        "corpus_hash": getattr(state, "corpus_hash", None),
     }
     passport_hash = passport.compute_passport_hash(certificate_for_hash)
 
@@ -1076,6 +1115,8 @@ def _finalize(
         commit_sha=commit_sha,
         baseline=baseline,
         recovery=recovery,
+        tree_integrity=certificate_for_hash["tree_integrity"],
+        corpus_hash=certificate_for_hash["corpus_hash"],
     )
 
 
@@ -1151,6 +1192,8 @@ def _finalize_pipeline_error(
                 "bundle_version": passport.CURRENT_BUNDLE_VERSION,
                 "baseline": baseline,
                 "recovery": False,
+                "tree_integrity": dict(state.tree_integrity),
+                "corpus_hash": getattr(state, "corpus_hash", None),
             }
         )
     except Exception:  # noqa: BLE001
@@ -1171,4 +1214,69 @@ def _finalize_pipeline_error(
         error_traceback=tb,
         baseline=baseline,
         recovery=False,
+        tree_integrity=dict(state.tree_integrity),
+        corpus_hash=getattr(state, "corpus_hash", None),
+    )
+
+
+def _finalize_invalid_harness(
+    exc: "tree_integrity.HarnessIntegrityError",
+    *,
+    state: _RunState,
+    repo_url: str,
+    commit_sha: str,
+    on_event: Callable[[str], None] | None,
+) -> PipelineResult:
+    """The upload was not the committed tree: abort with INVALID_HARNESS.
+    Nothing about the repository is claimed; the adjudicator is not asked
+    (there is no repo evidence to summarise)."""
+    log_lines = state.log_lines
+
+    def _log(line: str) -> None:
+        log_lines.append(line)
+        if on_event is not None:
+            try:
+                on_event(line)
+            except Exception:  # noqa: BLE001
+                pass
+
+    reason = f"{tree_integrity.INVALID_HARNESS}: {exc}"
+    state.tree_integrity = dict(exc.record)
+    _log(f"[integrity] FAILED — {exc}")
+    _log(f"[verdict] INVALID_HARNESS — the run is void; this is RERUN's fault, not the repository's")
+    verdict = tree_integrity.INVALID_HARNESS
+    attempts = tuple(state.attempts)
+    timestamp = datetime.now(timezone.utc).isoformat()
+    full_log = "\n".join(log_lines)
+    baseline = dict(state.baseline)
+    cert = {
+        "repo_url": repo_url,
+        "commit_sha": commit_sha,
+        "build_plan": state.build_plan_dict or {},
+        "full_log": full_log,
+        "diffs": [a.as_dict() for a in attempts],
+        "verdict": verdict,
+        "timestamp": timestamp,
+        "bundle_version": passport.CURRENT_BUNDLE_VERSION,
+        "baseline": baseline,
+        "recovery": False,
+        "tree_integrity": dict(state.tree_integrity),
+        "corpus_hash": getattr(state, "corpus_hash", None),
+    }
+    return PipelineResult(
+        verdict=verdict,
+        taxonomy_code=None,
+        indeterminate_reason=reason,
+        attempts=attempts,
+        build_plan=state.build_plan_dict,
+        full_log=full_log,
+        certificate_prose=adjudicator.templated_certificate_prose(verdict, None, 0),
+        reproduction_passport_hash=passport.compute_passport_hash(cert),
+        timestamp=timestamp,
+        repo_url=repo_url,
+        commit_sha=commit_sha,
+        baseline=baseline,
+        recovery=False,
+        tree_integrity=cert["tree_integrity"],
+        corpus_hash=cert["corpus_hash"],
     )

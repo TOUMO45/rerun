@@ -76,6 +76,7 @@ def test_run_one_repo_clones_at_the_pinned_commit_and_runs_the_pipeline(fake_pap
         "reason_code": None,
         "baseline": None,
         "recovery": False,
+        "repair_mode": "deterministic",
         "attempts_used": 0,
     }
     assert isinstance(duration, float)

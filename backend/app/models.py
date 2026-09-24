@@ -83,5 +83,8 @@ class Certificate(Base):
     bundle_version: Mapped[int] = mapped_column(Integer, default=1)
     baseline: Mapped[dict | None] = mapped_column(JSON, nullable=True)
     recovery: Mapped[bool | None] = mapped_column(Boolean, nullable=True)
+    # Passport bundle v3 fields.
+    tree_integrity: Mapped[dict | None] = mapped_column(JSON, nullable=True)
+    corpus_hash: Mapped[str | None] = mapped_column(String(64), nullable=True)
 
     run: Mapped[Run] = relationship(back_populates="certificate")
