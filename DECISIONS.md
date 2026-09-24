@@ -3392,3 +3392,40 @@ only on `DEP_NOT_ON_PYPI` → the DEP_MISSING test fails. Backend 475 passed, 8 
 frontend 7 passed (new time-machine component test); build green.
 
 ---
+
+## 2026-09-24 — Baseline vs RERUN; passport bundle v2; execution-only wording
+
+- **Baseline:** the first execution is RERUN's *as-is* run: the declared install plus the
+  command, before anything is changed. It's recorded as `baseline` = {result
+  `RUNS_CLEAN`|`FAILS`|`NOT_RUN`, exit code, taxonomy code + evidence, base image,
+  install commands, execute command, sandbox id} and logged (`[baseline] …`). A run that
+  never reaches execution (e.g. recon INDETERMINATE) records `NOT_RUN`.
+- **Recovery** = baseline `FAILS` **and** final verdict `RUNS_AFTER_REPAIR`. Stored on the
+  result, the certificate and the per-repo batch record. `aggregate_batch_results` now
+  also reports `baseline_recorded`, `baseline_passed`, `baseline_failed` and
+  `recovered_from_baseline_failure` (our-fault runs excluded; records without a baseline
+  are "unknown", not counted). `recovery_rate` keeps its §6.2 meaning (share that ran to
+  completion) so existing S4 numbers don't silently change definition.
+- **Passport bundle v2:** canonical fields = v1 + `bundle_version`, `baseline`,
+  `recovery`. Verification picks the field set from `bundle_version` (absent ⇒ v1) in
+  **both** `passport.py` and the standalone `scripts/verify_passport.py`; an unknown
+  version never verifies. **Old certificates still verify** — tested against the committed
+  real v1 live certificates (`runs/live_run_gpt2_v3.json`, `live_run_ttpt_v2.json`,
+  `live_run_simple.json`) with both verifiers. New `PipelineResult.certificate()` is the one
+  definition of the downloadable certificate (tests and the live driver use it; S3's
+  download adds the v2 fields when `bundle_version ≥ 2`).
+- **Storage:** `certificates` gains `bundle_version`, `baseline`, `recovery`. `create_all`
+  doesn't alter existing tables, so `init_db` now adds missing columns to an existing SQLite
+  file (idempotent; tested on an old-schema DB with a row in it). API returns the fields.
+- **Wording:** the certificate says the code *executes / runs to completion*, never that it
+  reproduces results. Templated prose now reads "ran to completion"; the adjudicator's
+  system prompt calls it an *execution certificate* and forbids reproduce-wording; model
+  prose matching `reproduc*` (outside the fixed scope line) is replaced with the template.
+  UI: "Reproduction Certificate" → "Execution Certificate"; "Run reproduction check" →
+  "Run execution check"; "reproduction run" → "execution run"; new "Baseline vs RERUN"
+  section. (The "Reproduction Passport" name from §6.3 is kept as the name of the hash.)
+
+Tests: `tests/test_baseline.py` (26) + one component test. Backend 501 passed, 8 skipped;
+frontend 8 passed; build green.
+
+---

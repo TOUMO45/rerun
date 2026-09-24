@@ -179,6 +179,13 @@ def aggregate_batch_results(per_repo_results: list[dict]) -> dict:
             "refuses to produce a recovery rate with no measured repos"
         )
     recovered = counts["RUNS_CLEAN"] + counts["RUNS_AFTER_REPAIR"]
+    # Recovery in the strict sense (2026-09-24): the as-is baseline failed
+    # and RERUN's final run completed. Only repos whose baseline was
+    # recorded count here; older per-repo results without it are unknown.
+    measured = [r for r in per_repo_results if not is_our_fault(r.get("reason_code"))]
+    with_baseline = [r for r in measured if r.get("baseline") in ("RUNS_CLEAN", "FAILS")]
+    baseline_failed = [r for r in with_baseline if r["baseline"] == "FAILS"]
+    baseline_recovered = [r for r in baseline_failed if r.get("recovery")]
     durations.sort()
     median_duration = durations[len(durations) // 2] if durations else None
 
@@ -188,6 +195,10 @@ def aggregate_batch_results(per_repo_results: list[dict]) -> dict:
         "excluded_our_fault": excluded,
         "our_fault_breakdown": our_fault_breakdown,
         "recovery_rate": recovered / n_measured,
+        "baseline_recorded": len(with_baseline),
+        "baseline_passed": len(with_baseline) - len(baseline_failed),
+        "baseline_failed": len(baseline_failed),
+        "recovered_from_baseline_failure": len(baseline_recovered),
         "runs_clean": counts["RUNS_CLEAN"],
         "runs_after_repair": counts["RUNS_AFTER_REPAIR"],
         "blocked": counts["BLOCKED"],

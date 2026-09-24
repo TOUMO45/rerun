@@ -113,6 +113,22 @@ export interface CertificateOut {
   diffs: RepairAttemptDiff[];
   reproduction_passport_hash: string;
   timestamp: string;
+  /** Passport bundle version; 1 (or absent) = certificates created before 2026-09-24. */
+  bundle_version?: number | null;
+  /** The as-is run before RERUN changed anything. */
+  baseline?: Baseline | null;
+  /** True iff the baseline failed and RERUN's final run completed. */
+  recovery?: boolean | null;
+}
+
+export interface Baseline {
+  result: "RUNS_CLEAN" | "FAILS" | "NOT_RUN";
+  exit_code?: number | null;
+  taxonomy_code?: string | null;
+  evidence?: string;
+  base_image?: string;
+  install_commands?: string[];
+  execute_command?: string;
 }
 
 export interface HealthOut {

@@ -297,11 +297,7 @@ def test_verified_git_source_repairs_a_not_on_pypi_failure_end_to_end(tmp_path):
         }
     ]
     assert "RERUN-VERIFIED git sources" in repair.prompts[0]["user_prompt"]
-    cert = {
-        "repo_url": result.repo_url, "commit_sha": result.commit_sha, "build_plan": result.build_plan or {},
-        "full_log": result.full_log, "diffs": [a.as_dict() for a in result.attempts], "verdict": result.verdict,
-        "timestamp": result.timestamp, "reproduction_passport_hash": result.reproduction_passport_hash,
-    }
+    cert = result.certificate()
     assert verify_certificate(cert)
     cert["diffs"][0]["resolved_sources"][0]["commit"] = "0" * 40
     assert not verify_certificate(cert)

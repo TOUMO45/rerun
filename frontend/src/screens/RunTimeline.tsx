@@ -106,7 +106,7 @@ export function RunTimeline() {
         <div className="rounded-sm border border-border bg-surface px-5 py-6 text-center">
           <span className="mb-2 inline-block h-2 w-2 animate-pulse rounded-full bg-signal" />
           <p className="font-mono text-sm text-text-secondary">
-            A reproduction run is already in progress for this run — started from another
+            An execution run is already in progress for this run — started from another
             tab, or from before this page was reloaded. Checking back automatically…
           </p>
         </div>
@@ -121,7 +121,7 @@ export function RunTimeline() {
             onClick={() => setHasStarted(true)}
             className="rounded-sm bg-signal px-5 py-2.5 font-mono text-sm font-medium text-bg transition-opacity hover:opacity-90"
           >
-            Start reproduction run
+            Start execution run
           </button>
         </div>
       )}

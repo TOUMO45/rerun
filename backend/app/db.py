@@ -45,8 +45,35 @@ engine = make_engine()
 SessionLocal = sessionmaker(bind=engine, autoflush=False, autocommit=False)
 
 
+# Columns added after the first release. `create_all` never alters an
+# existing table, so an older local SQLite file gets them here (idempotent).
+_ADDED_COLUMNS = {
+    "certificates": (
+        ("bundle_version", "INTEGER DEFAULT 1"),
+        ("baseline", "JSON"),
+        ("recovery", "BOOLEAN"),
+    ),
+}
+
+
+def _add_missing_columns(bind) -> None:
+    from sqlalchemy import inspect, text
+
+    inspector = inspect(bind)
+    with bind.begin() as conn:
+        for table, columns in _ADDED_COLUMNS.items():
+            if not inspector.has_table(table):
+                continue
+            existing = {c["name"] for c in inspector.get_columns(table)}
+            for name, ddl in columns:
+                if name not in existing:
+                    conn.execute(text(f"ALTER TABLE {table} ADD COLUMN {name} {ddl}"))
+
+
 def init_db(bind_engine=None) -> None:
-    Base.metadata.create_all(bind=bind_engine or engine)
+    bind = bind_engine or engine
+    Base.metadata.create_all(bind=bind)
+    _add_missing_columns(bind)
 
 
 def get_db() -> Generator[Session, None, None]:

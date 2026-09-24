@@ -96,6 +96,9 @@ class _RunState:
     log_lines: list[str] = field(default_factory=list)
     attempts: list = field(default_factory=list)
     build_plan_dict: dict | None = None
+    # The naive, as-is run (declared install + documented command), recorded
+    # before RERUN changes anything. Stays NOT_RUN if the run never got there.
+    baseline: dict = field(default_factory=lambda: {"result": "NOT_RUN"})
 
 
 @dataclass(frozen=True)
@@ -153,6 +156,28 @@ class PipelineResult:
     # Full traceback when the run ended via the stage exception boundary
     # (PIPELINE_ERROR); empty otherwise. Also written into full_log.
     error_traceback: str = ""
+    # Passport bundle v2: the naive run's own result, and whether RERUN
+    # turned a failing baseline into a run that completed.
+    bundle_version: int = passport.CURRENT_BUNDLE_VERSION
+    baseline: dict | None = None
+    recovery: bool = False
+
+    def certificate(self) -> dict:
+        """The exact downloadable certificate (what S3 exports and
+        scripts/verify_passport.py checks) — one definition for everyone."""
+        return {
+            "repo_url": self.repo_url,
+            "commit_sha": self.commit_sha,
+            "build_plan": self.build_plan or {},
+            "full_log": self.full_log,
+            "diffs": [a.as_dict() for a in self.attempts],
+            "verdict": self.verdict,
+            "timestamp": self.timestamp,
+            "bundle_version": self.bundle_version,
+            "baseline": self.baseline,
+            "recovery": self.recovery,
+            "reproduction_passport_hash": self.reproduction_passport_hash,
+        }
 
 
 def _apply_diff_with_git(workdir: Path, diff_text: str) -> None:
@@ -537,6 +562,17 @@ def _run_stages(
         )
 
     _log(f"[sandbox] id={sandbox_result.sandbox_id} exit_code={sandbox_result.final.exit_code}")
+    state.baseline = {
+        "result": "RUNS_CLEAN" if sandbox_result.succeeded else "FAILS",
+        "exit_code": sandbox_result.final.exit_code,
+        "base_image": plan.base_image,
+        "install_commands": list(plan.as_shell_steps()),
+        "execute_command": plan.execute_command,
+        "sandbox_id": sandbox_result.sandbox_id,
+        "taxonomy_code": None,
+        "evidence": "",
+    }
+    _log(f"[baseline] as-is run: {state.baseline['result']} (exit code {sandbox_result.final.exit_code})")
 
     attempts: list[AttemptRecord] = state.attempts
     verdict = "RUNS_CLEAN" if sandbox_result.succeeded else None
@@ -551,6 +587,8 @@ def _run_stages(
             declared_deps=intake_result.declared_dependencies,
         )
         taxonomy_code = classification.code
+        state.baseline["taxonomy_code"] = classification.code
+        state.baseline["evidence"] = classification.evidence
         _log(f"[classifier] {classification.code}: {classification.evidence}")
 
         # Env repair edits a RERUN-owned copy of requirements.txt (never the
@@ -929,7 +967,7 @@ def _run_stages(
         deps=deps,
         cost_guard=cost_guard,
         on_event=on_event,
-        attempts_used=len(attempts),
+        attempts_used=sum(1 for a in attempts if a.origin == "model"),
         repo_url=repo_url,
         commit_sha=commit_sha,
         state=state,
@@ -979,6 +1017,8 @@ def _finalize(
     timestamp = datetime.now(timezone.utc).isoformat()
     full_log = "\n".join(log_lines)
 
+    baseline = dict(state.baseline) if state is not None else {"result": "NOT_RUN"}
+    recovery = baseline.get("result") == "FAILS" and adjudication.verdict == "RUNS_AFTER_REPAIR"
     certificate_for_hash = {
         "repo_url": repo_url,
         "commit_sha": commit_sha,
@@ -987,6 +1027,9 @@ def _finalize(
         "diffs": [a.as_dict() for a in attempts],
         "verdict": adjudication.verdict,
         "timestamp": timestamp,
+        "bundle_version": passport.CURRENT_BUNDLE_VERSION,
+        "baseline": baseline,
+        "recovery": recovery,
     }
     passport_hash = passport.compute_passport_hash(certificate_for_hash)
 
@@ -1002,6 +1045,8 @@ def _finalize(
         timestamp=timestamp,
         repo_url=repo_url,
         commit_sha=commit_sha,
+        baseline=baseline,
+        recovery=recovery,
     )
 
 
@@ -1063,6 +1108,7 @@ def _finalize_pipeline_error(
 
     timestamp = datetime.now(timezone.utc).isoformat()
     full_log = "\n".join(log_lines)
+    baseline = dict(state.baseline)
     try:
         passport_hash = passport.compute_passport_hash(
             {
@@ -1073,6 +1119,9 @@ def _finalize_pipeline_error(
                 "diffs": [a.as_dict() for a in attempts],
                 "verdict": verdict,
                 "timestamp": timestamp,
+                "bundle_version": passport.CURRENT_BUNDLE_VERSION,
+                "baseline": baseline,
+                "recovery": False,
             }
         )
     except Exception:  # noqa: BLE001
@@ -1091,4 +1140,6 @@ def _finalize_pipeline_error(
         repo_url=repo_url,
         commit_sha=commit_sha,
         error_traceback=tb,
+        baseline=baseline,
+        recovery=False,
     )

@@ -277,3 +277,26 @@ describe("Certificate — time machine", () => {
     expect(screen.getByText(/Time machine — era environment, re-execution exit code 0/)).toBeTruthy();
   });
 });
+
+describe("Certificate — baseline vs RERUN (bundle v2)", () => {
+  it("shows baseline vs final in execution-only wording and marks a recovery", async () => {
+    getRun.mockResolvedValue(makeRun({ verdict: "RUNS_AFTER_REPAIR", taxonomy_code: null }));
+    getCertificate.mockResolvedValue(
+      makeCert([], {
+        verdict: "RUNS_AFTER_REPAIR",
+        bundle_version: 2,
+        baseline: { result: "FAILS", exit_code: 1, taxonomy_code: "SYS_LIB_MISSING", evidence: "error: command 'gcc' failed" },
+        recovery: true,
+      }),
+    );
+    const { container } = renderCertificate();
+    const section = (await screen.findByRole("heading", { name: "Baseline vs RERUN" })).parentElement!;
+    expect(section.textContent).toContain("As published (baseline): did not run to completion (exit code 1, SYS_LIB_MISSING)");
+    expect(section.textContent).toContain("After RERUN: ran to completion");
+    expect(section.textContent).toContain("Recovered");
+    expect(screen.getByText("Execution Certificate")).toBeTruthy();
+    // Nothing on the certificate claims reproduced results.
+    const text = (container.textContent ?? "").replace(/Reproduction Passport/g, "");
+    expect(text).not.toMatch(/reproduc(es|ed|ible)/i);
+  });
+});

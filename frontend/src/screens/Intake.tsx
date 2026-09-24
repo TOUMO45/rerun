@@ -51,7 +51,7 @@ export function Intake() {
             disabled={mutation.isPending || !repoUrl.trim()}
             className="rounded-sm bg-signal px-5 py-2.5 font-mono text-sm font-medium text-bg transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40"
           >
-            {mutation.isPending ? "Validating…" : "Run reproduction check"}
+            {mutation.isPending ? "Validating…" : "Run execution check"}
           </button>
         </div>
 

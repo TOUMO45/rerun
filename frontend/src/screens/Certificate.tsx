@@ -1,6 +1,7 @@
 import { useParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { api, ApiError } from "../api";
+import type { Baseline } from "../api";
 import { VerdictBadge } from "../components/VerdictBadge";
 import { RepairAttemptCard, TimeMachineView } from "../components/RepairAttemptCard";
 import { DiffView } from "../components/DiffView";
@@ -52,6 +53,10 @@ export function Certificate() {
       verdict: cert.verdict,
       timestamp: cert.timestamp,
       reproduction_passport_hash: cert.reproduction_passport_hash,
+      // Bundle v2+ fields are part of the hash; v1 certificates omit them.
+      ...(cert.bundle_version && cert.bundle_version >= 2
+        ? { bundle_version: cert.bundle_version, baseline: cert.baseline, recovery: cert.recovery }
+        : {}),
     };
     triggerDownload(`rerun-certificate-${run.id}.json`, JSON.stringify(payload, null, 2));
   };
@@ -65,7 +70,7 @@ export function Certificate() {
     <div className="mx-auto max-w-3xl space-y-6">
       <div className="flex items-start justify-between gap-4">
         <div>
-          <p className="font-mono text-xs text-text-secondary">Reproduction Certificate</p>
+          <p className="font-mono text-xs text-text-secondary">Execution Certificate</p>
           <h1 className="mt-1 break-all font-mono text-lg font-medium text-text-primary">{run.repo_url}</h1>
           <p className="mt-1 font-mono text-xs text-text-secondary">
             commit {run.commit_sha?.slice(0, 12) ?? "unknown"} · {new Date(cert.timestamp).toLocaleString()}
@@ -84,6 +89,8 @@ export function Certificate() {
           {run.indeterminate_reason}
         </div>
       )}
+
+      {cert.baseline && <BaselineSection baseline={cert.baseline} verdict={cert.verdict} recovery={!!cert.recovery} />}
 
       <section className="rounded-sm border border-border bg-surface px-5 py-4">
         <h2 className="font-mono text-xs uppercase tracking-wide text-text-secondary">Summary</h2>
@@ -169,6 +176,41 @@ export function Certificate() {
 
       <ScopeLine />
     </div>
+  );
+}
+
+const COMPLETED = new Set(["RUNS_CLEAN", "RUNS_AFTER_REPAIR"]);
+
+/** Baseline (the repo exactly as published) vs RERUN's final run. Wording is
+ * deliberately about execution only — RERUN never checks a paper's results. */
+function BaselineSection({ baseline, verdict, recovery }: { baseline: Baseline; verdict: string; recovery: boolean }) {
+  const baselineText =
+    baseline.result === "RUNS_CLEAN"
+      ? "ran to completion"
+      : baseline.result === "FAILS"
+        ? `did not run to completion (exit code ${baseline.exit_code}${baseline.taxonomy_code ? `, ${baseline.taxonomy_code}` : ""})`
+        : "was not run";
+  const finalText = COMPLETED.has(verdict) ? "ran to completion" : `did not run to completion (${verdict})`;
+  return (
+    <section className="rounded-sm border border-border bg-surface px-5 py-4">
+      <h2 className="font-mono text-xs uppercase tracking-wide text-text-secondary">Baseline vs RERUN</h2>
+      <dl className="mt-2 space-y-1 font-mono text-xs">
+        <div>
+          <dt className="inline text-text-secondary">As published (baseline): </dt>
+          <dd className="inline text-text-primary">{baselineText}</dd>
+        </div>
+        <div>
+          <dt className="inline text-text-secondary">After RERUN: </dt>
+          <dd className="inline text-text-primary">{finalText}</dd>
+        </div>
+      </dl>
+      {recovery && (
+        <p className="mt-2 font-mono text-xs text-signal">Recovered: failed as published, ran to completion after RERUN.</p>
+      )}
+      {baseline.evidence && (
+        <p className="mt-1 break-all font-mono text-[11px] text-text-secondary">baseline evidence: {baseline.evidence}</p>
+      )}
+    </section>
   );
 }
 

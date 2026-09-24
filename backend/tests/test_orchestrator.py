@@ -531,16 +531,7 @@ def test_final_certificate_passport_hash_verifies():
             run_id="run-6",
         )
 
-    certificate = {
-        "repo_url": result.repo_url,
-        "commit_sha": result.commit_sha,
-        "build_plan": result.build_plan,
-        "full_log": result.full_log,
-        "diffs": [a.as_dict() for a in result.attempts],
-        "verdict": result.verdict,
-        "timestamp": result.timestamp,
-        "reproduction_passport_hash": result.reproduction_passport_hash,
-    }
+    certificate = result.certificate()
     assert verify_certificate(certificate) is True
 
 
@@ -567,16 +558,7 @@ def test_tampered_certificate_fails_verification():
             run_id="run-7",
         )
 
-    certificate = {
-        "repo_url": result.repo_url,
-        "commit_sha": result.commit_sha,
-        "build_plan": result.build_plan,
-        "full_log": result.full_log,
-        "diffs": [a.as_dict() for a in result.attempts],
-        "verdict": "RUNS_CLEAN",  # already true here, so flip full_log instead
-        "timestamp": result.timestamp,
-        "reproduction_passport_hash": result.reproduction_passport_hash,
-    }
+    certificate = result.certificate()
     certificate["full_log"] = certificate["full_log"] + "\n(tampered)"
     assert verify_certificate(certificate) is False
 

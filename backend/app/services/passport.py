@@ -31,6 +31,16 @@ CANONICAL_FIELDS: tuple[str, ...] = (
     "timestamp",
 )
 
+# Bundle versions. A certificate without `bundle_version` is v1 and keeps
+# verifying exactly as before; newer versions add fields to the hash.
+#   v2 (2026-09-24): + bundle_version, baseline (the naive install's own
+#       result), recovery (baseline failed -> final run completed).
+CANONICAL_FIELDS_BY_VERSION: dict[int, tuple[str, ...]] = {
+    1: CANONICAL_FIELDS,
+    2: CANONICAL_FIELDS + ("bundle_version", "baseline", "recovery"),
+}
+CURRENT_BUNDLE_VERSION = 2
+
 PASSPORT_FIELD = "reproduction_passport_hash"
 
 
@@ -38,11 +48,19 @@ class MissingFieldError(ValueError):
     pass
 
 
+def canonical_fields_for(certificate: Mapping[str, Any]) -> tuple[str, ...]:
+    version = certificate.get("bundle_version", 1)
+    if version not in CANONICAL_FIELDS_BY_VERSION:
+        raise MissingFieldError(f"unknown certificate bundle_version {version!r}")
+    return CANONICAL_FIELDS_BY_VERSION[version]
+
+
 def build_canonical_bundle(certificate: Mapping[str, Any]) -> dict:
-    missing = [f for f in CANONICAL_FIELDS if f not in certificate]
+    fields = canonical_fields_for(certificate)
+    missing = [f for f in fields if f not in certificate]
     if missing:
         raise MissingFieldError(f"certificate is missing required field(s): {missing}")
-    return {field: certificate[field] for field in CANONICAL_FIELDS}
+    return {field: certificate[field] for field in fields}
 
 
 def canonical_json(bundle: Mapping[str, Any]) -> str:

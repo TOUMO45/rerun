@@ -71,6 +71,9 @@ def _persist_pipeline_result(run: Run, result: PipelineResult, db: Session) -> N
             diffs=[a.as_dict() for a in result.attempts],
             reproduction_passport_hash=result.reproduction_passport_hash,
             timestamp=result.timestamp,
+            bundle_version=result.bundle_version,
+            baseline=result.baseline,
+            recovery=result.recovery,
         )
     )
     db.commit()

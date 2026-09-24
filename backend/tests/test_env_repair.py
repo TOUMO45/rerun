@@ -381,16 +381,7 @@ def test_env_delta_violation_rejects_the_attempt_and_nothing_is_applied(tmp_path
 
 def test_passport_covers_the_environment_delta(tmp_path):
     result, _, _ = _run(tmp_path, [APT_FIX])
-    cert = {
-        "repo_url": result.repo_url,
-        "commit_sha": result.commit_sha,
-        "build_plan": result.build_plan or {},
-        "full_log": result.full_log,
-        "diffs": [a.as_dict() for a in result.attempts],
-        "verdict": result.verdict,
-        "timestamp": result.timestamp,
-        "reproduction_passport_hash": result.reproduction_passport_hash,
-    }
+    cert = result.certificate()
     assert verify_certificate(cert)
     cert["diffs"][0]["env_delta"][0]["package"] = "something-else"
     assert not verify_certificate(cert)

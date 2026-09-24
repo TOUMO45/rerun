@@ -221,16 +221,7 @@ def test_exception_in_any_stage_still_ends_with_a_verdict(stage, tmp_path, monke
     assert result.certificate_prose
     assert len(result.reproduction_passport_hash) == 64
     assert verify_certificate(
-        {
-            "repo_url": result.repo_url,
-            "commit_sha": result.commit_sha,
-            "build_plan": result.build_plan or {},
-            "full_log": result.full_log,
-            "diffs": [a.as_dict() for a in result.attempts],
-            "verdict": result.verdict,
-            "timestamp": result.timestamp,
-            "reproduction_passport_hash": result.reproduction_passport_hash,
-        }
+        result.certificate()
     )
     # Every sandbox that was created was destroyed.
     assert runner.created == runner.destroyed

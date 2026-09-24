@@ -22,6 +22,7 @@ go out without it.
 
 from __future__ import annotations
 
+import re
 from dataclasses import dataclass
 
 from app.services.model_client import UNTRUSTED_CONTENT_NOTICE, ModelCallError, call_json_model, untrusted_block
@@ -44,8 +45,11 @@ _VERDICT_RANK: dict[str, int] = {
     "BLOCKED": 1,
 }
 
-_SYSTEM_PROMPT = f"""You write the human-readable summary paragraph for a
-reproducibility certificate. You are given a VERDICT that has already been
+_SYSTEM_PROMPT = f"""You write the human-readable summary paragraph for an
+execution certificate. RERUN only checks whether a repository's code runs to
+completion; it never checks a paper's results. Describe the outcome only in
+terms of whether the code executed / ran to completion — never say the code
+or the paper "reproduces", "reproduced" or is "reproducible". You are given a VERDICT that has already been
 determined by deterministic checks upstream — you may NOT change it to
 anything more favorable. You may only confirm it, or (if the evidence
 shown to you suggests real doubt) propose a MORE CONSERVATIVE verdict from
@@ -74,9 +78,9 @@ class AdjudicationResult:
 
 def templated_certificate_prose(verdict: str, taxonomy_code: str | None, attempts_used: int) -> str:
     base = {
-        "RUNS_CLEAN": "The repository built and executed successfully with zero patches applied.",
-        "RUNS_AFTER_REPAIR": f"The repository executed successfully after {attempts_used} gate-approved repair attempt(s).",
-        "BLOCKED": f"The repository failed to execute after {attempts_used} repair attempt(s), classified as {taxonomy_code}.",
+        "RUNS_CLEAN": "The repository's command ran to completion in its declared environment, with no changes.",
+        "RUNS_AFTER_REPAIR": f"The repository's command ran to completion after {attempts_used} gate-approved change(s).",
+        "BLOCKED": f"The repository's command did not run to completion after {attempts_used} repair attempt(s), classified as {taxonomy_code}.",
         "INDETERMINATE": "Recon could not establish enough confidence to attempt execution.",
         "NOT_ATTEMPTABLE": "The repository has no attemptable runnable code under RERUN's current scope.",
         "TIMEOUT": "Execution exceeded the sandbox's wall-clock ceiling.",
@@ -93,6 +97,16 @@ def _clamp_verdict(original: str, proposed: str) -> tuple[str, bool, bool]:
     if proposed_rank < original_rank:
         return proposed, True, False
     return original, False, False
+
+
+# RERUN verifies that code EXECUTES / runs to completion. It never verifies
+# that a paper's results were reproduced, so certificate prose may not say so.
+_REPRODUCTION_CLAIM_RE = re.compile(r"\breproduc", re.IGNORECASE)
+
+
+def makes_reproduction_claim(prose: str) -> bool:
+    """True if the prose (minus the fixed scope line) uses reproduce-wording."""
+    return bool(_REPRODUCTION_CLAIM_RE.search(prose.replace(SCOPE_BOUNDARY_LINE, "")))
 
 
 def _ensure_scope_line(prose: str) -> str:
@@ -146,6 +160,10 @@ def adjudicate(
     final_verdict, was_downgraded, attempted_upgrade = _clamp_verdict(verdict, proposed_verdict)
 
     prose = str(raw.get("prose") or "").strip()
+    if prose and makes_reproduction_claim(prose):
+        # The model wrote "reproduces"/"reproducible"/...: the certificate may
+        # only say the code executes, so fall back to the fixed wording.
+        prose = ""
     if not prose:
         prose = templated_certificate_prose(final_verdict, taxonomy_code, attempts_used)
         used_fallback = True

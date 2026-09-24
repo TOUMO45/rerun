@@ -47,6 +47,9 @@ class CertificateOut(BaseModel):
     diffs: list
     reproduction_passport_hash: str
     timestamp: str
+    bundle_version: int | None = 1
+    baseline: dict | None = None
+    recovery: bool | None = None
 
 
 class HealthOut(BaseModel):

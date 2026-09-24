@@ -168,16 +168,7 @@ def main(argv: list[str] | None = None) -> int:
         }
         # Exactly the downloadable-certificate shape Certificate.tsx exports
         # and scripts/verify_passport.py checks.
-        record["certificate"] = {
-            "repo_url": result.repo_url,
-            "commit_sha": result.commit_sha,
-            "build_plan": result.build_plan or {},
-            "full_log": result.full_log,
-            "diffs": [a.as_dict() for a in result.attempts],
-            "verdict": result.verdict,
-            "timestamp": result.timestamp,
-            "reproduction_passport_hash": result.reproduction_passport_hash,
-        }
+        record["certificate"] = result.certificate()
     except Exception as exc:  # recorded, never hidden
         record["error"] = f"{type(exc).__name__}: {exc}"
         exit_code = 1

@@ -5,7 +5,7 @@ from __future__ import annotations
 import uuid
 from datetime import datetime, timezone
 
-from sqlalchemy import JSON, DateTime, Float, ForeignKey, Integer, String, Text
+from sqlalchemy import JSON, Boolean, DateTime, Float, ForeignKey, Integer, String, Text
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
 
@@ -79,5 +79,9 @@ class Certificate(Base):
     # reformat microseconds/timezone representation and silently break the
     # passport hash's verifiability. See DECISIONS.md.
     timestamp: Mapped[str] = mapped_column(String(64))
+    # Passport bundle v2+ fields (NULL/1 on certificates created before).
+    bundle_version: Mapped[int] = mapped_column(Integer, default=1)
+    baseline: Mapped[dict | None] = mapped_column(JSON, nullable=True)
+    recovery: Mapped[bool | None] = mapped_column(Boolean, nullable=True)
 
     run: Mapped[Run] = relationship(back_populates="certificate")

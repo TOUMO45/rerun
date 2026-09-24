@@ -111,7 +111,11 @@ def run_one_repo(
             # e.g. ENTRYPOINT_UNCLEAR, RECON_MODEL_ERROR, PIPELINE_ERROR:recon:ValueError —
             # the aggregator uses it to keep RERUN's own failures out of the denominator.
             "reason_code": reason_code_of(result.indeterminate_reason),
-            "attempts_used": len(result.attempts),
+            # The as-is run before RERUN changed anything, and whether RERUN
+            # turned that failure into a completed run (passport bundle v2).
+            "baseline": (result.baseline or {}).get("result"),
+            "recovery": bool(result.recovery),
+            "attempts_used": sum(1 for a in result.attempts if a.origin == "model"),
             "duration_seconds": round(time.monotonic() - started, 1),
         }
     finally:
