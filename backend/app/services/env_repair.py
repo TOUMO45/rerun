@@ -30,7 +30,7 @@ from pathlib import Path
 from app.services.planner import BuildPlan
 from app.services.tamper_gate import Violation
 
-OPS = ("pin", "unpin", "add", "remove", "pip_git", "apt", "python")
+OPS = ("pin", "unpin", "add", "remove", "pip_git", "apt", "python", "command")
 MAX_CHANGES = 10
 # 3.6–3.13 verified live (2026-09-24) to exist as python:X-slim sandbox images.
 SUPPORTED_PYTHON_VERSIONS = ("3.6", "3.7", "3.8", "3.9", "3.10", "3.11", "3.12", "3.13")
@@ -48,6 +48,11 @@ class EnvRule:
     ENV_UNJUSTIFIED = "ENV_UNJUSTIFIED"  # missing justification / evidence not in the log
     ENV_UNSUPPORTED = "ENV_UNSUPPORTED"  # e.g. unpin/remove without a requirements.txt
     ENV_TOO_LARGE = "ENV_TOO_LARGE"
+    ENV_COMMAND_UNSAFE = "ENV_COMMAND_UNSAFE"  # new shell operators / substitutions
+    ENV_COMMAND_PROGRAM_CHANGED = "ENV_COMMAND_PROGRAM_CHANGED"  # different program, script or positional args
+    # Same rule name as the tamper gate's: the scale-reduction rule applies to
+    # command changes too (fewer epochs/samples/steps via a flag).
+    REDUCED_SCALE = "REDUCED_SCALE"
 
 
 # PEP 508 distribution name.
@@ -84,9 +89,11 @@ class EnvChange:
     commit: str | None = None
     justification: str = ""
     evidence: str = ""
+    command: str | None = None
 
     def as_dict(self) -> dict:
         return {
+            "command": self.command,
             "op": self.op,
             "package": self.package,
             "version": self.version,
@@ -124,6 +131,7 @@ def parse_env_delta(raw) -> tuple[tuple[EnvChange, ...], tuple[Violation, ...]]:
                 commit=_s("commit"),
                 justification=_s("justification") or "",
                 evidence=_s("evidence") or "",
+                command=_s("command"),
             )
         )
     return tuple(changes), tuple(violations)
@@ -168,6 +176,7 @@ def check_env_delta(
     imported_modules: frozenset[str],
     has_requirements_txt: bool,
     verified_git_sources: frozenset[tuple[str, str]] = frozenset(),
+    current_command: str | None = None,
 ) -> tuple[Violation, ...]:
     """The deterministic env gate. Returns every violation (empty = PASS).
 
@@ -208,6 +217,14 @@ def check_env_delta(
                 _v(EnvRule.ENV_DATA_URL, f"{field_name} contains a URL ({value[:80]!r}) — only pinned git sources may", i)
         if c.git_url and c.op != "pip_git":
             _v(EnvRule.ENV_DATA_URL, f"git_url is only allowed for op 'pip_git' (got op '{c.op}')", i)
+
+        if c.op == "command":
+            if not c.command or not current_command:
+                _v(EnvRule.ENV_INVALID_CHANGE, "command change needs a new command and a current command", i)
+            else:
+                for rule, reason in check_command_change(current_command, c.command):
+                    _v(rule, reason, i)
+            continue
 
         if c.op == "python":
             if c.version not in SUPPORTED_PYTHON_VERSIONS:
@@ -256,6 +273,97 @@ def check_env_delta(
     return tuple(violations)
 
 
+# Flags whose numeric value sets how much work a run does. Reuses the tamper
+# gate's keywords plus common CLI spellings.
+_SCALE_FLAG_WORDS = {
+    "epoch", "epochs", "num_epochs", "n_epochs", "sample", "samples", "num_samples", "n_samples", "nsamples",
+    "dataset_size", "subset_size", "max_steps", "num_steps", "steps", "train_steps", "total_steps", "train_size",
+    "limit", "iters", "iterations", "num_iters", "n_iters", "max_iter", "max_iters", "length", "n", "num",
+}
+_UNSAFE_TOKENS = {";", "|", "||", "&", ">", ">>", "<", "<<", "`"}
+
+
+def _command_tokens(command: str) -> list[str]:
+    lexer = shlex.shlex(command, posix=True, punctuation_chars=";&|<>")
+    lexer.whitespace_split = True
+    return list(lexer)
+
+
+def _segments(tokens: list[str]) -> list[list[str]]:
+    segments, current = [], []
+    for tok in tokens:
+        if tok == "&&":
+            segments.append(current)
+            current = []
+        else:
+            current.append(tok)
+    segments.append(current)
+    return segments
+
+
+def _split_segment(tokens: list[str]) -> tuple[list[str], dict[str, str | None]]:
+    """(positional tokens incl. the program, {normalized flag: value})."""
+    positional, flags = [], {}
+    i = 0
+    while i < len(tokens):
+        tok = tokens[i]
+        if tok.startswith("-") and len(tok) > 1 and not re.fullmatch(r"-?\d+(\.\d+)?", tok):
+            name, eq, value = tok.lstrip("-").partition("=")
+            key = name.replace("-", "_").lower()
+            if eq:
+                flags[key] = value
+            elif i + 1 < len(tokens) and not tokens[i + 1].startswith("-"):
+                flags[key] = tokens[i + 1]
+                i += 1
+            else:
+                flags[key] = None
+        else:
+            positional.append(tok)
+        i += 1
+    return positional, flags
+
+
+def check_command_change(original: str, new: str) -> list[tuple[str, str]]:
+    """The documented command is ground truth: a repair may only add or
+    change non-scale flags. Same program/script and positional arguments,
+    no new shell operators, and no scale flag reduced, removed or added."""
+    try:
+        old_tokens, new_tokens = _command_tokens(original), _command_tokens(new)
+    except ValueError as exc:
+        return [(EnvRule.ENV_COMMAND_UNSAFE, f"command does not parse: {exc}")]
+    problems: list[tuple[str, str]] = []
+    for tok in set(new_tokens):
+        if (tok in _UNSAFE_TOKENS or "$(" in tok or "`" in tok) and new_tokens.count(tok) > old_tokens.count(tok):
+            problems.append((EnvRule.ENV_COMMAND_UNSAFE, f"adds shell operator/substitution {tok!r}"))
+    old_segments, new_segments = _segments(old_tokens), _segments(new_tokens)
+    if len(old_segments) != len(new_segments):
+        return problems + [(EnvRule.ENV_COMMAND_PROGRAM_CHANGED, "adds or removes a step of the documented command")]
+    for old_seg, new_seg in zip(old_segments, new_segments):
+        old_pos, old_flags = _split_segment(old_seg)
+        new_pos, new_flags = _split_segment(new_seg)
+        if old_pos != new_pos:
+            problems.append((
+                EnvRule.ENV_COMMAND_PROGRAM_CHANGED,
+                f"program/script/positional arguments changed: {' '.join(old_pos)!r} -> {' '.join(new_pos)!r}",
+            ))
+        for key in set(old_flags) | set(new_flags):
+            if key not in _SCALE_FLAG_WORDS:
+                continue
+            before, after = old_flags.get(key), new_flags.get(key)
+            if key in old_flags and key not in new_flags:
+                problems.append((EnvRule.REDUCED_SCALE, f"removes scale flag --{key} ({before})"))
+            elif key not in old_flags:
+                problems.append((EnvRule.REDUCED_SCALE, f"adds scale flag --{key} not in the documented command"))
+            else:
+                try:
+                    if float(after) < float(before):
+                        problems.append((EnvRule.REDUCED_SCALE, f"reduces --{key} from {before} to {after}"))
+                except (TypeError, ValueError):
+                    if after != before:
+                        problems.append((EnvRule.REDUCED_SCALE, f"changes scale flag --{key} from {before!r} to {after!r}"))
+    return problems
+
+
 def _requirement_name(line: str) -> str | None:
     stripped = line.split("#", 1)[0].strip()
     if not stripped or stripped.startswith(("-", "git+", "http")):
@@ -285,7 +393,12 @@ def apply_env_delta(
     lines = requirements_txt.splitlines() if requirements_txt is not None else None
     notes = list(plan.notes)
 
+    execute_command = plan.execute_command
     for c in changes:
+        if c.op == "command":
+            execute_command = c.command
+            notes.append(f"env delta: command -> {c.command} — {c.justification}")
+            continue
         if c.op == "python":
             base_image = f"python:{c.version}-slim"
         elif c.op == "apt":
@@ -310,7 +423,7 @@ def apply_env_delta(
 
     install_commands = list(plan.install_commands)
     new_requirements = None
-    if lines is not None and any(c.op not in ("python", "apt") for c in changes):
+    if lines is not None and any(c.op not in ("python", "apt", "command") for c in changes):
         new_requirements = "\n".join(lines) + "\n"
         write = f"printf '%s\\n' {' '.join(shlex.quote(line) for line in lines)} > {REQUIREMENTS_OVERRIDE_FILE}"
         install_commands = [
@@ -323,6 +436,13 @@ def apply_env_delta(
         install_commands.append("pip install " + " ".join(shlex.quote(s) for s in extra_specs))
 
     return (
-        replace(plan, base_image=base_image, apt_install=tuple(sorted(apt)), install_commands=tuple(install_commands), notes=tuple(notes)),
+        replace(
+            plan,
+            base_image=base_image,
+            apt_install=tuple(sorted(apt)),
+            install_commands=tuple(install_commands),
+            execute_command=execute_command,
+            notes=tuple(notes),
+        ),
         new_requirements,
     )

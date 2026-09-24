@@ -124,7 +124,14 @@ def run_single_repo_job(client: NebiusJobsClient, entry: CorpusEntry, rerun_imag
         name=f"rerun-batch-{entry.name}",
         image=rerun_image,
         container_command="python",
-        args=("-m", "app.batch.run_single_repo", "--repo-url", entry.repo_url, "--commit-sha", entry.commit_sha),
+        # Found 2026-09-24: `--name` (required by run_single_repo's CLI) was
+        # never passed, so every real job would have died in argparse.
+        args=(
+            "-m", "app.batch.run_single_repo",
+            "--repo-url", entry.repo_url,
+            "--commit-sha", entry.commit_sha,
+            "--name", entry.name,
+        ) + (("--command", entry.command) if entry.command else ()),
     )
     return client.create_job(spec)
 

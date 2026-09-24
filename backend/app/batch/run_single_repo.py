@@ -43,6 +43,7 @@ def run_one_repo(
     settings=None,
     run_pipeline_fn=None,
     clone_fn=None,
+    command: str | None = None,
 ) -> dict:
     """The testable core: clone at the pinned commit, run the pipeline,
     return a result dict in exactly the shape
@@ -102,6 +103,7 @@ def run_one_repo(
             deps=deps,
             cost_guard=cost_guard,
             run_id=f"batch-{name}",
+            documented_command=command,
         )
         return {
             "name": name,
@@ -132,10 +134,11 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--repo-url", required=True)
     parser.add_argument("--commit-sha", required=True)
     parser.add_argument("--name", required=True)
+    parser.add_argument("--command", default=None, help="the corpus entry's documented command (ground truth)")
     args = parser.parse_args(argv)
 
     try:
-        output = run_one_repo(args.repo_url, args.commit_sha, args.name)
+        output = run_one_repo(args.repo_url, args.commit_sha, args.name, command=args.command)
     except intake.IntakeError as exc:
         # A real infrastructure failure (couldn't even clone) — distinct
         # from a valid BLOCKED/INDETERMINATE/NOT_ATTEMPTABLE verdict,

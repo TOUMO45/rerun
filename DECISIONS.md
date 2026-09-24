@@ -3446,3 +3446,37 @@ three; negative control: one module per attempt runs out of attempts (BLOCKED on
 the lock block reaches the prompt. Backend 504 passed, 8 skipped.
 
 ---
+
+## 2026-09-24 — Documented command support (corpus command = ground truth)
+
+- `CorpusEntry` gains `command` (full shell command, args allowed) and `command_source`
+  (where the repo documents it; required whenever `command` is set). The command is used
+  verbatim as the plan's execute command, and recorded as the baseline's `execute_command`.
+  When a command is documented, recon's entrypoint abstention (§6.1) no longer stops the
+  run — no entrypoint has to be guessed; this is logged. Recon's eval/model names are then
+  unavailable, but the tamper gate's AST floor still applies.
+- A repair can change the command only through a new env op `command`, behind the env
+  gate. `check_command_change(documented, new)`: same `&&`-separated steps, same
+  program/script and positional arguments (`ENV_COMMAND_PROGRAM_CHANGED`); no new shell
+  operators or substitutions (`;`, `|`, `&`, redirections, `$(…)`, backticks →
+  `ENV_COMMAND_UNSAFE`); and the **scale-reduction rule** (same rule name as the tamper
+  gate, `REDUCED_SCALE`): a scale flag (epochs, samples/nsamples, steps, iters, length, …)
+  may not be reduced, removed, or newly added. Non-scale flags may change. Justification +
+  verbatim evidence are required as for every env change.
+- Commands set for the two live repos, read from their own docs at the pinned commits:
+  **TTPT** `bash run_ttpt.sh` (README). **gpt-2** `export PYTHONIOENCODING=UTF-8 && python3
+  download_model.py 124M && python3 src/generate_unconditional_samples.py --nsamples 1`
+  (DEVELOPERS.md). Two disclosed deviations for gpt-2: `--nsamples 1`, because the script's
+  own docstring says the default `nsamples=0` "continues to generate samples
+  indefinitely" (the documented command never finishes), and no `| tee /tmp/samples`,
+  because a pipe makes the exit status tee's and would hide a failure. Both are recorded in
+  `corpus.yaml` next to the command.
+- **Pre-existing bug fixed:** `runner.run_single_repo_job` never passed `--name`, which
+  `run_single_repo`'s CLI requires, so every real Serverless job would have died in
+  argparse. Now passes `--name` (and `--command`); a test parses the exact job args with the
+  real CLI.
+
+Tests: `tests/test_documented_command.py` (27) + job-args regression. Backend 532 passed,
+8 skipped; frontend 8 passed (EnvDeltaView renders `command -> …`); build green.
+
+---

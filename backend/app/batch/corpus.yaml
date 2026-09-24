@@ -142,6 +142,8 @@ repos:
   - name: TTPT
     repo_url: https://github.com/gaozhengqing/TTPT
     commit_sha: 7d6a26246882e830c76a27b2bd669f399f824037
+    command: "bash run_ttpt.sh"
+    command_source: "README.md (\"bash run_ttpt.sh\")"
     stars_observed: 3
     dependency_files_observed: [requirements.txt]
     entrypoint_hint: train.py
@@ -153,6 +155,14 @@ repos:
   - name: gpt-2
     repo_url: https://github.com/openai/gpt-2
     commit_sha: 9b63575ef42771a015060c964af2c3da4cf7c8ab
+    # DEVELOPERS.md documents `python3 download_model.py 124M` then
+    # `python3 src/generate_unconditional_samples.py | tee /tmp/samples`.
+    # Two disclosed deviations: `--nsamples 1` (the script's own docstring:
+    # nsamples=0, the default, "continues to generate samples indefinitely",
+    # so the documented command never finishes) and no `| tee` (a pipe makes
+    # the exit status tee's and would hide a failure).
+    command: "export PYTHONIOENCODING=UTF-8 && python3 download_model.py 124M && python3 src/generate_unconditional_samples.py --nsamples 1"
+    command_source: "DEVELOPERS.md (download + unconditional samples); --nsamples from src/generate_unconditional_samples.py docstring"
     stars_observed: 25010
     dependency_files_observed: [requirements.txt, Dockerfile.cpu, Dockerfile.gpu]
     entrypoint_hint: src/ (interactive_conditional_samples.py, etc.)

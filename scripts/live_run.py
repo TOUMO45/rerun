@@ -114,7 +114,13 @@ def main(argv: list[str] | None = None) -> int:
     record: dict = {
         "run_kind": "live end-to-end run",
         "started_at": _now(),
-        "corpus_entry": {"name": entry.name, "repo_url": entry.repo_url, "commit_sha": entry.commit_sha},
+        "corpus_entry": {
+            "name": entry.name,
+            "repo_url": entry.repo_url,
+            "commit_sha": entry.commit_sha,
+            "command": entry.command,
+            "command_source": entry.command_source,
+        },
         "config": {
             "models": {
                 "recon": deps.recon_model,
@@ -155,6 +161,7 @@ def main(argv: list[str] | None = None) -> int:
             cost_guard=cost_guard,
             run_id=f"live-{entry.name}",
             on_event=on_event,
+            documented_command=entry.command,
         )
         record["pipeline_duration_s"] = round(time.monotonic() - t0, 2)
         record["result"] = {

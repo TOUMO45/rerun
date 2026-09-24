@@ -199,6 +199,14 @@ def _apply_diff_with_git(workdir: Path, diff_text: str) -> None:
         raise OrchestratorError(f"gate-approved patch failed to apply: {result.stderr.strip()}")
 
 
+def _script_in_command(command: str | None) -> str | None:
+    """The first .py script a documented command runs (repair target)."""
+    for token in (command or "").split():
+        if token.endswith(".py"):
+            return token
+    return None
+
+
 def _load_touched_originals(workdir: Path, paths: tuple[str, ...]) -> dict[str, str]:
     """Original content of each touched path that exists as a regular,
     non-symlinked file inside `workdir`. Anything else is simply left out,
@@ -396,6 +404,7 @@ def run_pipeline(
     cost_guard: CostGuard,
     run_id: str,
     on_event: Callable[[str], None] | None = None,
+    documented_command: str | None = None,
 ) -> PipelineResult:
     """`on_event`, if given, is called with each log line the instant it
     happens — not just accumulated into the final `PipelineResult.full_log`
@@ -423,6 +432,7 @@ def run_pipeline(
             run_id=run_id,
             on_event=on_event,
             state=state,
+            documented_command=documented_command,
         )
     except Exception as exc:  # noqa: BLE001 - this IS the boundary
         return _finalize_pipeline_error(
@@ -447,6 +457,7 @@ def _run_stages(
     run_id: str,
     on_event: Callable[[str], None] | None,
     state: _RunState,
+    documented_command: str | None = None,
 ) -> PipelineResult:
     log_lines = state.log_lines
 
@@ -472,7 +483,15 @@ def _run_stages(
         deps.recon_client, deps.recon_model, intake_result, entrypoint_source, cost_guard=cost_guard
     )
 
-    if recon_result.is_indeterminate:
+    if recon_result.is_indeterminate and documented_command:
+        # The corpus documents the command, so no entrypoint has to be
+        # guessed: recon's abstention doesn't stop the run (recon's eval/model
+        # names are simply unavailable; the tamper gate's AST floor still applies).
+        _log(
+            f"[recon] {recon_result.indeterminate_code}: {recon_result.indeterminate_reason} — "
+            f"proceeding with the documented command: {documented_command}"
+        )
+    elif recon_result.is_indeterminate:
         # Prefix the stable code so it survives into the stored run, the API,
         # the certificate (Certificate.tsx renders indeterminate_reason) and
         # the passport bundle without a schema change.
@@ -495,7 +514,8 @@ def _run_stages(
             commit_sha=commit_sha,
             state=state,
         )
-    _log(f"[recon] entrypoint={recon_result.entrypoint} confidence={recon_result.confidence:.2f}")
+    else:
+        _log(f"[recon] entrypoint={recon_result.entrypoint} confidence={recon_result.confidence:.2f}")
 
     state.stage = "planner"
     plan = planner.build_plan(
@@ -505,6 +525,7 @@ def _run_stages(
         model=deps.planner_model,
         cost_guard=cost_guard,
         default_image=deps.default_sandbox_image,
+        documented_command=documented_command,
     )
     state.build_plan_dict = plan.as_dict()
     _log(f"[planner] build plan: {plan.as_dict()}")
@@ -688,7 +709,11 @@ def _run_stages(
                 break
 
             state.stage = "repairer"
-            target_file = _target_file_for(classification, recon_result.entrypoint, intake_result.dependency_files)
+            target_file = _target_file_for(
+                classification,
+                recon_result.entrypoint or _script_in_command(documented_command) or "",
+                intake_result.dependency_files,
+            )
             target_path = workdir / target_file
             target_content = (read_text_capped(target_path) or "") if target_path.is_file() else ""
             repair_layer = classifier.repair_layer_for(classification.code)
@@ -812,6 +837,7 @@ def _run_stages(
                         imported_modules=imported_modules,
                         has_requirements_txt=current_requirements is not None,
                         verified_git_sources=verified_git,
+                        current_command=plan.execute_command,
                     )
                 return changes, violations
 

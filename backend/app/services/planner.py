@@ -146,6 +146,7 @@ def build_plan(
     model: str | None = None,
     cost_guard=None,
     default_image: str = "python:3.11-slim",
+    documented_command: str | None = None,
 ) -> BuildPlan:
     """Build the deterministic base plan, then optionally enrich apt
     packages via Nemotron Super. `client`/`model` are optional — omitting
@@ -157,10 +158,12 @@ def build_plan(
     (`NEBIUS_SANDBOX_IMAGE`), not be hardcoded, so that setting actually
     does something.
     """
-    if recon.is_indeterminate or not recon.entrypoint:
+    if not documented_command and (recon.is_indeterminate or not recon.entrypoint):
         raise ValueError("build_plan requires a non-indeterminate recon result with a chosen entrypoint")
 
     notes: list[str] = []
+    if documented_command:
+        notes.append("execute command is the repository's documented command (corpus ground truth)")
     base_image = _base_image_for(recon.python_version or intake.python_version_hint, default_image)
     install_commands = _deterministic_install_commands(intake)
     apt_packages = set(_known_apt_packages(intake.declared_dependencies))
@@ -205,6 +208,9 @@ def build_plan(
         # command — no model involvement needed at all, unlike the
         # apt-package injection fixed earlier. shlex.quote() makes the
         # whole filename, however strange, a single safe argument.
-        execute_command=f"python {shlex.quote(recon.entrypoint)}",
+        # A documented command comes from the human-curated corpus (trusted,
+        # args allowed) and is used verbatim; otherwise the recon-chosen
+        # entrypoint, quoted.
+        execute_command=documented_command or f"python {shlex.quote(recon.entrypoint)}",
         notes=tuple(notes),
     )

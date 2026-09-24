@@ -16,6 +16,8 @@ function describe(change: EnvChange): string {
       return `apt install ${change.package}`;
     case "python":
       return `python ${change.version}`;
+    case "command":
+      return `command -> ${change.command}`;
     default:
       return `${change.op} ${change.package ?? ""}`;
   }

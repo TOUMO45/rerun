@@ -92,6 +92,24 @@ def test_run_single_repo_job_pins_the_corpus_commit_sha():
     assert entry.commit_sha in http.last_post["json"]["spec"]["args"]
 
 
+def test_job_args_are_accepted_by_the_job_cli(monkeypatch):
+    """Regression: the runner never passed --name, which the job's own CLI
+    requires. Parse the exact args the runner builds with the real parser."""
+    from dataclasses import replace
+
+    from app.batch import run_single_repo as job
+
+    entry = replace(load_corpus()[0], command="python train.py --epochs 3", command_source="README")
+    http = _FakeHttp(post_response=_FakeResponse(200, {"metadata": {"id": "job-x"}}))
+    run_single_repo_job(NebiusJobsClient(http=http, access_token="tok", project_id="p"), entry, rerun_image="rerun:latest")
+    args = list(http.last_post["json"]["spec"]["args"])
+    assert args[:2] == ["-m", "app.batch.run_single_repo"]
+    seen = {}
+    monkeypatch.setattr(job, "run_one_repo", lambda url, sha, name, command=None: seen.update(url=url, sha=sha, name=name, command=command) or {"ok": 1})
+    assert job.main(args[2:]) == 0
+    assert seen == {"url": entry.repo_url, "sha": entry.commit_sha, "name": entry.name, "command": "python train.py --epochs 3"}
+
+
 # --- aggregate_batch_results: pure, real logic -------------------------------
 
 

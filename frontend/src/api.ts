@@ -61,6 +61,8 @@ export interface EnvChange {
   commit: string | null;
   justification: string;
   evidence: string;
+  /** New execute command (op "command"); the documented command is ground truth and only non-scale flags may change. */
+  command?: string | null;
 }
 
 export interface RepairAttemptDiff {

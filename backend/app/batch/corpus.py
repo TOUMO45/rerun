@@ -30,6 +30,10 @@ class CorpusEntry:
     selection_note: str
     stars_observed: int | None = None
     dependency_files_observed: tuple[str, ...] = ()
+    # The repository's own documented command (args allowed) — ground truth
+    # for what "runs" means. `command_source` says where it was documented.
+    command: str | None = None
+    command_source: str = ""
 
 
 def load_corpus(path: Path | None = None) -> tuple[CorpusEntry, ...]:
@@ -61,6 +65,11 @@ def load_corpus(path: Path | None = None) -> tuple[CorpusEntry, ...]:
 
         if len(raw["commit_sha"]) != 40:
             raise CorpusError(f"corpus entry '{raw['name']}' has a commit_sha that isn't a full 40-char SHA")
+        command = raw.get("command")
+        if command is not None and (not isinstance(command, str) or not command.strip()):
+            raise CorpusError(f"corpus entry '{raw['name']}' has an empty or non-string command")
+        if command is not None and not str(raw.get("command_source") or "").strip():
+            raise CorpusError(f"corpus entry '{raw['name']}' has a command but no command_source saying where it is documented")
 
         entries.append(
             CorpusEntry(
@@ -71,6 +80,8 @@ def load_corpus(path: Path | None = None) -> tuple[CorpusEntry, ...]:
                 selection_note=raw["selection_note"].strip(),
                 stars_observed=raw.get("stars_observed"),
                 dependency_files_observed=tuple(raw.get("dependency_files_observed") or ()),
+                command=command.strip() if command else None,
+                command_source=str(raw.get("command_source") or "").strip(),
             )
         )
 
