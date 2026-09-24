@@ -1,0 +1,881 @@
+{
+  "run_kind": "live end-to-end run",
+  "started_at": "2026-09-24T12:49:15.981469+00:00",
+  "corpus_entry": {
+    "name": "TTPT",
+    "repo_url": "https://github.com/gaozhengqing/TTPT",
+    "commit_sha": "7d6a26246882e830c76a27b2bd669f399f824037"
+  },
+  "config": {
+    "models": {
+      "recon": "nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B",
+      "planner": "nvidia/nemotron-3-super-120b-a12b",
+      "repairer": "nvidia/nemotron-3-super-120b-a12b",
+      "adjudicator": "nvidia/Nemotron-3-Ultra-550b-a55b"
+    },
+    "sandbox_backend": "token_factory",
+    "sandbox_image_default": "python:3.11-slim",
+    "sandbox_wall_clock_seconds": 600.0,
+    "max_attempts": 3,
+    "tavily_configured": true,
+    "cost_cap_usd": 2.0
+  },
+  "intake": {
+    "duration_s": 12.18,
+    "resolved_sha": "7d6a26246882e830c76a27b2bd669f399f824037",
+    "dependency_files": [
+      "requirements.txt"
+    ],
+    "declared_dependencies": [
+      "ftfy",
+      "regex",
+      "tqdm"
+    ],
+    "entrypoint_candidates": [
+      "lpclip/feat_extractor.py",
+      "train.py"
+    ],
+    "notebook_paths": []
+  },
+  "pipeline_duration_s": 311.98,
+  "result": {
+    "verdict": "BLOCKED",
+    "taxonomy_code": "DEP_MISSING",
+    "indeterminate_reason": "",
+    "reason_code": null,
+    "error_traceback": "",
+    "attempts": [
+      {
+        "attempt_number": 1,
+        "diff_text": "",
+        "gate_decision": "PASS",
+        "gate_violations": [],
+        "exit_code": 1,
+        "stdout_tail": "",
+        "stderr_tail": "/usr/local/lib/python3.11/site-packages/torch/_subclasses/functional_tensor.py:258: UserWarning: Failed to initialize NumPy: No module named 'numpy' (Triggered internally at ../torch/csrc/utils/tensor_numpy.cpp:84.)\n  cpu = _conversion_method_template(device=torch.device(\"cpu\"))\nTraceback (most recent call last):\n  File \"//train.py\", line 4, in <module>\n    from dassl.utils import setup_logger, set_random_seed, collect_env_info\nModuleNotFoundError: No module named 'dassl'\n",
+        "tavily_sources": [
+          {
+            "title": "Previous PyTorch Versions",
+            "url": "https://pytorch.org/get-started/previous-versions",
+            "content": "torchvision-0.1.6-py3-none-any.whl\n torchvision-0.1.6-py2-none-any.whl\n torch-1.0.0-cp37-none-macosx\\_10\\_7\\_x86\\_64.whl\n torch-1.0.0-cp36-none-macosx\\_10\\_7\\_x86\\_64.whl\n torch-1.0.0-cp35-none-macosx\\_10\\_6\\_x86\\_64.whl\n torch-1.0.0-cp27-none-macosx\\_10\\_6\\_x86\\_64.whl\n torch-0.4.0-cp36-cp36m-macosx\\_10\\_7\\_x86\\_64.whl\n torch-0.4.0-cp35-cp35m-macosx\\_10\\_7\\_x86\\_64.whl\n torch-0.4.0-cp27-none-macosx\\_10\\_7\\_x86\\_64.whl\n torch-0.3.1-cp36-cp36m-macosx\\_10\\_7\\_x86\\_64.whl [...] torch-0.3.1-cp35-cp35m-macosx\\_10\\_7\\_x86\\_64.whl\n torch-0.3.1-cp27-none-macosx\\_10\\_7\\_x86\\_64.whl\n torch-0.3.0.post4-cp36-cp36m-macosx\\_10\\_7\\_x86\\_64.whl\n torch-0.3.0.post4-cp35-cp35m-macosx\\_10\\_7\\_x86\\_64.whl\n torch-0.3.0.post4-cp27-none-macosx\\_10\\_7\\_x86\\_64.whl\n torch-0.2.0.post3-cp36-cp36m-macosx\\_10\\_7\\_x86\\_64.whl\n torch-0.2.0.post3-cp35-cp35m-macosx\\_10\\_7\\_x86\\_64.whl\n torch-0.2.0.post3-cp27-none-macosx\\_10\\_7\\_x86\\_64.whl\n torch-0.2.0.post2-cp36-cp36m-macosx\\_10\\_7\\_x86\\_64.whl [...] torch-0.1.12.post1-cp36-cp36m-macosx\\_10\\_7\\_x86\\_64.whl\n torch-0.1.12.post1-cp35-cp35m-macosx\\_10\\_7\\_x86\\_64.whl\n torch-0.1.12.post1-cp27-none-macosx\\_10\\_7\\_x86\\_64.whl\n torch-0.1.11.post5-cp36-cp36m-macosx\\_10\\_7\\_x86\\_64.whl\n torch-0.1.11.post5-cp35-cp35m-macosx\\_10\\_7\\_x86\\_64.whl\n torch-0.1.11.post5-cp27-none-macosx\\_10\\_7\\_x86\\_64.whl\n torch-0.1.11.post4-cp36-cp36m-macosx\\_10\\_7\\_x86\\_64.whl\n torch-0.1.11.post4-cp35-cp35m-macosx\\_10\\_7\\_x86\\_64.whl"
+          },
+          {
+            "title": "Status of Python versions",
+            "url": "https://devguide.python.org/versions",
+            "content": "|  |  |  | First release | End of life | Release manager |\n ---  ---  --- |\n| main | PEP 826 | feature | 2027-10-06 | 2032-10 | Savannah Ostrowski |\n| 3.15 | PEP 790 | prerelease | 2026-10-01 | 2031-10 | Hugo van Kemenade |\n| 3.14 | PEP 745 | bugfix | 2025-10-07 | 2030-10 | Hugo van Kemenade |\n| 3.13 | PEP 719 | bugfix | 2024-10-07 | 2029-10 | Thomas Wouters |\n| 3.12 | PEP 693 | security | 2023-10-02 | 2028-10 | Thomas Wouters | [...] '19   '20   '21   '22   '23   '24   '25   '26   '27   '28   '29   '30   '31   '32     end-of-life   end-of-life   Python 2.7   end-of-life   end-of-life   Python 3.6   end-of-life   end-of-life   Python 3.7   end-of-life   end-of-life   Python 3.8   end-of-life   end-of-life   Python 3.9   security   security   Python 3.10   security   security   Python 3.11   security   security   Python 3.12   bugfix   bugfix   Python 3.13   bugfix   bugfix   Python 3.14   prerelease   prerelease [...] | Branch | Schedule | Status | First release | End of life | Release manager |\n ---  ---  --- |\n| 3.9 | PEP 596 | end-of-life | 2020-10-05 | 2025-10-31 | \u0141ukasz Langa |\n| 3.8 | PEP 569 | end-of-life | 2019-10-14 | 2024-10-07 | \u0141ukasz Langa |\n| 3.7 | PEP 537 | end-of-life | 2018-06-27 | 2023-06-27 | Ned Deily |\n| 3.6 | PEP 494 | end-of-life | 2016-12-23 | 2021-12-23 | Ned Deily |\n| 3.5 | PEP 478 | end-of-life | 2015-09-13 | 2020-09-30 | Larry Hastings |"
+          },
+          {
+            "title": "PyTorch 2.6 Release Blog \u2013 PyTorch",
+            "url": "https://pytorch.org/blog/pytorch2-6",
+            "content": "Close Search\n\nPyTorch Logo\n\nsearch\n\nBlog \n\n# PyTorch 2.6 Release Blog\n\nBy PyTorch FoundationJanuary 29, 2025May 3rd, 2025No Comments\n\nWe are excited to announce the release of PyTorch\u00ae 2.6 (release notes)! This release features multiple improvements for PT2: `torch.compile` can now be used with Python 3.13; new performance-related knob `torch.compiler.set_stance`; several AOTInductor enhancements. Besides the PT2 improvements, another highlight is FP16 support on X86 CPUs. [...] `torch.compile` previously only supported Python up to version 3.12. Users can now optimize models with `torch.compile` in Python 3.13.\n\n### [Beta] New packaging APIs for AOTInductor [...] |  |  |\n --- |\n| Beta | Prototype |\n| torch.compiler.set\\_stance | Improved PyTorch user experience on Intel GPUs |\n| torch.library.triton\\_op | FlexAttention support on X86 CPU for LLMs |\n| torch.compile support for Python 3.13 | Dim.AUTO |\n| New packaging APIs for AOTInductor | CUTLASS and CK GEMM/CONV Backends for AOTInductor |\n| AOTInductor: minifier |  |\n| AOTInductor: ABI-compatible mode code generation |  |\n| FP16 support for X86 CPUs |  |"
+          },
+          {
+            "title": "PyTorch 2.13 Release Blog",
+            "url": "https://pytorch.org/blog/pytorch-2-13-release-blog",
+            "content": "PyTorch wheels now support Python 3.15, including the experimental free-threaded 3.15t build.  Important Note: Python 3.15 is currently in pre-release (beta), with the final stable release scheduled for October 2026. Support is limited to torch wheels only (torchvision is not built for 3.15 yet) and to Linux builds on x86\\_64 and aarch64, covering the CPU, CUDA, ROCm, and XPU variants. torch.compile is not yet supported on Python 3.15. There are no Windows or macOS 3.15 wheels for this python [...] for this python version in this release. [...] Broader platform support: ROCm gains AOTriton 0.12b with native HIP CMake, Arm adds Armv9-A torch.compile targeting, and Intel XPU exposes new device telemetry APIs"
+          },
+          {
+            "title": "PyTorch",
+            "url": "https://pytorch.org",
+            "content": "NOTE: Latest Stable PyTorch requires Python 3.10 or later.\n\nPyTorch Build\n\nYour OS\n\nPackage\n\nLanguage\n\nCompute Platform\n\nRun this Command:\n\nPyTorch Build\n\nStable (2.13.0)\n\nPreview (Nightly)\n\nYour OS\n\nLinux\n\nMac\n\nWindows\n\nPackage\n\nPip\n\nLibTorch\n\nSource\n\nLanguage\n\nPython\n\nC++ / Java\n\nCompute Platform\n\nCUDA 12.6\n\nCUDA 13.0\n\nCUDA 13.2\n\nROCm 7.2\n\nCPU\n\nRun this Command:\n\n```\npip3 install torch torchvision --index-url \n```\n\nPrevious versions of PyTorch [...] Select your preferences and run the install command. Stable represents the most currently tested and supported version of PyTorch. This should be suitable for many users. Preview is available if you want the latest, not fully tested and supported, builds that are generated nightly. Please ensure that you have met the prerequisites below (e.g., numpy), depending on your package manager. You can also install previous versions of PyTorch. Note that LibTorch is only available for C++. [...] PyTorch is well supported on major cloud platforms, providing frictionless development and easy scaling.\n\n## Install PyTorch"
+          }
+        ],
+        "env_delta": [
+          {
+            "op": "add",
+            "package": "torch",
+            "version": "2.4.0",
+            "git_url": null,
+            "commit": null,
+            "justification": "Add missing torch dependency to resolve ModuleNotFoundError",
+            "evidence": "ModuleNotFoundError: No module named 'torch'"
+          }
+        ],
+        "resolved_sources": [
+          {
+            "kind": "pypi",
+            "package": "torch",
+            "version": "2.4.0",
+            "uploaded": "2024-07-24",
+            "cpython_tags": [
+              "cp310",
+              "cp311",
+              "cp312",
+              "cp38",
+              "cp39"
+            ],
+            "url": "https://pypi.org/project/torch/2.4.0/"
+          },
+          {
+            "kind": "pypi",
+            "package": "torch",
+            "version": "2.3.1",
+            "uploaded": "2024-06-05",
+            "cpython_tags": [
+              "cp310",
+              "cp311",
+              "cp312",
+              "cp38",
+              "cp39"
+            ],
+            "url": "https://pypi.org/project/torch/2.3.1/"
+          },
+          {
+            "kind": "pypi",
+            "package": "torch",
+            "version": "2.3.0",
+            "uploaded": "2024-04-24",
+            "cpython_tags": [
+              "cp310",
+              "cp311",
+              "cp312",
+              "cp38",
+              "cp39"
+            ],
+            "url": "https://pypi.org/project/torch/2.3.0/"
+          },
+          {
+            "kind": "pypi",
+            "package": "torch",
+            "version": "2.2.2",
+            "uploaded": "2024-03-27",
+            "cpython_tags": [
+              "cp310",
+              "cp311",
+              "cp312",
+              "cp38",
+              "cp39"
+            ],
+            "url": "https://pypi.org/project/torch/2.2.2/"
+          },
+          {
+            "kind": "pypi",
+            "package": "torch",
+            "version": "2.2.1",
+            "uploaded": "2024-02-22",
+            "cpython_tags": [
+              "cp310",
+              "cp311",
+              "cp312",
+              "cp38",
+              "cp39"
+            ],
+            "url": "https://pypi.org/project/torch/2.2.1/"
+          },
+          {
+            "kind": "pypi",
+            "package": "torch",
+            "version": "2.14.0",
+            "uploaded": "2026-09-02",
+            "cpython_tags": [
+              "cp310",
+              "cp311",
+              "cp312",
+              "cp313",
+              "cp314"
+            ],
+            "url": "https://pypi.org/project/torch/2.14.0/"
+          }
+        ]
+      },
+      {
+        "attempt_number": 2,
+        "diff_text": "",
+        "gate_decision": "REJECT",
+        "gate_violations": [
+          {
+            "rule": "ENV_UNJUSTIFIED",
+            "reason": "env_delta[0]: needs a one-line justification (\u2264300 chars)",
+            "file": ""
+          },
+          {
+            "rule": "ENV_UNJUSTIFIED",
+            "reason": "env_delta[0]: evidence '' does not appear verbatim in the failing run's log",
+            "file": ""
+          }
+        ],
+        "exit_code": null,
+        "stdout_tail": "",
+        "stderr_tail": "",
+        "tavily_sources": [
+          {
+            "title": "Releases \u2014 Datashader v0.19.1",
+            "url": "https://datashader.org/releases.html",
+            "content": "Documentation:\n\n Update links (#1337, #1339)\n Update readme badges (#1334)\n Add download data script (#1326)\n\nMaintenance:\n\n Update list of maintainers (#1336)\n Parallelize the test suite and fix a test polluted bug (#1338)\n Update test workflow (#1340)\n\n## Version 0.16.1 (2024-04-19)#\n\nThis release brings compatibility with new release of upstream packages. Thanks to first-time contributor @alexander-beedie, and the regular contributors @philippjfr, @ianthomas23, @maximlt, and @hoxbro. [...] Maintenance:\n\n Update docs.yaml (#1346)\n\n## Version 0.16.2 (2024-05-31)#\n\nThis release adds compatibility with Numpy 2.0, along with other improvements and bugfixes. Thanks to @hoxbro for his contributions.\n\nBugfixes:\n\n Remove artifact from Polygon rendering (#1329)\n\nCompatibility:\n\n Test dev releases of `numpy` 2.0 and `numba` 0.60.0 (#1332)\n Improve compatibility with `dask-expr` (#1335)\n Add gpu marker for test and test both classic and `dask-expr` `Dask.DataFrame`\u2019s (#1341)\n\nDocumentation: [...] Maintenance:\n\n Move to pixi and hatchling (#1354)\n General maintenance (#1357)\n Updated linting rules (#1367, #1368)\n\n## Version 0.16.3 (2024-07-04)#\n\nThis release adds an enhancement and compatibility changes with upstream libraries. Thanks to @raphaelquast, @droumis and @hoxbro.\n\nEnhancements:\n\n Add fail-fast for datasets outside the visible extent (#1345)\n\nCompatibility:\n\n Compatibility with cudf 2024.06 (#1344)\n Compatibility with geopandas 1.0 and dask-geopandas 0.4.0 (#1347)"
+          },
+          {
+            "title": "Changelog \u2014 Dask documentation",
+            "url": "https://docs.dask.org/en/stable/changelog.html",
+            "content": "## 2024.10.0#\n\n### Notable Changes#\n\n Zarr-Python 3 compatibility (dask#11388)\n Avoid exponentially increasing taskgraph in overlap (dask#11423)\n Ensure numba tokenization does not use slow pickle path (dask#11419)\n\n  Additional changes [...] ## 2024.12.0#\n\n### Highlights#\n\n#### Python 3.13 Support#\n\nThis release adds support for Python 3.13. Dask now supports Python 3.10-3.13.\n\nSee dask#11456 and distributed#8904 from Patrick Hoefler and James Bourbeau for more details.\n\n  Additional changes [...] ## 2024.1.1#\n\nReleased on January 26, 2024\n\n### Highlights#\n\n#### Pandas 2.2 and Scipy 1.12 support#\n\nThis release contains compatibility updates for the latest `pandas` and `scipy` releases.\n\nSee dask#10834, dask#10849, dask#10845, and distributed#8474 from crusaderky for details.\n\n#### Deprecations#"
+          },
+          {
+            "title": "Anaconda Distribution release notes",
+            "url": "https://www.anaconda.com/docs/getting-started/anaconda/release-notes",
+            "content": "| cycler | 0.11.0 | 0.11.0 | 0.11.0 | 0.11.0 | 0.11.0 | 0.11.0 |\n| cyrus-sasl | 2.1.28 | 2.1.28 | 2.1.28 | 2.1.28 |\n| cytoolz | 0.12.2 | 0.12.2 | 0.12.2 | 0.12.2 | 0.12.2 | 0.12.2 |\n| dask | 2024.8.2 | 2024.8.2 | 2024.8.2 | 2024.8.2 | 2024.8.2 | 2024.8.2 |\n| dask-core | 2024.8.2 | 2024.8.2 | 2024.8.2 | 2024.8.2 | 2024.8.2 | 2024.8.2 |\n| dask-expr | 1.1.13 | 1.1.13 | 1.1.13 | 1.1.13 | 1.1.13 | 1.1.13 |\n| datashader | 0.16.3 | 0.16.3 | 0.16.3 | 0.16.3 | 0.16.3 | [...] \u200b\n\nOct 23, 2024\n\nPython version: 3.12.7\n\n## \u200b User-facing Changes [...] | cytoolz | 0.12.2 | 0.12.2 |\n| dask | 2024.8.2 | 2024.8.2 |\n| dask-core | 2024.8.2 | 2024.8.2 |\n| dask-expr | 1.1.13 | 1.1.13 |\n| datashader | 0.16.3 | 0.16.3 |\n| dav1d | 1.2.1 | 1.2.1 |\n| debugpy | 1.6.7 | 1.6.7 |\n| decorator | 5.1.1 | 5.1.1 |\n| defusedxml | 0.7.1 | 0.7.1 |\n| diff-match-patch | 20200713 | 20200713 |\n| dill | 0.3.8 | 0.3.8 |\n| distributed | 2024.8.2 | 2024.8.2 |\n| distro | 1.9.0 | 1.9.0 |\n| dmglib | 0.9.5 | 0.9.5 |\n| docstring-to-markdown | 0.11 | 0.11 |"
+          },
+          {
+            "title": "Status of Python versions",
+            "url": "https://devguide.python.org/versions",
+            "content": "|  |  |  | First release | End of life | Release manager |\n ---  ---  --- |\n| main | PEP 826 | feature | 2027-10-06 | 2032-10 | Savannah Ostrowski |\n| 3.15 | PEP 790 | prerelease | 2026-10-01 | 2031-10 | Hugo van Kemenade |\n| 3.14 | PEP 745 | bugfix | 2025-10-07 | 2030-10 | Hugo van Kemenade |\n| 3.13 | PEP 719 | bugfix | 2024-10-07 | 2029-10 | Thomas Wouters |\n| 3.12 | PEP 693 | security | 2023-10-02 | 2028-10 | Thomas Wouters | [...] '19   '20   '21   '22   '23   '24   '25   '26   '27   '28   '29   '30   '31   '32     end-of-life   end-of-life   Python 2.7   end-of-life   end-of-life   Python 3.6   end-of-life   end-of-life   Python 3.7   end-of-life   end-of-life   Python 3.8   end-of-life   end-of-life   Python 3.9   security   security   Python 3.10   security   security   Python 3.11   security   security   Python 3.12   bugfix   bugfix   Python 3.13   bugfix   bugfix   Python 3.14   prerelease   prerelease [...] | Branch | Schedule | Status | First release | End of life | Release manager |\n ---  ---  --- |\n| 3.9 | PEP 596 | end-of-life | 2020-10-05 | 2025-10-31 | \u0141ukasz Langa |\n| 3.8 | PEP 569 | end-of-life | 2019-10-14 | 2024-10-07 | \u0141ukasz Langa |\n| 3.7 | PEP 537 | end-of-life | 2018-06-27 | 2023-06-27 | Ned Deily |\n| 3.6 | PEP 494 | end-of-life | 2016-12-23 | 2021-12-23 | Ned Deily |\n| 3.5 | PEP 478 | end-of-life | 2015-09-13 | 2020-09-30 | Larry Hastings |"
+          },
+          {
+            "title": "Python End-of-Life Dates: Every Version's Support Timeline",
+            "url": "https://www.herodevs.com/blog-posts/python-end-of-life-dates-every-versions-support-timeline",
+            "content": "Known CVEs affecting Python 3.9 include vulnerabilities in the tarfile module, the http.cookies parser, SSLContext NPN protocol handling, and the venv CLI. In September 2024, emergency security patches were required across Python versions 3.8.20 through 3.12.6 to address remote code execution and web cache poisoning vulnerabilities. Python 3.9 received those patches, but any future vulnerability of similar severity will go unpatched.\n\n\u200d\n\n## Python 3.10: End of Life Coming October 2026 [...] Now (February 2026): Python 3.9 is already EOL. Python 3.8 has been EOL since October 2024. If you are running either version, you are accumulating unpatched vulnerabilities.\n\nOctober 31, 2026: Python 3.10 reaches end of life. Begin planning your migration or support strategy now.\n\nOctober 31, 2027: Python 3.11 reaches end of life.\n\nOctober 31, 2028: Python 3.12 reaches end of life.\n\n~May 2032: RHEL 9 maintenance support ends, taking Red Hat's Python 3.9 backporting with it.\n\n\u200d [...] The Python Software Foundation follows a predictable support lifecycle established by PEP 602. Each Python release goes through two main phases before reaching end of life:\n\nBug-fix phase (approximately 2 years): The version receives full bug fixes, security patches, and binary releases. This is the period where a version is considered fully supported for production use."
+          }
+        ],
+        "env_delta": [
+          {
+            "op": "add",
+            "package": "dassl.pytorch",
+            "version": null,
+            "git_url": null,
+            "commit": null,
+            "justification": "",
+            "evidence": ""
+          }
+        ],
+        "resolved_sources": []
+      },
+      {
+        "attempt_number": 3,
+        "diff_text": "",
+        "gate_decision": "DECLINED",
+        "gate_violations": [],
+        "exit_code": null,
+        "stdout_tail": "",
+        "stderr_tail": "",
+        "tavily_sources": [
+          {
+            "title": "Status of Python versions",
+            "url": "https://devguide.python.org/versions",
+            "content": "|  |  |  | First release | End of life | Release manager |\n ---  ---  --- |\n| main | PEP 826 | feature | 2027-10-06 | 2032-10 | Savannah Ostrowski |\n| 3.15 | PEP 790 | prerelease | 2026-10-01 | 2031-10 | Hugo van Kemenade |\n| 3.14 | PEP 745 | bugfix | 2025-10-07 | 2030-10 | Hugo van Kemenade |\n| 3.13 | PEP 719 | bugfix | 2024-10-07 | 2029-10 | Thomas Wouters |\n| 3.12 | PEP 693 | security | 2023-10-02 | 2028-10 | Thomas Wouters | [...] '19   '20   '21   '22   '23   '24   '25   '26   '27   '28   '29   '30   '31   '32     end-of-life   end-of-life   Python 2.7   end-of-life   end-of-life   Python 3.6   end-of-life   end-of-life   Python 3.7   end-of-life   end-of-life   Python 3.8   end-of-life   end-of-life   Python 3.9   security   security   Python 3.10   security   security   Python 3.11   security   security   Python 3.12   bugfix   bugfix   Python 3.13   bugfix   bugfix   Python 3.14   prerelease   prerelease [...] | Branch | Schedule | Status | First release | End of life | Release manager |\n ---  ---  --- |\n| 3.9 | PEP 596 | end-of-life | 2020-10-05 | 2025-10-31 | \u0141ukasz Langa |\n| 3.8 | PEP 569 | end-of-life | 2019-10-14 | 2024-10-07 | \u0141ukasz Langa |\n| 3.7 | PEP 537 | end-of-life | 2018-06-27 | 2023-06-27 | Ned Deily |\n| 3.6 | PEP 494 | end-of-life | 2016-12-23 | 2021-12-23 | Ned Deily |\n| 3.5 | PEP 478 | end-of-life | 2015-09-13 | 2020-09-30 | Larry Hastings |"
+          },
+          {
+            "title": "Python End-of-Life Dates: Every Version's Support Timeline",
+            "url": "https://www.herodevs.com/blog-posts/python-end-of-life-dates-every-versions-support-timeline",
+            "content": "Known CVEs affecting Python 3.9 include vulnerabilities in the tarfile module, the http.cookies parser, SSLContext NPN protocol handling, and the venv CLI. In September 2024, emergency security patches were required across Python versions 3.8.20 through 3.12.6 to address remote code execution and web cache poisoning vulnerabilities. Python 3.9 received those patches, but any future vulnerability of similar severity will go unpatched.\n\n\u200d\n\n## Python 3.10: End of Life Coming October 2026 [...] Now (February 2026): Python 3.9 is already EOL. Python 3.8 has been EOL since October 2024. If you are running either version, you are accumulating unpatched vulnerabilities.\n\nOctober 31, 2026: Python 3.10 reaches end of life. Begin planning your migration or support strategy now.\n\nOctober 31, 2027: Python 3.11 reaches end of life.\n\nOctober 31, 2028: Python 3.12 reaches end of life.\n\n~May 2032: RHEL 9 maintenance support ends, taking Red Hat's Python 3.9 backporting with it.\n\n\u200d [...] The Python Software Foundation follows a predictable support lifecycle established by PEP 602. Each Python release goes through two main phases before reaching end of life:\n\nBug-fix phase (approximately 2 years): The version receives full bug fixes, security patches, and binary releases. This is the period where a version is considered fully supported for production use."
+          },
+          {
+            "title": "Databricks Runtime release notes versions and compatibility | Databricks on AWS",
+            "url": "https://docs.databricks.com/aws/en/release-notes/runtime",
+            "content": "| 16.4 LTS |  Databricks Runtime 16.4 LTS  Databricks Runtime 16.4 LTS for Machine Learning | 3.5.2 | May 9, 2025 | May 9, 2028 |\n| 15.4 LTS |  Databricks Runtime 15.4 LTS  Databricks Runtime 15.4 LTS for Machine Learning | 3.5.0 | Aug 19, 2024 | Aug 19, 2027 |\n| 14.3 LTS |  Databricks Runtime 14.3 LTS  Databricks Runtime 14.3 LTS for Machine Learning | 3.5.0 | Feb 1, 2024 | Feb 1, 2027 | [...] | Version | Variants | Apache Sparkversion | Release date | End-of-support date |\n ---  --- \n| 19 |  Databricks Runtime 19  Databricks Runtime 19 for Machine Learning | 4.2.0 | June 15, 2026 | Determined at LTS transition |\n| 18 LTS |  Databricks Runtime 18 LTS  Databricks Runtime 18 LTS for Machine Learning | 4.1.0 | June 10, 2026 | June 10, 2029 |\n| 17.3 LTS |  Databricks Runtime 17.3 LTS  Databricks Runtime 17.3 LTS for Machine Learning | 4.0.0 | Oct 22, 2025 | Oct 22, 2028 |"
+          },
+          {
+            "title": "Creating New Versions of Your Python Package \u2014 Python Packaging Guide",
+            "url": "https://www.pyopensci.org/python-package-guide/package-structure-code/python-package-versions.html",
+            "content": "> Given a version number MAJOR.MINOR.PATCH, increment the:\n>\n>  MAJOR version when you make incompatible API changes\n>  MINOR version when you add functionality in a backwards compatible manner\n>  PATCH version when you make backwards compatible bug fixes Additional labels for pre-release and build metadata are available as extensions to the MAJOR.MINOR.PATCH format.\n\nNote [...] It creates a single-source file that contains your package version.\n You never manually update the package version\n You can automate writing the version anywhere in your package including your documentation!\n It supports a purely GitHub based release workflow. This simplifies maintenance workflows.\n Version number is updated in your package via a hidden `_version.py` file. There is no manual configuration updates required. [...] Hatch supports modern Python packaging standards\n It creates a single-source file that contains your package version.\n You never manually update the package version\n You can automate writing the version anywhere in your package including your documentation!\n It supports a purely GitHub based release workflow. This simplifies maintenance workflows.\n Version number is updated in your package via a hidden `_version.py` file. There is no manual configuration updates required."
+          },
+          {
+            "title": "This Shit is Hard: The complexities of fixing Python library security issues at scale",
+            "url": "https://www.chainguard.dev/unchained/this-shit-is-hard-the-complexities-of-fixing-python-library-security-issues-at-scale",
+            "content": "Unfortunately, this means that if you create a virtual environment and install a version of a package from five years ago, the chances are slim that the automatically resolved runtime dependencies are all compatible with the package you installed and with each other. It takes some serious archeology to figure out which set of runtime dependencies work together. This is like taking a step back in time to when a package was originally released. [...] Once you take transient dependencies into account, a single Python package may have anywhere from dozens to hundreds of runtime dependencies. Many packages have very open version ranges specified for their dependencies. Even the smartest of dependency resolvers can\u2019t figure out a compatible set of dependencies if a package\u2019s metadata doesn\u2019t indicate exactly what versions of every dependency are compatible. [...] Understandably, many packages don\u2019t set upper version limits on their requirements. As a package maintainer, it's hard, if not impossible, to predict when the maintainers of one of your dependencies will make a change that breaks compatibility. As a package maintainer, you could rely on other maintainers following semver conventions, but not everyone does."
+          }
+        ],
+        "env_delta": [],
+        "resolved_sources": []
+      }
+    ],
+    "certificate_prose": "The artifact was blocked after three repair attempts due to a missing dependency 'dassl' (DEP_MISSING). The resolver found zero verified git sources and confirmed the package is not available on PyPI, with the repository dated 2024-08-30. Repair attempt 3 was declined because the missing dassl dependency cannot be fixed without a verified installation source. Verifies that the artifact executes. Does not verify the paper's numerical results."
+  },
+  "certificate": {
+    "repo_url": "https://github.com/gaozhengqing/TTPT",
+    "commit_sha": "7d6a26246882e830c76a27b2bd669f399f824037",
+    "build_plan": {
+      "base_image": "python:3.11-slim",
+      "apt_install": [],
+      "install_commands": [
+        "printf '%s\\n' ftfy==6.1.1 regex tqdm torch==2.4.0 > .rerun-requirements.txt && pip install -r .rerun-requirements.txt"
+      ],
+      "execute_command": "python train.py",
+      "notes": [
+        "env delta: add torch \u2014 Add missing torch dependency to resolve ModuleNotFoundError"
+      ]
+    },
+    "full_log": "[intake] cloned https://github.com/gaozhengqing/TTPT@7d6a26246882e830c76a27b2bd669f399f824037\n[recon] calling Nemotron Nano\n[recon] entrypoint=train.py confidence=0.80\n[planner] build plan: {'base_image': 'python:3.11-slim', 'apt_install': [], 'install_commands': ['pip install -r requirements.txt'], 'execute_command': 'python train.py', 'notes': []}\n[sandbox] starting build+execute (wall_clock_seconds=600)\n[cost_guard] recorded $0.0195 sandbox spend, $1.9798 remaining today\n[sandbox] id=f15b3404-55f8-41f5-9c72-6a768c26e6b5 exit_code=1\n[classifier] DEP_MISSING: ModuleNotFoundError: No module named 'torch'\n[resolver] torch: 0 verified git source(s), PyPI found (6 release(s) shown), repo date 2024-08-30\n[tavily] 5 source(s) for 'torch python package version compatible 2024 release history'\n[repair 1] tamper gate PASS (env) \u2014 applying and re-executing\n[repair 1] env delta applied; build plan now: {'base_image': 'python:3.11-slim', 'apt_install': [], 'install_commands': [\"printf '%s\\\\n' ftfy==6.1.1 regex tqdm torch==2.4.0 > .rerun-requirements.txt && pip install -r .rerun-requirements.txt\"], 'execute_command': 'python train.py', 'notes': ['env delta: add torch \u2014 Add missing torch dependency to resolve ModuleNotFoundError']}\n[sandbox] starting build+execute (wall_clock_seconds=600)\n[cost_guard] recorded $0.5023 sandbox spend, $1.4762 remaining today\n[repair 1] re-execution id=4d1bdafc-1c7a-4ecc-86d0-8a3a14298d25 exit_code=1\n[classifier] DEP_MISSING: ModuleNotFoundError: No module named 'dassl'\n[resolver] dassl: 0 verified git source(s), PyPI not on PyPI (0 release(s) shown), repo date 2024-08-30\n[tavily] 5 source(s) for 'dassl python package version compatible 2024 release history'\n[repair 2] tamper gate REJECT: env_delta[0]: needs a one-line justification (\u2264300 chars); env_delta[0]: evidence '' does not appear verbatim in the failing run's log\n[resolver] dassl: 0 verified git source(s), PyPI not on PyPI (0 release(s) shown), repo date 2024-08-30\n[tavily] 5 source(s) for 'dassl python package version compatible 2024 release history'\n[repair 3] declined: Cannot fix missing dassl dependency because it is not available on PyPI and no verified git source is provided to install from source.\n[verdict] BLOCKED after 3 attempt(s): DEP_MISSING",
+    "diffs": [
+      {
+        "attempt_number": 1,
+        "diff_text": "",
+        "gate_decision": "PASS",
+        "gate_violations": [],
+        "exit_code": 1,
+        "stdout_tail": "",
+        "stderr_tail": "/usr/local/lib/python3.11/site-packages/torch/_subclasses/functional_tensor.py:258: UserWarning: Failed to initialize NumPy: No module named 'numpy' (Triggered internally at ../torch/csrc/utils/tensor_numpy.cpp:84.)\n  cpu = _conversion_method_template(device=torch.device(\"cpu\"))\nTraceback (most recent call last):\n  File \"//train.py\", line 4, in <module>\n    from dassl.utils import setup_logger, set_random_seed, collect_env_info\nModuleNotFoundError: No module named 'dassl'\n",
+        "tavily_sources": [
+          {
+            "title": "Previous PyTorch Versions",
+            "url": "https://pytorch.org/get-started/previous-versions",
+            "content": "torchvision-0.1.6-py3-none-any.whl\n torchvision-0.1.6-py2-none-any.whl\n torch-1.0.0-cp37-none-macosx\\_10\\_7\\_x86\\_64.whl\n torch-1.0.0-cp36-none-macosx\\_10\\_7\\_x86\\_64.whl\n torch-1.0.0-cp35-none-macosx\\_10\\_6\\_x86\\_64.whl\n torch-1.0.0-cp27-none-macosx\\_10\\_6\\_x86\\_64.whl\n torch-0.4.0-cp36-cp36m-macosx\\_10\\_7\\_x86\\_64.whl\n torch-0.4.0-cp35-cp35m-macosx\\_10\\_7\\_x86\\_64.whl\n torch-0.4.0-cp27-none-macosx\\_10\\_7\\_x86\\_64.whl\n torch-0.3.1-cp36-cp36m-macosx\\_10\\_7\\_x86\\_64.whl [...] torch-0.3.1-cp35-cp35m-macosx\\_10\\_7\\_x86\\_64.whl\n torch-0.3.1-cp27-none-macosx\\_10\\_7\\_x86\\_64.whl\n torch-0.3.0.post4-cp36-cp36m-macosx\\_10\\_7\\_x86\\_64.whl\n torch-0.3.0.post4-cp35-cp35m-macosx\\_10\\_7\\_x86\\_64.whl\n torch-0.3.0.post4-cp27-none-macosx\\_10\\_7\\_x86\\_64.whl\n torch-0.2.0.post3-cp36-cp36m-macosx\\_10\\_7\\_x86\\_64.whl\n torch-0.2.0.post3-cp35-cp35m-macosx\\_10\\_7\\_x86\\_64.whl\n torch-0.2.0.post3-cp27-none-macosx\\_10\\_7\\_x86\\_64.whl\n torch-0.2.0.post2-cp36-cp36m-macosx\\_10\\_7\\_x86\\_64.whl [...] torch-0.1.12.post1-cp36-cp36m-macosx\\_10\\_7\\_x86\\_64.whl\n torch-0.1.12.post1-cp35-cp35m-macosx\\_10\\_7\\_x86\\_64.whl\n torch-0.1.12.post1-cp27-none-macosx\\_10\\_7\\_x86\\_64.whl\n torch-0.1.11.post5-cp36-cp36m-macosx\\_10\\_7\\_x86\\_64.whl\n torch-0.1.11.post5-cp35-cp35m-macosx\\_10\\_7\\_x86\\_64.whl\n torch-0.1.11.post5-cp27-none-macosx\\_10\\_7\\_x86\\_64.whl\n torch-0.1.11.post4-cp36-cp36m-macosx\\_10\\_7\\_x86\\_64.whl\n torch-0.1.11.post4-cp35-cp35m-macosx\\_10\\_7\\_x86\\_64.whl"
+          },
+          {
+            "title": "Status of Python versions",
+            "url": "https://devguide.python.org/versions",
+            "content": "|  |  |  | First release | End of life | Release manager |\n ---  ---  --- |\n| main | PEP 826 | feature | 2027-10-06 | 2032-10 | Savannah Ostrowski |\n| 3.15 | PEP 790 | prerelease | 2026-10-01 | 2031-10 | Hugo van Kemenade |\n| 3.14 | PEP 745 | bugfix | 2025-10-07 | 2030-10 | Hugo van Kemenade |\n| 3.13 | PEP 719 | bugfix | 2024-10-07 | 2029-10 | Thomas Wouters |\n| 3.12 | PEP 693 | security | 2023-10-02 | 2028-10 | Thomas Wouters | [...] '19   '20   '21   '22   '23   '24   '25   '26   '27   '28   '29   '30   '31   '32     end-of-life   end-of-life   Python 2.7   end-of-life   end-of-life   Python 3.6   end-of-life   end-of-life   Python 3.7   end-of-life   end-of-life   Python 3.8   end-of-life   end-of-life   Python 3.9   security   security   Python 3.10   security   security   Python 3.11   security   security   Python 3.12   bugfix   bugfix   Python 3.13   bugfix   bugfix   Python 3.14   prerelease   prerelease [...] | Branch | Schedule | Status | First release | End of life | Release manager |\n ---  ---  --- |\n| 3.9 | PEP 596 | end-of-life | 2020-10-05 | 2025-10-31 | \u0141ukasz Langa |\n| 3.8 | PEP 569 | end-of-life | 2019-10-14 | 2024-10-07 | \u0141ukasz Langa |\n| 3.7 | PEP 537 | end-of-life | 2018-06-27 | 2023-06-27 | Ned Deily |\n| 3.6 | PEP 494 | end-of-life | 2016-12-23 | 2021-12-23 | Ned Deily |\n| 3.5 | PEP 478 | end-of-life | 2015-09-13 | 2020-09-30 | Larry Hastings |"
+          },
+          {
+            "title": "PyTorch 2.6 Release Blog \u2013 PyTorch",
+            "url": "https://pytorch.org/blog/pytorch2-6",
+            "content": "Close Search\n\nPyTorch Logo\n\nsearch\n\nBlog \n\n# PyTorch 2.6 Release Blog\n\nBy PyTorch FoundationJanuary 29, 2025May 3rd, 2025No Comments\n\nWe are excited to announce the release of PyTorch\u00ae 2.6 (release notes)! This release features multiple improvements for PT2: `torch.compile` can now be used with Python 3.13; new performance-related knob `torch.compiler.set_stance`; several AOTInductor enhancements. Besides the PT2 improvements, another highlight is FP16 support on X86 CPUs. [...] `torch.compile` previously only supported Python up to version 3.12. Users can now optimize models with `torch.compile` in Python 3.13.\n\n### [Beta] New packaging APIs for AOTInductor [...] |  |  |\n --- |\n| Beta | Prototype |\n| torch.compiler.set\\_stance | Improved PyTorch user experience on Intel GPUs |\n| torch.library.triton\\_op | FlexAttention support on X86 CPU for LLMs |\n| torch.compile support for Python 3.13 | Dim.AUTO |\n| New packaging APIs for AOTInductor | CUTLASS and CK GEMM/CONV Backends for AOTInductor |\n| AOTInductor: minifier |  |\n| AOTInductor: ABI-compatible mode code generation |  |\n| FP16 support for X86 CPUs |  |"
+          },
+          {
+            "title": "PyTorch 2.13 Release Blog",
+            "url": "https://pytorch.org/blog/pytorch-2-13-release-blog",
+            "content": "PyTorch wheels now support Python 3.15, including the experimental free-threaded 3.15t build.  Important Note: Python 3.15 is currently in pre-release (beta), with the final stable release scheduled for October 2026. Support is limited to torch wheels only (torchvision is not built for 3.15 yet) and to Linux builds on x86\\_64 and aarch64, covering the CPU, CUDA, ROCm, and XPU variants. torch.compile is not yet supported on Python 3.15. There are no Windows or macOS 3.15 wheels for this python [...] for this python version in this release. [...] Broader platform support: ROCm gains AOTriton 0.12b with native HIP CMake, Arm adds Armv9-A torch.compile targeting, and Intel XPU exposes new device telemetry APIs"
+          },
+          {
+            "title": "PyTorch",
+            "url": "https://pytorch.org",
+            "content": "NOTE: Latest Stable PyTorch requires Python 3.10 or later.\n\nPyTorch Build\n\nYour OS\n\nPackage\n\nLanguage\n\nCompute Platform\n\nRun this Command:\n\nPyTorch Build\n\nStable (2.13.0)\n\nPreview (Nightly)\n\nYour OS\n\nLinux\n\nMac\n\nWindows\n\nPackage\n\nPip\n\nLibTorch\n\nSource\n\nLanguage\n\nPython\n\nC++ / Java\n\nCompute Platform\n\nCUDA 12.6\n\nCUDA 13.0\n\nCUDA 13.2\n\nROCm 7.2\n\nCPU\n\nRun this Command:\n\n```\npip3 install torch torchvision --index-url \n```\n\nPrevious versions of PyTorch [...] Select your preferences and run the install command. Stable represents the most currently tested and supported version of PyTorch. This should be suitable for many users. Preview is available if you want the latest, not fully tested and supported, builds that are generated nightly. Please ensure that you have met the prerequisites below (e.g., numpy), depending on your package manager. You can also install previous versions of PyTorch. Note that LibTorch is only available for C++. [...] PyTorch is well supported on major cloud platforms, providing frictionless development and easy scaling.\n\n## Install PyTorch"
+          }
+        ],
+        "env_delta": [
+          {
+            "op": "add",
+            "package": "torch",
+            "version": "2.4.0",
+            "git_url": null,
+            "commit": null,
+            "justification": "Add missing torch dependency to resolve ModuleNotFoundError",
+            "evidence": "ModuleNotFoundError: No module named 'torch'"
+          }
+        ],
+        "resolved_sources": [
+          {
+            "kind": "pypi",
+            "package": "torch",
+            "version": "2.4.0",
+            "uploaded": "2024-07-24",
+            "cpython_tags": [
+              "cp310",
+              "cp311",
+              "cp312",
+              "cp38",
+              "cp39"
+            ],
+            "url": "https://pypi.org/project/torch/2.4.0/"
+          },
+          {
+            "kind": "pypi",
+            "package": "torch",
+            "version": "2.3.1",
+            "uploaded": "2024-06-05",
+            "cpython_tags": [
+              "cp310",
+              "cp311",
+              "cp312",
+              "cp38",
+              "cp39"
+            ],
+            "url": "https://pypi.org/project/torch/2.3.1/"
+          },
+          {
+            "kind": "pypi",
+            "package": "torch",
+            "version": "2.3.0",
+            "uploaded": "2024-04-24",
+            "cpython_tags": [
+              "cp310",
+              "cp311",
+              "cp312",
+              "cp38",
+              "cp39"
+            ],
+            "url": "https://pypi.org/project/torch/2.3.0/"
+          },
+          {
+            "kind": "pypi",
+            "package": "torch",
+            "version": "2.2.2",
+            "uploaded": "2024-03-27",
+            "cpython_tags": [
+              "cp310",
+              "cp311",
+              "cp312",
+              "cp38",
+              "cp39"
+            ],
+            "url": "https://pypi.org/project/torch/2.2.2/"
+          },
+          {
+            "kind": "pypi",
+            "package": "torch",
+            "version": "2.2.1",
+            "uploaded": "2024-02-22",
+            "cpython_tags": [
+              "cp310",
+              "cp311",
+              "cp312",
+              "cp38",
+              "cp39"
+            ],
+            "url": "https://pypi.org/project/torch/2.2.1/"
+          },
+          {
+            "kind": "pypi",
+            "package": "torch",
+            "version": "2.14.0",
+            "uploaded": "2026-09-02",
+            "cpython_tags": [
+              "cp310",
+              "cp311",
+              "cp312",
+              "cp313",
+              "cp314"
+            ],
+            "url": "https://pypi.org/project/torch/2.14.0/"
+          }
+        ]
+      },
+      {
+        "attempt_number": 2,
+        "diff_text": "",
+        "gate_decision": "REJECT",
+        "gate_violations": [
+          {
+            "rule": "ENV_UNJUSTIFIED",
+            "reason": "env_delta[0]: needs a one-line justification (\u2264300 chars)",
+            "file": ""
+          },
+          {
+            "rule": "ENV_UNJUSTIFIED",
+            "reason": "env_delta[0]: evidence '' does not appear verbatim in the failing run's log",
+            "file": ""
+          }
+        ],
+        "exit_code": null,
+        "stdout_tail": "",
+        "stderr_tail": "",
+        "tavily_sources": [
+          {
+            "title": "Releases \u2014 Datashader v0.19.1",
+            "url": "https://datashader.org/releases.html",
+            "content": "Documentation:\n\n Update links (#1337, #1339)\n Update readme badges (#1334)\n Add download data script (#1326)\n\nMaintenance:\n\n Update list of maintainers (#1336)\n Parallelize the test suite and fix a test polluted bug (#1338)\n Update test workflow (#1340)\n\n## Version 0.16.1 (2024-04-19)#\n\nThis release brings compatibility with new release of upstream packages. Thanks to first-time contributor @alexander-beedie, and the regular contributors @philippjfr, @ianthomas23, @maximlt, and @hoxbro. [...] Maintenance:\n\n Update docs.yaml (#1346)\n\n## Version 0.16.2 (2024-05-31)#\n\nThis release adds compatibility with Numpy 2.0, along with other improvements and bugfixes. Thanks to @hoxbro for his contributions.\n\nBugfixes:\n\n Remove artifact from Polygon rendering (#1329)\n\nCompatibility:\n\n Test dev releases of `numpy` 2.0 and `numba` 0.60.0 (#1332)\n Improve compatibility with `dask-expr` (#1335)\n Add gpu marker for test and test both classic and `dask-expr` `Dask.DataFrame`\u2019s (#1341)\n\nDocumentation: [...] Maintenance:\n\n Move to pixi and hatchling (#1354)\n General maintenance (#1357)\n Updated linting rules (#1367, #1368)\n\n## Version 0.16.3 (2024-07-04)#\n\nThis release adds an enhancement and compatibility changes with upstream libraries. Thanks to @raphaelquast, @droumis and @hoxbro.\n\nEnhancements:\n\n Add fail-fast for datasets outside the visible extent (#1345)\n\nCompatibility:\n\n Compatibility with cudf 2024.06 (#1344)\n Compatibility with geopandas 1.0 and dask-geopandas 0.4.0 (#1347)"
+          },
+          {
+            "title": "Changelog \u2014 Dask documentation",
+            "url": "https://docs.dask.org/en/stable/changelog.html",
+            "content": "## 2024.10.0#\n\n### Notable Changes#\n\n Zarr-Python 3 compatibility (dask#11388)\n Avoid exponentially increasing taskgraph in overlap (dask#11423)\n Ensure numba tokenization does not use slow pickle path (dask#11419)\n\n  Additional changes [...] ## 2024.12.0#\n\n### Highlights#\n\n#### Python 3.13 Support#\n\nThis release adds support for Python 3.13. Dask now supports Python 3.10-3.13.\n\nSee dask#11456 and distributed#8904 from Patrick Hoefler and James Bourbeau for more details.\n\n  Additional changes [...] ## 2024.1.1#\n\nReleased on January 26, 2024\n\n### Highlights#\n\n#### Pandas 2.2 and Scipy 1.12 support#\n\nThis release contains compatibility updates for the latest `pandas` and `scipy` releases.\n\nSee dask#10834, dask#10849, dask#10845, and distributed#8474 from crusaderky for details.\n\n#### Deprecations#"
+          },
+          {
+            "title": "Anaconda Distribution release notes",
+            "url": "https://www.anaconda.com/docs/getting-started/anaconda/release-notes",
+            "content": "| cycler | 0.11.0 | 0.11.0 | 0.11.0 | 0.11.0 | 0.11.0 | 0.11.0 |\n| cyrus-sasl | 2.1.28 | 2.1.28 | 2.1.28 | 2.1.28 |\n| cytoolz | 0.12.2 | 0.12.2 | 0.12.2 | 0.12.2 | 0.12.2 | 0.12.2 |\n| dask | 2024.8.2 | 2024.8.2 | 2024.8.2 | 2024.8.2 | 2024.8.2 | 2024.8.2 |\n| dask-core | 2024.8.2 | 2024.8.2 | 2024.8.2 | 2024.8.2 | 2024.8.2 | 2024.8.2 |\n| dask-expr | 1.1.13 | 1.1.13 | 1.1.13 | 1.1.13 | 1.1.13 | 1.1.13 |\n| datashader | 0.16.3 | 0.16.3 | 0.16.3 | 0.16.3 | 0.16.3 | [...] \u200b\n\nOct 23, 2024\n\nPython version: 3.12.7\n\n## \u200b User-facing Changes [...] | cytoolz | 0.12.2 | 0.12.2 |\n| dask | 2024.8.2 | 2024.8.2 |\n| dask-core | 2024.8.2 | 2024.8.2 |\n| dask-expr | 1.1.13 | 1.1.13 |\n| datashader | 0.16.3 | 0.16.3 |\n| dav1d | 1.2.1 | 1.2.1 |\n| debugpy | 1.6.7 | 1.6.7 |\n| decorator | 5.1.1 | 5.1.1 |\n| defusedxml | 0.7.1 | 0.7.1 |\n| diff-match-patch | 20200713 | 20200713 |\n| dill | 0.3.8 | 0.3.8 |\n| distributed | 2024.8.2 | 2024.8.2 |\n| distro | 1.9.0 | 1.9.0 |\n| dmglib | 0.9.5 | 0.9.5 |\n| docstring-to-markdown | 0.11 | 0.11 |"
+          },
+          {
+            "title": "Status of Python versions",
+            "url": "https://devguide.python.org/versions",
+            "content": "|  |  |  | First release | End of life | Release manager |\n ---  ---  --- |\n| main | PEP 826 | feature | 2027-10-06 | 2032-10 | Savannah Ostrowski |\n| 3.15 | PEP 790 | prerelease | 2026-10-01 | 2031-10 | Hugo van Kemenade |\n| 3.14 | PEP 745 | bugfix | 2025-10-07 | 2030-10 | Hugo van Kemenade |\n| 3.13 | PEP 719 | bugfix | 2024-10-07 | 2029-10 | Thomas Wouters |\n| 3.12 | PEP 693 | security | 2023-10-02 | 2028-10 | Thomas Wouters | [...] '19   '20   '21   '22   '23   '24   '25   '26   '27   '28   '29   '30   '31   '32     end-of-life   end-of-life   Python 2.7   end-of-life   end-of-life   Python 3.6   end-of-life   end-of-life   Python 3.7   end-of-life   end-of-life   Python 3.8   end-of-life   end-of-life   Python 3.9   security   security   Python 3.10   security   security   Python 3.11   security   security   Python 3.12   bugfix   bugfix   Python 3.13   bugfix   bugfix   Python 3.14   prerelease   prerelease [...] | Branch | Schedule | Status | First release | End of life | Release manager |\n ---  ---  --- |\n| 3.9 | PEP 596 | end-of-life | 2020-10-05 | 2025-10-31 | \u0141ukasz Langa |\n| 3.8 | PEP 569 | end-of-life | 2019-10-14 | 2024-10-07 | \u0141ukasz Langa |\n| 3.7 | PEP 537 | end-of-life | 2018-06-27 | 2023-06-27 | Ned Deily |\n| 3.6 | PEP 494 | end-of-life | 2016-12-23 | 2021-12-23 | Ned Deily |\n| 3.5 | PEP 478 | end-of-life | 2015-09-13 | 2020-09-30 | Larry Hastings |"
+          },
+          {
+            "title": "Python End-of-Life Dates: Every Version's Support Timeline",
+            "url": "https://www.herodevs.com/blog-posts/python-end-of-life-dates-every-versions-support-timeline",
+            "content": "Known CVEs affecting Python 3.9 include vulnerabilities in the tarfile module, the http.cookies parser, SSLContext NPN protocol handling, and the venv CLI. In September 2024, emergency security patches were required across Python versions 3.8.20 through 3.12.6 to address remote code execution and web cache poisoning vulnerabilities. Python 3.9 received those patches, but any future vulnerability of similar severity will go unpatched.\n\n\u200d\n\n## Python 3.10: End of Life Coming October 2026 [...] Now (February 2026): Python 3.9 is already EOL. Python 3.8 has been EOL since October 2024. If you are running either version, you are accumulating unpatched vulnerabilities.\n\nOctober 31, 2026: Python 3.10 reaches end of life. Begin planning your migration or support strategy now.\n\nOctober 31, 2027: Python 3.11 reaches end of life.\n\nOctober 31, 2028: Python 3.12 reaches end of life.\n\n~May 2032: RHEL 9 maintenance support ends, taking Red Hat's Python 3.9 backporting with it.\n\n\u200d [...] The Python Software Foundation follows a predictable support lifecycle established by PEP 602. Each Python release goes through two main phases before reaching end of life:\n\nBug-fix phase (approximately 2 years): The version receives full bug fixes, security patches, and binary releases. This is the period where a version is considered fully supported for production use."
+          }
+        ],
+        "env_delta": [
+          {
+            "op": "add",
+            "package": "dassl.pytorch",
+            "version": null,
+            "git_url": null,
+            "commit": null,
+            "justification": "",
+            "evidence": ""
+          }
+        ],
+        "resolved_sources": []
+      },
+      {
+        "attempt_number": 3,
+        "diff_text": "",
+        "gate_decision": "DECLINED",
+        "gate_violations": [],
+        "exit_code": null,
+        "stdout_tail": "",
+        "stderr_tail": "",
+        "tavily_sources": [
+          {
+            "title": "Status of Python versions",
+            "url": "https://devguide.python.org/versions",
+            "content": "|  |  |  | First release | End of life | Release manager |\n ---  ---  --- |\n| main | PEP 826 | feature | 2027-10-06 | 2032-10 | Savannah Ostrowski |\n| 3.15 | PEP 790 | prerelease | 2026-10-01 | 2031-10 | Hugo van Kemenade |\n| 3.14 | PEP 745 | bugfix | 2025-10-07 | 2030-10 | Hugo van Kemenade |\n| 3.13 | PEP 719 | bugfix | 2024-10-07 | 2029-10 | Thomas Wouters |\n| 3.12 | PEP 693 | security | 2023-10-02 | 2028-10 | Thomas Wouters | [...] '19   '20   '21   '22   '23   '24   '25   '26   '27   '28   '29   '30   '31   '32     end-of-life   end-of-life   Python 2.7   end-of-life   end-of-life   Python 3.6   end-of-life   end-of-life   Python 3.7   end-of-life   end-of-life   Python 3.8   end-of-life   end-of-life   Python 3.9   security   security   Python 3.10   security   security   Python 3.11   security   security   Python 3.12   bugfix   bugfix   Python 3.13   bugfix   bugfix   Python 3.14   prerelease   prerelease [...] | Branch | Schedule | Status | First release | End of life | Release manager |\n ---  ---  --- |\n| 3.9 | PEP 596 | end-of-life | 2020-10-05 | 2025-10-31 | \u0141ukasz Langa |\n| 3.8 | PEP 569 | end-of-life | 2019-10-14 | 2024-10-07 | \u0141ukasz Langa |\n| 3.7 | PEP 537 | end-of-life | 2018-06-27 | 2023-06-27 | Ned Deily |\n| 3.6 | PEP 494 | end-of-life | 2016-12-23 | 2021-12-23 | Ned Deily |\n| 3.5 | PEP 478 | end-of-life | 2015-09-13 | 2020-09-30 | Larry Hastings |"
+          },
+          {
+            "title": "Python End-of-Life Dates: Every Version's Support Timeline",
+            "url": "https://www.herodevs.com/blog-posts/python-end-of-life-dates-every-versions-support-timeline",
+            "content": "Known CVEs affecting Python 3.9 include vulnerabilities in the tarfile module, the http.cookies parser, SSLContext NPN protocol handling, and the venv CLI. In September 2024, emergency security patches were required across Python versions 3.8.20 through 3.12.6 to address remote code execution and web cache poisoning vulnerabilities. Python 3.9 received those patches, but any future vulnerability of similar severity will go unpatched.\n\n\u200d\n\n## Python 3.10: End of Life Coming October 2026 [...] Now (February 2026): Python 3.9 is already EOL. Python 3.8 has been EOL since October 2024. If you are running either version, you are accumulating unpatched vulnerabilities.\n\nOctober 31, 2026: Python 3.10 reaches end of life. Begin planning your migration or support strategy now.\n\nOctober 31, 2027: Python 3.11 reaches end of life.\n\nOctober 31, 2028: Python 3.12 reaches end of life.\n\n~May 2032: RHEL 9 maintenance support ends, taking Red Hat's Python 3.9 backporting with it.\n\n\u200d [...] The Python Software Foundation follows a predictable support lifecycle established by PEP 602. Each Python release goes through two main phases before reaching end of life:\n\nBug-fix phase (approximately 2 years): The version receives full bug fixes, security patches, and binary releases. This is the period where a version is considered fully supported for production use."
+          },
+          {
+            "title": "Databricks Runtime release notes versions and compatibility | Databricks on AWS",
+            "url": "https://docs.databricks.com/aws/en/release-notes/runtime",
+            "content": "| 16.4 LTS |  Databricks Runtime 16.4 LTS  Databricks Runtime 16.4 LTS for Machine Learning | 3.5.2 | May 9, 2025 | May 9, 2028 |\n| 15.4 LTS |  Databricks Runtime 15.4 LTS  Databricks Runtime 15.4 LTS for Machine Learning | 3.5.0 | Aug 19, 2024 | Aug 19, 2027 |\n| 14.3 LTS |  Databricks Runtime 14.3 LTS  Databricks Runtime 14.3 LTS for Machine Learning | 3.5.0 | Feb 1, 2024 | Feb 1, 2027 | [...] | Version | Variants | Apache Sparkversion | Release date | End-of-support date |\n ---  --- \n| 19 |  Databricks Runtime 19  Databricks Runtime 19 for Machine Learning | 4.2.0 | June 15, 2026 | Determined at LTS transition |\n| 18 LTS |  Databricks Runtime 18 LTS  Databricks Runtime 18 LTS for Machine Learning | 4.1.0 | June 10, 2026 | June 10, 2029 |\n| 17.3 LTS |  Databricks Runtime 17.3 LTS  Databricks Runtime 17.3 LTS for Machine Learning | 4.0.0 | Oct 22, 2025 | Oct 22, 2028 |"
+          },
+          {
+            "title": "Creating New Versions of Your Python Package \u2014 Python Packaging Guide",
+            "url": "https://www.pyopensci.org/python-package-guide/package-structure-code/python-package-versions.html",
+            "content": "> Given a version number MAJOR.MINOR.PATCH, increment the:\n>\n>  MAJOR version when you make incompatible API changes\n>  MINOR version when you add functionality in a backwards compatible manner\n>  PATCH version when you make backwards compatible bug fixes Additional labels for pre-release and build metadata are available as extensions to the MAJOR.MINOR.PATCH format.\n\nNote [...] It creates a single-source file that contains your package version.\n You never manually update the package version\n You can automate writing the version anywhere in your package including your documentation!\n It supports a purely GitHub based release workflow. This simplifies maintenance workflows.\n Version number is updated in your package via a hidden `_version.py` file. There is no manual configuration updates required. [...] Hatch supports modern Python packaging standards\n It creates a single-source file that contains your package version.\n You never manually update the package version\n You can automate writing the version anywhere in your package including your documentation!\n It supports a purely GitHub based release workflow. This simplifies maintenance workflows.\n Version number is updated in your package via a hidden `_version.py` file. There is no manual configuration updates required."
+          },
+          {
+            "title": "This Shit is Hard: The complexities of fixing Python library security issues at scale",
+            "url": "https://www.chainguard.dev/unchained/this-shit-is-hard-the-complexities-of-fixing-python-library-security-issues-at-scale",
+            "content": "Unfortunately, this means that if you create a virtual environment and install a version of a package from five years ago, the chances are slim that the automatically resolved runtime dependencies are all compatible with the package you installed and with each other. It takes some serious archeology to figure out which set of runtime dependencies work together. This is like taking a step back in time to when a package was originally released. [...] Once you take transient dependencies into account, a single Python package may have anywhere from dozens to hundreds of runtime dependencies. Many packages have very open version ranges specified for their dependencies. Even the smartest of dependency resolvers can\u2019t figure out a compatible set of dependencies if a package\u2019s metadata doesn\u2019t indicate exactly what versions of every dependency are compatible. [...] Understandably, many packages don\u2019t set upper version limits on their requirements. As a package maintainer, it's hard, if not impossible, to predict when the maintainers of one of your dependencies will make a change that breaks compatibility. As a package maintainer, you could rely on other maintainers following semver conventions, but not everyone does."
+          }
+        ],
+        "env_delta": [],
+        "resolved_sources": []
+      }
+    ],
+    "verdict": "BLOCKED",
+    "timestamp": "2026-09-24T12:54:40.146327+00:00",
+    "reproduction_passport_hash": "d5a6f5222779db01fc71656b6e2c02764647b9171739970bea6540e5f2af83fe"
+  },
+  "finished_at": "2026-09-24T12:54:40.180632+00:00",
+  "events": [
+    {
+      "t_s": 0.0,
+      "at": "2026-09-24T12:49:28.165431+00:00",
+      "line": "[intake] cloned https://github.com/gaozhengqing/TTPT@7d6a26246882e830c76a27b2bd669f399f824037"
+    },
+    {
+      "t_s": 0.01,
+      "at": "2026-09-24T12:49:28.174064+00:00",
+      "line": "[recon] calling Nemotron Nano"
+    },
+    {
+      "t_s": 13.76,
+      "at": "2026-09-24T12:49:41.925190+00:00",
+      "line": "[recon] entrypoint=train.py confidence=0.80"
+    },
+    {
+      "t_s": 15.17,
+      "at": "2026-09-24T12:49:43.336544+00:00",
+      "line": "[planner] build plan: {'base_image': 'python:3.11-slim', 'apt_install': [], 'install_commands': ['pip install -r requirements.txt'], 'execute_command': 'python train.py', 'notes': []}"
+    },
+    {
+      "t_s": 15.17,
+      "at": "2026-09-24T12:49:43.336645+00:00",
+      "line": "[sandbox] starting build+execute (wall_clock_seconds=600)"
+    },
+    {
+      "t_s": 27.17,
+      "at": "2026-09-24T12:49:55.339306+00:00",
+      "line": "[cost_guard] recorded $0.0195 sandbox spend, $1.9798 remaining today"
+    },
+    {
+      "t_s": 27.17,
+      "at": "2026-09-24T12:49:55.339394+00:00",
+      "line": "[sandbox] id=f15b3404-55f8-41f5-9c72-6a768c26e6b5 exit_code=1"
+    },
+    {
+      "t_s": 27.18,
+      "at": "2026-09-24T12:49:55.341322+00:00",
+      "line": "[classifier] DEP_MISSING: ModuleNotFoundError: No module named 'torch'"
+    },
+    {
+      "t_s": 29.52,
+      "at": "2026-09-24T12:49:57.683629+00:00",
+      "line": "[resolver] torch: 0 verified git source(s), PyPI found (6 release(s) shown), repo date 2024-08-30"
+    },
+    {
+      "t_s": 29.52,
+      "at": "2026-09-24T12:49:57.683689+00:00",
+      "line": "[tavily] 5 source(s) for 'torch python package version compatible 2024 release history'"
+    },
+    {
+      "t_s": 33.7,
+      "at": "2026-09-24T12:50:01.863048+00:00",
+      "line": "[repair 1] tamper gate PASS (env) \u2014 applying and re-executing"
+    },
+    {
+      "t_s": 33.7,
+      "at": "2026-09-24T12:50:01.863290+00:00",
+      "line": "[repair 1] env delta applied; build plan now: {'base_image': 'python:3.11-slim', 'apt_install': [], 'install_commands': [\"printf '%s\\\\n' ftfy==6.1.1 regex tqdm torch==2.4.0 > .rerun-requirements.txt && pip install -r .rerun-requirements.txt\"], 'execute_command': 'python train.py', 'notes': ['env delta: add torch \u2014 Add missing torch dependency to resolve ModuleNotFoundError']}"
+    },
+    {
+      "t_s": 33.7,
+      "at": "2026-09-24T12:50:01.863328+00:00",
+      "line": "[sandbox] starting build+execute (wall_clock_seconds=600)"
+    },
+    {
+      "t_s": 271.23,
+      "at": "2026-09-24T12:53:59.397532+00:00",
+      "line": "[cost_guard] recorded $0.5023 sandbox spend, $1.4762 remaining today"
+    },
+    {
+      "t_s": 271.23,
+      "at": "2026-09-24T12:53:59.397622+00:00",
+      "line": "[repair 1] re-execution id=4d1bdafc-1c7a-4ecc-86d0-8a3a14298d25 exit_code=1"
+    },
+    {
+      "t_s": 271.23,
+      "at": "2026-09-24T12:53:59.397767+00:00",
+      "line": "[classifier] DEP_MISSING: ModuleNotFoundError: No module named 'dassl'"
+    },
+    {
+      "t_s": 273.18,
+      "at": "2026-09-24T12:54:01.341031+00:00",
+      "line": "[resolver] dassl: 0 verified git source(s), PyPI not on PyPI (0 release(s) shown), repo date 2024-08-30"
+    },
+    {
+      "t_s": 273.18,
+      "at": "2026-09-24T12:54:01.341091+00:00",
+      "line": "[tavily] 5 source(s) for 'dassl python package version compatible 2024 release history'"
+    },
+    {
+      "t_s": 293.2,
+      "at": "2026-09-24T12:54:21.362815+00:00",
+      "line": "[repair 2] tamper gate REJECT: env_delta[0]: needs a one-line justification (\u2264300 chars); env_delta[0]: evidence '' does not appear verbatim in the failing run's log"
+    },
+    {
+      "t_s": 295.83,
+      "at": "2026-09-24T12:54:23.993870+00:00",
+      "line": "[resolver] dassl: 0 verified git source(s), PyPI not on PyPI (0 release(s) shown), repo date 2024-08-30"
+    },
+    {
+      "t_s": 295.83,
+      "at": "2026-09-24T12:54:23.993929+00:00",
+      "line": "[tavily] 5 source(s) for 'dassl python package version compatible 2024 release history'"
+    },
+    {
+      "t_s": 309.86,
+      "at": "2026-09-24T12:54:38.022931+00:00",
+      "line": "[repair 3] declined: Cannot fix missing dassl dependency because it is not available on PyPI and no verified git source is provided to install from source."
+    },
+    {
+      "t_s": 309.86,
+      "at": "2026-09-24T12:54:38.022996+00:00",
+      "line": "[verdict] BLOCKED after 3 attempt(s): DEP_MISSING"
+    }
+  ],
+  "model_calls": [
+    {
+      "model": "nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B",
+      "started_at": "2026-09-24T12:49:28.393649+00:00",
+      "latency_s": 13.53,
+      "finish_reason": "stop",
+      "content_is_none": false,
+      "has_reasoning": true,
+      "usage": {
+        "completion_tokens": 1322,
+        "prompt_tokens": 2983,
+        "total_tokens": 4305,
+        "completion_tokens_details": null,
+        "prompt_tokens_details": null
+      }
+    },
+    {
+      "model": "nvidia/nemotron-3-super-120b-a12b",
+      "started_at": "2026-09-24T12:49:41.926836+00:00",
+      "latency_s": 1.41,
+      "finish_reason": "stop",
+      "content_is_none": false,
+      "has_reasoning": true,
+      "usage": {
+        "completion_tokens": 73,
+        "prompt_tokens": 280,
+        "total_tokens": 353,
+        "completion_tokens_details": {
+          "accepted_prediction_tokens": null,
+          "audio_tokens": null,
+          "reasoning_tokens": 63,
+          "rejected_prediction_tokens": null,
+          "text_tokens": null
+        },
+        "prompt_tokens_details": {
+          "audio_tokens": null,
+          "cache_write_tokens": null,
+          "cached_tokens": 0,
+          "image_tokens": null,
+          "text_tokens": null,
+          "created_cache_tokens": 0,
+          "multimodal_tokens": null
+        },
+        "prompt_cache_hit_tokens": 0,
+        "prompt_cache_miss_tokens": 280
+      }
+    },
+    {
+      "model": "nvidia/nemotron-3-super-120b-a12b",
+      "started_at": "2026-09-24T12:49:57.686507+00:00",
+      "latency_s": 4.13,
+      "finish_reason": "stop",
+      "content_is_none": false,
+      "has_reasoning": true,
+      "usage": {
+        "completion_tokens": 538,
+        "prompt_tokens": 3026,
+        "total_tokens": 3564,
+        "completion_tokens_details": {
+          "accepted_prediction_tokens": null,
+          "audio_tokens": null,
+          "reasoning_tokens": 426,
+          "rejected_prediction_tokens": null,
+          "text_tokens": null
+        },
+        "prompt_tokens_details": {
+          "audio_tokens": null,
+          "cache_write_tokens": null,
+          "cached_tokens": 0,
+          "image_tokens": null,
+          "text_tokens": null,
+          "created_cache_tokens": 0,
+          "multimodal_tokens": null
+        },
+        "prompt_cache_hit_tokens": 0,
+        "prompt_cache_miss_tokens": 3026
+      }
+    },
+    {
+      "model": "nvidia/nemotron-3-super-120b-a12b",
+      "started_at": "2026-09-24T12:54:01.343599+00:00",
+      "latency_s": 20.02,
+      "finish_reason": "stop",
+      "content_is_none": false,
+      "has_reasoning": true,
+      "usage": {
+        "completion_tokens": 4107,
+        "prompt_tokens": 2968,
+        "total_tokens": 7075,
+        "completion_tokens_details": {
+          "accepted_prediction_tokens": null,
+          "audio_tokens": null,
+          "reasoning_tokens": 4032,
+          "rejected_prediction_tokens": null,
+          "text_tokens": null
+        },
+        "prompt_tokens_details": {
+          "audio_tokens": null,
+          "cache_write_tokens": null,
+          "cached_tokens": 0,
+          "image_tokens": null,
+          "text_tokens": null,
+          "created_cache_tokens": 0,
+          "multimodal_tokens": null
+        },
+        "prompt_cache_hit_tokens": 0,
+        "prompt_cache_miss_tokens": 2968
+      }
+    },
+    {
+      "model": "nvidia/nemotron-3-super-120b-a12b",
+      "started_at": "2026-09-24T12:54:23.996160+00:00",
+      "latency_s": 14.03,
+      "finish_reason": "stop",
+      "content_is_none": false,
+      "has_reasoning": true,
+      "usage": {
+        "completion_tokens": 1579,
+        "prompt_tokens": 2726,
+        "total_tokens": 4305,
+        "completion_tokens_details": {
+          "accepted_prediction_tokens": null,
+          "audio_tokens": null,
+          "reasoning_tokens": 1529,
+          "rejected_prediction_tokens": null,
+          "text_tokens": null
+        },
+        "prompt_tokens_details": {
+          "audio_tokens": null,
+          "cache_write_tokens": null,
+          "cached_tokens": 0,
+          "image_tokens": null,
+          "text_tokens": null,
+          "created_cache_tokens": 0,
+          "multimodal_tokens": null
+        },
+        "prompt_cache_hit_tokens": 0,
+        "prompt_cache_miss_tokens": 2726
+      }
+    },
+    {
+      "model": "nvidia/Nemotron-3-Ultra-550b-a55b",
+      "started_at": "2026-09-24T12:54:38.024369+00:00",
+      "latency_s": 2.12,
+      "finish_reason": "stop",
+      "content_is_none": false,
+      "has_reasoning": true,
+      "usage": {
+        "completion_tokens": 477,
+        "prompt_tokens": 645,
+        "total_tokens": 1122,
+        "completion_tokens_details": {
+          "accepted_prediction_tokens": null,
+          "audio_tokens": null,
+          "reasoning_tokens": 351,
+          "rejected_prediction_tokens": null,
+          "text_tokens": null
+        },
+        "prompt_tokens_details": {
+          "audio_tokens": null,
+          "cache_write_tokens": null,
+          "cached_tokens": 0,
+          "image_tokens": null,
+          "text_tokens": null,
+          "multimodal_tokens": null
+        },
+        "prompt_cache_hit_tokens": 0,
+        "prompt_cache_miss_tokens": 645
+      }
+    }
+  ],
+  "cost_guard": {
+    "spent_usd": 0.53272125,
+    "model_spent_usd": 0.01093956,
+    "sandbox_spent_usd": 0.52178169,
+    "remaining_usd": 1.46727875,
+    "model_usage": [
+      {
+        "model": "nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B",
+        "prompt_tokens": 2983,
+        "completion_tokens": 1322,
+        "cost_usd": 0.00049626
+      },
+      {
+        "model": "nvidia/nemotron-3-super-120b-a12b",
+        "prompt_tokens": 280,
+        "completion_tokens": 73,
+        "cost_usd": 0.00014969999999999998
+      },
+      {
+        "model": "nvidia/nemotron-3-super-120b-a12b",
+        "prompt_tokens": 3026,
+        "completion_tokens": 538,
+        "cost_usd": 0.001392
+      },
+      {
+        "model": "nvidia/nemotron-3-super-120b-a12b",
+        "prompt_tokens": 2968,
+        "completion_tokens": 4107,
+        "cost_usd": 0.0045867
+      },
+      {
+        "model": "nvidia/nemotron-3-super-120b-a12b",
+        "prompt_tokens": 2726,
+        "completion_tokens": 1579,
+        "cost_usd": 0.0022389000000000003
+      },
+      {
+        "model": "nvidia/Nemotron-3-Ultra-550b-a55b",
+        "prompt_tokens": 645,
+        "completion_tokens": 477,
+        "cost_usd": 0.002076
+      }
+    ],
+    "prices_usd_per_1m": {
+      "nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B": [
+        0.06,
+        0.24
+      ],
+      "nvidia/nemotron-3-super-120b-a12b": [
+        0.3,
+        0.9
+      ],
+      "nvidia/Nemotron-3-Ultra-550b-a55b": [
+        1.0,
+        3.0
+      ]
+    },
+    "prices_source": "https://api.tokenfactory.nebius.com/v1/models?verbose=true (pricing field)",
+    "prices_retrieved": "2026-09-24"
+  }
+}

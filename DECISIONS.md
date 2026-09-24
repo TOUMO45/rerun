@@ -3271,3 +3271,45 @@ env-gate tests, 1 frontend test. A conftest guard blocks the resolver's real HTT
 unit suite. Backend 450 passed, 8 skipped; frontend 6 passed.
 
 ---
+
+## 2026-09-24 — Step 5 re-run with Tavily active: both BLOCKED, two resolver bugs found
+
+Records: `runs/live_run_gpt2_v3.json`, `runs/live_run_ttpt_v3.json`; both certificates →
+`scripts/verify_passport.py` → PASSPORT VERIFIED.
+
+| | gpt-2 | TTPT |
+|---|---|---|
+| Verdict | BLOCKED `DEP_MISSING` (`tensorflow.contrib`) | BLOCKED `DEP_MISSING` (`dassl`) |
+| Attempts | env PASS apt build-essential → env PASS numpy==1.26.3 → env PASS tensorflow==2.15.0 | env PASS torch==2.4.0 → REJECT (`ENV_UNJUSTIFIED` ×2: model omitted justification/evidence) → DECLINED |
+| Pipeline | 259.7 s | 312.0 s |
+| Spend model / sandbox / total | $0.0078 / $0.7893 / $0.7971 | $0.0109 / $0.5218 / $0.5327 |
+
+Env repair and PyPI history now choose pinned versions (numpy 1.26.3, torch 2.4.0,
+tensorflow 2.15.0) instead of unpinned installs. That's progress, but for gpt-2 they were
+the wrong era.
+
+**Bug 1 — era date.** `dep_resolver.repo_commit_date` uses the pinned commit's date.
+gpt-2's pinned commit is a 2024-01-26 archival edit, while its `requirements.txt` last
+changed 2019-03-04 (GitHub API, `commits?path=requirements.txt`). So the resolver
+offered 2024-era releases (numpy 1.26, TF 2.13–2.15) and the repairer picked TF 2.15,
+which has no `tensorflow.contrib`. The shallow clone (depth 1) has no history, so a
+local `git log -- requirements.txt` can't fix it; the dependency files' last-change
+date must come from the GitHub API (or a deeper fetch).
+
+**Bug 2 — DEP_MISSING for a non-PyPI package never goes source-finding.** TTPT's
+`dassl` arrived as `DEP_MISSING` (import error), not `DEP_NOT_ON_PYPI` (pip error). The
+resolver ran the "version history" query, PyPI answered "not on PyPI", but source-finding
+(the source query plus the github.com-only fallback) only triggers on the
+`DEP_NOT_ON_PYPI` code. The verified `KaiyangZhou/Dassl.pytorch` source was never found
+in-run (the standalone live check finds it). Fix direction: switch to source-finding
+whenever PyPI returns 404, regardless of code.
+
+**Also observed:** the generic (non-resolver) Tavily query for `SYS_LIB_MISSING`
+("python sys lib missing fix: error: command 'gcc' failed…") returned irrelevant pages
+(stocktitan.net, businessinsider.com) that are still cited on the certificate. And the
+model dropped the required justification/evidence once, which cost an attempt (the env
+gate rejected it correctly).
+
+Not patched in this run (observe-and-report).
+
+---
