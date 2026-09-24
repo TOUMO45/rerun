@@ -13,6 +13,7 @@ import pytest
 
 from app.services.cost_guard import CostGuard
 from app.services.model_client import (
+    ModelCallError,
     ModelCostLimitError,
     ModelCredentialsError,
     ModelResponseParseError,
@@ -171,3 +172,117 @@ def test_token_estimate_counts_special_token_text_not_as_a_single_token():
     from app.services.model_client import _estimate_tokens
 
     assert _estimate_tokens("<|endoftext|>") > 1
+
+
+# --- Reasoning-model output handling: retry once on length, never use reasoning --
+
+
+from types import SimpleNamespace  # noqa: E402
+
+
+def _response(content, finish_reason, reasoning="thinking about it..."):
+    message = SimpleNamespace(content=content, model_extra={"reasoning": reasoning, "reasoning_content": reasoning})
+    return SimpleNamespace(choices=[SimpleNamespace(message=message, finish_reason=finish_reason)])
+
+
+class _ScriptedOpenAI:
+    """Stands in for openai.OpenAI: returns scripted responses and records
+    every create() call's kwargs."""
+
+    def __init__(self, responses):
+        self._responses = list(responses)
+        self.calls: list[dict] = []
+        self.chat = SimpleNamespace(completions=SimpleNamespace(create=self._create))
+
+    def _create(self, **kwargs):
+        self.calls.append(kwargs)
+        return self._responses.pop(0)
+
+
+def _nebius_client_with(monkeypatch, responses):
+    fake = _ScriptedOpenAI(responses)
+    client = NebiusChatClient(api_key="k", base_url="https://example.invalid/v1")
+    monkeypatch.setattr(NebiusChatClient, "_client", lambda self: fake)
+    return client, fake
+
+
+def test_reasoning_budget_exhausted_retries_once_with_double_max_tokens(monkeypatch):
+    client, fake = _nebius_client_with(monkeypatch, [_response(None, "length"), _response('{"ok": true}', "stop")])
+    out = client.chat_completion(model="m", system_prompt="s", user_prompt="u", max_tokens=100)
+    assert out == '{"ok": true}'
+    assert [c["max_tokens"] for c in fake.calls] == [100, 200]
+
+
+def test_empty_string_content_with_length_also_retries(monkeypatch):
+    client, fake = _nebius_client_with(monkeypatch, [_response("   ", "length"), _response("answer", "stop")])
+    assert client.chat_completion(model="m", system_prompt="s", user_prompt="u", max_tokens=50) == "answer"
+    assert len(fake.calls) == 2
+
+
+def test_still_empty_after_retry_raises_model_budget_error_and_never_returns_reasoning(monkeypatch):
+    from app.services.model_client import ModelBudgetError
+
+    client, fake = _nebius_client_with(
+        monkeypatch,
+        [_response(None, "length", reasoning='{"ok": true}'), _response(None, "length", reasoning='{"ok": true}')],
+    )
+    with pytest.raises(ModelBudgetError) as excinfo:
+        client.chat_completion(model="m", system_prompt="s", user_prompt="u", max_tokens=64)
+    assert len(fake.calls) == 2  # exactly one retry, never a loop
+    assert "128" in str(excinfo.value)
+
+
+def test_negative_control_empty_content_without_length_is_not_retried(monkeypatch):
+    from app.services.model_client import ModelBudgetError
+
+    client, fake = _nebius_client_with(monkeypatch, [_response(None, "stop")])
+    with pytest.raises(ModelCallError) as excinfo:
+        client.chat_completion(model="m", system_prompt="s", user_prompt="u", max_tokens=64)
+    assert not isinstance(excinfo.value, ModelBudgetError)
+    assert len(fake.calls) == 1
+
+
+def test_negative_control_answer_on_first_try_makes_one_call(monkeypatch):
+    client, fake = _nebius_client_with(monkeypatch, [_response("answer", "stop")])
+    assert client.chat_completion(model="m", system_prompt="s", user_prompt="u", max_tokens=64) == "answer"
+    assert len(fake.calls) == 1
+
+
+def test_model_budget_error_is_a_model_call_error_so_callers_fall_back():
+    from app.services.model_client import ModelBudgetError
+
+    assert issubclass(ModelBudgetError, ModelCallError)
+
+
+def test_model_budget_error_in_recon_becomes_recon_model_error(monkeypatch):
+    """End to end through recon: a budget-exhausted Nano call is RERUN's own
+    failure (RECON_MODEL_ERROR), never ENTRYPOINT_UNCLEAR, and never a guess
+    built from the reasoning text."""
+    from pathlib import Path
+
+    from app.services.intake import RepoIntake
+    from app.services.recon import RECON_MAX_TOKENS, RECON_MODEL_ERROR, run_recon
+
+    client, fake = _nebius_client_with(monkeypatch, [_response(None, "length"), _response(None, "length")])
+    intake = RepoIntake(
+        local_path=Path("/fake"),
+        commit_sha="a" * 40,
+        dependency_files={},
+        declared_dependencies=frozenset(),
+        notebook_paths=(),
+        entrypoint_candidates=("train.py",),
+        python_version_hint=None,
+    )
+    result = run_recon(client, "nano", intake)
+    assert result.is_indeterminate
+    assert result.indeterminate_code == RECON_MODEL_ERROR
+    assert [c["max_tokens"] for c in fake.calls] == [RECON_MAX_TOKENS, 2 * RECON_MAX_TOKENS]
+
+
+def test_every_role_passes_an_explicit_max_tokens():
+    from app.services import adjudicator, planner, recon, repairer
+
+    assert recon.RECON_MAX_TOKENS > 0
+    assert planner.PLANNER_MAX_TOKENS > 0
+    assert repairer.REPAIR_MAX_TOKENS > 0
+    assert adjudicator.ADJUDICATOR_MAX_TOKENS > 0

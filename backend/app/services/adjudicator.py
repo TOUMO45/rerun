@@ -26,6 +26,9 @@ from dataclasses import dataclass
 
 from app.services.model_client import ModelCallError, call_json_model
 
+# Output budget incl. reasoning tokens (model_client retries once at 2x).
+ADJUDICATOR_MAX_TOKENS = 2048
+
 SCOPE_BOUNDARY_LINE = (
     "Verifies that the artifact executes. Does not verify the paper's numerical results."
 )
@@ -122,7 +125,14 @@ def adjudicate(
         f"Evidence: {evidence_summary}"
     )
     try:
-        raw = call_json_model(client, model=model, system_prompt=_SYSTEM_PROMPT, user_prompt=user_prompt, cost_guard=cost_guard)
+        raw = call_json_model(
+            client,
+            model=model,
+            system_prompt=_SYSTEM_PROMPT,
+            user_prompt=user_prompt,
+            cost_guard=cost_guard,
+            max_tokens=ADJUDICATOR_MAX_TOKENS,
+        )
     except ModelCallError:
         return AdjudicationResult(
             verdict=verdict,

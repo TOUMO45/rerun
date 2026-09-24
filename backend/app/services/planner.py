@@ -38,6 +38,9 @@ from app.services.recon import ReconResult
 # sandbox unescaped. Real Debian/Ubuntu package names are a well-defined,
 # narrow character set — anything outside it is rejected rather than
 # risking shell interpretation of it.
+# Output budget incl. reasoning tokens (model_client retries once at 2x).
+PLANNER_MAX_TOKENS = 2048
+
 _SAFE_APT_PACKAGE_NAME = re.compile(r"^[a-z0-9][a-z0-9+.-]*$")
 
 
@@ -169,6 +172,7 @@ def build_plan(
                 system_prompt=_APT_SYSTEM_PROMPT,
                 user_prompt=f"Declared pip dependencies: {sorted(intake.declared_dependencies)}",
                 cost_guard=cost_guard,
+                max_tokens=PLANNER_MAX_TOKENS,
             )
             model_apt = raw.get("apt_packages") or []
             if isinstance(model_apt, list):

@@ -41,6 +41,8 @@ from app.services.intake import RepoIntake
 from app.services.model_client import ModelCallError, call_json_model
 
 MIN_CONFIDENCE = 0.6
+# Output budget incl. reasoning tokens (model_client retries once at 2x).
+RECON_MAX_TOKENS = 4096
 
 # Why a recon run ended INDETERMINATE, as a stable machine-readable code.
 # ENTRYPOINT_UNCLEAR is the §5.2 taxonomy code, but it is emitted HERE, before
@@ -242,6 +244,7 @@ def run_recon(
             system_prompt=_SYSTEM_PROMPT,
             user_prompt=build_recon_user_prompt(intake, entrypoint_file_contents),
             cost_guard=cost_guard,
+            max_tokens=RECON_MAX_TOKENS,
         )
     except ModelCallError as exc:
         return _indeterminate(f"recon model call failed: {exc}", code=RECON_MODEL_ERROR)

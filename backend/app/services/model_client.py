@@ -62,6 +62,16 @@ class ModelResponseParseError(ModelCallError):
     (e.g. §6.1 INDETERMINATE), never as a reason to guess."""
 
 
+class ModelBudgetError(ModelCallError):
+    """A reasoning model spent its whole output budget thinking and never
+    produced an answer (`content` empty, `finish_reason == "length"`), even
+    after one retry with double the budget. A ModelCallError subclass, so
+    every caller's existing fallback applies (recon -> INDETERMINATE
+    RECON_MODEL_ERROR, planner -> deterministic plan, repairer -> declined,
+    adjudicator -> templated prose). The model's `reasoning` text is never
+    used as a substitute answer."""
+
+
 class ModelCostLimitError(ModelCallError):
     """The prompt's estimated token count would exceed cost_guard's
     per-attempt ceiling. Deliberately a ModelCallError subclass so every
@@ -75,7 +85,9 @@ class _ChatClientLike(Protocol):
     """The minimal surface every service actually uses — real `OpenAI()`
     satisfies this, and tests can inject a tiny fake satisfying just this."""
 
-    def chat_completion(self, *, model: str, system_prompt: str, user_prompt: str, temperature: float) -> str: ...
+    def chat_completion(
+        self, *, model: str, system_prompt: str, user_prompt: str, temperature: float, max_tokens: int | None = None
+    ) -> str: ...
 
 
 @dataclass(frozen=True)
@@ -97,19 +109,49 @@ class NebiusChatClient:
     def _client(self) -> OpenAI:
         return OpenAI(api_key=self.api_key, base_url=self.base_url)
 
-    def chat_completion(self, *, model: str, system_prompt: str, user_prompt: str, temperature: float = 0.0) -> str:
-        response = self._client().chat.completions.create(
-            model=model,
-            messages=[
-                {"role": "system", "content": system_prompt},
-                {"role": "user", "content": user_prompt},
-            ],
-            temperature=temperature,
+    def chat_completion(
+        self,
+        *,
+        model: str,
+        system_prompt: str,
+        user_prompt: str,
+        temperature: float = 0.0,
+        max_tokens: int | None = None,
+    ) -> str:
+        """Nemotron 3 on Token Factory are reasoning models: chain-of-thought
+        arrives in `message.model_extra["reasoning"/"reasoning_content"]` and
+        the answer in `message.content` only after reasoning ends (verified
+        live, DECISIONS.md 2026-09-23). If the budget runs out mid-reasoning
+        (`content` empty + `finish_reason == "length"`), retry once with
+        double `max_tokens`; if still empty, raise ModelBudgetError. The
+        reasoning field is never returned as the answer."""
+        client = self._client()
+        messages = [
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": user_prompt},
+        ]
+        budget = max_tokens
+        for attempt in (1, 2):
+            kwargs = {"model": model, "messages": messages, "temperature": temperature}
+            if budget is not None:
+                kwargs["max_tokens"] = budget
+            response = client.chat.completions.create(**kwargs)
+            choice = response.choices[0]
+            content = choice.message.content
+            if content and content.strip():
+                return content
+            if choice.finish_reason != "length":
+                raise ModelCallError(
+                    f"model '{model}' returned an empty message content (finish_reason={choice.finish_reason!r})"
+                )
+            if attempt == 1 and budget is not None:
+                budget *= 2
+                continue
+            break
+        raise ModelBudgetError(
+            f"model '{model}' used its whole output budget (max_tokens={budget}) without producing an answer "
+            "(finish_reason='length', content empty) — reasoning never finished"
         )
-        content = response.choices[0].message.content
-        if content is None:
-            raise ModelCallError(f"model '{model}' returned an empty message content")
-        return content
 
 
 def call_json_model(
@@ -120,6 +162,7 @@ def call_json_model(
     user_prompt: str,
     temperature: float = 0.0,
     cost_guard: CostGuard | None = None,
+    max_tokens: int | None = None,
 ) -> dict[str, Any]:
     """Call a model expected to answer with a single JSON object, and parse
     it. Raises ModelResponseParseError (never guesses / never returns a
@@ -141,11 +184,15 @@ def call_json_model(
                 f"prompt estimated at {estimated_tokens} tokens exceeds the per-attempt ceiling: {exc}"
             ) from exc
 
+    # max_tokens is only forwarded when set, so minimal fakes/clients that
+    # predate it keep working unchanged.
+    extra = {"max_tokens": max_tokens} if max_tokens is not None else {}
     raw = client.chat_completion(
         model=model,
         system_prompt=system_prompt,
         user_prompt=user_prompt,
         temperature=temperature,
+        **extra,
     )
     text = raw.strip()
     if text.startswith("```"):

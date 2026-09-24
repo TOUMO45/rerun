@@ -2813,3 +2813,61 @@ tests in `test_runner.py`. Mutation check: with the boundary's `except` narrowed
 unrelated type, 13 of 15 boundary tests fail. Full suite: 296 passed, 7 skipped.
 
 ---
+
+## 2026-09-24 — Reasoning-model output handling; explicit per-role output budgets
+
+**Audit (before this change):** no role passed `max_tokens` at all. Recon, planner,
+repairer and adjudicator all relied on Token Factory's server-side default output
+limit, which is undocumented here, and `NebiusChatClient` raised a plain
+`ModelCallError` whenever `content` was `None` — including the case where a reasoning
+model simply ran out of budget mid-thought.
+
+**Now:** explicit budgets (they include reasoning tokens):
+
+| Role | Constant | max_tokens | on retry |
+|---|---|---|---|
+| recon (Nano) | `recon.RECON_MAX_TOKENS` | 4096 | 8192 |
+| planner (Super, apt enrichment) | `planner.PLANNER_MAX_TOKENS` | 2048 | 4096 |
+| repairer (Super) | `repairer.REPAIR_MAX_TOKENS` | 8192 | 16384 |
+| adjudicator (Ultra) | `adjudicator.ADJUDICATOR_MAX_TOKENS` | 2048 | 4096 |
+
+Sized from the 2026-09-23 ping (a trivial answer cost Nano/Super 20+ reasoning tokens
+before any content) with generous headroom; the repairer is largest because its
+answer is itself a diff. `NebiusChatClient.chat_completion`: if `content` is
+empty/whitespace **and** `finish_reason == "length"`, retry exactly once at 2×
+`max_tokens`; if still empty, raise new `ModelBudgetError(ModelCallError)`. Empty
+content with any other finish reason is not retried (plain `ModelCallError`). The
+`reasoning`/`reasoning_content` fields are never read as an answer.
+
+`ModelBudgetError` subclasses `ModelCallError` on purpose: each role's existing
+fallback handles it without new code — recon → INDETERMINATE `RECON_MODEL_ERROR`
+(our fault, excluded from the denominator), planner → deterministic plan, repairer →
+declined attempt, adjudicator → templated prose. Anything that isn't a
+`ModelCallError` still hits the stage boundary as `PIPELINE_ERROR`.
+`call_json_model` forwards `max_tokens` only when set, so existing minimal fakes stay
+valid. Tests: retry doubles the budget; whitespace content retries; still-empty →
+`ModelBudgetError` after exactly 2 calls even when the reasoning text *is* valid JSON;
+`finish_reason="stop"` + empty → no retry; first-try answer → 1 call; end to end
+through recon → `RECON_MODEL_ERROR` with budgets `[4096, 8192]`.
+
+**Live experiment — can Nano's reasoning be switched off?** (`max_tokens=200`,
+`temperature=0`)
+
+| Switch | Reasoning chars | Completion tokens | Latency |
+|---|---|---|---|
+| none (baseline) | 267 | 85 | 1.40 s |
+| `extra_body={"chat_template_kwargs": {"enable_thinking": False}}` | **0** | **19** | **0.36 s** |
+| `chat_template_kwargs: {"thinking": False}` | 272 | 86 | 1.00 s |
+| system prompt `/no_think` | 322 | 99 | 1.12 s |
+| system prompt `detailed thinking off` | 272 | 86 | 0.95 s |
+| `reasoning_effort="low"` | 235 | 75 | 0.88 s |
+
+Only `enable_thinking: False` works. Repeated 3× each on an ambiguous 3-candidate
+prompt: reasoning-off answered `{"entrypoint": "null", "confidence": 0.1}` — the
+**string** `"null"`, not JSON null — in 3/3 runs; reasoning-on answered with a proper
+JSON `null` (confidence 0.2) in 3/3. **Not adopted.** recon would still abstain (the
+string `"null"` isn't a candidate), but it is a real schema regression on exactly the
+calibrated-abstention call §6.1 depends on, bought for ~50 tokens and ~0.4 s per run.
+Reasoning stays on for recon.
+
+---

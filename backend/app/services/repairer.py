@@ -17,6 +17,10 @@ from dataclasses import dataclass
 from app.services.classifier import Classification
 from app.services.model_client import ModelCallError, call_json_model
 
+# Output budget incl. reasoning tokens (model_client retries once at 2x).
+# Largest of the roles: the answer itself is a unified diff.
+REPAIR_MAX_TOKENS = 8192
+
 _SYSTEM_PROMPT = """You are a careful, minimal-diff software repair assistant fixing a \
 single classified failure in someone else's research code so it can execute. You will \
 be shown the failure's taxonomy code, the evidence line, and the current content of \
@@ -103,6 +107,7 @@ def propose_repair(
             system_prompt=_SYSTEM_PROMPT,
             user_prompt=build_repair_user_prompt(classification, target_file_path, target_file_content, external_context),
             cost_guard=cost_guard,
+            max_tokens=REPAIR_MAX_TOKENS,
         )
     except ModelCallError as exc:
         return RepairProposal(diff_text=None, explanation=f"repair model call failed: {exc}", declined=True)
