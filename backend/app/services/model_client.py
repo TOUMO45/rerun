@@ -26,7 +26,7 @@ from __future__ import annotations
 
 import json
 import secrets
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Any, Protocol
 
 import tiktoken
@@ -122,6 +122,15 @@ class NebiusChatClient:
 
     api_key: str
     base_url: str
+    # (model, prompt_tokens, completion_tokens) for every real response,
+    # including the budget retry; drained by call_json_model for the cost
+    # guard. A list so the frozen dataclass can still append to it.
+    _usage: list = field(default_factory=list, compare=False, repr=False)
+
+    def pop_usage(self) -> list[tuple[str, int, int]]:
+        drained = list(self._usage)
+        self._usage.clear()
+        return drained
 
     def __post_init__(self):
         if not self.api_key:
@@ -160,6 +169,9 @@ class NebiusChatClient:
             if budget is not None:
                 kwargs["max_tokens"] = budget
             response = client.chat.completions.create(**kwargs)
+            usage = getattr(response, "usage", None)
+            if usage is not None:
+                self._usage.append((model, int(usage.prompt_tokens or 0), int(usage.completion_tokens or 0)))
             choice = response.choices[0]
             content = choice.message.content
             if content and content.strip():
@@ -208,16 +220,31 @@ def call_json_model(
                 f"prompt estimated at {estimated_tokens} tokens exceeds the per-attempt ceiling: {exc}"
             ) from exc
 
+        # The daily USD ceiling now covers model spend too: refuse to start
+        # a model call once today's recorded spend has reached it.
+        try:
+            cost_guard.check_daily_budget(0.0)
+        except CostLimitExceeded as exc:
+            raise ModelCostLimitError(f"daily cost ceiling reached before a model call: {exc}") from exc
+
     # max_tokens is only forwarded when set, so minimal fakes/clients that
     # predate it keep working unchanged.
     extra = {"max_tokens": max_tokens} if max_tokens is not None else {}
-    raw = client.chat_completion(
-        model=model,
-        system_prompt=system_prompt,
-        user_prompt=user_prompt,
-        temperature=temperature,
-        **extra,
-    )
+    try:
+        raw = client.chat_completion(
+            model=model,
+            system_prompt=system_prompt,
+            user_prompt=user_prompt,
+            temperature=temperature,
+            **extra,
+        )
+    finally:
+        # Record what was actually spent even if the call then failed
+        # (e.g. ModelBudgetError after two paid responses).
+        pop_usage = getattr(client, "pop_usage", None)
+        if cost_guard is not None and callable(pop_usage):
+            for used_model, prompt_tokens, completion_tokens in pop_usage():
+                cost_guard.record_model_usage(used_model, prompt_tokens, completion_tokens)
     text = raw.strip()
     if text.startswith("```"):
         text = text.strip("`")

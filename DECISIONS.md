@@ -2996,7 +2996,7 @@ added `os.environ['TF_ENABLE_ONEDNN_OPTS']='0'` → applied → install still fa
 
 ---
 
-## 2026-09-25 — Tamper gate now checks EVERY touched file; one path normalizer for gate + apply
+## 2026-09-24 — Tamper gate now checks EVERY touched file; one path normalizer for gate + apply
 
 Closes the CRITICAL hole from the 2026-09-24 live runs (a diff editing a file the gate
 wasn't handed PASSed with zero checks, then got `git apply`-ed).
@@ -3040,7 +3040,7 @@ now apply. **Mutation checks:** restoring the old skip → (a) fails; allowing `
 
 ---
 
-## 2026-09-25 — Environment-layer repair (`env_delta`) with its own deterministic gate
+## 2026-09-24 — Environment-layer repair (`env_delta`) with its own deterministic gate
 
 **Why:** in the 2026-09-24 live runs every real failure was environmental (gpt-2:
 `regex==2017.4.5` needs gcc; TTPT: Dassl is not on PyPI), yet the repairer could only
@@ -3100,5 +3100,77 @@ with the re-execution really using the new plan; an unjustified delta → REJECT
 re-execution; passport covers the env delta. Frontend: 2 new component tests. Backend
 suite 410 passed, 8 skipped; frontend 5 passed; build green. Not checked in the
 browser: no backend is running locally and a certificate page needs a stored run.
+
+---
+
+## 2026-09-24 — Quality fixes from the live runs (classifier, JSON retry, sandbox id, model cost)
+
+(Date note: the two entries above were first written as 2026-09-25 by mistake; corrected
+to 2026-09-24, as were three code comments.)
+
+**a) Classifier evidence + `DEP_YANKED_GONE` split.** Evidence was `match.group(0)` —
+only the matched phrase, which is how TTPT's record said "No matching distribution
+found for" with the package name cut off. Evidence is now the **whole log line**
+containing the match (all codes). `DEP_YANKED_GONE` is split:
+`DEP_NOT_ON_PYPI` ("… (from versions: none)", a PyPI 404, invalid editable requirement)
+is checked first; `DEP_YANKED` (a non-empty "from versions: …" list, pip's yanked-version
+warning, or a bare "No matching distribution found for") otherwise. Stated limitation:
+"versions: none" also occurs when a package exists but has no distribution compatible
+with the interpreter/platform — the log alone cannot distinguish that; it is reported as
+`DEP_NOT_ON_PYPI`. Both route to env repair. RERUN_BUILD_DIRECTIVE.md §5.2 still lists the
+old single code — it is the human's spec document, so it was left unedited; this entry is
+the record of the change. Tests: positive + negative control for each new code (TTPT's
+verbatim log as the NOT_ON_PYPI fixture), full-name evidence, whole-line evidence for
+other codes. Phase 1's gate stays met: every code has ≥1 positive and ≥1 negative control.
+
+**b) Invalid-JSON repair reply.** `propose_repair` now re-asks once, appending the parse
+error and an escaping reminder, inside the same attempt (the orchestrator counts
+`propose_repair` calls, so it doesn't consume a repair attempt); a second invalid reply
+→ declined, no third call. Logged as "re-asked once (same attempt)". **JSON mode checked
+live:** `response_format={"type": "json_object"}` is accepted by Nano, Super and Ultra
+(no error; trivial prompts valid either way). On a harder prompt (a diff full of quotes,
+backslashes and newlines, Super, T=0.6, 3 runs each): plain mode 3/3 valid JSON, JSON
+mode 2/3 — the failure was an empty/unparseable reply. No evidence it helps, so **not
+adopted**. Tests: re-ask then success; invalid twice → declined after exactly 2 calls;
+valid first time → 1 call; end to end with `max_attempts=1` → RUNS_AFTER_REPAIR and
+`attempts_used == 1`.
+
+**c) `sandbox id=None`.** Root cause confirmed in the installed SDK
+(`contree_sdk/sdk/objects/image_like/_base.py`: `new_self.uuid = new_uuid and
+UUID(new_uuid)`): a `disposable=True` run produces no image and therefore no uuid, and
+the final (execute) step always runs disposable — so `sandbox_id` was None exactly when
+the execute step ran (TTPT's first two runs), and non-None when install failed first
+(gpt-2). `sandbox_id` is now the uuid of the last image in the chain that has one — the
+environment image the final step ran on. Test with an SDK-shaped fake (retained steps
+get a uuid, the disposable one doesn't); fails against the old code.
+
+**d) Model cost.** Official per-token prices found in Token Factory's **own API**:
+`GET https://api.tokenfactory.nebius.com/v1/models?verbose=true` returns
+`pricing.prompt`/`pricing.completion` (USD per token) for our key, retrieved 2026-09-24:
+
+| Model | Input $/1M | Output $/1M |
+|---|---|---|
+| `nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B` | 0.06 | 0.24 |
+| `nvidia/nemotron-3-super-120b-a12b` | 0.30 | 0.90 |
+| `nvidia/Nemotron-3-Ultra-550b-a55b` | 1.00 | 3.00 |
+
+The human-readable page (`https://tokenfactory.nebius.com/organization/prices`, linked
+from nebius.com/services/token-factory) is behind the console login and was not read.
+Third-party aggregators showing matching Super numbers were not used as the source.
+Stored in `config.model_prices_usd_per_1m` with `model_prices_source` and
+`model_prices_retrieved`. `NebiusChatClient` records every response's `usage` (including
+the budget retry); `call_json_model` hands it to new `CostGuard.record_model_usage`, which
+prices it into the same daily total (`model_spent_usd` / `sandbox_spent_usd` tracked
+separately). Unpriced models are recorded with `cost_usd: None` — never guessed.
+`call_json_model` now also refuses a model call once the daily ceiling is reached.
+Consequence (test updated): an already-exhausted budget now stops a run *before recon's
+model call* → INDETERMINATE `RECON_MODEL_ERROR` (our fault, excluded from the
+denominator), instead of NOT_ATTEMPTABLE at the sandbox. **Boundary bug fixed while
+testing:** `check_daily_budget(0.0)` let a call through with spend *exactly at* the
+ceiling (`spent + 0 > ceiling` is false); "nothing left" now refuses.
+`scripts/live_run.py` records the model/sandbox split, per-call usage and the price
+source.
+
+Backend suite: 425 passed, 8 skipped.
 
 ---

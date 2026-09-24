@@ -44,7 +44,7 @@ class GateRule:
     DIFF_TOO_LARGE = "DIFF_TOO_LARGE"
     # Defensive addition beyond §5.3's six rules: see module docstring.
     UNPARSEABLE_PATCH = "UNPARSEABLE_PATCH"
-    # Path safety (added 2026-09-25 after the live runs exposed that a diff
+    # Path safety (added 2026-09-24 after the live runs exposed that a diff
     # touching a file the gate was never given passed unchecked).
     UNSAFE_PATH = "UNSAFE_PATH"  # absolute, ../, outside repo root, symlink, rename
     FILE_DELETION = "FILE_DELETION"  # +++ /dev/null — deleting a whole file

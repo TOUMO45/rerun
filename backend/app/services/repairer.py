@@ -13,10 +13,16 @@ orchestrates the loop (not yet built), using `cost_guard.py`.
 from __future__ import annotations
 
 import json
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 
 from app.services.classifier import Classification
-from app.services.model_client import UNTRUSTED_CONTENT_NOTICE, ModelCallError, call_json_model, untrusted_block
+from app.services.model_client import (
+    UNTRUSTED_CONTENT_NOTICE,
+    ModelCallError,
+    ModelResponseParseError,
+    call_json_model,
+    untrusted_block,
+)
 
 # Output budget incl. reasoning tokens (model_client retries once at 2x).
 # Largest of the roles: the answer itself is a unified diff.
@@ -80,6 +86,8 @@ class RepairProposal:
     declined: bool = False
     # Raw env_delta list from the model; parsed and gated by env_repair.
     env_delta: tuple = ()
+    # True if the first reply was invalid JSON and the model was re-asked.
+    parse_retried: bool = False
 
     @property
     def has_diff(self) -> bool:
@@ -164,25 +172,51 @@ def propose_repair(
     attempt and either retry or move toward BLOCKED per §5.4 — it must
     never silently retry forever or fabricate a diff.
     """
-    try:
-        raw = call_json_model(
-            client,
-            model=model,
-            system_prompt=_SYSTEM_PROMPT,
-            user_prompt=build_repair_user_prompt(
-                classification,
-                target_file_path,
-                target_file_content,
-                external_context,
-                repair_layer=repair_layer,
-                build_plan=build_plan,
-                dependency_files=dependency_files,
-                log_tail=log_tail,
-            ),
-            cost_guard=cost_guard,
-            max_tokens=REPAIR_MAX_TOKENS,
-        )
-    except ModelCallError as exc:
-        return RepairProposal(diff_text=None, explanation=f"repair model call failed: {exc}", declined=True)
+    user_prompt = build_repair_user_prompt(
+        classification,
+        target_file_path,
+        target_file_content,
+        external_context,
+        repair_layer=repair_layer,
+        build_plan=build_plan,
+        dependency_files=dependency_files,
+        log_tail=log_tail,
+    )
+    parse_retried = False
+    for try_number in (1, 2):
+        try:
+            raw = call_json_model(
+                client,
+                model=model,
+                system_prompt=_SYSTEM_PROMPT,
+                user_prompt=user_prompt,
+                cost_guard=cost_guard,
+                max_tokens=REPAIR_MAX_TOKENS,
+            )
+            break
+        except ModelResponseParseError as exc:
+            # Found live (gpt-2, 2026-09-24): Super's reply was invalid JSON
+            # and the whole repair attempt was lost. One re-ask, inside this
+            # same attempt — it does NOT consume a repair attempt (the
+            # orchestrator counts propose_repair calls, not model calls).
+            # response_format=json_object was tested live and did not help
+            # (DECISIONS.md 2026-09-24), so this is the mechanism.
+            if try_number == 2:
+                return RepairProposal(
+                    diff_text=None,
+                    explanation=f"repair model reply was not valid JSON twice: {exc}",
+                    declined=True,
+                    parse_retried=True,
+                )
+            parse_retried = True
+            first_line = str(exc).splitlines()[0][:200]
+            user_prompt = (
+                f"{user_prompt}\n\nYour previous reply could not be parsed as JSON ({first_line}). "
+                "Reply again with ONLY the single JSON object described in the instructions — "
+                "escape every newline, quote and backslash inside the code_diff string."
+            )
+        except ModelCallError as exc:
+            return RepairProposal(diff_text=None, explanation=f"repair model call failed: {exc}", declined=True)
 
-    return parse_repair_response(raw)
+    proposal = parse_repair_response(raw)
+    return replace(proposal, parse_retried=parse_retried) if parse_retried else proposal

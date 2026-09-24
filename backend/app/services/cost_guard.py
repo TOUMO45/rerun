@@ -10,6 +10,13 @@ orchestrator is responsible for persisting/loading the day's running total
 across process restarts (e.g. via the SQLite store) if that durability is
 needed — this module only owns the arithmetic and the refusal decision.
 
+**Update 2026-09-24:** model spend IS now counted. Token Factory's own
+`/v1/models?verbose=true` exposes per-token prices (config
+`model_prices_usd_per_1m`); `NebiusChatClient` records each response's
+`usage`, and `call_json_model` calls `record_model_usage`, which adds the
+priced cost to the same daily total and refuses further model calls once
+the ceiling is reached. The paragraph below describes the earlier state.
+
 **Corrected, found live during this session's audit (see DECISIONS.md):**
 this docstring previously claimed the daily USD ceiling covers "model +
 sandbox spend." It doesn't. `record_spend`/`check_daily_budget` are only
@@ -46,6 +53,13 @@ class CostGuard:
     _today: date = field(default_factory=date.today, repr=False)
     _spent_today_usd: float = field(default=0.0, repr=False)
     _attempts_by_run: dict[str, int] = field(default_factory=dict, repr=False)
+    # model id -> (input, output) USD per 1M tokens. Empty = nothing priced.
+    model_prices_usd_per_1m: dict = field(default_factory=dict, repr=False)
+    # Every model call's usage and priced cost (None when unpriced), for the
+    # run record. Also sums sandbox vs model spend separately.
+    model_usage: list = field(default_factory=list, repr=False)
+    model_spent_usd: float = field(default=0.0, repr=False)
+    sandbox_spent_usd: float = field(default=0.0, repr=False)
 
     def _roll_day_if_needed(self) -> None:
         current = date.today()
@@ -83,7 +97,13 @@ class CostGuard:
         deployment target, not silently ignored.
         """
         self._roll_day_if_needed()
-        if self._spent_today_usd + estimated_cost_usd > self.daily_cost_ceiling_usd:
+        # `>=` for "nothing left": callers with no pre-flight quote pass an
+        # estimate of 0.0, and `spent + 0 > ceiling` let them through when
+        # spend was exactly AT the ceiling (found by a model-cost test).
+        if (
+            self._spent_today_usd >= self.daily_cost_ceiling_usd
+            or self._spent_today_usd + estimated_cost_usd > self.daily_cost_ceiling_usd
+        ):
             raise CostLimitExceeded(
                 f"daily cost ceiling would be exceeded: "
                 f"${self._spent_today_usd:.4f} spent + ${estimated_cost_usd:.4f} "
@@ -91,8 +111,26 @@ class CostGuard:
             )
 
     def record_spend(self, actual_cost_usd: float) -> None:
+        """Sandbox spend (the SDK's measured per-run cost)."""
         self._roll_day_if_needed()
         self._spent_today_usd += actual_cost_usd
+        self.sandbox_spent_usd += actual_cost_usd
+
+    def record_model_usage(self, model: str, prompt_tokens: int, completion_tokens: int) -> float | None:
+        """Price one model call from the configured table and add it to the
+        daily total. Returns the cost, or None if the model is unpriced (the
+        tokens are still recorded — never a guessed price)."""
+        self._roll_day_if_needed()
+        price = self.model_prices_usd_per_1m.get(model)
+        cost = None
+        if price is not None:
+            cost = (prompt_tokens * price[0] + completion_tokens * price[1]) / 1_000_000
+            self._spent_today_usd += cost
+            self.model_spent_usd += cost
+        self.model_usage.append(
+            {"model": model, "prompt_tokens": prompt_tokens, "completion_tokens": completion_tokens, "cost_usd": cost}
+        )
+        return cost
 
     def check_attempt_budget(self, run_id: str) -> None:
         """Raise CostLimitExceeded if `run_id` has already used its full
@@ -145,4 +183,5 @@ def get_shared_cost_guard() -> CostGuard:
     return CostGuard(
         daily_cost_ceiling_usd=settings.daily_cost_ceiling_usd,
         max_attempts_per_run=settings.max_attempts_per_run,
+        model_prices_usd_per_1m=dict(settings.model_prices_usd_per_1m),
     )

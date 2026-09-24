@@ -40,6 +40,22 @@ class Settings(BaseSettings):
     nebius_model_repairer: str = "nvidia/nemotron-3-super-120b-a12b"
     nebius_model_adjudicator: str = "nvidia/Nemotron-3-Ultra-550b-a55b"
 
+    # Per-token model prices, USD per 1M tokens as (input, output). Source:
+    # Token Factory's own API, `GET {nebius_base_url}/models?verbose=true`,
+    # field `pricing.prompt` / `pricing.completion` (USD per token, x1e6
+    # here), retrieved 2026-09-24 with this project's key. The public
+    # pricing page (https://tokenfactory.nebius.com/organization/prices) is
+    # behind the console login, so it was not read directly. A model not in
+    # this table is still called, but its spend is reported as UNPRICED
+    # rather than guessed.
+    model_prices_usd_per_1m: dict[str, tuple[float, float]] = {
+        "nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B": (0.06, 0.24),
+        "nvidia/nemotron-3-super-120b-a12b": (0.30, 0.90),
+        "nvidia/Nemotron-3-Ultra-550b-a55b": (1.00, 3.00),
+    }
+    model_prices_source: str = "https://api.tokenfactory.nebius.com/v1/models?verbose=true (pricing field)"
+    model_prices_retrieved: str = "2026-09-24"
+
     # Nebius Sandboxes / Serverless Jobs
     nebius_project_id: str = ""
     nebius_sandbox_image: str = "python:3.11-slim"

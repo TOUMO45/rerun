@@ -642,7 +642,14 @@ def test_daily_cost_ceiling_already_exhausted_refuses_to_start_execution():
             run_id="run-9",
         )
 
-    assert result.verdict == "NOT_ATTEMPTABLE"
+    # Since model spend counts toward the ceiling (2026-09-24), an exhausted
+    # budget stops the run before recon's model call — our own limit, so a
+    # RECON_MODEL_ERROR (excluded from the Batch Lab denominator), never a
+    # verdict on the repo. The sandbox is still never touched.
+    assert result.verdict == "INDETERMINATE"
+    assert result.indeterminate_reason.startswith("RECON_MODEL_ERROR: ")
+    assert "daily cost ceiling" in result.indeterminate_reason
+    assert recon_client.calls == []
     assert sandbox_runner.calls == []
 
 

@@ -246,3 +246,53 @@ def test_run_build_and_execute_sandbox_id_is_none_when_the_sdk_never_sets_one():
     crash - sandbox_id degrades to None rather than raising."""
     result = SandboxRunResult(steps=(StepResult("run", 0, "ok", "", 1.0, 0.001),))
     assert result.sandbox_id is None
+
+
+def test_sandbox_id_survives_a_disposable_final_step(monkeypatch):
+    """Live bug (TTPT, 2026-09-24): the final step runs disposable=True and
+    the SDK gives a disposable run no image uuid, so sandbox_id was None
+    whenever the execute step ran. The id of the last image that has one
+    (the environment the final step ran on) must be reported instead."""
+    import uuid as uuid_module
+
+    import app.services.sandbox as sandbox_module
+
+    install_uuid = uuid_module.uuid4()
+
+    class _Img:
+        def __init__(self, uuid=None):
+            self.uuid = uuid
+            self.result = _FakeResult(exit_code=0, stdout="", stderr="", elapsed_time=timedelta(seconds=1), cost=0.0)
+
+        @property
+        def exit_code(self):
+            return self.result.exit_code
+
+        def apply_files(self, files):
+            return _Img(uuid=None)
+
+        def run(self, *, shell, timeout, disposable, preserve_env=None):
+            # Retained steps produce an image with a uuid; disposable ones don't.
+            return _Img(uuid=None if disposable else install_uuid)
+
+        def wait(self):
+            return self
+
+    class _Images:
+        def docker(self, ref):
+            return _Img(uuid=None)
+
+    class _Sync:
+        def __init__(self, config):
+            self.images = _Images()
+
+    monkeypatch.setattr(sandbox_module, "ContreeSync", _Sync)
+    result = run_build_and_execute(
+        api_key="k",
+        base_image="python:3.11-slim",
+        install_commands=["pip install numpy"],
+        execute_command="python train.py",
+        wall_clock_seconds=60,
+    )
+    assert len(result.steps) == 2
+    assert result.sandbox_id == str(install_uuid)

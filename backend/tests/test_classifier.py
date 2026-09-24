@@ -56,18 +56,60 @@ def test_dep_missing_negative_control_when_declared():
     )
 
 
-# --- DEP_YANKED_GONE ------------------------------------------------------
+# --- DEP_YANKED / DEP_NOT_ON_PYPI (split of DEP_YANKED_GONE) ----------------
+
+# Verbatim from the TTPT live run (2026-09-24): Dassl is GitHub-only.
+_NEVER_ON_PYPI = (
+    "ERROR: Could not find a version that satisfies the requirement dassl (from versions: none)\n"
+    "ERROR: No matching distribution found for dassl\n"
+)
+_VERSION_GONE = (
+    "ERROR: Could not find a version that satisfies the requirement ancient-pkg==0.0.1 "
+    "(from versions: 0.1.0, 0.2.0, 1.0.0)\n"
+    "ERROR: No matching distribution found for ancient-pkg==0.0.1\n"
+)
 
 
-def test_dep_yanked_gone_positive():
-    stderr = "ERROR: No matching distribution found for ancient-pkg==0.0.1"
-    assert _code(stderr) == TaxonomyCode.DEP_YANKED_GONE
+def test_dep_not_on_pypi_positive():
+    assert _code(_NEVER_ON_PYPI) == TaxonomyCode.DEP_NOT_ON_PYPI
+    assert _code("requests.exceptions.HTTPError: 404 Client Error: Not Found for url: https://pypi.org/simple/nope/") == (
+        TaxonomyCode.DEP_NOT_ON_PYPI
+    )
 
 
-def test_dep_yanked_gone_negative_control():
-    # A 404 from a non-PyPI host is a data problem, not a yanked package.
+def test_dep_not_on_pypi_negative_control():
+    # The package exists, only the requested version is gone.
+    assert _code(_VERSION_GONE) != TaxonomyCode.DEP_NOT_ON_PYPI
+    # A 404 from a non-PyPI host is a data problem, not a packaging one.
     stderr = "requests.exceptions.HTTPError: 404 Client Error: Not Found for url: https://data.example.com/dataset.zip"
-    assert _code(stderr) != TaxonomyCode.DEP_YANKED_GONE
+    assert _code(stderr) not in (TaxonomyCode.DEP_NOT_ON_PYPI, TaxonomyCode.DEP_YANKED)
+
+
+def test_dep_yanked_positive():
+    assert _code(_VERSION_GONE) == TaxonomyCode.DEP_YANKED
+    assert _code("WARNING: The candidate selected for download or install is a yanked version: 'x' ...") == (
+        TaxonomyCode.DEP_YANKED
+    )
+    # pip sometimes prints only the second line.
+    assert _code("ERROR: No matching distribution found for ancient-pkg==0.0.1") == TaxonomyCode.DEP_YANKED
+
+
+def test_dep_yanked_negative_control():
+    assert _code(_NEVER_ON_PYPI) != TaxonomyCode.DEP_YANKED
+
+
+def test_dependency_evidence_keeps_the_full_package_name():
+    """Live TTPT bug: evidence was cut to 'No matching distribution found for'."""
+    evidence = classify(exit_code=1, stderr=_NEVER_ON_PYPI).evidence
+    assert "dassl" in evidence
+    assert evidence == "ERROR: Could not find a version that satisfies the requirement dassl (from versions: none)"
+    evidence = classify(exit_code=1, stderr="ERROR: No matching distribution found for ancient-pkg==0.0.1").evidence
+    assert evidence.endswith("ancient-pkg==0.0.1")
+
+
+def test_evidence_is_the_whole_matching_line_for_other_codes_too():
+    stderr = "Traceback (most recent call last):\n  File \"x.py\", line 1\nModuleNotFoundError: No module named 'torch'\n"
+    assert classify(exit_code=1, stderr=stderr).evidence == "ModuleNotFoundError: No module named 'torch'"
 
 
 # --- PY_VERSION_INCOMPAT ------------------------------------------------------

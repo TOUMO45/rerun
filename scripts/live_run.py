@@ -98,7 +98,11 @@ def main(argv: list[str] | None = None) -> int:
     deps = build_pipeline_deps(settings)
     client = _RecordingNebiusChatClient(api_key=settings.nebius_api_key, base_url=settings.nebius_base_url)
     deps = replace(deps, recon_client=client, repair_client=client, adjudicator_client=client, planner_client=client)
-    cost_guard = CostGuard(daily_cost_ceiling_usd=args.cost_cap_usd, max_attempts_per_run=settings.max_attempts_per_run)
+    cost_guard = CostGuard(
+        daily_cost_ceiling_usd=args.cost_cap_usd,
+        max_attempts_per_run=settings.max_attempts_per_run,
+        model_prices_usd_per_1m=dict(settings.model_prices_usd_per_1m),
+    )
 
     events: list[dict] = []
     t0 = time.monotonic()
@@ -182,7 +186,16 @@ def main(argv: list[str] | None = None) -> int:
         record["finished_at"] = _now()
         record["events"] = events
         record["model_calls"] = MODEL_CALLS
-        record["cost_guard"] = {"spent_usd": cost_guard.spent_today_usd, "remaining_usd": cost_guard.remaining_today_usd}
+        record["cost_guard"] = {
+            "spent_usd": cost_guard.spent_today_usd,
+            "model_spent_usd": cost_guard.model_spent_usd,
+            "sandbox_spent_usd": cost_guard.sandbox_spent_usd,
+            "remaining_usd": cost_guard.remaining_today_usd,
+            "model_usage": cost_guard.model_usage,
+            "prices_usd_per_1m": {k: list(v) for k, v in settings.model_prices_usd_per_1m.items()},
+            "prices_source": settings.model_prices_source,
+            "prices_retrieved": settings.model_prices_retrieved,
+        }
         args.out.parent.mkdir(parents=True, exist_ok=True)
         args.out.write_text(json.dumps(record, indent=2), encoding="utf-8")
         print(f"wrote {args.out}")

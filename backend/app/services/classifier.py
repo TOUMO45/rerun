@@ -24,7 +24,10 @@ class TaxonomyCode:
 
     DEP_UNPINNED_CONFLICT = "DEP_UNPINNED_CONFLICT"
     DEP_MISSING = "DEP_MISSING"
-    DEP_YANKED_GONE = "DEP_YANKED_GONE"
+    # Split of the original §5.2 DEP_YANKED_GONE (2026-09-24, after the TTPT
+    # live run labelled a never-published package "yanked"):
+    DEP_YANKED = "DEP_YANKED"  # the package is on the index; the requested version is not installable
+    DEP_NOT_ON_PYPI = "DEP_NOT_ON_PYPI"  # the index has no installable distribution for the name at all
     PY_VERSION_INCOMPAT = "PY_VERSION_INCOMPAT"
     SYS_LIB_MISSING = "SYS_LIB_MISSING"
     DATA_MISSING = "DATA_MISSING"
@@ -38,7 +41,8 @@ class TaxonomyCode:
     FAMILY = {
         DEP_UNPINNED_CONFLICT: "Dependencies",
         DEP_MISSING: "Dependencies",
-        DEP_YANKED_GONE: "Dependencies",
+        DEP_YANKED: "Dependencies",
+        DEP_NOT_ON_PYPI: "Dependencies",
         PY_VERSION_INCOMPAT: "Environment",
         SYS_LIB_MISSING: "Environment",
         DATA_MISSING: "Data",
@@ -110,7 +114,6 @@ ENV_FIRST_CODES = frozenset(
         "SYS_LIB_MISSING",
         "DEP_UNPINNED_CONFLICT",
         "DEP_MISSING",
-        "DEP_YANKED_GONE",
         "DEP_YANKED",
         "DEP_NOT_ON_PYPI",
         "PY_VERSION_INCOMPAT",
@@ -147,13 +150,25 @@ _RULES: tuple[_Rule, ...] = (
             r"versions? have conflicting dependencies",
         ),
     ),
+    # Order matters: pip prints "(from versions: none)" and then "No matching
+    # distribution found for X" for a name the index has nothing for, so the
+    # NOT_ON_PYPI signals are checked first. Caveat, stated honestly: "none"
+    # also appears when a package exists but has no distribution compatible
+    # with this interpreter/platform — the log alone cannot tell those apart.
     _Rule(
-        TaxonomyCode.DEP_YANKED_GONE,
+        TaxonomyCode.DEP_NOT_ON_PYPI,
         _p(
-            r"No matching distribution found for",
-            r"Could not find a version that satisfies the requirement",
+            r"Could not find a version that satisfies the requirement .*\(from versions: none\)",
             r"404 Client Error.*pypi\.org",
             r"is not a valid editable requirement",
+        ),
+    ),
+    _Rule(
+        TaxonomyCode.DEP_YANKED,
+        _p(
+            r"Could not find a version that satisfies the requirement .*\(from versions: [^)\s][^)]*\)",
+            r"candidate selected for download or install is a yanked version",
+            r"No matching distribution found for",
         ),
     ),
     _Rule(
@@ -244,6 +259,16 @@ def _undeclared_module(match: re.Match, declared_deps: frozenset[str] | None) ->
     return not any(c.replace("_", "-") in normalized_declared for c in candidates)
 
 
+def _evidence_line(text: str, match: re.Match) -> str:
+    """The whole log line containing the match — not just the matched
+    phrase. The live TTPT run recorded evidence as "No matching distribution
+    found for" with the package name cut off, which is useless both to a
+    human and to the repairer."""
+    start = text.rfind("\n", 0, match.start()) + 1
+    end = text.find("\n", match.end())
+    return text[start : end if end != -1 else len(text)].strip()
+
+
 def classify(
     exit_code: int,
     stderr: str,
@@ -272,7 +297,7 @@ def classify(
                 # Declared but still failed to import: not our rule's story,
                 # keep scanning other rules / fall through to the catch-all.
                 continue
-            evidence = match.group(0).strip()
+            evidence = _evidence_line(combined, match)
             return Classification(
                 code=rule.code,
                 family=TaxonomyCode.FAMILY[rule.code],

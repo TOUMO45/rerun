@@ -170,10 +170,20 @@ def run_build_and_execute(
     current = image
     retained_images = []  # every disposable=False image, for guaranteed cleanup
 
+    # The id reported as sandbox_id: the last image in the chain that has
+    # one. The final step always runs disposable=True, and contree_sdk only
+    # assigns a uuid to a run that produced an image (image_like/_base.py:
+    # `new_self.uuid = new_uuid and UUID(new_uuid)`), so taking the final
+    # image's uuid gave None whenever the execute step actually ran — the
+    # `id=None` seen in the 2026-09-24 TTPT live run. This is the id of the
+    # environment image the final step ran on.
+    last_image_uuid = getattr(current, "uuid", None)
+
     try:
         if upload_files:
             current = current.apply_files(files=upload_files)
             retained_images.append(current)
+            last_image_uuid = getattr(current, "uuid", None) or last_image_uuid
 
         commands = [*install_commands, execute_command]
         if not commands:
@@ -209,12 +219,13 @@ def run_build_and_execute(
             ).wait()
             steps.append(step_result_from_image(executed, cmd))
             current = executed
+            last_image_uuid = getattr(executed, "uuid", None) or last_image_uuid
             if not is_last:
                 retained_images.append(executed)
             if executed.exit_code != 0:
                 break
 
-        sandbox_id = str(current.uuid) if getattr(current, "uuid", None) is not None else None
+        sandbox_id = str(last_image_uuid) if last_image_uuid is not None else None
         return SandboxRunResult(steps=tuple(steps), sandbox_id=sandbox_id)
 
     except OperationTimedOutError as exc:

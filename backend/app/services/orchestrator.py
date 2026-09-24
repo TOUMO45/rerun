@@ -577,6 +577,8 @@ def _run_stages(
             )
             cost_guard.record_attempt(run_id)
             tavily_sources = tuple(s.as_dict() for s in tavily_context.sources)
+            if proposal.parse_retried:
+                _log(f"[repair {attempt_number}] first reply was not valid JSON; re-asked once (same attempt)")
 
             if not proposal.has_change:
                 _log(f"[repair {attempt_number}] declined: {proposal.explanation}")
