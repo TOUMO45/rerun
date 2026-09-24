@@ -47,6 +47,8 @@ def _prereg() -> dict:
 
 
 def sha256_file(path: Path) -> str:
+    # Raw bytes. All corpus-v1 files are written with "\n" line endings and are
+    # `-text` in .gitattributes, so a checkout never changes these bytes.
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
@@ -243,7 +245,7 @@ def draw() -> None:
     random.Random(pre["seed"]).shuffle(order)
     target = pre["target_eligible"]
     eligible, seen_repos = [], set()
-    LOG.write_text("", encoding="utf-8")
+    LOG.write_text("", encoding="utf-8", newline="\n")
     with httpx.Client(timeout=30, follow_redirects=True, headers={"User-Agent": "rerun-corpus-draw"}) as client:
         for draw_no, idx in enumerate(order, start=1):
             candidate = population[idx]
@@ -254,7 +256,7 @@ def draw() -> None:
                 seen_repos.add(candidate["repo_url"].lower())
                 outcome = screen(client, candidate)
                 entry.update(eligible=bool(outcome.pop("eligible", False)), **outcome)
-            with LOG.open("a", encoding="utf-8") as fh:
+            with LOG.open("a", encoding="utf-8", newline="\n") as fh:
                 fh.write(json.dumps(entry) + "\n")
             print(f"#{draw_no:3d} {'ELIGIBLE' if entry['eligible'] else 'fail    '} {candidate['venue']} {candidate['year']} "
                   f"{candidate['repo_url']}  {entry.get('reason', entry.get('command', ''))[:110]}", flush=True)
@@ -298,8 +300,8 @@ def write_corpus(pre: dict, eligible: list[dict]) -> None:
         f"# corpus_hash: {corpus_hash}\n"
     )
     CORPUS_YAML.write_text(header + yaml.safe_dump({"corpus_version": "corpus-v1", "corpus_hash": corpus_hash, "repos": entries},
-                                                   sort_keys=False, allow_unicode=True), encoding="utf-8")
-    HASH_FILE.write_text(corpus_hash + "\n", encoding="utf-8")
+                                                   sort_keys=False, allow_unicode=True), encoding="utf-8", newline="\n")
+    HASH_FILE.write_text(corpus_hash + "\n", encoding="utf-8", newline="\n")
     print(f"\neligible: {len(entries)} / target {pre['target_eligible']}; corpus_hash {corpus_hash}")
 
 
