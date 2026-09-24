@@ -112,6 +112,46 @@ class Settings(BaseSettings):
         return bool(self.tavily_api_key)
 
 
+class DuplicateEnvKeyError(ValueError):
+    """Raised at startup when .env defines the same setting twice, differing
+    only by case. Settings names are case-insensitive, so the LATER line
+    silently wins — found live (2026-09-24): `Tavily_API_Key= tvly-…` on line
+    4 was overridden by an empty `TAVILY_API_KEY=` on line 52, and RERUN ran
+    with no Tavily key. The message names the key and line numbers, never the
+    value."""
+
+
+def check_env_file_duplicates(path: Path) -> None:
+    if not path.is_file():
+        return
+    seen: dict[str, tuple[str, int]] = {}
+    for number, raw in enumerate(path.read_text(encoding="utf-8", errors="replace").splitlines(), start=1):
+        line = raw.strip()
+        if not line or line.startswith("#") or "=" not in line:
+            continue
+        name = line.split("=", 1)[0].strip()
+        if name.lower().startswith("export "):
+            name = name[7:].strip()
+        key = name.lower()
+        if key in seen:
+            first_name, first_line = seen[key]
+            raise DuplicateEnvKeyError(
+                f"{path.name} sets {name!r} on line {number} and {first_name!r} on line {first_line}. "
+                "Setting names are case-insensitive, so the later line silently overrides the earlier one. "
+                "Keep exactly one line for this setting and restart."
+            )
+        seen[key] = (name, number)
+
+
+@lru_cache
+def _checked_env_file() -> bool:
+    check_env_file_duplicates(_REPO_ROOT_ENV_FILE)
+    return True
+
+
 @lru_cache
 def get_settings() -> Settings:
+    # Refuse to start on an ambiguous .env rather than silently using the
+    # wrong value (see DuplicateEnvKeyError).
+    _checked_env_file()
     return Settings()

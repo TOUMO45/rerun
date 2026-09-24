@@ -2,7 +2,7 @@ import { useParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { api, ApiError } from "../api";
 import { VerdictBadge } from "../components/VerdictBadge";
-import { RepairAttemptCard } from "../components/RepairAttemptCard";
+import { RepairAttemptCard, TimeMachineView } from "../components/RepairAttemptCard";
 import { DiffView } from "../components/DiffView";
 import { EnvDeltaView } from "../components/EnvDeltaView";
 import { ScopeLine } from "../components/ScopeLine";
@@ -36,6 +36,7 @@ export function Certificate() {
     (a) => a.gate_decision === "PASS" && a.exit_code !== null && a.exit_code !== undefined,
   );
   const appliedEnvChanges = applied.flatMap((a) => a.env_delta ?? []);
+  const timeMachine = applied.find((a) => a.origin === "time_machine")?.time_machine ?? null;
   const appliedCodeDiff = applied
     .map((a) => a.diff_text)
     .filter((d) => d.trim())
@@ -103,6 +104,7 @@ export function Certificate() {
             Build-plan changes that were applied and re-executed (the repository's files are not edited).
           </p>
           <div className="mt-2">
+            {timeMachine && <TimeMachineView record={timeMachine} />}
             <EnvDeltaView changes={appliedEnvChanges} />
           </div>
         </section>

@@ -76,6 +76,18 @@ export interface RepairAttemptDiff {
   env_delta?: EnvChange[];
   /** Sources RERUN itself verified for this attempt (git repo pinned to a real commit, PyPI history). */
   resolved_sources?: ResolvedSource[];
+  /** "time_machine" = RERUN's deterministic era environment (attempt 0); "model" = a repairer proposal. */
+  origin?: "model" | "time_machine";
+  time_machine?: TimeMachineRecord | null;
+}
+
+export interface TimeMachineRecord {
+  era: { date: string; source: "dependency-files" | "pinned-commit"; detail: Record<string, string> };
+  python: { version: string; reason: string; source: string };
+  undeclared_imports: string[];
+  apt_added: string[];
+  apt_reason: string;
+  lock: { ok: boolean; lock: string[]; inputs: string[]; not_on_index: string[]; command: string; error: string };
 }
 
 export interface ResolvedSource {

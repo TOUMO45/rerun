@@ -32,7 +32,8 @@ from app.services.tamper_gate import Violation
 
 OPS = ("pin", "unpin", "add", "remove", "pip_git", "apt", "python")
 MAX_CHANGES = 10
-SUPPORTED_PYTHON_VERSIONS = ("3.7", "3.8", "3.9", "3.10", "3.11", "3.12", "3.13")
+# 3.6–3.13 verified live (2026-09-24) to exist as python:X-slim sandbox images.
+SUPPORTED_PYTHON_VERSIONS = ("3.6", "3.7", "3.8", "3.9", "3.10", "3.11", "3.12", "3.13")
 MIN_EVIDENCE_CHARS = 8
 REQUIREMENTS_OVERRIDE_FILE = ".rerun-requirements.txt"
 

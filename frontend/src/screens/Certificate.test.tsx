@@ -247,3 +247,33 @@ describe("Certificate — cited and verified dependency sources", () => {
     expect(verified.textContent).toContain("PyPI x 1.0");
   });
 });
+
+describe("Certificate — time machine", () => {
+  it("shows the era, its source, the Python choice and the lock in the Environment Delta", async () => {
+    const tm: RepairAttemptDiff = {
+      attempt_number: 0,
+      diff_text: "",
+      gate_decision: "PASS",
+      gate_violations: [],
+      exit_code: 0,
+      origin: "time_machine",
+      time_machine: {
+        era: { date: "2019-03-04", source: "dependency-files", detail: { "requirements.txt": "2019-03-04" } },
+        python: { version: "3.7", reason: "newest CPython first released >=180 days before the era date", source: "https://devguide.python.org/versions/" },
+        undeclared_imports: ["numpy", "tensorflow"],
+        apt_added: ["build-essential"],
+        apt_reason: "error: command 'gcc' failed",
+        lock: { ok: true, lock: ["numpy==1.16.2", "tensorflow==1.13.1"], inputs: [], not_on_index: [], command: "", error: "" },
+      },
+    };
+    getRun.mockResolvedValue(makeRun({ verdict: "RUNS_AFTER_REPAIR", taxonomy_code: null }));
+    getCertificate.mockResolvedValue(makeCert([tm], { verdict: "RUNS_AFTER_REPAIR" }));
+    renderCertificate();
+
+    const env = (await screen.findByRole("heading", { name: "Environment Delta" })).parentElement!;
+    expect(env.textContent).toContain("2019-03-04 — latest change to dependency files (requirements.txt 2019-03-04)");
+    expect(env.textContent).toContain("3.7");
+    expect(env.textContent).toContain("tensorflow==1.13.1");
+    expect(screen.getByText(/Time machine — era environment, re-execution exit code 0/)).toBeTruthy();
+  });
+});

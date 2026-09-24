@@ -3313,3 +3313,82 @@ gate rejected it correctly).
 Not patched in this run (observe-and-report).
 
 ---
+
+## 2026-09-24 — Resolver fixes + the "time machine" (era-correct environments)
+
+**a) Era date.** New `time_machine.era_date`: the latest commit touching any dependency
+file (`requirements*.txt`, `setup.py`, `setup.cfg`, `pyproject.toml`, `environment.y*ml`,
+found anywhere in the checkout) at the pinned commit, via the GitHub API
+(`commits?path=<file>&sha=<pinned>`), because the shallow clone has no history. The
+pinned commit's own date is used only when no dependency file has history (or the repo
+isn't on github.com), and the record says which: `era.source` = `dependency-files` |
+`pinned-commit`, with per-file dates or a note. It's logged (`[era] …`) and stored in the
+certificate's time-machine record. For gpt-2 this gives 2019-03-04 (its `requirements.txt`)
+instead of 2024-01-26 (a README edit).
+
+**b) Whole-set lock at the era.** `uv` was not installed; added `uv>=0.8` (0.12.18
+installed). Verified: `uv pip compile --exclude-newer <date>`, `--python-version`,
+`--python-platform x86_64-unknown-linux-gnu` all exist. The input is the declared
+requirements plus third-party modules the code imports but never declares (AST;
+stdlib, the repo's own modules and declared names removed; import→dist aliases).
+Packages the index has never heard of (uv: "Because X was not found in the package
+registry") are dropped, retried and reported as `not_on_index` — they go to source
+search. **Findings while verifying:** (1) resolving needs old sdists *built* for
+metadata (e.g. `fire==0.1.3`), and the only host Python (3.14) has no `distutils`; uv's
+managed downloads start at **3.8** (3.6/3.7 aren't offered), so old sdists are built
+with a uv-managed CPython 3.8 while resolving *for* the target version; (2) uv's
+`cpython-3.8-…` minor-version link was broken on this Windows host while the real
+`cpython-3.8.20-…` install was fine, so the interpreter is passed by full path. Live
+results: gpt-2 (era 2019-03-04) → Python 3.7, 28 pins incl. `tensorflow==1.13.1`,
+`numpy==1.16.2`, `regex==2017.4.5`; TTPT (era 2024-08-30) → Python 3.12, 30 pins incl.
+`torch==2.4.0`, `torchvision==0.19.0`, `dassl` not on the index.
+**Python from the era:** newest CPython first released ≥180 days before the era date
+(wheels lag a release); an exact version the repo declares wins. First-release dates
+from python.org's devguide (<https://devguide.python.org/versions/>, retrieved
+2026-09-24): 3.6 2016-12-23, 3.7 2018-06-27, 3.8 2019-10-14, 3.9 2020-10-05, 3.10
+2021-10-04, 3.11 2022-10-24, 3.12 2023-10-02, 3.13 2024-10-07. **Sandbox availability
+verified live** (tiny `python --version` run per image, ~$0.0001 each): `python:3.6-slim`
+through `python:3.13-slim` all exist (3.6.15 … 3.13.13). No sandbox gap; the only gap is
+on the resolver host (3.6/3.7 sdists built with 3.8). The env gate now accepts 3.6.
+**Where it runs:** after the baseline execution fails with an environment-family code,
+RERUN applies the era plan (python:X-slim + the lock written to a RERUN-owned
+`.rerun-requirements.txt` + `build-essential` when the evidence is a missing C compiler)
+and re-executes. It's recorded as **attempt 0, origin `time_machine`**, with the full
+record (era + source, Python + reason + source URL, undeclared imports, lock, not-on-index,
+uv command). It doesn't consume a model repair attempt. If the lock can't be resolved,
+it's recorded as not applied and model repair proceeds as before.
+
+**c)** The resolver now asks PyPI first and switches to source-finding (source query +
+github.com-only fallback) whenever PyPI answers 404 — regardless of whether the failure
+was a pip error (`DEP_NOT_ON_PYPI`) or an import error (`DEP_MISSING`, TTPT's `dassl`).
+
+**d) Used-only citations.** An attempt's certificate record now cites only sources used in
+a decision: a verified git source that an applied `pip_git` change installed (plus the
+Tavily result it was found in) and PyPI releases an applied `pin`/`add` chose. Everything
+else offered — Tavily results, unused verified sources, the generic non-dependency Tavily
+query's results — is written to the log as `[citations] not cited …`. Declined, rejected or
+not-applied attempts cite nothing. (Existing test updated to the new rule.)
+
+**e)** An env delta rejected *only* for `ENV_UNJUSTIFIED` gets one re-ask inside the same
+attempt (like the JSON re-ask), with the specific reasons; the attempt counter doesn't move.
+
+**f) Startup check.** `config.check_env_file_duplicates` runs on the first
+`get_settings()`: if `.env` sets the same name twice differing only by case, startup fails
+with `DuplicateEnvKeyError` naming both spellings and line numbers — never the value. (The
+cause of the 2026-09-24 Tavily-key confusion.)
+
+Also: the repairer prompt now includes the full AST import list (Step 3 below builds on it).
+
+**Tests:** `tests/test_time_machine.py` (25): era from dependency files vs pinned-commit
+fallback vs non-GitHub, file patterns; era→Python table; compile_lock argv
+(`--exclude-newer` = era+1 day, Linux target, flags/URLs not passed), not-on-index drop,
+other uv errors fail without guessing; undeclared-import detection; `apply_lock`; the time
+machine end to end (attempt 0, RUNS_AFTER_REPAIR, full record) and its failure path;
+source search on a DEP_MISSING/PyPI-404 package + negative control; used-only citations +
+declined cites nothing; the justification re-ask; duplicate `.env` keys (value never in
+the message) + negative control + `get_settings` wiring. Conftest now also blocks real
+`uv`. **Mutation checks:** era forced to the pinned commit → 2 tests fail; source search
+only on `DEP_NOT_ON_PYPI` → the DEP_MISSING test fails. Backend 475 passed, 8 skipped;
+frontend 7 passed (new time-machine component test); build green.
+
+---

@@ -295,8 +295,18 @@ def resolve(
     if not package:
         return None
     http_get = http_get or _default_http_get
-    query = build_query(code, package, repo_date)
     notes: list[str] = []
+
+    # PyPI first: whether the index knows the package decides the search
+    # mode. Found live (TTPT v3): `dassl` surfaced as an import error
+    # (DEP_MISSING), so the old code-based switch ran a "version history"
+    # query and never looked for its source, although PyPI said 404.
+    try:
+        pypi_status, releases = _pypi_releases(package, repo_date, http_get)
+    except Exception as exc:
+        pypi_status, releases = f"lookup failed ({type(exc).__name__})", ()
+    source_mode = code == TaxonomyCode.DEP_NOT_ON_PYPI or pypi_status == "not on PyPI"
+    query = build_query(TaxonomyCode.DEP_NOT_ON_PYPI if source_mode else code, package, repo_date)
 
     context = tavily.TavilyContext(query=query, sources=())
     if tavily_client is not None:
@@ -308,8 +318,8 @@ def resolve(
         # and a Hugging Face mirror but never the GitHub repo itself. For a
         # package that is not on PyPI, the source repo is the whole point,
         # so if no matching GitHub repo was cited, ask once more restricted
-        # to github.com. Both queries are recorded and cited.
-        if code == TaxonomyCode.DEP_NOT_ON_PYPI and not _github_candidates(context, package):
+        # to github.com. Both queries are recorded.
+        if source_mode and not _github_candidates(context, package):
             github_query = f"{package} github repository"
             try:
                 extra = _search(tavily_client, github_query, include_domains=["github.com"])
@@ -331,10 +341,6 @@ def resolve(
         if verified:
             git_sources.append(verified)
 
-    try:
-        pypi_status, releases = _pypi_releases(package, repo_date, http_get)
-    except Exception as exc:
-        pypi_status, releases = f"lookup failed ({type(exc).__name__})", ()
     return Resolution(
         package=package,
         repo_date=repo_date,

@@ -805,12 +805,11 @@ def test_tavily_is_called_during_repair_and_cited_on_the_attempt():
     sent_prompt = repair_client.calls[0]["user_prompt"]
     assert "https://example.com/fix" in sent_prompt
 
-    # ...and reached the certificate's structured attempt record, not just
-    # the prompt text — this is what "cited in the certificate" means.
+    # ...but it was not USED in any decision (the model declined), so since
+    # 2026-09-24 it is logged, not cited on the certificate.
     assert len(result.attempts) == 1
-    assert result.attempts[0].tavily_sources == (
-        {"title": "Fixing RuntimeError: boom", "url": "https://example.com/fix", "content": "do the thing"},
-    )
+    assert result.attempts[0].tavily_sources == ()
+    assert "[citations] not cited (not used in a decision): https://example.com/fix" in result.full_log
 
 
 def test_tavily_not_configured_still_completes_the_repair_loop():

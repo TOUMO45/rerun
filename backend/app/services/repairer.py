@@ -108,6 +108,8 @@ def build_repair_user_prompt(
     build_plan: dict | None = None,
     dependency_files: dict[str, str] | None = None,
     log_tail: str = "",
+    imported_modules: list[str] | None = None,
+    followup: str | None = None,
 ) -> str:
     parts = [
         f"Taxonomy code: {classification.code} ({classification.family})",
@@ -129,9 +131,17 @@ def build_repair_user_prompt(
     if log_tail:
         parts.append("Tail of the failing run's log (quote `evidence` from here verbatim):")
         parts.append(untrusted_block("failing run log tail", log_tail))
+    if imported_modules:
+        # Every top-level module the repo's code imports (AST, never run), so
+        # one env_delta can add ALL missing packages at once instead of one per
+        # attempt (gpt-2 needed numpy AND tensorflow; each cost an attempt).
+        parts.append("Top-level modules imported anywhere in the repository's code:")
+        parts.append(untrusted_block("imported modules", ", ".join(imported_modules)))
     if external_context:
         parts.append("Additional context (cited dependency/environment evidence):")
         parts.append(untrusted_block("web search results (Tavily)", external_context))
+    if followup:
+        parts.append(followup)
     return "\n".join(parts)
 
 
@@ -165,6 +175,8 @@ def propose_repair(
     build_plan: dict | None = None,
     dependency_files: dict[str, str] | None = None,
     log_tail: str = "",
+    imported_modules: list[str] | None = None,
+    followup: str | None = None,
 ) -> RepairProposal:
     """Ask Nemotron Super for one candidate patch. A model-call failure
     (bad credentials, timeout, unparseable JSON) is surfaced as a declined
@@ -181,6 +193,8 @@ def propose_repair(
         build_plan=build_plan,
         dependency_files=dependency_files,
         log_tail=log_tail,
+        imported_modules=imported_modules,
+        followup=followup,
     )
     parse_retried = False
     for try_number in (1, 2):

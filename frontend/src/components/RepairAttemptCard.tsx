@@ -1,4 +1,4 @@
-import type { RepairAttemptDiff, ResolvedSource, TavilySource } from "../api";
+import type { RepairAttemptDiff, ResolvedSource, TavilySource, TimeMachineRecord } from "../api";
 import { DiffView } from "./DiffView";
 import { EnvDeltaView } from "./EnvDeltaView";
 
@@ -76,6 +76,57 @@ function ResolvedSources({ sources }: { sources?: ResolvedSource[] }) {
   );
 }
 
+export function TimeMachineView({ record }: { record: TimeMachineRecord }) {
+  const eraSource =
+    record.era.source === "dependency-files"
+      ? `latest change to dependency files (${Object.entries(record.era.detail).map(([k, v]) => `${k} ${v}`).join(", ")})`
+      : `pinned commit date — fallback${record.era.detail.note ? `: ${record.era.detail.note}` : ""}`;
+  return (
+    <dl className="mt-2 space-y-1 font-mono text-[11px] text-text-secondary">
+      <div>
+        <dt className="inline text-text-primary">Era: </dt>
+        <dd className="inline">
+          {record.era.date} — {eraSource}
+        </dd>
+      </div>
+      <div>
+        <dt className="inline text-text-primary">Python: </dt>
+        <dd className="inline">
+          {record.python.version} — {record.python.reason}
+        </dd>
+      </div>
+      {record.apt_added.length > 0 && (
+        <div>
+          <dt className="inline text-text-primary">System packages: </dt>
+          <dd className="inline">
+            {record.apt_added.join(", ")} (evidence: {record.apt_reason})
+          </dd>
+        </div>
+      )}
+      <div>
+        <dt className="inline text-text-primary">Lock: </dt>
+        <dd className="inline">
+          {record.lock.ok
+            ? `${record.lock.lock.length} package(s) resolved together, nothing newer than the era`
+            : `could not be resolved — ${record.lock.error.slice(-200)}`}
+        </dd>
+      </div>
+      {record.lock.not_on_index.length > 0 && (
+        <div>
+          <dt className="inline text-text-primary">Not on PyPI: </dt>
+          <dd className="inline">{record.lock.not_on_index.join(", ")}</dd>
+        </div>
+      )}
+      {record.lock.ok && (
+        <details>
+          <summary className="cursor-pointer">Locked packages</summary>
+          <pre className="mt-1 max-h-48 overflow-auto rounded-sm bg-bg px-3 py-2">{record.lock.lock.join("\n")}</pre>
+        </details>
+      )}
+    </dl>
+  );
+}
+
 /**
  * The tamper-gate REJECT state is the project's differentiator (see
  * RERUN_BUILD_DIRECTIVE.md §8 S2) — it must be visually loud, distinct,
@@ -85,6 +136,18 @@ function ResolvedSources({ sources }: { sources?: ResolvedSource[] }) {
  */
 export function RepairAttemptCard({ attempt }: { attempt: RepairAttemptDiff }) {
   const envChanges = attempt.env_delta ?? [];
+  if (attempt.origin === "time_machine" && attempt.time_machine) {
+    const ran = attempt.exit_code !== null && attempt.exit_code !== undefined;
+    return (
+      <div className="rounded-sm border border-signal-dim bg-signal-dim/10 px-4 py-3">
+        <Header
+          label={`Time machine — era environment${ran ? `, re-execution exit code ${attempt.exit_code}` : " (not applied)"}`}
+          tone={ran ? "signal" : "neutral"}
+        />
+        <TimeMachineView record={attempt.time_machine} />
+      </div>
+    );
+  }
   if (attempt.gate_decision === "DECLINED") {
     return (
       <div className="rounded-sm border border-border bg-surface px-4 py-3">
@@ -93,7 +156,7 @@ export function RepairAttemptCard({ attempt }: { attempt: RepairAttemptDiff }) {
           The repair model did not propose a fix it was confident about for this attempt.
         </p>
         <TavilySources sources={attempt.tavily_sources} />
-      <ResolvedSources sources={attempt.resolved_sources} />
+        <ResolvedSources sources={attempt.resolved_sources} />
       </div>
     );
   }

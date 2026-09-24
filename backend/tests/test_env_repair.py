@@ -299,7 +299,7 @@ class _Sandbox:
         return SandboxRunResult(steps=(StepResult("python gen.py", 0, "ok", "", 1.0, 0.001),))
 
 
-def _run(tmp_path, repair_responses):
+def _run(tmp_path, repair_responses, max_attempts=None):
     (tmp_path / "requirements.txt").write_text(REQS, encoding="utf-8")
     (tmp_path / "gen.py").write_text("import regex\nprint(regex.__name__)\n", encoding="utf-8")
     intake = RepoIntake(
@@ -323,7 +323,7 @@ def _run(tmp_path, repair_responses):
         sandbox_api_key="k",
         sandbox_wall_clock_seconds=60,
         sandbox_runner=sandbox,
-        max_attempts=len(repair_responses),
+        max_attempts=max_attempts or len(repair_responses),
     )
     result = run_pipeline(
         repo_url="https://example.com/r",
@@ -367,10 +367,15 @@ def test_env_delta_violation_rejects_the_attempt_and_nothing_is_applied(tmp_path
                        "evidence": "a line that was never in the log"}],
         "explanation": "",
     }
-    result, sandbox, _ = _run(tmp_path, [bad])
+    # Unjustified -> one re-ask inside the same attempt; still unjustified -> REJECT.
+    result, sandbox, repair = _run(tmp_path, [bad, bad], max_attempts=1)
     assert result.verdict == "BLOCKED"
-    assert result.attempts[0].gate_decision == "REJECT"
-    assert EnvRule.ENV_UNJUSTIFIED in {v["rule"] for v in result.attempts[0].gate_violations}
+    model_attempts = [a for a in result.attempts if a.origin == "model"]
+    assert len(model_attempts) == 1
+    assert model_attempts[0].gate_decision == "REJECT"
+    assert EnvRule.ENV_UNJUSTIFIED in {v["rule"] for v in model_attempts[0].gate_violations}
+    assert "re-asked once (same attempt)" in result.full_log
+    assert "Your previous reply was rejected" in repair.prompts[1]["user_prompt"]
     assert len(sandbox.calls) == 1
 
 

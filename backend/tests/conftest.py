@@ -113,3 +113,15 @@ def _no_real_http_in_dependency_resolver(monkeypatch):
         raise RuntimeError(f"real HTTP disabled in tests: {url}")
 
     monkeypatch.setattr(dep_resolver, "_default_http_get", _blocked)
+
+
+@pytest.fixture(autouse=True)
+def _no_real_uv_in_time_machine(monkeypatch):
+    """The unit suite never shells out to uv (network + minutes); tests that
+    exercise the time machine inject `lock_compiler` or a runner."""
+    from app.services import time_machine
+
+    def _blocked(argv, stdin_text):
+        raise RuntimeError("real uv disabled in tests")
+
+    monkeypatch.setattr(time_machine, "_default_runner", _blocked)

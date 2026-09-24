@@ -33,7 +33,18 @@ from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from pathlib import Path
 
-from app.services import adjudicator, classifier, dep_resolver, env_repair, passport, planner, recon, repairer, tavily
+from app.services import (
+    adjudicator,
+    classifier,
+    dep_resolver,
+    env_repair,
+    passport,
+    planner,
+    recon,
+    repairer,
+    tavily,
+    time_machine,
+)
 from app.services import compute_sandbox
 from app.services.cost_guard import CostGuard, CostLimitExceeded
 from app.services.intake import RepoIntake, read_text_capped
@@ -104,6 +115,10 @@ class AttemptRecord:
     # RERUN-verified sources from dep_resolver (git repos pinned to a real
     # commit, PyPI release history) offered to the repairer this attempt.
     resolved_sources: tuple[dict, ...] = ()
+    # "model" (a repairer proposal, counts toward max_attempts) or
+    # "time_machine" (RERUN's deterministic era environment, attempt 0).
+    origin: str = "model"
+    time_machine: dict | None = None
 
     def as_dict(self) -> dict:
         return {
@@ -117,6 +132,8 @@ class AttemptRecord:
             "tavily_sources": list(self.tavily_sources),
             "env_delta": list(self.env_delta),
             "resolved_sources": list(self.resolved_sources),
+            "origin": self.origin,
+            "time_machine": self.time_machine,
         }
 
 
@@ -248,6 +265,9 @@ class PipelineDeps:
     # GET callable for the dependency resolver's GitHub/PyPI verification
     # (url -> (status, json)); None = real HTTP. Tests inject a fake.
     http_get: callable = None
+    # time_machine.compile_lock-compatible callable; None = the real uv
+    # resolver. Tests inject a fake (no uv, no network).
+    lock_compiler: callable = None
     # NEBIUS_SANDBOX_IMAGE — the base image planner.build_plan() falls back
     # to when recon can't pin an exact Python version from the repo.
     default_sandbox_image: str = "python:3.11-slim"
@@ -538,9 +558,90 @@ def _run_stages(
         # lazily, only if an env change needs checking.
         current_requirements = intake_result.dependency_files.get("requirements.txt")
         imported_modules: frozenset[str] | None = None
-        repo_date = None  # looked up once, lazily, by the dependency resolver
+        era_cache: list = []
+
+        def _era():
+            """The repo's era (dependency-file history), looked up once."""
+            if not era_cache:
+                state.stage = "era"
+                era = time_machine.era_date(repo_url, commit_sha, workdir, deps.http_get or dep_resolver._default_http_get)
+                era_cache.append(era)
+                if era is not None:
+                    _log(f"[era] {era.date} from {era.source} {era.detail}")
+                else:
+                    _log("[era] unknown (no dependency-file history and no commit date)")
+            return era_cache[0]
+
+        # --- Time machine (attempt 0): the repo's own era, deterministically --
+        if classifier.repair_layer_for(classification.code) == "env":
+            state.stage = "time_machine"
+            era = _era()
+            if era is not None:
+                py_version, py_reason = time_machine.python_for_era(era.date, intake_result.python_version_hint)
+                if imported_modules is None:
+                    imported_modules = env_repair.imported_top_level_modules(workdir)
+                undeclared = time_machine.undeclared_third_party_imports(workdir, intake_result.declared_dependencies)
+                lock = (deps.lock_compiler or time_machine.compile_lock)(
+                    (current_requirements or "").splitlines(), undeclared, era.date, py_version
+                )
+                apt_added = ()
+                if classification.code == classifier.TaxonomyCode.SYS_LIB_MISSING and re.search(
+                    r"\b(gcc|cc|g\+\+|x86_64-linux-gnu-gcc)\b", classification.evidence
+                ):
+                    # Deterministic known need: a missing C compiler.
+                    apt_added = ("build-essential",)
+                tm_record = {
+                    "era": era.as_dict(),
+                    "python": {"version": py_version, "reason": py_reason, "source": time_machine.PYTHON_RELEASES_SOURCE},
+                    "undeclared_imports": list(undeclared),
+                    "apt_added": list(apt_added),
+                    "apt_reason": classification.evidence if apt_added else "",
+                    "lock": lock.as_dict(),
+                }
+                if lock.ok:
+                    _log(
+                        f"[time-machine] era {era.date} ({era.source}) -> python {py_version}; "
+                        f"locked {len(lock.lock_lines)} package(s) with uv --exclude-newer; "
+                        f"not on the index: {list(lock.not_on_index) or 'none'}"
+                    )
+                    lock_lines = list(lock.lock_lines)
+                    plan = time_machine.apply_lock(plan, py_version, lock_lines, apt_added)
+                    current_requirements = "\n".join(lock_lines) + "\n"
+                    try:
+                        tm_result = _execute(workdir)
+                    except CostLimitExceeded as exc:
+                        _log(f"[time-machine] stopped: daily cost ceiling reached: {exc}")
+                        tm_result = None
+                    if tm_result is not None:
+                        _log(f"[time-machine] re-execution id={tm_result.sandbox_id} exit_code={tm_result.final.exit_code}")
+                        attempts.append(
+                            AttemptRecord(
+                                0, "", "PASS", (), tm_result.final.exit_code, tm_result.final.stdout[-2000:],
+                                tm_result.final.stderr[-2000:], (), (), (), origin="time_machine", time_machine=tm_record,
+                            )
+                        )
+                        sandbox_result = tm_result
+                        if tm_result.succeeded:
+                            verdict = "RUNS_AFTER_REPAIR"
+                        else:
+                            state.stage = "classifier"
+                            classification = classifier.classify(
+                                tm_result.final.exit_code,
+                                tm_result.final.stderr,
+                                tm_result.final.stdout,
+                                declared_deps=intake_result.declared_dependencies,
+                            )
+                            taxonomy_code = classification.code
+                            _log(f"[classifier] {classification.code}: {classification.evidence}")
+                else:
+                    _log(f"[time-machine] could not lock the era environment: {lock.error[-300:]}")
+                    attempts.append(
+                        AttemptRecord(0, "", "DECLINED", (), None, "", lock.error[-2000:], origin="time_machine", time_machine=tm_record)
+                    )
 
         for attempt_number in range(1, deps.max_attempts + 1):
+            if verdict is not None:
+                break
             try:
                 cost_guard.check_attempt_budget(run_id)
             except CostLimitExceeded:
@@ -560,24 +661,23 @@ def _run_stages(
             if deps.tavily_client is not None and classification.code in dep_resolver.RESOLVER_CODES:
                 # Dependency failures: Tavily finds the real source / era
                 # versions, RERUN verifies them (GitHub commit, PyPI history).
-                if repo_date is None:
-                    repo_date = dep_resolver.repo_commit_date(workdir) or False
+                era = _era()
                 resolution = dep_resolver.resolve(
                     deps.tavily_client,
                     classification.code,
                     classification.evidence,
-                    repo_date or None,
+                    era.date if era else None,
                     http_get=deps.http_get,
                 )
             if resolution is not None:
                 tavily_context = resolution.context
                 external_context = resolution.as_prompt_context()
-                resolved_sources = resolution.resolved_sources()
+                offered_sources = resolution.resolved_sources()
                 verified_git = resolution.verified_git_pairs
                 _log(
                     f"[resolver] {resolution.package}: {len(resolution.git_sources)} verified git source(s), "
                     f"PyPI {resolution.pypi_status} ({len(resolution.pypi_releases)} release(s) shown), "
-                    f"repo date {resolution.repo_date}"
+                    f"era {resolution.repo_date}; query: {resolution.context.query!r}"
                 )
                 for note in resolution.notes:
                     _log(f"[resolver] {note}")
@@ -588,55 +688,111 @@ def _run_stages(
                     _log(f"[tavily] search failed, continuing without cited context: {exc}")
                     tavily_context = tavily.TavilyContext(query="", sources=())
                 external_context = tavily_context.as_prompt_context()
-                resolved_sources = ()
+                offered_sources = ()
                 verified_git = frozenset()
+            offered_tavily = tuple(s.as_dict() for s in tavily_context.sources)
             if tavily_context.has_sources:
-                _log(
-                    f"[tavily] {len(tavily_context.sources)} source(s) for '{tavily_context.query}'"
+                _log(f"[tavily] {len(tavily_context.sources)} result(s) for '{tavily_context.query}'")
+
+            def _cite(env_changes_applied) -> tuple[tuple, tuple]:
+                """Only sources actually used in a decision are cited: a
+                verified git source a pip_git change installed (plus the
+                Tavily result it was found in), a PyPI release a pin/add
+                chose. Everything else offered is logged, not cited."""
+                used_git = {
+                    ((c.git_url or "").rstrip("/").removesuffix(".git").lower(), c.commit)
+                    for c in env_changes_applied
+                    if c.op == "pip_git"
+                }
+                used_pypi = {
+                    (re.sub(r"[-_.]+", "-", c.package or "").lower(), c.version)
+                    for c in env_changes_applied
+                    if c.op in ("pin", "add") and c.version
+                }
+                cited_resolved = tuple(
+                    s for s in offered_sources
+                    if (s["kind"] == "git" and (s["url"].lower(), s["commit"]) in used_git)
+                    or (s["kind"] == "pypi" and (re.sub(r"[-_.]+", "-", s["package"]).lower(), s["version"]) in used_pypi)
                 )
+                cited_urls = {s.get("cited_by") for s in cited_resolved if s["kind"] == "git"}
+                cited_tavily = tuple(t for t in offered_tavily if t["url"] in cited_urls)
+                for t in offered_tavily:
+                    if t not in cited_tavily:
+                        _log(f"[citations] not cited (not used in a decision): {t['url']}")
+                for r in offered_sources:
+                    if r not in cited_resolved:
+                        _log(f"[citations] not cited (offered, not used): {r.get('url')}")
+                return cited_tavily, cited_resolved
 
             state.stage = "repairer"
             dependency_view = dict(intake_result.dependency_files)
             if current_requirements is not None:
                 dependency_view["requirements.txt"] = current_requirements
-            proposal = repairer.propose_repair(
-                deps.repair_client,
-                deps.repair_model,
-                classification,
-                target_file,
-                target_content,
-                external_context=external_context or None,
-                cost_guard=cost_guard,
-                repair_layer=repair_layer,
-                build_plan=plan.as_dict(),
-                dependency_files=dependency_view,
-                log_tail=failure_log[-4000:],
-            )
+            if imported_modules is None:
+                imported_modules = env_repair.imported_top_level_modules(workdir)
+
+            def _propose(followup: str | None = None):
+                return repairer.propose_repair(
+                    deps.repair_client,
+                    deps.repair_model,
+                    classification,
+                    target_file,
+                    target_content,
+                    external_context=external_context or None,
+                    cost_guard=cost_guard,
+                    repair_layer=repair_layer,
+                    build_plan=plan.as_dict(),
+                    dependency_files=dependency_view,
+                    log_tail=failure_log[-4000:],
+                    imported_modules=sorted(imported_modules),
+                    followup=followup,
+                )
+
+            proposal = _propose()
             cost_guard.record_attempt(run_id)
-            tavily_sources = tuple(s.as_dict() for s in tavily_context.sources)
             if proposal.parse_retried:
                 _log(f"[repair {attempt_number}] first reply was not valid JSON; re-asked once (same attempt)")
 
             if not proposal.has_change:
                 _log(f"[repair {attempt_number}] declined: {proposal.explanation}")
-                attempts.append(
-                    AttemptRecord(attempt_number, "", "DECLINED", (), None, "", "", tavily_sources, (), resolved_sources)
-                )
+                _cite(())
+                attempts.append(AttemptRecord(attempt_number, "", "DECLINED", (), None, "", ""))
                 continue
 
             # --- Environment gate (deterministic, like the tamper gate) ------
             state.stage = "env_gate"
-            env_changes, env_violations = env_repair.parse_env_delta(list(proposal.env_delta))
-            if env_changes:
-                if imported_modules is None:
-                    imported_modules = env_repair.imported_top_level_modules(workdir)
-                env_violations = env_violations + env_repair.check_env_delta(
-                    env_changes,
-                    log_text=failure_log,
-                    imported_modules=imported_modules,
-                    has_requirements_txt=current_requirements is not None,
-                    verified_git_sources=verified_git,
+
+            def _env_check(prop):
+                changes, violations = env_repair.parse_env_delta(list(prop.env_delta))
+                if changes:
+                    violations = violations + env_repair.check_env_delta(
+                        changes,
+                        log_text=failure_log,
+                        imported_modules=imported_modules,
+                        has_requirements_txt=current_requirements is not None,
+                        verified_git_sources=verified_git,
+                    )
+                return changes, violations
+
+            env_changes, env_violations = _env_check(proposal)
+            if env_violations and all(v.rule == env_repair.EnvRule.ENV_UNJUSTIFIED for v in env_violations):
+                # Found live (TTPT v3): the model dropped the required
+                # justification/evidence and a whole attempt was lost. One
+                # re-ask inside the same attempt, like the JSON re-ask.
+                _log(f"[repair {attempt_number}] env change lacked justification/evidence; re-asked once (same attempt)")
+                proposal = _propose(
+                    "Your previous reply was rejected: "
+                    + "; ".join(v.reason for v in env_violations)
+                    + ". Every env change needs a one-line \"justification\" and an \"evidence\" string copied "
+                    "VERBATIM from the failing run's log shown above. Reply again with the complete JSON object."
                 )
+                if proposal.has_change:
+                    env_changes, env_violations = _env_check(proposal)
+                else:
+                    _log(f"[repair {attempt_number}] declined after re-ask: {proposal.explanation}")
+                    _cite(())
+                    attempts.append(AttemptRecord(attempt_number, "", "DECLINED", (), None, "", ""))
+                    continue
             env_delta_dicts = tuple(c.as_dict() for c in env_changes)
 
             # --- Tamper gate on the code diff (every touched file) ------------
@@ -668,6 +824,7 @@ def _run_stages(
             if all_violations:
                 reasons = "; ".join(v.reason for v in all_violations)
                 _log(f"[repair {attempt_number}] tamper gate REJECT: {reasons}")
+                _cite(())
                 attempts.append(
                     AttemptRecord(
                         attempt_number,
@@ -677,9 +834,8 @@ def _run_stages(
                         None,
                         "",
                         "",
-                        tavily_sources,
+                        (),
                         env_delta_dicts,
-                        resolved_sources,
                     )
                 )
                 continue
@@ -702,12 +858,9 @@ def _run_stages(
                     # half of this attempt is NOT applied either (all or
                     # nothing per attempt).
                     _log(f"[repair {attempt_number}] gate-approved patch failed to apply cleanly: {exc}")
+                    _cite(())
                     attempts.append(
-                        AttemptRecord(
-                            attempt_number, checked_diff, "PASS", (), None, "", str(exc)[-2000:], tavily_sources,
-                            env_delta_dicts,
-                        resolved_sources,
-                        )
+                        AttemptRecord(attempt_number, checked_diff, "PASS", (), None, "", str(exc)[-2000:], (), env_delta_dicts)
                     )
                     continue
             if env_changes:
@@ -716,12 +869,13 @@ def _run_stages(
                 if new_requirements is not None:
                     current_requirements = new_requirements
                 _log(f"[repair {attempt_number}] env delta applied; build plan now: {plan.as_dict()}")
+            cited_tavily, cited_resolved = _cite(env_changes)
             try:
                 rerun_result = _execute(workdir)
             except CostLimitExceeded as exc:
                 _log(f"[repair {attempt_number}] stopped: daily cost ceiling reached: {exc}")
                 attempts.append(
-                    AttemptRecord(attempt_number, checked_diff, "PASS", (), None, "", "", tavily_sources, env_delta_dicts, resolved_sources)
+                    AttemptRecord(attempt_number, checked_diff, "PASS", (), None, "", "", cited_tavily, env_delta_dicts, cited_resolved)
                 )
                 break
             _log(
@@ -738,9 +892,9 @@ def _run_stages(
                     rerun_result.final.exit_code,
                     rerun_result.final.stdout[-2000:],
                     rerun_result.final.stderr[-2000:],
-                    tavily_sources,
+                    cited_tavily,
                     env_delta_dicts,
-                        resolved_sources,
+                    cited_resolved,
                 )
             )
 
@@ -762,7 +916,8 @@ def _run_stages(
 
         if verdict is None:
             verdict = "BLOCKED"
-            _log(f"[verdict] BLOCKED after {len(attempts)} attempt(s): {taxonomy_code}")
+            model_attempts = sum(1 for a in attempts if a.origin == "model")
+            _log(f"[verdict] BLOCKED after {model_attempts} repair attempt(s): {taxonomy_code}")
 
     return _finalize(
         verdict=verdict,
