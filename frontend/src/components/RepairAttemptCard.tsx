@@ -1,5 +1,6 @@
 import type { RepairAttemptDiff, TavilySource } from "../api";
 import { DiffView } from "./DiffView";
+import { EnvDeltaView } from "./EnvDeltaView";
 
 /** Defense in depth: `source.url` comes from a real Tavily search result,
  * not directly attacker-controlled, but nothing between that API response
@@ -54,6 +55,7 @@ function TavilySources({ sources }: { sources?: TavilySource[] }) {
  * mount), everywhere else stays quiet by design.
  */
 export function RepairAttemptCard({ attempt }: { attempt: RepairAttemptDiff }) {
+  const envChanges = attempt.env_delta ?? [];
   if (attempt.gate_decision === "DECLINED") {
     return (
       <div className="rounded-sm border border-border bg-surface px-4 py-3">
@@ -77,14 +79,26 @@ export function RepairAttemptCard({ attempt }: { attempt: RepairAttemptDiff }) {
             </li>
           ))}
         </ul>
-        <details className="mt-3">
-          <summary className="cursor-pointer font-mono text-[11px] text-text-secondary">
-            View the rejected diff (never applied)
-          </summary>
-          <div className="mt-2">
-            <DiffView diff={attempt.diff_text} />
-          </div>
-        </details>
+        {envChanges.length > 0 && (
+          <details className="mt-3">
+            <summary className="cursor-pointer font-mono text-[11px] text-text-secondary">
+              View the rejected environment delta (never applied)
+            </summary>
+            <div className="mt-2">
+              <EnvDeltaView changes={envChanges} />
+            </div>
+          </details>
+        )}
+        {(attempt.diff_text || envChanges.length === 0) && (
+          <details className="mt-3">
+            <summary className="cursor-pointer font-mono text-[11px] text-text-secondary">
+              View the rejected diff (never applied)
+            </summary>
+            <div className="mt-2">
+              <DiffView diff={attempt.diff_text} />
+            </div>
+          </details>
+        )}
         <TavilySources sources={attempt.tavily_sources} />
       </div>
     );
@@ -99,12 +113,22 @@ export function RepairAttemptCard({ attempt }: { attempt: RepairAttemptDiff }) {
           Re-execution exit code: <span className="text-text-primary">{attempt.exit_code}</span>
         </p>
       )}
-      <details className="mt-3" open>
-        <summary className="cursor-pointer font-mono text-[11px] text-text-secondary">Applied diff</summary>
-        <div className="mt-2">
-          <DiffView diff={attempt.diff_text} />
-        </div>
-      </details>
+      {envChanges.length > 0 && (
+        <details className="mt-3" open>
+          <summary className="cursor-pointer font-mono text-[11px] text-text-secondary">Applied environment delta</summary>
+          <div className="mt-2">
+            <EnvDeltaView changes={envChanges} />
+          </div>
+        </details>
+      )}
+      {(attempt.diff_text || envChanges.length === 0) && (
+        <details className="mt-3" open>
+          <summary className="cursor-pointer font-mono text-[11px] text-text-secondary">Applied diff</summary>
+          <div className="mt-2">
+            <DiffView diff={attempt.diff_text} />
+          </div>
+        </details>
+      )}
       <TavilySources sources={attempt.tavily_sources} />
     </div>
   );

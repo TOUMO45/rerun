@@ -3039,3 +3039,66 @@ now apply. **Mutation checks:** restoring the old skip → (a) fails; allowing `
 4 (b) cases fail. Full suite: 353 passed, 8 skipped.
 
 ---
+
+## 2026-09-25 — Environment-layer repair (`env_delta`) with its own deterministic gate
+
+**Why:** in the 2026-09-24 live runs every real failure was environmental (gpt-2:
+`regex==2017.4.5` needs gcc; TTPT: Dassl is not on PyPI), yet the repairer could only
+diff repo files — gpt-2 spent all 3 attempts editing Python that never ran.
+
+**Repairer contract:** `{"code_diff": <unified diff|null>, "env_delta": [...],
+"explanation": ...}` (old `{"diff": ...}` still accepted). `env_delta` ops: `pin`,
+`unpin`, `add`, `remove`, `pip_git` (git URL + commit), `apt`, `python`; each needs a
+one-line `justification` and an `evidence` string. The prompt now also carries a
+repair-layer hint, the current build plan, the (current) dependency files and the last
+4000 chars of the failing step's output — all inside untrusted-content blocks.
+
+**Routing:** `classifier.repair_layer_for(code)` → `"env"` for `SYS_LIB_MISSING`,
+`DEP_UNPINNED_CONFLICT`, `DEP_MISSING`, `DEP_YANKED_GONE` (and the split codes of the
+next step), `PY_VERSION_INCOMPAT`; `"code"` otherwise. The hint says "strongly prefer an
+env_delta"; a code diff is still allowed alongside it and is gated as before.
+
+**Env gate (`env_repair.check_env_delta`, pure, deterministic; any violation rejects the
+whole attempt, which still consumes it):**
+- `ENV_REMOVES_IMPORTED` — `remove` of a package whose import name (with a
+  dist→import alias table, e.g. scikit-learn→sklearn) is imported anywhere in the repo
+  (AST scan of the repo's .py files, never executed).
+- `ENV_DATA_URL` — any URL in package/version/commit; `git_url` on any op other than
+  `pip_git`; a `pip_git` URL that isn't `https://github.com|gitlab.com|bitbucket.org/
+  <owner>/<repo>` (so no data/weight/archive URLs, no `http`, no credentials).
+- `ENV_GIT_UNPINNED` — `pip_git` without a full 40-hex lowercase commit sha (branch,
+  tag, short sha all rejected).
+- `ENV_INVALID_NAME` — pip names must be PEP 508 names, versions plain (no operators,
+  markers, spaces), apt names the same regex planner.py uses, python ∈ 3.7–3.13.
+- `ENV_UNJUSTIFIED` — justification must be one line ≤300 chars; `evidence` must be ≥8
+  chars and appear **verbatim** in the failing step's stderr+stdout.
+- `ENV_UNSUPPORTED` (unpin/remove with no requirements.txt), `ENV_TOO_LARGE` (>10
+  changes), `ENV_INVALID_CHANGE` (unknown op / malformed delta — never half-applied).
+
+**Materialization (`apply_env_delta`):** python → `python:X-slim`; apt → plan's apt step;
+pip changes edit a RERUN-owned copy `.rerun-requirements.txt`, written by the install
+step itself via `printf` with every line `shlex.quote`d, then `pip install -r` it. The
+repo's own requirements.txt is never modified, and deltas accumulate across attempts.
+Without a requirements.txt, add/pin/pip_git become an extra `pip install` step.
+All-or-nothing per attempt: if the code half fails `git apply`, the env half isn't
+applied either.
+
+**Certificate:** `AttemptRecord.env_delta` (inside `diffs`, so the passport hashes it —
+tested: editing one env field breaks verification). S3 now has separate **Environment
+Delta** and **Code Diff** sections listing only *applied* changes (gate PASS and
+re-executed; a PASS whose `git apply` failed is excluded), and each attempt card shows
+its env delta separately from its diff (rejected ones labelled "never applied").
+"Export patch" now exports all applied code diffs, not just the last PASS attempt's.
+
+**Tests:** `tests/test_env_repair.py` (57): 8 valid changes PASS (the negative controls),
+then each rule's positives (`ENV_REMOVES_IMPORTED` incl. case/alias, 6 `ENV_DATA_URL`, 6
+`ENV_GIT_UNPINNED`, 8 `ENV_INVALID_NAME`, 5 `ENV_UNJUSTIFIED`, unsupported/too-large/
+malformed) with their negative controls, the import scanner, materialization (incl.
+a shell-injection package name ending up as one quoted argument), routing, and end to end:
+a `SYS_LIB_MISSING` install failure repaired by `apt build-essential` → RUNS_AFTER_REPAIR
+with the re-execution really using the new plan; an unjustified delta → REJECT, no
+re-execution; passport covers the env delta. Frontend: 2 new component tests. Backend
+suite 410 passed, 8 skipped; frontend 5 passed; build green. Not checked in the
+browser: no backend is running locally and a certificate page needs a stored run.
+
+---

@@ -3,6 +3,8 @@ import { useQuery } from "@tanstack/react-query";
 import { api, ApiError } from "../api";
 import { VerdictBadge } from "../components/VerdictBadge";
 import { RepairAttemptCard } from "../components/RepairAttemptCard";
+import { DiffView } from "../components/DiffView";
+import { EnvDeltaView } from "../components/EnvDeltaView";
 import { ScopeLine } from "../components/ScopeLine";
 
 export function Certificate() {
@@ -28,7 +30,16 @@ export function Certificate() {
 
   const run = runQuery.data;
   const cert = certQuery.data;
-  const passedAttempt = [...cert.diffs].reverse().find((a) => a.gate_decision === "PASS");
+  // "Applied" = gate PASS and actually re-executed (a PASS whose git apply
+  // failed has no exit code and changed nothing).
+  const applied = cert.diffs.filter(
+    (a) => a.gate_decision === "PASS" && a.exit_code !== null && a.exit_code !== undefined,
+  );
+  const appliedEnvChanges = applied.flatMap((a) => a.env_delta ?? []);
+  const appliedCodeDiff = applied
+    .map((a) => a.diff_text)
+    .filter((d) => d.trim())
+    .join("");
 
   const downloadCertificate = () => {
     const payload = {
@@ -45,8 +56,8 @@ export function Certificate() {
   };
 
   const exportPatch = () => {
-    if (!passedAttempt) return;
-    triggerDownload(`rerun-patch-${run.id}.patch`, passedAttempt.diff_text);
+    if (!appliedCodeDiff) return;
+    triggerDownload(`rerun-patch-${run.id}.patch`, appliedCodeDiff);
   };
 
   return (
@@ -86,6 +97,30 @@ export function Certificate() {
       </section>
 
       {cert.diffs.length > 0 && (
+        <section className="rounded-sm border border-border bg-surface px-5 py-4">
+          <h2 className="font-mono text-xs uppercase tracking-wide text-text-secondary">Environment Delta</h2>
+          <p className="mt-1 font-mono text-[11px] text-text-secondary">
+            Build-plan changes that were applied and re-executed (the repository's files are not edited).
+          </p>
+          <div className="mt-2">
+            <EnvDeltaView changes={appliedEnvChanges} />
+          </div>
+        </section>
+      )}
+
+      {cert.diffs.length > 0 && (
+        <section className="rounded-sm border border-border bg-surface px-5 py-4">
+          <h2 className="font-mono text-xs uppercase tracking-wide text-text-secondary">Code Diff</h2>
+          <p className="mt-1 font-mono text-[11px] text-text-secondary">
+            Changes to the repository's own files that were applied and re-executed.
+          </p>
+          <div className="mt-2">
+            <DiffView diff={appliedCodeDiff} />
+          </div>
+        </section>
+      )}
+
+      {cert.diffs.length > 0 && (
         <section>
           <h2 className="mb-2 font-mono text-xs uppercase tracking-wide text-text-secondary">Repair attempts</h2>
           <div className="space-y-3">
@@ -113,7 +148,7 @@ export function Certificate() {
           >
             Download certificate JSON
           </button>
-          {passedAttempt && (
+          {appliedCodeDiff && (
             <button
               onClick={exportPatch}
               className="rounded-sm border border-border px-3 py-1.5 font-mono text-xs text-text-secondary transition-opacity hover:opacity-90"

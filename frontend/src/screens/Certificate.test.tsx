@@ -151,3 +151,64 @@ describe("Certificate — INDETERMINATE", () => {
     expect(screen.queryByText(/Repair attempts/i)).toBeNull();
   });
 });
+
+describe("Certificate — Environment Delta vs Code Diff", () => {
+  const aptChange = {
+    op: "apt",
+    package: "build-essential",
+    version: null,
+    git_url: null,
+    commit: null,
+    justification: "gcc is missing to build regex",
+    evidence: "error: command 'gcc' failed",
+  };
+  const envPass: RepairAttemptDiff = {
+    attempt_number: 2,
+    diff_text: "",
+    gate_decision: "PASS",
+    gate_violations: [],
+    exit_code: 0,
+    env_delta: [aptChange],
+  };
+  const envReject: RepairAttemptDiff = {
+    attempt_number: 1,
+    diff_text: "",
+    gate_decision: "REJECT",
+    gate_violations: [{ rule: "ENV_GIT_UNPINNED", reason: "git source must be pinned to a full 40-hex commit sha" }],
+    exit_code: null,
+    env_delta: [{ ...aptChange, op: "pip_git", package: "dassl", git_url: "https://github.com/o/r", commit: "main" }],
+  };
+
+  it("shows applied env changes and code diffs in separate sections, excluding rejected ones", async () => {
+    getRun.mockResolvedValue(makeRun({ verdict: "RUNS_AFTER_REPAIR", taxonomy_code: null, attempts_used: 3 }));
+    getCertificate.mockResolvedValue(makeCert([envReject, envPass, passed], { verdict: "RUNS_AFTER_REPAIR" }));
+    renderCertificate();
+
+    const envSection = (await screen.findByRole("heading", { name: "Environment Delta" })).parentElement!;
+    const codeSection = screen.getByRole("heading", { name: "Code Diff" }).parentElement!;
+
+    expect(envSection.textContent).toContain("apt install build-essential");
+    expect(envSection.textContent).toContain("error: command 'gcc' failed");
+    // The rejected (unpinned git) change never appears as applied.
+    expect(envSection.textContent).not.toContain("dassl");
+    expect(codeSection.textContent).toContain("numpy==1.26.4");
+    expect(codeSection.textContent).not.toContain("build-essential");
+
+    // ...but it is visible, labelled as rejected, in its own attempt card.
+    const rejectedCard = screen.getByText(/Repair attempt 1 — tamper gate REJECTED/i).parentElement!;
+    expect(rejectedCard.textContent).toContain("ENV_GIT_UNPINNED");
+    expect(rejectedCard.textContent).toMatch(/rejected environment delta \(never applied\)/i);
+    expect(screen.getByText(/Applied environment delta/i)).toBeTruthy();
+  });
+
+  it("does not count a gate-PASS attempt whose patch failed to apply", async () => {
+    const failedApply: RepairAttemptDiff = { ...passed, exit_code: null, stderr_tail: "git apply failed" };
+    getRun.mockResolvedValue(makeRun());
+    getCertificate.mockResolvedValue(makeCert([failedApply]));
+    renderCertificate();
+
+    const codeSection = (await screen.findByRole("heading", { name: "Code Diff" })).parentElement!;
+    expect(codeSection.textContent).not.toContain("numpy==1.26.4");
+    expect(screen.queryByRole("button", { name: /Export patch/i })).toBeNull();
+  });
+});

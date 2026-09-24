@@ -100,6 +100,29 @@ _IMPORT_TO_DIST = {
     "bs4": "beautifulsoup4",
 }
 
+# Which layer a repair should try first for each code. Environment-family
+# failures (a missing compiler/system library, an unavailable or conflicting
+# package, the wrong interpreter) cannot be fixed by editing repo code — the
+# 2026-09-24 live runs spent all three gpt-2 attempts editing Python that never
+# ran because `regex==2017.4.5` needed gcc.
+ENV_FIRST_CODES = frozenset(
+    {
+        "SYS_LIB_MISSING",
+        "DEP_UNPINNED_CONFLICT",
+        "DEP_MISSING",
+        "DEP_YANKED_GONE",
+        "DEP_YANKED",
+        "DEP_NOT_ON_PYPI",
+        "PY_VERSION_INCOMPAT",
+    }
+)
+
+
+def repair_layer_for(code: str) -> str:
+    """'env' for environment-family codes, else 'code'."""
+    return "env" if code in ENV_FIRST_CODES else "code"
+
+
 _RULES: tuple[_Rule, ...] = (
     # --- Data / credentials (checked early: very specific signal) --------
     _Rule(

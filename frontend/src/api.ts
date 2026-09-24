@@ -53,6 +53,16 @@ export interface TavilySource {
   content: string;
 }
 
+export interface EnvChange {
+  op: string;
+  package: string | null;
+  version: string | null;
+  git_url: string | null;
+  commit: string | null;
+  justification: string;
+  evidence: string;
+}
+
 export interface RepairAttemptDiff {
   attempt_number: number;
   diff_text: string;
@@ -62,6 +72,8 @@ export interface RepairAttemptDiff {
   stdout_tail?: string;
   stderr_tail?: string;
   tavily_sources?: TavilySource[];
+  /** Structured build-plan edits (environment layer); diff_text is the code layer. */
+  env_delta?: EnvChange[];
 }
 
 export interface CertificateOut {

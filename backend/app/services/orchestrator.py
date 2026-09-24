@@ -33,7 +33,7 @@ from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from pathlib import Path
 
-from app.services import adjudicator, classifier, passport, planner, recon, repairer, tavily
+from app.services import adjudicator, classifier, env_repair, passport, planner, recon, repairer, tavily
 from app.services import compute_sandbox
 from app.services.cost_guard import CostGuard, CostLimitExceeded
 from app.services.intake import RepoIntake, read_text_capped
@@ -97,6 +97,10 @@ class AttemptRecord:
     stdout_tail: str
     stderr_tail: str
     tavily_sources: tuple[dict, ...] = ()
+    # Structured build-plan edits (env_repair.EnvChange.as_dict()), shown on
+    # the certificate as "Environment Delta" separately from the code diff
+    # (`diff_text`); both are inside `diffs`, so the passport hashes both.
+    env_delta: tuple[dict, ...] = ()
 
     def as_dict(self) -> dict:
         return {
@@ -108,6 +112,7 @@ class AttemptRecord:
             "stdout_tail": self.stdout_tail,
             "stderr_tail": self.stderr_tail,
             "tavily_sources": list(self.tavily_sources),
+            "env_delta": list(self.env_delta),
         }
 
 
@@ -521,6 +526,12 @@ def _run_stages(
         taxonomy_code = classification.code
         _log(f"[classifier] {classification.code}: {classification.evidence}")
 
+        # Env repair edits a RERUN-owned copy of requirements.txt (never the
+        # repo's file); this tracks it across attempts. Imports are scanned
+        # lazily, only if an env change needs checking.
+        current_requirements = intake_result.dependency_files.get("requirements.txt")
+        imported_modules: frozenset[str] | None = None
+
         for attempt_number in range(1, deps.max_attempts + 1):
             try:
                 cost_guard.check_attempt_budget(run_id)
@@ -531,6 +542,10 @@ def _run_stages(
             target_file = _target_file_for(classification, recon_result.entrypoint, intake_result.dependency_files)
             target_path = workdir / target_file
             target_content = (read_text_capped(target_path) or "") if target_path.is_file() else ""
+            repair_layer = classifier.repair_layer_for(classification.code)
+            # The full output of the step that failed: the env gate checks
+            # every env change's `evidence` against it verbatim.
+            failure_log = f"{sandbox_result.final.stderr}\n{sandbox_result.final.stdout}"
 
             state.stage = "tavily"
             try:
@@ -544,6 +559,9 @@ def _run_stages(
                 )
 
             state.stage = "repairer"
+            dependency_view = dict(intake_result.dependency_files)
+            if current_requirements is not None:
+                dependency_view["requirements.txt"] = current_requirements
             proposal = repairer.propose_repair(
                 deps.repair_client,
                 deps.repair_model,
@@ -552,85 +570,116 @@ def _run_stages(
                 target_content,
                 external_context=tavily_context.as_prompt_context() or None,
                 cost_guard=cost_guard,
+                repair_layer=repair_layer,
+                build_plan=plan.as_dict(),
+                dependency_files=dependency_view,
+                log_tail=failure_log[-4000:],
             )
             cost_guard.record_attempt(run_id)
             tavily_sources = tuple(s.as_dict() for s in tavily_context.sources)
 
-            if not proposal.has_diff:
+            if not proposal.has_change:
                 _log(f"[repair {attempt_number}] declined: {proposal.explanation}")
                 attempts.append(
                     AttemptRecord(attempt_number, "", "DECLINED", (), None, "", "", tavily_sources)
                 )
                 continue
 
-            state.stage = "tamper_gate"
-            # The gate must see the original of EVERY file the diff touches,
-            # not just the file the repairer was shown (the hole found live on
-            # 2026-09-24). Paths come from the same normalizer the gate uses.
-            touched_originals = _load_touched_originals(workdir, prepare_patch(proposal.diff_text).paths)
-            touched_sources = "\n".join(touched_originals.values())
-            # Recon's names come from a model that reads untrusted repo text;
-            # the AST-derived floor keeps rules 1-2 armed even if recon was
-            # prompt-injected into returning none.
-            gate_result = check_patch(
-                proposal.diff_text,
-                touched_originals,
-                eval_call_names=frozenset(recon_result.eval_call_names) | heuristic_eval_call_names(touched_sources),
-                model_call_names=frozenset(recon_result.model_call_names) | heuristic_model_call_names(touched_sources),
-                repo_root=workdir,
-            )
-            # From here on, the diff that is recorded and applied is exactly
-            # the canonical one the gate analyzed.
-            checked_diff = gate_result.canonical_diff or proposal.diff_text
+            # --- Environment gate (deterministic, like the tamper gate) ------
+            state.stage = "env_gate"
+            env_changes, env_violations = env_repair.parse_env_delta(list(proposal.env_delta))
+            if env_changes:
+                if imported_modules is None:
+                    imported_modules = env_repair.imported_top_level_modules(workdir)
+                env_violations = env_violations + env_repair.check_env_delta(
+                    env_changes,
+                    log_text=failure_log,
+                    imported_modules=imported_modules,
+                    has_requirements_txt=current_requirements is not None,
+                )
+            env_delta_dicts = tuple(c.as_dict() for c in env_changes)
 
-            if gate_result.decision == "REJECT":
-                reasons = "; ".join(v.reason for v in gate_result.violations)
+            # --- Tamper gate on the code diff (every touched file) ------------
+            checked_diff = ""
+            code_violations: tuple = ()
+            if proposal.diff_text:
+                state.stage = "tamper_gate"
+                # The gate must see the original of EVERY file the diff touches,
+                # not just the file the repairer was shown (the hole found live on
+                # 2026-09-24). Paths come from the same normalizer the gate uses.
+                touched_originals = _load_touched_originals(workdir, prepare_patch(proposal.diff_text).paths)
+                touched_sources = "\n".join(touched_originals.values())
+                # Recon's names come from a model that reads untrusted repo text;
+                # the AST-derived floor keeps rules 1-2 armed even if recon was
+                # prompt-injected into returning none.
+                gate_result = check_patch(
+                    proposal.diff_text,
+                    touched_originals,
+                    eval_call_names=frozenset(recon_result.eval_call_names) | heuristic_eval_call_names(touched_sources),
+                    model_call_names=frozenset(recon_result.model_call_names) | heuristic_model_call_names(touched_sources),
+                    repo_root=workdir,
+                )
+                # From here on, the diff that is recorded and applied is exactly
+                # the canonical one the gate analyzed.
+                checked_diff = gate_result.canonical_diff or proposal.diff_text
+                code_violations = gate_result.violations
+
+            all_violations = tuple(env_violations) + tuple(code_violations)
+            if all_violations:
+                reasons = "; ".join(v.reason for v in all_violations)
                 _log(f"[repair {attempt_number}] tamper gate REJECT: {reasons}")
                 attempts.append(
                     AttemptRecord(
                         attempt_number,
                         checked_diff,
                         "REJECT",
-                        tuple(v.as_dict() for v in gate_result.violations),
+                        tuple(v.as_dict() for v in all_violations),
                         None,
                         "",
                         "",
                         tavily_sources,
+                        env_delta_dicts,
                     )
                 )
                 continue
 
-            _log(f"[repair {attempt_number}] tamper gate PASS — applying and re-executing")
-            state.stage = "apply_diff"
-            try:
-                deps.apply_diff(workdir, checked_diff)
-            except OrchestratorError as exc:
-                # Found live: the tamper gate's own AST reconstruction
-                # (_apply_patched_file) never cross-validates a diff's
-                # claimed context/removed lines against the real file —
-                # it just trusts the diff's structure. A diff based on a
-                # model's slightly-stale or misremembered view of the
-                # file (a realistic LLM failure mode, not a contrived
-                # one) can therefore PASS the gate yet still be rejected
-                # by the real `git apply` this line runs. Previously
-                # uncaught here, this crashed the whole pipeline with an
-                # unhandled OrchestratorError instead of producing an
-                # honest verdict — this attempt is recorded as a failed
-                # application and the bounded loop simply moves on,
-                # exactly like a REJECT or a declined proposal does.
-                _log(f"[repair {attempt_number}] gate-approved patch failed to apply cleanly: {exc}")
-                attempts.append(
-                    AttemptRecord(
-                        attempt_number, checked_diff, "PASS", (), None, "", str(exc)[-2000:], tavily_sources
+            layers = " + ".join(x for x, present in (("env", bool(env_changes)), ("code", bool(checked_diff))) if present)
+            _log(f"[repair {attempt_number}] tamper gate PASS ({layers}) — applying and re-executing")
+            if checked_diff:
+                state.stage = "apply_diff"
+                try:
+                    deps.apply_diff(workdir, checked_diff)
+                except OrchestratorError as exc:
+                    # Found live: the tamper gate's own AST reconstruction
+                    # (_apply_patched_file) never cross-validates a diff's
+                    # claimed context/removed lines against the real file —
+                    # it just trusts the diff's structure. A diff based on a
+                    # model's slightly-stale or misremembered view of the
+                    # file can therefore PASS the gate yet still be rejected
+                    # by the real `git apply` this line runs. Recorded as a
+                    # failed application; the bounded loop moves on. The env
+                    # half of this attempt is NOT applied either (all or
+                    # nothing per attempt).
+                    _log(f"[repair {attempt_number}] gate-approved patch failed to apply cleanly: {exc}")
+                    attempts.append(
+                        AttemptRecord(
+                            attempt_number, checked_diff, "PASS", (), None, "", str(exc)[-2000:], tavily_sources,
+                            env_delta_dicts,
+                        )
                     )
-                )
-                continue
+                    continue
+            if env_changes:
+                state.stage = "apply_env"
+                plan, new_requirements = env_repair.apply_env_delta(plan, env_changes, current_requirements)
+                if new_requirements is not None:
+                    current_requirements = new_requirements
+                _log(f"[repair {attempt_number}] env delta applied; build plan now: {plan.as_dict()}")
             try:
                 rerun_result = _execute(workdir)
             except CostLimitExceeded as exc:
                 _log(f"[repair {attempt_number}] stopped: daily cost ceiling reached: {exc}")
                 attempts.append(
-                    AttemptRecord(attempt_number, checked_diff, "PASS", (), None, "", "", tavily_sources)
+                    AttemptRecord(attempt_number, checked_diff, "PASS", (), None, "", "", tavily_sources, env_delta_dicts)
                 )
                 break
             _log(
@@ -648,6 +697,7 @@ def _run_stages(
                     rerun_result.final.stdout[-2000:],
                     rerun_result.final.stderr[-2000:],
                     tavily_sources,
+                    env_delta_dicts,
                 )
             )
 
