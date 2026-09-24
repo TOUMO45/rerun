@@ -3429,3 +3429,20 @@ Tests: `tests/test_baseline.py` (26) + one component test. Backend 501 passed, 8
 frontend 8 passed; build green.
 
 ---
+
+## 2026-09-24 — Smarter repair: full import list + resolved lock, fix everything in one attempt
+
+The repairer prompt now carries (a) every top-level module the repository's code imports
+(AST, never executed; added with Step 1) and (b) when the time machine has run, the
+resolved era lock as its own labelled block ("Environment currently installed"), instead
+of only the single module named in the error. The system prompt tells the model to compare
+the two and fix ALL missing third-party packages in one env_delta. Found live
+(2026-09-24 v2/v3): gpt-2 spent one attempt on numpy and the next on tensorflow.
+
+Tests (`tests/test_smart_repair.py`): a repo importing numpy, scipy and yaml with an empty
+requirements.txt (lock disabled so the model path is exercised) → one env_delta adding all
+three → RUNS_AFTER_REPAIR in a single attempt, and the prompt's import block names all
+three; negative control: one module per attempt runs out of attempts (BLOCKED on `yaml`);
+the lock block reaches the prompt. Backend 504 passed, 8 skipped.
+
+---

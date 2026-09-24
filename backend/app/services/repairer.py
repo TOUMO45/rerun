@@ -41,6 +41,10 @@ missing system libraries, compilers, unavailable or incompatible package version
 packages that are not on PyPI, or the wrong Python version. The repository's files are \
 never edited for these; RERUN rebuilds the environment from your delta.
 When the repair layer hint says ENVIRONMENT, strongly prefer an env_delta.
+You are also shown every top-level module the repository imports and, when RERUN has
+resolved one, the currently locked environment. Compare them and fix ALL missing
+third-party packages in ONE env_delta — do not fix only the single module named in the
+error, since each attempt is expensive and bounded.
 
 Rules, non-negotiable:
 - Propose the SMALLEST possible change that could plausibly fix this specific failure.
@@ -110,6 +114,7 @@ def build_repair_user_prompt(
     log_tail: str = "",
     imported_modules: list[str] | None = None,
     followup: str | None = None,
+    resolved_lock: list[str] | None = None,
 ) -> str:
     parts = [
         f"Taxonomy code: {classification.code} ({classification.family})",
@@ -131,6 +136,9 @@ def build_repair_user_prompt(
     if log_tail:
         parts.append("Tail of the failing run's log (quote `evidence` from here verbatim):")
         parts.append(untrusted_block("failing run log tail", log_tail))
+    if resolved_lock:
+        parts.append("Environment currently installed (RERUN's resolved lock for the repository's era):")
+        parts.append(untrusted_block("resolved lock", "\n".join(resolved_lock)))
     if imported_modules:
         # Every top-level module the repo's code imports (AST, never run), so
         # one env_delta can add ALL missing packages at once instead of one per
@@ -177,6 +185,7 @@ def propose_repair(
     log_tail: str = "",
     imported_modules: list[str] | None = None,
     followup: str | None = None,
+    resolved_lock: list[str] | None = None,
 ) -> RepairProposal:
     """Ask Nemotron Super for one candidate patch. A model-call failure
     (bad credentials, timeout, unparseable JSON) is surfaced as a declined
@@ -195,6 +204,7 @@ def propose_repair(
         log_tail=log_tail,
         imported_modules=imported_modules,
         followup=followup,
+        resolved_lock=resolved_lock,
     )
     parse_retried = False
     for try_number in (1, 2):

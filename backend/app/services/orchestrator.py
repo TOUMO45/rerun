@@ -596,6 +596,7 @@ def _run_stages(
         # lazily, only if an env change needs checking.
         current_requirements = intake_result.dependency_files.get("requirements.txt")
         imported_modules: frozenset[str] | None = None
+        resolved_lock: list[str] | None = None  # set by the time machine
         era_cache: list = []
 
         def _era():
@@ -643,6 +644,7 @@ def _run_stages(
                         f"not on the index: {list(lock.not_on_index) or 'none'}"
                     )
                     lock_lines = list(lock.lock_lines)
+                    resolved_lock = lock_lines
                     plan = time_machine.apply_lock(plan, py_version, lock_lines, apt_added)
                     current_requirements = "\n".join(lock_lines) + "\n"
                     try:
@@ -784,6 +786,7 @@ def _run_stages(
                     log_tail=failure_log[-4000:],
                     imported_modules=sorted(imported_modules),
                     followup=followup,
+                    resolved_lock=resolved_lock,
                 )
 
             proposal = _propose()
