@@ -39,7 +39,7 @@ from app.services.cost_guard import CostGuard, CostLimitExceeded
 from app.services.intake import RepoIntake, read_text_capped
 from app.services.model_client import NebiusChatClient
 from app.services.sandbox import SandboxError, SandboxRunResult, run_build_and_execute
-from app.services.tamper_gate import check_patch
+from app.services.tamper_gate import check_patch, heuristic_eval_call_names, heuristic_model_call_names
 
 
 class OrchestratorError(RuntimeError):
@@ -539,11 +539,14 @@ def _run_stages(
                 continue
 
             state.stage = "tamper_gate"
+            # Recon's names come from a model that reads untrusted repo text;
+            # the AST-derived floor keeps rules 1-2 armed even if recon was
+            # prompt-injected into returning none.
             gate_result = check_patch(
                 proposal.diff_text,
                 {target_file: target_content},
-                eval_call_names=frozenset(recon_result.eval_call_names),
-                model_call_names=frozenset(recon_result.model_call_names),
+                eval_call_names=frozenset(recon_result.eval_call_names) | heuristic_eval_call_names(target_content),
+                model_call_names=frozenset(recon_result.model_call_names) | heuristic_model_call_names(target_content),
             )
 
             if gate_result.decision == "REJECT":

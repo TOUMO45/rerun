@@ -462,6 +462,38 @@ def _check_broad_exception_swallow(
     return None
 
 
+# Deterministic floor for the names rules 1-2 protect. Recon's model-provided
+# eval/model call names are untrusted (a prompt-injected recon can simply
+# return empty lists, which would switch DELETED_EVAL_CALL and
+# STUBBED_MODEL_CALL off entirely). The orchestrator unions these
+# AST-derived names with recon's. Deliberately conservative: a false
+# positive only makes the gate stricter about removing such a call.
+_HEURISTIC_EVAL_NAME_RE = re.compile(r"eval|metric|accuracy|score|assert", re.IGNORECASE)
+_HEURISTIC_MODEL_CALL_NAMES = frozenset(
+    {"forward", "predict", "predict_proba", "generate", "infer", "inference", "run_inference", "fit", "train", "train_step"}
+)
+
+
+def _called_short_names(source: str) -> set[str]:
+    try:
+        tree = ast.parse(source)
+    except (SyntaxError, ValueError):
+        return set()
+    return {name for node in ast.walk(tree) if isinstance(node, ast.Call) and (name := _call_short_name(node))}
+
+
+def heuristic_eval_call_names(source: str) -> frozenset[str]:
+    """Names of functions *called* in `source` that look like evaluation /
+    metric / assertion calls (by name, from the AST — never from a model)."""
+    return frozenset(n for n in _called_short_names(source) if _HEURISTIC_EVAL_NAME_RE.search(n))
+
+
+def heuristic_model_call_names(source: str) -> frozenset[str]:
+    """Names of functions called in `source` that are conventional
+    model inference/training entrypoints (forward, predict, generate, ...)."""
+    return frozenset(n for n in _called_short_names(source) if n.lower() in _HEURISTIC_MODEL_CALL_NAMES)
+
+
 def check_patch(
     diff_text: str,
     original_sources: Mapping[str, str],

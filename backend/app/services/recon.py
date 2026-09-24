@@ -38,7 +38,7 @@ from dataclasses import dataclass
 
 from app.services.classifier import TaxonomyCode
 from app.services.intake import RepoIntake
-from app.services.model_client import ModelCallError, call_json_model
+from app.services.model_client import UNTRUSTED_CONTENT_NOTICE, ModelCallError, call_json_model, untrusted_block
 
 MIN_CONFIDENCE = 0.6
 # Output budget incl. reasoning tokens (model_client retries once at 2x).
@@ -80,7 +80,7 @@ these keys:
 
 If you are not reasonably confident (e.g. multiple equally-plausible candidates, or \
 none look like the real entrypoint), set confidence low and entrypoint to null rather \
-than guessing. A wrong confident guess is worse than an honest low-confidence answer."""
+than guessing. A wrong confident guess is worse than an honest low-confidence answer.""" + UNTRUSTED_CONTENT_NOTICE
 
 
 @dataclass(frozen=True)
@@ -123,10 +123,11 @@ def build_recon_user_prompt(intake: RepoIntake, entrypoint_file_contents: dict[s
         "notebook_paths": list(intake.notebook_paths),
         "python_version_hint_from_files": intake.python_version_hint,
     }
-    parts = [json.dumps(facts, indent=2)]
+    # File names, dependency names and sources all come from the repo.
+    parts = [untrusted_block("repo facts gathered by intake", json.dumps(facts, indent=2))]
     for path, content in (entrypoint_file_contents or {}).items():
         truncated = content[:_MAX_FILE_CHARS_IN_PROMPT]
-        parts.append(f"\n--- source of {path} ---\n{truncated}")
+        parts.append(untrusted_block(f"source of {path}", truncated))
     return "\n".join(parts)
 
 

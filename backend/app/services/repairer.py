@@ -15,7 +15,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 from app.services.classifier import Classification
-from app.services.model_client import ModelCallError, call_json_model
+from app.services.model_client import UNTRUSTED_CONTENT_NOTICE, ModelCallError, call_json_model, untrusted_block
 
 # Output budget incl. reasoning tokens (model_client retries once at 2x).
 # Largest of the roles: the answer itself is a unified diff.
@@ -44,7 +44,7 @@ Respond with ONLY a single JSON object, no prose, no markdown fences:
 {
   "diff": "<a valid unified diff (---/+++/@@ hunks) against the file shown, or null if you cannot propose a safe minimal fix>",
   "explanation": "<one sentence: what you changed and why it addresses the evidence>"
-}"""
+}""" + UNTRUSTED_CONTENT_NOTICE
 
 
 @dataclass(frozen=True)
@@ -66,14 +66,16 @@ def build_repair_user_prompt(
 ) -> str:
     parts = [
         f"Taxonomy code: {classification.code} ({classification.family})",
-        f"Evidence: {classification.evidence}",
+        # Evidence is a line of the repo's own stderr/stdout.
+        "Evidence:",
+        untrusted_block("failure evidence from the run's output", classification.evidence),
         f"Target file: {target_file_path}",
-        "--- current file content ---",
-        target_file_content,
-        "--- end file content ---",
+        "Current file content:",
+        untrusted_block(f"content of {target_file_path}", target_file_content),
     ]
     if external_context:
-        parts.append(f"Additional context (cited dependency/environment evidence):\n{external_context}")
+        parts.append("Additional context (cited dependency/environment evidence):")
+        parts.append(untrusted_block("web search results (Tavily)", external_context))
     return "\n".join(parts)
 
 

@@ -18,12 +18,13 @@ enhancement, not a dependency, unlike recon's entrypoint decision.
 
 from __future__ import annotations
 
+import json
 import re
 import shlex
 from dataclasses import dataclass, field
 
 from app.services.intake import RepoIntake
-from app.services.model_client import ModelCallError, call_json_model
+from app.services.model_client import UNTRUSTED_CONTENT_NOTICE, ModelCallError, call_json_model, untrusted_block
 from app.services.recon import ReconResult
 
 # `as_shell_steps()` interpolates apt_install directly into a real shell
@@ -169,8 +170,10 @@ def build_plan(
             raw = call_json_model(
                 client,
                 model=model,
-                system_prompt=_APT_SYSTEM_PROMPT,
-                user_prompt=f"Declared pip dependencies: {sorted(intake.declared_dependencies)}",
+                system_prompt=_APT_SYSTEM_PROMPT + UNTRUSTED_CONTENT_NOTICE,
+                user_prompt=untrusted_block(
+                    "declared pip dependencies", json.dumps(sorted(intake.declared_dependencies))
+                ),
                 cost_guard=cost_guard,
                 max_tokens=PLANNER_MAX_TOKENS,
             )

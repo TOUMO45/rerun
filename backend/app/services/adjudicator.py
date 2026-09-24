@@ -24,7 +24,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from app.services.model_client import ModelCallError, call_json_model
+from app.services.model_client import UNTRUSTED_CONTENT_NOTICE, ModelCallError, call_json_model, untrusted_block
 
 # Output budget incl. reasoning tokens (model_client retries once at 2x).
 ADJUDICATOR_MAX_TOKENS = 2048
@@ -59,7 +59,7 @@ Respond with ONLY a JSON object, no prose, no markdown fences:
   "downgrade_reason": "<empty string if you did not downgrade, otherwise why>"
 }}
 
-Always end the prose by including this exact sentence verbatim: "{SCOPE_BOUNDARY_LINE}\""""
+Always end the prose by including this exact sentence verbatim: "{SCOPE_BOUNDARY_LINE}\"""" + UNTRUSTED_CONTENT_NOTICE
 
 
 @dataclass(frozen=True)
@@ -122,7 +122,8 @@ def adjudicate(
         f"Verdict: {verdict}\n"
         f"Taxonomy code: {taxonomy_code}\n"
         f"Repair attempts used: {attempts_used}\n"
-        f"Evidence: {evidence_summary}"
+        "Evidence (tail of the run log, which includes the repo's own output):\n"
+        f"{untrusted_block('run log tail', evidence_summary)}"
     )
     try:
         raw = call_json_model(
