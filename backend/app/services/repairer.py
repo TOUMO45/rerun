@@ -33,8 +33,10 @@ Rules, non-negotiable:
 - NEVER reduce a dataset size, epoch count, or sample count from its declared default.
 - NEVER add a broad `except:`/`except Exception: pass` around code that previously ran
   to completion.
-- Only touch the target file shown to you — never modify test files, the classifier,
-  or the tamper gate.
+- Prefer changing the target file shown to you. You may touch another file in the
+  repository if the fix genuinely needs it, using repo-relative `a/<path>` / `b/<path>`
+  headers — never absolute paths, `..`, renames, or deleting files. Never modify test
+  files, the classifier, or the tamper gate. Every file you touch is checked.
 - Keep the diff under 40 changed lines.
 
 A separate deterministic system will reject your patch outright if it violates any of

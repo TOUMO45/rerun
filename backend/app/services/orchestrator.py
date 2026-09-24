@@ -39,7 +39,12 @@ from app.services.cost_guard import CostGuard, CostLimitExceeded
 from app.services.intake import RepoIntake, read_text_capped
 from app.services.model_client import NebiusChatClient
 from app.services.sandbox import SandboxError, SandboxRunResult, run_build_and_execute
-from app.services.tamper_gate import check_patch, heuristic_eval_call_names, heuristic_model_call_names
+from app.services.tamper_gate import (
+    check_patch,
+    heuristic_eval_call_names,
+    heuristic_model_call_names,
+    prepare_patch,
+)
 
 
 class OrchestratorError(RuntimeError):
@@ -141,6 +146,26 @@ def _apply_diff_with_git(workdir: Path, diff_text: str) -> None:
     )
     if result.returncode != 0:
         raise OrchestratorError(f"gate-approved patch failed to apply: {result.stderr.strip()}")
+
+
+def _load_touched_originals(workdir: Path, paths: tuple[str, ...]) -> dict[str, str]:
+    """Original content of each touched path that exists as a regular,
+    non-symlinked file inside `workdir`. Anything else is simply left out,
+    so the gate REJECTs it (UNVERIFIED_FILE / UNSAFE_PATH) rather than this
+    loader deciding. Newly added files need no original."""
+    root = workdir.resolve()
+    originals: dict[str, str] = {}
+    for rel in paths:
+        candidate = workdir / rel
+        if candidate.is_symlink() or not candidate.is_file():
+            continue
+        resolved = candidate.resolve()
+        if root not in resolved.parents:
+            continue
+        content = read_text_capped(candidate)
+        if content is not None:
+            originals[rel] = content
+    return originals
 
 
 def _collect_upload_files(workdir: Path) -> dict[str, Path]:
@@ -539,15 +564,24 @@ def _run_stages(
                 continue
 
             state.stage = "tamper_gate"
+            # The gate must see the original of EVERY file the diff touches,
+            # not just the file the repairer was shown (the hole found live on
+            # 2026-09-24). Paths come from the same normalizer the gate uses.
+            touched_originals = _load_touched_originals(workdir, prepare_patch(proposal.diff_text).paths)
+            touched_sources = "\n".join(touched_originals.values())
             # Recon's names come from a model that reads untrusted repo text;
             # the AST-derived floor keeps rules 1-2 armed even if recon was
             # prompt-injected into returning none.
             gate_result = check_patch(
                 proposal.diff_text,
-                {target_file: target_content},
-                eval_call_names=frozenset(recon_result.eval_call_names) | heuristic_eval_call_names(target_content),
-                model_call_names=frozenset(recon_result.model_call_names) | heuristic_model_call_names(target_content),
+                touched_originals,
+                eval_call_names=frozenset(recon_result.eval_call_names) | heuristic_eval_call_names(touched_sources),
+                model_call_names=frozenset(recon_result.model_call_names) | heuristic_model_call_names(touched_sources),
+                repo_root=workdir,
             )
+            # From here on, the diff that is recorded and applied is exactly
+            # the canonical one the gate analyzed.
+            checked_diff = gate_result.canonical_diff or proposal.diff_text
 
             if gate_result.decision == "REJECT":
                 reasons = "; ".join(v.reason for v in gate_result.violations)
@@ -555,7 +589,7 @@ def _run_stages(
                 attempts.append(
                     AttemptRecord(
                         attempt_number,
-                        proposal.diff_text,
+                        checked_diff,
                         "REJECT",
                         tuple(v.as_dict() for v in gate_result.violations),
                         None,
@@ -569,7 +603,7 @@ def _run_stages(
             _log(f"[repair {attempt_number}] tamper gate PASS — applying and re-executing")
             state.stage = "apply_diff"
             try:
-                deps.apply_diff(workdir, proposal.diff_text)
+                deps.apply_diff(workdir, checked_diff)
             except OrchestratorError as exc:
                 # Found live: the tamper gate's own AST reconstruction
                 # (_apply_patched_file) never cross-validates a diff's
@@ -587,7 +621,7 @@ def _run_stages(
                 _log(f"[repair {attempt_number}] gate-approved patch failed to apply cleanly: {exc}")
                 attempts.append(
                     AttemptRecord(
-                        attempt_number, proposal.diff_text, "PASS", (), None, "", str(exc)[-2000:], tavily_sources
+                        attempt_number, checked_diff, "PASS", (), None, "", str(exc)[-2000:], tavily_sources
                     )
                 )
                 continue
@@ -596,7 +630,7 @@ def _run_stages(
             except CostLimitExceeded as exc:
                 _log(f"[repair {attempt_number}] stopped: daily cost ceiling reached: {exc}")
                 attempts.append(
-                    AttemptRecord(attempt_number, proposal.diff_text, "PASS", (), None, "", "", tavily_sources)
+                    AttemptRecord(attempt_number, checked_diff, "PASS", (), None, "", "", tavily_sources)
                 )
                 break
             _log(
@@ -607,7 +641,7 @@ def _run_stages(
             attempts.append(
                 AttemptRecord(
                     attempt_number,
-                    proposal.diff_text,
+                    checked_diff,
                     "PASS",
                     (),
                     rerun_result.final.exit_code,

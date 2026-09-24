@@ -28,6 +28,7 @@ from __future__ import annotations
 import ast
 import re
 from dataclasses import dataclass, field
+from pathlib import Path
 from typing import Mapping
 
 from unidiff import PatchSet
@@ -43,6 +44,11 @@ class GateRule:
     DIFF_TOO_LARGE = "DIFF_TOO_LARGE"
     # Defensive addition beyond §5.3's six rules: see module docstring.
     UNPARSEABLE_PATCH = "UNPARSEABLE_PATCH"
+    # Path safety (added 2026-09-25 after the live runs exposed that a diff
+    # touching a file the gate was never given passed unchecked).
+    UNSAFE_PATH = "UNSAFE_PATH"  # absolute, ../, outside repo root, symlink, rename
+    FILE_DELETION = "FILE_DELETION"  # +++ /dev/null — deleting a whole file
+    UNVERIFIED_FILE = "UNVERIFIED_FILE"  # touched file whose original the gate did not get
 
 
 DEFAULT_PROTECTED_PATTERNS: frozenset[str] = frozenset(
@@ -94,6 +100,12 @@ class Violation:
 class GateResult:
     decision: str  # "PASS" or "REJECT"
     violations: tuple[Violation, ...] = field(default_factory=tuple)
+    # The exact diff the gate analyzed, with canonical `a/<path>` / `b/<path>`
+    # headers. The orchestrator applies THIS text (git apply -p1), never the
+    # model's raw diff, so the gate and the apply step cannot disagree about
+    # which files are touched. Empty if the diff could not be parsed.
+    canonical_diff: str = ""
+    touched_paths: tuple[str, ...] = ()
 
     @property
     def passed(self) -> bool:
@@ -104,6 +116,125 @@ class GateResult:
             "decision": self.decision,
             "violations": [v.as_dict() for v in self.violations],
         }
+
+
+_DEV_NULL = "/dev/null"
+_WINDOWS_DRIVE_RE = re.compile(r"^[A-Za-z]:")
+
+
+def _normalize_header_path(raw: str) -> tuple[str | None, str | None]:
+    """Header path -> (repo-relative POSIX path, None) or (None, reason).
+    Strips one leading `a/` or `b/` and any `./`; rejects absolute paths and
+    any `..` component. `/dev/null` is returned unchanged."""
+    path = raw.strip().split("\t", 1)[0].strip()
+    if path == _DEV_NULL:
+        return _DEV_NULL, None
+    if path.startswith(("/", "\\")) or _WINDOWS_DRIVE_RE.match(path):
+        return None, f"absolute path '{path}' — patches may only use repo-relative paths"
+    path = path.replace("\\", "/")
+    if path.startswith(("a/", "b/")):
+        path = path[2:]
+    while path.startswith("./"):
+        path = path[2:]
+    parts = [p for p in path.split("/") if p not in ("", ".")]
+    if not parts:
+        return None, f"empty path in diff header '{raw.strip()}'"
+    if ".." in parts:
+        return None, f"path '{raw.strip()}' escapes the repository root ('..' component)"
+    return "/".join(parts), None
+
+
+@dataclass(frozen=True)
+class PreparedPatch:
+    """Single source of truth for which files a diff touches."""
+
+    canonical_diff: str
+    paths: tuple[str, ...]
+    added_paths: frozenset[str]
+    violations: tuple[Violation, ...]
+    patch_set: PatchSet | None
+
+
+def prepare_patch(diff_text: str) -> PreparedPatch:
+    """Parse a model diff, normalize every header path, reject unsafe ones,
+    and rebuild it with canonical `a/`/`b/` headers. Pure."""
+    try:
+        patch_set = PatchSet(diff_text)
+    except Exception as exc:  # unidiff raises UnidiffParseError and friends
+        return PreparedPatch("", (), frozenset(), (
+            Violation(rule=GateRule.UNPARSEABLE_PATCH, reason=f"diff could not be parsed: {exc}"),
+        ), None)
+    if len(patch_set) == 0:
+        return PreparedPatch("", (), frozenset(), (
+            Violation(rule=GateRule.UNPARSEABLE_PATCH, reason="diff contains no file changes"),
+        ), None)
+
+    violations: list[Violation] = []
+    paths: list[str] = []
+    added: set[str] = set()
+    chunks: list[str] = []
+    for patched_file in patch_set:
+        src, src_err = _normalize_header_path(patched_file.source_file)
+        tgt, tgt_err = _normalize_header_path(patched_file.target_file)
+        for err in (src_err, tgt_err):
+            if err:
+                violations.append(Violation(rule=GateRule.UNSAFE_PATH, reason=err))
+        if src_err or tgt_err:
+            continue
+        if tgt == _DEV_NULL:
+            violations.append(Violation(
+                rule=GateRule.FILE_DELETION,
+                reason=f"patch deletes the whole file '{src}' — deleting files is never a minimal fix",
+                file=src,
+            ))
+            continue
+        if src != _DEV_NULL and src != tgt:
+            violations.append(Violation(
+                rule=GateRule.UNSAFE_PATH,
+                reason=f"patch renames/moves '{src}' to '{tgt}' — renames are not allowed",
+                file=tgt,
+            ))
+            continue
+        if tgt in paths:
+            violations.append(Violation(rule=GateRule.UNSAFE_PATH, reason=f"'{tgt}' appears twice in one diff", file=tgt))
+            continue
+        paths.append(tgt)
+        if src == _DEV_NULL:
+            added.add(tgt)
+        header = f"--- {'/dev/null' if src == _DEV_NULL else 'a/' + tgt}\n+++ b/{tgt}\n"
+        body = "".join(str(hunk) for hunk in patched_file)
+        chunks.append(header + body)
+    canonical = "".join(chunks)
+    if canonical and not canonical.endswith("\n"):
+        canonical += "\n"
+    return PreparedPatch(canonical, tuple(paths), frozenset(added), tuple(violations), patch_set)
+
+
+def check_paths_on_disk(repo_root: Path, paths: tuple[str, ...]) -> list[Violation]:
+    """Read-only filesystem checks (lstat/resolve only — no reads, no writes):
+    every touched path must resolve inside `repo_root` and no component of it
+    may be a symlink (a committed symlink could point a 'repo file' at the
+    backend host)."""
+    violations: list[Violation] = []
+    root = repo_root.resolve()
+    for rel in paths:
+        current = repo_root
+        for part in rel.split("/"):
+            current = current / part
+            if current.is_symlink():
+                violations.append(Violation(
+                    rule=GateRule.UNSAFE_PATH,
+                    reason=f"'{rel}' goes through a symlink ('{current.relative_to(repo_root).as_posix()}')",
+                    file=rel,
+                ))
+                break
+        else:
+            resolved = (repo_root / rel).resolve()
+            if resolved != root and root not in resolved.parents:
+                violations.append(Violation(
+                    rule=GateRule.UNSAFE_PATH, reason=f"'{rel}' resolves outside the repository root", file=rel
+                ))
+    return violations
 
 
 def _is_protected_path(path: str, protected_patterns: frozenset[str]) -> bool:
@@ -501,19 +632,38 @@ def check_patch(
     model_call_names: frozenset[str] = frozenset(),
     protected_patterns: frozenset[str] = DEFAULT_PROTECTED_PATTERNS,
     max_changed_lines: int = 40,
+    repo_root: Path | None = None,
 ) -> GateResult:
     """Check a unified diff against every §5.3 rejection rule.
 
-    `original_sources` maps repo-relative file path -> full original file
-    content, for every file the diff touches (the sandbox has the pristine
-    checkout, so this is always obtainable before the patch is applied).
+    `original_sources` maps normalized repo-relative path -> full original
+    content, and must cover EVERY file the diff modifies: a touched file
+    whose original is missing is REJECTED (UNVERIFIED_FILE), never skipped.
+    Paths are normalized by `prepare_patch`; the returned `canonical_diff`
+    is what must be applied. If `repo_root` is given, read-only filesystem
+    checks (symlinks, escaping the root) run too; otherwise the gate stays
+    fully pure.
     """
-    violations: list[Violation] = []
-    patch_set = PatchSet(diff_text)
+    prepared = prepare_patch(diff_text)
+    violations: list[Violation] = list(prepared.violations)
+    if prepared.patch_set is None:
+        return GateResult(decision="REJECT", violations=tuple(violations))
+    if repo_root is not None:
+        violations.extend(check_paths_on_disk(repo_root, prepared.paths))
+    normalized_sources = {}
+    for key, value in original_sources.items():
+        norm, err = _normalize_header_path(key)
+        if not err:
+            normalized_sources[norm] = value
 
     total_changed = 0
-    for patched_file in patch_set:
-        path = patched_file.path
+    by_path = {}
+    for patched_file in prepared.patch_set:
+        norm, err = _normalize_header_path(patched_file.target_file)
+        if not err and norm in prepared.paths:
+            by_path[norm] = patched_file
+    for path in prepared.paths:
+        patched_file = by_path[path]
         total_changed += patched_file.added + patched_file.removed
 
         if _is_protected_path(path, protected_patterns):
@@ -530,11 +680,25 @@ def check_patch(
             )
             continue
 
-        if not path.endswith(".py"):
+        is_added = path in prepared.added_paths
+        old_source = "" if is_added else normalized_sources.get(path)
+        if old_source is None:
+            # The hole found live on 2026-09-24: this used to `continue`,
+            # so a diff editing any file the caller didn't pass was PASSED
+            # with zero checks and then applied.
+            violations.append(
+                Violation(
+                    rule=GateRule.UNVERIFIED_FILE,
+                    reason=(
+                        f"patch modifies '{path}', but the gate was not given its original "
+                        f"content (missing from the checkout or not loaded) — cannot verify it"
+                    ),
+                    file=path,
+                )
+            )
             continue
 
-        old_source = original_sources.get(path, "" if patched_file.is_added_file else None)
-        if old_source is None:
+        if not path.endswith(".py"):
             continue
 
         try:
@@ -588,4 +752,9 @@ def check_patch(
         )
 
     decision = "REJECT" if violations else "PASS"
-    return GateResult(decision=decision, violations=tuple(violations))
+    return GateResult(
+        decision=decision,
+        violations=tuple(violations),
+        canonical_diff=prepared.canonical_diff,
+        touched_paths=prepared.paths,
+    )

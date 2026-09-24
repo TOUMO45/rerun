@@ -2995,3 +2995,47 @@ added `os.environ['TF_ENABLE_ONEDNN_OPTS']='0'` → applied → install still fa
    gpt-2 — heavy reasoning, but no budget exhaustion.
 
 ---
+
+## 2026-09-25 — Tamper gate now checks EVERY touched file; one path normalizer for gate + apply
+
+Closes the CRITICAL hole from the 2026-09-24 live runs (a diff editing a file the gate
+wasn't handed PASSed with zero checks, then got `git apply`-ed).
+
+- **`tamper_gate.prepare_patch(diff)`** — single source of truth. Parses the diff,
+  normalizes every header path (strip one `a/`/`b/`, any `./`, `\`→`/`), and rejects:
+  absolute paths (`/…`, `C:…`, `\server…`) and any `..` component → `UNSAFE_PATH`;
+  `+++ /dev/null` (whole-file deletion) → new `FILE_DELETION`; renames/moves and a
+  path appearing twice → `UNSAFE_PATH`. Emits a **canonical diff** with `a/<p>`/`b/<p>`
+  headers (new files keep `--- /dev/null`; new files are allowed and checked against
+  an empty original).
+- **`check_patch`** runs `prepare_patch`, then applies all existing rules to every
+  touched path. A touched, non-new file with no original is now REJECTED with new
+  `UNVERIFIED_FILE` — it used to be silently skipped (`if old_source is None:
+  continue`), which was the hole. Protected-path matching now runs on normalized
+  paths. Optional `repo_root=` adds read-only filesystem checks (`check_paths_on_disk`:
+  any symlinked component, or resolving outside the root → `UNSAFE_PATH`); without it
+  the gate stays fully pure. `GateResult` now carries `canonical_diff` and
+  `touched_paths`.
+- **Orchestrator** loads originals for every path `prepare_patch` reports
+  (`_load_touched_originals`: regular files inside the workdir, never through a
+  symlink; anything else is left out so the *gate* rejects it), computes the heuristic
+  eval/model name floor over all of them, passes `repo_root=workdir`, and from then on
+  records and `git apply -p1`s `gate_result.canonical_diff` — never the model's raw
+  text. So the gate and the apply step can't disagree about which files are touched
+  (the gpt-2 attempt-1 failure: `--- src/x.py` with no prefix → `-p1` stripped `src/`).
+- **Repairs are not restricted to one file.** The repairer prompt used to say "only
+  touch the target file"; it now prefers the target but allows other repo files with
+  repo-relative headers, since every touched file is checked.
+
+Tests (`tests/test_tamper_gate_paths.py`): (a) the offline repro → REJECT
+(`UNVERIFIED_FILE`), and with the file loaded → REJECT (`DELETED_EVAL_CALL`), and end to
+end through the orchestrator → REJECT, file untouched; (b) 4 traversal forms → REJECT;
+(c) 4 absolute forms → REJECT; (d) a legit requirements.txt + train.py repair → PASS at
+the gate and applied end to end → RUNS_AFTER_REPAIR. Also: `/dev/null` deletion,
+rename, protected path after `./` normalization, symlink (real symlink test skips on
+Windows without admin; a platform-independent version with a negative control runs
+everywhere), header variants → one canonical form, and gpt-2's prefix-less headers
+now apply. **Mutation checks:** restoring the old skip → (a) fails; allowing `..` → all
+4 (b) cases fail. Full suite: 353 passed, 8 skipped.
+
+---
