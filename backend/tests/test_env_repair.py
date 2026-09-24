@@ -45,8 +45,14 @@ def _rules(violations):
     return {v.rule for v in violations}
 
 
-def _check(*changes, imported=frozenset({"regex", "numpy"}), has_req=True):
-    return check_env_delta(tuple(changes), log_text=LOG, imported_modules=imported, has_requirements_txt=has_req)
+VERIFIED = frozenset({("https://github.com/kaiyangzhou/dassl.pytorch", SHA)})
+
+
+def _check(*changes, imported=frozenset({"regex", "numpy"}), has_req=True, verified=VERIFIED):
+    return check_env_delta(
+        tuple(changes), log_text=LOG, imported_modules=imported, has_requirements_txt=has_req,
+        verified_git_sources=verified,
+    )
 
 
 # --- Valid deltas PASS (negative controls for every rule below) ------------
@@ -383,3 +389,33 @@ def test_passport_covers_the_environment_delta(tmp_path):
     assert verify_certificate(cert)
     cert["diffs"][0]["env_delta"][0]["package"] = "something-else"
     assert not verify_certificate(cert)
+
+
+# --- ENV_GIT_UNVERIFIED: only RERUN-verified url+commit pairs --------------
+
+_GIT = dict(op="pip_git", package="dassl", evidence="No module named 'dassl'")
+
+
+@pytest.mark.parametrize(
+    "git_url,commit",
+    [
+        ("https://github.com/KaiyangZhou/Dassl.pytorch", "b" * 40),  # right repo, invented sha
+        ("https://github.com/someone-else/Dassl.pytorch", SHA),  # right sha, different repo
+        ("https://github.com/attacker/dassl", "a" * 40),
+    ],
+)
+def test_unverified_git_source_is_rejected(git_url, commit):
+    v = _check(_ok(git_url=git_url, commit=commit, **_GIT))
+    assert EnvRule.ENV_GIT_UNVERIFIED in _rules(v)
+
+
+def test_git_source_is_rejected_when_nothing_was_verified():
+    change = _ok(git_url="https://github.com/KaiyangZhou/Dassl.pytorch", commit=SHA, **_GIT)
+    assert EnvRule.ENV_GIT_UNVERIFIED in _rules(_check(change, verified=frozenset()))
+
+
+@pytest.mark.parametrize(
+    "git_url", ["https://github.com/KaiyangZhou/Dassl.pytorch", "https://github.com/KaiyangZhou/Dassl.pytorch.git/"]
+)
+def test_negative_control_verified_git_source_passes(git_url):
+    assert _check(_ok(git_url=git_url, commit=SHA, **_GIT)) == ()

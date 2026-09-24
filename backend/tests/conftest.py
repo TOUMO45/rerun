@@ -101,3 +101,15 @@ def client(monkeypatch):
         yield TestClient(app)
     finally:
         app.dependency_overrides.clear()
+
+
+@pytest.fixture(autouse=True)
+def _no_real_http_in_dependency_resolver(monkeypatch):
+    """dep_resolver's default GitHub/PyPI GET must never hit the network in
+    the unit suite; tests that exercise it inject their own `http_get`."""
+    from app.services import dep_resolver
+
+    def _blocked(url):
+        raise RuntimeError(f"real HTTP disabled in tests: {url}")
+
+    monkeypatch.setattr(dep_resolver, "_default_http_get", _blocked)

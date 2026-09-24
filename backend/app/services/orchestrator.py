@@ -33,7 +33,7 @@ from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from pathlib import Path
 
-from app.services import adjudicator, classifier, env_repair, passport, planner, recon, repairer, tavily
+from app.services import adjudicator, classifier, dep_resolver, env_repair, passport, planner, recon, repairer, tavily
 from app.services import compute_sandbox
 from app.services.cost_guard import CostGuard, CostLimitExceeded
 from app.services.intake import RepoIntake, read_text_capped
@@ -101,6 +101,9 @@ class AttemptRecord:
     # the certificate as "Environment Delta" separately from the code diff
     # (`diff_text`); both are inside `diffs`, so the passport hashes both.
     env_delta: tuple[dict, ...] = ()
+    # RERUN-verified sources from dep_resolver (git repos pinned to a real
+    # commit, PyPI release history) offered to the repairer this attempt.
+    resolved_sources: tuple[dict, ...] = ()
 
     def as_dict(self) -> dict:
         return {
@@ -113,6 +116,7 @@ class AttemptRecord:
             "stderr_tail": self.stderr_tail,
             "tavily_sources": list(self.tavily_sources),
             "env_delta": list(self.env_delta),
+            "resolved_sources": list(self.resolved_sources),
         }
 
 
@@ -241,6 +245,9 @@ class PipelineDeps:
     # string: a real query needs the failure's classification, which only
     # exists mid-repair-loop, not before the pipeline starts.
     tavily_client: object = None
+    # GET callable for the dependency resolver's GitHub/PyPI verification
+    # (url -> (status, json)); None = real HTTP. Tests inject a fake.
+    http_get: callable = None
     # NEBIUS_SANDBOX_IMAGE — the base image planner.build_plan() falls back
     # to when recon can't pin an exact Python version from the repo.
     default_sandbox_image: str = "python:3.11-slim"
@@ -531,6 +538,7 @@ def _run_stages(
         # lazily, only if an env change needs checking.
         current_requirements = intake_result.dependency_files.get("requirements.txt")
         imported_modules: frozenset[str] | None = None
+        repo_date = None  # looked up once, lazily, by the dependency resolver
 
         for attempt_number in range(1, deps.max_attempts + 1):
             try:
@@ -548,11 +556,40 @@ def _run_stages(
             failure_log = f"{sandbox_result.final.stderr}\n{sandbox_result.final.stdout}"
 
             state.stage = "tavily"
-            try:
-                tavily_context = tavily.fetch_context(deps.tavily_client, classification.code, classification.evidence)
-            except tavily.TavilyError as exc:
-                _log(f"[tavily] search failed, continuing without cited context: {exc}")
-                tavily_context = tavily.TavilyContext(query="", sources=())
+            resolution = None
+            if deps.tavily_client is not None and classification.code in dep_resolver.RESOLVER_CODES:
+                # Dependency failures: Tavily finds the real source / era
+                # versions, RERUN verifies them (GitHub commit, PyPI history).
+                if repo_date is None:
+                    repo_date = dep_resolver.repo_commit_date(workdir) or False
+                resolution = dep_resolver.resolve(
+                    deps.tavily_client,
+                    classification.code,
+                    classification.evidence,
+                    repo_date or None,
+                    http_get=deps.http_get,
+                )
+            if resolution is not None:
+                tavily_context = resolution.context
+                external_context = resolution.as_prompt_context()
+                resolved_sources = resolution.resolved_sources()
+                verified_git = resolution.verified_git_pairs
+                _log(
+                    f"[resolver] {resolution.package}: {len(resolution.git_sources)} verified git source(s), "
+                    f"PyPI {resolution.pypi_status} ({len(resolution.pypi_releases)} release(s) shown), "
+                    f"repo date {resolution.repo_date}"
+                )
+                for note in resolution.notes:
+                    _log(f"[resolver] {note}")
+            else:
+                try:
+                    tavily_context = tavily.fetch_context(deps.tavily_client, classification.code, classification.evidence)
+                except tavily.TavilyError as exc:
+                    _log(f"[tavily] search failed, continuing without cited context: {exc}")
+                    tavily_context = tavily.TavilyContext(query="", sources=())
+                external_context = tavily_context.as_prompt_context()
+                resolved_sources = ()
+                verified_git = frozenset()
             if tavily_context.has_sources:
                 _log(
                     f"[tavily] {len(tavily_context.sources)} source(s) for '{tavily_context.query}'"
@@ -568,7 +605,7 @@ def _run_stages(
                 classification,
                 target_file,
                 target_content,
-                external_context=tavily_context.as_prompt_context() or None,
+                external_context=external_context or None,
                 cost_guard=cost_guard,
                 repair_layer=repair_layer,
                 build_plan=plan.as_dict(),
@@ -583,7 +620,7 @@ def _run_stages(
             if not proposal.has_change:
                 _log(f"[repair {attempt_number}] declined: {proposal.explanation}")
                 attempts.append(
-                    AttemptRecord(attempt_number, "", "DECLINED", (), None, "", "", tavily_sources)
+                    AttemptRecord(attempt_number, "", "DECLINED", (), None, "", "", tavily_sources, (), resolved_sources)
                 )
                 continue
 
@@ -598,6 +635,7 @@ def _run_stages(
                     log_text=failure_log,
                     imported_modules=imported_modules,
                     has_requirements_txt=current_requirements is not None,
+                    verified_git_sources=verified_git,
                 )
             env_delta_dicts = tuple(c.as_dict() for c in env_changes)
 
@@ -641,6 +679,7 @@ def _run_stages(
                         "",
                         tavily_sources,
                         env_delta_dicts,
+                        resolved_sources,
                     )
                 )
                 continue
@@ -667,6 +706,7 @@ def _run_stages(
                         AttemptRecord(
                             attempt_number, checked_diff, "PASS", (), None, "", str(exc)[-2000:], tavily_sources,
                             env_delta_dicts,
+                        resolved_sources,
                         )
                     )
                     continue
@@ -681,7 +721,7 @@ def _run_stages(
             except CostLimitExceeded as exc:
                 _log(f"[repair {attempt_number}] stopped: daily cost ceiling reached: {exc}")
                 attempts.append(
-                    AttemptRecord(attempt_number, checked_diff, "PASS", (), None, "", "", tavily_sources, env_delta_dicts)
+                    AttemptRecord(attempt_number, checked_diff, "PASS", (), None, "", "", tavily_sources, env_delta_dicts, resolved_sources)
                 )
                 break
             _log(
@@ -700,6 +740,7 @@ def _run_stages(
                     rerun_result.final.stderr[-2000:],
                     tavily_sources,
                     env_delta_dicts,
+                        resolved_sources,
                 )
             )
 

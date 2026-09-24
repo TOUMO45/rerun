@@ -43,6 +43,7 @@ class EnvRule:
     ENV_REMOVES_IMPORTED = "ENV_REMOVES_IMPORTED"  # removes a package the code imports
     ENV_DATA_URL = "ENV_DATA_URL"  # any URL other than a pinned git source
     ENV_GIT_UNPINNED = "ENV_GIT_UNPINNED"  # git source not pinned to a full commit sha
+    ENV_GIT_UNVERIFIED = "ENV_GIT_UNVERIFIED"  # url+commit not verified by RERUN's dep resolver
     ENV_UNJUSTIFIED = "ENV_UNJUSTIFIED"  # missing justification / evidence not in the log
     ENV_UNSUPPORTED = "ENV_UNSUPPORTED"  # e.g. unpin/remove without a requirements.txt
     ENV_TOO_LARGE = "ENV_TOO_LARGE"
@@ -165,8 +166,13 @@ def check_env_delta(
     log_text: str,
     imported_modules: frozenset[str],
     has_requirements_txt: bool,
+    verified_git_sources: frozenset[tuple[str, str]] = frozenset(),
 ) -> tuple[Violation, ...]:
-    """The deterministic env gate. Returns every violation (empty = PASS)."""
+    """The deterministic env gate. Returns every violation (empty = PASS).
+
+    `verified_git_sources` holds (lowercased https URL, commit) pairs that
+    dep_resolver resolved to a real commit this attempt. A pip_git change
+    must match one exactly — a model-supplied URL or sha is never trusted."""
     violations: list[Violation] = []
 
     def _v(rule, reason, i):
@@ -230,6 +236,12 @@ def check_env_delta(
                 )
             if not c.commit or not _SHA_RE.match(c.commit):
                 _v(EnvRule.ENV_GIT_UNPINNED, f"git source must be pinned to a full 40-hex commit sha (got {c.commit!r})", i)
+            elif c.git_url and (c.git_url.rstrip("/").removesuffix(".git").lower(), c.commit) not in verified_git_sources:
+                _v(
+                    EnvRule.ENV_GIT_UNVERIFIED,
+                    f"{c.git_url}@{c.commit} was not verified by RERUN's dependency resolver this attempt",
+                    i,
+                )
 
         if c.op in ("unpin", "remove") and not has_requirements_txt:
             _v(EnvRule.ENV_UNSUPPORTED, f"'{c.op}' needs a requirements.txt to edit", i)

@@ -3217,3 +3217,57 @@ prompt rule held.
 3. TTPT needs Dassl's real source (GitHub-only) — likewise needs Tavily.
 
 ---
+
+## 2026-09-24 — Step 4: Tavily as dependency resolver (key now configured)
+
+**Key setup:** the human's key was on `.env` line 4 as `Tavily_API_Key= tvly-…`, while
+line 52 still read `TAVILY_API_KEY=`. pydantic-settings names are case-insensitive, so
+the later empty line overrode it and RERUN saw no key. The value was moved onto the
+`TAVILY_API_KEY=` line (the value itself was never printed or committed; `.env` is
+gitignored). Verified: an authenticated search succeeds and a deliberately invalid key
+is refused (`InvalidAPIKeyError`). Also noted: tavily-python has a *keyless* mode — an
+empty key still returns (irrelevant) results — so "a search worked" doesn't prove a key
+works; RERUN only builds a Tavily client when a key is configured.
+
+**`app/services/dep_resolver.py`:** runs for `DEP_NOT_ON_PYPI`, `DEP_YANKED`,
+`DEP_UNPINNED_CONFLICT` and `DEP_MISSING`. The spec named the first three; `DEP_MISSING`
+is included because gpt-2's era problem (TF 1.x) arrives as a missing module. It
+extracts the package from the (now full-line) evidence, reads the repo's own commit
+date (`git log -1 --format=%cs`) and:
+1. **Tavily** (cited): `"<pkg> python package source code github repository pip install"`
+   for not-on-PyPI, else `"<pkg> python package version compatible <year> release
+   history"`. **Found live:** for dassl the general query cited a Hugging Face mirror,
+   blogs and videos but never the GitHub repo, so when no matching repo is cited for a
+   not-on-PyPI package a second query runs restricted to `include_domains=["github.com"]`.
+   Both queries and all results are recorded.
+2. **GitHub API verification:** a GitHub repo named in the cited results whose name
+   matches the package is offered only after RERUN (a) confirms GitHub reports its
+   language as Python (**found live**: "dassl" also matched `SciML/DASSL.jl`, a Julia
+   package) and (b) resolves a real commit on or before the repo's date
+   (`/commits?until=`; if the source repo has none that early, its latest commit, and
+   the certificate says so).
+3. **PyPI JSON:** real release history (upload dates, yanked releases excluded, CPython
+   wheel tags); up to 5 stable releases on/before the repo date plus the latest
+   *stable* release (**found live**: the newest tensorflow upload was `2.22.0rc0`).
+
+**Env gate:** new `ENV_GIT_UNVERIFIED` — a `pip_git` change must match, exactly, a
+(url, commit) pair the resolver verified in that attempt; anything else (right repo +
+invented sha, right sha + other repo, nothing verified) is rejected. The repairer prompt
+lists the verified pairs as the only usable ones, plus the PyPI history and Tavily
+snippets, all inside untrusted-content blocks. Every attempt records `resolved_sources`
+(git repo + commit + commit URL + the Tavily result it was cited by; PyPI version pages)
+next to `tavily_sources`; both are in `diffs`, so the passport covers them, and the S3
+attempt card now lists "Verified sources (RERUN)" (links only for http(s)).
+
+**Live checks** (real Tavily + GitHub + PyPI): dassl (date 2024-09-01) → verified
+`https://github.com/KaiyangZhou/Dassl.pytorch@c61a1b570ac6333bd50fb5ae06aea59002fb20bb`
+(committed 2022-10-06), PyPI "not on PyPI"; tensorflow (date 2019-08-01) → PyPI 1.13.2,
+1.12.3, 1.14.0, 1.12.2, 1.13.1 (cp37 wheels on 1.13.x/1.14.0). Tests: 19 resolver tests
+(fake Tavily, fake HTTP; package extraction, verification, github.com retry + its
+negative control, non-Python repo excluded, era/yanked/pre-release handling, outage
+degradation, and the TTPT scenario end to end → RUNS_AFTER_REPAIR with the certificate
+listing citation + verified commit, and an invented sha → `ENV_GIT_UNVERIFIED`), 5 new
+env-gate tests, 1 frontend test. A conftest guard blocks the resolver's real HTTP in the
+unit suite. Backend 450 passed, 8 skipped; frontend 6 passed.
+
+---

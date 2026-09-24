@@ -1,4 +1,4 @@
-import type { RepairAttemptDiff, TavilySource } from "../api";
+import type { RepairAttemptDiff, ResolvedSource, TavilySource } from "../api";
 import { DiffView } from "./DiffView";
 import { EnvDeltaView } from "./EnvDeltaView";
 
@@ -47,6 +47,35 @@ function TavilySources({ sources }: { sources?: TavilySource[] }) {
   );
 }
 
+function ResolvedSources({ sources }: { sources?: ResolvedSource[] }) {
+  if (!sources || sources.length === 0) return null;
+  return (
+    <div className="mt-3 border-t border-border/60 pt-2">
+      <p className="font-mono text-[11px] uppercase tracking-wide text-text-secondary">Verified sources (RERUN)</p>
+      <ul className="mt-1 space-y-1">
+        {sources.map((s, i) => {
+          const href = s.kind === "git" ? s.commit_url ?? s.url : s.url;
+          const label =
+            s.kind === "git"
+              ? `git ${s.url} @ ${s.commit?.slice(0, 12)} (committed ${s.committed_at})${s.note ? ` ${s.note}` : ""}`
+              : `PyPI ${s.package} ${s.version} (uploaded ${s.uploaded}; ${s.cpython_tags?.join(",") || "sdist/any"})`;
+          return (
+            <li key={i} className="font-mono text-[11px]">
+              {isSafeHttpUrl(href) ? (
+                <a href={href} target="_blank" rel="noreferrer" className="text-signal underline decoration-signal-dim underline-offset-2 hover:opacity-80">
+                  {label}
+                </a>
+              ) : (
+                <span className="text-text-secondary">{label}</span>
+              )}
+            </li>
+          );
+        })}
+      </ul>
+    </div>
+  );
+}
+
 /**
  * The tamper-gate REJECT state is the project's differentiator (see
  * RERUN_BUILD_DIRECTIVE.md §8 S2) — it must be visually loud, distinct,
@@ -64,6 +93,7 @@ export function RepairAttemptCard({ attempt }: { attempt: RepairAttemptDiff }) {
           The repair model did not propose a fix it was confident about for this attempt.
         </p>
         <TavilySources sources={attempt.tavily_sources} />
+      <ResolvedSources sources={attempt.resolved_sources} />
       </div>
     );
   }
@@ -100,6 +130,7 @@ export function RepairAttemptCard({ attempt }: { attempt: RepairAttemptDiff }) {
           </details>
         )}
         <TavilySources sources={attempt.tavily_sources} />
+        <ResolvedSources sources={attempt.resolved_sources} />
       </div>
     );
   }
@@ -130,6 +161,7 @@ export function RepairAttemptCard({ attempt }: { attempt: RepairAttemptDiff }) {
         </details>
       )}
       <TavilySources sources={attempt.tavily_sources} />
+      <ResolvedSources sources={attempt.resolved_sources} />
     </div>
   );
 }

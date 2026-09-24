@@ -212,3 +212,38 @@ describe("Certificate — Environment Delta vs Code Diff", () => {
     expect(screen.queryByRole("button", { name: /Export patch/i })).toBeNull();
   });
 });
+
+describe("Certificate — cited and verified dependency sources", () => {
+  it("lists the Tavily citations and the RERUN-verified git source for the attempt", async () => {
+    const sha = "c4d3e9f1a2b3c4d5e6f708192a3b4c5d6e7f8091";
+    const attempt: RepairAttemptDiff = {
+      attempt_number: 1,
+      diff_text: "",
+      gate_decision: "PASS",
+      gate_violations: [],
+      exit_code: 0,
+      tavily_sources: [{ title: "Dassl.pytorch", url: "https://github.com/KaiyangZhou/Dassl.pytorch", content: "" }],
+      resolved_sources: [
+        {
+          kind: "git",
+          url: "https://github.com/KaiyangZhou/Dassl.pytorch",
+          commit: sha,
+          committed_at: "2023-07-20",
+          commit_url: `https://github.com/KaiyangZhou/Dassl.pytorch/commit/${sha}`,
+        },
+        { kind: "pypi", url: "javascript:alert(1)", package: "x", version: "1.0", uploaded: "2019-01-01", cpython_tags: [] },
+      ],
+    };
+    getRun.mockResolvedValue(makeRun({ verdict: "RUNS_AFTER_REPAIR", taxonomy_code: null }));
+    getCertificate.mockResolvedValue(makeCert([attempt], { verdict: "RUNS_AFTER_REPAIR" }));
+    renderCertificate();
+
+    expect(await screen.findByText(/Cited sources \(Tavily\)/i)).toBeTruthy();
+    const verified = screen.getByText(/Verified sources \(RERUN\)/i).parentElement!;
+    const link = verified.querySelector(`a[href="https://github.com/KaiyangZhou/Dassl.pytorch/commit/${sha}"]`);
+    expect(link).toBeTruthy();
+    // A non-http(s) URL is rendered as text, never as a link.
+    expect(verified.querySelector('a[href^="javascript:"]')).toBeNull();
+    expect(verified.textContent).toContain("PyPI x 1.0");
+  });
+});

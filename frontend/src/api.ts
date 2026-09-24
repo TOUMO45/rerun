@@ -74,6 +74,22 @@ export interface RepairAttemptDiff {
   tavily_sources?: TavilySource[];
   /** Structured build-plan edits (environment layer); diff_text is the code layer. */
   env_delta?: EnvChange[];
+  /** Sources RERUN itself verified for this attempt (git repo pinned to a real commit, PyPI history). */
+  resolved_sources?: ResolvedSource[];
+}
+
+export interface ResolvedSource {
+  kind: "git" | "pypi";
+  url: string;
+  commit?: string;
+  committed_at?: string;
+  commit_url?: string;
+  cited_by?: string;
+  note?: string;
+  package?: string;
+  version?: string;
+  uploaded?: string;
+  cpython_tags?: string[];
 }
 
 export interface CertificateOut {
