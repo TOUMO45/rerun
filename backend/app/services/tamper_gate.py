@@ -57,6 +57,12 @@ DEFAULT_PROTECTED_PATTERNS: frozenset[str] = frozenset(
         "app/services/tamper_gate.py",
         "app/batch/corpus.yaml",
         "corpus.yaml",
+        # corpus-v1 (pre-registered draw): every file is protected.
+        "app/batch/corpus_v1/prereg.json",
+        "app/batch/corpus_v1/population.csv",
+        "app/batch/corpus_v1/screening_log.jsonl",
+        "app/batch/corpus_v1/corpus.yaml",
+        "app/batch/corpus_v1/corpus_hash.txt",
         "batch_results.json",
     }
 )

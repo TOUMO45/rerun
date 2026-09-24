@@ -3603,3 +3603,22 @@ trains on ImageNet and other datasets that aren't in the repo, so `DATA_MISSING`
 likely next wall.
 
 ---
+
+## 2026-09-24 — corpus-v1 PRE-REGISTRATION (committed before the draw)
+
+Committed in this commit, before `scripts/draw_corpus.py draw` has run: the rule
+(METHODOLOGY.md "corpus-v1"), `backend/app/batch/corpus_v1/prereg.json` (dataset ids and
+pinned revisions, frame filters, eligibility E1–E5 with the exact regexes and flags, seed
+**20260924**, target **20**, draw/stop/duplicate rules, rate-limit handling), the draw
+script, and the frame `population.csv` (**5,485 papers**, sha256
+`ec825aacdebfa53adfc0a484e7959bf2648663e0eed7e72bbe5819004b6bbcbb`) built by DuckDB over
+`hf://` at the pinned revisions with projected columns (two projected extracts; the
+full parquet files were not downloaded). The draw refuses to run if the population
+file's sha256 or the script's E5 regexes/flags differ from the registration. Frame counts
+per venue-year and the archive's coverage bias (ICML 2019/2021/2022 and NeurIPS 2022
+nearly absent) are recorded in prereg.json. Hugging Face rate-limited the unauthenticated
+reads (HTTP 429) twice; the builder retries with backoff. `gh` isn't installed, so GitHub
+checks use the unauthenticated API (60/h), one call per candidate. All corpus-v1 files are
+tamper-gate protected paths. `duckdb>=1.1` added as the `corpus` optional dependency.
+
+---

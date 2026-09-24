@@ -1,0 +1,86 @@
+{
+  "corpus_version": "corpus-v1",
+  "registered": "2026-09-24",
+  "purpose": "Pre-registered sampling rule for RERUN's Batch Lab. Everything the draw depends on is fixed here and committed BEFORE the draw runs.",
+  "datasets": {
+    "source": "Papers with Code archive on Hugging Face (last public snapshot of paperswithcode-data)",
+    "why": "Papers with Code was the standard paper->official-code index and records venue (`proceeding`) and an `is_official` flag per link; paperswithcode.com itself was shut down in 2025, so its public archive is used at a pinned revision.",
+    "papers": {
+      "id": "pwc-archive/papers-with-abstracts",
+      "revision": "459480aeac58509a93f5af2acd4adf20236ce8d9",
+      "columns": [
+        "paper_url",
+        "title",
+        "proceeding"
+      ]
+    },
+    "links": {
+      "id": "pwc-archive/links-between-paper-and-code",
+      "revision": "56cc5c1938678c33dedebf5f74fc4e62e2c35381",
+      "columns": [
+        "paper_url",
+        "repo_url",
+        "is_official"
+      ]
+    },
+    "access": "DuckDB read_parquet over hf:// at the pinned revisions with column projection and pushed-down filters; the full parquet files are not downloaded."
+  },
+  "frame": {
+    "proceeding_regex": "^(NeurIPS|NIPS|ICML|ICLR) (2018|2019|2020|2021|2022)( ([1-9]|1[0-2]))?$",
+    "proceeding_note": "Main-track labels only: venue + one year (+ optional month). Excludes workshop, track, tiny-paper, blog and malformed labels (e.g. 'NeurIPS 2022 2022 12').",
+    "repo_url_regex": "^https://github\\.com/[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+/?$",
+    "link_filter": "is_official = true",
+    "unit": "paper (paper_url); a paper with several official GitHub repos uses the lexicographically smallest repo_url",
+    "order": "population.csv sorted by paper_url",
+    "known_coverage_bias": "The archive's main-track labels are very uneven: ICML 2019/2021/2022 and NeurIPS 2022 are nearly absent (single digits to ~16 papers), so the frame is effectively ICLR 2018-2022, NeurIPS 2018-2021 and ICML 2018/2020. Reported, not corrected."
+  },
+  "eligibility": {
+    "E1_venue_year": "in the frame (NeurIPS/ICML/ICLR 2018-2022 main track)",
+    "E2_official_code": "is_official link to a github.com repository (in the frame)",
+    "E3_reachable": "`git ls-remote --exit-code <repo>.git HEAD` succeeds; that HEAD sha is pinned as commit_sha at draw time (GIT_TERMINAL_PROMPT=0: a repo needing credentials fails immediately instead of prompting)",
+    "E4_python": "GitHub API `language` (linguist primary language) == 'Python'",
+    "E5_documented_command": "the root README (first of README.md, README.rst, README, readme.md, Readme.md, README.MD, README.txt that exists at the pinned commit) contains, in reading order, a line matching the command regex (after stripping prompt markers $ > % # ! and backticks, joining backslash continuations) whose script (`python|python3|bash|sh <path>.py|.sh`) or module (`python -m <mod>` -> <mod>.py or <mod>/__main__.py) exists at the pinned commit, and that contains no placeholder. The FIRST such line is recorded verbatim as the corpus command (ground truth).",
+    "command_regex": "^(?:[A-Z_][A-Z0-9_]*=\\S+\\s+)*(python3?|bash|sh)\\s+(?:(-m)\\s+([A-Za-z_][\\w.]*)|(\\S+\\.(?:py|sh)))(?=\\s|$)",
+    "placeholder_regex": "<[^>]+>|\\{[^}]*\\}|/path/to|path/to/|YOUR_|your_|xxx|\\.\\.\\.",
+    "not_required": "CPU feasibility, runtime, data availability \u2014 those are measured by RERUN, not screened.",
+    "limitation": "Only the root README is searched (not docs/), to keep the check deterministic and within GitHub's unauthenticated API budget (one API call per candidate).",
+    "placeholder_regex_flags": "IGNORECASE"
+  },
+  "seed": 20260924,
+  "target_eligible": 20,
+  "draw_procedure": "random.Random(seed).shuffle(list(range(len(population)))) in CPython; screen in that order; a repo already drawn for another paper is skipped as a duplicate; stop at target_eligible eligible entries or when the population is exhausted (then report the achieved N). No manual exclusions or replacements; every draw is logged with its pass/fail reason in screening_log.jsonl.",
+  "rate_limits": "GitHub API 403/429 with remaining=0: wait until the reset time and retry the same candidate (does not change the order). HF 429 during population build: retry with backoff.",
+  "outputs": [
+    "population.csv",
+    "screening_log.jsonl",
+    "corpus.yaml",
+    "corpus_hash.txt"
+  ],
+  "corpus_hash_definition": "sha256 of canonical JSON {prereg_sha256, entries sorted by name with name, repo_url, commit_sha, command}",
+  "script": "scripts/draw_corpus.py",
+  "population_sha256": "ec825aacdebfa53adfc0a484e7959bf2648663e0eed7e72bbe5819004b6bbcbb",
+  "population_size": 5485,
+  "population_by_venue_year": {
+    "ICLR": {
+      "2018": 195,
+      "2019": 264,
+      "2020": 368,
+      "2021": 401,
+      "2022": 518
+    },
+    "ICML": {
+      "2018": 163,
+      "2019": 1,
+      "2020": 379,
+      "2021": 1,
+      "2022": 3
+    },
+    "NeurIPS": {
+      "2018": 294,
+      "2019": 819,
+      "2020": 873,
+      "2021": 1199,
+      "2022": 7
+    }
+  }
+}

@@ -102,3 +102,54 @@ the headline Reproducibility Recovery Rate (§6.2).
   were still 20. `backend/app/batch/corpus.py::load_corpus()` and its test suite
   (`test_corpus_loads_with_exactly_twenty_entries`) will need updating in lockstep with
   any such change — the test failing on its own is the intended signal.
+
+
+## corpus-v1 — pre-registered selection rule (registered 2026-09-24, before the draw)
+
+The original 20-repo corpus (`backend/app/batch/corpus.yaml`, now "corpus-v0") was a
+hand-picked diversity set, not a sample. corpus-v1 replaces selection-by-judgment with
+a rule fixed **before** any repository was looked at. The full machine-readable version is
+[`backend/app/batch/corpus_v1/prereg.json`](backend/app/batch/corpus_v1/prereg.json),
+executed by [`scripts/draw_corpus.py`](scripts/draw_corpus.py); both were committed before
+`draw` ran, and the draw refuses to run if the population file or its regexes differ from
+the registration.
+
+**Source of paper→code links.** The Papers with Code archive on Hugging Face
+(`pwc-archive/papers-with-abstracts` @ `459480aeac58509a93f5af2acd4adf20236ce8d9`,
+`pwc-archive/links-between-paper-and-code` @ `56cc5c1938678c33dedebf5f74fc4e62e2c35381`).
+Why: it was the standard index of papers to their code, it records each paper's venue
+(`proceeding`) and whether a code link is the authors' own (`is_official`), and — with
+paperswithcode.com shut down — its last public snapshot at a pinned revision is the most
+reproducible frame available. Accessed with DuckDB over `hf://` parquet using column
+projection and pushed-down filters; the full files are not downloaded.
+
+**Frame (population).** Papers whose `proceeding` is a main-track NeurIPS/NIPS, ICML or
+ICLR label for 2018–2022 (`^(NeurIPS|NIPS|ICML|ICLR) (2018|…|2022)( <month>)?$`) with an
+`is_official` link to a `github.com/<owner>/<repo>` URL; one row per paper (smallest
+official repo URL if several), sorted by `paper_url`. **5,485 papers** (population.csv,
+sha256 `ec825aac…`). **Known coverage bias, stated rather than corrected:** the archive's
+main-track labels are very uneven — ICML 2019 (1), ICML 2021 (1), ICML 2022 (3) and NeurIPS
+2022 (7) are nearly absent — so the frame is effectively ICLR 2018–22, NeurIPS 2018–21 and
+ICML 2018/2020.
+
+**Eligibility (screened in draw order, automatically):** E3 the repository is reachable
+(`git ls-remote HEAD`; that HEAD is pinned as the commit); E4 GitHub's primary language is
+Python; E5 the root README documents a run command — the first line (in reading order)
+of the form `python|python3|bash|sh <script>.py|.sh` or `python -m <module>`, optionally
+prefixed by `VAR=value`, whose script/module exists at the pinned commit and which contains
+no placeholder (`<…>`, `{…}`, `/path/to`, `YOUR_`, `xxx`, `...`). That line is recorded
+verbatim as the corpus command (ground truth for "runs"). CPU feasibility, runtime and
+data availability are **not** screened — they are what RERUN measures. Limitation: only the
+root README is searched (not docs/), to keep the check deterministic and within GitHub's
+unauthenticated API budget.
+
+**Draw.** Seed **20260924**; `random.Random(seed).shuffle` over population indices;
+screen in that order; skip a repository already drawn for another paper; stop at **20**
+eligible (or report the achieved N if the frame is exhausted). No manual exclusions or
+replacements. Every draw is logged with its pass/fail reason in `screening_log.jsonl`.
+
+**Freezing.** `corpus_hash` = sha256 over canonical JSON of {prereg sha256, entries (name,
+repo_url, commit_sha, command) sorted by name}; written into corpus.yaml and
+corpus_hash.txt, tagged `corpus-v1`, and carried into every run's passport (bundle v3
+`corpus_hash`). Any change is a new corpus version; results from different versions are
+never mixed. All corpus-v1 files are protected paths in the tamper gate.
