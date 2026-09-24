@@ -1,0 +1,443 @@
+{
+  "run_kind": "live end-to-end run",
+  "started_at": "2026-09-24T15:51:10.433667+00:00",
+  "corpus_entry": {
+    "name": "gpt-2",
+    "repo_url": "https://github.com/openai/gpt-2",
+    "commit_sha": "9b63575ef42771a015060c964af2c3da4cf7c8ab",
+    "command": "export PYTHONIOENCODING=UTF-8 && python3 download_model.py 124M && python3 src/generate_unconditional_samples.py --nsamples 1",
+    "command_source": "DEVELOPERS.md (download + unconditional samples); --nsamples from src/generate_unconditional_samples.py docstring"
+  },
+  "config": {
+    "models": {
+      "recon": "nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B",
+      "planner": "nvidia/nemotron-3-super-120b-a12b",
+      "repairer": "nvidia/nemotron-3-super-120b-a12b",
+      "adjudicator": "nvidia/Nemotron-3-Ultra-550b-a55b"
+    },
+    "sandbox_backend": "token_factory",
+    "sandbox_image_default": "python:3.11-slim",
+    "sandbox_wall_clock_seconds": 600.0,
+    "max_attempts": 3,
+    "tavily_configured": true,
+    "cost_cap_usd": 2.0
+  },
+  "intake": {
+    "duration_s": 1.7,
+    "resolved_sha": "9b63575ef42771a015060c964af2c3da4cf7c8ab",
+    "dependency_files": [
+      "requirements.txt"
+    ],
+    "declared_dependencies": [
+      "fire",
+      "regex",
+      "requests",
+      "tqdm"
+    ],
+    "entrypoint_candidates": [
+      "src/generate_unconditional_samples.py",
+      "src/interactive_conditional_samples.py"
+    ],
+    "notebook_paths": []
+  },
+  "pipeline_duration_s": 205.42,
+  "result": {
+    "verdict": "RUNS_AFTER_REPAIR",
+    "taxonomy_code": "SYS_LIB_MISSING",
+    "indeterminate_reason": "",
+    "reason_code": null,
+    "error_traceback": "",
+    "attempts": [
+      {
+        "attempt_number": 0,
+        "diff_text": "",
+        "gate_decision": "PASS",
+        "gate_violations": [],
+        "exit_code": 0,
+        "stdout_tail": "ark Zuckerberg wants to cash poor Oxford authorities out of his infrastructure to create a workforce of 6,500 over 400 Brooklynites who make up the country's Americans',\" the paper quoted Janet Bergin, the company's deputy general counsel, as saying.\n\nThe article, posted by the Times at 5:30 p.m. ET right beside the massive loss Carney's article foresaw for the US WPP, implies some sort of connection to the stock market, with Mark Zuckerberg being aware that he has succumbed to the hedge fund strategies of DC hedge fund giants:\n\nSpeaking at the GfK Leadership Forum in New York, Chief Economist Dave Grinspoon said investment in the developing world has fallen after its inception:\n\n\u2026 we were all concerned that we would be saddled with more long term debt if we had a weakness in the economies to serve that needs that shifted to agriculture.... Americans are weaker and our investments have strayed from our warped and egocentric national bargain.\" [emphasis added]\n\nWhich can only mean managers have no real plan. That sounds like a tit for tatters to the intellectuals who get it. It's not to say that causes can't be put aside:\n\nGiven last week's global weather events as well as recent record bass stinging from overcast chemtrails, our tech media have provided the most monstrous smoldering evidence yet of the narrow multitude of reasons why American politics matter or should matter. The failure of Hillary Clinton's campaign is only the more egregious sign of her skewed influence: the substitution of former U.S. Representative Michael Grimm for longtime FBI Director Robert Mueller and other \"moderates\" for a \"drain the swamp\" candidate is. That leaves 58 former Special Situtenants appointed to run for the top job, leaving a perhaps even more egregious number of Boise local officials, including a venerable professor of economics at the University of Idaho, and consultant to three current provincial governments \u2013 in Vernon Mills.\n\nBusiness Insider goes on to explore the $10.\n",
+        "stderr_tail": " vocab.bpe:  47%|\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u258b                     | 213k/456k [00:00<00:00, 254kit/s]\rFetching vocab.bpe:  57%|\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2589                 | 262k/456k [00:00<00:00, 281kit/s]\rFetching vocab.bpe:  83%|\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588       | 377k/456k [00:00<00:00, 354kit/s]\rFetching vocab.bpe: 457kit [00:00, 501kit/s]                                                        \n2026-09-24 15:53:53.154127: I tensorflow/core/platform/cpu_feature_guard.cc:141] Your CPU supports instructions that this TensorFlow binary was not compiled to use: AVX2 AVX512F FMA\n2026-09-24 15:53:53.170733: I tensorflow/core/platform/profile_utils/cpu_utils.cc:94] CPU Frequency: 2397245000 Hz\n2026-09-24 15:53:53.173482: I tensorflow/compiler/xla/service/service.cc:150] XLA service 0x555555992ff0 executing computations on platform Host. Devices:\n2026-09-24 15:53:53.173587: I tensorflow/compiler/xla/service/service.cc:158]   StreamExecutor device (0): <undefined>, <undefined>\nWARNING:tensorflow:From /usr/local/lib/python3.7/site-packages/tensorflow/python/framework/op_def_library.py:263: colocate_with (from tensorflow.python.framework.ops) is deprecated and will be removed in a future version.\nInstructions for updating:\nColocations handled automatically by placer.\nWARNING:tensorflow:From /src/sample.py:64: to_float (from tensorflow.python.ops.math_ops) is deprecated and will be removed in a future version.\nInstructions for updating:\nUse tf.cast instead.\nWARNING:tensorflow:From /src/sample.py:67: multinomial (from tensorflow.python.ops.random_ops) is deprecated and will be removed in a future version.\nInstructions for updating:\nUse tf.random.categorical instead.\nWARNING:tensorflow:From /usr/local/lib/python3.7/site-packages/tensorflow/python/training/saver.py:1266: checkpoint_exists (from tensorflow.python.training.checkpoint_management) is deprecated and will be removed in a future version.\nInstructions for updating:\nUse standard file APIs to check for files with this prefix.\n",
+        "tavily_sources": [],
+        "env_delta": [],
+        "resolved_sources": [],
+        "origin": "time_machine",
+        "time_machine": {
+          "era": {
+            "date": "2019-03-04",
+            "source": "dependency-files",
+            "detail": {
+              "requirements.txt": "2019-03-04"
+            }
+          },
+          "python": {
+            "version": "3.7",
+            "reason": "newest CPython first released \u2265180 days before the era date 2019-03-04 (https://devguide.python.org/versions/ (first release dates, retrieved 2026-09-24))",
+            "source": "https://devguide.python.org/versions/ (first release dates, retrieved 2026-09-24)"
+          },
+          "undeclared_imports": [
+            "numpy",
+            "tensorflow"
+          ],
+          "apt_added": [
+            "build-essential"
+          ],
+          "apt_reason": "error: command 'gcc' failed: No such file or directory",
+          "lock": {
+            "ok": true,
+            "lock": [
+              "absl-py==0.7.0",
+              "astor==0.7.1",
+              "certifi==2018.11.29",
+              "chardet==3.0.4",
+              "fire==0.1.3",
+              "gast==0.2.2",
+              "grpcio==1.19.0",
+              "h5py==2.9.0",
+              "idna==2.8",
+              "keras-applications==1.0.7",
+              "keras-preprocessing==1.0.9",
+              "markdown==3.0.1",
+              "mock==2.0.0",
+              "numpy==1.16.2",
+              "pbr==5.1.3",
+              "protobuf==3.7.0",
+              "regex==2017.4.5",
+              "requests==2.21.0",
+              "setuptools==40.8.0",
+              "six==1.12.0",
+              "tensorboard==1.13.0",
+              "tensorflow==1.13.1",
+              "tensorflow-estimator==1.13.0",
+              "termcolor==1.1.0",
+              "tqdm==4.31.1",
+              "urllib3==1.24.1",
+              "werkzeug==0.14.1",
+              "wheel==0.33.1"
+            ],
+            "inputs": [
+              "fire>=0.1.3",
+              "regex==2017.4.5",
+              "requests==2.21.0",
+              "tqdm==4.31.1",
+              "numpy",
+              "tensorflow"
+            ],
+            "not_on_index": [],
+            "command": "pip compile - --no-header --no-annotate --quiet --exclude-newer 2019-03-05T00:00:00Z --python-version 3.7 --python-platform x86_64-unknown-linux-gnu --python C:\\Users\\E16\\AppData\\Roaming\\uv\\python\\cpython-3.8.20-windows-x86_64-none\\python.exe",
+            "error": ""
+          }
+        }
+      }
+    ],
+    "certificate_prose": "The repository executed to completion with exit code 0 after dependency resolution pinned to 2019-03-04 using Python 3.7 and 28 locked packages. The run log shows successful sandbox execution within the 600-second wall-clock limit. Verifies that the artifact executes. Does not verify the paper's numerical results."
+  },
+  "certificate": {
+    "repo_url": "https://github.com/openai/gpt-2",
+    "commit_sha": "9b63575ef42771a015060c964af2c3da4cf7c8ab",
+    "build_plan": {
+      "base_image": "python:3.7-slim",
+      "apt_install": [
+        "build-essential"
+      ],
+      "install_commands": [
+        "printf '%s\\n' absl-py==0.7.0 astor==0.7.1 certifi==2018.11.29 chardet==3.0.4 fire==0.1.3 gast==0.2.2 grpcio==1.19.0 h5py==2.9.0 idna==2.8 keras-applications==1.0.7 keras-preprocessing==1.0.9 markdown==3.0.1 mock==2.0.0 numpy==1.16.2 pbr==5.1.3 protobuf==3.7.0 regex==2017.4.5 requests==2.21.0 setuptools==40.8.0 six==1.12.0 tensorboard==1.13.0 tensorflow==1.13.1 tensorflow-estimator==1.13.0 termcolor==1.1.0 tqdm==4.31.1 urllib3==1.24.1 werkzeug==0.14.1 wheel==0.33.1 > .rerun-requirements.txt && pip install -r .rerun-requirements.txt"
+      ],
+      "execute_command": "export PYTHONIOENCODING=UTF-8 && python3 download_model.py 124M && python3 src/generate_unconditional_samples.py --nsamples 1",
+      "notes": [
+        "execute command is the repository's documented command (corpus ground truth)",
+        "time machine: python 3.7, 28 locked package(s)"
+      ]
+    },
+    "full_log": "[intake] cloned https://github.com/openai/gpt-2@9b63575ef42771a015060c964af2c3da4cf7c8ab\n[recon] calling Nemotron Nano\n[recon] entrypoint=src/generate_unconditional_samples.py confidence=0.80\n[planner] build plan: {'base_image': 'python:3.11-slim', 'apt_install': [], 'install_commands': ['pip install -r requirements.txt'], 'execute_command': 'export PYTHONIOENCODING=UTF-8 && python3 download_model.py 124M && python3 src/generate_unconditional_samples.py --nsamples 1', 'notes': [\"execute command is the repository's documented command (corpus ground truth)\"]}\n[sandbox] starting build+execute (wall_clock_seconds=600)\n[cost_guard] recorded $0.0224 sandbox spend, $1.9771 remaining today\n[sandbox] id=5fea9146-82f6-4f13-94de-16ab5ebc7201 exit_code=1\n[baseline] as-is run: FAILS (exit code 1)\n[classifier] SYS_LIB_MISSING: error: command 'gcc' failed: No such file or directory\n[era] 2019-03-04 from dependency-files {'requirements.txt': '2019-03-04'}\n[time-machine] era 2019-03-04 (dependency-files) -> python 3.7; locked 28 package(s) with uv --exclude-newer; not on the index: none\n[sandbox] starting build+execute (wall_clock_seconds=600)\n[cost_guard] recorded $1.0334 sandbox spend, $0.9437 remaining today\n[time-machine] re-execution id=5ec724d7-084c-4e52-b261-2c497c5a4d04 exit_code=0",
+    "diffs": [
+      {
+        "attempt_number": 0,
+        "diff_text": "",
+        "gate_decision": "PASS",
+        "gate_violations": [],
+        "exit_code": 0,
+        "stdout_tail": "ark Zuckerberg wants to cash poor Oxford authorities out of his infrastructure to create a workforce of 6,500 over 400 Brooklynites who make up the country's Americans',\" the paper quoted Janet Bergin, the company's deputy general counsel, as saying.\n\nThe article, posted by the Times at 5:30 p.m. ET right beside the massive loss Carney's article foresaw for the US WPP, implies some sort of connection to the stock market, with Mark Zuckerberg being aware that he has succumbed to the hedge fund strategies of DC hedge fund giants:\n\nSpeaking at the GfK Leadership Forum in New York, Chief Economist Dave Grinspoon said investment in the developing world has fallen after its inception:\n\n\u2026 we were all concerned that we would be saddled with more long term debt if we had a weakness in the economies to serve that needs that shifted to agriculture.... Americans are weaker and our investments have strayed from our warped and egocentric national bargain.\" [emphasis added]\n\nWhich can only mean managers have no real plan. That sounds like a tit for tatters to the intellectuals who get it. It's not to say that causes can't be put aside:\n\nGiven last week's global weather events as well as recent record bass stinging from overcast chemtrails, our tech media have provided the most monstrous smoldering evidence yet of the narrow multitude of reasons why American politics matter or should matter. The failure of Hillary Clinton's campaign is only the more egregious sign of her skewed influence: the substitution of former U.S. Representative Michael Grimm for longtime FBI Director Robert Mueller and other \"moderates\" for a \"drain the swamp\" candidate is. That leaves 58 former Special Situtenants appointed to run for the top job, leaving a perhaps even more egregious number of Boise local officials, including a venerable professor of economics at the University of Idaho, and consultant to three current provincial governments \u2013 in Vernon Mills.\n\nBusiness Insider goes on to explore the $10.\n",
+        "stderr_tail": " vocab.bpe:  47%|\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u258b                     | 213k/456k [00:00<00:00, 254kit/s]\rFetching vocab.bpe:  57%|\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2589                 | 262k/456k [00:00<00:00, 281kit/s]\rFetching vocab.bpe:  83%|\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588       | 377k/456k [00:00<00:00, 354kit/s]\rFetching vocab.bpe: 457kit [00:00, 501kit/s]                                                        \n2026-09-24 15:53:53.154127: I tensorflow/core/platform/cpu_feature_guard.cc:141] Your CPU supports instructions that this TensorFlow binary was not compiled to use: AVX2 AVX512F FMA\n2026-09-24 15:53:53.170733: I tensorflow/core/platform/profile_utils/cpu_utils.cc:94] CPU Frequency: 2397245000 Hz\n2026-09-24 15:53:53.173482: I tensorflow/compiler/xla/service/service.cc:150] XLA service 0x555555992ff0 executing computations on platform Host. Devices:\n2026-09-24 15:53:53.173587: I tensorflow/compiler/xla/service/service.cc:158]   StreamExecutor device (0): <undefined>, <undefined>\nWARNING:tensorflow:From /usr/local/lib/python3.7/site-packages/tensorflow/python/framework/op_def_library.py:263: colocate_with (from tensorflow.python.framework.ops) is deprecated and will be removed in a future version.\nInstructions for updating:\nColocations handled automatically by placer.\nWARNING:tensorflow:From /src/sample.py:64: to_float (from tensorflow.python.ops.math_ops) is deprecated and will be removed in a future version.\nInstructions for updating:\nUse tf.cast instead.\nWARNING:tensorflow:From /src/sample.py:67: multinomial (from tensorflow.python.ops.random_ops) is deprecated and will be removed in a future version.\nInstructions for updating:\nUse tf.random.categorical instead.\nWARNING:tensorflow:From /usr/local/lib/python3.7/site-packages/tensorflow/python/training/saver.py:1266: checkpoint_exists (from tensorflow.python.training.checkpoint_management) is deprecated and will be removed in a future version.\nInstructions for updating:\nUse standard file APIs to check for files with this prefix.\n",
+        "tavily_sources": [],
+        "env_delta": [],
+        "resolved_sources": [],
+        "origin": "time_machine",
+        "time_machine": {
+          "era": {
+            "date": "2019-03-04",
+            "source": "dependency-files",
+            "detail": {
+              "requirements.txt": "2019-03-04"
+            }
+          },
+          "python": {
+            "version": "3.7",
+            "reason": "newest CPython first released \u2265180 days before the era date 2019-03-04 (https://devguide.python.org/versions/ (first release dates, retrieved 2026-09-24))",
+            "source": "https://devguide.python.org/versions/ (first release dates, retrieved 2026-09-24)"
+          },
+          "undeclared_imports": [
+            "numpy",
+            "tensorflow"
+          ],
+          "apt_added": [
+            "build-essential"
+          ],
+          "apt_reason": "error: command 'gcc' failed: No such file or directory",
+          "lock": {
+            "ok": true,
+            "lock": [
+              "absl-py==0.7.0",
+              "astor==0.7.1",
+              "certifi==2018.11.29",
+              "chardet==3.0.4",
+              "fire==0.1.3",
+              "gast==0.2.2",
+              "grpcio==1.19.0",
+              "h5py==2.9.0",
+              "idna==2.8",
+              "keras-applications==1.0.7",
+              "keras-preprocessing==1.0.9",
+              "markdown==3.0.1",
+              "mock==2.0.0",
+              "numpy==1.16.2",
+              "pbr==5.1.3",
+              "protobuf==3.7.0",
+              "regex==2017.4.5",
+              "requests==2.21.0",
+              "setuptools==40.8.0",
+              "six==1.12.0",
+              "tensorboard==1.13.0",
+              "tensorflow==1.13.1",
+              "tensorflow-estimator==1.13.0",
+              "termcolor==1.1.0",
+              "tqdm==4.31.1",
+              "urllib3==1.24.1",
+              "werkzeug==0.14.1",
+              "wheel==0.33.1"
+            ],
+            "inputs": [
+              "fire>=0.1.3",
+              "regex==2017.4.5",
+              "requests==2.21.0",
+              "tqdm==4.31.1",
+              "numpy",
+              "tensorflow"
+            ],
+            "not_on_index": [],
+            "command": "pip compile - --no-header --no-annotate --quiet --exclude-newer 2019-03-05T00:00:00Z --python-version 3.7 --python-platform x86_64-unknown-linux-gnu --python C:\\Users\\E16\\AppData\\Roaming\\uv\\python\\cpython-3.8.20-windows-x86_64-none\\python.exe",
+            "error": ""
+          }
+        }
+      }
+    ],
+    "verdict": "RUNS_AFTER_REPAIR",
+    "timestamp": "2026-09-24T15:54:37.559969+00:00",
+    "bundle_version": 2,
+    "baseline": {
+      "result": "FAILS",
+      "exit_code": 1,
+      "base_image": "python:3.11-slim",
+      "install_commands": [
+        "pip install -r requirements.txt"
+      ],
+      "execute_command": "export PYTHONIOENCODING=UTF-8 && python3 download_model.py 124M && python3 src/generate_unconditional_samples.py --nsamples 1",
+      "sandbox_id": "5fea9146-82f6-4f13-94de-16ab5ebc7201",
+      "taxonomy_code": "SYS_LIB_MISSING",
+      "evidence": "error: command 'gcc' failed: No such file or directory"
+    },
+    "recovery": true,
+    "reproduction_passport_hash": "d4f50f9056c65df072c0e674db3dc0780847b3806d9750463c86a4dc974185d1"
+  },
+  "finished_at": "2026-09-24T15:54:37.584789+00:00",
+  "events": [
+    {
+      "t_s": 0.0,
+      "at": "2026-09-24T15:51:12.139601+00:00",
+      "line": "[intake] cloned https://github.com/openai/gpt-2@9b63575ef42771a015060c964af2c3da4cf7c8ab"
+    },
+    {
+      "t_s": 0.0,
+      "at": "2026-09-24T15:51:12.140358+00:00",
+      "line": "[recon] calling Nemotron Nano"
+    },
+    {
+      "t_s": 13.77,
+      "at": "2026-09-24T15:51:25.914271+00:00",
+      "line": "[recon] entrypoint=src/generate_unconditional_samples.py confidence=0.80"
+    },
+    {
+      "t_s": 15.55,
+      "at": "2026-09-24T15:51:27.690565+00:00",
+      "line": "[planner] build plan: {'base_image': 'python:3.11-slim', 'apt_install': [], 'install_commands': ['pip install -r requirements.txt'], 'execute_command': 'export PYTHONIOENCODING=UTF-8 && python3 download_model.py 124M && python3 src/generate_unconditional_samples.py --nsamples 1', 'notes': [\"execute command is the repository's documented command (corpus ground truth)\"]}"
+    },
+    {
+      "t_s": 15.55,
+      "at": "2026-09-24T15:51:27.690659+00:00",
+      "line": "[sandbox] starting build+execute (wall_clock_seconds=600)"
+    },
+    {
+      "t_s": 26.61,
+      "at": "2026-09-24T15:51:38.754435+00:00",
+      "line": "[cost_guard] recorded $0.0224 sandbox spend, $1.9771 remaining today"
+    },
+    {
+      "t_s": 26.61,
+      "at": "2026-09-24T15:51:38.754501+00:00",
+      "line": "[sandbox] id=5fea9146-82f6-4f13-94de-16ab5ebc7201 exit_code=1"
+    },
+    {
+      "t_s": 26.61,
+      "at": "2026-09-24T15:51:38.754527+00:00",
+      "line": "[baseline] as-is run: FAILS (exit code 1)"
+    },
+    {
+      "t_s": 26.62,
+      "at": "2026-09-24T15:51:38.755992+00:00",
+      "line": "[classifier] SYS_LIB_MISSING: error: command 'gcc' failed: No such file or directory"
+    },
+    {
+      "t_s": 27.53,
+      "at": "2026-09-24T15:51:39.667406+00:00",
+      "line": "[era] 2019-03-04 from dependency-files {'requirements.txt': '2019-03-04'}"
+    },
+    {
+      "t_s": 32.59,
+      "at": "2026-09-24T15:51:44.730019+00:00",
+      "line": "[time-machine] era 2019-03-04 (dependency-files) -> python 3.7; locked 28 package(s) with uv --exclude-newer; not on the index: none"
+    },
+    {
+      "t_s": 32.59,
+      "at": "2026-09-24T15:51:44.730167+00:00",
+      "line": "[sandbox] starting build+execute (wall_clock_seconds=600)"
+    },
+    {
+      "t_s": 203.13,
+      "at": "2026-09-24T15:54:35.271348+00:00",
+      "line": "[cost_guard] recorded $1.0334 sandbox spend, $0.9437 remaining today"
+    },
+    {
+      "t_s": 203.13,
+      "at": "2026-09-24T15:54:35.271410+00:00",
+      "line": "[time-machine] re-execution id=5ec724d7-084c-4e52-b261-2c497c5a4d04 exit_code=0"
+    }
+  ],
+  "model_calls": [
+    {
+      "model": "nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B",
+      "started_at": "2026-09-24T15:51:12.427716+00:00",
+      "latency_s": 13.49,
+      "finish_reason": "stop",
+      "content_is_none": false,
+      "has_reasoning": true,
+      "usage": {
+        "completion_tokens": 1033,
+        "prompt_tokens": 2295,
+        "total_tokens": 3328,
+        "completion_tokens_details": null,
+        "prompt_tokens_details": null
+      }
+    },
+    {
+      "model": "nvidia/nemotron-3-super-120b-a12b",
+      "started_at": "2026-09-24T15:51:25.915632+00:00",
+      "latency_s": 1.77,
+      "finish_reason": "stop",
+      "content_is_none": false,
+      "has_reasoning": true,
+      "usage": {
+        "completion_tokens": 88,
+        "prompt_tokens": 281,
+        "total_tokens": 369,
+        "completion_tokens_details": {
+          "accepted_prediction_tokens": null,
+          "audio_tokens": null,
+          "reasoning_tokens": 78,
+          "rejected_prediction_tokens": null,
+          "text_tokens": null
+        },
+        "prompt_tokens_details": {
+          "audio_tokens": null,
+          "cache_write_tokens": null,
+          "cached_tokens": 0,
+          "image_tokens": null,
+          "text_tokens": null,
+          "created_cache_tokens": 0,
+          "multimodal_tokens": null
+        },
+        "prompt_cache_hit_tokens": 0,
+        "prompt_cache_miss_tokens": 281
+      }
+    },
+    {
+      "model": "nvidia/Nemotron-3-Ultra-550b-a55b",
+      "started_at": "2026-09-24T15:54:35.272903+00:00",
+      "latency_s": 2.29,
+      "finish_reason": "stop",
+      "content_is_none": false,
+      "has_reasoning": true,
+      "usage": {
+        "completion_tokens": 389,
+        "prompt_tokens": 721,
+        "total_tokens": 1110,
+        "completion_tokens_details": {
+          "accepted_prediction_tokens": null,
+          "audio_tokens": null,
+          "reasoning_tokens": 279,
+          "rejected_prediction_tokens": null,
+          "text_tokens": null
+        },
+        "prompt_tokens_details": {
+          "audio_tokens": null,
+          "cache_write_tokens": null,
+          "cached_tokens": 0,
+          "image_tokens": null,
+          "text_tokens": null,
+          "multimodal_tokens": null
+        },
+        "prompt_cache_hit_tokens": 0,
+        "prompt_cache_miss_tokens": 721
+      }
+    }
+  ],
+  "cost_guard": {
+    "spent_usd": 1.05818189,
+    "model_spent_usd": 0.00243712,
+    "sandbox_spent_usd": 1.05574477,
+    "remaining_usd": 0.94181811,
+    "model_usage": [
+      {
+        "model": "nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B",
+        "prompt_tokens": 2295,
+        "completion_tokens": 1033,
+        "cost_usd": 0.00038562
+      },
+      {
+        "model": "nvidia/nemotron-3-super-120b-a12b",
+        "prompt_tokens": 281,
+        "completion_tokens": 88,
+        "cost_usd": 0.0001635
+      },
+      {
+        "model": "nvidia/Nemotron-3-Ultra-550b-a55b",
+        "prompt_tokens": 721,
+        "completion_tokens": 389,
+        "cost_usd": 0.001888
+      }
+    ],
+    "prices_usd_per_1m": {
+      "nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B": [
+        0.06,
+        0.24
+      ],
+      "nvidia/nemotron-3-super-120b-a12b": [
+        0.3,
+        0.9
+      ],
+      "nvidia/Nemotron-3-Ultra-550b-a55b": [
+        1.0,
+        3.0
+      ]
+    },
+    "prices_source": "https://api.tokenfactory.nebius.com/v1/models?verbose=true (pricing field)",
+    "prices_retrieved": "2026-09-24"
+  }
+}

@@ -3480,3 +3480,40 @@ Tests: `tests/test_documented_command.py` (27) + job-args regression. Backend 53
 8 skipped; frontend 8 passed (EnvDeltaView renders `command -> …`); build green.
 
 ---
+
+## 2026-09-24 — Step 5 live re-run: FIRST RUNS_AFTER_REPAIR (gpt-2); TTPT invalid due to a RERUN bug
+
+Records: `runs/live_run_gpt2_v4.json`, `runs/live_run_ttpt_v4.json`; both certificates are
+bundle v2 and → `scripts/verify_passport.py` → PASSPORT VERIFIED.
+
+**gpt-2 — RUNS_AFTER_REPAIR, recovery = true.** Baseline (declared install on
+python:3.11-slim + the documented command): FAILS, exit 1, `SYS_LIB_MISSING` ("error:
+command 'gcc' failed"). Era **2019-03-04** from `dependency-files`
+(`requirements.txt` last changed 2019-03-04 per the GitHub API; the pinned commit is a
+2024 README edit). Time machine: Python **3.7** (newest CPython first released ≥180 days
+before the era, python.org devguide), `build-essential` (evidence: the gcc line), and a
+28-package uv lock with `--exclude-newer 2019-03-05` incl. **tensorflow 1.13.1**,
+numpy 1.16.2, regex 2017.4.5, fire 0.1.3, requests 2.21.0, tqdm 4.31.1. The re-execution
+downloaded the 124M checkpoint and generated a sample (stdout ends with generated GPT-2
+text; stderr shows TF 1.x checkpoint-loading deprecation notices) — exit 0. **No model
+repair was needed; the fix was fully deterministic** (attempt 0, origin `time_machine`).
+Nothing was cited: no Tavily result or resolved source was used in a decision. Timing:
+recon 13.8 s, planner 1.8 s, baseline sandbox 11 s, era lookup 0.9 s, lock 5.1 s, era
+re-execution 170.5 s; pipeline 205.4 s. Spend: model $0.0024 (Nano 2,295/1,033 tokens,
+Super 281/88, Ultra 721/389), sandbox $1.0557, total **$1.0582** of the $2 cap. The Ultra
+prose says "executed to completion", no reproduce-wording.
+
+**TTPT — BLOCKED, but the result is INVALID (RERUN's own bug, found here).** Baseline
+failed with exit 2 `: invalid option name`, classified `RUNTIME_ERROR_OTHER`; all three
+repair attempts were declined, and the repairer correctly diagnosed CRLF line endings in
+`run_ttpt.sh` (`set -o pipefail\r`). Checked: the upstream file has **0** CRLF (47 LF);
+RERUN's clone has **47** CRLF. This Windows host has global `core.autocrlf=true`, so `git
+clone` rewrites every text file to CRLF and RERUN uploads those to a Linux sandbox — every
+shell script breaks, and the failure is misattributed to the repository. Every earlier
+Windows-hosted live run was exposed to this too (Python tolerates CRLF, which is why gpt-2
+wasn't affected). Not patched in this step (stop-and-report); fix direction: clone with
+`-c core.autocrlf=false -c core.eol=lf` (or set them in the checkout) and add a test that a
+cloned LF-only script stays byte-identical. The TTPT classification should then be
+re-measured.
+
+---

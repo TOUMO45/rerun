@@ -1,0 +1,610 @@
+{
+  "run_kind": "live end-to-end run",
+  "started_at": "2026-09-24T15:51:13.849774+00:00",
+  "corpus_entry": {
+    "name": "TTPT",
+    "repo_url": "https://github.com/gaozhengqing/TTPT",
+    "commit_sha": "7d6a26246882e830c76a27b2bd669f399f824037",
+    "command": "bash run_ttpt.sh",
+    "command_source": "README.md (\"bash run_ttpt.sh\")"
+  },
+  "config": {
+    "models": {
+      "recon": "nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B",
+      "planner": "nvidia/nemotron-3-super-120b-a12b",
+      "repairer": "nvidia/nemotron-3-super-120b-a12b",
+      "adjudicator": "nvidia/Nemotron-3-Ultra-550b-a55b"
+    },
+    "sandbox_backend": "token_factory",
+    "sandbox_image_default": "python:3.11-slim",
+    "sandbox_wall_clock_seconds": 600.0,
+    "max_attempts": 3,
+    "tavily_configured": true,
+    "cost_cap_usd": 2.0
+  },
+  "intake": {
+    "duration_s": 5.06,
+    "resolved_sha": "7d6a26246882e830c76a27b2bd669f399f824037",
+    "dependency_files": [
+      "requirements.txt"
+    ],
+    "declared_dependencies": [
+      "ftfy",
+      "regex",
+      "tqdm"
+    ],
+    "entrypoint_candidates": [
+      "lpclip/feat_extractor.py",
+      "train.py"
+    ],
+    "notebook_paths": []
+  },
+  "pipeline_duration_s": 158.16,
+  "result": {
+    "verdict": "BLOCKED",
+    "taxonomy_code": "RUNTIME_ERROR_OTHER",
+    "indeterminate_reason": "",
+    "reason_code": null,
+    "error_traceback": "",
+    "attempts": [
+      {
+        "attempt_number": 1,
+        "diff_text": "",
+        "gate_decision": "DECLINED",
+        "gate_violations": [],
+        "exit_code": null,
+        "stdout_tail": "",
+        "stderr_tail": "",
+        "tavily_sources": [],
+        "env_delta": [],
+        "resolved_sources": [],
+        "origin": "model",
+        "time_machine": null
+      },
+      {
+        "attempt_number": 2,
+        "diff_text": "",
+        "gate_decision": "DECLINED",
+        "gate_violations": [],
+        "exit_code": null,
+        "stdout_tail": "",
+        "stderr_tail": "",
+        "tavily_sources": [],
+        "env_delta": [],
+        "resolved_sources": [],
+        "origin": "model",
+        "time_machine": null
+      },
+      {
+        "attempt_number": 3,
+        "diff_text": "",
+        "gate_decision": "DECLINED",
+        "gate_violations": [],
+        "exit_code": null,
+        "stdout_tail": "",
+        "stderr_tail": "",
+        "tavily_sources": [],
+        "env_delta": [],
+        "resolved_sources": [],
+        "origin": "model",
+        "time_machine": null
+      }
+    ],
+    "certificate_prose": "The execution was blocked after three repair attempts due to a runtime error caused by Windows-style line endings (CRLF) in the shell script run_ttpt.sh, which produced an 'invalid option name' error when run in a Unix environment. The repair system declined to generate a fix because the script's content was not available in the context to produce a code diff. Verifies that the artifact executes. Does not verify the paper's numerical results."
+  },
+  "certificate": {
+    "repo_url": "https://github.com/gaozhengqing/TTPT",
+    "commit_sha": "7d6a26246882e830c76a27b2bd669f399f824037",
+    "build_plan": {
+      "base_image": "python:3.11-slim",
+      "apt_install": [],
+      "install_commands": [
+        "pip install -r requirements.txt"
+      ],
+      "execute_command": "bash run_ttpt.sh",
+      "notes": [
+        "execute command is the repository's documented command (corpus ground truth)"
+      ]
+    },
+    "full_log": "[intake] cloned https://github.com/gaozhengqing/TTPT@7d6a26246882e830c76a27b2bd669f399f824037\n[recon] calling Nemotron Nano\n[recon] entrypoint=train.py confidence=0.85\n[planner] build plan: {'base_image': 'python:3.11-slim', 'apt_install': [], 'install_commands': ['pip install -r requirements.txt'], 'execute_command': 'bash run_ttpt.sh', 'notes': [\"execute command is the repository's documented command (corpus ground truth)\"]}\n[sandbox] starting build+execute (wall_clock_seconds=600)\n[cost_guard] recorded $0.0195 sandbox spend, $1.9799 remaining today\n[sandbox] id=752195f4-383b-4722-9cdd-f362b62ed295 exit_code=2\n[baseline] as-is run: FAILS (exit code 2)\n[classifier] RUNTIME_ERROR_OTHER: : invalid option name\n[tavily] 3 result(s) for 'python runtime error other fix: : invalid option name'\n[repair 1] first reply was not valid JSON; re-asked once (same attempt)\n[repair 1] declined: Cannot fix script line endings without access to run_ttpt.sh content.\n[citations] not cited (not used in a decision): https://last9.io/blog/types-of-errors-in-python\n[citations] not cited (not used in a decision): https://support.microsoft.com/en-us/excel/python/troubleshoot-python-in-excel-errors\n[citations] not cited (not used in a decision): https://assets.publishing.service.gov.uk/media/5a7ed4f6ed915d74e6226bca/SC5._Fostering_agencies_with_contact_details_June_2014.xls\n[tavily] 3 result(s) for 'python runtime error other fix: : invalid option name'\n[repair 2] declined: The error is due to Windows line endings (CRLF) in the shell script run_ttpt.sh causing invalid option 'pipefail\\r', which cannot be fixed by modifying train.py as the issue lies outside the provided code file.\n[citations] not cited (not used in a decision): https://initialcommit.com/blog/python-runtimeerror\n[citations] not cited (not used in a decision): https://www.youtube.com/watch?v=H4MWLePfJQU\n[citations] not cited (not used in a decision): https://docs.python.org/3/builtins/exceptions.html\n[tavily] 3 result(s) for 'python runtime error other fix: : invalid option name'\n[repair 3] declined: The error is due to Windows line endings (CRLF) in the shell script run_ttpt.sh causing 'invalid option name' when executed in a Unix environment. The fix requires converting the script to Unix line endings (LF), but the script's content is not provided in the context, so a code diff cannot be generated.\n[citations] not cited (not used in a decision): https://initialcommit.com/blog/python-runtimeerror\n[citations] not cited (not used in a decision): https://docs.python.org/3/builtins/exceptions.html\n[citations] not cited (not used in a decision): https://pylint.readthedocs.io/en/latest/messages/convention/invalid-name.html\n[verdict] BLOCKED after 3 repair attempt(s): RUNTIME_ERROR_OTHER",
+    "diffs": [
+      {
+        "attempt_number": 1,
+        "diff_text": "",
+        "gate_decision": "DECLINED",
+        "gate_violations": [],
+        "exit_code": null,
+        "stdout_tail": "",
+        "stderr_tail": "",
+        "tavily_sources": [],
+        "env_delta": [],
+        "resolved_sources": [],
+        "origin": "model",
+        "time_machine": null
+      },
+      {
+        "attempt_number": 2,
+        "diff_text": "",
+        "gate_decision": "DECLINED",
+        "gate_violations": [],
+        "exit_code": null,
+        "stdout_tail": "",
+        "stderr_tail": "",
+        "tavily_sources": [],
+        "env_delta": [],
+        "resolved_sources": [],
+        "origin": "model",
+        "time_machine": null
+      },
+      {
+        "attempt_number": 3,
+        "diff_text": "",
+        "gate_decision": "DECLINED",
+        "gate_violations": [],
+        "exit_code": null,
+        "stdout_tail": "",
+        "stderr_tail": "",
+        "tavily_sources": [],
+        "env_delta": [],
+        "resolved_sources": [],
+        "origin": "model",
+        "time_machine": null
+      }
+    ],
+    "verdict": "BLOCKED",
+    "timestamp": "2026-09-24T15:53:57.065402+00:00",
+    "bundle_version": 2,
+    "baseline": {
+      "result": "FAILS",
+      "exit_code": 2,
+      "base_image": "python:3.11-slim",
+      "install_commands": [
+        "pip install -r requirements.txt"
+      ],
+      "execute_command": "bash run_ttpt.sh",
+      "sandbox_id": "752195f4-383b-4722-9cdd-f362b62ed295",
+      "taxonomy_code": "RUNTIME_ERROR_OTHER",
+      "evidence": ": invalid option name"
+    },
+    "recovery": false,
+    "reproduction_passport_hash": "a1a8b3c1a0ae5b7fe11c6cfada2247da4e55660046b1bb0c06d935cacbb4b37b"
+  },
+  "finished_at": "2026-09-24T15:53:57.095222+00:00",
+  "events": [
+    {
+      "t_s": 0.0,
+      "at": "2026-09-24T15:51:18.906970+00:00",
+      "line": "[intake] cloned https://github.com/gaozhengqing/TTPT@7d6a26246882e830c76a27b2bd669f399f824037"
+    },
+    {
+      "t_s": 0.01,
+      "at": "2026-09-24T15:51:18.914327+00:00",
+      "line": "[recon] calling Nemotron Nano"
+    },
+    {
+      "t_s": 8.04,
+      "at": "2026-09-24T15:51:26.943417+00:00",
+      "line": "[recon] entrypoint=train.py confidence=0.85"
+    },
+    {
+      "t_s": 11.24,
+      "at": "2026-09-24T15:51:30.148822+00:00",
+      "line": "[planner] build plan: {'base_image': 'python:3.11-slim', 'apt_install': [], 'install_commands': ['pip install -r requirements.txt'], 'execute_command': 'bash run_ttpt.sh', 'notes': [\"execute command is the repository's documented command (corpus ground truth)\"]}"
+    },
+    {
+      "t_s": 11.24,
+      "at": "2026-09-24T15:51:30.148939+00:00",
+      "line": "[sandbox] starting build+execute (wall_clock_seconds=600)"
+    },
+    {
+      "t_s": 22.89,
+      "at": "2026-09-24T15:51:41.792123+00:00",
+      "line": "[cost_guard] recorded $0.0195 sandbox spend, $1.9799 remaining today"
+    },
+    {
+      "t_s": 22.89,
+      "at": "2026-09-24T15:51:41.794051+00:00",
+      "line": "[sandbox] id=752195f4-383b-4722-9cdd-f362b62ed295 exit_code=2"
+    },
+    {
+      "t_s": 22.89,
+      "at": "2026-09-24T15:51:41.794102+00:00",
+      "line": "[baseline] as-is run: FAILS (exit code 2)"
+    },
+    {
+      "t_s": 22.89,
+      "at": "2026-09-24T15:51:41.794213+00:00",
+      "line": "[classifier] RUNTIME_ERROR_OTHER: : invalid option name"
+    },
+    {
+      "t_s": 27.85,
+      "at": "2026-09-24T15:51:46.761386+00:00",
+      "line": "[tavily] 3 result(s) for 'python runtime error other fix: : invalid option name'"
+    },
+    {
+      "t_s": 79.89,
+      "at": "2026-09-24T15:52:38.798379+00:00",
+      "line": "[repair 1] first reply was not valid JSON; re-asked once (same attempt)"
+    },
+    {
+      "t_s": 79.89,
+      "at": "2026-09-24T15:52:38.798444+00:00",
+      "line": "[repair 1] declined: Cannot fix script line endings without access to run_ttpt.sh content."
+    },
+    {
+      "t_s": 79.89,
+      "at": "2026-09-24T15:52:38.798467+00:00",
+      "line": "[citations] not cited (not used in a decision): https://last9.io/blog/types-of-errors-in-python"
+    },
+    {
+      "t_s": 79.89,
+      "at": "2026-09-24T15:52:38.798478+00:00",
+      "line": "[citations] not cited (not used in a decision): https://support.microsoft.com/en-us/excel/python/troubleshoot-python-in-excel-errors"
+    },
+    {
+      "t_s": 79.89,
+      "at": "2026-09-24T15:52:38.798487+00:00",
+      "line": "[citations] not cited (not used in a decision): https://assets.publishing.service.gov.uk/media/5a7ed4f6ed915d74e6226bca/SC5._Fostering_agencies_with_contact_details_June_2014.xls"
+    },
+    {
+      "t_s": 81.09,
+      "at": "2026-09-24T15:52:39.993127+00:00",
+      "line": "[tavily] 3 result(s) for 'python runtime error other fix: : invalid option name'"
+    },
+    {
+      "t_s": 94.59,
+      "at": "2026-09-24T15:52:53.497164+00:00",
+      "line": "[repair 2] declined: The error is due to Windows line endings (CRLF) in the shell script run_ttpt.sh causing invalid option 'pipefail\\r', which cannot be fixed by modifying train.py as the issue lies outside the provided code file."
+    },
+    {
+      "t_s": 94.59,
+      "at": "2026-09-24T15:52:53.497229+00:00",
+      "line": "[citations] not cited (not used in a decision): https://initialcommit.com/blog/python-runtimeerror"
+    },
+    {
+      "t_s": 94.59,
+      "at": "2026-09-24T15:52:53.497243+00:00",
+      "line": "[citations] not cited (not used in a decision): https://www.youtube.com/watch?v=H4MWLePfJQU"
+    },
+    {
+      "t_s": 94.59,
+      "at": "2026-09-24T15:52:53.497253+00:00",
+      "line": "[citations] not cited (not used in a decision): https://docs.python.org/3/builtins/exceptions.html"
+    },
+    {
+      "t_s": 95.71,
+      "at": "2026-09-24T15:52:54.616536+00:00",
+      "line": "[tavily] 3 result(s) for 'python runtime error other fix: : invalid option name'"
+    },
+    {
+      "t_s": 155.76,
+      "at": "2026-09-24T15:53:54.668489+00:00",
+      "line": "[repair 3] declined: The error is due to Windows line endings (CRLF) in the shell script run_ttpt.sh causing 'invalid option name' when executed in a Unix environment. The fix requires converting the script to Unix line endings (LF), but the script's content is not provided in the context, so a code diff cannot be generated."
+    },
+    {
+      "t_s": 155.76,
+      "at": "2026-09-24T15:53:54.668552+00:00",
+      "line": "[citations] not cited (not used in a decision): https://initialcommit.com/blog/python-runtimeerror"
+    },
+    {
+      "t_s": 155.76,
+      "at": "2026-09-24T15:53:54.668566+00:00",
+      "line": "[citations] not cited (not used in a decision): https://docs.python.org/3/builtins/exceptions.html"
+    },
+    {
+      "t_s": 155.76,
+      "at": "2026-09-24T15:53:54.668576+00:00",
+      "line": "[citations] not cited (not used in a decision): https://pylint.readthedocs.io/en/latest/messages/convention/invalid-name.html"
+    },
+    {
+      "t_s": 155.76,
+      "at": "2026-09-24T15:53:54.668596+00:00",
+      "line": "[verdict] BLOCKED after 3 repair attempt(s): RUNTIME_ERROR_OTHER"
+    }
+  ],
+  "model_calls": [
+    {
+      "model": "nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B",
+      "started_at": "2026-09-24T15:51:19.145323+00:00",
+      "latency_s": 7.8,
+      "finish_reason": "stop",
+      "content_is_none": false,
+      "has_reasoning": true,
+      "usage": {
+        "completion_tokens": 838,
+        "prompt_tokens": 2989,
+        "total_tokens": 3827,
+        "completion_tokens_details": null,
+        "prompt_tokens_details": null
+      }
+    },
+    {
+      "model": "nvidia/nemotron-3-super-120b-a12b",
+      "started_at": "2026-09-24T15:51:26.944795+00:00",
+      "latency_s": 3.2,
+      "finish_reason": "stop",
+      "content_is_none": false,
+      "has_reasoning": true,
+      "usage": {
+        "completion_tokens": 120,
+        "prompt_tokens": 282,
+        "total_tokens": 402,
+        "completion_tokens_details": {
+          "accepted_prediction_tokens": null,
+          "audio_tokens": null,
+          "reasoning_tokens": 110,
+          "rejected_prediction_tokens": null,
+          "text_tokens": null
+        },
+        "prompt_tokens_details": {
+          "audio_tokens": null,
+          "cache_write_tokens": null,
+          "cached_tokens": 0,
+          "image_tokens": null,
+          "text_tokens": null,
+          "created_cache_tokens": 0,
+          "multimodal_tokens": null
+        },
+        "prompt_cache_hit_tokens": 0,
+        "prompt_cache_miss_tokens": 282
+      }
+    },
+    {
+      "model": "nvidia/nemotron-3-super-120b-a12b",
+      "started_at": "2026-09-24T15:51:46.816970+00:00",
+      "latency_s": 41.37,
+      "finish_reason": "length",
+      "content_is_none": false,
+      "has_reasoning": true,
+      "usage": {
+        "completion_tokens": 8192,
+        "prompt_tokens": 3777,
+        "total_tokens": 11969,
+        "completion_tokens_details": {
+          "accepted_prediction_tokens": null,
+          "audio_tokens": null,
+          "reasoning_tokens": 8085,
+          "rejected_prediction_tokens": null,
+          "text_tokens": null
+        },
+        "prompt_tokens_details": {
+          "audio_tokens": null,
+          "cache_write_tokens": null,
+          "cached_tokens": 0,
+          "image_tokens": null,
+          "text_tokens": null,
+          "created_cache_tokens": 0,
+          "multimodal_tokens": null
+        },
+        "prompt_cache_hit_tokens": 0,
+        "prompt_cache_miss_tokens": 3777
+      }
+    },
+    {
+      "model": "nvidia/nemotron-3-super-120b-a12b",
+      "started_at": "2026-09-24T15:52:28.184811+00:00",
+      "latency_s": 10.61,
+      "finish_reason": "stop",
+      "content_is_none": false,
+      "has_reasoning": true,
+      "usage": {
+        "completion_tokens": 1991,
+        "prompt_tokens": 3838,
+        "total_tokens": 5829,
+        "completion_tokens_details": {
+          "accepted_prediction_tokens": null,
+          "audio_tokens": null,
+          "reasoning_tokens": 1952,
+          "rejected_prediction_tokens": null,
+          "text_tokens": null
+        },
+        "prompt_tokens_details": {
+          "audio_tokens": null,
+          "cache_write_tokens": null,
+          "cached_tokens": 0,
+          "image_tokens": null,
+          "text_tokens": null,
+          "created_cache_tokens": 0,
+          "multimodal_tokens": null
+        },
+        "prompt_cache_hit_tokens": 0,
+        "prompt_cache_miss_tokens": 3838
+      }
+    },
+    {
+      "model": "nvidia/nemotron-3-super-120b-a12b",
+      "started_at": "2026-09-24T15:52:39.995948+00:00",
+      "latency_s": 13.5,
+      "finish_reason": "stop",
+      "content_is_none": false,
+      "has_reasoning": true,
+      "usage": {
+        "completion_tokens": 2857,
+        "prompt_tokens": 3650,
+        "total_tokens": 6507,
+        "completion_tokens_details": {
+          "accepted_prediction_tokens": null,
+          "audio_tokens": null,
+          "reasoning_tokens": 2784,
+          "rejected_prediction_tokens": null,
+          "text_tokens": null
+        },
+        "prompt_tokens_details": {
+          "audio_tokens": null,
+          "cache_write_tokens": null,
+          "cached_tokens": 0,
+          "image_tokens": null,
+          "text_tokens": null,
+          "created_cache_tokens": 0,
+          "multimodal_tokens": null
+        },
+        "prompt_cache_hit_tokens": 0,
+        "prompt_cache_miss_tokens": 3650
+      }
+    },
+    {
+      "model": "nvidia/nemotron-3-super-120b-a12b",
+      "started_at": "2026-09-24T15:52:54.620746+00:00",
+      "latency_s": 38.53,
+      "finish_reason": "length",
+      "content_is_none": true,
+      "has_reasoning": true,
+      "usage": {
+        "completion_tokens": 8192,
+        "prompt_tokens": 3732,
+        "total_tokens": 11924,
+        "completion_tokens_details": {
+          "accepted_prediction_tokens": null,
+          "audio_tokens": null,
+          "reasoning_tokens": 8192,
+          "rejected_prediction_tokens": null,
+          "text_tokens": null
+        },
+        "prompt_tokens_details": {
+          "audio_tokens": null,
+          "cache_write_tokens": null,
+          "cached_tokens": 0,
+          "image_tokens": null,
+          "text_tokens": null,
+          "created_cache_tokens": 0,
+          "multimodal_tokens": null
+        },
+        "prompt_cache_hit_tokens": 0,
+        "prompt_cache_miss_tokens": 3732
+      }
+    },
+    {
+      "model": "nvidia/nemotron-3-super-120b-a12b",
+      "started_at": "2026-09-24T15:53:33.154861+00:00",
+      "latency_s": 21.51,
+      "finish_reason": "stop",
+      "content_is_none": false,
+      "has_reasoning": true,
+      "usage": {
+        "completion_tokens": 3898,
+        "prompt_tokens": 3732,
+        "total_tokens": 7630,
+        "completion_tokens_details": {
+          "accepted_prediction_tokens": null,
+          "audio_tokens": null,
+          "reasoning_tokens": 3806,
+          "rejected_prediction_tokens": null,
+          "text_tokens": null
+        },
+        "prompt_tokens_details": {
+          "audio_tokens": null,
+          "cache_write_tokens": null,
+          "cached_tokens": 0,
+          "image_tokens": null,
+          "text_tokens": null,
+          "created_cache_tokens": 0,
+          "multimodal_tokens": null
+        },
+        "prompt_cache_hit_tokens": 0,
+        "prompt_cache_miss_tokens": 3732
+      }
+    },
+    {
+      "model": "nvidia/Nemotron-3-Ultra-550b-a55b",
+      "started_at": "2026-09-24T15:53:54.670026+00:00",
+      "latency_s": 2.4,
+      "finish_reason": "stop",
+      "content_is_none": false,
+      "has_reasoning": true,
+      "usage": {
+        "completion_tokens": 529,
+        "prompt_tokens": 721,
+        "total_tokens": 1250,
+        "completion_tokens_details": {
+          "accepted_prediction_tokens": null,
+          "audio_tokens": null,
+          "reasoning_tokens": 408,
+          "rejected_prediction_tokens": null,
+          "text_tokens": null
+        },
+        "prompt_tokens_details": {
+          "audio_tokens": null,
+          "cache_write_tokens": null,
+          "cached_tokens": 0,
+          "image_tokens": null,
+          "text_tokens": null,
+          "multimodal_tokens": null
+        },
+        "prompt_cache_hit_tokens": 0,
+        "prompt_cache_miss_tokens": 721
+      }
+    }
+  ],
+  "cost_guard": {
+    "spent_usd": 0.05065238,
+    "model_spent_usd": 0.031116760000000004,
+    "sandbox_spent_usd": 0.01953562,
+    "remaining_usd": 1.94934762,
+    "model_usage": [
+      {
+        "model": "nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B",
+        "prompt_tokens": 2989,
+        "completion_tokens": 838,
+        "cost_usd": 0.00038046000000000005
+      },
+      {
+        "model": "nvidia/nemotron-3-super-120b-a12b",
+        "prompt_tokens": 282,
+        "completion_tokens": 120,
+        "cost_usd": 0.0001926
+      },
+      {
+        "model": "nvidia/nemotron-3-super-120b-a12b",
+        "prompt_tokens": 3777,
+        "completion_tokens": 8192,
+        "cost_usd": 0.0085059
+      },
+      {
+        "model": "nvidia/nemotron-3-super-120b-a12b",
+        "prompt_tokens": 3838,
+        "completion_tokens": 1991,
+        "cost_usd": 0.0029433000000000003
+      },
+      {
+        "model": "nvidia/nemotron-3-super-120b-a12b",
+        "prompt_tokens": 3650,
+        "completion_tokens": 2857,
+        "cost_usd": 0.0036663000000000004
+      },
+      {
+        "model": "nvidia/nemotron-3-super-120b-a12b",
+        "prompt_tokens": 3732,
+        "completion_tokens": 8192,
+        "cost_usd": 0.008492399999999999
+      },
+      {
+        "model": "nvidia/nemotron-3-super-120b-a12b",
+        "prompt_tokens": 3732,
+        "completion_tokens": 3898,
+        "cost_usd": 0.0046278000000000005
+      },
+      {
+        "model": "nvidia/Nemotron-3-Ultra-550b-a55b",
+        "prompt_tokens": 721,
+        "completion_tokens": 529,
+        "cost_usd": 0.002308
+      }
+    ],
+    "prices_usd_per_1m": {
+      "nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B": [
+        0.06,
+        0.24
+      ],
+      "nvidia/nemotron-3-super-120b-a12b": [
+        0.3,
+        0.9
+      ],
+      "nvidia/Nemotron-3-Ultra-550b-a55b": [
+        1.0,
+        3.0
+      ]
+    },
+    "prices_source": "https://api.tokenfactory.nebius.com/v1/models?verbose=true (pricing field)",
+    "prices_retrieved": "2026-09-24"
+  }
+}
