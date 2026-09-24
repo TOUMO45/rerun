@@ -2748,3 +2748,21 @@ misclassified as a repo failure. Only affects a Windows-hosted backend (Docker d
 is Linux), but that's exactly how local runs happen today. Fix: `.as_posix()`.
 
 ---
+
+## 2026-09-24 — Fixed both bugs found by the first live run
+
+a) `model_client._estimate_tokens` now calls `encode(text, disallowed_special=())`.
+   Repo source is untrusted text; special-token strings in it are counted as ordinary
+   characters (which is how they are actually sent). Regression tests: parametrized
+   over `<|endoftext|>`, `<|fim_prefix|>`, `<|fim_middle|>`, `<|fim_suffix|>`,
+   `<|endofprompt|>` in both system and user prompt, with a cost guard active.
+b) New `intake.repo_relative_posix()` (`relative_to(...).as_posix()`), used for both
+   entrypoint candidates and notebook paths. Regression tests: a `PureWindowsPath`
+   input yields `src/generate_unconditional_samples.py`; nested real files come back
+   with forward slashes. (`orchestrator._collect_upload_files` already used
+   `.as_posix()`; `find_dependency_files` only ever returns root-level names.)
+
+Both sets verified to fail with the fix reverted (8 failed) and pass with it (8 passed).
+Full suite: 278 passed, 7 skipped.
+
+---

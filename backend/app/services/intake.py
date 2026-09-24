@@ -19,7 +19,7 @@ import shutil
 import stat
 import subprocess
 from dataclasses import dataclass, field
-from pathlib import Path
+from pathlib import Path, PurePath
 
 import yaml
 
@@ -265,6 +265,15 @@ def clone_repo_at_commit(url: str, dest: Path, commit_sha: str) -> str:
     return sha_result.stdout.strip()
 
 
+def repo_relative_posix(path: PurePath, repo_path: PurePath) -> str:
+    """Repo-relative path in POSIX form. These strings end up in shell
+    commands run inside a *Linux* sandbox (`python <entrypoint>`) and in
+    the model prompts, so they must never carry Windows backslashes — a
+    Windows-hosted backend would otherwise produce `python src\train.py`,
+    which is a nonexistent filename on Linux (found in the first live run)."""
+    return path.relative_to(repo_path).as_posix()
+
+
 def find_dependency_files(repo_path: Path) -> dict[str, str]:
     found: dict[str, str] = {}
     for name in DEPENDENCY_FILENAMES:
@@ -279,7 +288,7 @@ def find_dependency_files(repo_path: Path) -> dict[str, str]:
 def find_notebooks(repo_path: Path) -> tuple[str, ...]:
     return tuple(
         sorted(
-            str(p.relative_to(repo_path))
+            repo_relative_posix(p, repo_path)
             for p in _walk_real_files(repo_path, ".ipynb")
             if ".ipynb_checkpoints" not in p.parts
         )
@@ -291,7 +300,7 @@ def find_entrypoint_candidates(repo_path: Path) -> tuple[str, ...]:
     for py_file in _walk_real_files(repo_path, ".py"):
         if any(part.startswith(".") for part in py_file.parts):
             continue
-        rel = str(py_file.relative_to(repo_path))
+        rel = repo_relative_posix(py_file, repo_path)
         if py_file.name in ENTRYPOINT_NAME_HINTS:
             candidates.add(rel)
             continue

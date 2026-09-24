@@ -139,3 +139,35 @@ def test_model_cost_limit_error_is_a_model_call_error_subclass():
     from app.services.model_client import ModelCallError
 
     assert issubclass(ModelCostLimitError, ModelCallError)
+
+
+# --- Regression: special-token strings in untrusted repo text (first live run) --
+
+
+@pytest.mark.parametrize(
+    "special",
+    ["<|endoftext|>", "<|fim_prefix|>", "<|fim_middle|>", "<|fim_suffix|>", "<|endofprompt|>"],
+)
+def test_token_estimate_never_crashes_on_special_token_strings(special):
+    """openai/gpt-2's source contains the literal "<|endoftext|>"; tiktoken's
+    default encode() raised ValueError on it inside the budget pre-check and
+    crashed live recon before any model call. The text must be counted as
+    plain text and the call must go through."""
+    from app.services.model_client import _estimate_tokens
+
+    text = f'enc.encode(text, allowed_special={{"{special}"}})  # {special}'
+    assert _estimate_tokens(text) > 0
+
+    guard = CostGuard(daily_cost_ceiling_usd=100, max_tokens_per_attempt=10_000)
+    client = _FakeClient('{"ok": true}')
+    result = call_json_model(client, model="m", system_prompt=special, user_prompt=text, cost_guard=guard)
+    assert result == {"ok": True}
+    assert special in client.last_call["user_prompt"]
+
+
+def test_token_estimate_counts_special_token_text_not_as_a_single_token():
+    # Negative control: the estimate treats "<|endoftext|>" as ordinary
+    # characters (several tokens), never as one special token id.
+    from app.services.model_client import _estimate_tokens
+
+    assert _estimate_tokens("<|endoftext|>") > 1

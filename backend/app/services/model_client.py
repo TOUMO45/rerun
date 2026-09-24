@@ -40,7 +40,12 @@ def _estimate_tokens(text: str) -> int:
     global _ENCODING
     if _ENCODING is None:
         _ENCODING = tiktoken.get_encoding("cl100k_base")
-    return len(_ENCODING.encode(text))
+    # disallowed_special=(): repo source is untrusted text and routinely
+    # contains special-token strings (gpt-2's own code has the literal
+    # "<|endoftext|>"). tiktoken's default *raises* on those, which crashed
+    # the first live run inside this budget pre-check. Counting them as
+    # ordinary text is also the honest estimate: that is how they are sent.
+    return len(_ENCODING.encode(text, disallowed_special=()))
 
 
 class ModelCallError(RuntimeError):

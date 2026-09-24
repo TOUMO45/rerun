@@ -313,3 +313,28 @@ def test_find_entrypoint_candidates_does_not_follow_a_symlinked_directory(tmp_pa
 
     candidates = find_entrypoint_candidates(repo)
     assert candidates == ()
+
+
+# --- Regression: entrypoints must be POSIX paths (first live run) -------------
+
+
+def test_repo_relative_posix_converts_windows_paths():
+    """On a Windows-hosted backend, str(Path.relative_to()) produced
+    'src\generate_unconditional_samples.py' — a nonexistent filename inside
+    the Linux sandbox. The stored form must always be POSIX."""
+    from pathlib import PureWindowsPath
+
+    from app.services.intake import repo_relative_posix
+
+    root = PureWindowsPath(r"C:\Users\x\rerun_live_gpt-2")
+    path = PureWindowsPath(r"C:\Users\x\rerun_live_gpt-2\src\generate_unconditional_samples.py")
+    assert repo_relative_posix(path, root) == "src/generate_unconditional_samples.py"
+
+
+def test_find_entrypoint_candidates_returns_posix_paths_for_nested_files(tmp_path):
+    (tmp_path / "src" / "deep").mkdir(parents=True)
+    (tmp_path / "src" / "deep" / "train.py").write_text("print(1)\n", encoding="utf-8")
+    (tmp_path / "src" / "run_it.py").write_text("if __name__ == '__main__':\n    pass\n", encoding="utf-8")
+    candidates = find_entrypoint_candidates(tmp_path)
+    assert candidates == ("src/deep/train.py", "src/run_it.py")
+    assert not any("\\" in c for c in candidates)
