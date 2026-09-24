@@ -148,3 +148,43 @@ def test_aggregate_batch_results_output_passes_the_real_batch_router_validation(
     path.write_text(json.dumps(batch), encoding="utf-8")
     loaded = load_batch_results(path)
     assert loaded["n"] == 2
+
+
+# --- "Our fault" runs are excluded from the reproducibility denominator ----
+
+
+def test_aggregate_excludes_our_fault_codes_from_the_denominator():
+    results = [
+        {"name": "a", "verdict": "RUNS_CLEAN"},
+        {"name": "b", "verdict": "BLOCKED", "taxonomy_code": "DEP_MISSING"},
+        {"name": "c", "verdict": "INDETERMINATE", "reason_code": "ENTRYPOINT_UNCLEAR"},
+        {"name": "d", "verdict": "INDETERMINATE", "reason_code": "PIPELINE_ERROR:recon:ValueError"},
+        {"name": "e", "verdict": "INDETERMINATE", "reason_code": "PIPELINE_ERROR:sandbox:RuntimeError"},
+        {"name": "f", "verdict": "INDETERMINATE", "reason_code": "RECON_MODEL_ERROR"},
+    ]
+    batch = aggregate_batch_results(results)
+    assert batch["n"] == 6 == len(batch["repos"])
+    assert batch["n_measured"] == 3
+    assert batch["excluded_our_fault"] == 3
+    assert batch["our_fault_breakdown"] == {"PIPELINE_ERROR": 2, "RECON_MODEL_ERROR": 1}
+    # 1 clean out of 3 measured — not 1 out of 6.
+    assert batch["recovery_rate"] == pytest.approx(1 / 3)
+    # ENTRYPOINT_UNCLEAR is a genuine (repo-side) INDETERMINATE and still counts.
+    assert batch["indeterminate"] == 1
+
+
+def test_aggregate_negative_control_repo_side_codes_stay_in_the_denominator():
+    results = [
+        {"name": "a", "verdict": "RUNS_CLEAN"},
+        {"name": "b", "verdict": "INDETERMINATE", "reason_code": "ENTRYPOINT_UNCLEAR"},
+    ]
+    batch = aggregate_batch_results(results)
+    assert batch["n_measured"] == 2
+    assert batch["excluded_our_fault"] == 0
+    assert batch["recovery_rate"] == pytest.approx(0.5)
+
+
+def test_aggregate_refuses_a_rate_when_every_run_was_our_fault():
+    results = [{"name": "a", "verdict": "INDETERMINATE", "reason_code": "PIPELINE_ERROR:planner:KeyError"}]
+    with pytest.raises(ValueError):
+        aggregate_batch_results(results)

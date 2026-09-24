@@ -25,7 +25,9 @@ persisting the `PipelineResult` it returns.
 from __future__ import annotations
 
 import os
+import re
 import subprocess
+import traceback
 from collections.abc import Callable
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
@@ -42,6 +44,42 @@ from app.services.tamper_gate import check_patch
 
 class OrchestratorError(RuntimeError):
     pass
+
+
+# Reason codes that mean "RERUN itself failed", not "the repo failed". Runs
+# ending with one of these are reported separately and excluded from the
+# Batch Lab reproducibility denominator (runner.aggregate_batch_results) —
+# counting our own crash against a paper repo would be a false measurement.
+PIPELINE_ERROR = "PIPELINE_ERROR"
+OUR_FAULT_CODES: tuple[str, ...] = (PIPELINE_ERROR, recon.RECON_MODEL_ERROR)
+
+_REASON_CODE_RE = re.compile(r"^([A-Z][A-Z_]*(?::[A-Za-z0-9_.]+)*): ")
+
+
+def reason_code_of(indeterminate_reason: str | None) -> str | None:
+    """The stable code prefix of an `indeterminate_reason`
+    ("ENTRYPOINT_UNCLEAR: ...", "PIPELINE_ERROR:recon:ValueError: ..."), or
+    None if the reason carries no code."""
+    match = _REASON_CODE_RE.match(indeterminate_reason or "")
+    return match.group(1) if match else None
+
+
+def is_our_fault(reason_code: str | None) -> bool:
+    if not reason_code:
+        return False
+    return reason_code.split(":", 1)[0] in OUR_FAULT_CODES
+
+
+@dataclass
+class _RunState:
+    """Mutable progress of one run, kept outside the stage code so the
+    exception boundary in `run_pipeline` can still report where it failed
+    and everything recorded up to that point."""
+
+    stage: str = "intake"
+    log_lines: list[str] = field(default_factory=list)
+    attempts: list = field(default_factory=list)
+    build_plan_dict: dict | None = None
 
 
 @dataclass(frozen=True)
@@ -81,6 +119,9 @@ class PipelineResult:
     timestamp: str
     repo_url: str
     commit_sha: str
+    # Full traceback when the run ended via the stage exception boundary
+    # (PIPELINE_ERROR); empty otherwise. Also written into full_log.
+    error_traceback: str = ""
 
 
 def _apply_diff_with_git(workdir: Path, diff_text: str) -> None:
@@ -280,14 +321,59 @@ def run_pipeline(
     while this function is still running, rather than only after it
     returns. Optional and side-effect-only: omitting it changes nothing
     about `run_pipeline`'s own behavior or return value.
+
+    Invariant: every call returns a PipelineResult with a verdict and a
+    certificate. Any unexpected exception in any stage ends the run as
+    INDETERMINATE with reason code PIPELINE_ERROR:<stage>:<ExceptionType>
+    and the traceback recorded — never an unhandled crash. Sandboxes are
+    never left behind: each sandbox_runner call owns its sandbox's whole
+    lifecycle (sandbox.run_build_and_execute destroys it in `finally`).
     """
-    log_lines: list[str] = []
+    state = _RunState()
+    try:
+        return _run_stages(
+            repo_url=repo_url,
+            commit_sha=commit_sha,
+            workdir=workdir,
+            intake_result=intake_result,
+            deps=deps,
+            cost_guard=cost_guard,
+            run_id=run_id,
+            on_event=on_event,
+            state=state,
+        )
+    except Exception as exc:  # noqa: BLE001 - this IS the boundary
+        return _finalize_pipeline_error(
+            exc,
+            state=state,
+            deps=deps,
+            cost_guard=cost_guard,
+            repo_url=repo_url,
+            commit_sha=commit_sha,
+            on_event=on_event,
+        )
+
+
+def _run_stages(
+    *,
+    repo_url: str,
+    commit_sha: str,
+    workdir: Path,
+    intake_result: RepoIntake,
+    deps: PipelineDeps,
+    cost_guard: CostGuard,
+    run_id: str,
+    on_event: Callable[[str], None] | None,
+    state: _RunState,
+) -> PipelineResult:
+    log_lines = state.log_lines
 
     def _log(line: str) -> None:
         log_lines.append(line)
         if on_event is not None:
             on_event(line)
 
+    state.stage = "intake"
     _log(f"[intake] cloned {repo_url}@{commit_sha}")
 
     entrypoint_source = {}
@@ -298,6 +384,7 @@ def run_pipeline(
             if content is not None:
                 entrypoint_source[candidate] = content
 
+    state.stage = "recon"
     _log("[recon] calling Nemotron Nano")
     recon_result = recon.run_recon(
         deps.recon_client, deps.recon_model, intake_result, entrypoint_source, cost_guard=cost_guard
@@ -324,9 +411,11 @@ def run_pipeline(
             attempts_used=0,
             repo_url=repo_url,
             commit_sha=commit_sha,
+            state=state,
         )
     _log(f"[recon] entrypoint={recon_result.entrypoint} confidence={recon_result.confidence:.2f}")
 
+    state.stage = "planner"
     plan = planner.build_plan(
         intake_result,
         recon_result,
@@ -335,6 +424,7 @@ def run_pipeline(
         cost_guard=cost_guard,
         default_image=deps.default_sandbox_image,
     )
+    state.build_plan_dict = plan.as_dict()
     _log(f"[planner] build plan: {plan.as_dict()}")
 
     def _execute(current_workdir: Path) -> SandboxRunResult:
@@ -344,6 +434,7 @@ def run_pipeline(
         # recorded spend has already reached the ceiling, and records the
         # step's real cost (SandboxRunResult.total_cost_usd, sourced from
         # Nebius's own per-run ContreeResult.cost) immediately after.
+        state.stage = "sandbox"
         cost_guard.check_daily_budget(0.0)
         # §8 S2: "Live sandbox badge (id, elapsed time, wall-clock
         # remaining)" — the wall-clock ceiling is logged here, before the
@@ -385,15 +476,17 @@ def run_pipeline(
             attempts_used=0,
             repo_url=repo_url,
             commit_sha=commit_sha,
+            state=state,
         )
 
     _log(f"[sandbox] id={sandbox_result.sandbox_id} exit_code={sandbox_result.final.exit_code}")
 
-    attempts: list[AttemptRecord] = []
+    attempts: list[AttemptRecord] = state.attempts
     verdict = "RUNS_CLEAN" if sandbox_result.succeeded else None
     taxonomy_code: str | None = None
 
     if not sandbox_result.succeeded:
+        state.stage = "classifier"
         classification = classifier.classify(
             sandbox_result.final.exit_code,
             sandbox_result.final.stderr,
@@ -409,10 +502,12 @@ def run_pipeline(
             except CostLimitExceeded:
                 break
 
+            state.stage = "repairer"
             target_file = _target_file_for(classification, recon_result.entrypoint, intake_result.dependency_files)
             target_path = workdir / target_file
             target_content = (read_text_capped(target_path) or "") if target_path.is_file() else ""
 
+            state.stage = "tavily"
             try:
                 tavily_context = tavily.fetch_context(deps.tavily_client, classification.code, classification.evidence)
             except tavily.TavilyError as exc:
@@ -423,6 +518,7 @@ def run_pipeline(
                     f"[tavily] {len(tavily_context.sources)} source(s) for '{tavily_context.query}'"
                 )
 
+            state.stage = "repairer"
             proposal = repairer.propose_repair(
                 deps.repair_client,
                 deps.repair_model,
@@ -442,6 +538,7 @@ def run_pipeline(
                 )
                 continue
 
+            state.stage = "tamper_gate"
             gate_result = check_patch(
                 proposal.diff_text,
                 {target_file: target_content},
@@ -467,6 +564,7 @@ def run_pipeline(
                 continue
 
             _log(f"[repair {attempt_number}] tamper gate PASS — applying and re-executing")
+            state.stage = "apply_diff"
             try:
                 deps.apply_diff(workdir, proposal.diff_text)
             except OrchestratorError as exc:
@@ -521,6 +619,7 @@ def run_pipeline(
                 sandbox_result = rerun_result
                 break
 
+            state.stage = "classifier"
             classification = classifier.classify(
                 rerun_result.final.exit_code,
                 rerun_result.final.stderr,
@@ -548,6 +647,7 @@ def run_pipeline(
         attempts_used=len(attempts),
         repo_url=repo_url,
         commit_sha=commit_sha,
+        state=state,
     )
 
 
@@ -565,12 +665,15 @@ def _finalize(
     repo_url: str,
     commit_sha: str,
     on_event: Callable[[str], None] | None = None,
+    state: _RunState | None = None,
 ) -> PipelineResult:
     def _log(line: str) -> None:
         log_lines.append(line)
         if on_event is not None:
             on_event(line)
 
+    if state is not None:
+        state.stage = "adjudicator"
     evidence_summary = "; ".join(log_lines[-5:])
     adjudication = adjudicator.adjudicate(
         deps.adjudicator_client,
@@ -586,6 +689,8 @@ def _finalize(
     elif adjudication.model_attempted_upgrade:
         _log("[adjudicator] model attempted to upgrade the verdict — rejected by the fixed clamp")
 
+    if state is not None:
+        state.stage = "passport"
     timestamp = datetime.now(timezone.utc).isoformat()
     full_log = "\n".join(log_lines)
 
@@ -612,4 +717,93 @@ def _finalize(
         timestamp=timestamp,
         repo_url=repo_url,
         commit_sha=commit_sha,
+    )
+
+
+def _finalize_pipeline_error(
+    exc: BaseException,
+    *,
+    state: _RunState,
+    deps: PipelineDeps,
+    cost_guard: CostGuard,
+    repo_url: str,
+    commit_sha: str,
+    on_event: Callable[[str], None] | None,
+) -> PipelineResult:
+    """The exception boundary's finalizer. Deliberately defensive: it must
+    itself never raise, because it is what guarantees a verdict. The
+    adjudicator is still consulted (it can only downgrade, and INDETERMINATE
+    is already the floor) unless the adjudicator is the stage that failed;
+    if the passport hash itself cannot be computed, the certificate carries
+    an empty hash (honestly unverifiable) rather than no result at all."""
+    log_lines = state.log_lines
+
+    def _log(line: str) -> None:
+        log_lines.append(line)
+        if on_event is not None:
+            try:
+                on_event(line)
+            except Exception:  # noqa: BLE001 - a broken listener must not block the verdict
+                pass
+
+    failed_stage = state.stage
+    code = f"{PIPELINE_ERROR}:{failed_stage}:{type(exc).__name__}"
+    text = str(exc).strip()
+    message = text.splitlines()[0][:300] if text else "no message"
+    reason = (
+        f"{code}: RERUN's own pipeline failed during '{failed_stage}' ({message}) — "
+        "this is not a verdict on the repository."
+    )
+    tb = "".join(traceback.format_exception(type(exc), exc, exc.__traceback__))
+    _log(f"[pipeline] INDETERMINATE: {reason}")
+    _log("[pipeline] traceback:\n" + tb.rstrip())
+
+    attempts = tuple(state.attempts)
+    verdict = "INDETERMINATE"
+    prose = adjudicator.templated_certificate_prose(verdict, None, len(attempts))
+    if failed_stage != "adjudicator":
+        try:
+            adjudication = adjudicator.adjudicate(
+                deps.adjudicator_client,
+                deps.adjudicator_model,
+                verdict=verdict,
+                taxonomy_code=None,
+                attempts_used=len(attempts),
+                evidence_summary=f"[pipeline] INDETERMINATE: {reason}",
+                cost_guard=cost_guard,
+            )
+            verdict, prose = adjudication.verdict, adjudication.certificate_prose
+        except Exception as adj_exc:  # noqa: BLE001
+            _log(f"[adjudicator] skipped after pipeline error: {type(adj_exc).__name__}")
+
+    timestamp = datetime.now(timezone.utc).isoformat()
+    full_log = "\n".join(log_lines)
+    try:
+        passport_hash = passport.compute_passport_hash(
+            {
+                "repo_url": repo_url,
+                "commit_sha": commit_sha,
+                "build_plan": state.build_plan_dict or {},
+                "full_log": full_log,
+                "diffs": [a.as_dict() for a in attempts],
+                "verdict": verdict,
+                "timestamp": timestamp,
+            }
+        )
+    except Exception:  # noqa: BLE001
+        passport_hash = ""
+
+    return PipelineResult(
+        verdict=verdict,
+        taxonomy_code=None,
+        indeterminate_reason=reason,
+        attempts=attempts,
+        build_plan=state.build_plan_dict,
+        full_log=full_log,
+        certificate_prose=prose,
+        reproduction_passport_hash=passport_hash,
+        timestamp=timestamp,
+        repo_url=repo_url,
+        commit_sha=commit_sha,
+        error_traceback=tb,
     )

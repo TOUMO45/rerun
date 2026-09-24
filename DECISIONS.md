@@ -2766,3 +2766,50 @@ Both sets verified to fail with the fix reverted (8 failed) and pass with it (8 
 Full suite: 278 passed, 7 skipped.
 
 ---
+
+## 2026-09-24 — Stage exception boundary: every run ends with a verdict
+
+**Invariant added:** `orchestrator.run_pipeline` never raises. The stage code moved
+into `_run_stages`, which records the current stage (`intake`, `recon`, `planner`,
+`sandbox`, `classifier`, `tavily`, `repairer`, `tamper_gate`, `apply_diff`,
+`adjudicator`, `passport`) plus everything produced so far (log, attempts, build plan)
+on a `_RunState`. Any exception escaping a stage ends the run via
+`_finalize_pipeline_error`:
+- verdict `INDETERMINATE`, reason `PIPELINE_ERROR:<stage>:<ExceptionType>: RERUN's own
+  pipeline failed during '<stage>' (<first line of message>) — this is not a verdict
+  on the repository.`
+- full traceback in `PipelineResult.error_traceback` **and** in `full_log`. Chosen over a
+  new DB column: `full_log` is already persisted and passport-hashed, and SQLite
+  `create_all` won't migrate existing local DBs. Trade-off accepted: the traceback
+  exposes backend file paths in the certificate log; paths are not secrets.
+- certificate still produced: the adjudicator is still consulted (it can only
+  downgrade; INDETERMINATE is the floor) unless it is the failing stage, then
+  templated prose. If passport hashing itself keeps failing, the hash is `""`
+  (honestly unverifiable), never fabricated.
+- partial progress is kept: attempts recorded before the crash stay in the record, and
+  a crash after a gate-PASS patch was applied can never surface as RUNS_AFTER_REPAIR.
+
+**Sandbox destruction:** the orchestrator does not own sandbox lifecycles — each
+`sandbox_runner` call creates, runs and destroys its own sandbox in `finally`
+(`sandbox.run_build_and_execute`, proven live in Phase 0). The tests use a lifecycle
+fake with the same contract and assert `created == destroyed` for every injected stage,
+including an explosion mid-execution.
+
+**"Our fault" codes:** `PIPELINE_ERROR` and `RECON_MODEL_ERROR` (`OUR_FAULT_CODES`,
+`is_our_fault()`, `reason_code_of()` in orchestrator). `run_single_repo` now emits
+`reason_code` per repo; `aggregate_batch_results` excludes our-fault runs from every
+verdict count and from the `recovery_rate` denominator, reporting them separately as
+`excluded_our_fault` / `our_fault_breakdown`. `n` is still the total attempted (the
+router's `n == len(repos)` check is unchanged); the denominator is the new
+`n_measured`. If every run was our fault, aggregation raises rather than emit a rate
+over zero measured repos. S4 now shows `N = n_measured` and an explicit exclusion note.
+
+**Tests:** `tests/test_orchestrator_boundary.py` — a control run that walks every stage
+to RUNS_AFTER_REPAIR, then an exception injected into each of the 11 stages
+(parametrized) → verdict INDETERMINATE, code `PIPELINE_ERROR:<stage>:_Boom`, traceback
+present, passport verifies, sandboxes created == destroyed. Plus: partial repair not
+upgraded; passport failing every time → empty hash, still a verdict. Three aggregation
+tests in `test_runner.py`. Mutation check: with the boundary's `except` narrowed to an
+unrelated type, 13 of 15 boundary tests fail. Full suite: 296 passed, 7 skipped.
+
+---

@@ -93,6 +93,10 @@ export interface BatchRepoResult {
 
 export interface BatchResults {
   n: number;
+  /** Denominator of recovery_rate: n minus runs that ended in RERUN's own errors. */
+  n_measured?: number;
+  excluded_our_fault?: number;
+  our_fault_breakdown?: Record<string, number>;
   recovery_rate: number;
   repos: BatchRepoResult[];
   runs_clean?: number;

@@ -39,7 +39,7 @@ from app.config import get_settings  # noqa: E402
 from app.services import intake  # noqa: E402
 from app.services.cost_guard import CostGuard  # noqa: E402
 from app.services.model_client import NebiusChatClient  # noqa: E402
-from app.services.orchestrator import build_pipeline_deps, run_pipeline  # noqa: E402
+from app.services.orchestrator import build_pipeline_deps, reason_code_of, run_pipeline  # noqa: E402
 
 MODEL_CALLS: list[dict] = []
 
@@ -157,6 +157,8 @@ def main(argv: list[str] | None = None) -> int:
             "verdict": result.verdict,
             "taxonomy_code": result.taxonomy_code,
             "indeterminate_reason": result.indeterminate_reason,
+            "reason_code": reason_code_of(result.indeterminate_reason),
+            "error_traceback": result.error_traceback,
             "attempts": [a.as_dict() for a in result.attempts],
             "certificate_prose": result.certificate_prose,
         }

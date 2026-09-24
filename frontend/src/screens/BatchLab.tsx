@@ -55,9 +55,18 @@ export function BatchLab() {
             {(data.recovery_rate * 100).toFixed(0)}%
           </span>
           <span className="pb-1 font-mono text-sm text-text-secondary">
-            Reproducibility Recovery Rate (N = {data.n})
+            Reproducibility Recovery Rate (N = {data.n_measured ?? data.n})
           </span>
         </div>
+        {(data.excluded_our_fault ?? 0) > 0 && (
+          <p className="mt-2 font-mono text-xs text-warn">
+            {data.excluded_our_fault} of {data.n} run(s) excluded: RERUN's own errors, not verdicts on the repos
+            {data.our_fault_breakdown
+              ? ` (${Object.entries(data.our_fault_breakdown).map(([k, v]) => `${k} ×${v}`).join(", ")})`
+              : ""}
+            .
+          </p>
+        )}
       </div>
 
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">

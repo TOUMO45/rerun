@@ -137,16 +137,31 @@ def aggregate_batch_results(per_repo_results: list[dict]) -> dict:
     Fully real and tested regardless of how the per-repo results were
     obtained (a live Nebius Job today, a fixture in a test, or a future
     local-sandbox fallback).
+
+    Runs whose `reason_code` is an "our fault" code (PIPELINE_ERROR,
+    RECON_MODEL_ERROR — RERUN itself failed, not the repo) are excluded from
+    the reproducibility denominator and every verdict count, and reported
+    separately under `excluded_our_fault` / `our_fault_breakdown`. `n` stays
+    the total number of repos attempted (so it always equals len(repos));
+    `n_measured` is the denominator `recovery_rate` is computed over.
     """
+    from app.services.orchestrator import is_our_fault
+
     n = len(per_repo_results)
     if n == 0:
         raise ValueError("cannot aggregate an empty batch — refuses to produce a fake 0/0 result")
 
     counts = {"RUNS_CLEAN": 0, "RUNS_AFTER_REPAIR": 0, "BLOCKED": 0, "INDETERMINATE": 0}
     failure_breakdown: dict[str, int] = {}
+    our_fault_breakdown: dict[str, int] = {}
     durations: list[float] = []
 
     for repo in per_repo_results:
+        reason_code = repo.get("reason_code")
+        if is_our_fault(reason_code):
+            family = reason_code.split(":", 1)[0]
+            our_fault_breakdown[family] = our_fault_breakdown.get(family, 0) + 1
+            continue
         verdict = repo["verdict"]
         if verdict in counts:
             counts[verdict] += 1
@@ -156,13 +171,23 @@ def aggregate_batch_results(per_repo_results: list[dict]) -> dict:
         if repo.get("duration_seconds") is not None:
             durations.append(repo["duration_seconds"])
 
+    excluded = sum(our_fault_breakdown.values())
+    n_measured = n - excluded
+    if n_measured == 0:
+        raise ValueError(
+            f"all {n} run(s) ended in RERUN's own errors ({our_fault_breakdown}) — "
+            "refuses to produce a recovery rate with no measured repos"
+        )
     recovered = counts["RUNS_CLEAN"] + counts["RUNS_AFTER_REPAIR"]
     durations.sort()
     median_duration = durations[len(durations) // 2] if durations else None
 
     return {
         "n": n,
-        "recovery_rate": recovered / n,
+        "n_measured": n_measured,
+        "excluded_our_fault": excluded,
+        "our_fault_breakdown": our_fault_breakdown,
+        "recovery_rate": recovered / n_measured,
         "runs_clean": counts["RUNS_CLEAN"],
         "runs_after_repair": counts["RUNS_AFTER_REPAIR"],
         "blocked": counts["BLOCKED"],

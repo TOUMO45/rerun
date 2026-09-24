@@ -32,7 +32,7 @@ from pathlib import Path
 from app.config import get_settings
 from app.services import intake
 from app.services.cost_guard import get_shared_cost_guard
-from app.services.orchestrator import build_pipeline_deps, run_pipeline
+from app.services.orchestrator import build_pipeline_deps, reason_code_of, run_pipeline
 
 
 def run_one_repo(
@@ -108,6 +108,9 @@ def run_one_repo(
             "repo_url": repo_url,
             "verdict": result.verdict,
             "taxonomy_code": result.taxonomy_code,
+            # e.g. ENTRYPOINT_UNCLEAR, RECON_MODEL_ERROR, PIPELINE_ERROR:recon:ValueError —
+            # the aggregator uses it to keep RERUN's own failures out of the denominator.
+            "reason_code": reason_code_of(result.indeterminate_reason),
             "attempts_used": len(result.attempts),
             "duration_seconds": round(time.monotonic() - started, 1),
         }
