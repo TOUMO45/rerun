@@ -3571,3 +3571,35 @@ re-measured.
 Backend 550 passed, 8 skipped; frontend 8 passed; build green.
 
 ---
+
+## 2026-09-24 — TTPT re-measured after the clone fix: honest BLOCKED (DEP_MISSING)
+
+Record `runs/live_run_ttpt_v5.json` — bundle v3, `tree_integrity: verified` (105 files,
+tree `6f5314f24788ac5d6bb8fb9c97898fc8a4248704`, checked before each of the 5 uploads),
+PASSPORT VERIFIED; `repair_mode: model_assisted`; spend $0.6799 ($0.0229 model).
+
+- **Baseline** (`bash run_ttpt.sh`, declared deps, python:3.11-slim): FAILS, exit 1,
+  `DEP_MISSING` — `No module named 'torch'`. That's the real first failure; v4's
+  `invalid option name` was our CRLF bug.
+- **Era** 2024-08-30 (dependency-files: `requirements.txt`). Time machine: Python
+  3.12, 36-package lock (torch 2.4.0, torchvision 0.19.0, numpy 2.1.0, scipy, scikit-learn,
+  yacs, pillow…), `dassl` not on the index → re-execution: `No module named 'dassl'`.
+- **Repair 1 (model):** `pip_git dassl` at the resolver-verified
+  `KaiyangZhou/Dassl.pytorch@c61a1b570ac6…` — env gate PASS; cited: the verified source
+  and the Tavily result it came from (`…/Dassl.pytorch/issues/32`); other results
+  logged, not cited. Failed: the slim image has no `git` binary. **Classifier defect:**
+  classified `DATA_MISSING` (it's a missing system tool → should be `SYS_LIB_MISSING`).
+- **Repair 2 (model):** `apt git` → Dassl now clones, but its `setup.py` imports
+  `numpy` at build time and pip builds it in an **isolated** build env, where the locked
+  numpy isn't visible → `ModuleNotFoundError: numpy` inside "Getting requirements to build
+  wheel".
+- **Repair 3 (model):** `add numpy==2.1.0` — already in the lock, so no effect → same
+  error → **BLOCKED `DEP_MISSING`**, recovery false.
+
+Honest outcome. The limit is the env-delta vocabulary: it can't express `pip install
+--no-build-isolation` for one package or a two-stage install (lock first, then the git
+source), which is what Dassl's legacy `setup.py` needs. Even past that, `run_ttpt.sh`
+trains on ImageNet and other datasets that aren't in the repo, so `DATA_MISSING` is the
+likely next wall.
+
+---
