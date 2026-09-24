@@ -1,0 +1,565 @@
+{
+  "run_kind": "live end-to-end run",
+  "started_at": "2026-09-24T11:53:01.596543+00:00",
+  "corpus_entry": {
+    "name": "TTPT",
+    "repo_url": "https://github.com/gaozhengqing/TTPT",
+    "commit_sha": "7d6a26246882e830c76a27b2bd669f399f824037"
+  },
+  "config": {
+    "models": {
+      "recon": "nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B",
+      "planner": "nvidia/nemotron-3-super-120b-a12b",
+      "repairer": "nvidia/nemotron-3-super-120b-a12b",
+      "adjudicator": "nvidia/Nemotron-3-Ultra-550b-a55b"
+    },
+    "sandbox_backend": "token_factory",
+    "sandbox_image_default": "python:3.11-slim",
+    "sandbox_wall_clock_seconds": 600.0,
+    "max_attempts": 3,
+    "tavily_configured": false,
+    "cost_cap_usd": 2.0
+  },
+  "intake": {
+    "duration_s": 4.61,
+    "resolved_sha": "7d6a26246882e830c76a27b2bd669f399f824037",
+    "dependency_files": [
+      "requirements.txt"
+    ],
+    "declared_dependencies": [
+      "ftfy",
+      "regex",
+      "tqdm"
+    ],
+    "entrypoint_candidates": [
+      "lpclip/feat_extractor.py",
+      "train.py"
+    ],
+    "notebook_paths": []
+  },
+  "pipeline_duration_s": 221.46,
+  "result": {
+    "verdict": "BLOCKED",
+    "taxonomy_code": "DEP_NOT_ON_PYPI",
+    "indeterminate_reason": "",
+    "reason_code": null,
+    "error_traceback": "",
+    "attempts": [
+      {
+        "attempt_number": 1,
+        "diff_text": "",
+        "gate_decision": "PASS",
+        "gate_violations": [],
+        "exit_code": 1,
+        "stdout_tail": "",
+        "stderr_tail": "/usr/local/lib/python3.11/site-packages/torch/_subclasses/functional_tensor.py:368: UserWarning: Failed to initialize NumPy: No module named 'numpy' (Triggered internally at /__w/pytorch/pytorch/torch/csrc/utils/tensor_numpy.cpp:84.)\n  cpu = _conversion_method_template(device=torch.device(\"cpu\"))\nTraceback (most recent call last):\n  File \"//train.py\", line 4, in <module>\n    from dassl.utils import setup_logger, set_random_seed, collect_env_info\nModuleNotFoundError: No module named 'dassl'\n",
+        "tavily_sources": [],
+        "env_delta": [
+          {
+            "op": "add",
+            "package": "torch",
+            "version": null,
+            "git_url": null,
+            "commit": null,
+            "justification": "Add missing torch dependency causing ModuleNotFoundError",
+            "evidence": "ModuleNotFoundError: No module named 'torch'"
+          }
+        ]
+      },
+      {
+        "attempt_number": 2,
+        "diff_text": "",
+        "gate_decision": "PASS",
+        "gate_violations": [],
+        "exit_code": 1,
+        "stdout_tail": "Collecting ftfy==6.1.1 (from -r .rerun-requirements.txt (line 1))\n  Downloading ftfy-6.1.1-py3-none-any.whl.metadata (6.1 kB)\nCollecting regex (from -r .rerun-requirements.txt (line 2))\n  Downloading regex-2026.9.10-cp311-cp311-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl.metadata (40 kB)\n     \u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501 40.6/40.6 kB 3.1 MB/s eta 0:00:00\nCollecting tqdm (from -r .rerun-requirements.txt (line 3))\n  Downloading tqdm-4.70.1-py3-none-any.whl.metadata (57 kB)\n     \u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501 57.4/57.4 kB 9.9 MB/s eta 0:00:00\nCollecting torch (from -r .rerun-requirements.txt (line 4))\n  Downloading torch-2.14.0-cp311-cp311-manylinux_2_28_x86_64.whl.metadata (37 kB)\n",
+        "stderr_tail": "ERROR: Could not find a version that satisfies the requirement dassl (from versions: none)\nERROR: No matching distribution found for dassl\n\n[notice] A new release of pip is available: 24.0 -> 26.2.1\n[notice] To update, run: pip install --upgrade pip\n",
+        "tavily_sources": [],
+        "env_delta": [
+          {
+            "op": "add",
+            "package": "dassl",
+            "version": null,
+            "git_url": null,
+            "commit": null,
+            "justification": "Add missing dassl dependency to resolve ModuleNotFoundError",
+            "evidence": "ModuleNotFoundError: No module named 'dassl'"
+          }
+        ]
+      },
+      {
+        "attempt_number": 3,
+        "diff_text": "",
+        "gate_decision": "DECLINED",
+        "gate_violations": [],
+        "exit_code": null,
+        "stdout_tail": "",
+        "stderr_tail": "",
+        "tavily_sources": [],
+        "env_delta": []
+      }
+    ],
+    "certificate_prose": "The build failed because the dependency 'dassl' could not be found on PyPI, with the classifier reporting 'Could not find a version that satisfies the requirement dassl (from versions: none)'. Repair attempt 2 re-execution exited with code 1, and repair attempt 3 was declined because no git URL or correct package name was provided for installing dassl via environment changes. The final verdict is BLOCKED after 3 repair attempts. Verifies that the artifact executes. Does not verify the paper's numerical results."
+  },
+  "certificate": {
+    "repo_url": "https://github.com/gaozhengqing/TTPT",
+    "commit_sha": "7d6a26246882e830c76a27b2bd669f399f824037",
+    "build_plan": {
+      "base_image": "python:3.11-slim",
+      "apt_install": [],
+      "install_commands": [
+        "printf '%s\\n' ftfy==6.1.1 regex tqdm torch dassl > .rerun-requirements.txt && pip install -r .rerun-requirements.txt"
+      ],
+      "execute_command": "python train.py",
+      "notes": [
+        "env delta: add torch \u2014 Add missing torch dependency causing ModuleNotFoundError",
+        "env delta: add dassl \u2014 Add missing dassl dependency to resolve ModuleNotFoundError"
+      ]
+    },
+    "full_log": "[intake] cloned https://github.com/gaozhengqing/TTPT@7d6a26246882e830c76a27b2bd669f399f824037\n[recon] calling Nemotron Nano\n[recon] entrypoint=train.py confidence=0.90\n[planner] build plan: {'base_image': 'python:3.11-slim', 'apt_install': [], 'install_commands': ['pip install -r requirements.txt'], 'execute_command': 'python train.py', 'notes': []}\n[sandbox] starting build+execute (wall_clock_seconds=600)\n[cost_guard] recorded $0.0193 sandbox spend, $1.9800 remaining today\n[sandbox] id=164b5ad7-bfd3-49d9-a2d7-168ccee8d18a exit_code=1\n[classifier] DEP_MISSING: ModuleNotFoundError: No module named 'torch'\n[repair 1] first reply was not valid JSON; re-asked once (same attempt)\n[repair 1] tamper gate PASS (env) \u2014 applying and re-executing\n[repair 1] env delta applied; build plan now: {'base_image': 'python:3.11-slim', 'apt_install': [], 'install_commands': [\"printf '%s\\\\n' ftfy==6.1.1 regex tqdm torch > .rerun-requirements.txt && pip install -r .rerun-requirements.txt\"], 'execute_command': 'python train.py', 'notes': ['env delta: add torch \u2014 Add missing torch dependency causing ModuleNotFoundError']}\n[sandbox] starting build+execute (wall_clock_seconds=600)\n[cost_guard] recorded $0.4297 sandbox spend, $1.5487 remaining today\n[repair 1] re-execution id=6e113d62-267c-44d2-a096-4c71088c2286 exit_code=1\n[classifier] DEP_MISSING: ModuleNotFoundError: No module named 'dassl'\n[repair 2] tamper gate PASS (env) \u2014 applying and re-executing\n[repair 2] env delta applied; build plan now: {'base_image': 'python:3.11-slim', 'apt_install': [], 'install_commands': [\"printf '%s\\\\n' ftfy==6.1.1 regex tqdm torch dassl > .rerun-requirements.txt && pip install -r .rerun-requirements.txt\"], 'execute_command': 'python train.py', 'notes': ['env delta: add torch \u2014 Add missing torch dependency causing ModuleNotFoundError', 'env delta: add dassl \u2014 Add missing dassl dependency to resolve ModuleNotFoundError']}\n[sandbox] starting build+execute (wall_clock_seconds=600)\n[cost_guard] recorded $0.0165 sandbox spend, $1.5309 remaining today\n[repair 2] re-execution id=bc4a860e-073f-4367-8b7e-df62f14753e0 exit_code=1\n[classifier] DEP_NOT_ON_PYPI: ERROR: Could not find a version that satisfies the requirement dassl (from versions: none)\n[repair 3] declined: Cannot fix dassl dependency as no evidence provides a git URL or correct package name for installation via environment changes.\n[verdict] BLOCKED after 3 attempt(s): DEP_NOT_ON_PYPI",
+    "diffs": [
+      {
+        "attempt_number": 1,
+        "diff_text": "",
+        "gate_decision": "PASS",
+        "gate_violations": [],
+        "exit_code": 1,
+        "stdout_tail": "",
+        "stderr_tail": "/usr/local/lib/python3.11/site-packages/torch/_subclasses/functional_tensor.py:368: UserWarning: Failed to initialize NumPy: No module named 'numpy' (Triggered internally at /__w/pytorch/pytorch/torch/csrc/utils/tensor_numpy.cpp:84.)\n  cpu = _conversion_method_template(device=torch.device(\"cpu\"))\nTraceback (most recent call last):\n  File \"//train.py\", line 4, in <module>\n    from dassl.utils import setup_logger, set_random_seed, collect_env_info\nModuleNotFoundError: No module named 'dassl'\n",
+        "tavily_sources": [],
+        "env_delta": [
+          {
+            "op": "add",
+            "package": "torch",
+            "version": null,
+            "git_url": null,
+            "commit": null,
+            "justification": "Add missing torch dependency causing ModuleNotFoundError",
+            "evidence": "ModuleNotFoundError: No module named 'torch'"
+          }
+        ]
+      },
+      {
+        "attempt_number": 2,
+        "diff_text": "",
+        "gate_decision": "PASS",
+        "gate_violations": [],
+        "exit_code": 1,
+        "stdout_tail": "Collecting ftfy==6.1.1 (from -r .rerun-requirements.txt (line 1))\n  Downloading ftfy-6.1.1-py3-none-any.whl.metadata (6.1 kB)\nCollecting regex (from -r .rerun-requirements.txt (line 2))\n  Downloading regex-2026.9.10-cp311-cp311-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl.metadata (40 kB)\n     \u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501 40.6/40.6 kB 3.1 MB/s eta 0:00:00\nCollecting tqdm (from -r .rerun-requirements.txt (line 3))\n  Downloading tqdm-4.70.1-py3-none-any.whl.metadata (57 kB)\n     \u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501 57.4/57.4 kB 9.9 MB/s eta 0:00:00\nCollecting torch (from -r .rerun-requirements.txt (line 4))\n  Downloading torch-2.14.0-cp311-cp311-manylinux_2_28_x86_64.whl.metadata (37 kB)\n",
+        "stderr_tail": "ERROR: Could not find a version that satisfies the requirement dassl (from versions: none)\nERROR: No matching distribution found for dassl\n\n[notice] A new release of pip is available: 24.0 -> 26.2.1\n[notice] To update, run: pip install --upgrade pip\n",
+        "tavily_sources": [],
+        "env_delta": [
+          {
+            "op": "add",
+            "package": "dassl",
+            "version": null,
+            "git_url": null,
+            "commit": null,
+            "justification": "Add missing dassl dependency to resolve ModuleNotFoundError",
+            "evidence": "ModuleNotFoundError: No module named 'dassl'"
+          }
+        ]
+      },
+      {
+        "attempt_number": 3,
+        "diff_text": "",
+        "gate_decision": "DECLINED",
+        "gate_violations": [],
+        "exit_code": null,
+        "stdout_tail": "",
+        "stderr_tail": "",
+        "tavily_sources": [],
+        "env_delta": []
+      }
+    ],
+    "verdict": "BLOCKED",
+    "timestamp": "2026-09-24T11:56:47.675041+00:00",
+    "reproduction_passport_hash": "e186a51581a76c1541bf2f2c2a474817fb2bc2b39209799ab58714a33591cd80"
+  },
+  "finished_at": "2026-09-24T11:56:47.703425+00:00",
+  "events": [
+    {
+      "t_s": 0.0,
+      "at": "2026-09-24T11:53:06.211188+00:00",
+      "line": "[intake] cloned https://github.com/gaozhengqing/TTPT@7d6a26246882e830c76a27b2bd669f399f824037"
+    },
+    {
+      "t_s": 0.0,
+      "at": "2026-09-24T11:53:06.212437+00:00",
+      "line": "[recon] calling Nemotron Nano"
+    },
+    {
+      "t_s": 11.44,
+      "at": "2026-09-24T11:53:17.654308+00:00",
+      "line": "[recon] entrypoint=train.py confidence=0.90"
+    },
+    {
+      "t_s": 12.85,
+      "at": "2026-09-24T11:53:19.057219+00:00",
+      "line": "[planner] build plan: {'base_image': 'python:3.11-slim', 'apt_install': [], 'install_commands': ['pip install -r requirements.txt'], 'execute_command': 'python train.py', 'notes': []}"
+    },
+    {
+      "t_s": 12.85,
+      "at": "2026-09-24T11:53:19.057324+00:00",
+      "line": "[sandbox] starting build+execute (wall_clock_seconds=600)"
+    },
+    {
+      "t_s": 39.48,
+      "at": "2026-09-24T11:53:45.693602+00:00",
+      "line": "[cost_guard] recorded $0.0193 sandbox spend, $1.9800 remaining today"
+    },
+    {
+      "t_s": 39.48,
+      "at": "2026-09-24T11:53:45.693695+00:00",
+      "line": "[sandbox] id=164b5ad7-bfd3-49d9-a2d7-168ccee8d18a exit_code=1"
+    },
+    {
+      "t_s": 39.48,
+      "at": "2026-09-24T11:53:45.695666+00:00",
+      "line": "[classifier] DEP_MISSING: ModuleNotFoundError: No module named 'torch'"
+    },
+    {
+      "t_s": 46.76,
+      "at": "2026-09-24T11:53:52.974225+00:00",
+      "line": "[repair 1] first reply was not valid JSON; re-asked once (same attempt)"
+    },
+    {
+      "t_s": 46.84,
+      "at": "2026-09-24T11:53:53.053287+00:00",
+      "line": "[repair 1] tamper gate PASS (env) \u2014 applying and re-executing"
+    },
+    {
+      "t_s": 46.84,
+      "at": "2026-09-24T11:53:53.053519+00:00",
+      "line": "[repair 1] env delta applied; build plan now: {'base_image': 'python:3.11-slim', 'apt_install': [], 'install_commands': [\"printf '%s\\\\n' ftfy==6.1.1 regex tqdm torch > .rerun-requirements.txt && pip install -r .rerun-requirements.txt\"], 'execute_command': 'python train.py', 'notes': ['env delta: add torch \u2014 Add missing torch dependency causing ModuleNotFoundError']}"
+    },
+    {
+      "t_s": 46.84,
+      "at": "2026-09-24T11:53:53.053551+00:00",
+      "line": "[sandbox] starting build+execute (wall_clock_seconds=600)"
+    },
+    {
+      "t_s": 177.24,
+      "at": "2026-09-24T11:56:03.447958+00:00",
+      "line": "[cost_guard] recorded $0.4297 sandbox spend, $1.5487 remaining today"
+    },
+    {
+      "t_s": 177.24,
+      "at": "2026-09-24T11:56:03.448022+00:00",
+      "line": "[repair 1] re-execution id=6e113d62-267c-44d2-a096-4c71088c2286 exit_code=1"
+    },
+    {
+      "t_s": 177.24,
+      "at": "2026-09-24T11:56:03.448186+00:00",
+      "line": "[classifier] DEP_MISSING: ModuleNotFoundError: No module named 'dassl'"
+    },
+    {
+      "t_s": 182.26,
+      "at": "2026-09-24T11:56:08.470842+00:00",
+      "line": "[repair 2] tamper gate PASS (env) \u2014 applying and re-executing"
+    },
+    {
+      "t_s": 182.26,
+      "at": "2026-09-24T11:56:08.470968+00:00",
+      "line": "[repair 2] env delta applied; build plan now: {'base_image': 'python:3.11-slim', 'apt_install': [], 'install_commands': [\"printf '%s\\\\n' ftfy==6.1.1 regex tqdm torch dassl > .rerun-requirements.txt && pip install -r .rerun-requirements.txt\"], 'execute_command': 'python train.py', 'notes': ['env delta: add torch \u2014 Add missing torch dependency causing ModuleNotFoundError', 'env delta: add dassl \u2014 Add missing dassl dependency to resolve ModuleNotFoundError']}"
+    },
+    {
+      "t_s": 182.26,
+      "at": "2026-09-24T11:56:08.470994+00:00",
+      "line": "[sandbox] starting build+execute (wall_clock_seconds=600)"
+    },
+    {
+      "t_s": 195.37,
+      "at": "2026-09-24T11:56:21.584962+00:00",
+      "line": "[cost_guard] recorded $0.0165 sandbox spend, $1.5309 remaining today"
+    },
+    {
+      "t_s": 195.37,
+      "at": "2026-09-24T11:56:21.585022+00:00",
+      "line": "[repair 2] re-execution id=bc4a860e-073f-4367-8b7e-df62f14753e0 exit_code=1"
+    },
+    {
+      "t_s": 195.37,
+      "at": "2026-09-24T11:56:21.585190+00:00",
+      "line": "[classifier] DEP_NOT_ON_PYPI: ERROR: Could not find a version that satisfies the requirement dassl (from versions: none)"
+    },
+    {
+      "t_s": 219.01,
+      "at": "2026-09-24T11:56:45.217663+00:00",
+      "line": "[repair 3] declined: Cannot fix dassl dependency as no evidence provides a git URL or correct package name for installation via environment changes."
+    },
+    {
+      "t_s": 219.01,
+      "at": "2026-09-24T11:56:45.217727+00:00",
+      "line": "[verdict] BLOCKED after 3 attempt(s): DEP_NOT_ON_PYPI"
+    }
+  ],
+  "model_calls": [
+    {
+      "model": "nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B",
+      "started_at": "2026-09-24T11:53:06.426717+00:00",
+      "latency_s": 11.23,
+      "finish_reason": "stop",
+      "content_is_none": false,
+      "has_reasoning": true,
+      "usage": {
+        "completion_tokens": 1315,
+        "prompt_tokens": 2983,
+        "total_tokens": 4298,
+        "completion_tokens_details": null,
+        "prompt_tokens_details": null
+      }
+    },
+    {
+      "model": "nvidia/nemotron-3-super-120b-a12b",
+      "started_at": "2026-09-24T11:53:17.655627+00:00",
+      "latency_s": 1.4,
+      "finish_reason": "stop",
+      "content_is_none": false,
+      "has_reasoning": true,
+      "usage": {
+        "completion_tokens": 73,
+        "prompt_tokens": 284,
+        "total_tokens": 357,
+        "completion_tokens_details": {
+          "accepted_prediction_tokens": null,
+          "audio_tokens": null,
+          "reasoning_tokens": 63,
+          "rejected_prediction_tokens": null,
+          "text_tokens": null
+        },
+        "prompt_tokens_details": {
+          "audio_tokens": null,
+          "cache_write_tokens": null,
+          "cached_tokens": 0,
+          "image_tokens": null,
+          "text_tokens": null,
+          "created_cache_tokens": 0,
+          "multimodal_tokens": null
+        },
+        "prompt_cache_hit_tokens": 0,
+        "prompt_cache_miss_tokens": 284
+      }
+    },
+    {
+      "model": "nvidia/nemotron-3-super-120b-a12b",
+      "started_at": "2026-09-24T11:53:45.697886+00:00",
+      "latency_s": 3.71,
+      "finish_reason": "stop",
+      "content_is_none": false,
+      "has_reasoning": true,
+      "usage": {
+        "completion_tokens": 577,
+        "prompt_tokens": 1409,
+        "total_tokens": 1986,
+        "completion_tokens_details": {
+          "accepted_prediction_tokens": null,
+          "audio_tokens": null,
+          "reasoning_tokens": 496,
+          "rejected_prediction_tokens": null,
+          "text_tokens": null
+        },
+        "prompt_tokens_details": {
+          "audio_tokens": null,
+          "cache_write_tokens": null,
+          "cached_tokens": 0,
+          "image_tokens": null,
+          "text_tokens": null,
+          "created_cache_tokens": 0,
+          "multimodal_tokens": null
+        },
+        "prompt_cache_hit_tokens": 0,
+        "prompt_cache_miss_tokens": 1409
+      }
+    },
+    {
+      "model": "nvidia/nemotron-3-super-120b-a12b",
+      "started_at": "2026-09-24T11:53:49.413706+00:00",
+      "latency_s": 3.56,
+      "finish_reason": "stop",
+      "content_is_none": false,
+      "has_reasoning": true,
+      "usage": {
+        "completion_tokens": 336,
+        "prompt_tokens": 1472,
+        "total_tokens": 1808,
+        "completion_tokens_details": {
+          "accepted_prediction_tokens": null,
+          "audio_tokens": null,
+          "reasoning_tokens": 242,
+          "rejected_prediction_tokens": null,
+          "text_tokens": null
+        },
+        "prompt_tokens_details": {
+          "audio_tokens": null,
+          "cache_write_tokens": null,
+          "cached_tokens": 0,
+          "image_tokens": null,
+          "text_tokens": null,
+          "created_cache_tokens": 0,
+          "multimodal_tokens": null
+        },
+        "prompt_cache_hit_tokens": 0,
+        "prompt_cache_miss_tokens": 1472
+      }
+    },
+    {
+      "model": "nvidia/nemotron-3-super-120b-a12b",
+      "started_at": "2026-09-24T11:56:03.450977+00:00",
+      "latency_s": 5.02,
+      "finish_reason": "stop",
+      "content_is_none": false,
+      "has_reasoning": true,
+      "usage": {
+        "completion_tokens": 883,
+        "prompt_tokens": 1569,
+        "total_tokens": 2452,
+        "completion_tokens_details": {
+          "accepted_prediction_tokens": null,
+          "audio_tokens": null,
+          "reasoning_tokens": 778,
+          "rejected_prediction_tokens": null,
+          "text_tokens": null
+        },
+        "prompt_tokens_details": {
+          "audio_tokens": null,
+          "cache_write_tokens": null,
+          "cached_tokens": 0,
+          "image_tokens": null,
+          "text_tokens": null,
+          "created_cache_tokens": 0,
+          "multimodal_tokens": null
+        },
+        "prompt_cache_hit_tokens": 0,
+        "prompt_cache_miss_tokens": 1569
+      }
+    },
+    {
+      "model": "nvidia/nemotron-3-super-120b-a12b",
+      "started_at": "2026-09-24T11:56:21.587580+00:00",
+      "latency_s": 23.63,
+      "finish_reason": "stop",
+      "content_is_none": false,
+      "has_reasoning": true,
+      "usage": {
+        "completion_tokens": 4962,
+        "prompt_tokens": 2020,
+        "total_tokens": 6982,
+        "completion_tokens_details": {
+          "accepted_prediction_tokens": null,
+          "audio_tokens": null,
+          "reasoning_tokens": 4916,
+          "rejected_prediction_tokens": null,
+          "text_tokens": null
+        },
+        "prompt_tokens_details": {
+          "audio_tokens": null,
+          "cache_write_tokens": null,
+          "cached_tokens": 0,
+          "image_tokens": null,
+          "text_tokens": null,
+          "created_cache_tokens": 0,
+          "multimodal_tokens": null
+        },
+        "prompt_cache_hit_tokens": 0,
+        "prompt_cache_miss_tokens": 2020
+      }
+    },
+    {
+      "model": "nvidia/Nemotron-3-Ultra-550b-a55b",
+      "started_at": "2026-09-24T11:56:45.219080+00:00",
+      "latency_s": 2.46,
+      "finish_reason": "stop",
+      "content_is_none": false,
+      "has_reasoning": true,
+      "usage": {
+        "completion_tokens": 476,
+        "prompt_tokens": 636,
+        "total_tokens": 1112,
+        "completion_tokens_details": {
+          "accepted_prediction_tokens": null,
+          "audio_tokens": null,
+          "reasoning_tokens": 337,
+          "rejected_prediction_tokens": null,
+          "text_tokens": null
+        },
+        "prompt_tokens_details": {
+          "audio_tokens": null,
+          "cache_write_tokens": null,
+          "cached_tokens": 0,
+          "image_tokens": null,
+          "text_tokens": null,
+          "multimodal_tokens": null
+        },
+        "prompt_cache_hit_tokens": 0,
+        "prompt_cache_miss_tokens": 636
+      }
+    }
+  ],
+  "cost_guard": {
+    "spent_usd": 0.47623125000000005,
+    "model_spent_usd": 0.010732680000000001,
+    "sandbox_spent_usd": 0.46549857,
+    "remaining_usd": 1.52376875,
+    "model_usage": [
+      {
+        "model": "nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B",
+        "prompt_tokens": 2983,
+        "completion_tokens": 1315,
+        "cost_usd": 0.0004945799999999999
+      },
+      {
+        "model": "nvidia/nemotron-3-super-120b-a12b",
+        "prompt_tokens": 284,
+        "completion_tokens": 73,
+        "cost_usd": 0.0001509
+      },
+      {
+        "model": "nvidia/nemotron-3-super-120b-a12b",
+        "prompt_tokens": 1409,
+        "completion_tokens": 577,
+        "cost_usd": 0.000942
+      },
+      {
+        "model": "nvidia/nemotron-3-super-120b-a12b",
+        "prompt_tokens": 1472,
+        "completion_tokens": 336,
+        "cost_usd": 0.000744
+      },
+      {
+        "model": "nvidia/nemotron-3-super-120b-a12b",
+        "prompt_tokens": 1569,
+        "completion_tokens": 883,
+        "cost_usd": 0.0012654
+      },
+      {
+        "model": "nvidia/nemotron-3-super-120b-a12b",
+        "prompt_tokens": 2020,
+        "completion_tokens": 4962,
+        "cost_usd": 0.0050718000000000004
+      },
+      {
+        "model": "nvidia/Nemotron-3-Ultra-550b-a55b",
+        "prompt_tokens": 636,
+        "completion_tokens": 476,
+        "cost_usd": 0.002064
+      }
+    ],
+    "prices_usd_per_1m": {
+      "nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B": [
+        0.06,
+        0.24
+      ],
+      "nvidia/nemotron-3-super-120b-a12b": [
+        0.3,
+        0.9
+      ],
+      "nvidia/Nemotron-3-Ultra-550b-a55b": [
+        1.0,
+        3.0
+      ]
+    },
+    "prices_source": "https://api.tokenfactory.nebius.com/v1/models?verbose=true (pricing field)",
+    "prices_retrieved": "2026-09-24"
+  }
+}

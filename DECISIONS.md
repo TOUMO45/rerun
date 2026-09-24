@@ -3174,3 +3174,46 @@ source.
 Backend suite: 425 passed, 8 skipped.
 
 ---
+
+## 2026-09-24 — Step 4 stopped (no Tavily key); Step 5 live re-runs with env repair
+
+**Step 4 (Tavily as dependency resolver) was not started:** `TAVILY_API_KEY` is empty in
+`.env` and unset in the environment, and the instruction was to stop in that case. Step 5
+was run anyway: it was separately approved, capped, and its gpt-2 path does not depend on
+Tavily.
+
+**Live runs** (`runs/live_run_gpt2_v2.json`, `runs/live_run_ttpt_v2.json`; same pinned
+commits; $2 cap each, now including priced model spend). Both certificates →
+`scripts/verify_passport.py`: **PASSPORT VERIFIED**.
+
+| | gpt-2 | TTPT |
+|---|---|---|
+| Verdict | BLOCKED `DEP_MISSING` (`tensorflow.contrib`) | BLOCKED `DEP_NOT_ON_PYPI` (`dassl`) |
+| Attempts | 3 × env PASS (apt build-essential → add numpy → add tensorflow) | env PASS (add torch), env PASS (add dassl), DECLINED |
+| Recon / planner | 9.0 s / 1.8 s | 11.4 s / 1.4 s |
+| Sandbox runs | 19.0 / 45.8 / 49.2 / 112.6 s | 26.6 / 130.4 / 13.1 s |
+| Repair model | 6.2 / 5.2 / 5.7 s | 7.3 (incl. JSON re-ask) / 5.0 / 23.6 s |
+| Pipeline total | 256.9 s | 221.5 s |
+| Spend: model / sandbox / total | $0.0058 / $0.8169 / $0.8227 | $0.0107 / $0.4655 / $0.4762 |
+| Tokens (prompt/completion) | Nano 2,307/937; Super 7,514/2,144 (4 calls); Ultra 606/231 | Nano 2,983/1,315; Super 6,754/6,831 (5 calls); Ultra 636/476 |
+
+**What worked, live:** every attempt was repaired at the env layer; each change carried a
+justification and verbatim evidence that the env gate accepted; `regex==2017.4.5` compiled
+once `build-essential` was added (the failure that sank all three gpt-2 attempts on
+2026-09-24); classifier evidence carried full names; `sandbox id` was present on every
+run; TTPT's first invalid-JSON reply was re-asked inside the same attempt; model cost
+was priced; TTPT's final attempt **declined** rather than invent a git URL for Dassl — the
+prompt rule held.
+
+**Why still BLOCKED (real, not forced):**
+1. *One missing module per attempt.* The repairer fixes only the error in front of it
+   (numpy, then tensorflow); a 2019 repo with several undeclared deps burns the 3-attempt
+   cap. RERUN already computes the repo's imports (`env_repair.imported_top_level_modules`)
+   but doesn't show them to the repairer.
+2. *No era awareness.* `add tensorflow` with no version pulls TF 2.x; gpt-2 needs TF 1.x
+   (`tensorflow.contrib`), i.e. `tensorflow==1.15.x` on Python ≤3.7 — which the env layer
+   can express (`python 3.7` + `pin`) but the model had no evidence to choose. That is the
+   job Step 4 (Tavily, versions around the commit date) was meant to do.
+3. TTPT needs Dassl's real source (GitHub-only) — likewise needs Tavily.
+
+---
