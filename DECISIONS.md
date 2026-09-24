@@ -3622,3 +3622,20 @@ checks use the unauthenticated API (60/h), one call per candidate. All corpus-v1
 tamper-gate protected paths. `duckdb>=1.1` added as the `corpus` optional dependency.
 
 ---
+
+## 2026-09-24 — corpus-v1 drawn (20/20 eligible from 59 draws) and tagged
+
+Ran `scripts/draw_corpus.py draw` after the pre-registration commit (`057b66e`) and two
+output-encoding-only fixes committed before the draw (`7939bc6`: corpus-v1 files
+`-text`; `9832e43`: outputs written with LF — found because this checkout's
+`core.autocrlf=true` would otherwise change the hashed bytes on checkout, and Python's
+`write_text` on Windows writes CRLF). Result: 59 draws, 20 eligible, full log committed;
+the GitHub unauthenticated rate limit paused the draw once (~16 min wait, same order
+resumed). `corpus_hash` 063b700c…7d5c recomputed independently; loader accepts the file.
+Post-draw review found the E5 rule too permissive (8/20 recorded commands are install /
+download / preprocessing / setup steps or have placeholders) — reported in METHODOLOGY,
+**not** corrected, because the rule was pre-registered. Batch not run (as instructed).
+Every run record is tagged `repair_mode` (deterministic | model_assisted) by
+`scripts/audit_crlf.py` and, going forward, by the live driver and per-repo batch records.
+
+---

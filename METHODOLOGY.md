@@ -153,3 +153,29 @@ repo_url, commit_sha, command) sorted by name}; written into corpus.yaml and
 corpus_hash.txt, tagged `corpus-v1`, and carried into every run's passport (bundle v3
 `corpus_hash`). Any change is a new corpus version; results from different versions are
 never mixed. All corpus-v1 files are protected paths in the tamper gate.
+
+### corpus-v1 — draw result (2026-09-24)
+
+Drawn exactly as registered: **59 draws → 20 eligible** (E4 not Python: 15 — Jupyter
+Notebook 9, C++ 3, Julia/MATLAB/R 1 each; E5 no runnable documented command: 24; no E3
+failures, no duplicates). `corpus_hash` **063b700c38006bcf3160c64674a196cdf2fddb768a0c3de232746181aeef7d5c**
+(independently recomputed), tag `corpus-v1`. Every draw with its reason:
+`backend/app/batch/corpus_v1/screening_log.jsonl`. Venue-years drawn: ICML 2020 ×4,
+ICLR 2020 ×3, ICML 2018 ×3, NeurIPS 2018/2021 and ICLR 2021/2022 ×2 each, NeurIPS
+2019/2020 ×1.
+
+**Post-draw review — a weakness of the registered E5 rule, reported, not corrected.** E5
+accepted the *first* README line that invokes an existing script, which is not always a
+command that *runs the paper's code*. Manual reading of the 20 recorded commands: **12 are
+ready-to-run** (#1, 2, 4, 5, 7, 8, 9, 11, 12, 15, 16, 20); **8 are not**: an install step
+(#6 `python setup.py install`), a data download (#13 `bash download.sh`), preprocessing
+(#3 `preprocess.py`, #14 `process.py`, #18 `data/basketball/read_raw.py`), a setup script
+(#19 `tools/pre_run.sh`), and unfilled placeholders the regex didn't catch (#3 `$TEXT`, #10
+`CONF_FILE`/`LOG_DIR`, #17 `[ellipse|sawtooth|…]`, #18 `$RAW_DATA_DIR`). Because the rule
+was pre-registered, corpus-v1 is left exactly as drawn — changing entries after seeing
+them is precisely what pre-registration forbids. For a corpus-v2 registration: exclude
+`setup.py`/install/download/(pre)process/setup-named scripts, treat `$VAR`, `[a|b]`
+choice lists and ALL-CAPS argument values as placeholders, and pick the first
+*remaining* command. Whether the Batch Lab runs corpus-v1 as registered (reporting the 8
+as their own category) or a re-registered corpus-v2 is a decision for the human; the batch
+has not been run.
