@@ -12,6 +12,7 @@ PyPI). A code diff cannot fix those, so the repairer may also return an
     {"op": "pip_git", "package": "dassl", "git_url": "https://github.com/o/r", "commit": "<40-hex sha>", ...}
     {"op": "apt",     "package": "build-essential", ...}
     {"op": "python",  "version": "3.8", ...}
+    {"op": "pip_no_build_isolation", "package": "dassl", ...}
 
 each with a one-line `justification` and an `evidence` string that must appear
 verbatim in the failing run's log. `check_env_delta` is the deterministic env
@@ -30,7 +31,7 @@ from pathlib import Path
 from app.services.planner import BuildPlan
 from app.services.tamper_gate import Violation
 
-OPS = ("pin", "unpin", "add", "remove", "pip_git", "apt", "python", "command")
+OPS = ("pin", "unpin", "add", "remove", "pip_git", "apt", "python", "command", "pip_no_build_isolation")
 MAX_CHANGES = 10
 # 3.6–3.13 verified live (2026-09-24) to exist as python:X-slim sandbox images.
 SUPPORTED_PYTHON_VERSIONS = ("3.6", "3.7", "3.8", "3.9", "3.10", "3.11", "3.12", "3.13")
@@ -53,6 +54,8 @@ class EnvRule:
     # Same rule name as the tamper gate's: the scale-reduction rule applies to
     # command changes too (fewer epochs/samples/steps via a flag).
     REDUCED_SCALE = "REDUCED_SCALE"
+    # pip_no_build_isolation without the build-log evidence that justifies it.
+    ENV_BUILD_ISOLATION_UNJUSTIFIED = "ENV_BUILD_ISOLATION_UNJUSTIFIED"
 
 
 # PEP 508 distribution name.
@@ -169,6 +172,50 @@ def imported_top_level_modules(repo_root: Path, max_files: int = 2000) -> frozen
     return frozenset(names)
 
 
+# Signs that pip is running a package's build backend in an isolated build
+# environment (the only place build isolation can hide a locked module).
+_BUILD_BACKEND_RE = re.compile(
+    r"Getting requirements to build (?:wheel|editable)|Preparing metadata \(pyproject\.toml\)"
+    r"|pip-build-env-|build_meta\.py|_in_process\.py"
+)
+_NO_MODULE_RE = re.compile(r"No module named ['\"]([\w.]+)['\"]")
+# How far back from an import error a build-backend frame may be (TTPT v5:
+# 214 chars from the last `build_meta.py` frame to "No module named 'numpy'").
+_BUILD_WINDOW = 2000
+# pip's "Collecting dassl@ git+..." / "Collecting numpy==1.2 (from ...)".
+_COLLECTING_RE = re.compile(r"^\s*Collecting ([A-Za-z0-9][A-Za-z0-9._-]*)", re.MULTILINE)
+
+
+def _dists_for_module(module: str) -> set[str]:
+    """Normalized distribution names that provide top-level `module`."""
+    from app.services.classifier import _IMPORT_TO_DIST
+
+    top = module.split(".")[0]
+    names = {_norm(top), _norm(_IMPORT_TO_DIST.get(top, top))}
+    names.update(dist for dist, imp in _DIST_TO_IMPORT.items() if imp == top)
+    return names
+
+
+def build_isolation_evidence(package: str, log_text: str, locked_requirements: tuple[str, ...]) -> str | None:
+    """The locked module the package's isolated build backend failed to
+    import, or None. Both must hold: pip collects `package` somewhere in the
+    log, and a `No module named 'X'` sits inside a build-backend traceback
+    (a build signature within the preceding _BUILD_WINDOW chars) with X's
+    distribution in the lock. This is exactly the case --no-build-isolation
+    fixes: the module IS installed, the isolated build env just can't see it
+    (TTPT v5, dassl -> numpy). No cross-line ordering is assumed: the
+    orchestrator's log is stderr then stdout, so pip's "Collecting" line
+    (stdout) comes after the build traceback (stderr)."""
+    if not any(_norm(m.group(1)) == _norm(package) for m in _COLLECTING_RE.finditer(log_text)):
+        return None
+    locked = {name for name in (_requirement_name(line) for line in locked_requirements) if name}
+    for match in _NO_MODULE_RE.finditer(log_text):
+        window = log_text[max(0, match.start() - _BUILD_WINDOW) : match.start()]
+        if _BUILD_BACKEND_RE.search(window) and _dists_for_module(match.group(1)) & locked:
+            return match.group(1)
+    return None
+
+
 def check_env_delta(
     changes: tuple[EnvChange, ...],
     *,
@@ -177,12 +224,16 @@ def check_env_delta(
     has_requirements_txt: bool,
     verified_git_sources: frozenset[tuple[str, str]] = frozenset(),
     current_command: str | None = None,
+    locked_requirements: tuple[str, ...] | None = None,
 ) -> tuple[Violation, ...]:
     """The deterministic env gate. Returns every violation (empty = PASS).
 
     `verified_git_sources` holds (lowercased https URL, commit) pairs that
     dep_resolver resolved to a real commit this attempt. A pip_git change
-    must match one exactly — a model-supplied URL or sha is never trusted."""
+    must match one exactly — a model-supplied URL or sha is never trusted.
+    `locked_requirements` is the time machine's resolved lock as currently
+    installed (None if no lock was resolved); pip_no_build_isolation is
+    only allowed against it."""
     violations: list[Violation] = []
 
     def _v(rule, reason, i):
@@ -238,6 +289,26 @@ def check_env_delta(
 
         if not c.package or not _PIP_NAME_RE.match(c.package):
             _v(EnvRule.ENV_INVALID_NAME, f"invalid pip package name {c.package!r}", i)
+            continue
+
+        if c.op == "pip_no_build_isolation":
+            # Build the named package without pip's isolated build env — only
+            # when its build backend demonstrably failed to import a module
+            # the lock already installs. Nothing else about the package changes.
+            if c.version:
+                _v(EnvRule.ENV_INVALID_CHANGE, "pip_no_build_isolation takes no version (the lock's spec is kept)", i)
+            if locked_requirements is None:
+                _v(EnvRule.ENV_UNSUPPORTED, "pip_no_build_isolation needs a resolved lock (the time machine did not produce one)", i)
+                continue
+            if not any(_requirement_name(line) == _norm(c.package) for line in locked_requirements):
+                _v(EnvRule.ENV_UNSUPPORTED, f"'{c.package}' is not in the environment being installed", i)
+                continue
+            if build_isolation_evidence(c.package, log_text, locked_requirements) is None:
+                _v(
+                    EnvRule.ENV_BUILD_ISOLATION_UNJUSTIFIED,
+                    f"the log does not show '{c.package}''s build backend failing to import a module present in the lock",
+                    i,
+                )
             continue
 
         if c.op in ("pin",) and not c.version:
@@ -395,6 +466,8 @@ def apply_env_delta(
 
     execute_command = plan.execute_command
     for c in changes:
+        if c.op == "pip_no_build_isolation":
+            continue  # applied after every other edit to the requirements (below)
         if c.op == "command":
             execute_command = c.command
             notes.append(f"env delta: command -> {c.command} — {c.justification}")
@@ -421,6 +494,19 @@ def apply_env_delta(
             extra_specs.append(_spec(c))
         notes.append(f"env delta: {c.op} {c.package or c.version} — {c.justification}")
 
+    # Two-stage install for pip_no_build_isolation: the package's line leaves
+    # the requirements file (installed first, so the build can see e.g. the
+    # locked numpy) and is installed right after with --no-build-isolation.
+    no_isolation_specs: list[str] = []
+    for c in changes:
+        if c.op != "pip_no_build_isolation" or lines is None:
+            continue
+        key = _norm(c.package)
+        moved = [line.strip() for line in lines if _requirement_name(line) == key]
+        lines = [line for line in lines if _requirement_name(line) != key]
+        no_isolation_specs.extend(moved)
+        notes.append(f"env delta: pip_no_build_isolation {c.package} — {c.justification}")
+
     install_commands = list(plan.install_commands)
     new_requirements = None
     if lines is not None and any(c.op not in ("python", "apt", "command") for c in changes):
@@ -434,6 +520,8 @@ def apply_env_delta(
         ]
     if extra_specs:
         install_commands.append("pip install " + " ".join(shlex.quote(s) for s in extra_specs))
+    for spec in no_isolation_specs:
+        install_commands.append(f"pip install --no-build-isolation {shlex.quote(spec)}")
 
     return (
         replace(

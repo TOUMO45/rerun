@@ -66,6 +66,10 @@ Rules, non-negotiable:
   {"op": "pip_git", "package": "<name>", "git_url": "https://github.com/<owner>/<repo>", "commit": "<full 40-hex sha>"}
   {"op": "apt", "package": "<debian package, e.g. build-essential>"}
   {"op": "python", "version": "3.7|3.8|3.9|3.10|3.11|3.12|3.13"}
+  {"op": "pip_no_build_isolation", "package": "<pip name already in the environment>"}
+      (installs everything else first, then builds that one package with
+      `pip install --no-build-isolation` — only for a package whose build step
+      fails with "No module named X" while X is already in the locked environment)
   EVERY change also needs "justification" (one line) and "evidence": a string copied
   VERBATIM from the failing run's log shown to you. Never use any other URL (no data,
   weights, or archives); git sources must be pinned to a full commit sha. Only use a

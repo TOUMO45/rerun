@@ -3668,3 +3668,33 @@ covers missing system tools/binaries. Negative controls (6): `./train.sh: No suc
 directory` (± `bash:`), `run_exp: command not found` (bash, in-script), `sh: 1: run_exp:
 not found`, `./make: command not found`. Mutation check: restoring the broad patterns
 fails 4 of them; restored rule → 49/49 classifier tests. Backend 574 passed, 8 skipped.
+
+## 2026-09-28 — A2: gated env op `pip_no_build_isolation`
+
+TTPT v5 ended BLOCKED because Dassl's legacy `setup.py` imports numpy at build time and
+pip builds it in an isolated build env where the locked numpy is invisible; the env-delta
+vocabulary could not express the fix. New op `{"op": "pip_no_build_isolation", "package":
+X}`. **Gate** (`env_repair.check_env_delta`, new rule `ENV_BUILD_ISOLATION_UNJUSTIFIED`):
+allowed only when (1) the time machine resolved a lock (else `ENV_UNSUPPORTED`), (2) X is
+in the environment being installed (else `ENV_UNSUPPORTED`), (3) no version is given, and
+(4) `build_isolation_evidence`: pip's `Collecting X` line is in the log AND some `No
+module named 'M'` sits inside a build-backend traceback (a `pip-build-env-` /
+`build_meta.py` / `_in_process.py` / `Getting requirements to build` signature within the
+preceding 2,000 chars) with M's distribution in the lock — plus the usual justification
+and verbatim evidence. **Found while testing:** my first version required
+Collecting → backend → error in log order, which never holds for real runs: the
+orchestrator's failure log is stderr then stdout, so pip's `Collecting` line comes after
+the traceback. Now anchored on the traceback window instead. Checked against the REAL TTPT
+v5 attempt-3 output: evidence = `numpy` (214 chars from the last `build_meta.py` frame);
+with numpy removed from that lock → rejected. **Apply:** two-stage install — X's lock line
+leaves `.rerun-requirements.txt` (installed first), then `pip install
+--no-build-isolation '<X's spec>'`. The repairer's system prompt lists the op; the
+certificate's EnvDeltaView names it.
+Tests (`tests/test_no_build_isolation.py`, 11): positive (gate PASS, PEP 503 name match);
+**negative control — same log, module absent from the lock → rejected**; runtime (not
+build) import error, package never collected, package not installed, no lock, a version,
+unverbatim evidence → rejected; apply order; end to end through the orchestrator with the
+real gate (repaired → RUNS_AFTER_REPAIR; module not in lock → REJECT, BLOCKED, no
+`--no-build-isolation` install ever runs). Mutation check: dropping the lock-membership
+condition fails both negative controls. Backend 585 passed, 8 skipped; frontend 8 passed,
+tsc clean.

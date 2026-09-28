@@ -874,6 +874,11 @@ def _run_stages(
                         has_requirements_txt=current_requirements is not None,
                         verified_git_sources=verified_git,
                         current_command=plan.execute_command,
+                        # The era lock as currently installed (incl. earlier
+                        # env deltas); None when the time machine resolved none.
+                        locked_requirements=(
+                            tuple((current_requirements or "").splitlines()) if resolved_lock is not None else None
+                        ),
                     )
                 return changes, violations
 

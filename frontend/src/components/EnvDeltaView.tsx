@@ -18,6 +18,8 @@ function describe(change: EnvChange): string {
       return `python ${change.version}`;
     case "command":
       return `command -> ${change.command}`;
+    case "pip_no_build_isolation":
+      return `pip install --no-build-isolation ${change.package} (after the rest of the lock)`;
     default:
       return `${change.op} ${change.package ?? ""}`;
   }
