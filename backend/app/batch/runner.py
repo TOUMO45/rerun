@@ -154,6 +154,11 @@ def aggregate_batch_results(per_repo_results: list[dict]) -> dict:
     """
     from app.services.orchestrator import is_our_fault
 
+    dev_runs = [r.get("name") for r in per_repo_results if r.get("dev_run")]
+    if dev_runs:
+        # A development run exercises the harness; it is never a corpus
+        # measurement, so it must never reach a statistic.
+        raise ValueError(f"refusing to aggregate development run(s) {dev_runs} into corpus statistics")
     n = len(per_repo_results)
     if n == 0:
         raise ValueError("cannot aggregate an empty batch — refuses to produce a fake 0/0 result")

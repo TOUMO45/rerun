@@ -87,6 +87,11 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--name", required=True, help="corpus entry name")
     parser.add_argument("--out", required=True, type=Path)
     parser.add_argument("--cost-cap-usd", type=float, default=2.0)
+    parser.add_argument(
+        "--dev-run",
+        action="store_true",
+        help="label the record dev_run: true (harness development; never counted in corpus statistics)",
+    )
     args = parser.parse_args(argv)
 
     entry = next((e for e in load_corpus() if e.name == args.name), None)
@@ -112,7 +117,10 @@ def main(argv: list[str] | None = None) -> int:
         print(f"[{time.monotonic() - t0:7.1f}s] {line[:300]}", flush=True)
 
     record: dict = {
-        "run_kind": "live end-to-end run",
+        "run_kind": "development run" if args.dev_run else "live end-to-end run",
+        # A development run exercises the harness; runner.aggregate_batch_results
+        # refuses any record carrying dev_run: true.
+        "dev_run": bool(args.dev_run),
         "started_at": _now(),
         "corpus_entry": {
             "name": entry.name,

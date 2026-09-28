@@ -206,3 +206,12 @@ def test_aggregate_refuses_a_rate_when_every_run_was_our_fault():
     results = [{"name": "a", "verdict": "INDETERMINATE", "reason_code": "PIPELINE_ERROR:planner:KeyError"}]
     with pytest.raises(ValueError):
         aggregate_batch_results(results)
+
+
+def test_aggregate_refuses_development_runs():
+    """A2/A3 (2026-09-28): a dev_run record is harness development, never a corpus measurement."""
+    measured = {"name": "a", "verdict": "BLOCKED", "taxonomy_code": "DEP_MISSING"}
+    dev = {"name": "ttpt", "verdict": "RUNS_AFTER_REPAIR", "dev_run": True}
+    with pytest.raises(ValueError, match="development run"):
+        aggregate_batch_results([measured, dev])
+    assert aggregate_batch_results([measured, {**dev, "dev_run": False}])["n"] == 2
