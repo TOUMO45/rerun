@@ -126,6 +126,20 @@ def repair_layer_for(code: str) -> str:
     return "env" if code in ENV_FIRST_CODES else "code"
 
 
+# System executables a build or run step commonly shells out to. A bare
+# "[Errno 2] No such file or directory: 'git'" is a missing system binary,
+# not missing data (the TTPT v5 live run classified exactly that line as
+# DATA_MISSING, 2026-09-24). Only these names count for the Errno-2 form, so
+# a missing data file without a slash (e.g. 'config') stays DATA_MISSING.
+SYSTEM_BINARIES = (
+    "git", "gcc", "g++", "cc", "c++", "make", "cmake", "ninja", "nvcc", "gfortran",
+    "pkg-config", "swig", "java", "javac", "curl", "wget", "unzip", "tar", "gzip",
+    "bzip2", "xz", "ffmpeg", "hg", "svn", "git-lfs", "cargo", "rustc", "go",
+    "protoc", "patch", "bash", "sh", "perl", "ld", "as",
+)
+_BINARY_ALT = "|".join(re.escape(b) for b in SYSTEM_BINARIES)
+
+
 _RULES: tuple[_Rule, ...] = (
     # --- Data / credentials (checked early: very specific signal) --------
     _Rule(
@@ -137,6 +151,21 @@ _RULES: tuple[_Rule, ...] = (
             r"please\s+(set|provide|configure)\s+your\s+(api[_ -]?key|token|credentials)",
             r"HTTP Basic: Access denied",
             r"authentication (required|failed)",
+        ),
+    ),
+    # --- Missing system binary (a system dependency, never DATA_MISSING) --
+    # Checked before every other rule: when a tool pip or a script shells out
+    # to is absent, whatever fails downstream of it is a consequence.
+    _Rule(
+        TaxonomyCode.SYS_LIB_MISSING,
+        _p(
+            r"Cannot find command '[^']+'",  # pip (VCS backends)
+            r"\b[\w.+-]+: command not found",  # bash
+            r"\bsh: \d+: [\w.+-]+: not found",  # dash
+            r"/usr/bin/env: '?[\w.+-]+'?: No such file or directory",  # missing interpreter
+            r"No such file or directory: '(?:/usr(?:/local)?/s?bin/|/s?bin/)?(?:" + _BINARY_ALT + r")'",
+            r"executable file not found in \$PATH",
+            r"(?:unable|failed) to execute '?(?:" + _BINARY_ALT + r")'?",
         ),
     ),
     # --- Dependencies ------------------------------------------------------

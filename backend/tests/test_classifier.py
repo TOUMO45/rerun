@@ -256,3 +256,54 @@ def test_classification_evidence_is_populated():
     assert isinstance(result, Classification)
     assert result.evidence
     assert result.family == TaxonomyCode.FAMILY[TaxonomyCode.RUNTIME_ERROR_OTHER]
+
+
+# --- Missing system binary -> SYS_LIB_MISSING, never DATA_MISSING ------------
+# Regression: the TTPT v5 live run (runs/live_run_ttpt_v5.json, repair 1)
+# failed because python:3.12-slim has no `git`, and the classifier called it
+# DATA_MISSING. These are that run's exact stderr lines.
+
+_TTPT_V5_NO_GIT = (
+    "  ERROR: Error [Errno 2] No such file or directory: 'git' while executing command git version\n"
+    "\n"
+    "[notice] A new release of pip is available: 25.0.1 -> 26.2.1\n"
+    "ERROR: Cannot find command 'git' - do you have 'git' installed and in your PATH?\n"
+)
+
+
+def test_missing_git_from_live_ttpt_log_is_a_system_dependency():
+    result = classify(exit_code=1, stderr=_TTPT_V5_NO_GIT)
+    assert result.code == TaxonomyCode.SYS_LIB_MISSING
+    assert result.family == "Environment"
+    assert "git" in result.evidence
+
+
+@pytest.mark.parametrize(
+    "stderr",
+    [
+        "run.sh: line 3: make: command not found",
+        "bash: nvcc: command not found",
+        "sh: 1: cmake: not found",
+        "/usr/bin/env: 'python2': No such file or directory",
+        "FileNotFoundError: [Errno 2] No such file or directory: 'gcc'",
+        "FileNotFoundError: [Errno 2] No such file or directory: '/usr/bin/git'",
+        "OSError: [Errno 2] No such file or directory: 'wget'",
+        "ERROR: Cannot find command 'hg' - do you have 'hg' installed and in your PATH?",
+    ],
+)
+def test_missing_system_binary_is_sys_lib_missing(stderr):
+    assert _code(stderr) == TaxonomyCode.SYS_LIB_MISSING
+
+
+@pytest.mark.parametrize(
+    "stderr",
+    [
+        # Missing data files, including ones named without a directory.
+        "FileNotFoundError: [Errno 2] No such file or directory: 'data/cifar-10/train.pkl'",
+        "FileNotFoundError: [Errno 2] No such file or directory: 'config'",
+        "FileNotFoundError: [Errno 2] No such file or directory: 'gitignore.txt'",
+        "OSError: [Errno 2] No such file or directory: './make_dataset/labels.csv'",
+    ],
+)
+def test_missing_system_binary_negative_control_data_files_stay_data_missing(stderr):
+    assert _code(stderr) == TaxonomyCode.DATA_MISSING

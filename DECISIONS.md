@@ -3639,3 +3639,19 @@ Every run record is tagged `repair_mode` (deterministic | model_assisted) by
 `scripts/audit_crlf.py` and, going forward, by the live driver and per-repo batch records.
 
 ---
+
+## 2026-09-28 — A1: missing system binary → SYS_LIB_MISSING (never DATA_MISSING)
+
+Harness fix before the corpus-v1 freeze. TTPT v5's repair 1 failed because the slim image
+has no `git`; the log line `[Errno 2] No such file or directory: 'git'` hit the generic
+DATA_MISSING rule. New SYS_LIB_MISSING rule, checked right after DATA_CREDENTIALS (before
+every other rule — whatever fails downstream of a missing tool is a consequence): pip's
+`Cannot find command '<x>'`, bash `<x>: command not found`, dash `sh: N: <x>: not found`,
+`/usr/bin/env: '<x>': No such file or directory`, `executable file not found in $PATH`,
+and the Errno-2 form **only** for a fixed list of system executables
+(`classifier.SYSTEM_BINARIES`: git, gcc, make, cmake, nvcc, wget, …), so a missing data
+file named without a directory (`'config'`) stays DATA_MISSING. Tests: TTPT v5's exact
+stderr lines (regression), 8 binary-missing forms, and a negative control of 4 data-file
+lines that must stay DATA_MISSING. Mutation check: against the previous classifier 9 of
+the new tests fail (incl. the regression), the negative controls pass on both. Backend
+568 passed, 8 skipped.
