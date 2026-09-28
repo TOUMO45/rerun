@@ -36,6 +36,7 @@ import tiktoken
 from openai import OpenAI
 
 from app.services.cost_guard import CostGuard, CostLimitExceeded
+from app.services import timeouts
 from app.services.infra import InfraError, retry_call
 
 _ENCODING = None  # lazy singleton; loading the encoding table isn't free
@@ -169,7 +170,20 @@ class NebiusChatClient:
 
     def _client(self) -> OpenAI:
         # max_retries=0: call_json_model's retry_call is the one retry policy.
-        return OpenAI(api_key=self.api_key, base_url=self.base_url, max_retries=0)
+        # Explicit timeouts (harness-v1.2): no silent SDK default.
+        import httpx
+
+        return OpenAI(
+            api_key=self.api_key,
+            base_url=self.base_url,
+            max_retries=0,
+            timeout=httpx.Timeout(
+                connect=timeouts.MODEL_CONNECT_S,
+                read=timeouts.MODEL_READ_S,
+                write=timeouts.MODEL_WRITE_S,
+                pool=timeouts.MODEL_POOL_S,
+            ),
+        )
 
     def chat_completion(
         self,

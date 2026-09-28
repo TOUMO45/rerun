@@ -46,7 +46,7 @@ from app.services import (
     time_machine,
     tree_integrity,
 )
-from app.services import compute_sandbox, import_names, infra
+from app.services import compute_sandbox, import_names, infra, timeouts
 from app.services.cost_guard import CostGuard, CostLimitExceeded
 from app.services.intake import RepoIntake, read_text_capped
 from app.services.model_client import NebiusChatClient
@@ -55,8 +55,13 @@ from app.services.sandbox import (
     SandboxError,
     SandboxRunResult,
     UploadIntegrityError,
+    UploadTooLargeError,
     run_build_and_execute,
 )
+
+# harness-v1.2: the repository's upload archive exceeds the pre-declared cap —
+# a harness limitation, not a verdict about the repository.
+UPLOAD_TOO_LARGE = "UPLOAD_TOO_LARGE"
 from app.services.tamper_gate import (
     check_patch,
     heuristic_eval_call_names,
@@ -79,6 +84,7 @@ OUR_FAULT_CODES: tuple[str, ...] = (
     recon.RECON_MODEL_ERROR,
     tree_integrity.INVALID_HARNESS,
     infra.INFRA_ERROR,  # an external service failed (harness-v1.1)
+    UPLOAD_TOO_LARGE,  # the archive exceeds the pre-declared upload cap (harness-v1.2)
 )
 
 _REASON_CODE_RE = re.compile(r"^([A-Z][A-Z_]*(?::[A-Za-z0-9_.-]+)*): ")
@@ -220,7 +226,7 @@ def _apply_diff_with_git(workdir: Path, diff_text: str) -> None:
         input=diff_text,
         capture_output=True,
         text=True,
-        timeout=30,
+        timeout=timeouts.GIT_LOCAL_S,
     )
     if result.returncode != 0:
         raise OrchestratorError(f"gate-approved patch failed to apply: {result.stderr.strip()}")
@@ -473,6 +479,13 @@ def run_pipeline(
         )
     except infra.InfraError as exc:
         return _finalize_infra_error(exc, state=state, repo_url=repo_url, commit_sha=commit_sha, on_event=on_event)
+    except UploadTooLargeError as exc:
+        return _finalize_not_measured(
+            UPLOAD_TOO_LARGE,
+            f"{UPLOAD_TOO_LARGE}: {exc} — a pre-declared harness limitation; nothing was uploaded and this is "
+            "not a verdict on the repository.",
+            state=state, repo_url=repo_url, commit_sha=commit_sha, on_event=on_event,
+        )
     except Exception as exc:  # noqa: BLE001 - this IS the boundary
         return _finalize_pipeline_error(
             exc,
@@ -1453,8 +1466,34 @@ def _finalize_infra_error(
 
     code = f"{infra.INFRA_ERROR}:{exc.source}" + (f":{exc.cause_type}" if exc.cause_type else "")
     reason = f"{code}: {exc} — an external service failed during '{state.stage}'; this is not a verdict on the repository."
-    _log(f"[infra] {reason}")
-    verdict = infra.INFRA_ERROR
+    return _finalize_not_measured(
+        infra.INFRA_ERROR, reason, state=state, repo_url=repo_url, commit_sha=commit_sha, on_event=on_event
+    )
+
+
+def _finalize_not_measured(
+    verdict: str,
+    reason: str,
+    *,
+    state: _RunState,
+    repo_url: str,
+    commit_sha: str,
+    on_event: Callable[[str], None] | None,
+) -> PipelineResult:
+    """End a run that measured nothing about the repository (INFRA_ERROR,
+    UPLOAD_TOO_LARGE): a signed certificate carrying the reason; the
+    adjudicator is not asked; excluded from every denominator."""
+    log_lines = state.log_lines
+
+    def _log(line: str) -> None:
+        log_lines.append(line)
+        if on_event is not None:
+            try:
+                on_event(line)
+            except Exception:  # noqa: BLE001
+                pass
+
+    _log(f"[{'infra' if verdict == infra.INFRA_ERROR else 'harness-limit'}] {reason}")
     attempts = tuple(state.attempts)
     timestamp = datetime.now(timezone.utc).isoformat()
     full_log = "\n".join(log_lines)

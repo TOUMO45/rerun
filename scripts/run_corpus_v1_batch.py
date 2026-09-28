@@ -301,7 +301,7 @@ def summarize(records: list[dict]) -> dict:
             "spent_usd": round(r["cost_guard"]["spent_usd"], 4),
             "error": r.get("error"),
         })
-    our_fault = ("INFRA_ERROR", "INVALID_HARNESS")
+    our_fault = ("INFRA_ERROR", "INVALID_HARNESS", "UPLOAD_TOO_LARGE")
     primary = [row for row in rows if row["category"] == "PRIMARY"]
     measured = [row for row in primary if row["verdict"] not in our_fault
                 and not (row["reason_code"] or "").startswith("PIPELINE_ERROR")]
@@ -325,6 +325,7 @@ def summarize(records: list[dict]) -> dict:
             "blocked_by_reason": dict(sorted(blocked.items())),
             "invalid_harness": sum(1 for row in primary if row["verdict"] == "INVALID_HARNESS"),
             "infra_error": sum(1 for row in primary if row["verdict"] == "INFRA_ERROR"),
+            "upload_too_large": sum(1 for row in primary if row["verdict"] == "UPLOAD_TOO_LARGE"),
             "pipeline_error": sum(1 for row in primary if (row["reason_code"] or "").startswith("PIPELINE_ERROR")),
             "verdicts": dict(sorted(verdicts.items())),
             "recovered_repair_mode": {

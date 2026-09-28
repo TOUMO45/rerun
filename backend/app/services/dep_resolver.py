@@ -33,6 +33,7 @@ from pathlib import Path
 from typing import Callable
 
 from app.services import tavily
+from app.services import timeouts
 from app.services.import_names import dist_for_import
 from app.services.infra import InfraError, checked_http_get
 from app.services.classifier import TaxonomyCode
@@ -85,7 +86,7 @@ def repo_commit_date(workdir: Path) -> date | None:
             ["git", "-C", str(workdir), "log", "-1", "--format=%cs"],
             capture_output=True,
             text=True,
-            timeout=15,
+            timeout=timeouts.GIT_LOCAL_S,
         )
         return date.fromisoformat(out.stdout.strip()) if out.returncode == 0 and out.stdout.strip() else None
     except (OSError, ValueError, subprocess.SubprocessError):
@@ -95,7 +96,7 @@ def repo_commit_date(workdir: Path) -> date | None:
 def _default_http_get(url: str) -> tuple[int, object]:
     import httpx
 
-    response = httpx.get(url, timeout=15, headers={"Accept": "application/json", "User-Agent": "rerun-dep-resolver"})
+    response = httpx.get(url, timeout=timeouts.HTTP_API_S, headers={"Accept": "application/json", "User-Agent": "rerun-dep-resolver"})
     try:
         return response.status_code, response.json()
     except ValueError:
@@ -247,7 +248,7 @@ def _pypi_releases(package: str, repo_date: date | None, http_get: HttpGet) -> t
 
 
 def _search(client, query: str, **extra) -> tavily.TavilyContext:
-    response = client.search(query, max_results=5, search_depth="basic", **extra)
+    response = client.search(query, max_results=5, search_depth="basic", timeout=timeouts.TAVILY_S, **extra)
     return tavily.TavilyContext(
         query=query,
         sources=tuple(

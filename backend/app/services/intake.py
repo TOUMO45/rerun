@@ -24,6 +24,7 @@ from pathlib import Path, PurePath
 
 import yaml
 
+from app.services import timeouts
 from app.services.infra import retry_call
 
 # `git clone`'s default `core.symlinks=true` on Linux (the real deployment
@@ -229,7 +230,7 @@ def clone_repo(url: str, dest: Path, shallow: bool = True) -> str:
     if shallow:
         cmd += ["--depth", "1"]
     cmd += [url, str(dest)]
-    result = subprocess.run(cmd, capture_output=True, text=True, timeout=300, env=_git_env())
+    result = subprocess.run(cmd, capture_output=True, text=True, timeout=timeouts.GIT_FETCH_S, env=_git_env())
     if result.returncode != 0:
         raise IntakeError(f"git clone failed for '{url}': {result.stderr.strip()}")
 
@@ -264,20 +265,20 @@ def clone_repo_at_commit(url: str, dest: Path, commit_sha: str) -> str:
     HEAD, which would defeat the whole point of pinning).
     """
     dest.mkdir(parents=True, exist_ok=True)
-    init_result = subprocess.run(["git", "init", str(dest)], capture_output=True, text=True, timeout=30)
+    init_result = subprocess.run(["git", "init", str(dest)], capture_output=True, text=True, timeout=timeouts.GIT_LOCAL_S)
     if init_result.returncode != 0:
         raise IntakeError(f"git init failed for '{dest}': {init_result.stderr.strip()}")
     # Persist the byte-exact settings in the checkout itself too, so any later
     # git command on it (e.g. `git apply`) behaves the same.
     for key, value in (("core.autocrlf", "false"), ("core.eol", "lf")):
-        subprocess.run(["git", "-C", str(dest), "config", key, value], capture_output=True, timeout=30)
+        subprocess.run(["git", "-C", str(dest), "config", key, value], capture_output=True, timeout=timeouts.GIT_LOCAL_S)
 
     def _fetch():
         result = subprocess.run(
             ["git", *_GIT_BYTE_EXACT, "-C", str(dest), "fetch", "--depth", "1", url, commit_sha],
             capture_output=True,
             text=True,
-            timeout=300,
+            timeout=timeouts.GIT_FETCH_S,
             env=_git_env(),
         )
         if result.returncode != 0 and _GIT_NETWORK_RE.search(result.stderr or ""):

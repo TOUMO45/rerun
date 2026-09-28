@@ -25,6 +25,8 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Protocol
 
+from app.services import timeouts
+
 
 class TavilyError(RuntimeError):
     pass
@@ -98,7 +100,7 @@ def fetch_context(
         return TavilyContext(query=query, sources=())
 
     try:
-        response = client.search(query, max_results=max_results, search_depth="basic")
+        response = client.search(query, max_results=max_results, search_depth="basic", timeout=timeouts.TAVILY_S)
     except Exception as exc:
         raise TavilyError(f"Tavily search failed for query '{query}': {exc}") from exc
 

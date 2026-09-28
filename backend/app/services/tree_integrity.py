@@ -25,6 +25,8 @@ import subprocess
 from dataclasses import dataclass, field
 from pathlib import Path
 
+from app.services import timeouts
+
 INVALID_HARNESS = "INVALID_HARNESS"
 
 
@@ -53,7 +55,7 @@ def committed_entries(workdir: Path, commit: str) -> dict[str, tuple[str, str]]:
     out = subprocess.run(
         ["git", "-C", str(workdir), "ls-tree", "-r", "-z", commit],
         capture_output=True,
-        timeout=60,
+        timeout=timeouts.GIT_LS_TREE_S,
     )
     if out.returncode != 0:
         raise HarnessIntegrityError(
@@ -73,7 +75,8 @@ def committed_entries(workdir: Path, commit: str) -> dict[str, tuple[str, str]]:
 
 def tree_sha(workdir: Path, commit: str) -> str:
     out = subprocess.run(
-        ["git", "-C", str(workdir), "rev-parse", f"{commit}^{{tree}}"], capture_output=True, text=True, timeout=30
+        ["git", "-C", str(workdir), "rev-parse", f"{commit}^{{tree}}"], capture_output=True, text=True,
+        timeout=timeouts.GIT_LOCAL_S,
     )
     return out.stdout.strip() if out.returncode == 0 else ""
 

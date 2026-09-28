@@ -14,7 +14,7 @@ class _FakeTavilyClient:
         self.raise_error = raise_error
         self.last_call: dict | None = None
 
-    def search(self, query, *, max_results, search_depth):
+    def search(self, query, *, max_results, search_depth, timeout=None):
         self.last_call = {"query": query, "max_results": max_results, "search_depth": search_depth}
         if self.raise_error:
             raise self.raise_error

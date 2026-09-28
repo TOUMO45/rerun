@@ -36,7 +36,9 @@ export type Verdict =
   /** RERUN's own harness failed its integrity check — not a verdict on the repository. */
   | "INVALID_HARNESS"
   /** An external service (sandbox, model API, GitHub, package index) failed — not a verdict on the repository. */
-  | "INFRA_ERROR";
+  | "INFRA_ERROR"
+  /** The repository exceeds RERUN's pre-declared upload cap — a harness limitation, not a verdict. */
+  | "UPLOAD_TOO_LARGE";
 
 export interface RunOut {
   id: string;

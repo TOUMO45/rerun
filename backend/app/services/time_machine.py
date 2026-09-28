@@ -32,6 +32,7 @@ from pathlib import Path
 from typing import Callable
 
 from app.services.env_repair import imported_top_level_modules
+from app.services import timeouts
 from app.services.import_names import ImportMapping, mapping_for
 from app.services.infra import InfraError, checked_http_get, retry_call
 
@@ -88,7 +89,8 @@ def _github_owner_repo(repo_url: str) -> tuple[str, str] | None:
 def pinned_commit_date(workdir: Path) -> date | None:
     try:
         out = subprocess.run(
-            ["git", "-C", str(workdir), "log", "-1", "--format=%cs"], capture_output=True, text=True, timeout=15
+            ["git", "-C", str(workdir), "log", "-1", "--format=%cs"], capture_output=True, text=True,
+            timeout=timeouts.GIT_LOCAL_S,
         )
         return date.fromisoformat(out.stdout.strip()) if out.returncode == 0 and out.stdout.strip() else None
     except (OSError, ValueError, subprocess.SubprocessError):
@@ -238,7 +240,7 @@ Runner = Callable[[list[str], str], "tuple[int, str, str]"]  # (argv, stdin_text
 
 
 def _default_runner(argv: list[str], stdin_text: str) -> tuple[int, str, str]:
-    proc = subprocess.run(argv, input=stdin_text, capture_output=True, text=True, timeout=300)
+    proc = subprocess.run(argv, input=stdin_text, capture_output=True, text=True, timeout=timeouts.UV_COMPILE_S)
     return proc.returncode, proc.stdout, proc.stderr
 
 
@@ -274,7 +276,7 @@ def managed_build_python(minor: str = "3.8") -> str:
     directory for Python minor version link") while the real
     `cpython-3.8.20-…` install was fine, so the full path is preferred."""
     try:
-        out = subprocess.run([uv_executable(), "python", "dir"], capture_output=True, text=True, timeout=30)
+        out = subprocess.run([uv_executable(), "python", "dir"], capture_output=True, text=True, timeout=timeouts.UV_QUERY_S)
         base = Path(out.stdout.strip())
     except (OSError, subprocess.SubprocessError):
         return minor

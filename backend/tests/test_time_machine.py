@@ -264,7 +264,7 @@ class FakeTavily:
     def __init__(self, results, github_results=None):
         self.results, self.github_results, self.queries = results, github_results, []
 
-    def search(self, query, *, max_results, search_depth, include_domains=None):
+    def search(self, query, *, max_results, search_depth, include_domains=None, timeout=None):
         self.queries.append(query + (" [github]" if include_domains else ""))
         if include_domains is not None and self.github_results is not None:
             return {"results": self.github_results}

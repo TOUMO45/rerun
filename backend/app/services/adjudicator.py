@@ -90,6 +90,7 @@ def templated_certificate_prose(verdict: str, taxonomy_code: str | None, attempt
         "TIMEOUT": "Execution exceeded the sandbox's wall-clock ceiling.",
         "INVALID_HARNESS": "RERUN's harness could not prove the uploaded files were the committed ones, so nothing is claimed about the repository.",
         "INFRA_ERROR": "An external service RERUN depends on failed during this run, so nothing is claimed about the repository.",
+        "UPLOAD_TOO_LARGE": "The repository exceeds RERUN's pre-declared upload size limit, so it was not run and nothing is claimed about it.",
     }.get(verdict, f"Verdict: {verdict}.")
     return f"{base} {SCOPE_BOUNDARY_LINE}"
 

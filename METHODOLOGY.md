@@ -347,3 +347,23 @@ outage; re-queue attempt 1 of 2).
 - **Retry window vs. real outages.** The sealed retry policy waits 2 s, 4 s and 8 s (4
   attempts, about 14 s); a Nebius outage longer than that ends the entry INFRA_ERROR (handled
   by the circuit breaker and the re-queue rule above).
+
+## Upload cap — pre-registered live probe (registered 2026-09-28, before probing)
+
+harness-v1.2 ends a run whose upload archive exceeds a fixed cap with verdict
+`UPLOAD_TOO_LARGE` (a harness limitation, excluded from every rate, reported separately).
+Nebius documents **no** upload or file-size limit: the upload endpoint's API reference
+(docs.tokenfactory.nebius.com/api-reference/sandboxes/files/upload-a-file-to-the-server-the-body-must-be-a-file-content),
+the Sandboxes limits page (docs.tokenfactory.nebius.com/sandboxes/overview: only "50"
+concurrent operations and 180-day checkpoint retention), the SDK Files Manager reference
+and the CLI files tutorial state none (checked 2026-09-28). The cap is therefore set by
+this probe, fixed **before any harness-v1.2 run** and independent of every corpus entry:
+
+- `scripts/smoke_upload.py probe`: synthetic, incompressible archives (seeded random
+  bytes in 50 MB files, seed 20260928) of **150 MB and 500 MB** (decimal), uploaded in
+  that order through RERUN's real sandbox client with the harness-v1.2 transport timeout
+  (`max(60 s, size_MB / 1 MB/s + 30 s)`), extracted and verified in a real sandbox.
+- **Cap = the largest probed archive that uploads and verifies.** If 500 MB fails, the
+  cap is the 150 MB archive; if 150 MB fails, no cap can be set and the work stops.
+- The probe record (sizes, seconds, effective throughput, cost) is committed in
+  `runs/upload_probe/`, and the cap constant is set from it in the harness-v1.2 seal.

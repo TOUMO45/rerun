@@ -743,7 +743,7 @@ class _FakeTavilyClient:
         self.response = response
         self.last_call: dict | None = None
 
-    def search(self, query, *, max_results, search_depth):
+    def search(self, query, *, max_results, search_depth, timeout=None):
         self.last_call = {"query": query, "max_results": max_results, "search_depth": search_depth}
         return self.response
 
@@ -828,7 +828,7 @@ def test_tavily_search_failure_does_not_crash_the_pipeline():
     import tempfile
 
     class _RaisingTavilyClient:
-        def search(self, query, *, max_results, search_depth):
+        def search(self, query, *, max_results, search_depth, timeout=None):
             raise RuntimeError("connection refused")
 
     with tempfile.TemporaryDirectory() as d:

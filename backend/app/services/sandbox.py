@@ -54,6 +54,7 @@ from contree_sdk.config import ContreeConfig
 from contree_sdk.sdk.exceptions import ContreeError, OperationTimedOutError
 from contree_sdk.sdk.exceptions.api import ApiStatusCodeError, ApiTimeoutError, ContreeTransportError
 
+from app.services import timeouts
 from app.services.infra import InfraError, retry_call
 
 
@@ -72,6 +73,23 @@ class SandboxInfraError(InfraError):
 
     def __init__(self, message: str, **kwargs):
         super().__init__("sandbox", message, **kwargs)
+
+
+class UploadTooLargeError(RuntimeError):
+    """The upload archive exceeds UPLOAD_CAP_BYTES — a pre-declared harness
+    limitation (harness-v1.2), checked before any network call. Mapped to
+    verdict UPLOAD_TOO_LARGE, excluded from every rate, reported separately."""
+
+    def __init__(self, archive_bytes: int, cap_bytes: int):
+        self.archive_bytes = archive_bytes
+        self.cap_bytes = cap_bytes
+        super().__init__(f"upload archive is {archive_bytes:,} bytes; the pre-declared cap is {cap_bytes:,} bytes")
+
+
+# Largest upload archive RERUN sends, fixed BEFORE any harness-v1.2 run by the
+# pre-registered live probe (METHODOLOGY, "Upload cap"). Nebius documents no
+# upload limit. None = not yet decided (only the probe itself runs then).
+UPLOAD_CAP_BYTES: int | None = None
 
 
 class UploadIntegrityError(RuntimeError):
@@ -292,6 +310,8 @@ def run_build_and_execute(
     if not [c for c in commands if c]:
         raise SandboxError("no commands to run: install_commands and execute_command are both empty")
     archive = build_upload_archive(upload_files, file_modes)[0] if upload_files else None
+    if archive is not None and UPLOAD_CAP_BYTES is not None and len(archive) > UPLOAD_CAP_BYTES:
+        raise UploadTooLargeError(len(archive), UPLOAD_CAP_BYTES)
 
     # harness-v1.1: transient API failures (timeouts, transport errors, 429,
     # 5xx) re-run the whole chain from a fresh image with bounded exponential
@@ -333,7 +353,15 @@ def _run_once(
     """One attempt of the whole chain. Raises the SDK's own errors (the
     caller classifies them), SandboxError for the wall clock, and
     UploadIntegrityError if the post-extraction check fails."""
-    client = ContreeSync(config=ContreeConfig(auth=IAMAuth(token=api_key, project_id=project_id)))
+    # harness-v1.2: no silent SDK default. The SDK's transport_timeout (10 s)
+    # made every upload that took longer than 10 s time out, deterministically.
+    client = ContreeSync(
+        config=ContreeConfig(
+            auth=IAMAuth(token=api_key, project_id=project_id),
+            transport_timeout=timeouts.sandbox_transport_timeout(len(archive) if archive is not None else 0),
+            operation_timeout=timeouts.SANDBOX_OPERATION_S,
+        )
+    )
     image = client.images.docker(base_image)
 
     steps: list[StepResult] = []
@@ -414,6 +442,6 @@ def _run_once(
     finally:
         for retained in retained_images:
             try:
-                retained.run(shell="true", disposable=True, timeout=30).wait()
+                retained.run(shell="true", disposable=True, timeout=timeouts.SANDBOX_CLEANUP_S).wait()
             except ContreeError:
                 pass  # best-effort cleanup; nothing more actionable from here
