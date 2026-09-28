@@ -32,6 +32,8 @@ from pathlib import Path
 from typing import Callable
 
 from app.services.env_repair import imported_top_level_modules
+from app.services.import_names import ImportMapping, mapping_for
+from app.services.infra import InfraError, checked_http_get, retry_call
 
 # python.org devguide "Status of Python versions" — first release dates,
 # retrieved 2026-09-24. Only versions verified available as sandbox images.
@@ -51,21 +53,6 @@ PYTHON_LAG_DAYS = 180
 DEPENDENCY_FILE_RE = re.compile(r"^(requirements[^/]*\.txt|setup\.py|setup\.cfg|pyproject\.toml|environment\.ya?ml)$")
 MAX_DEP_FILES = 10
 
-# Import name -> distribution name where they differ (common ML cases).
-IMPORT_TO_DIST = {
-    "sklearn": "scikit-learn",
-    "cv2": "opencv-python",
-    "yaml": "pyyaml",
-    "PIL": "pillow",
-    "bs4": "beautifulsoup4",
-    "skimage": "scikit-image",
-    "google.protobuf": "protobuf",
-    "tf": "tensorflow",
-    "torch_geometric": "torch-geometric",
-    "Crypto": "pycryptodome",
-    "dateutil": "python-dateutil",
-    "attr": "attrs",
-}
 _STDLIB_EXTRA = {"__future__", "distutils", "imp", "asynchat", "asyncore", "smtpd"}
 
 HttpGet = Callable[[str], "tuple[int, object]"]
@@ -114,6 +101,10 @@ def era_date(repo_url: str, commit_sha: str, workdir: Path, http_get: HttpGet) -
     dep_files = find_dependency_files(workdir)
     owner_repo = _github_owner_repo(repo_url)
     detail: dict = {}
+    # harness-v1.1: a GitHub outage or rate limit used to fall back silently
+    # to the pinned-commit date, changing the era (and so the environment and
+    # the verdict). Now it is retried, then InfraError -> INFRA_ERROR.
+    http_get = checked_http_get(http_get)
     if owner_repo and dep_files:
         owner, repo = owner_repo
         for path in dep_files:
@@ -121,7 +112,9 @@ def era_date(repo_url: str, commit_sha: str, workdir: Path, http_get: HttpGet) -
                 status, body = http_get(
                     f"https://api.github.com/repos/{owner}/{repo}/commits?path={path}&sha={commit_sha}&per_page=1"
                 )
-            except Exception as exc:  # recorded, never fatal
+            except InfraError:
+                raise
+            except Exception as exc:  # a RERUN-side error in the getter, recorded
                 detail[path] = f"lookup failed: {type(exc).__name__}"
                 continue
             if status == 200 and isinstance(body, list) and body:
@@ -179,6 +172,15 @@ def local_module_names(workdir: Path) -> set[str]:
 def undeclared_third_party_imports(workdir: Path, declared: frozenset[str]) -> list[str]:
     """Distribution names for modules the code imports that are neither
     stdlib, the repo's own modules, nor declared."""
+    return [dist for dist, _ in undeclared_third_party_imports_with_mappings(workdir, declared)]
+
+
+def undeclared_third_party_imports_with_mappings(
+    workdir: Path, declared: frozenset[str]
+) -> list[tuple[str, ImportMapping | None]]:
+    """As undeclared_third_party_imports, with the import-map row used for
+    each (None = the import name was used unchanged) — recorded in the
+    certificate (harness-v1.1)."""
     stdlib = set(getattr(sys, "stdlib_module_names", ())) | _STDLIB_EXTRA
     local = local_module_names(workdir)
     declared_norm = {_norm(d) for d in declared}
@@ -186,10 +188,11 @@ def undeclared_third_party_imports(workdir: Path, declared: frozenset[str]) -> l
     for module in sorted(imported_top_level_modules(workdir)):
         if module in stdlib or module in local or module.startswith("_"):
             continue
-        dist = IMPORT_TO_DIST.get(module, module)
+        mapping = mapping_for(module)
+        dist = mapping.distribution if mapping else module
         if _norm(dist) in declared_norm or _norm(module) in declared_norm:
             continue
-        out.append(dist)
+        out.append((dist, mapping))
     return out
 
 
@@ -214,6 +217,22 @@ class LockResult:
 
 
 _NOT_FOUND_RE = re.compile(r"Because ([A-Za-z0-9][A-Za-z0-9._-]*) was not found in the package registry")
+# uv's messages when the index itself is unreachable (not an answer about a package).
+_UV_NETWORK_RE = re.compile(
+    r"Failed to fetch|error sending request|operation timed out|dns error|tcp connect error|"
+    r"Connection (?:reset|refused)|Network is unreachable|HTTP status server error|client error \(Connect\)",
+    re.IGNORECASE,
+)
+
+
+class _IndexUnreachable(RuntimeError):
+    pass
+
+
+def _sleep(seconds: float) -> None:
+    import time as _time
+
+    _time.sleep(seconds)
 
 Runner = Callable[[list[str], str], "tuple[int, str, str]"]  # (argv, stdin_text) -> (rc, stdout, stderr)
 
@@ -304,10 +323,27 @@ def compile_lock(
     ]
     dropped: list[str] = []
     current = list(inputs)
+
+    def _run_uv(stdin_text: str):
+        # harness-v1.1: uv could not reach the package index -> retried, then
+        # InfraError('package-index') instead of a failed lock the repair
+        # loop would then try to work around.
+        rc, out, err = runner(argv, stdin_text)
+        if rc != 0 and _UV_NETWORK_RE.search(err or ""):
+            raise _IndexUnreachable(err[-500:])
+        return rc, out, err
+
     for _ in range(max_drops + 1):
         try:
-            rc, out, err = runner(argv, "\n".join(current) + "\n")
-        except Exception as exc:  # uv missing, timeout, blocked in tests
+            rc, out, err = retry_call(
+                lambda: _run_uv("\n".join(current) + "\n"),
+                source="package-index",
+                is_transient=lambda exc: isinstance(exc, (_IndexUnreachable, subprocess.TimeoutExpired)),
+                sleep=lambda s: _sleep(s),
+            )
+        except InfraError:
+            raise
+        except Exception as exc:  # uv missing, blocked in tests
             return LockResult(False, (), tuple(inputs), tuple(dropped), " ".join(argv[1:]), f"{type(exc).__name__}: {exc}")
         if rc == 0:
             lock = tuple(

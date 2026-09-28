@@ -34,7 +34,9 @@ export type Verdict =
   | "NOT_ATTEMPTABLE"
   | "TIMEOUT"
   /** RERUN's own harness failed its integrity check — not a verdict on the repository. */
-  | "INVALID_HARNESS";
+  | "INVALID_HARNESS"
+  /** An external service (sandbox, model API, GitHub, package index) failed — not a verdict on the repository. */
+  | "INFRA_ERROR";
 
 export interface RunOut {
   id: string;

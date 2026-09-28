@@ -93,16 +93,6 @@ def _p(*patterns: str) -> tuple[re.Pattern, ...]:
 # rather than being misreported as DEP_MISSING.
 _STDLIB_ISH = {"os", "sys", "re", "json", "typing", "itertools", "functools"}
 
-# Common cases where the PyPI distribution name differs from the import name,
-# so "declared in requirements.txt" can be matched against "what failed to
-# import" without a false DEP_MISSING.
-_IMPORT_TO_DIST = {
-    "sklearn": "scikit-learn",
-    "cv2": "opencv-python",
-    "yaml": "pyyaml",
-    "PIL": "pillow",
-    "bs4": "beautifulsoup4",
-}
 
 # Which layer a repair should try first for each code. Environment-family
 # failures (a missing compiler/system library, an unavailable or conflicting
@@ -291,7 +281,11 @@ def _undeclared_module(match: re.Match, declared_deps: frozenset[str] | None) ->
         return True
     module = match.group(1) if match.groups() else ""
     top_level = module.split(".")[0]
-    candidates = {top_level.lower(), _IMPORT_TO_DIST.get(top_level, top_level).lower()}
+    # The distribution name may differ from the import name (cv2 ->
+    # opencv-python): the cited import map (harness-v1.1) decides.
+    from app.services.import_names import dist_for_import
+
+    candidates = {top_level.lower(), dist_for_import(top_level).lower()}
     normalized_declared = {d.lower().replace("_", "-") for d in declared_deps}
     return not any(c.replace("_", "-") in normalized_declared for c in candidates)
 
@@ -342,9 +336,43 @@ def classify(
                 matched_pattern=pattern.pattern,
             )
 
-    tail = stderr.strip().splitlines()[-1] if stderr.strip() else f"exit code {exit_code}"
     return Classification(
         code=TaxonomyCode.RUNTIME_ERROR_OTHER,
         family=TaxonomyCode.FAMILY[TaxonomyCode.RUNTIME_ERROR_OTHER],
-        evidence=tail[:500],
+        evidence=fallback_evidence(stderr, stdout, exit_code)[:500],
     )
+
+
+# Lines that are never the failure (harness-v1.1): pip's upgrade notices,
+# warnings and deprecations. Corpus-v1 entry #1 on harness-v1 was classified
+# with the evidence "[notice] To update, run: pip install --upgrade pip".
+_NOISE_LINE_RE = re.compile(
+    r"^\s*(\[notice\]|WARNING:|DEPRECATION:|warnings\.warn\(|\S*Warning: )", re.IGNORECASE
+)
+_ERROR_MARKER_RE = re.compile(
+    r"error|exception|traceback|failed|failure|fatal|×|✗|cannot|could not|not found|no such", re.IGNORECASE
+)
+
+
+_EXCEPTION_LINE_RE = re.compile(r"^[A-Za-z_][\w.]*(Error|Exception|Exit|Interrupt): \S")
+
+
+def fallback_evidence(stderr: str, stdout: str = "", exit_code: int = 1) -> str:
+    """Evidence when no rule matched, ignoring noise lines, stderr before
+    stdout: the LAST Python exception line (`RuntimeError: ...`); else the
+    last line carrying an error marker; else the last non-noise line; else
+    the exit code."""
+
+    def _signal(text: str) -> list[str]:
+        return [line.strip() for line in (text or "").splitlines() if line.strip() and not _NOISE_LINE_RE.match(line)]
+
+    err, out = _signal(stderr), _signal(stdout)
+    for pattern in (_EXCEPTION_LINE_RE, _ERROR_MARKER_RE):
+        for lines in (err, out):
+            marked = [line for line in lines if pattern.search(line)]
+            if marked:
+                return marked[-1]
+    for lines in (err, out):
+        if lines:
+            return lines[-1]
+    return f"exit code {exit_code}"

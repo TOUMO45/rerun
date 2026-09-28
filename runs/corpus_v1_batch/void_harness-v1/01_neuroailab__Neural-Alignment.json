@@ -1,0 +1,947 @@
+{
+  "run_kind": "live end-to-end run",
+  "dev_run": false,
+  "batch": {
+    "harness_tag": "harness-v1",
+    "harness_commit": "f339077646e3428a4a8f4005868e4faa613e1541",
+    "amendment_sha256": "63d409a3ffc92b016fde502b90e53500a48287b7a286c7078148ac3650b9622d",
+    "corpus_hash": "063b700c38006bcf3160c64674a196cdf2fddb768a0c3de232746181aeef7d5c",
+    "entry_id": 1,
+    "category": "PRIMARY",
+    "rules_matched": [],
+    "per_entry_cap_usd": 2.0,
+    "total_cap_usd": 40.0
+  },
+  "started_at": "2026-09-28T12:37:15.953359+00:00",
+  "corpus_entry": {
+    "name": "neuroailab__Neural-Alignment",
+    "repo_url": "https://github.com/neuroailab/Neural-Alignment",
+    "commit_sha": "d83defbccbfab9e6df51098abe50d4c74f1d481f",
+    "command": "python train.py",
+    "command_source": "README.md line 97"
+  },
+  "config": {
+    "models": {
+      "recon": "nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B",
+      "planner": "nvidia/nemotron-3-super-120b-a12b",
+      "repairer": "nvidia/nemotron-3-super-120b-a12b",
+      "adjudicator": "nvidia/Nemotron-3-Ultra-550b-a55b"
+    },
+    "sandbox_backend": "token_factory",
+    "sandbox_image_default": "python:3.11-slim",
+    "sandbox_wall_clock_seconds": 600.0,
+    "max_attempts": 3,
+    "tavily_configured": true,
+    "cost_cap_usd": 2.0
+  },
+  "intake": {
+    "duration_s": 2.46,
+    "resolved_sha": "d83defbccbfab9e6df51098abe50d4c74f1d481f",
+    "dependency_files": [],
+    "declared_dependencies": [],
+    "entrypoint_candidates": [
+      "test.py",
+      "train.py"
+    ],
+    "notebook_paths": []
+  },
+  "pipeline_duration_s": 263.98,
+  "repair_mode": "model_assisted",
+  "tree_integrity": {
+    "status": "verified",
+    "tree_sha": "b9e0d5973f88d7ced1134e59ff576c39ae7556f7",
+    "files_checked": 28,
+    "excluded_patched": []
+  },
+  "result": {
+    "verdict": "BLOCKED",
+    "taxonomy_code": "RUNTIME_ERROR_OTHER",
+    "indeterminate_reason": "",
+    "reason_code": null,
+    "error_traceback": "",
+    "attempts": [
+      {
+        "attempt_number": 0,
+        "diff_text": "",
+        "gate_decision": "DECLINED",
+        "gate_violations": [],
+        "exit_code": null,
+        "stdout_tail": "",
+        "stderr_tail": "error: No solution found when resolving dependencies\n  cause: Because there are no versions of absl and you require absl, we can conclude that your requirements are unsatisfiable.\n",
+        "tavily_sources": [],
+        "env_delta": [],
+        "resolved_sources": [],
+        "origin": "time_machine",
+        "time_machine": {
+          "era": {
+            "date": "2020-10-22",
+            "source": "pinned-commit",
+            "detail": {
+              "note": "no dependency files in the repository"
+            }
+          },
+          "python": {
+            "version": "3.8",
+            "reason": "newest CPython first released \u2265180 days before the era date 2020-10-22 (https://devguide.python.org/versions/ (first release dates, retrieved 2026-09-24))",
+            "source": "https://devguide.python.org/versions/ (first release dates, retrieved 2026-09-24)"
+          },
+          "undeclared_imports": [
+            "absl",
+            "dill",
+            "numpy",
+            "tensorflow",
+            "tfutils"
+          ],
+          "apt_added": [],
+          "apt_reason": "",
+          "lock": {
+            "ok": false,
+            "lock": [],
+            "inputs": [
+              "absl",
+              "dill",
+              "numpy",
+              "tensorflow",
+              "tfutils"
+            ],
+            "not_on_index": [],
+            "command": "pip compile - --no-header --no-annotate --quiet --exclude-newer 2020-10-23T00:00:00Z --python-version 3.8 --python-platform x86_64-unknown-linux-gnu --python C:\\Users\\E16\\AppData\\Roaming\\uv\\python\\cpython-3.8.20-windows-x86_64-none\\python.exe",
+            "error": "error: No solution found when resolving dependencies\n  cause: Because there are no versions of absl and you require absl, we can conclude that your requirements are unsatisfiable.\n"
+          }
+        }
+      },
+      {
+        "attempt_number": 1,
+        "diff_text": "",
+        "gate_decision": "PASS",
+        "gate_violations": [],
+        "exit_code": 1,
+        "stdout_tail": "Collecting absl-py==0.9.0\n  Downloading absl-py-0.9.0.tar.gz (104 kB)\n     \u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501 104.0/104.0 kB 15.5 MB/s eta 0:00:00\n  Preparing metadata (setup.py): started\n  Preparing metadata (setup.py): finished with status 'error'\n",
+        "stderr_tail": "  error: subprocess-exited-with-error\n  \n  \u00d7 python setup.py egg_info did not run successfully.\n  \u2502 exit code: 1\n  \u2570\u2500> [6 lines of output]\n      Traceback (most recent call last):\n        File \"<string>\", line 2, in <module>\n        File \"<pip-setuptools-caller>\", line 34, in <module>\n        File \"/tmp/pip-install-gm0u7yw9/absl-py_b8d6856d37da41ef9420f8c4427caf7b/setup.py\", line 34, in <module>\n          raise RuntimeError('Python version 2.7 or 3.4+ is required.')\n      RuntimeError: Python version 2.7 or 3.4+ is required.\n      [end of output]\n  \n  note: This error originates from a subprocess, and is likely not a problem with pip.\nerror: metadata-generation-failed\n\n\u00d7 Encountered error while generating package metadata.\n\u2570\u2500> See above for output.\n\nnote: This is an issue with the package mentioned above, not pip.\nhint: See above for details.\n\n[notice] A new release of pip is available: 24.0 -> 26.2.1\n[notice] To update, run: pip install --upgrade pip\n",
+        "tavily_sources": [],
+        "env_delta": [
+          {
+            "command": null,
+            "op": "add",
+            "package": "absl-py",
+            "version": "0.9.0",
+            "git_url": null,
+            "commit": null,
+            "justification": "ModuleNotFoundError: No module named 'absl' indicates missing absl-py package",
+            "evidence": "ModuleNotFoundError: No module named 'absl'"
+          }
+        ],
+        "resolved_sources": [],
+        "origin": "model",
+        "time_machine": null
+      },
+      {
+        "attempt_number": 2,
+        "diff_text": "",
+        "gate_decision": "PASS",
+        "gate_violations": [],
+        "exit_code": 1,
+        "stdout_tail": "Collecting absl-py==0.9.0\n  Downloading absl-py-0.9.0.tar.gz (104 kB)\n     \u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501 104.0/104.0 kB 15.0 MB/s eta 0:00:00\n  Preparing metadata (setup.py): started\n  Preparing metadata (setup.py): finished with status 'error'\n",
+        "stderr_tail": "  error: subprocess-exited-with-error\n  \n  \u00d7 python setup.py egg_info did not run successfully.\n  \u2502 exit code: 1\n  \u2570\u2500> [6 lines of output]\n      Traceback (most recent call last):\n        File \"<string>\", line 2, in <module>\n        File \"<pip-setuptools-caller>\", line 34, in <module>\n        File \"/tmp/pip-install-mnf1se3j/absl-py_2b5b821137bc47c39bb753ed5d677d5e/setup.py\", line 34, in <module>\n          raise RuntimeError('Python version 2.7 or 3.4+ is required.')\n      RuntimeError: Python version 2.7 or 3.4+ is required.\n      [end of output]\n  \n  note: This error originates from a subprocess, and is likely not a problem with pip.\nerror: metadata-generation-failed\n\n\u00d7 Encountered error while generating package metadata.\n\u2570\u2500> See above for output.\n\nnote: This is an issue with the package mentioned above, not pip.\nhint: See above for details.\n\n[notice] A new release of pip is available: 24.0 -> 26.2.1\n[notice] To update, run: pip install --upgrade pip\n",
+        "tavily_sources": [],
+        "env_delta": [
+          {
+            "command": null,
+            "op": "pin",
+            "package": "absl-py",
+            "version": "2.0.0",
+            "git_url": null,
+            "commit": null,
+            "justification": "The installation of absl-py==0.9.0 failed with a Python version requirement error in Python 3.11, indicating incompatibility; upgrading to a newer version resolves this.",
+            "evidence": "RuntimeError: Python version 2.7 or 3.4+ is required."
+          }
+        ],
+        "resolved_sources": [],
+        "origin": "model",
+        "time_machine": null
+      },
+      {
+        "attempt_number": 3,
+        "diff_text": "",
+        "gate_decision": "DECLINED",
+        "gate_violations": [],
+        "exit_code": null,
+        "stdout_tail": "",
+        "stderr_tail": "",
+        "tavily_sources": [],
+        "env_delta": [],
+        "resolved_sources": [],
+        "origin": "model",
+        "time_machine": null
+      }
+    ],
+    "certificate_prose": "The repository's execution was blocked after three repair attempts. The repair process failed because the model's response was not valid JSON on two occasions, preventing the proposed fix (adding a requirements.txt file to specify absl-py==2.0.0) from being applied. Consequently, the code could not be run to completion. Verifies that the artifact executes. Does not verify the paper's numerical results."
+  },
+  "certificate": {
+    "repo_url": "https://github.com/neuroailab/Neural-Alignment",
+    "commit_sha": "d83defbccbfab9e6df51098abe50d4c74f1d481f",
+    "build_plan": {
+      "base_image": "python:3.11-slim",
+      "apt_install": [],
+      "install_commands": [
+        "true  # no declared dependency file found; nothing to install",
+        "pip install absl-py==0.9.0",
+        "pip install absl-py==2.0.0"
+      ],
+      "execute_command": "python train.py",
+      "notes": [
+        "execute command is the repository's documented command (corpus ground truth)",
+        "env delta: add absl-py \u2014 ModuleNotFoundError: No module named 'absl' indicates missing absl-py package",
+        "env delta: pin absl-py \u2014 The installation of absl-py==0.9.0 failed with a Python version requirement error in Python 3.11, indicating incompatibility; upgrading to a newer version resolves this."
+      ]
+    },
+    "full_log": "[intake] cloned https://github.com/neuroailab/Neural-Alignment@d83defbccbfab9e6df51098abe50d4c74f1d481f\n[recon] calling Nemotron Nano\n[recon] entrypoint=test.py confidence=0.78\n[planner] build plan: {'base_image': 'python:3.11-slim', 'apt_install': [], 'install_commands': ['true  # no declared dependency file found; nothing to install'], 'execute_command': 'python train.py', 'notes': [\"execute command is the repository's documented command (corpus ground truth)\"]}\n[integrity] verified 28 file(s) against tree b9e0d5973f88d7ced1134e59ff576c39ae7556f7\n[sandbox] starting build+execute (wall_clock_seconds=600)\n[cost_guard] recorded $0.0003 sandbox spend, $1.9992 remaining today\n[sandbox] id=a4eab9a8-f219-44e7-92bd-8de0a172c5d0 exit_code=1\n[baseline] as-is run: FAILS (exit code 1)\n[classifier] DEP_MISSING: ModuleNotFoundError: No module named 'absl'\n[era] 2020-10-22 from pinned-commit {'note': 'no dependency files in the repository'}\n[time-machine] could not lock the era environment: error: No solution found when resolving dependencies\n  cause: Because there are no versions of absl and you require absl, we can conclude that your requirements are unsatisfiable.\n\n[resolver] absl: 0 verified git source(s), PyPI found (0 release(s) shown), era 2020-10-22; query: 'absl python package version compatible 2020 release history'\n[tavily] 5 result(s) for 'absl python package version compatible 2020 release history'\n[repair 1] tamper gate PASS (env) \u2014 applying and re-executing\n[repair 1] env delta applied; build plan now: {'base_image': 'python:3.11-slim', 'apt_install': [], 'install_commands': ['true  # no declared dependency file found; nothing to install', 'pip install absl-py==0.9.0'], 'execute_command': 'python train.py', 'notes': [\"execute command is the repository's documented command (corpus ground truth)\", \"env delta: add absl-py \u2014 ModuleNotFoundError: No module named 'absl' indicates missing absl-py package\"]}\n[citations] not cited (not used in a decision): https://www.bu.edu/tech/support/research/software-and-programming/common-languages/packages\n[citations] not cited (not used in a decision): https://en.wikipedia.org/wiki/Python_(programming_language)\n[citations] not cited (not used in a decision): https://github.com/abseil/abseil-py\n[citations] not cited (not used in a decision): https://www.herodevs.com/blog-posts/python-end-of-life-dates-every-versions-support-timeline\n[citations] not cited (not used in a decision): https://getnikola.com/python-version-support-policy.html\n[integrity] verified 28 file(s) against tree b9e0d5973f88d7ced1134e59ff576c39ae7556f7\n[sandbox] starting build+execute (wall_clock_seconds=600)\n[cost_guard] recorded $0.0135 sandbox spend, $1.9832 remaining today\n[repair 1] re-execution id=589f98a9-a5c0-49f9-9265-9b093836f850 exit_code=1\n[classifier] RUNTIME_ERROR_OTHER: [notice] To update, run: pip install --upgrade pip\n[tavily] 3 result(s) for 'python runtime error other fix: [notice] To update, run: pip install --upgrade pip'\n[repair 2] env change lacked justification/evidence; re-asked once (same attempt)\n[repair 2] tamper gate PASS (env) \u2014 applying and re-executing\n[repair 2] env delta applied; build plan now: {'base_image': 'python:3.11-slim', 'apt_install': [], 'install_commands': ['true  # no declared dependency file found; nothing to install', 'pip install absl-py==0.9.0', 'pip install absl-py==2.0.0'], 'execute_command': 'python train.py', 'notes': [\"execute command is the repository's documented command (corpus ground truth)\", \"env delta: add absl-py \u2014 ModuleNotFoundError: No module named 'absl' indicates missing absl-py package\", 'env delta: pin absl-py \u2014 The installation of absl-py==0.9.0 failed with a Python version requirement error in Python 3.11, indicating incompatibility; upgrading to a newer version resolves this.']}\n[citations] not cited (not used in a decision): https://code2care.org/python/fix-error-legacy-install-failure-python-pip-pip3\n[citations] not cited (not used in a decision): https://code2care.org/python/fix-pip-install-error-subprocess-exited-with-error\n[citations] not cited (not used in a decision): https://sslinsights.com/python-pip-ssl-certificate_verify_failed-error\n[integrity] verified 28 file(s) against tree b9e0d5973f88d7ced1134e59ff576c39ae7556f7\n[sandbox] starting build+execute (wall_clock_seconds=600)\n[cost_guard] recorded $0.0135 sandbox spend, $1.9416 remaining today\n[repair 2] re-execution id=2fc969d0-8c10-42b3-a7de-3f7f1b7faa8b exit_code=1\n[classifier] RUNTIME_ERROR_OTHER: [notice] To update, run: pip install --upgrade pip\n[tavily] 3 result(s) for 'python runtime error other fix: [notice] To update, run: pip install --upgrade pip'\n[repair 3] first reply was not valid JSON; re-asked once (same attempt)\n[repair 3] declined: repair model reply was not valid JSON twice: model response was not valid JSON: Extra data: line 7 column 1 (char 296)\n---\n\n{\n  \"code_diff\": \"--- /dev/null\\\\\\\\n+++ b/requirements.txt\\\\\\\\n@@ -0,0 +1 @@\\\\\\\\n+absl-py==2.0.0\",\n  \"env_delta\": [],\n  \"explanation\": \"Adding requirements.txt to specify absl-py==2.0.0 avoids the failed installation of absl-py==0.9.0 due to a version check incompatibility with Python 3.11.\"\n}\n\n</output>\n[citations] not cited (not used in a decision): https://phoenixnap.com/kb/pip-update\n[citations] not cited (not used in a decision): https://forums.docker.com/t/run-pip-install-upgrade-pip-and-run-pip-install-r-requirements-txt-not-working/138933\n[citations] not cited (not used in a decision): https://github.com/actions/setup-python/issues/809\n[verdict] BLOCKED after 3 repair attempt(s): RUNTIME_ERROR_OTHER",
+    "diffs": [
+      {
+        "attempt_number": 0,
+        "diff_text": "",
+        "gate_decision": "DECLINED",
+        "gate_violations": [],
+        "exit_code": null,
+        "stdout_tail": "",
+        "stderr_tail": "error: No solution found when resolving dependencies\n  cause: Because there are no versions of absl and you require absl, we can conclude that your requirements are unsatisfiable.\n",
+        "tavily_sources": [],
+        "env_delta": [],
+        "resolved_sources": [],
+        "origin": "time_machine",
+        "time_machine": {
+          "era": {
+            "date": "2020-10-22",
+            "source": "pinned-commit",
+            "detail": {
+              "note": "no dependency files in the repository"
+            }
+          },
+          "python": {
+            "version": "3.8",
+            "reason": "newest CPython first released \u2265180 days before the era date 2020-10-22 (https://devguide.python.org/versions/ (first release dates, retrieved 2026-09-24))",
+            "source": "https://devguide.python.org/versions/ (first release dates, retrieved 2026-09-24)"
+          },
+          "undeclared_imports": [
+            "absl",
+            "dill",
+            "numpy",
+            "tensorflow",
+            "tfutils"
+          ],
+          "apt_added": [],
+          "apt_reason": "",
+          "lock": {
+            "ok": false,
+            "lock": [],
+            "inputs": [
+              "absl",
+              "dill",
+              "numpy",
+              "tensorflow",
+              "tfutils"
+            ],
+            "not_on_index": [],
+            "command": "pip compile - --no-header --no-annotate --quiet --exclude-newer 2020-10-23T00:00:00Z --python-version 3.8 --python-platform x86_64-unknown-linux-gnu --python C:\\Users\\E16\\AppData\\Roaming\\uv\\python\\cpython-3.8.20-windows-x86_64-none\\python.exe",
+            "error": "error: No solution found when resolving dependencies\n  cause: Because there are no versions of absl and you require absl, we can conclude that your requirements are unsatisfiable.\n"
+          }
+        }
+      },
+      {
+        "attempt_number": 1,
+        "diff_text": "",
+        "gate_decision": "PASS",
+        "gate_violations": [],
+        "exit_code": 1,
+        "stdout_tail": "Collecting absl-py==0.9.0\n  Downloading absl-py-0.9.0.tar.gz (104 kB)\n     \u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501 104.0/104.0 kB 15.5 MB/s eta 0:00:00\n  Preparing metadata (setup.py): started\n  Preparing metadata (setup.py): finished with status 'error'\n",
+        "stderr_tail": "  error: subprocess-exited-with-error\n  \n  \u00d7 python setup.py egg_info did not run successfully.\n  \u2502 exit code: 1\n  \u2570\u2500> [6 lines of output]\n      Traceback (most recent call last):\n        File \"<string>\", line 2, in <module>\n        File \"<pip-setuptools-caller>\", line 34, in <module>\n        File \"/tmp/pip-install-gm0u7yw9/absl-py_b8d6856d37da41ef9420f8c4427caf7b/setup.py\", line 34, in <module>\n          raise RuntimeError('Python version 2.7 or 3.4+ is required.')\n      RuntimeError: Python version 2.7 or 3.4+ is required.\n      [end of output]\n  \n  note: This error originates from a subprocess, and is likely not a problem with pip.\nerror: metadata-generation-failed\n\n\u00d7 Encountered error while generating package metadata.\n\u2570\u2500> See above for output.\n\nnote: This is an issue with the package mentioned above, not pip.\nhint: See above for details.\n\n[notice] A new release of pip is available: 24.0 -> 26.2.1\n[notice] To update, run: pip install --upgrade pip\n",
+        "tavily_sources": [],
+        "env_delta": [
+          {
+            "command": null,
+            "op": "add",
+            "package": "absl-py",
+            "version": "0.9.0",
+            "git_url": null,
+            "commit": null,
+            "justification": "ModuleNotFoundError: No module named 'absl' indicates missing absl-py package",
+            "evidence": "ModuleNotFoundError: No module named 'absl'"
+          }
+        ],
+        "resolved_sources": [],
+        "origin": "model",
+        "time_machine": null
+      },
+      {
+        "attempt_number": 2,
+        "diff_text": "",
+        "gate_decision": "PASS",
+        "gate_violations": [],
+        "exit_code": 1,
+        "stdout_tail": "Collecting absl-py==0.9.0\n  Downloading absl-py-0.9.0.tar.gz (104 kB)\n     \u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501 104.0/104.0 kB 15.0 MB/s eta 0:00:00\n  Preparing metadata (setup.py): started\n  Preparing metadata (setup.py): finished with status 'error'\n",
+        "stderr_tail": "  error: subprocess-exited-with-error\n  \n  \u00d7 python setup.py egg_info did not run successfully.\n  \u2502 exit code: 1\n  \u2570\u2500> [6 lines of output]\n      Traceback (most recent call last):\n        File \"<string>\", line 2, in <module>\n        File \"<pip-setuptools-caller>\", line 34, in <module>\n        File \"/tmp/pip-install-mnf1se3j/absl-py_2b5b821137bc47c39bb753ed5d677d5e/setup.py\", line 34, in <module>\n          raise RuntimeError('Python version 2.7 or 3.4+ is required.')\n      RuntimeError: Python version 2.7 or 3.4+ is required.\n      [end of output]\n  \n  note: This error originates from a subprocess, and is likely not a problem with pip.\nerror: metadata-generation-failed\n\n\u00d7 Encountered error while generating package metadata.\n\u2570\u2500> See above for output.\n\nnote: This is an issue with the package mentioned above, not pip.\nhint: See above for details.\n\n[notice] A new release of pip is available: 24.0 -> 26.2.1\n[notice] To update, run: pip install --upgrade pip\n",
+        "tavily_sources": [],
+        "env_delta": [
+          {
+            "command": null,
+            "op": "pin",
+            "package": "absl-py",
+            "version": "2.0.0",
+            "git_url": null,
+            "commit": null,
+            "justification": "The installation of absl-py==0.9.0 failed with a Python version requirement error in Python 3.11, indicating incompatibility; upgrading to a newer version resolves this.",
+            "evidence": "RuntimeError: Python version 2.7 or 3.4+ is required."
+          }
+        ],
+        "resolved_sources": [],
+        "origin": "model",
+        "time_machine": null
+      },
+      {
+        "attempt_number": 3,
+        "diff_text": "",
+        "gate_decision": "DECLINED",
+        "gate_violations": [],
+        "exit_code": null,
+        "stdout_tail": "",
+        "stderr_tail": "",
+        "tavily_sources": [],
+        "env_delta": [],
+        "resolved_sources": [],
+        "origin": "model",
+        "time_machine": null
+      }
+    ],
+    "verdict": "BLOCKED",
+    "timestamp": "2026-09-28T12:41:42.389918+00:00",
+    "bundle_version": 3,
+    "baseline": {
+      "result": "FAILS",
+      "exit_code": 1,
+      "base_image": "python:3.11-slim",
+      "install_commands": [
+        "true  # no declared dependency file found; nothing to install"
+      ],
+      "execute_command": "python train.py",
+      "sandbox_id": "a4eab9a8-f219-44e7-92bd-8de0a172c5d0",
+      "taxonomy_code": "DEP_MISSING",
+      "evidence": "ModuleNotFoundError: No module named 'absl'"
+    },
+    "recovery": false,
+    "tree_integrity": {
+      "status": "verified",
+      "tree_sha": "b9e0d5973f88d7ced1134e59ff576c39ae7556f7",
+      "files_checked": 28,
+      "excluded_patched": []
+    },
+    "corpus_hash": "063b700c38006bcf3160c64674a196cdf2fddb768a0c3de232746181aeef7d5c",
+    "reproduction_passport_hash": "8fa5262e8d008b4ba6e3326cf3225d9bf53b73be085688a709b78cc8e7a20f2a"
+  },
+  "finished_at": "2026-09-28T12:41:42.421827+00:00",
+  "events": [
+    {
+      "t_s": 0.0,
+      "at": "2026-09-28T12:37:18.410413+00:00",
+      "line": "[intake] cloned https://github.com/neuroailab/Neural-Alignment@d83defbccbfab9e6df51098abe50d4c74f1d481f"
+    },
+    {
+      "t_s": 0.01,
+      "at": "2026-09-28T12:37:18.419964+00:00",
+      "line": "[recon] calling Nemotron Nano"
+    },
+    {
+      "t_s": 10.42,
+      "at": "2026-09-28T12:37:28.826604+00:00",
+      "line": "[recon] entrypoint=test.py confidence=0.78"
+    },
+    {
+      "t_s": 11.79,
+      "at": "2026-09-28T12:37:30.200900+00:00",
+      "line": "[planner] build plan: {'base_image': 'python:3.11-slim', 'apt_install': [], 'install_commands': ['true  # no declared dependency file found; nothing to install'], 'execute_command': 'python train.py', 'notes': [\"execute command is the repository's documented command (corpus ground truth)\"]}"
+    },
+    {
+      "t_s": 11.95,
+      "at": "2026-09-28T12:37:30.356606+00:00",
+      "line": "[integrity] verified 28 file(s) against tree b9e0d5973f88d7ced1134e59ff576c39ae7556f7"
+    },
+    {
+      "t_s": 11.95,
+      "at": "2026-09-28T12:37:30.356652+00:00",
+      "line": "[sandbox] starting build+execute (wall_clock_seconds=600)"
+    },
+    {
+      "t_s": 19.03,
+      "at": "2026-09-28T12:37:37.445270+00:00",
+      "line": "[cost_guard] recorded $0.0003 sandbox spend, $1.9992 remaining today"
+    },
+    {
+      "t_s": 19.03,
+      "at": "2026-09-28T12:37:37.445335+00:00",
+      "line": "[sandbox] id=a4eab9a8-f219-44e7-92bd-8de0a172c5d0 exit_code=1"
+    },
+    {
+      "t_s": 19.03,
+      "at": "2026-09-28T12:37:37.445367+00:00",
+      "line": "[baseline] as-is run: FAILS (exit code 1)"
+    },
+    {
+      "t_s": 19.04,
+      "at": "2026-09-28T12:37:37.445488+00:00",
+      "line": "[classifier] DEP_MISSING: ModuleNotFoundError: No module named 'absl'"
+    },
+    {
+      "t_s": 19.1,
+      "at": "2026-09-28T12:37:37.507762+00:00",
+      "line": "[era] 2020-10-22 from pinned-commit {'note': 'no dependency files in the repository'}"
+    },
+    {
+      "t_s": 25.56,
+      "at": "2026-09-28T12:37:43.972849+00:00",
+      "line": "[time-machine] could not lock the era environment: error: No solution found when resolving dependencies\n  cause: Because there are no versions of absl and you require absl, we can conclude that your requirements are unsatisfiable.\n"
+    },
+    {
+      "t_s": 28.14,
+      "at": "2026-09-28T12:37:46.552949+00:00",
+      "line": "[resolver] absl: 0 verified git source(s), PyPI found (0 release(s) shown), era 2020-10-22; query: 'absl python package version compatible 2020 release history'"
+    },
+    {
+      "t_s": 28.14,
+      "at": "2026-09-28T12:37:46.553014+00:00",
+      "line": "[tavily] 5 result(s) for 'absl python package version compatible 2020 release history'"
+    },
+    {
+      "t_s": 36.59,
+      "at": "2026-09-28T12:37:55.000238+00:00",
+      "line": "[repair 1] tamper gate PASS (env) \u2014 applying and re-executing"
+    },
+    {
+      "t_s": 36.59,
+      "at": "2026-09-28T12:37:55.000360+00:00",
+      "line": "[repair 1] env delta applied; build plan now: {'base_image': 'python:3.11-slim', 'apt_install': [], 'install_commands': ['true  # no declared dependency file found; nothing to install', 'pip install absl-py==0.9.0'], 'execute_command': 'python train.py', 'notes': [\"execute command is the repository's documented command (corpus ground truth)\", \"env delta: add absl-py \u2014 ModuleNotFoundError: No module named 'absl' indicates missing absl-py package\"]}"
+    },
+    {
+      "t_s": 36.59,
+      "at": "2026-09-28T12:37:55.000392+00:00",
+      "line": "[citations] not cited (not used in a decision): https://www.bu.edu/tech/support/research/software-and-programming/common-languages/packages"
+    },
+    {
+      "t_s": 36.59,
+      "at": "2026-09-28T12:37:55.000405+00:00",
+      "line": "[citations] not cited (not used in a decision): https://en.wikipedia.org/wiki/Python_(programming_language)"
+    },
+    {
+      "t_s": 36.59,
+      "at": "2026-09-28T12:37:55.000415+00:00",
+      "line": "[citations] not cited (not used in a decision): https://github.com/abseil/abseil-py"
+    },
+    {
+      "t_s": 36.59,
+      "at": "2026-09-28T12:37:55.000424+00:00",
+      "line": "[citations] not cited (not used in a decision): https://www.herodevs.com/blog-posts/python-end-of-life-dates-every-versions-support-timeline"
+    },
+    {
+      "t_s": 36.59,
+      "at": "2026-09-28T12:37:55.000433+00:00",
+      "line": "[citations] not cited (not used in a decision): https://getnikola.com/python-version-support-policy.html"
+    },
+    {
+      "t_s": 36.7,
+      "at": "2026-09-28T12:37:55.106984+00:00",
+      "line": "[integrity] verified 28 file(s) against tree b9e0d5973f88d7ced1134e59ff576c39ae7556f7"
+    },
+    {
+      "t_s": 36.7,
+      "at": "2026-09-28T12:37:55.107031+00:00",
+      "line": "[sandbox] starting build+execute (wall_clock_seconds=600)"
+    },
+    {
+      "t_s": 49.85,
+      "at": "2026-09-28T12:38:08.255867+00:00",
+      "line": "[cost_guard] recorded $0.0135 sandbox spend, $1.9832 remaining today"
+    },
+    {
+      "t_s": 49.85,
+      "at": "2026-09-28T12:38:08.255936+00:00",
+      "line": "[repair 1] re-execution id=589f98a9-a5c0-49f9-9265-9b093836f850 exit_code=1"
+    },
+    {
+      "t_s": 49.85,
+      "at": "2026-09-28T12:38:08.256913+00:00",
+      "line": "[classifier] RUNTIME_ERROR_OTHER: [notice] To update, run: pip install --upgrade pip"
+    },
+    {
+      "t_s": 53.58,
+      "at": "2026-09-28T12:38:11.992937+00:00",
+      "line": "[tavily] 3 result(s) for 'python runtime error other fix: [notice] To update, run: pip install --upgrade pip'"
+    },
+    {
+      "t_s": 79.22,
+      "at": "2026-09-28T12:38:37.634915+00:00",
+      "line": "[repair 2] env change lacked justification/evidence; re-asked once (same attempt)"
+    },
+    {
+      "t_s": 181.32,
+      "at": "2026-09-28T12:40:19.729257+00:00",
+      "line": "[repair 2] tamper gate PASS (env) \u2014 applying and re-executing"
+    },
+    {
+      "t_s": 181.32,
+      "at": "2026-09-28T12:40:19.729377+00:00",
+      "line": "[repair 2] env delta applied; build plan now: {'base_image': 'python:3.11-slim', 'apt_install': [], 'install_commands': ['true  # no declared dependency file found; nothing to install', 'pip install absl-py==0.9.0', 'pip install absl-py==2.0.0'], 'execute_command': 'python train.py', 'notes': [\"execute command is the repository's documented command (corpus ground truth)\", \"env delta: add absl-py \u2014 ModuleNotFoundError: No module named 'absl' indicates missing absl-py package\", 'env delta: pin absl-py \u2014 The installation of absl-py==0.9.0 failed with a Python version requirement error in Python 3.11, indicating incompatibility; upgrading to a newer version resolves this.']}"
+    },
+    {
+      "t_s": 181.32,
+      "at": "2026-09-28T12:40:19.729411+00:00",
+      "line": "[citations] not cited (not used in a decision): https://code2care.org/python/fix-error-legacy-install-failure-python-pip-pip3"
+    },
+    {
+      "t_s": 181.32,
+      "at": "2026-09-28T12:40:19.729498+00:00",
+      "line": "[citations] not cited (not used in a decision): https://code2care.org/python/fix-pip-install-error-subprocess-exited-with-error"
+    },
+    {
+      "t_s": 181.32,
+      "at": "2026-09-28T12:40:19.729515+00:00",
+      "line": "[citations] not cited (not used in a decision): https://sslinsights.com/python-pip-ssl-certificate_verify_failed-error"
+    },
+    {
+      "t_s": 181.43,
+      "at": "2026-09-28T12:40:19.841741+00:00",
+      "line": "[integrity] verified 28 file(s) against tree b9e0d5973f88d7ced1134e59ff576c39ae7556f7"
+    },
+    {
+      "t_s": 181.43,
+      "at": "2026-09-28T12:40:19.841794+00:00",
+      "line": "[sandbox] starting build+execute (wall_clock_seconds=600)"
+    },
+    {
+      "t_s": 191.11,
+      "at": "2026-09-28T12:40:29.519954+00:00",
+      "line": "[cost_guard] recorded $0.0135 sandbox spend, $1.9416 remaining today"
+    },
+    {
+      "t_s": 191.11,
+      "at": "2026-09-28T12:40:29.520044+00:00",
+      "line": "[repair 2] re-execution id=2fc969d0-8c10-42b3-a7de-3f7f1b7faa8b exit_code=1"
+    },
+    {
+      "t_s": 191.11,
+      "at": "2026-09-28T12:40:29.520874+00:00",
+      "line": "[classifier] RUNTIME_ERROR_OTHER: [notice] To update, run: pip install --upgrade pip"
+    },
+    {
+      "t_s": 192.93,
+      "at": "2026-09-28T12:40:31.335605+00:00",
+      "line": "[tavily] 3 result(s) for 'python runtime error other fix: [notice] To update, run: pip install --upgrade pip'"
+    },
+    {
+      "t_s": 261.25,
+      "at": "2026-09-28T12:41:39.659203+00:00",
+      "line": "[repair 3] first reply was not valid JSON; re-asked once (same attempt)"
+    },
+    {
+      "t_s": 261.25,
+      "at": "2026-09-28T12:41:39.659265+00:00",
+      "line": "[repair 3] declined: repair model reply was not valid JSON twice: model response was not valid JSON: Extra data: line 7 column 1 (char 296)\n---\n\n{\n  \"code_diff\": \"--- /dev/null\\\\\\\\n+++ b/requirements.txt\\\\\\\\n@@ -0,0 +1 @@\\\\\\\\n+absl-py==2.0.0\",\n  \"env_delta\": [],\n  \"explanation\": \"Adding requirements.txt to specify absl-py==2.0.0 avoids the failed installation of absl-py==0.9.0 due to a version check incompatibility with Python 3.11.\"\n}\n\n</output>"
+    },
+    {
+      "t_s": 261.25,
+      "at": "2026-09-28T12:41:39.659287+00:00",
+      "line": "[citations] not cited (not used in a decision): https://phoenixnap.com/kb/pip-update"
+    },
+    {
+      "t_s": 261.25,
+      "at": "2026-09-28T12:41:39.659298+00:00",
+      "line": "[citations] not cited (not used in a decision): https://forums.docker.com/t/run-pip-install-upgrade-pip-and-run-pip-install-r-requirements-txt-not-working/138933"
+    },
+    {
+      "t_s": 261.25,
+      "at": "2026-09-28T12:41:39.659307+00:00",
+      "line": "[citations] not cited (not used in a decision): https://github.com/actions/setup-python/issues/809"
+    },
+    {
+      "t_s": 261.25,
+      "at": "2026-09-28T12:41:39.659328+00:00",
+      "line": "[verdict] BLOCKED after 3 repair attempt(s): RUNTIME_ERROR_OTHER"
+    }
+  ],
+  "model_calls": [
+    {
+      "model": "nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B",
+      "started_at": "2026-09-28T12:37:18.630498+00:00",
+      "latency_s": 10.2,
+      "finish_reason": "stop",
+      "content_is_none": false,
+      "has_reasoning": true,
+      "usage": {
+        "completion_tokens": 1398,
+        "prompt_tokens": 1778,
+        "total_tokens": 3176,
+        "completion_tokens_details": null,
+        "prompt_tokens_details": null
+      }
+    },
+    {
+      "model": "nvidia/nemotron-3-super-120b-a12b",
+      "started_at": "2026-09-28T12:37:28.827965+00:00",
+      "latency_s": 1.37,
+      "finish_reason": "stop",
+      "content_is_none": false,
+      "has_reasoning": true,
+      "usage": {
+        "completion_tokens": 37,
+        "prompt_tokens": 270,
+        "total_tokens": 307,
+        "completion_tokens_details": {
+          "accepted_prediction_tokens": null,
+          "audio_tokens": null,
+          "reasoning_tokens": 27,
+          "rejected_prediction_tokens": null,
+          "text_tokens": null
+        },
+        "prompt_tokens_details": {
+          "audio_tokens": null,
+          "cache_write_tokens": null,
+          "cached_tokens": 0,
+          "image_tokens": null,
+          "text_tokens": null,
+          "created_cache_tokens": 0,
+          "multimodal_tokens": null
+        },
+        "prompt_cache_hit_tokens": 0,
+        "prompt_cache_miss_tokens": 270
+      }
+    },
+    {
+      "model": "nvidia/nemotron-3-super-120b-a12b",
+      "started_at": "2026-09-28T12:37:46.555792+00:00",
+      "latency_s": 8.44,
+      "finish_reason": "stop",
+      "content_is_none": false,
+      "has_reasoning": true,
+      "usage": {
+        "completion_tokens": 1475,
+        "prompt_tokens": 3680,
+        "total_tokens": 5155,
+        "completion_tokens_details": {
+          "accepted_prediction_tokens": null,
+          "audio_tokens": null,
+          "reasoning_tokens": 1349,
+          "rejected_prediction_tokens": null,
+          "text_tokens": null
+        },
+        "prompt_tokens_details": {
+          "audio_tokens": null,
+          "cache_write_tokens": null,
+          "cached_tokens": 0,
+          "image_tokens": null,
+          "text_tokens": null,
+          "created_cache_tokens": 0,
+          "multimodal_tokens": null
+        },
+        "prompt_cache_hit_tokens": 0,
+        "prompt_cache_miss_tokens": 3680
+      }
+    },
+    {
+      "model": "nvidia/nemotron-3-super-120b-a12b",
+      "started_at": "2026-09-28T12:38:11.995897+00:00",
+      "latency_s": 25.64,
+      "finish_reason": "stop",
+      "content_is_none": false,
+      "has_reasoning": true,
+      "usage": {
+        "completion_tokens": 5122,
+        "prompt_tokens": 3504,
+        "total_tokens": 8626,
+        "completion_tokens_details": {
+          "accepted_prediction_tokens": null,
+          "audio_tokens": null,
+          "reasoning_tokens": 5033,
+          "rejected_prediction_tokens": null,
+          "text_tokens": null
+        },
+        "prompt_tokens_details": {
+          "audio_tokens": null,
+          "cache_write_tokens": null,
+          "cached_tokens": 0,
+          "image_tokens": null,
+          "text_tokens": null,
+          "created_cache_tokens": 0,
+          "multimodal_tokens": null
+        },
+        "prompt_cache_hit_tokens": 0,
+        "prompt_cache_miss_tokens": 3504
+      }
+    },
+    {
+      "model": "nvidia/nemotron-3-super-120b-a12b",
+      "started_at": "2026-09-28T12:38:37.637536+00:00",
+      "latency_s": 39.71,
+      "finish_reason": "length",
+      "content_is_none": true,
+      "has_reasoning": true,
+      "usage": {
+        "completion_tokens": 8192,
+        "prompt_tokens": 3592,
+        "total_tokens": 11784,
+        "completion_tokens_details": {
+          "accepted_prediction_tokens": null,
+          "audio_tokens": null,
+          "reasoning_tokens": 8192,
+          "rejected_prediction_tokens": null,
+          "text_tokens": null
+        },
+        "prompt_tokens_details": {
+          "audio_tokens": null,
+          "cache_write_tokens": null,
+          "cached_tokens": 0,
+          "image_tokens": null,
+          "text_tokens": null,
+          "created_cache_tokens": 0,
+          "multimodal_tokens": null
+        },
+        "prompt_cache_hit_tokens": 0,
+        "prompt_cache_miss_tokens": 3592
+      }
+    },
+    {
+      "model": "nvidia/nemotron-3-super-120b-a12b",
+      "started_at": "2026-09-28T12:39:17.343169+00:00",
+      "latency_s": 42.17,
+      "finish_reason": "stop",
+      "content_is_none": false,
+      "has_reasoning": true,
+      "usage": {
+        "completion_tokens": 8877,
+        "prompt_tokens": 3592,
+        "total_tokens": 12469,
+        "completion_tokens_details": {
+          "accepted_prediction_tokens": null,
+          "audio_tokens": null,
+          "reasoning_tokens": 8604,
+          "rejected_prediction_tokens": null,
+          "text_tokens": null
+        },
+        "prompt_tokens_details": {
+          "audio_tokens": null,
+          "cache_write_tokens": null,
+          "cached_tokens": 0,
+          "image_tokens": null,
+          "text_tokens": null,
+          "created_cache_tokens": 0,
+          "multimodal_tokens": null
+        },
+        "prompt_cache_hit_tokens": 0,
+        "prompt_cache_miss_tokens": 3592
+      }
+    },
+    {
+      "model": "nvidia/nemotron-3-super-120b-a12b",
+      "started_at": "2026-09-28T12:39:59.516304+00:00",
+      "latency_s": 20.21,
+      "finish_reason": "stop",
+      "content_is_none": false,
+      "has_reasoning": true,
+      "usage": {
+        "completion_tokens": 4246,
+        "prompt_tokens": 3653,
+        "total_tokens": 7899,
+        "completion_tokens_details": {
+          "accepted_prediction_tokens": null,
+          "audio_tokens": null,
+          "reasoning_tokens": 4087,
+          "rejected_prediction_tokens": null,
+          "text_tokens": null
+        },
+        "prompt_tokens_details": {
+          "audio_tokens": null,
+          "cache_write_tokens": null,
+          "cached_tokens": 0,
+          "image_tokens": null,
+          "text_tokens": null,
+          "created_cache_tokens": 0,
+          "multimodal_tokens": null
+        },
+        "prompt_cache_hit_tokens": 0,
+        "prompt_cache_miss_tokens": 3653
+      }
+    },
+    {
+      "model": "nvidia/nemotron-3-super-120b-a12b",
+      "started_at": "2026-09-28T12:40:31.338286+00:00",
+      "latency_s": 41.72,
+      "finish_reason": "stop",
+      "content_is_none": false,
+      "has_reasoning": true,
+      "usage": {
+        "completion_tokens": 7706,
+        "prompt_tokens": 3552,
+        "total_tokens": 11258,
+        "completion_tokens_details": {
+          "accepted_prediction_tokens": null,
+          "audio_tokens": null,
+          "reasoning_tokens": 7379,
+          "rejected_prediction_tokens": null,
+          "text_tokens": null
+        },
+        "prompt_tokens_details": {
+          "audio_tokens": null,
+          "cache_write_tokens": null,
+          "cached_tokens": 0,
+          "image_tokens": null,
+          "text_tokens": null,
+          "created_cache_tokens": 0,
+          "multimodal_tokens": null
+        },
+        "prompt_cache_hit_tokens": 0,
+        "prompt_cache_miss_tokens": 3552
+      }
+    },
+    {
+      "model": "nvidia/nemotron-3-super-120b-a12b",
+      "started_at": "2026-09-28T12:41:13.063620+00:00",
+      "latency_s": 26.6,
+      "finish_reason": "stop",
+      "content_is_none": false,
+      "has_reasoning": true,
+      "usage": {
+        "completion_tokens": 6248,
+        "prompt_tokens": 3614,
+        "total_tokens": 9862,
+        "completion_tokens_details": {
+          "accepted_prediction_tokens": null,
+          "audio_tokens": null,
+          "reasoning_tokens": 6141,
+          "rejected_prediction_tokens": null,
+          "text_tokens": null
+        },
+        "prompt_tokens_details": {
+          "audio_tokens": null,
+          "cache_write_tokens": null,
+          "cached_tokens": 0,
+          "image_tokens": null,
+          "text_tokens": null,
+          "created_cache_tokens": 0,
+          "multimodal_tokens": null
+        },
+        "prompt_cache_hit_tokens": 0,
+        "prompt_cache_miss_tokens": 3614
+      }
+    },
+    {
+      "model": "nvidia/Nemotron-3-Ultra-550b-a55b",
+      "started_at": "2026-09-28T12:41:39.660812+00:00",
+      "latency_s": 2.73,
+      "finish_reason": "stop",
+      "content_is_none": false,
+      "has_reasoning": true,
+      "usage": {
+        "completion_tokens": 553,
+        "prompt_tokens": 807,
+        "total_tokens": 1360,
+        "completion_tokens_details": {
+          "accepted_prediction_tokens": null,
+          "audio_tokens": null,
+          "reasoning_tokens": 442,
+          "rejected_prediction_tokens": null,
+          "text_tokens": null
+        },
+        "prompt_tokens_details": {
+          "audio_tokens": null,
+          "cache_write_tokens": null,
+          "cached_tokens": 0,
+          "image_tokens": null,
+          "text_tokens": null,
+          "multimodal_tokens": null
+        },
+        "prompt_cache_hit_tokens": 0,
+        "prompt_cache_miss_tokens": 807
+      }
+    }
+  ],
+  "cost_guard": {
+    "spent_usd": 0.07555263999999999,
+    "model_spent_usd": 0.048258,
+    "sandbox_spent_usd": 0.027294640000000002,
+    "remaining_usd": 1.92444736,
+    "model_usage": [
+      {
+        "model": "nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B",
+        "prompt_tokens": 1778,
+        "completion_tokens": 1398,
+        "cost_usd": 0.0004422
+      },
+      {
+        "model": "nvidia/nemotron-3-super-120b-a12b",
+        "prompt_tokens": 270,
+        "completion_tokens": 37,
+        "cost_usd": 0.00011430000000000001
+      },
+      {
+        "model": "nvidia/nemotron-3-super-120b-a12b",
+        "prompt_tokens": 3680,
+        "completion_tokens": 1475,
+        "cost_usd": 0.0024315
+      },
+      {
+        "model": "nvidia/nemotron-3-super-120b-a12b",
+        "prompt_tokens": 3504,
+        "completion_tokens": 5122,
+        "cost_usd": 0.005661
+      },
+      {
+        "model": "nvidia/nemotron-3-super-120b-a12b",
+        "prompt_tokens": 3592,
+        "completion_tokens": 8192,
+        "cost_usd": 0.0084504
+      },
+      {
+        "model": "nvidia/nemotron-3-super-120b-a12b",
+        "prompt_tokens": 3592,
+        "completion_tokens": 8877,
+        "cost_usd": 0.0090669
+      },
+      {
+        "model": "nvidia/nemotron-3-super-120b-a12b",
+        "prompt_tokens": 3653,
+        "completion_tokens": 4246,
+        "cost_usd": 0.0049173
+      },
+      {
+        "model": "nvidia/nemotron-3-super-120b-a12b",
+        "prompt_tokens": 3552,
+        "completion_tokens": 7706,
+        "cost_usd": 0.008001
+      },
+      {
+        "model": "nvidia/nemotron-3-super-120b-a12b",
+        "prompt_tokens": 3614,
+        "completion_tokens": 6248,
+        "cost_usd": 0.0067074
+      },
+      {
+        "model": "nvidia/Nemotron-3-Ultra-550b-a55b",
+        "prompt_tokens": 807,
+        "completion_tokens": 553,
+        "cost_usd": 0.002466
+      }
+    ],
+    "prices_usd_per_1m": {
+      "nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B": [
+        0.06,
+        0.24
+      ],
+      "nvidia/nemotron-3-super-120b-a12b": [
+        0.3,
+        0.9
+      ],
+      "nvidia/Nemotron-3-Ultra-550b-a55b": [
+        1.0,
+        3.0
+      ]
+    },
+    "prices_source": "https://api.tokenfactory.nebius.com/v1/models?verbose=true (pricing field)",
+    "prices_retrieved": "2026-09-24"
+  }
+}

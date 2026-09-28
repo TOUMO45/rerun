@@ -83,8 +83,9 @@ _GIT_URL_RE = re.compile(r"^https://(github\.com|gitlab\.com|bitbucket\.org)/[A-
 _SHA_RE = re.compile(r"^[0-9a-f]{40}$")
 _URL_RE = re.compile(r"[a-z][a-z0-9+.-]*://|www\.", re.IGNORECASE)
 
-# Distribution name -> import name, where they differ (inverse of
-# classifier._IMPORT_TO_DIST, plus a few common ML cases).
+# Distribution name -> import name, where they differ. Used only by the env
+# gate's "never remove a package the code imports" check (the reverse
+# direction of the harness-v1.1 import map, which is import -> distribution).
 _DIST_TO_IMPORT = {
     "scikit-learn": "sklearn",
     "opencv-python": "cv2",
@@ -203,10 +204,10 @@ _COLLECTING_RE = re.compile(r"^\s*Collecting ([A-Za-z0-9][A-Za-z0-9._-]*)", re.M
 
 def _dists_for_module(module: str) -> set[str]:
     """Normalized distribution names that provide top-level `module`."""
-    from app.services.classifier import _IMPORT_TO_DIST
+    from app.services.import_names import dist_for_import
 
     top = module.split(".")[0]
-    names = {_norm(top), _norm(_IMPORT_TO_DIST.get(top, top))}
+    names = {_norm(top), _norm(dist_for_import(top))}
     names.update(dist for dist, imp in _DIST_TO_IMPORT.items() if imp == top)
     return names
 

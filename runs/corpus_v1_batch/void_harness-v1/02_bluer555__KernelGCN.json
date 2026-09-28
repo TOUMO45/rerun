@@ -1,0 +1,254 @@
+{
+  "run_kind": "live end-to-end run",
+  "dev_run": false,
+  "batch": {
+    "harness_tag": "harness-v1",
+    "harness_commit": "f339077646e3428a4a8f4005868e4faa613e1541",
+    "amendment_sha256": "63d409a3ffc92b016fde502b90e53500a48287b7a286c7078148ac3650b9622d",
+    "corpus_hash": "063b700c38006bcf3160c64674a196cdf2fddb768a0c3de232746181aeef7d5c",
+    "entry_id": 2,
+    "category": "PRIMARY",
+    "rules_matched": [],
+    "per_entry_cap_usd": 2.0,
+    "total_cap_usd": 40.0
+  },
+  "started_at": "2026-09-28T12:41:45.489237+00:00",
+  "corpus_entry": {
+    "name": "bluer555__KernelGCN",
+    "repo_url": "https://github.com/bluer555/KernelGCN",
+    "commit_sha": "94cfaf386d538949abd95bb3de1b0ee56e93d001",
+    "command": "python train.py",
+    "command_source": "README.md line 23"
+  },
+  "config": {
+    "models": {
+      "recon": "nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B",
+      "planner": "nvidia/nemotron-3-super-120b-a12b",
+      "repairer": "nvidia/nemotron-3-super-120b-a12b",
+      "adjudicator": "nvidia/Nemotron-3-Ultra-550b-a55b"
+    },
+    "sandbox_backend": "token_factory",
+    "sandbox_image_default": "python:3.11-slim",
+    "sandbox_wall_clock_seconds": 600.0,
+    "max_attempts": 3,
+    "tavily_configured": true,
+    "cost_cap_usd": 2.0
+  },
+  "intake": {
+    "duration_s": 25.14,
+    "resolved_sha": "94cfaf386d538949abd95bb3de1b0ee56e93d001",
+    "dependency_files": [],
+    "declared_dependencies": [],
+    "entrypoint_candidates": [
+      "train.py"
+    ],
+    "notebook_paths": []
+  },
+  "pipeline_duration_s": 63.2,
+  "repair_mode": "deterministic",
+  "tree_integrity": {
+    "status": "verified",
+    "tree_sha": "5b3748e90d8deebaaa6a5236eea54bc00d847526",
+    "files_checked": 30,
+    "excluded_patched": []
+  },
+  "result": {
+    "verdict": "NOT_ATTEMPTABLE",
+    "taxonomy_code": null,
+    "indeterminate_reason": "",
+    "reason_code": null,
+    "error_traceback": "",
+    "attempts": [],
+    "certificate_prose": "The sandbox execution failed due to an API timeout error when attempting to upload files to the sandbox service (ApiTimeoutError on POST to sandboxes/v1/files). This infrastructure failure prevented the repository's code from being executed at all. The verdict NOT_ATTEMPTABLE reflects that the run could not be attempted. Verifies that the artifact executes. Does not verify the paper's numerical results."
+  },
+  "certificate": {
+    "repo_url": "https://github.com/bluer555/KernelGCN",
+    "commit_sha": "94cfaf386d538949abd95bb3de1b0ee56e93d001",
+    "build_plan": {
+      "base_image": "python:3.11-slim",
+      "apt_install": [],
+      "install_commands": [
+        "true  # no declared dependency file found; nothing to install"
+      ],
+      "execute_command": "python train.py",
+      "notes": [
+        "execute command is the repository's documented command (corpus ground truth)"
+      ]
+    },
+    "full_log": "[intake] cloned https://github.com/bluer555/KernelGCN@94cfaf386d538949abd95bb3de1b0ee56e93d001\n[recon] calling Nemotron Nano\n[recon] entrypoint=train.py confidence=0.90\n[planner] build plan: {'base_image': 'python:3.11-slim', 'apt_install': [], 'install_commands': ['true  # no declared dependency file found; nothing to install'], 'execute_command': 'python train.py', 'notes': [\"execute command is the repository's documented command (corpus ground truth)\"]}\n[integrity] verified 30 file(s) against tree 5b3748e90d8deebaaa6a5236eea54bc00d847526\n[sandbox] starting build+execute (wall_clock_seconds=600)\n[sandbox] execution error: sandbox execution failed: ApiTimeoutError(request=RequestInfo(url='https://api.tokenfactory.nebius.com/sandboxes/v1/files', method='POST'), response=None, timeout_type='read')",
+    "diffs": [],
+    "verdict": "NOT_ATTEMPTABLE",
+    "timestamp": "2026-09-28T12:43:13.830780+00:00",
+    "bundle_version": 3,
+    "baseline": {
+      "result": "NOT_RUN"
+    },
+    "recovery": false,
+    "tree_integrity": {
+      "status": "verified",
+      "tree_sha": "5b3748e90d8deebaaa6a5236eea54bc00d847526",
+      "files_checked": 30,
+      "excluded_patched": []
+    },
+    "corpus_hash": "063b700c38006bcf3160c64674a196cdf2fddb768a0c3de232746181aeef7d5c",
+    "reproduction_passport_hash": "e63b069879532625565a2181c783a9adadc617441ea7971a85e415861b652741"
+  },
+  "finished_at": "2026-09-28T12:43:13.864696+00:00",
+  "events": [
+    {
+      "t_s": 0.0,
+      "at": "2026-09-28T12:42:10.630317+00:00",
+      "line": "[intake] cloned https://github.com/bluer555/KernelGCN@94cfaf386d538949abd95bb3de1b0ee56e93d001"
+    },
+    {
+      "t_s": 0.01,
+      "at": "2026-09-28T12:42:10.640845+00:00",
+      "line": "[recon] calling Nemotron Nano"
+    },
+    {
+      "t_s": 11.36,
+      "at": "2026-09-28T12:42:21.986132+00:00",
+      "line": "[recon] entrypoint=train.py confidence=0.90"
+    },
+    {
+      "t_s": 12.54,
+      "at": "2026-09-28T12:42:23.170811+00:00",
+      "line": "[planner] build plan: {'base_image': 'python:3.11-slim', 'apt_install': [], 'install_commands': ['true  # no declared dependency file found; nothing to install'], 'execute_command': 'python train.py', 'notes': [\"execute command is the repository's documented command (corpus ground truth)\"]}"
+    },
+    {
+      "t_s": 13.0,
+      "at": "2026-09-28T12:42:23.631077+00:00",
+      "line": "[integrity] verified 30 file(s) against tree 5b3748e90d8deebaaa6a5236eea54bc00d847526"
+    },
+    {
+      "t_s": 13.0,
+      "at": "2026-09-28T12:42:23.631126+00:00",
+      "line": "[sandbox] starting build+execute (wall_clock_seconds=600)"
+    },
+    {
+      "t_s": 26.91,
+      "at": "2026-09-28T12:42:37.538995+00:00",
+      "line": "[sandbox] execution error: sandbox execution failed: ApiTimeoutError(request=RequestInfo(url='https://api.tokenfactory.nebius.com/sandboxes/v1/files', method='POST'), response=None, timeout_type='read')"
+    }
+  ],
+  "model_calls": [
+    {
+      "model": "nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B",
+      "started_at": "2026-09-28T12:42:10.855576+00:00",
+      "latency_s": 11.13,
+      "finish_reason": "stop",
+      "content_is_none": false,
+      "has_reasoning": true,
+      "usage": {
+        "completion_tokens": 1337,
+        "prompt_tokens": 1704,
+        "total_tokens": 3041,
+        "completion_tokens_details": null,
+        "prompt_tokens_details": null
+      }
+    },
+    {
+      "model": "nvidia/nemotron-3-super-120b-a12b",
+      "started_at": "2026-09-28T12:42:21.987330+00:00",
+      "latency_s": 1.18,
+      "finish_reason": "stop",
+      "content_is_none": false,
+      "has_reasoning": true,
+      "usage": {
+        "completion_tokens": 42,
+        "prompt_tokens": 270,
+        "total_tokens": 312,
+        "completion_tokens_details": {
+          "accepted_prediction_tokens": null,
+          "audio_tokens": null,
+          "reasoning_tokens": 32,
+          "rejected_prediction_tokens": null,
+          "text_tokens": null
+        },
+        "prompt_tokens_details": {
+          "audio_tokens": null,
+          "cache_write_tokens": null,
+          "cached_tokens": 0,
+          "image_tokens": null,
+          "text_tokens": null,
+          "created_cache_tokens": 0,
+          "multimodal_tokens": null
+        },
+        "prompt_cache_hit_tokens": 0,
+        "prompt_cache_miss_tokens": 270
+      }
+    },
+    {
+      "model": "nvidia/Nemotron-3-Ultra-550b-a55b",
+      "started_at": "2026-09-28T12:42:37.540563+00:00",
+      "latency_s": 36.29,
+      "finish_reason": "stop",
+      "content_is_none": false,
+      "has_reasoning": true,
+      "usage": {
+        "completion_tokens": 1058,
+        "prompt_tokens": 743,
+        "total_tokens": 1801,
+        "completion_tokens_details": {
+          "accepted_prediction_tokens": null,
+          "audio_tokens": null,
+          "reasoning_tokens": 948,
+          "rejected_prediction_tokens": null,
+          "text_tokens": null
+        },
+        "prompt_tokens_details": {
+          "audio_tokens": null,
+          "cache_write_tokens": null,
+          "cached_tokens": 0,
+          "image_tokens": null,
+          "text_tokens": null,
+          "multimodal_tokens": null
+        },
+        "prompt_cache_hit_tokens": 0,
+        "prompt_cache_miss_tokens": 743
+      }
+    }
+  ],
+  "cost_guard": {
+    "spent_usd": 0.00445892,
+    "model_spent_usd": 0.00445892,
+    "sandbox_spent_usd": 0.0,
+    "remaining_usd": 1.99554108,
+    "model_usage": [
+      {
+        "model": "nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B",
+        "prompt_tokens": 1704,
+        "completion_tokens": 1337,
+        "cost_usd": 0.00042312000000000003
+      },
+      {
+        "model": "nvidia/nemotron-3-super-120b-a12b",
+        "prompt_tokens": 270,
+        "completion_tokens": 42,
+        "cost_usd": 0.00011880000000000001
+      },
+      {
+        "model": "nvidia/Nemotron-3-Ultra-550b-a55b",
+        "prompt_tokens": 743,
+        "completion_tokens": 1058,
+        "cost_usd": 0.003917
+      }
+    ],
+    "prices_usd_per_1m": {
+      "nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B": [
+        0.06,
+        0.24
+      ],
+      "nvidia/nemotron-3-super-120b-a12b": [
+        0.3,
+        0.9
+      ],
+      "nvidia/Nemotron-3-Ultra-550b-a55b": [
+        1.0,
+        3.0
+      ]
+    },
+    "prices_source": "https://api.tokenfactory.nebius.com/v1/models?verbose=true (pricing field)",
+    "prices_retrieved": "2026-09-24"
+  }
+}

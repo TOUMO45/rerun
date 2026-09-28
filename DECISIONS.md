@@ -3772,3 +3772,28 @@ table of all records, headline over PRIMARY only. Tests (`test_corpus_v1_batch.p
 incl. refusals (dirty, HEAD≠tag, tampered amendment) and the headline arithmetic. Found
 while testing on the real repo: `_git()` stripped the porcelain output's leading space
 (` M x` → `M x`); rstrip only now, regression test. Backend 642 passed, 8 skipped.
+
+## 2026-09-28 — harness-v1.1: fixes exposed by the corpus-v1 batch; corpus-v2 sealed
+
+The corpus-v1 batch on `harness-v1` was stopped after 3 entries (sandbox upload timeouts →
+`NOT_ATTEMPTABLE`/`INDETERMINATE`; entry #1 distorted by the `absl` import name and a pip
+`[notice]` evidence line). Human decision: harness-v1.1, void 01–03 (moved to
+`runs/corpus_v1_batch/void_harness-v1/` with a README, kept), re-run all 20, then draw
+and run corpus-v2 blind. Full list in METHODOLOGY ("Harness changes discovered during the
+corpus-v1 batch"): (a) `InfraError` / verdict `INFRA_ERROR` with bounded exponential
+backoff on every external path, one-archive upload with a post-extraction manifest check;
+(m) git file modes preserved and verified; (b) import→distribution table from pipreqs +
+pigar + PyPI download rank (sources approved and verified by sha256; hardware variants
+excluded; low-confidence flagged; mappings recorded in certificates); (c) classifier
+fallback evidence; batch driver: configurable tag, tag-or-descendant preflight with a data
+allowlist and an independent blob-hash check, circuit breaker (2 consecutive INFRA_ERROR).
+Decisions along the way (human): pipreqs alone lacked absl/cv2 → add pigar; pigar's
+candidate order is polluted by squatters → rank by downloads, never an unranked candidate;
+top-pypi-packages has no license → build-time only, not redistributed.
+Found while testing: `reason_code_of` rejected `-` (`INFRA_ERROR:package-index` parsed as
+no code, so it would not have been excluded as RERUN's fault) — fixed; `_git()` status
+parsing; a test that reloaded `tree_integrity` broke other tests' exception identity.
+Tests: `test_harness_v11.py` (71, incl. a real Linux round trip in WSL) and
+`test_corpus_v1_batch.py` (19, real temporary git repo). 18/18 mutations caught. Live smoke
+test of the tar upload on Nebius: verified, `./run.sh` executable, $0.0009. Backend 723
+passed, 8 skipped; frontend 9 passed, tsc clean.

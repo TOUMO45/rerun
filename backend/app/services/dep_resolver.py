@@ -33,6 +33,8 @@ from pathlib import Path
 from typing import Callable
 
 from app.services import tavily
+from app.services.import_names import dist_for_import
+from app.services.infra import InfraError, checked_http_get
 from app.services.classifier import TaxonomyCode
 
 RESOLVER_CODES = frozenset(
@@ -44,14 +46,6 @@ RESOLVER_CODES = frozenset(
     }
 )
 
-# Import name -> distribution name, where they differ.
-_IMPORT_TO_DIST = {
-    "sklearn": "scikit-learn",
-    "cv2": "opencv-python",
-    "yaml": "pyyaml",
-    "PIL": "pillow",
-    "bs4": "beautifulsoup4",
-}
 
 _PKG_PATTERNS = (
     re.compile(r"No module named '([A-Za-z0-9_.]+)'"),
@@ -76,7 +70,7 @@ def package_from_evidence(evidence: str) -> str | None:
         if match:
             name = re.split(r"[<>=!~;\[ ]", match.group(1), maxsplit=1)[0].rstrip(".")
             top = name.split(".")[0] if "No module named" in pattern.pattern else name
-            return _IMPORT_TO_DIST.get(top, top)
+            return dist_for_import(top)
     return None
 
 
@@ -294,7 +288,9 @@ def resolve(
     package = package_from_evidence(evidence)
     if not package:
         return None
-    http_get = http_get or _default_http_get
+    # harness-v1.1: GitHub / PyPI outages are retried, then InfraError
+    # (never silently a thinner resolution the repair then runs on).
+    http_get = checked_http_get(http_get or _default_http_get)
     notes: list[str] = []
 
     # PyPI first: whether the index knows the package decides the search
@@ -303,6 +299,8 @@ def resolve(
     # query and never looked for its source, although PyPI said 404.
     try:
         pypi_status, releases = _pypi_releases(package, repo_date, http_get)
+    except InfraError:
+        raise
     except Exception as exc:
         pypi_status, releases = f"lookup failed ({type(exc).__name__})", ()
     source_mode = code == TaxonomyCode.DEP_NOT_ON_PYPI or pypi_status == "not on PyPI"
@@ -335,6 +333,8 @@ def resolve(
     for owner, repo, cited_by in candidates[:max_git_candidates]:
         try:
             verified = _verify_github(owner, repo, repo_date, cited_by, http_get)
+        except InfraError:
+            raise
         except Exception as exc:
             notes.append(f"GitHub verification failed for {owner}/{repo}: {exc}")
             verified = None

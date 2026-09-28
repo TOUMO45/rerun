@@ -39,23 +39,147 @@ run against the live API.
 
 from __future__ import annotations
 
+import hashlib
+import io
+import json
+import tarfile
 import time
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Iterable, Protocol
+from typing import Callable, Iterable, Protocol
 
 from contree_sdk import ContreeSync
 from contree_sdk.auth import IAMAuth
 from contree_sdk.config import ContreeConfig
 from contree_sdk.sdk.exceptions import ContreeError, OperationTimedOutError
+from contree_sdk.sdk.exceptions.api import ApiStatusCodeError, ApiTimeoutError, ContreeTransportError
+
+from app.services.infra import InfraError, retry_call
 
 
 class SandboxError(RuntimeError):
-    pass
+    """A sandbox run could not produce a result for a reason that is about
+    the run itself (the wall-clock ceiling). External API failures are
+    SandboxInfraError instead (harness-v1.1)."""
 
 
 class SandboxCredentialsError(SandboxError):
     pass
+
+
+class SandboxInfraError(InfraError):
+    """The Nebius sandbox API failed (timeouts, transport, 5xx, 403, …)."""
+
+    def __init__(self, message: str, **kwargs):
+        super().__init__("sandbox", message, **kwargs)
+
+
+class UploadIntegrityError(RuntimeError):
+    """The files extracted inside the sandbox are not the files uploaded
+    (post-extraction check). Mapped to INVALID_HARNESS by the orchestrator."""
+
+    def __init__(self, message: str, stderr: str = ""):
+        self.stderr = stderr
+        super().__init__(message)
+
+
+# --- One-archive upload (harness-v1.1) ----------------------------------------
+# contree_sdk's apply_files uploads every file as its own POST, all at once
+# (`gather(*(_upload_file(i) for i in files))`, sdk/objects/image_like/_base.py)
+# — the corpus-v1 batch's upload timeouts (KernelGCN, knnlm). The repo is now
+# sent as ONE tar; the first sandbox step extracts it and verifies every file
+# against a manifest of (git blob SHA-1 of the exact bytes sent, file mode),
+# then removes RERUN's own files. Modes come from the pinned commit's git tree
+# (100755 -> 0755, 100644 -> 0644; the SDK's per-file upload made everything
+# 0644, so `./run.sh` could never run); uid/gid 0.
+
+UPLOAD_ARCHIVE = ".rerun-upload.tar"
+UPLOAD_DIR = ".rerun_upload_v1"
+UPLOAD_MISMATCH_EXIT = 97
+_GIT_MODE_TO_FILE_MODE = {"100755": 0o755, "100644": 0o644}
+_DEFAULT_FILE_MODE = 0o644
+
+# Python 3.6-compatible (the oldest supported sandbox image): no walrus.
+_VERIFY_SCRIPT = f"""import hashlib, json, os, sys
+m = json.load(open("{UPLOAD_DIR}/manifest.json"))
+bad = []
+for p in sorted(m):
+    sha, mode = m[p]
+    try:
+        d = open(p, "rb").read()
+        st = os.stat(p).st_mode & 0o777
+    except OSError:
+        bad.append(p + " (missing)")
+        continue
+    if hashlib.sha1(b"blob " + str(len(d)).encode() + b"\\0" + d).hexdigest() != sha:
+        bad.append(p + " (content)")
+    elif st != int(mode, 8):
+        bad.append(p + " (mode %o != %s)" % (st, mode))
+if bad:
+    sys.stderr.write("RERUN_UPLOAD_MISMATCH %d file(s): %s\\n" % (len(bad), " ".join(bad[:20])))
+    sys.exit({UPLOAD_MISMATCH_EXIT})
+print("RERUN_UPLOAD_VERIFIED %d file(s)" % len(m))
+"""
+
+EXTRACT_COMMAND = (
+    f"tar -xpf {UPLOAD_ARCHIVE} --no-same-owner && python3 {UPLOAD_DIR}/verify.py "
+    f"&& rm -rf {UPLOAD_DIR} {UPLOAD_ARCHIVE}"
+)
+
+
+def _blob_sha1(data: bytes) -> str:
+    return hashlib.sha1(b"blob %d\0" % len(data) + data).hexdigest()
+
+
+def file_mode_for(git_mode: str | None) -> int:
+    return _GIT_MODE_TO_FILE_MODE.get(git_mode or "", _DEFAULT_FILE_MODE)
+
+
+def build_upload_archive(
+    upload_files: dict[str, str | Path | bytes],
+    modes: dict[str, str] | None = None,
+    mtime: float | None = None,
+) -> tuple[bytes, dict[str, list[str]]]:
+    """(tar bytes, manifest path -> [git blob SHA-1 of the bytes put in the
+    tar, octal file mode]). `modes` maps path -> git mode ("100755"/"100644")."""
+    mtime = time.time() if mtime is None else mtime
+    modes = modes or {}
+    manifest: dict[str, list[str]] = {}
+    buffer = io.BytesIO()
+    with tarfile.open(fileobj=buffer, mode="w", format=tarfile.PAX_FORMAT) as tar:
+
+        def _add(name: str, data: bytes, mode: int = _DEFAULT_FILE_MODE) -> None:
+            info = tarfile.TarInfo(name)
+            info.size, info.mode, info.mtime, info.uid, info.gid = len(data), mode, int(mtime), 0, 0
+            tar.addfile(info, io.BytesIO(data))
+
+        for rel in sorted(upload_files):
+            source = upload_files[rel]
+            data = source if isinstance(source, bytes) else Path(source).read_bytes()
+            name = rel.replace("\\", "/")
+            if name.startswith("/") or ".." in name.split("/") or name.split("/")[0] in (UPLOAD_DIR, UPLOAD_ARCHIVE):
+                raise UploadIntegrityError(f"refusing to archive unsafe or reserved path {rel!r}")
+            mode = file_mode_for(modes.get(rel))
+            _add(name, data, mode)
+            manifest[name] = [_blob_sha1(data), f"{mode:04o}"]
+        _add(f"{UPLOAD_DIR}/manifest.json", json.dumps(manifest, sort_keys=True).encode("utf-8"))
+        _add(f"{UPLOAD_DIR}/verify.py", _VERIFY_SCRIPT.encode("utf-8"))
+    return buffer.getvalue(), manifest
+
+
+def _is_transient_sandbox_error(exc: BaseException) -> bool:
+    if isinstance(exc, (ApiTimeoutError, ContreeTransportError, TimeoutError, ConnectionError)):
+        return True
+    if isinstance(exc, ApiStatusCodeError):
+        status = exc.status or 0
+        return status == 429 or 500 <= status < 600
+    return False
+
+
+def _is_external_sandbox_error(exc: BaseException) -> bool:
+    # Every other Contree error except our own wall-clock ceiling
+    # (OperationTimedOutError -> TIMEOUT, a result about the run).
+    return isinstance(exc, ContreeError) and not isinstance(exc, OperationTimedOutError)
 
 
 class _ResultLike(Protocol):
@@ -134,6 +258,7 @@ def run_build_and_execute(
     execute_command: str,
     wall_clock_seconds: float,
     upload_files: dict[str, str | Path | bytes] | None = None,
+    file_modes: dict[str, str] | None = None,
 ) -> SandboxRunResult:
     """Run the full build-plan pipeline in an isolated Token Factory
     Sandbox: reference/import the base image, upload the repo, run each
@@ -163,6 +288,51 @@ def run_build_and_execute(
             "Populate .env from .env.example before running a real sandbox."
         )
 
+    commands = [*install_commands, execute_command]
+    if not [c for c in commands if c]:
+        raise SandboxError("no commands to run: install_commands and execute_command are both empty")
+    archive = build_upload_archive(upload_files, file_modes)[0] if upload_files else None
+
+    # harness-v1.1: transient API failures (timeouts, transport errors, 429,
+    # 5xx) re-run the whole chain from a fresh image with bounded exponential
+    # backoff; persistent or other external failures -> SandboxInfraError.
+    # The wall-clock ceiling (OperationTimedOutError) is never retried.
+    try:
+        return retry_call(
+            lambda: _run_once(
+                api_key=api_key,
+                project_id=project_id,
+                base_image=base_image,
+                commands=commands,
+                wall_clock_seconds=wall_clock_seconds,
+                archive=archive,
+            ),
+            source="sandbox",
+            is_transient=_is_transient_sandbox_error,
+            is_external=_is_external_sandbox_error,
+            sleep=_sleep,
+        )
+    except InfraError as exc:
+        if isinstance(exc, SandboxInfraError):
+            raise
+        raise SandboxInfraError(str(exc).removeprefix("sandbox: "), attempts=exc.attempts, cause=exc.__cause__) from exc
+
+
+_sleep: Callable[[float], None] = time.sleep  # tests replace it
+
+
+def _run_once(
+    *,
+    api_key: str,
+    project_id: str,
+    base_image: str,
+    commands: list[str],
+    wall_clock_seconds: float,
+    archive: bytes | None,
+) -> SandboxRunResult:
+    """One attempt of the whole chain. Raises the SDK's own errors (the
+    caller classifies them), SandboxError for the wall clock, and
+    UploadIntegrityError if the post-extraction check fails."""
     client = ContreeSync(config=ContreeConfig(auth=IAMAuth(token=api_key, project_id=project_id)))
     image = client.images.docker(base_image)
 
@@ -180,14 +350,11 @@ def run_build_and_execute(
     last_image_uuid = getattr(current, "uuid", None)
 
     try:
-        if upload_files:
-            current = current.apply_files(files=upload_files)
+        if archive is not None:
+            current = current.apply_files(files={UPLOAD_ARCHIVE: archive})
             retained_images.append(current)
             last_image_uuid = getattr(current, "uuid", None) or last_image_uuid
-
-        commands = [*install_commands, execute_command]
-        if not commands:
-            raise SandboxError("no commands to run: install_commands and execute_command are both empty")
+            commands = [EXTRACT_COMMAND, *commands]
 
         # `wall_clock_seconds` is meant to be a single hard ceiling for the
         # WHOLE attempt (§4: "hard limits (wall clock...)"; the TIMEOUT
@@ -203,6 +370,7 @@ def run_build_and_execute(
         # allowance that scales with how many install commands a given
         # repo happens to need.
         deadline = time.monotonic() + wall_clock_seconds
+        extract_cost = 0.0
         for i, cmd in enumerate(commands):
             is_last = i == len(commands) - 1
             remaining = deadline - time.monotonic()
@@ -217,21 +385,32 @@ def run_build_and_execute(
                 disposable=is_last,
                 preserve_env=not is_last,
             ).wait()
-            steps.append(step_result_from_image(executed, cmd))
+            step = step_result_from_image(executed, cmd)
             current = executed
             last_image_uuid = getattr(executed, "uuid", None) or last_image_uuid
             if not is_last:
                 retained_images.append(executed)
+            if cmd == EXTRACT_COMMAND:
+                # RERUN's own step: never part of the repo's result.
+                if step.exit_code != 0:
+                    raise UploadIntegrityError(
+                        f"post-extraction check failed (exit code {step.exit_code})", stderr=step.stderr[-2000:]
+                    )
+                extract_cost = step.cost_usd
+                continue
+            steps.append(step)
             if executed.exit_code != 0:
                 break
 
+        if extract_cost and steps:
+            first = steps[0]
+            steps[0] = StepResult(first.command, first.exit_code, first.stdout, first.stderr,
+                                  first.elapsed_seconds, first.cost_usd + extract_cost)
         sandbox_id = str(last_image_uuid) if last_image_uuid is not None else None
         return SandboxRunResult(steps=tuple(steps), sandbox_id=sandbox_id)
 
     except OperationTimedOutError as exc:
         raise SandboxError(f"sandbox execution exceeded {wall_clock_seconds}s wall clock: {exc}") from exc
-    except ContreeError as exc:
-        raise SandboxError(f"sandbox execution failed: {exc}") from exc
     finally:
         for retained in retained_images:
             try:

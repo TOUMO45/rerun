@@ -249,3 +249,73 @@ are not placeholders (tested; loosening it fails #7 and #15).
 `INVALID_HARNESS` (RERUN's fault, excluded from the rate); deterministic vs
 model_assisted among the recovered; total spend. Headline: `PRIMARY: <recovered>/<failed
 as published> of 12`.
+
+## Harness changes discovered during the corpus-v1 batch (harness-v1 → harness-v1.1, 2026-09-28)
+
+**corpus-v1 is therefore a disclosed development set, not a blind measurement.** Its
+batch on `harness-v1` was stopped after 3 of 20 entries because the harness itself failed
+in ways that were recorded as, or distorted, verdicts about repositories. Those three
+records are void (kept in `runs/corpus_v1_batch/void_harness-v1/`, with a README). The
+fixes below were made after seeing them, so corpus-v1 results on `harness-v1.1` are
+reported in full but are not a blind test of the harness. **corpus-v2 is the blind
+measurement:** pre-registered and sealed in the same commit as these fixes, drawn after
+the seal, and run on `harness-v1.1` with no harness change at all. If corpus-v2 exposes a
+harness bug it is recorded, not fixed, and its batch stops.
+
+Every fix is generic: none names a repository, and every one has tests and a mutation
+check (18 mutations, all caught).
+
+| Fix | Exposed by | What changed |
+|---|---|---|
+| **(a) External failures are INFRA_ERROR** | #2 KernelGCN (sandbox upload timeout → `NOT_ATTEMPTABLE`), #3 knnlm (upload + model API timeouts) | New `app/services/infra.py`: one retry policy (bounded exponential backoff, 2 s/4 s/8 s, 4 attempts) for transient failures; a persistent or non-transient external failure raises `InfraError`, which no stage fallback may catch. The run ends with verdict **`INFRA_ERROR`** (reason `INFRA_ERROR:<source>:<cause>`), a RERUN's-fault code excluded from every denominator. Audited paths, each tested with an injected failure: Nebius sandbox API (all errors except our own wall-clock ceiling), model API at recon/planner/repairer/adjudicator (timeouts, connection, 429/5xx; 401/403/404 immediately), GitHub (era lookup, resolver verification; 403 rate limit immediately), the package index (resolver, `uv` lock), and the git host (clone). `NOT_ATTEMPTABLE` can no longer come from a sandbox error; a wall-clock overrun is still `TIMEOUT`; any other sandbox error is RERUN's bug (`PIPELINE_ERROR`). Tavily stays non-fatal by design (cited enrichment only). |
+| **(a) One-archive upload** | #2, #3 | The SDK uploaded every file as its own POST, all concurrently. The repository is now sent as one tar; the first sandbox step extracts it and **verifies every file against a manifest** (git blob SHA-1 of the exact bytes sent + file mode), then removes RERUN's files. A mismatch → `INVALID_HARNESS`. The local pre-upload gate (bytes == pinned commit) is unchanged. Live smoke test on Nebius before the seal: verified, $0.0009. |
+| **(m) Git file modes** | (review of the upload path) | The per-file upload made every file 0644, so `./run.sh` could never run. Archive modes now come from the pinned commit (`git ls-tree`: 100755 → 0755, 100644 → 0644) and are part of the post-extraction check. Round trip tested on a Linux filesystem (WSL): an executable `./run.sh` runs; a mode or content mismatch exits 97. |
+| **(b) Import → distribution** | #1 Neural-Alignment (`absl` sent to the resolver instead of `absl-py`) | Three hand-written tables replaced by one table built by `scripts/build_import_map.py` from cited sources, each verified by sha256: pipreqs 0.5.0's curated `mapping` (Apache-2.0, vendored with its license), pigar 2.2.0's PyPI-derived module→distribution database (BSD-3, build time only), and hugovk/top-pypi-packages (2026-09-01; no license declared, so used at build time only and not redistributed). Rule: pipreqs entry; else the most-downloaded of {the name itself} + pigar's providers, never an unranked candidate (pigar lists squatters, e.g. `absl` → `mis-modulos` first); else unchanged. **Hardware/CUDA variants are never chosen** (one pattern: `cuda`/`cuXXX`/`gpu`/`cpu`/`rocm`/`tpu`/`xpu`/`metal`/`directml`/`mkl`/arch tokens, `cupy*`, `nvidia-*`, `jax-cuda*`, `jaxlib-*`), so `cupy`, `faiss` and `onnxruntime` stay unmapped. A row is **low-confidence** when a same-named project provides the import but is unranked and a differently named one was chosen (`clip` → `openai-clip`; also `skimage` → `scikit-image`; 1,413 of 5,300 rows). Low-confidence rows are still applied but flagged. Local modules are excluded before any mapping, which limits the risk from generic names such as `src`. Every mapping used is recorded in the certificate: structured in the era record (`import_mappings`: import, distribution, source, confidence) and as `[import-map]` log lines. The env gate's reverse table (distribution → import, used only to refuse removing an imported package) is unchanged. |
+| **(c) Classifier evidence** | #1 (evidence was pip's `[notice]` line) | When no rule matches: skip noise lines (`[notice]`, `WARNING:`, `DEPRECATION:`); prefer the last Python exception line, then the last line with an error marker, then the last remaining line. Regression on #1's real log: `RuntimeError: Python version 2.7 or 3.4+ is required.` |
+
+**Batch driver.** The required tag is configurable (`--harness-tag`, default
+`harness-v1.1`). The **tag-or-descendant preflight** lets the corpus-v1 results and the
+corpus-v2 draw be committed without moving the harness, and refuses to start unless:
+- the working tree is clean (only untracked output of this batch is tolerated, for resume);
+- the tag exists, origin has it at the same commit, and HEAD is that commit or a
+  descendant of it;
+- every path in `git diff --name-only <tag>..HEAD` matches the **data allowlist**:
+  `runs/…`, `DECISIONS.md`, `METHODOLOGY.md`, and corpus-v2's draw outputs
+  (`screening_log.jsonl`, `corpus.yaml`, `corpus_hash.txt`);
+- a **hash check** that is independent of the allowlist passes: the git blob of every
+  harness file (`backend/app`, `backend/pyproject.toml`, `scripts`, `frontend/src`,
+  `.gitattributes`) and every sealed file (the corpus-v1 pre-registration, corpus and
+  amendment; the corpus-v2 pre-registration and its sha256) is identical at HEAD and at
+  the tag;
+- the amendment / pre-registration sha256 and the recomputed corpus hash match.
+
+Tested against a real temporary git repository with a bare origin. **Circuit breaker:** 2
+consecutive `INFRA_ERROR` verdicts stop the batch cleanly. Caps unchanged: $2 per entry,
+$40 per batch.
+
+## corpus-v2 — PRE-REGISTRATION (registered 2026-09-28; sealed in harness-v1.1; not drawn)
+
+Sealed in the `harness-v1.1` commit, **before any corpus-v2 candidate was screened**.
+Machine-readable: [`backend/app/batch/corpus_v2/prereg.json`](backend/app/batch/corpus_v2/prereg.json),
+sha256 `fc100dde4e0bcdd55614c506b7e64a38dc792326de935219ea7d19806f13dbcc` (also in
+`corpus_v2/prereg.sha256`).
+
+- **Same as corpus-v1:** datasets and pinned revisions, frame, `population.csv` (5,485
+  papers, sha256 `ec825aac…`), eligibility E1–E4, the draw/duplicate/stop procedure,
+  target 20.
+- **New seed: 20260928** (the registration date, the same convention as corpus-v1's 20260924).
+- **Tightened command rule (E5_v2).** corpus-v1's E5 took the first README line invoking
+  an existing script, which admitted install, download, preprocessing and setup steps and
+  unfilled placeholders (8 of 20; amendment 1). E5_v2 applies corpus-v1's E5 unchanged
+  and additionally skips every candidate line matching any amendment-1 rule
+  (`command_rules.matched_rules`: R1 install, R2 download, R3 (pre)process, R4 setup
+  script, R5 placeholder: `$VAR`, `[a|b]` choice lists, ALL_CAPS_WITH_UNDERSCORE values).
+  The **first remaining** line whose script/module exists is the corpus command, so every
+  corpus-v2 command is a run command by construction and all drawn entries are the
+  primary endpoint.
+- **Fresh sample:** corpus-v1's 20 papers and repositories are skipped as duplicates (logged).
+- **Draw:** `scripts/draw_corpus.py draw-v2`, sealed with the pre-registration. It refuses
+  to draw unless the pre-registration's sha256, the population's sha256, its E5 regexes
+  and `command_rules`' exclusion regexes all equal the registered values.
+- **Run:** on `harness-v1.1` with no harness change (the batch preflight enforces it). A
+  harness bug found by corpus-v2 is recorded, not fixed, and the batch stops.

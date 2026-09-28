@@ -18,10 +18,13 @@ import re
 import shutil
 import stat
 import subprocess
+import time
 from dataclasses import dataclass, field
 from pathlib import Path, PurePath
 
 import yaml
+
+from app.services.infra import retry_call
 
 # `git clone`'s default `core.symlinks=true` on Linux (the real deployment
 # target) clones a committed symlink as a real filesystem symlink. Found
@@ -96,6 +99,23 @@ ENTRYPOINT_NAME_HINTS = (
     "reproduce.py",
     "experiment.py",
 )
+
+
+# git's messages when the host is unreachable (not an answer about the repo).
+_GIT_NETWORK_RE = re.compile(
+    r"Could not resolve host|Connection timed out|Connection reset|Connection refused|Operation timed out|"
+    r"early EOF|RPC failed|The requested URL returned error: (?:429|5\d\d)|gnutls_handshake|SSL_ERROR|"
+    r"Failed to connect",
+    re.IGNORECASE,
+)
+
+
+class _GitNetworkError(RuntimeError):
+    pass
+
+
+def _sleep(seconds: float) -> None:
+    time.sleep(seconds)
 
 
 class IntakeError(RuntimeError):
@@ -252,12 +272,25 @@ def clone_repo_at_commit(url: str, dest: Path, commit_sha: str) -> str:
     for key, value in (("core.autocrlf", "false"), ("core.eol", "lf")):
         subprocess.run(["git", "-C", str(dest), "config", key, value], capture_output=True, timeout=30)
 
-    fetch_result = subprocess.run(
-        ["git", *_GIT_BYTE_EXACT, "-C", str(dest), "fetch", "--depth", "1", url, commit_sha],
-        capture_output=True,
-        text=True,
-        timeout=300,
-        env=_git_env(),
+    def _fetch():
+        result = subprocess.run(
+            ["git", *_GIT_BYTE_EXACT, "-C", str(dest), "fetch", "--depth", "1", url, commit_sha],
+            capture_output=True,
+            text=True,
+            timeout=300,
+            env=_git_env(),
+        )
+        if result.returncode != 0 and _GIT_NETWORK_RE.search(result.stderr or ""):
+            raise _GitNetworkError(result.stderr.strip()[-500:])
+        return result
+
+    # harness-v1.1: a network failure talking to the git host is retried with
+    # backoff, then InfraError('git') — never a statement about the repository.
+    fetch_result = retry_call(
+        _fetch,
+        source="git",
+        is_transient=lambda exc: isinstance(exc, (_GitNetworkError, subprocess.TimeoutExpired)),
+        sleep=lambda s: _sleep(s),
     )
     if fetch_result.returncode != 0:
         raise IntakeError(

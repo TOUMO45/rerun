@@ -46,11 +46,17 @@ from app.services import (
     time_machine,
     tree_integrity,
 )
-from app.services import compute_sandbox
+from app.services import compute_sandbox, import_names, infra
 from app.services.cost_guard import CostGuard, CostLimitExceeded
 from app.services.intake import RepoIntake, read_text_capped
 from app.services.model_client import NebiusChatClient
-from app.services.sandbox import SandboxError, SandboxRunResult, run_build_and_execute
+from app.services.sandbox import (
+    SandboxCredentialsError,
+    SandboxError,
+    SandboxRunResult,
+    UploadIntegrityError,
+    run_build_and_execute,
+)
 from app.services.tamper_gate import (
     check_patch,
     heuristic_eval_call_names,
@@ -68,9 +74,14 @@ class OrchestratorError(RuntimeError):
 # Batch Lab reproducibility denominator (runner.aggregate_batch_results) —
 # counting our own crash against a paper repo would be a false measurement.
 PIPELINE_ERROR = "PIPELINE_ERROR"
-OUR_FAULT_CODES: tuple[str, ...] = (PIPELINE_ERROR, recon.RECON_MODEL_ERROR, tree_integrity.INVALID_HARNESS)
+OUR_FAULT_CODES: tuple[str, ...] = (
+    PIPELINE_ERROR,
+    recon.RECON_MODEL_ERROR,
+    tree_integrity.INVALID_HARNESS,
+    infra.INFRA_ERROR,  # an external service failed (harness-v1.1)
+)
 
-_REASON_CODE_RE = re.compile(r"^([A-Z][A-Z_]*(?::[A-Za-z0-9_.]+)*): ")
+_REASON_CODE_RE = re.compile(r"^([A-Z][A-Z_]*(?::[A-Za-z0-9_.-]+)*): ")
 
 
 def reason_code_of(indeterminate_reason: str | None) -> str | None:
@@ -344,6 +355,7 @@ def _make_compute_sandbox_runner(settings) -> callable:
         execute_command: str,
         wall_clock_seconds: float,
         upload_files=None,
+        file_modes=None,  # noqa: ARG001 - the Compute backend uploads by its own path
     ) -> SandboxRunResult:
         return compute_sandbox.run_build_and_execute(
             credentials_file=settings.nebius_compute_credentials_file,
@@ -459,6 +471,8 @@ def run_pipeline(
         return _finalize_invalid_harness(
             exc, state=state, repo_url=repo_url, commit_sha=commit_sha, on_event=on_event
         )
+    except infra.InfraError as exc:
+        return _finalize_infra_error(exc, state=state, repo_url=repo_url, commit_sha=commit_sha, on_event=on_event)
     except Exception as exc:  # noqa: BLE001 - this IS the boundary
         return _finalize_pipeline_error(
             exc,
@@ -582,15 +596,27 @@ def _run_stages(
             + (f"; excluded patched: {sorted(state.patched_paths)}" if state.patched_paths else "")
         )
         _log(f"[sandbox] starting build+execute (wall_clock_seconds={deps.sandbox_wall_clock_seconds:.0f})")
-        result = deps.sandbox_runner(
-            api_key=deps.sandbox_api_key,
-            project_id=deps.sandbox_project_id,
-            base_image=plan.base_image,
-            install_commands=plan.as_shell_steps(),
-            execute_command=plan.execute_command,
-            wall_clock_seconds=deps.sandbox_wall_clock_seconds,
-            upload_files=upload_files,
-        )
+        try:
+            result = deps.sandbox_runner(
+                api_key=deps.sandbox_api_key,
+                project_id=deps.sandbox_project_id,
+                base_image=plan.base_image,
+                install_commands=plan.as_shell_steps(),
+                execute_command=plan.execute_command,
+                wall_clock_seconds=deps.sandbox_wall_clock_seconds,
+                upload_files=upload_files,
+                # Git modes from the pinned commit (harness-v1.1): an executable
+                # script stays executable in the sandbox.
+                file_modes=dict(getattr(record, "modes", None) or {}),
+            )
+        except UploadIntegrityError as exc:
+            # The bytes extracted in the sandbox are not the bytes uploaded.
+            raise tree_integrity.HarnessIntegrityError(
+                f"post-extraction check failed in the sandbox: {exc}",
+                {**state.tree_integrity, "status": "post_extraction_mismatch", "sandbox_stderr": exc.stderr},
+            ) from exc
+        except SandboxCredentialsError as exc:
+            raise infra.InfraError("sandbox", f"credentials: {exc}", cause=exc) from exc
         cost_guard.record_spend(result.total_cost_usd)
         _log(
             f"[cost_guard] recorded ${result.total_cost_usd:.4f} sandbox spend, "
@@ -601,9 +627,16 @@ def _run_stages(
     try:
         sandbox_result = _execute(workdir)
     except (SandboxError, CostLimitExceeded) as exc:
+        # harness-v1.1 audit: the only sandbox outcome attributable to the
+        # repository here is the wall-clock ceiling (TIMEOUT). External API
+        # failures are InfraError (-> INFRA_ERROR at the boundary); any other
+        # SandboxError is RERUN's own bug (-> PIPELINE_ERROR). NOT_ATTEMPTABLE
+        # remains only for RERUN's own spend cap being already exhausted.
+        if isinstance(exc, SandboxError) and "wall clock" not in str(exc):
+            raise
         _log(f"[sandbox] execution error: {exc}")
         return _finalize(
-            verdict="TIMEOUT" if "wall clock" in str(exc) else "NOT_ATTEMPTABLE",
+            verdict="TIMEOUT" if isinstance(exc, SandboxError) else "NOT_ATTEMPTABLE",
             taxonomy_code=None,
             indeterminate_reason="",
             attempts=(),
@@ -739,7 +772,13 @@ def _run_stages(
                 py_version, py_reason = time_machine.python_for_era(era.date, intake_result.python_version_hint)
                 if imported_modules is None:
                     imported_modules = env_repair.imported_top_level_modules(workdir)
-                undeclared = time_machine.undeclared_third_party_imports(workdir, intake_result.declared_dependencies)
+                undeclared_mapped = time_machine.undeclared_third_party_imports_with_mappings(
+                    workdir, intake_result.declared_dependencies
+                )
+                undeclared = [dist for dist, _ in undeclared_mapped]
+                import_mappings = [m.as_dict() for _, m in undeclared_mapped if m is not None]
+                for m in import_mappings:
+                    _log(f"[import-map] {m['import']} -> {m['distribution']} ({m['source']}, confidence {m['confidence']})")
                 lock = (deps.lock_compiler or time_machine.compile_lock)(
                     (current_requirements or "").splitlines(), undeclared, era.date, py_version
                 )
@@ -753,6 +792,8 @@ def _run_stages(
                     "era": era.as_dict(),
                     "python": {"version": py_version, "reason": py_reason, "source": time_machine.PYTHON_RELEASES_SOURCE},
                     "undeclared_imports": list(undeclared),
+                    # Every import -> distribution mapping the era lock used (harness-v1.1).
+                    "import_mappings": import_mappings,
                     "apt_added": list(apt_added),
                     "apt_reason": classification.evidence if apt_added else "",
                     "lock": lock.as_dict(),
@@ -835,6 +876,10 @@ def _run_stages(
                     http_get=deps.http_get,
                 )
             if resolution is not None:
+                missing = re.search(r"No module named ['\"]([\w.]+)['\"]", classification.evidence or "")
+                used = import_names.mapping_for(missing.group(1)) if missing else None
+                if used is not None:
+                    _log(f"[import-map] {used.module} -> {used.distribution} ({used.source}, confidence {used.confidence}) for the resolver")
                 tavily_context = resolution.context
                 external_context = resolution.as_prompt_context()
                 offered_sources = resolution.resolved_sources()
@@ -1346,6 +1391,70 @@ def _finalize_invalid_harness(
     _log(f"[integrity] FAILED — {exc}")
     _log(f"[verdict] INVALID_HARNESS — the run is void; this is RERUN's fault, not the repository's")
     verdict = tree_integrity.INVALID_HARNESS
+    attempts = tuple(state.attempts)
+    timestamp = datetime.now(timezone.utc).isoformat()
+    full_log = "\n".join(log_lines)
+    baseline = dict(state.baseline)
+    cert = {
+        "repo_url": repo_url,
+        "commit_sha": commit_sha,
+        "build_plan": state.build_plan_dict or {},
+        "full_log": full_log,
+        "diffs": [a.as_dict() for a in attempts],
+        "verdict": verdict,
+        "timestamp": timestamp,
+        "bundle_version": passport.CURRENT_BUNDLE_VERSION,
+        "baseline": baseline,
+        "recovery": False,
+        "tree_integrity": dict(state.tree_integrity),
+        "corpus_hash": getattr(state, "corpus_hash", None),
+    }
+    return PipelineResult(
+        verdict=verdict,
+        taxonomy_code=None,
+        indeterminate_reason=reason,
+        attempts=attempts,
+        build_plan=state.build_plan_dict,
+        full_log=full_log,
+        certificate_prose=adjudicator.templated_certificate_prose(verdict, None, 0),
+        reproduction_passport_hash=passport.compute_passport_hash(cert),
+        timestamp=timestamp,
+        repo_url=repo_url,
+        commit_sha=commit_sha,
+        baseline=baseline,
+        recovery=False,
+        tree_integrity=cert["tree_integrity"],
+        corpus_hash=cert["corpus_hash"],
+    )
+
+
+def _finalize_infra_error(
+    exc: infra.InfraError,
+    *,
+    state: _RunState,
+    repo_url: str,
+    commit_sha: str,
+    on_event: Callable[[str], None] | None,
+) -> PipelineResult:
+    """An external service (Nebius sandbox or model API, GitHub, the package
+    index) failed even after retries: verdict INFRA_ERROR, reason code
+    INFRA_ERROR:<source>:<cause>. Nothing about the repository is claimed,
+    the adjudicator is not asked (its API may be the one that failed), and
+    the run is excluded from every reproducibility denominator."""
+    log_lines = state.log_lines
+
+    def _log(line: str) -> None:
+        log_lines.append(line)
+        if on_event is not None:
+            try:
+                on_event(line)
+            except Exception:  # noqa: BLE001
+                pass
+
+    code = f"{infra.INFRA_ERROR}:{exc.source}" + (f":{exc.cause_type}" if exc.cause_type else "")
+    reason = f"{code}: {exc} — an external service failed during '{state.stage}'; this is not a verdict on the repository."
+    _log(f"[infra] {reason}")
+    verdict = infra.INFRA_ERROR
     attempts = tuple(state.attempts)
     timestamp = datetime.now(timezone.utc).isoformat()
     full_log = "\n".join(log_lines)

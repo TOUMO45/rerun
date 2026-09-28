@@ -29,10 +29,14 @@ import secrets
 from dataclasses import dataclass, field
 from typing import Any, Protocol
 
+import time
+
+import openai
 import tiktoken
 from openai import OpenAI
 
 from app.services.cost_guard import CostGuard, CostLimitExceeded
+from app.services.infra import InfraError, retry_call
 
 _ENCODING = None  # lazy singleton; loading the encoding table isn't free
 
@@ -105,6 +109,30 @@ class ModelCostLimitError(ModelCallError):
     cost-guard trip must never crash the pipeline."""
 
 
+class ModelInfraError(InfraError):
+    """The model API itself failed (timeouts, connection, 429/5xx after
+    retries; auth/permission/not-found). NOT a ModelCallError on purpose
+    (harness-v1.1): no stage fallback — recon INDETERMINATE, a declined
+    repair that consumes an attempt, a deterministic plan, templated prose —
+    may absorb an outage; the run ends INFRA_ERROR instead."""
+
+    def __init__(self, message: str, **kwargs):
+        super().__init__("model", message, **kwargs)
+
+
+def _is_transient_model_error(exc: BaseException) -> bool:
+    return isinstance(exc, (openai.APITimeoutError, openai.APIConnectionError, openai.RateLimitError, openai.InternalServerError)) or (
+        isinstance(exc, openai.APIStatusError) and getattr(exc, "status_code", 0) >= 500
+    )
+
+
+def _is_external_model_error(exc: BaseException) -> bool:
+    return isinstance(exc, (openai.AuthenticationError, openai.PermissionDeniedError, openai.NotFoundError))
+
+
+_sleep = time.sleep  # tests replace it
+
+
 class _ChatClientLike(Protocol):
     """The minimal surface every service actually uses — real `OpenAI()`
     satisfies this, and tests can inject a tiny fake satisfying just this."""
@@ -140,7 +168,8 @@ class NebiusChatClient:
             )
 
     def _client(self) -> OpenAI:
-        return OpenAI(api_key=self.api_key, base_url=self.base_url)
+        # max_retries=0: call_json_model's retry_call is the one retry policy.
+        return OpenAI(api_key=self.api_key, base_url=self.base_url, max_retries=0)
 
     def chat_completion(
         self,
@@ -231,13 +260,25 @@ def call_json_model(
     # predate it keep working unchanged.
     extra = {"max_tokens": max_tokens} if max_tokens is not None else {}
     try:
-        raw = client.chat_completion(
-            model=model,
-            system_prompt=system_prompt,
-            user_prompt=user_prompt,
-            temperature=temperature,
-            **extra,
+        # harness-v1.1: transient API failures retried with bounded
+        # exponential backoff; persistent / auth failures -> ModelInfraError.
+        raw = retry_call(
+            lambda: client.chat_completion(
+                model=model,
+                system_prompt=system_prompt,
+                user_prompt=user_prompt,
+                temperature=temperature,
+                **extra,
+            ),
+            source="model",
+            is_transient=_is_transient_model_error,
+            is_external=_is_external_model_error,
+            sleep=_sleep,
         )
+    except InfraError as exc:
+        if isinstance(exc, ModelInfraError):
+            raise
+        raise ModelInfraError(str(exc).removeprefix("model: "), attempts=exc.attempts, cause=exc.__cause__) from exc
     finally:
         # Record what was actually spent even if the call then failed
         # (e.g. ModelBudgetError after two paid responses).

@@ -1,0 +1,57 @@
+{
+  "corpus_version": "corpus-v2",
+  "registered": "2026-09-28",
+  "status": "PRE-REGISTERED, sealed in the harness-v1.1 commit before any corpus-v2 candidate was screened. Draw with: backend/.venv/Scripts/python.exe scripts/draw_corpus.py draw-v2",
+  "purpose": "Pre-registered sampling rule for RERUN's second Batch Lab corpus. It fixes corpus-v1's post-draw finding (E5 accepted install/download/preprocessing/setup steps and unfilled placeholders as the 'run command') BEFORE any corpus-v2 candidate is screened.",
+  "relation_to_corpus_v1": {
+    "datasets_frame_population": "identical to corpus-v1 (backend/app/batch/corpus_v1/prereg.json): same pwc-archive revisions, frame regexes and population.csv",
+    "population_file": "backend/app/batch/corpus_v1/population.csv",
+    "population_sha256": "ec825aacdebfa53adfc0a484e7959bf2648663e0eed7e72bbe5819004b6bbcbb",
+    "population_size": 5485,
+    "eligibility_E1_to_E4": "identical to corpus-v1",
+    "changed": "E5 only (E5_v2 below), and a new seed",
+    "excludes_corpus_v1": "papers AND repositories already in corpus-v1 (its 20 paper_url and repo_url values) are skipped as duplicates and logged, so corpus-v2 is a fresh sample"
+  },
+  "eligibility": {
+    "E5_v2_documented_run_command": "Same README search, candidate extraction, target-existence check and placeholder_regex as corpus-v1 E5, with ONE added exclusion applied to every candidate line before the existence check: a line is skipped if backend/app/batch/command_rules.py::matched_rules(line) is non-empty (any of R1_INSTALL, R2_DOWNLOAD, R3_PREPROCESS, R4_SETUP_SCRIPT, R5_PLACEHOLDER). The FIRST REMAINING line, in reading order, whose script/module exists at the pinned commit is recorded verbatim as the corpus command.",
+    "command_regex": "^(?:[A-Z_][A-Z0-9_]*=\\S+\\s+)*(python3?|bash|sh)\\s+(?:(-m)\\s+([A-Za-z_][\\w.]*)|(\\S+\\.(?:py|sh)))(?=\\s|$)",
+    "placeholder_regex": "<[^>]+>|\\{[^}]*\\}|/path/to|path/to/|YOUR_|your_|xxx|\\.\\.\\.",
+    "placeholder_regex_flags": "IGNORECASE",
+    "exclusion_rules": {
+      "implementation": "backend/app/batch/command_rules.py::matched_rules (corpus-v1 amendment-1 rules, unchanged), as sealed in the harness-v1.1 commit; draw-v2 refuses to run if any regex there differs from this file",
+      "stem": "script file name without extension, or a python -m module's last dotted component; stem regexes IGNORECASE",
+      "args": "shell-split words after the runnable target; arg regexes case-sensitive",
+      "R1_INSTALL": {
+        "stem_regex": "^(setup|install)$",
+        "arg_regex": "^(install|develop)$"
+      },
+      "R2_DOWNLOAD": {
+        "stem_regex": "download"
+      },
+      "R3_PREPROCESS": {
+        "stem_regex": "^(pre_?)?process"
+      },
+      "R4_SETUP_SCRIPT": {
+        "stem_regex": "^(pre_?run|prepare|setup_|init_?env)"
+      },
+      "R5_PLACEHOLDER": {
+        "arg_regex": "\\$\\{?[A-Za-z_]|\\[[^\\]]*\\|[^\\]]*\\]|(?:^|=)[A-Z]+(?:_[A-Z]+)+$"
+      }
+    },
+    "not_required": "CPU feasibility, runtime, data availability — measured by RERUN, not screened (as corpus-v1).",
+    "known_limitation": "Only the root README is searched (as corpus-v1). A README whose only run commands are excluded makes the paper ineligible (E5_v2 fail), which shifts the sample toward repos documenting a direct run command; reported, not corrected."
+  },
+  "seed": 20260928,
+  "seed_note": "The registration date, the same convention as corpus-v1's 20260924. Fixed before any corpus-v2 draw.",
+  "target_eligible": 20,
+  "draw_procedure": "random.Random(20260928).shuffle(list(range(len(population)))) in CPython; screen in that order with E3, E4, E5_v2; a paper or repository already in corpus-v1, or a repository already drawn for another paper, is skipped as a duplicate; stop at 20 eligible or when the population is exhausted (then report the achieved N). No manual exclusions or replacements; every draw is logged with its pass/fail reason in corpus_v2/screening_log.jsonl.",
+  "analysis": "All drawn entries are the primary endpoint (every recorded command is a run command by construction). The batch runs on a frozen harness tag recorded in every run record; any analysis change is a numbered amendment committed before the batch starts.",
+  "draw_script": "scripts/draw_corpus.py draw-v2 (sealed with this file). It refuses to draw unless sha256(prereg.json) equals corpus_v2/prereg.sha256, population.csv matches population_sha256, and its E5 regexes and command_rules' exclusion regexes equal this file's.",
+  "outputs": [
+    "screening_log.jsonl",
+    "corpus.yaml",
+    "corpus_hash.txt"
+  ],
+  "corpus_hash_definition": "sha256 of canonical JSON {prereg_sha256, entries sorted by name with name, repo_url, commit_sha, command} (as corpus-v1)",
+  "harness": "The corpus-v2 batch runs on the harness-v1.1 tag with no harness change. A harness bug found by corpus-v2 is recorded, not fixed; the batch stops."
+}

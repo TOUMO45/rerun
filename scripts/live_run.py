@@ -38,6 +38,7 @@ from app.batch.corpus import load_corpus  # noqa: E402
 from app.config import get_settings  # noqa: E402
 from app.services import intake  # noqa: E402
 from app.services.cost_guard import CostGuard  # noqa: E402
+from app.services.infra import InfraError  # noqa: E402
 from app.services.model_client import NebiusChatClient  # noqa: E402
 from app.services.orchestrator import build_pipeline_deps, reason_code_of, run_pipeline  # noqa: E402
 
@@ -192,6 +193,14 @@ def main(argv: list[str] | None = None) -> int:
         # Exactly the downloadable-certificate shape Certificate.tsx exports
         # and scripts/verify_passport.py checks.
         record["certificate"] = result.certificate()
+    except InfraError as exc:
+        # harness-v1.1: an external failure before the pipeline (e.g. the
+        # git host during the clone) is a verdict-less INFRA_ERROR record,
+        # never a statement about the repository.
+        code = f"INFRA_ERROR:{exc.source}" + (f":{exc.cause_type}" if exc.cause_type else "")
+        record["result"] = {"verdict": "INFRA_ERROR", "taxonomy_code": None, "reason_code": code,
+                            "indeterminate_reason": f"{code}: {exc}", "attempts": []}
+        record["repair_mode"] = "deterministic"
     except Exception as exc:  # recorded, never hidden
         record["error"] = f"{type(exc).__name__}: {exc}"
         exit_code = 1

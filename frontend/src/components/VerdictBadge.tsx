@@ -8,6 +8,7 @@ const STYLES: Record<Verdict, { label: string; classes: string }> = {
   NOT_ATTEMPTABLE: { label: "NOT ATTEMPTABLE", classes: "bg-warn/10 text-warn border-warn/40" },
   TIMEOUT: { label: "TIMEOUT", classes: "bg-warn/10 text-warn border-warn/40" },
   INVALID_HARNESS: { label: "INVALID (HARNESS)", classes: "bg-surface text-text-secondary border-border" },
+  INFRA_ERROR: { label: "INFRA ERROR", classes: "bg-surface text-text-secondary border-border" },
 };
 
 export function VerdictBadge({ verdict, size = "md" }: { verdict: Verdict; size?: "sm" | "md" | "lg" }) {

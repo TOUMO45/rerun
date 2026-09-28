@@ -44,6 +44,12 @@ def git_blob_sha1(content: bytes) -> str:
 def committed_blobs(workdir: Path, commit: str) -> dict[str, str]:
     """{repo-relative posix path: blob sha} for every regular/executable file
     in the commit (symlinks and submodules are not uploaded, so skipped)."""
+    return {path: sha for path, (_mode, sha) in committed_entries(workdir, commit).items()}
+
+
+def committed_entries(workdir: Path, commit: str) -> dict[str, tuple[str, str]]:
+    """{path: (git mode "100644" | "100755", blob sha)} — the mode is what the
+    upload archive gives each file (harness-v1.1)."""
     out = subprocess.run(
         ["git", "-C", str(workdir), "ls-tree", "-r", "-z", commit],
         capture_output=True,
@@ -54,14 +60,14 @@ def committed_blobs(workdir: Path, commit: str) -> dict[str, str]:
             f"cannot list the committed tree: {out.stderr.decode('utf-8', 'replace').strip()}",
             {"status": "failed", "reason": "git ls-tree failed"},
         )
-    blobs: dict[str, str] = {}
+    blobs: dict[str, tuple[str, str]] = {}
     for entry in out.stdout.split(b"\0"):
         if not entry:
             continue
         meta, _, path = entry.partition(b"\t")
         mode, obj_type, sha = meta.decode().split(" ")
         if obj_type == "blob" and mode in ("100644", "100755"):
-            blobs[path.decode("utf-8", "surrogateescape")] = sha
+            blobs[path.decode("utf-8", "surrogateescape")] = (mode, sha)
     return blobs
 
 
@@ -78,6 +84,9 @@ class IntegrityRecord:
     tree_sha: str
     files_checked: int
     excluded_patched: list[str] = field(default_factory=list)
+    # {path: git mode} for every uploaded file (not part of the passport
+    # record; the post-extraction check in the sandbox verifies them).
+    modes: dict[str, str] = field(default_factory=dict)
 
     def as_dict(self) -> dict:
         return {
@@ -100,7 +109,8 @@ def verify_upload(
             f"'{workdir}' is not a git checkout — cannot prove the upload matches the commit",
             {"status": "failed", "reason": "not a git checkout"},
         )
-    expected = committed_blobs(workdir, commit)
+    entries = committed_entries(workdir, commit)
+    expected = {path: sha for path, (_mode, sha) in entries.items()}
     mismatched, untracked = [], []
     checked = 0
     for rel, path in sorted(upload_files.items()):
@@ -126,4 +136,6 @@ def verify_upload(
             "not_in_commit": untracked,
         }
         raise HarnessIntegrityError("; ".join(parts), record)
-    return IntegrityRecord("verified", tree_sha(workdir, commit), checked, list(patched_paths))
+    # A patched file keeps its committed mode (a diff never changes modes here).
+    modes = {rel: entries[rel][0] for rel in upload_files if rel in entries}
+    return IntegrityRecord("verified", tree_sha(workdir, commit), checked, list(patched_paths), modes)
