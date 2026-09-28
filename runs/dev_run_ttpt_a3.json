@@ -1,0 +1,1090 @@
+{
+  "run_kind": "development run",
+  "dev_run": true,
+  "started_at": "2026-09-28T08:19:49.381565+00:00",
+  "corpus_entry": {
+    "name": "TTPT",
+    "repo_url": "https://github.com/gaozhengqing/TTPT",
+    "commit_sha": "7d6a26246882e830c76a27b2bd669f399f824037",
+    "command": "bash run_ttpt.sh",
+    "command_source": "README.md (\"bash run_ttpt.sh\")"
+  },
+  "config": {
+    "models": {
+      "recon": "nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B",
+      "planner": "nvidia/nemotron-3-super-120b-a12b",
+      "repairer": "nvidia/nemotron-3-super-120b-a12b",
+      "adjudicator": "nvidia/Nemotron-3-Ultra-550b-a55b"
+    },
+    "sandbox_backend": "token_factory",
+    "sandbox_image_default": "python:3.11-slim",
+    "sandbox_wall_clock_seconds": 600.0,
+    "max_attempts": 3,
+    "tavily_configured": true,
+    "cost_cap_usd": 2.0
+  },
+  "intake": {
+    "duration_s": 4.79,
+    "resolved_sha": "7d6a26246882e830c76a27b2bd669f399f824037",
+    "dependency_files": [
+      "requirements.txt"
+    ],
+    "declared_dependencies": [
+      "ftfy",
+      "regex",
+      "tqdm"
+    ],
+    "entrypoint_candidates": [
+      "lpclip/feat_extractor.py",
+      "train.py"
+    ],
+    "notebook_paths": []
+  },
+  "pipeline_duration_s": 399.22,
+  "repair_mode": "model_assisted",
+  "result": {
+    "verdict": "BLOCKED",
+    "taxonomy_code": "DEP_MISSING",
+    "indeterminate_reason": "",
+    "reason_code": null,
+    "error_traceback": "",
+    "attempts": [
+      {
+        "attempt_number": 0,
+        "diff_text": "",
+        "gate_decision": "PASS",
+        "gate_violations": [],
+        "exit_code": 1,
+        "stdout_tail": "Run this job and save the output to my_outputv2/base2new/train_base/imagenet/shots_16/CoOp/vit_b32_ep50_ctxv1/seed1\n",
+        "stderr_tail": "+ bash scripts/coop/base2new_train_imagenet.sh imagenet 1 vit_b32_ep50_ctxv1 'a photo of a' end\nTraceback (most recent call last):\n  File \"//train.py\", line 4, in <module>\n    from dassl.utils import setup_logger, set_random_seed, collect_env_info\nModuleNotFoundError: No module named 'dassl'\n",
+        "tavily_sources": [],
+        "env_delta": [],
+        "resolved_sources": [],
+        "origin": "time_machine",
+        "time_machine": {
+          "era": {
+            "date": "2024-08-30",
+            "source": "dependency-files",
+            "detail": {
+              "requirements.txt": "2024-08-30"
+            }
+          },
+          "python": {
+            "version": "3.12",
+            "reason": "newest CPython first released \u2265180 days before the era date 2024-08-30 (https://devguide.python.org/versions/ (first release dates, retrieved 2026-09-24))",
+            "source": "https://devguide.python.org/versions/ (first release dates, retrieved 2026-09-24)"
+          },
+          "undeclared_imports": [
+            "pillow",
+            "dassl",
+            "numpy",
+            "scipy",
+            "scikit-learn",
+            "torch",
+            "torchvision",
+            "yacs"
+          ],
+          "apt_added": [],
+          "apt_reason": "",
+          "lock": {
+            "ok": true,
+            "lock": [
+              "filelock==3.15.4",
+              "fsspec==2024.6.1",
+              "ftfy==6.1.1",
+              "jinja2==3.1.4",
+              "joblib==1.4.2",
+              "markupsafe==2.1.5",
+              "mpmath==1.3.0",
+              "networkx==3.3",
+              "numpy==2.1.0",
+              "nvidia-cublas-cu12==12.1.3.1",
+              "nvidia-cuda-cupti-cu12==12.1.105",
+              "nvidia-cuda-nvrtc-cu12==12.1.105",
+              "nvidia-cuda-runtime-cu12==12.1.105",
+              "nvidia-cudnn-cu12==9.1.0.70",
+              "nvidia-cufft-cu12==11.0.2.54",
+              "nvidia-curand-cu12==10.3.2.106",
+              "nvidia-cusolver-cu12==11.4.5.107",
+              "nvidia-cusparse-cu12==12.1.0.106",
+              "nvidia-nccl-cu12==2.20.5",
+              "nvidia-nvjitlink-cu12==12.6.68",
+              "nvidia-nvtx-cu12==12.1.105",
+              "pillow==10.4.0",
+              "pyyaml==6.0.2",
+              "regex==2024.7.24",
+              "scikit-learn==1.5.1",
+              "scipy==1.14.1",
+              "setuptools==74.0.0",
+              "sympy==1.13.2",
+              "threadpoolctl==3.5.0",
+              "torch==2.4.0",
+              "torchvision==0.19.0",
+              "tqdm==4.66.5",
+              "triton==3.0.0",
+              "typing-extensions==4.12.2",
+              "wcwidth==0.2.13",
+              "yacs==0.1.8"
+            ],
+            "inputs": [
+              "ftfy==6.1.1",
+              "regex",
+              "tqdm",
+              "pillow",
+              "dassl",
+              "numpy",
+              "scipy",
+              "scikit-learn",
+              "torch",
+              "torchvision",
+              "yacs"
+            ],
+            "not_on_index": [
+              "dassl"
+            ],
+            "command": "pip compile - --no-header --no-annotate --quiet --exclude-newer 2024-08-31T00:00:00Z --python-version 3.12 --python-platform x86_64-unknown-linux-gnu --python C:\\Users\\E16\\AppData\\Roaming\\uv\\python\\cpython-3.8.20-windows-x86_64-none\\python.exe",
+            "error": ""
+          }
+        }
+      },
+      {
+        "attempt_number": 1,
+        "diff_text": "",
+        "gate_decision": "PASS",
+        "gate_violations": [],
+        "exit_code": 1,
+        "stdout_tail": "Collecting dassl@ git+https://github.com/KaiyangZhou/Dassl.pytorch@c61a1b570ac6333bd50fb5ae06aea59002fb20bb (from -r .rerun-requirements.txt (line 39))\n  Cloning https://github.com/KaiyangZhou/Dassl.pytorch (to revision c61a1b570ac6333bd50fb5ae06aea59002fb20bb) to /tmp/pip-install-57ot1acq/dassl_e6eb87656d714bfa8bff1d5abdfbd53a\n",
+        "stderr_tail": "  ERROR: Error [Errno 2] No such file or directory: 'git' while executing command git version\n\n[notice] A new release of pip is available: 25.0.1 -> 26.2.1\n[notice] To update, run: pip install --upgrade pip\nERROR: Cannot find command 'git' - do you have 'git' installed and in your PATH?\n",
+        "tavily_sources": [
+          {
+            "title": "Installing this repository with pip \u00b7 Issue #32 \u00b7 KaiyangZhou/Dassl.pytorch \u00b7 GitHub",
+            "url": "https://github.com/KaiyangZhou/Dassl.pytorch/issues/32",
+            "content": "`pip install -r requirements.txt`\n`git+\n`import numpy as np`\n`import numpy as np`\n`def numpy_include(): ...`\n\n## Activity\n\n## Metadata\n\n## Metadata\n\n### Assignees\n\n### Labels\n\n### Projects\n\n### Milestone\n\n### Relationships\n\n### Development\n\n## Issue actions\n\n## Footer\n\n### Footer navigation [...] @NilsHulzebosch\n\nHi there, when installing this repository with `pip install -r requirements.txt` (where the requirements.txt file contains `git+ the `import numpy as np` in setup.py throws a ModuleNotFoundError, because numpy is not yet installed at that moment. Is is it possible to remove the `import numpy as np` statement and `def numpy_include(): ...` from setup.py such that this repository can be installed automatically with pip? [...] ## Navigation Menu\n\n# Installing this repository with pip #32\n\n## Description\n\n@NilsHulzebosch"
+          }
+        ],
+        "env_delta": [
+          {
+            "command": null,
+            "op": "add",
+            "package": "clip",
+            "version": null,
+            "git_url": null,
+            "commit": null,
+            "justification": "Add missing clip module imported in code",
+            "evidence": "ModuleNotFoundError: No module named 'dassl'"
+          },
+          {
+            "command": null,
+            "op": "add",
+            "package": "datasets",
+            "version": null,
+            "git_url": null,
+            "commit": null,
+            "justification": "Add missing datasets module imported in code",
+            "evidence": "ModuleNotFoundError: No module named 'dassl'"
+          },
+          {
+            "command": null,
+            "op": "pip_git",
+            "package": "dassl",
+            "version": null,
+            "git_url": "https://github.com/KaiyangZhou/Dassl.pytorch",
+            "commit": "c61a1b570ac6333bd50fb5ae06aea59002fb20bb",
+            "justification": "Add missing dassl module imported in code",
+            "evidence": "ModuleNotFoundError: No module named 'dassl'"
+          }
+        ],
+        "resolved_sources": [
+          {
+            "kind": "git",
+            "url": "https://github.com/KaiyangZhou/Dassl.pytorch",
+            "commit": "c61a1b570ac6333bd50fb5ae06aea59002fb20bb",
+            "committed_at": "2022-10-06",
+            "cited_by": "https://github.com/KaiyangZhou/Dassl.pytorch/issues/32",
+            "note": "",
+            "commit_url": "https://github.com/KaiyangZhou/Dassl.pytorch/commit/c61a1b570ac6333bd50fb5ae06aea59002fb20bb"
+          }
+        ],
+        "origin": "model",
+        "time_machine": null
+      },
+      {
+        "attempt_number": 2,
+        "diff_text": "",
+        "gate_decision": "PASS",
+        "gate_violations": [],
+        "exit_code": 1,
+        "stdout_tail": "Collecting dassl@ git+https://github.com/KaiyangZhou/Dassl.pytorch@c61a1b570ac6333bd50fb5ae06aea59002fb20bb (from -r .rerun-requirements.txt (line 39))\n  Cloning https://github.com/KaiyangZhou/Dassl.pytorch (to revision c61a1b570ac6333bd50fb5ae06aea59002fb20bb) to /tmp/pip-install-aeidwmei/dassl_b74c2457928e45df9055139b5d989b19\n  Resolved https://github.com/KaiyangZhou/Dassl.pytorch to commit c61a1b570ac6333bd50fb5ae06aea59002fb20bb\n  Installing build dependencies: started\n  Installing build dependencies: finished with status 'done'\n  Getting requirements to build wheel: started\n  Getting requirements to build wheel: finished with status 'error'\n",
+        "stderr_tail": "roject_hooks/_in_process/_in_process.py\", line 389, in <module>\n          main()\n        File \"/usr/local/lib/python3.12/site-packages/pip/_vendor/pyproject_hooks/_in_process/_in_process.py\", line 373, in main\n          json_out[\"return_val\"] = hook(**hook_input[\"kwargs\"])\n                                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n        File \"/usr/local/lib/python3.12/site-packages/pip/_vendor/pyproject_hooks/_in_process/_in_process.py\", line 143, in get_requires_for_build_wheel\n          return hook(config_settings)\n                 ^^^^^^^^^^^^^^^^^^^^^\n        File \"/tmp/pip-build-env-8tv058m8/overlay/lib/python3.12/site-packages/setuptools/build_meta.py\", line 333, in get_requires_for_build_wheel\n          return self._get_build_requires(config_settings, requirements=[])\n                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n        File \"/tmp/pip-build-env-8tv058m8/overlay/lib/python3.12/site-packages/setuptools/build_meta.py\", line 301, in _get_build_requires\n          self.run_setup()\n        File \"/tmp/pip-build-env-8tv058m8/overlay/lib/python3.12/site-packages/setuptools/build_meta.py\", line 520, in run_setup\n          super().run_setup(setup_script=setup_script)\n        File \"/tmp/pip-build-env-8tv058m8/overlay/lib/python3.12/site-packages/setuptools/build_meta.py\", line 317, in run_setup\n          exec(code, locals())  # noqa: S102 # exec is intentional here\n          ^^^^^^^^^^^^^^^^^^^^\n        File \"<string>\", line 1, in <module>\n      ModuleNotFoundError: No module named 'numpy'\n      [end of output]\n  \n  note: This error originates from a subprocess, and is likely not a problem with pip.\n\n[notice] A new release of pip is available: 25.0.1 -> 26.2.1\n[notice] To update, run: pip install --upgrade pip\nerror: subprocess-exited-with-error\n\n\u00d7 Getting requirements to build wheel did not run successfully.\n\u2502 exit code: 1\n\u2570\u2500> See above for output.\n\nnote: This error originates from a subprocess, and is likely not a problem with pip.\n",
+        "tavily_sources": [],
+        "env_delta": [
+          {
+            "command": null,
+            "op": "apt",
+            "package": "git",
+            "version": null,
+            "git_url": null,
+            "commit": null,
+            "justification": "Install git to allow cloning of repositories during pip install",
+            "evidence": "ERROR: Cannot find command 'git' - do you have 'git' installed and in your PATH?"
+          }
+        ],
+        "resolved_sources": [],
+        "origin": "model",
+        "time_machine": null
+      },
+      {
+        "attempt_number": 3,
+        "diff_text": "",
+        "gate_decision": "PASS",
+        "gate_violations": [],
+        "exit_code": 1,
+        "stdout_tail": "Collecting dassl@ git+https://github.com/KaiyangZhou/Dassl.pytorch@c61a1b570ac6333bd50fb5ae06aea59002fb20bb (from -r .rerun-requirements.txt (line 39))\n  Cloning https://github.com/KaiyangZhou/Dassl.pytorch (to revision c61a1b570ac6333bd50fb5ae06aea59002fb20bb) to /tmp/pip-install-2sb94101/dassl_5e3656548f7046bdacd2615f985d8dfc\n  Resolved https://github.com/KaiyangZhou/Dassl.pytorch to commit c61a1b570ac6333bd50fb5ae06aea59002fb20bb\n  Installing build dependencies: started\n  Installing build dependencies: finished with status 'done'\n  Getting requirements to build wheel: started\n  Getting requirements to build wheel: finished with status 'error'\n",
+        "stderr_tail": "roject_hooks/_in_process/_in_process.py\", line 389, in <module>\n          main()\n        File \"/usr/local/lib/python3.12/site-packages/pip/_vendor/pyproject_hooks/_in_process/_in_process.py\", line 373, in main\n          json_out[\"return_val\"] = hook(**hook_input[\"kwargs\"])\n                                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n        File \"/usr/local/lib/python3.12/site-packages/pip/_vendor/pyproject_hooks/_in_process/_in_process.py\", line 143, in get_requires_for_build_wheel\n          return hook(config_settings)\n                 ^^^^^^^^^^^^^^^^^^^^^\n        File \"/tmp/pip-build-env-d27khya2/overlay/lib/python3.12/site-packages/setuptools/build_meta.py\", line 333, in get_requires_for_build_wheel\n          return self._get_build_requires(config_settings, requirements=[])\n                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n        File \"/tmp/pip-build-env-d27khya2/overlay/lib/python3.12/site-packages/setuptools/build_meta.py\", line 301, in _get_build_requires\n          self.run_setup()\n        File \"/tmp/pip-build-env-d27khya2/overlay/lib/python3.12/site-packages/setuptools/build_meta.py\", line 520, in run_setup\n          super().run_setup(setup_script=setup_script)\n        File \"/tmp/pip-build-env-d27khya2/overlay/lib/python3.12/site-packages/setuptools/build_meta.py\", line 317, in run_setup\n          exec(code, locals())  # noqa: S102 # exec is intentional here\n          ^^^^^^^^^^^^^^^^^^^^\n        File \"<string>\", line 1, in <module>\n      ModuleNotFoundError: No module named 'numpy'\n      [end of output]\n  \n  note: This error originates from a subprocess, and is likely not a problem with pip.\n\n[notice] A new release of pip is available: 25.0.1 -> 26.2.1\n[notice] To update, run: pip install --upgrade pip\nerror: subprocess-exited-with-error\n\n\u00d7 Getting requirements to build wheel did not run successfully.\n\u2502 exit code: 1\n\u2570\u2500> See above for output.\n\nnote: This error originates from a subprocess, and is likely not a problem with pip.\n",
+        "tavily_sources": [],
+        "env_delta": [
+          {
+            "command": null,
+            "op": "add",
+            "package": "numpy",
+            "version": "2.1.0",
+            "git_url": null,
+            "commit": null,
+            "justification": "Add missing numpy dependency",
+            "evidence": "ModuleNotFoundError: No module named 'numpy'"
+          }
+        ],
+        "resolved_sources": [
+          {
+            "kind": "pypi",
+            "package": "numpy",
+            "version": "2.1.0",
+            "uploaded": "2024-08-18",
+            "cpython_tags": [
+              "cp310",
+              "cp311",
+              "cp312",
+              "cp313"
+            ],
+            "url": "https://pypi.org/project/numpy/2.1.0/"
+          }
+        ],
+        "origin": "model",
+        "time_machine": null
+      }
+    ],
+    "certificate_prose": "The execution was blocked after three repair attempts due to a missing dependency: ModuleNotFoundError for 'numpy'. The run log indicates the classifier identified DEP_MISSING and the verdict was BLOCKED. Verifies that the artifact executes. Does not verify the paper's numerical results."
+  },
+  "certificate": {
+    "repo_url": "https://github.com/gaozhengqing/TTPT",
+    "commit_sha": "7d6a26246882e830c76a27b2bd669f399f824037",
+    "build_plan": {
+      "base_image": "python:3.12-slim",
+      "apt_install": [
+        "git"
+      ],
+      "install_commands": [
+        "printf '%s\\n' filelock==3.15.4 fsspec==2024.6.1 ftfy==6.1.1 jinja2==3.1.4 joblib==1.4.2 markupsafe==2.1.5 mpmath==1.3.0 networkx==3.3 numpy==2.1.0 nvidia-cublas-cu12==12.1.3.1 nvidia-cuda-cupti-cu12==12.1.105 nvidia-cuda-nvrtc-cu12==12.1.105 nvidia-cuda-runtime-cu12==12.1.105 nvidia-cudnn-cu12==9.1.0.70 nvidia-cufft-cu12==11.0.2.54 nvidia-curand-cu12==10.3.2.106 nvidia-cusolver-cu12==11.4.5.107 nvidia-cusparse-cu12==12.1.0.106 nvidia-nccl-cu12==2.20.5 nvidia-nvjitlink-cu12==12.6.68 nvidia-nvtx-cu12==12.1.105 pillow==10.4.0 pyyaml==6.0.2 regex==2024.7.24 scikit-learn==1.5.1 scipy==1.14.1 setuptools==74.0.0 sympy==1.13.2 threadpoolctl==3.5.0 torch==2.4.0 torchvision==0.19.0 tqdm==4.66.5 triton==3.0.0 typing-extensions==4.12.2 wcwidth==0.2.13 yacs==0.1.8 clip datasets 'dassl @ git+https://github.com/KaiyangZhou/Dassl.pytorch@c61a1b570ac6333bd50fb5ae06aea59002fb20bb' > .rerun-requirements.txt && pip install -r .rerun-requirements.txt"
+      ],
+      "execute_command": "bash run_ttpt.sh",
+      "notes": [
+        "execute command is the repository's documented command (corpus ground truth)",
+        "time machine: python 3.12, 36 locked package(s)",
+        "env delta: add clip \u2014 Add missing clip module imported in code",
+        "env delta: add datasets \u2014 Add missing datasets module imported in code",
+        "env delta: pip_git dassl \u2014 Add missing dassl module imported in code",
+        "env delta: apt git \u2014 Install git to allow cloning of repositories during pip install",
+        "env delta: add numpy \u2014 Add missing numpy dependency"
+      ]
+    },
+    "full_log": "[intake] cloned https://github.com/gaozhengqing/TTPT@7d6a26246882e830c76a27b2bd669f399f824037\n[recon] calling Nemotron Nano\n[recon] entrypoint=train.py confidence=0.78\n[planner] build plan: {'base_image': 'python:3.11-slim', 'apt_install': [], 'install_commands': ['pip install -r requirements.txt'], 'execute_command': 'bash run_ttpt.sh', 'notes': [\"execute command is the repository's documented command (corpus ground truth)\"]}\n[integrity] verified 105 file(s) against tree 6f5314f24788ac5d6bb8fb9c97898fc8a4248704\n[sandbox] starting build+execute (wall_clock_seconds=600)\n[cost_guard] recorded $0.0201 sandbox spend, $1.9792 remaining today\n[sandbox] id=22104755-f156-4af6-abdc-c4c51e610033 exit_code=1\n[baseline] as-is run: FAILS (exit code 1)\n[classifier] DEP_MISSING: ModuleNotFoundError: No module named 'torch'\n[era] 2024-08-30 from dependency-files {'requirements.txt': '2024-08-30'}\n[time-machine] era 2024-08-30 (dependency-files) -> python 3.12; locked 36 package(s) with uv --exclude-newer; not on the index: ['dassl']\n[integrity] verified 105 file(s) against tree 6f5314f24788ac5d6bb8fb9c97898fc8a4248704\n[sandbox] starting build+execute (wall_clock_seconds=600)\n[cost_guard] recorded $0.4865 sandbox spend, $1.4928 remaining today\n[time-machine] re-execution id=5f75eff3-96d4-4ccd-8189-fcd89f21c72c exit_code=1\n[classifier] DEP_MISSING: ModuleNotFoundError: No module named 'dassl'\n[resolver] dassl: 1 verified git source(s), PyPI not on PyPI (0 release(s) shown), era 2024-08-30; query: 'dassl python package source code github repository pip install'\n[tavily] 5 result(s) for 'dassl python package source code github repository pip install'\n[repair 1] tamper gate PASS (env) \u2014 applying and re-executing\n[repair 1] env delta applied; build plan now: {'base_image': 'python:3.12-slim', 'apt_install': [], 'install_commands': [\"printf '%s\\\\n' filelock==3.15.4 fsspec==2024.6.1 ftfy==6.1.1 jinja2==3.1.4 joblib==1.4.2 markupsafe==2.1.5 mpmath==1.3.0 networkx==3.3 numpy==2.1.0 nvidia-cublas-cu12==12.1.3.1 nvidia-cuda-cupti-cu12==12.1.105 nvidia-cuda-nvrtc-cu12==12.1.105 nvidia-cuda-runtime-cu12==12.1.105 nvidia-cudnn-cu12==9.1.0.70 nvidia-cufft-cu12==11.0.2.54 nvidia-curand-cu12==10.3.2.106 nvidia-cusolver-cu12==11.4.5.107 nvidia-cusparse-cu12==12.1.0.106 nvidia-nccl-cu12==2.20.5 nvidia-nvjitlink-cu12==12.6.68 nvidia-nvtx-cu12==12.1.105 pillow==10.4.0 pyyaml==6.0.2 regex==2024.7.24 scikit-learn==1.5.1 scipy==1.14.1 setuptools==74.0.0 sympy==1.13.2 threadpoolctl==3.5.0 torch==2.4.0 torchvision==0.19.0 tqdm==4.66.5 triton==3.0.0 typing-extensions==4.12.2 wcwidth==0.2.13 yacs==0.1.8 clip datasets 'dassl @ git+https://github.com/KaiyangZhou/Dassl.pytorch@c61a1b570ac6333bd50fb5ae06aea59002fb20bb' > .rerun-requirements.txt && pip install -r .rerun-requirements.txt\"], 'execute_command': 'bash run_ttpt.sh', 'notes': [\"execute command is the repository's documented command (corpus ground truth)\", 'time machine: python 3.12, 36 locked package(s)', 'env delta: add clip \u2014 Add missing clip module imported in code', 'env delta: add datasets \u2014 Add missing datasets module imported in code', 'env delta: pip_git dassl \u2014 Add missing dassl module imported in code']}\n[citations] not cited (not used in a decision): https://github.com/KaiyangZhou/Dassl.pytorch\n[citations] not cited (not used in a decision): https://github.com/PromptLearningCoding/ADPL\n[citations] not cited (not used in a decision): https://github.com/ReactionMechanismGenerator/PyDAS\n[citations] not cited (not used in a decision): https://www.youtube.com/watch?v=gtyEPynfXY4\n[integrity] verified 105 file(s) against tree 6f5314f24788ac5d6bb8fb9c97898fc8a4248704\n[sandbox] starting build+execute (wall_clock_seconds=600)\n[cost_guard] recorded $0.0109 sandbox spend, $1.4773 remaining today\n[repair 1] re-execution id=48c12260-7629-4313-8037-227250179c3d exit_code=1\n[classifier] SYS_LIB_MISSING: ERROR: Cannot find command 'git' - do you have 'git' installed and in your PATH?\n[tavily] 3 result(s) for 'python sys lib missing fix: ERROR: Cannot find command 'git' - do you have 'git' installed and in your PATH?'\n[repair 2] tamper gate PASS (env) \u2014 applying and re-executing\n[repair 2] env delta applied; build plan now: {'base_image': 'python:3.12-slim', 'apt_install': ['git'], 'install_commands': [\"printf '%s\\\\n' filelock==3.15.4 fsspec==2024.6.1 ftfy==6.1.1 jinja2==3.1.4 joblib==1.4.2 markupsafe==2.1.5 mpmath==1.3.0 networkx==3.3 numpy==2.1.0 nvidia-cublas-cu12==12.1.3.1 nvidia-cuda-cupti-cu12==12.1.105 nvidia-cuda-nvrtc-cu12==12.1.105 nvidia-cuda-runtime-cu12==12.1.105 nvidia-cudnn-cu12==9.1.0.70 nvidia-cufft-cu12==11.0.2.54 nvidia-curand-cu12==10.3.2.106 nvidia-cusolver-cu12==11.4.5.107 nvidia-cusparse-cu12==12.1.0.106 nvidia-nccl-cu12==2.20.5 nvidia-nvjitlink-cu12==12.6.68 nvidia-nvtx-cu12==12.1.105 pillow==10.4.0 pyyaml==6.0.2 regex==2024.7.24 scikit-learn==1.5.1 scipy==1.14.1 setuptools==74.0.0 sympy==1.13.2 threadpoolctl==3.5.0 torch==2.4.0 torchvision==0.19.0 tqdm==4.66.5 triton==3.0.0 typing-extensions==4.12.2 wcwidth==0.2.13 yacs==0.1.8 clip datasets 'dassl @ git+https://github.com/KaiyangZhou/Dassl.pytorch@c61a1b570ac6333bd50fb5ae06aea59002fb20bb' > .rerun-requirements.txt && pip install -r .rerun-requirements.txt\"], 'execute_command': 'bash run_ttpt.sh', 'notes': [\"execute command is the repository's documented command (corpus ground truth)\", 'time machine: python 3.12, 36 locked package(s)', 'env delta: add clip \u2014 Add missing clip module imported in code', 'env delta: add datasets \u2014 Add missing datasets module imported in code', 'env delta: pip_git dassl \u2014 Add missing dassl module imported in code', 'env delta: apt git \u2014 Install git to allow cloning of repositories during pip install']}\n[citations] not cited (not used in a decision): https://github.com/vladmandic/sdnext/discussions/3054\n[citations] not cited (not used in a decision): https://www.geeksforgeeks.org/git/how-to-fix-git-is-not-recognized-as-an-internal-or-external-command\n[citations] not cited (not used in a decision): https://www.neonscience.org/resources/learning-hub/tutorials/setup-git-bash-python\n[integrity] verified 105 file(s) against tree 6f5314f24788ac5d6bb8fb9c97898fc8a4248704\n[sandbox] starting build+execute (wall_clock_seconds=600)\n[cost_guard] recorded $0.0718 sandbox spend, $1.4029 remaining today\n[repair 2] re-execution id=8d9cd2a9-839e-4794-b316-da83876d1b7b exit_code=1\n[classifier] DEP_MISSING: ModuleNotFoundError: No module named 'numpy'\n[resolver] numpy: 0 verified git source(s), PyPI found (6 release(s) shown), era 2024-08-30; query: 'numpy python package version compatible 2024 release history'\n[tavily] 5 result(s) for 'numpy python package version compatible 2024 release history'\n[repair 3] tamper gate PASS (env) \u2014 applying and re-executing\n[repair 3] env delta applied; build plan now: {'base_image': 'python:3.12-slim', 'apt_install': ['git'], 'install_commands': [\"printf '%s\\\\n' filelock==3.15.4 fsspec==2024.6.1 ftfy==6.1.1 jinja2==3.1.4 joblib==1.4.2 markupsafe==2.1.5 mpmath==1.3.0 networkx==3.3 numpy==2.1.0 nvidia-cublas-cu12==12.1.3.1 nvidia-cuda-cupti-cu12==12.1.105 nvidia-cuda-nvrtc-cu12==12.1.105 nvidia-cuda-runtime-cu12==12.1.105 nvidia-cudnn-cu12==9.1.0.70 nvidia-cufft-cu12==11.0.2.54 nvidia-curand-cu12==10.3.2.106 nvidia-cusolver-cu12==11.4.5.107 nvidia-cusparse-cu12==12.1.0.106 nvidia-nccl-cu12==2.20.5 nvidia-nvjitlink-cu12==12.6.68 nvidia-nvtx-cu12==12.1.105 pillow==10.4.0 pyyaml==6.0.2 regex==2024.7.24 scikit-learn==1.5.1 scipy==1.14.1 setuptools==74.0.0 sympy==1.13.2 threadpoolctl==3.5.0 torch==2.4.0 torchvision==0.19.0 tqdm==4.66.5 triton==3.0.0 typing-extensions==4.12.2 wcwidth==0.2.13 yacs==0.1.8 clip datasets 'dassl @ git+https://github.com/KaiyangZhou/Dassl.pytorch@c61a1b570ac6333bd50fb5ae06aea59002fb20bb' > .rerun-requirements.txt && pip install -r .rerun-requirements.txt\"], 'execute_command': 'bash run_ttpt.sh', 'notes': [\"execute command is the repository's documented command (corpus ground truth)\", 'time machine: python 3.12, 36 locked package(s)', 'env delta: add clip \u2014 Add missing clip module imported in code', 'env delta: add datasets \u2014 Add missing datasets module imported in code', 'env delta: pip_git dassl \u2014 Add missing dassl module imported in code', 'env delta: apt git \u2014 Install git to allow cloning of repositories during pip install', 'env delta: add numpy \u2014 Add missing numpy dependency']}\n[citations] not cited (not used in a decision): https://numpy.org/news\n[citations] not cited (not used in a decision): https://numpy.org/neps/nep-0029-deprecation_policy.html\n[citations] not cited (not used in a decision): https://numpy.org/devdocs/release/2.0.0-notes.html\n[citations] not cited (not used in a decision): https://endoflife.date/numpy\n[citations] not cited (not used in a decision): https://numpy.org/doc/stable/dev/depending_on_numpy.html\n[citations] not cited (offered, not used): https://pypi.org/project/numpy/2.0.2/\n[citations] not cited (offered, not used): https://pypi.org/project/numpy/2.0.1/\n[citations] not cited (offered, not used): https://pypi.org/project/numpy/2.0.0/\n[citations] not cited (offered, not used): https://pypi.org/project/numpy/1.26.4/\n[citations] not cited (offered, not used): https://pypi.org/project/numpy/2.5.3/\n[integrity] verified 105 file(s) against tree 6f5314f24788ac5d6bb8fb9c97898fc8a4248704\n[sandbox] starting build+execute (wall_clock_seconds=600)\n[cost_guard] recorded $0.0675 sandbox spend, $1.3279 remaining today\n[repair 3] re-execution id=b4f2b862-7c31-4cf8-b501-e813e095521f exit_code=1\n[classifier] DEP_MISSING: ModuleNotFoundError: No module named 'numpy'\n[verdict] BLOCKED after 3 repair attempt(s): DEP_MISSING",
+    "diffs": [
+      {
+        "attempt_number": 0,
+        "diff_text": "",
+        "gate_decision": "PASS",
+        "gate_violations": [],
+        "exit_code": 1,
+        "stdout_tail": "Run this job and save the output to my_outputv2/base2new/train_base/imagenet/shots_16/CoOp/vit_b32_ep50_ctxv1/seed1\n",
+        "stderr_tail": "+ bash scripts/coop/base2new_train_imagenet.sh imagenet 1 vit_b32_ep50_ctxv1 'a photo of a' end\nTraceback (most recent call last):\n  File \"//train.py\", line 4, in <module>\n    from dassl.utils import setup_logger, set_random_seed, collect_env_info\nModuleNotFoundError: No module named 'dassl'\n",
+        "tavily_sources": [],
+        "env_delta": [],
+        "resolved_sources": [],
+        "origin": "time_machine",
+        "time_machine": {
+          "era": {
+            "date": "2024-08-30",
+            "source": "dependency-files",
+            "detail": {
+              "requirements.txt": "2024-08-30"
+            }
+          },
+          "python": {
+            "version": "3.12",
+            "reason": "newest CPython first released \u2265180 days before the era date 2024-08-30 (https://devguide.python.org/versions/ (first release dates, retrieved 2026-09-24))",
+            "source": "https://devguide.python.org/versions/ (first release dates, retrieved 2026-09-24)"
+          },
+          "undeclared_imports": [
+            "pillow",
+            "dassl",
+            "numpy",
+            "scipy",
+            "scikit-learn",
+            "torch",
+            "torchvision",
+            "yacs"
+          ],
+          "apt_added": [],
+          "apt_reason": "",
+          "lock": {
+            "ok": true,
+            "lock": [
+              "filelock==3.15.4",
+              "fsspec==2024.6.1",
+              "ftfy==6.1.1",
+              "jinja2==3.1.4",
+              "joblib==1.4.2",
+              "markupsafe==2.1.5",
+              "mpmath==1.3.0",
+              "networkx==3.3",
+              "numpy==2.1.0",
+              "nvidia-cublas-cu12==12.1.3.1",
+              "nvidia-cuda-cupti-cu12==12.1.105",
+              "nvidia-cuda-nvrtc-cu12==12.1.105",
+              "nvidia-cuda-runtime-cu12==12.1.105",
+              "nvidia-cudnn-cu12==9.1.0.70",
+              "nvidia-cufft-cu12==11.0.2.54",
+              "nvidia-curand-cu12==10.3.2.106",
+              "nvidia-cusolver-cu12==11.4.5.107",
+              "nvidia-cusparse-cu12==12.1.0.106",
+              "nvidia-nccl-cu12==2.20.5",
+              "nvidia-nvjitlink-cu12==12.6.68",
+              "nvidia-nvtx-cu12==12.1.105",
+              "pillow==10.4.0",
+              "pyyaml==6.0.2",
+              "regex==2024.7.24",
+              "scikit-learn==1.5.1",
+              "scipy==1.14.1",
+              "setuptools==74.0.0",
+              "sympy==1.13.2",
+              "threadpoolctl==3.5.0",
+              "torch==2.4.0",
+              "torchvision==0.19.0",
+              "tqdm==4.66.5",
+              "triton==3.0.0",
+              "typing-extensions==4.12.2",
+              "wcwidth==0.2.13",
+              "yacs==0.1.8"
+            ],
+            "inputs": [
+              "ftfy==6.1.1",
+              "regex",
+              "tqdm",
+              "pillow",
+              "dassl",
+              "numpy",
+              "scipy",
+              "scikit-learn",
+              "torch",
+              "torchvision",
+              "yacs"
+            ],
+            "not_on_index": [
+              "dassl"
+            ],
+            "command": "pip compile - --no-header --no-annotate --quiet --exclude-newer 2024-08-31T00:00:00Z --python-version 3.12 --python-platform x86_64-unknown-linux-gnu --python C:\\Users\\E16\\AppData\\Roaming\\uv\\python\\cpython-3.8.20-windows-x86_64-none\\python.exe",
+            "error": ""
+          }
+        }
+      },
+      {
+        "attempt_number": 1,
+        "diff_text": "",
+        "gate_decision": "PASS",
+        "gate_violations": [],
+        "exit_code": 1,
+        "stdout_tail": "Collecting dassl@ git+https://github.com/KaiyangZhou/Dassl.pytorch@c61a1b570ac6333bd50fb5ae06aea59002fb20bb (from -r .rerun-requirements.txt (line 39))\n  Cloning https://github.com/KaiyangZhou/Dassl.pytorch (to revision c61a1b570ac6333bd50fb5ae06aea59002fb20bb) to /tmp/pip-install-57ot1acq/dassl_e6eb87656d714bfa8bff1d5abdfbd53a\n",
+        "stderr_tail": "  ERROR: Error [Errno 2] No such file or directory: 'git' while executing command git version\n\n[notice] A new release of pip is available: 25.0.1 -> 26.2.1\n[notice] To update, run: pip install --upgrade pip\nERROR: Cannot find command 'git' - do you have 'git' installed and in your PATH?\n",
+        "tavily_sources": [
+          {
+            "title": "Installing this repository with pip \u00b7 Issue #32 \u00b7 KaiyangZhou/Dassl.pytorch \u00b7 GitHub",
+            "url": "https://github.com/KaiyangZhou/Dassl.pytorch/issues/32",
+            "content": "`pip install -r requirements.txt`\n`git+\n`import numpy as np`\n`import numpy as np`\n`def numpy_include(): ...`\n\n## Activity\n\n## Metadata\n\n## Metadata\n\n### Assignees\n\n### Labels\n\n### Projects\n\n### Milestone\n\n### Relationships\n\n### Development\n\n## Issue actions\n\n## Footer\n\n### Footer navigation [...] @NilsHulzebosch\n\nHi there, when installing this repository with `pip install -r requirements.txt` (where the requirements.txt file contains `git+ the `import numpy as np` in setup.py throws a ModuleNotFoundError, because numpy is not yet installed at that moment. Is is it possible to remove the `import numpy as np` statement and `def numpy_include(): ...` from setup.py such that this repository can be installed automatically with pip? [...] ## Navigation Menu\n\n# Installing this repository with pip #32\n\n## Description\n\n@NilsHulzebosch"
+          }
+        ],
+        "env_delta": [
+          {
+            "command": null,
+            "op": "add",
+            "package": "clip",
+            "version": null,
+            "git_url": null,
+            "commit": null,
+            "justification": "Add missing clip module imported in code",
+            "evidence": "ModuleNotFoundError: No module named 'dassl'"
+          },
+          {
+            "command": null,
+            "op": "add",
+            "package": "datasets",
+            "version": null,
+            "git_url": null,
+            "commit": null,
+            "justification": "Add missing datasets module imported in code",
+            "evidence": "ModuleNotFoundError: No module named 'dassl'"
+          },
+          {
+            "command": null,
+            "op": "pip_git",
+            "package": "dassl",
+            "version": null,
+            "git_url": "https://github.com/KaiyangZhou/Dassl.pytorch",
+            "commit": "c61a1b570ac6333bd50fb5ae06aea59002fb20bb",
+            "justification": "Add missing dassl module imported in code",
+            "evidence": "ModuleNotFoundError: No module named 'dassl'"
+          }
+        ],
+        "resolved_sources": [
+          {
+            "kind": "git",
+            "url": "https://github.com/KaiyangZhou/Dassl.pytorch",
+            "commit": "c61a1b570ac6333bd50fb5ae06aea59002fb20bb",
+            "committed_at": "2022-10-06",
+            "cited_by": "https://github.com/KaiyangZhou/Dassl.pytorch/issues/32",
+            "note": "",
+            "commit_url": "https://github.com/KaiyangZhou/Dassl.pytorch/commit/c61a1b570ac6333bd50fb5ae06aea59002fb20bb"
+          }
+        ],
+        "origin": "model",
+        "time_machine": null
+      },
+      {
+        "attempt_number": 2,
+        "diff_text": "",
+        "gate_decision": "PASS",
+        "gate_violations": [],
+        "exit_code": 1,
+        "stdout_tail": "Collecting dassl@ git+https://github.com/KaiyangZhou/Dassl.pytorch@c61a1b570ac6333bd50fb5ae06aea59002fb20bb (from -r .rerun-requirements.txt (line 39))\n  Cloning https://github.com/KaiyangZhou/Dassl.pytorch (to revision c61a1b570ac6333bd50fb5ae06aea59002fb20bb) to /tmp/pip-install-aeidwmei/dassl_b74c2457928e45df9055139b5d989b19\n  Resolved https://github.com/KaiyangZhou/Dassl.pytorch to commit c61a1b570ac6333bd50fb5ae06aea59002fb20bb\n  Installing build dependencies: started\n  Installing build dependencies: finished with status 'done'\n  Getting requirements to build wheel: started\n  Getting requirements to build wheel: finished with status 'error'\n",
+        "stderr_tail": "roject_hooks/_in_process/_in_process.py\", line 389, in <module>\n          main()\n        File \"/usr/local/lib/python3.12/site-packages/pip/_vendor/pyproject_hooks/_in_process/_in_process.py\", line 373, in main\n          json_out[\"return_val\"] = hook(**hook_input[\"kwargs\"])\n                                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n        File \"/usr/local/lib/python3.12/site-packages/pip/_vendor/pyproject_hooks/_in_process/_in_process.py\", line 143, in get_requires_for_build_wheel\n          return hook(config_settings)\n                 ^^^^^^^^^^^^^^^^^^^^^\n        File \"/tmp/pip-build-env-8tv058m8/overlay/lib/python3.12/site-packages/setuptools/build_meta.py\", line 333, in get_requires_for_build_wheel\n          return self._get_build_requires(config_settings, requirements=[])\n                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n        File \"/tmp/pip-build-env-8tv058m8/overlay/lib/python3.12/site-packages/setuptools/build_meta.py\", line 301, in _get_build_requires\n          self.run_setup()\n        File \"/tmp/pip-build-env-8tv058m8/overlay/lib/python3.12/site-packages/setuptools/build_meta.py\", line 520, in run_setup\n          super().run_setup(setup_script=setup_script)\n        File \"/tmp/pip-build-env-8tv058m8/overlay/lib/python3.12/site-packages/setuptools/build_meta.py\", line 317, in run_setup\n          exec(code, locals())  # noqa: S102 # exec is intentional here\n          ^^^^^^^^^^^^^^^^^^^^\n        File \"<string>\", line 1, in <module>\n      ModuleNotFoundError: No module named 'numpy'\n      [end of output]\n  \n  note: This error originates from a subprocess, and is likely not a problem with pip.\n\n[notice] A new release of pip is available: 25.0.1 -> 26.2.1\n[notice] To update, run: pip install --upgrade pip\nerror: subprocess-exited-with-error\n\n\u00d7 Getting requirements to build wheel did not run successfully.\n\u2502 exit code: 1\n\u2570\u2500> See above for output.\n\nnote: This error originates from a subprocess, and is likely not a problem with pip.\n",
+        "tavily_sources": [],
+        "env_delta": [
+          {
+            "command": null,
+            "op": "apt",
+            "package": "git",
+            "version": null,
+            "git_url": null,
+            "commit": null,
+            "justification": "Install git to allow cloning of repositories during pip install",
+            "evidence": "ERROR: Cannot find command 'git' - do you have 'git' installed and in your PATH?"
+          }
+        ],
+        "resolved_sources": [],
+        "origin": "model",
+        "time_machine": null
+      },
+      {
+        "attempt_number": 3,
+        "diff_text": "",
+        "gate_decision": "PASS",
+        "gate_violations": [],
+        "exit_code": 1,
+        "stdout_tail": "Collecting dassl@ git+https://github.com/KaiyangZhou/Dassl.pytorch@c61a1b570ac6333bd50fb5ae06aea59002fb20bb (from -r .rerun-requirements.txt (line 39))\n  Cloning https://github.com/KaiyangZhou/Dassl.pytorch (to revision c61a1b570ac6333bd50fb5ae06aea59002fb20bb) to /tmp/pip-install-2sb94101/dassl_5e3656548f7046bdacd2615f985d8dfc\n  Resolved https://github.com/KaiyangZhou/Dassl.pytorch to commit c61a1b570ac6333bd50fb5ae06aea59002fb20bb\n  Installing build dependencies: started\n  Installing build dependencies: finished with status 'done'\n  Getting requirements to build wheel: started\n  Getting requirements to build wheel: finished with status 'error'\n",
+        "stderr_tail": "roject_hooks/_in_process/_in_process.py\", line 389, in <module>\n          main()\n        File \"/usr/local/lib/python3.12/site-packages/pip/_vendor/pyproject_hooks/_in_process/_in_process.py\", line 373, in main\n          json_out[\"return_val\"] = hook(**hook_input[\"kwargs\"])\n                                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n        File \"/usr/local/lib/python3.12/site-packages/pip/_vendor/pyproject_hooks/_in_process/_in_process.py\", line 143, in get_requires_for_build_wheel\n          return hook(config_settings)\n                 ^^^^^^^^^^^^^^^^^^^^^\n        File \"/tmp/pip-build-env-d27khya2/overlay/lib/python3.12/site-packages/setuptools/build_meta.py\", line 333, in get_requires_for_build_wheel\n          return self._get_build_requires(config_settings, requirements=[])\n                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n        File \"/tmp/pip-build-env-d27khya2/overlay/lib/python3.12/site-packages/setuptools/build_meta.py\", line 301, in _get_build_requires\n          self.run_setup()\n        File \"/tmp/pip-build-env-d27khya2/overlay/lib/python3.12/site-packages/setuptools/build_meta.py\", line 520, in run_setup\n          super().run_setup(setup_script=setup_script)\n        File \"/tmp/pip-build-env-d27khya2/overlay/lib/python3.12/site-packages/setuptools/build_meta.py\", line 317, in run_setup\n          exec(code, locals())  # noqa: S102 # exec is intentional here\n          ^^^^^^^^^^^^^^^^^^^^\n        File \"<string>\", line 1, in <module>\n      ModuleNotFoundError: No module named 'numpy'\n      [end of output]\n  \n  note: This error originates from a subprocess, and is likely not a problem with pip.\n\n[notice] A new release of pip is available: 25.0.1 -> 26.2.1\n[notice] To update, run: pip install --upgrade pip\nerror: subprocess-exited-with-error\n\n\u00d7 Getting requirements to build wheel did not run successfully.\n\u2502 exit code: 1\n\u2570\u2500> See above for output.\n\nnote: This error originates from a subprocess, and is likely not a problem with pip.\n",
+        "tavily_sources": [],
+        "env_delta": [
+          {
+            "command": null,
+            "op": "add",
+            "package": "numpy",
+            "version": "2.1.0",
+            "git_url": null,
+            "commit": null,
+            "justification": "Add missing numpy dependency",
+            "evidence": "ModuleNotFoundError: No module named 'numpy'"
+          }
+        ],
+        "resolved_sources": [
+          {
+            "kind": "pypi",
+            "package": "numpy",
+            "version": "2.1.0",
+            "uploaded": "2024-08-18",
+            "cpython_tags": [
+              "cp310",
+              "cp311",
+              "cp312",
+              "cp313"
+            ],
+            "url": "https://pypi.org/project/numpy/2.1.0/"
+          }
+        ],
+        "origin": "model",
+        "time_machine": null
+      }
+    ],
+    "verdict": "BLOCKED",
+    "timestamp": "2026-09-28T08:26:33.398652+00:00",
+    "bundle_version": 3,
+    "baseline": {
+      "result": "FAILS",
+      "exit_code": 1,
+      "base_image": "python:3.11-slim",
+      "install_commands": [
+        "pip install -r requirements.txt"
+      ],
+      "execute_command": "bash run_ttpt.sh",
+      "sandbox_id": "22104755-f156-4af6-abdc-c4c51e610033",
+      "taxonomy_code": "DEP_MISSING",
+      "evidence": "ModuleNotFoundError: No module named 'torch'"
+    },
+    "recovery": false,
+    "tree_integrity": {
+      "status": "verified",
+      "tree_sha": "6f5314f24788ac5d6bb8fb9c97898fc8a4248704",
+      "files_checked": 105,
+      "excluded_patched": []
+    },
+    "corpus_hash": null,
+    "reproduction_passport_hash": "2ab015f41fa1d4c32c097c9749ee7e4b86c21f7cb53c4b616f788241e364c8f9"
+  },
+  "finished_at": "2026-09-28T08:26:33.431223+00:00",
+  "events": [
+    {
+      "t_s": 0.0,
+      "at": "2026-09-28T08:19:54.174072+00:00",
+      "line": "[intake] cloned https://github.com/gaozhengqing/TTPT@7d6a26246882e830c76a27b2bd669f399f824037"
+    },
+    {
+      "t_s": 0.01,
+      "at": "2026-09-28T08:19:54.183573+00:00",
+      "line": "[recon] calling Nemotron Nano"
+    },
+    {
+      "t_s": 15.68,
+      "at": "2026-09-28T08:20:09.851542+00:00",
+      "line": "[recon] entrypoint=train.py confidence=0.78"
+    },
+    {
+      "t_s": 25.33,
+      "at": "2026-09-28T08:20:19.506044+00:00",
+      "line": "[planner] build plan: {'base_image': 'python:3.11-slim', 'apt_install': [], 'install_commands': ['pip install -r requirements.txt'], 'execute_command': 'bash run_ttpt.sh', 'notes': [\"execute command is the repository's documented command (corpus ground truth)\"]}"
+    },
+    {
+      "t_s": 25.91,
+      "at": "2026-09-28T08:20:20.087583+00:00",
+      "line": "[integrity] verified 105 file(s) against tree 6f5314f24788ac5d6bb8fb9c97898fc8a4248704"
+    },
+    {
+      "t_s": 25.91,
+      "at": "2026-09-28T08:20:20.087648+00:00",
+      "line": "[sandbox] starting build+execute (wall_clock_seconds=600)"
+    },
+    {
+      "t_s": 36.92,
+      "at": "2026-09-28T08:20:31.091583+00:00",
+      "line": "[cost_guard] recorded $0.0201 sandbox spend, $1.9792 remaining today"
+    },
+    {
+      "t_s": 36.92,
+      "at": "2026-09-28T08:20:31.091863+00:00",
+      "line": "[sandbox] id=22104755-f156-4af6-abdc-c4c51e610033 exit_code=1"
+    },
+    {
+      "t_s": 36.92,
+      "at": "2026-09-28T08:20:31.091905+00:00",
+      "line": "[baseline] as-is run: FAILS (exit code 1)"
+    },
+    {
+      "t_s": 36.92,
+      "at": "2026-09-28T08:20:31.092096+00:00",
+      "line": "[classifier] DEP_MISSING: ModuleNotFoundError: No module named 'torch'"
+    },
+    {
+      "t_s": 38.0,
+      "at": "2026-09-28T08:20:32.173251+00:00",
+      "line": "[era] 2024-08-30 from dependency-files {'requirements.txt': '2024-08-30'}"
+    },
+    {
+      "t_s": 40.79,
+      "at": "2026-09-28T08:20:34.961894+00:00",
+      "line": "[time-machine] era 2024-08-30 (dependency-files) -> python 3.12; locked 36 package(s) with uv --exclude-newer; not on the index: ['dassl']"
+    },
+    {
+      "t_s": 40.91,
+      "at": "2026-09-28T08:20:35.086868+00:00",
+      "line": "[integrity] verified 105 file(s) against tree 6f5314f24788ac5d6bb8fb9c97898fc8a4248704"
+    },
+    {
+      "t_s": 40.91,
+      "at": "2026-09-28T08:20:35.086913+00:00",
+      "line": "[sandbox] starting build+execute (wall_clock_seconds=600)"
+    },
+    {
+      "t_s": 168.43,
+      "at": "2026-09-28T08:22:42.606961+00:00",
+      "line": "[cost_guard] recorded $0.4865 sandbox spend, $1.4928 remaining today"
+    },
+    {
+      "t_s": 168.43,
+      "at": "2026-09-28T08:22:42.607019+00:00",
+      "line": "[time-machine] re-execution id=5f75eff3-96d4-4ccd-8189-fcd89f21c72c exit_code=1"
+    },
+    {
+      "t_s": 168.43,
+      "at": "2026-09-28T08:22:42.607209+00:00",
+      "line": "[classifier] DEP_MISSING: ModuleNotFoundError: No module named 'dassl'"
+    },
+    {
+      "t_s": 172.37,
+      "at": "2026-09-28T08:22:46.543479+00:00",
+      "line": "[resolver] dassl: 1 verified git source(s), PyPI not on PyPI (0 release(s) shown), era 2024-08-30; query: 'dassl python package source code github repository pip install'"
+    },
+    {
+      "t_s": 172.37,
+      "at": "2026-09-28T08:22:46.543532+00:00",
+      "line": "[tavily] 5 result(s) for 'dassl python package source code github repository pip install'"
+    },
+    {
+      "t_s": 295.45,
+      "at": "2026-09-28T08:24:49.619818+00:00",
+      "line": "[repair 1] tamper gate PASS (env) \u2014 applying and re-executing"
+    },
+    {
+      "t_s": 295.45,
+      "at": "2026-09-28T08:24:49.620318+00:00",
+      "line": "[repair 1] env delta applied; build plan now: {'base_image': 'python:3.12-slim', 'apt_install': [], 'install_commands': [\"printf '%s\\\\n' filelock==3.15.4 fsspec==2024.6.1 ftfy==6.1.1 jinja2==3.1.4 joblib==1.4.2 markupsafe==2.1.5 mpmath==1.3.0 networkx==3.3 numpy==2.1.0 nvidia-cublas-cu12==12.1.3.1 nvidia-cuda-cupti-cu12==12.1.105 nvidia-cuda-nvrtc-cu12==12.1.105 nvidia-cuda-runtime-cu12==12.1.105 nvidia-cudnn-cu12==9.1.0.70 nvidia-cufft-cu12==11.0.2.54 nvidia-curand-cu12==10.3.2.106 nvidia-cusolver-cu12==11.4.5.107 nvidia-cusparse-cu12==12.1.0.106 nvidia-nccl-cu12==2.20.5 nvidia-nvjitlink-cu12==12.6.68 nvidia-nvtx-cu12==12.1.105 pillow==10.4.0 pyyaml==6.0.2 regex==2024.7.24 scikit-learn==1.5.1 scipy==1.14.1 setuptools==74.0.0 sympy==1.13.2 threadpoolctl==3.5.0 torch==2.4.0 torchvision==0.19.0 tqdm==4.66.5 triton==3.0.0 typing-extensions==4.12.2 wcwidth==0.2.13 yacs==0.1.8 clip datasets 'dassl @ git+https://github.com/KaiyangZhou/Dassl.pytorch@c61a1b570ac6333bd50fb5ae06aea59002fb20bb' > .rerun-requirements.txt && pip install -r .rerun-requirements.txt\"], 'execute_command': 'bash run_ttpt.sh', 'notes': [\"execute command is the repository's documented command (corpus ground truth)\", 'time machine: python 3.12, 36 locked package(s)', 'env delta: add clip \u2014 Add missing clip module imported in code', 'env delta: add datasets \u2014 Add missing datasets module imported in code', 'env delta: pip_git dassl \u2014 Add missing dassl module imported in code']}"
+    },
+    {
+      "t_s": 295.45,
+      "at": "2026-09-28T08:24:49.620353+00:00",
+      "line": "[citations] not cited (not used in a decision): https://github.com/KaiyangZhou/Dassl.pytorch"
+    },
+    {
+      "t_s": 295.45,
+      "at": "2026-09-28T08:24:49.620368+00:00",
+      "line": "[citations] not cited (not used in a decision): https://github.com/PromptLearningCoding/ADPL"
+    },
+    {
+      "t_s": 295.45,
+      "at": "2026-09-28T08:24:49.620378+00:00",
+      "line": "[citations] not cited (not used in a decision): https://github.com/ReactionMechanismGenerator/PyDAS"
+    },
+    {
+      "t_s": 295.45,
+      "at": "2026-09-28T08:24:49.620388+00:00",
+      "line": "[citations] not cited (not used in a decision): https://www.youtube.com/watch?v=gtyEPynfXY4"
+    },
+    {
+      "t_s": 295.58,
+      "at": "2026-09-28T08:24:49.757115+00:00",
+      "line": "[integrity] verified 105 file(s) against tree 6f5314f24788ac5d6bb8fb9c97898fc8a4248704"
+    },
+    {
+      "t_s": 295.58,
+      "at": "2026-09-28T08:24:49.757163+00:00",
+      "line": "[sandbox] starting build+execute (wall_clock_seconds=600)"
+    },
+    {
+      "t_s": 303.3,
+      "at": "2026-09-28T08:24:57.470807+00:00",
+      "line": "[cost_guard] recorded $0.0109 sandbox spend, $1.4773 remaining today"
+    },
+    {
+      "t_s": 303.3,
+      "at": "2026-09-28T08:24:57.470869+00:00",
+      "line": "[repair 1] re-execution id=48c12260-7629-4313-8037-227250179c3d exit_code=1"
+    },
+    {
+      "t_s": 303.3,
+      "at": "2026-09-28T08:24:57.470971+00:00",
+      "line": "[classifier] SYS_LIB_MISSING: ERROR: Cannot find command 'git' - do you have 'git' installed and in your PATH?"
+    },
+    {
+      "t_s": 305.41,
+      "at": "2026-09-28T08:24:59.588549+00:00",
+      "line": "[tavily] 3 result(s) for 'python sys lib missing fix: ERROR: Cannot find command 'git' - do you have 'git' installed and in your PATH?'"
+    },
+    {
+      "t_s": 310.83,
+      "at": "2026-09-28T08:25:05.008843+00:00",
+      "line": "[repair 2] tamper gate PASS (env) \u2014 applying and re-executing"
+    },
+    {
+      "t_s": 310.83,
+      "at": "2026-09-28T08:25:05.008951+00:00",
+      "line": "[repair 2] env delta applied; build plan now: {'base_image': 'python:3.12-slim', 'apt_install': ['git'], 'install_commands': [\"printf '%s\\\\n' filelock==3.15.4 fsspec==2024.6.1 ftfy==6.1.1 jinja2==3.1.4 joblib==1.4.2 markupsafe==2.1.5 mpmath==1.3.0 networkx==3.3 numpy==2.1.0 nvidia-cublas-cu12==12.1.3.1 nvidia-cuda-cupti-cu12==12.1.105 nvidia-cuda-nvrtc-cu12==12.1.105 nvidia-cuda-runtime-cu12==12.1.105 nvidia-cudnn-cu12==9.1.0.70 nvidia-cufft-cu12==11.0.2.54 nvidia-curand-cu12==10.3.2.106 nvidia-cusolver-cu12==11.4.5.107 nvidia-cusparse-cu12==12.1.0.106 nvidia-nccl-cu12==2.20.5 nvidia-nvjitlink-cu12==12.6.68 nvidia-nvtx-cu12==12.1.105 pillow==10.4.0 pyyaml==6.0.2 regex==2024.7.24 scikit-learn==1.5.1 scipy==1.14.1 setuptools==74.0.0 sympy==1.13.2 threadpoolctl==3.5.0 torch==2.4.0 torchvision==0.19.0 tqdm==4.66.5 triton==3.0.0 typing-extensions==4.12.2 wcwidth==0.2.13 yacs==0.1.8 clip datasets 'dassl @ git+https://github.com/KaiyangZhou/Dassl.pytorch@c61a1b570ac6333bd50fb5ae06aea59002fb20bb' > .rerun-requirements.txt && pip install -r .rerun-requirements.txt\"], 'execute_command': 'bash run_ttpt.sh', 'notes': [\"execute command is the repository's documented command (corpus ground truth)\", 'time machine: python 3.12, 36 locked package(s)', 'env delta: add clip \u2014 Add missing clip module imported in code', 'env delta: add datasets \u2014 Add missing datasets module imported in code', 'env delta: pip_git dassl \u2014 Add missing dassl module imported in code', 'env delta: apt git \u2014 Install git to allow cloning of repositories during pip install']}"
+    },
+    {
+      "t_s": 310.83,
+      "at": "2026-09-28T08:25:05.008975+00:00",
+      "line": "[citations] not cited (not used in a decision): https://github.com/vladmandic/sdnext/discussions/3054"
+    },
+    {
+      "t_s": 310.83,
+      "at": "2026-09-28T08:25:05.008987+00:00",
+      "line": "[citations] not cited (not used in a decision): https://www.geeksforgeeks.org/git/how-to-fix-git-is-not-recognized-as-an-internal-or-external-command"
+    },
+    {
+      "t_s": 310.83,
+      "at": "2026-09-28T08:25:05.008996+00:00",
+      "line": "[citations] not cited (not used in a decision): https://www.neonscience.org/resources/learning-hub/tutorials/setup-git-bash-python"
+    },
+    {
+      "t_s": 310.96,
+      "at": "2026-09-28T08:25:05.131107+00:00",
+      "line": "[integrity] verified 105 file(s) against tree 6f5314f24788ac5d6bb8fb9c97898fc8a4248704"
+    },
+    {
+      "t_s": 310.96,
+      "at": "2026-09-28T08:25:05.131161+00:00",
+      "line": "[sandbox] starting build+execute (wall_clock_seconds=600)"
+    },
+    {
+      "t_s": 338.27,
+      "at": "2026-09-28T08:25:32.440567+00:00",
+      "line": "[cost_guard] recorded $0.0718 sandbox spend, $1.4029 remaining today"
+    },
+    {
+      "t_s": 338.27,
+      "at": "2026-09-28T08:25:32.440631+00:00",
+      "line": "[repair 2] re-execution id=8d9cd2a9-839e-4794-b316-da83876d1b7b exit_code=1"
+    },
+    {
+      "t_s": 338.27,
+      "at": "2026-09-28T08:25:32.441820+00:00",
+      "line": "[classifier] DEP_MISSING: ModuleNotFoundError: No module named 'numpy'"
+    },
+    {
+      "t_s": 340.3,
+      "at": "2026-09-28T08:25:34.478159+00:00",
+      "line": "[resolver] numpy: 0 verified git source(s), PyPI found (6 release(s) shown), era 2024-08-30; query: 'numpy python package version compatible 2024 release history'"
+    },
+    {
+      "t_s": 340.3,
+      "at": "2026-09-28T08:25:34.478236+00:00",
+      "line": "[tavily] 5 result(s) for 'numpy python package version compatible 2024 release history'"
+    },
+    {
+      "t_s": 372.57,
+      "at": "2026-09-28T08:26:06.746080+00:00",
+      "line": "[repair 3] tamper gate PASS (env) \u2014 applying and re-executing"
+    },
+    {
+      "t_s": 372.57,
+      "at": "2026-09-28T08:26:06.746306+00:00",
+      "line": "[repair 3] env delta applied; build plan now: {'base_image': 'python:3.12-slim', 'apt_install': ['git'], 'install_commands': [\"printf '%s\\\\n' filelock==3.15.4 fsspec==2024.6.1 ftfy==6.1.1 jinja2==3.1.4 joblib==1.4.2 markupsafe==2.1.5 mpmath==1.3.0 networkx==3.3 numpy==2.1.0 nvidia-cublas-cu12==12.1.3.1 nvidia-cuda-cupti-cu12==12.1.105 nvidia-cuda-nvrtc-cu12==12.1.105 nvidia-cuda-runtime-cu12==12.1.105 nvidia-cudnn-cu12==9.1.0.70 nvidia-cufft-cu12==11.0.2.54 nvidia-curand-cu12==10.3.2.106 nvidia-cusolver-cu12==11.4.5.107 nvidia-cusparse-cu12==12.1.0.106 nvidia-nccl-cu12==2.20.5 nvidia-nvjitlink-cu12==12.6.68 nvidia-nvtx-cu12==12.1.105 pillow==10.4.0 pyyaml==6.0.2 regex==2024.7.24 scikit-learn==1.5.1 scipy==1.14.1 setuptools==74.0.0 sympy==1.13.2 threadpoolctl==3.5.0 torch==2.4.0 torchvision==0.19.0 tqdm==4.66.5 triton==3.0.0 typing-extensions==4.12.2 wcwidth==0.2.13 yacs==0.1.8 clip datasets 'dassl @ git+https://github.com/KaiyangZhou/Dassl.pytorch@c61a1b570ac6333bd50fb5ae06aea59002fb20bb' > .rerun-requirements.txt && pip install -r .rerun-requirements.txt\"], 'execute_command': 'bash run_ttpt.sh', 'notes': [\"execute command is the repository's documented command (corpus ground truth)\", 'time machine: python 3.12, 36 locked package(s)', 'env delta: add clip \u2014 Add missing clip module imported in code', 'env delta: add datasets \u2014 Add missing datasets module imported in code', 'env delta: pip_git dassl \u2014 Add missing dassl module imported in code', 'env delta: apt git \u2014 Install git to allow cloning of repositories during pip install', 'env delta: add numpy \u2014 Add missing numpy dependency']}"
+    },
+    {
+      "t_s": 372.57,
+      "at": "2026-09-28T08:26:06.746349+00:00",
+      "line": "[citations] not cited (not used in a decision): https://numpy.org/news"
+    },
+    {
+      "t_s": 372.57,
+      "at": "2026-09-28T08:26:06.746363+00:00",
+      "line": "[citations] not cited (not used in a decision): https://numpy.org/neps/nep-0029-deprecation_policy.html"
+    },
+    {
+      "t_s": 372.57,
+      "at": "2026-09-28T08:26:06.746374+00:00",
+      "line": "[citations] not cited (not used in a decision): https://numpy.org/devdocs/release/2.0.0-notes.html"
+    },
+    {
+      "t_s": 372.57,
+      "at": "2026-09-28T08:26:06.746382+00:00",
+      "line": "[citations] not cited (not used in a decision): https://endoflife.date/numpy"
+    },
+    {
+      "t_s": 372.57,
+      "at": "2026-09-28T08:26:06.746391+00:00",
+      "line": "[citations] not cited (not used in a decision): https://numpy.org/doc/stable/dev/depending_on_numpy.html"
+    },
+    {
+      "t_s": 372.57,
+      "at": "2026-09-28T08:26:06.746401+00:00",
+      "line": "[citations] not cited (offered, not used): https://pypi.org/project/numpy/2.0.2/"
+    },
+    {
+      "t_s": 372.57,
+      "at": "2026-09-28T08:26:06.746411+00:00",
+      "line": "[citations] not cited (offered, not used): https://pypi.org/project/numpy/2.0.1/"
+    },
+    {
+      "t_s": 372.57,
+      "at": "2026-09-28T08:26:06.746420+00:00",
+      "line": "[citations] not cited (offered, not used): https://pypi.org/project/numpy/2.0.0/"
+    },
+    {
+      "t_s": 372.57,
+      "at": "2026-09-28T08:26:06.746429+00:00",
+      "line": "[citations] not cited (offered, not used): https://pypi.org/project/numpy/1.26.4/"
+    },
+    {
+      "t_s": 372.57,
+      "at": "2026-09-28T08:26:06.746437+00:00",
+      "line": "[citations] not cited (offered, not used): https://pypi.org/project/numpy/2.5.3/"
+    },
+    {
+      "t_s": 372.7,
+      "at": "2026-09-28T08:26:06.869543+00:00",
+      "line": "[integrity] verified 105 file(s) against tree 6f5314f24788ac5d6bb8fb9c97898fc8a4248704"
+    },
+    {
+      "t_s": 372.7,
+      "at": "2026-09-28T08:26:06.869592+00:00",
+      "line": "[sandbox] starting build+execute (wall_clock_seconds=600)"
+    },
+    {
+      "t_s": 397.21,
+      "at": "2026-09-28T08:26:31.388595+00:00",
+      "line": "[cost_guard] recorded $0.0675 sandbox spend, $1.3279 remaining today"
+    },
+    {
+      "t_s": 397.21,
+      "at": "2026-09-28T08:26:31.388681+00:00",
+      "line": "[repair 3] re-execution id=b4f2b862-7c31-4cf8-b501-e813e095521f exit_code=1"
+    },
+    {
+      "t_s": 397.22,
+      "at": "2026-09-28T08:26:31.390502+00:00",
+      "line": "[classifier] DEP_MISSING: ModuleNotFoundError: No module named 'numpy'"
+    },
+    {
+      "t_s": 397.22,
+      "at": "2026-09-28T08:26:31.390600+00:00",
+      "line": "[verdict] BLOCKED after 3 repair attempt(s): DEP_MISSING"
+    }
+  ],
+  "model_calls": [
+    {
+      "model": "nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B",
+      "started_at": "2026-09-28T08:19:54.461588+00:00",
+      "latency_s": 15.39,
+      "finish_reason": "stop",
+      "content_is_none": false,
+      "has_reasoning": true,
+      "usage": {
+        "completion_tokens": 1153,
+        "prompt_tokens": 2995,
+        "total_tokens": 4148,
+        "completion_tokens_details": null,
+        "prompt_tokens_details": null
+      }
+    },
+    {
+      "model": "nvidia/nemotron-3-super-120b-a12b",
+      "started_at": "2026-09-28T08:20:09.852848+00:00",
+      "latency_s": 9.65,
+      "finish_reason": "stop",
+      "content_is_none": false,
+      "has_reasoning": true,
+      "usage": {
+        "completion_tokens": 161,
+        "prompt_tokens": 280,
+        "total_tokens": 441,
+        "completion_tokens_details": {
+          "accepted_prediction_tokens": null,
+          "audio_tokens": null,
+          "reasoning_tokens": 151,
+          "rejected_prediction_tokens": null,
+          "text_tokens": null
+        },
+        "prompt_tokens_details": {
+          "audio_tokens": null,
+          "cache_write_tokens": null,
+          "cached_tokens": 0,
+          "image_tokens": null,
+          "text_tokens": null,
+          "created_cache_tokens": 0,
+          "multimodal_tokens": null
+        },
+        "prompt_cache_hit_tokens": 0,
+        "prompt_cache_miss_tokens": 280
+      }
+    },
+    {
+      "model": "nvidia/nemotron-3-super-120b-a12b",
+      "started_at": "2026-09-28T08:22:46.546345+00:00",
+      "latency_s": 123.07,
+      "finish_reason": "stop",
+      "content_is_none": false,
+      "has_reasoning": true,
+      "usage": {
+        "completion_tokens": 3549,
+        "prompt_tokens": 4384,
+        "total_tokens": 7933,
+        "completion_tokens_details": {
+          "accepted_prediction_tokens": null,
+          "audio_tokens": null,
+          "reasoning_tokens": 3260,
+          "rejected_prediction_tokens": null,
+          "text_tokens": null
+        },
+        "prompt_tokens_details": {
+          "audio_tokens": null,
+          "cache_write_tokens": null,
+          "cached_tokens": 0,
+          "image_tokens": null,
+          "text_tokens": null,
+          "created_cache_tokens": 0,
+          "multimodal_tokens": null
+        },
+        "prompt_cache_hit_tokens": 0,
+        "prompt_cache_miss_tokens": 4384
+      }
+    },
+    {
+      "model": "nvidia/nemotron-3-super-120b-a12b",
+      "started_at": "2026-09-28T08:24:59.592466+00:00",
+      "latency_s": 5.42,
+      "finish_reason": "stop",
+      "content_is_none": false,
+      "has_reasoning": true,
+      "usage": {
+        "completion_tokens": 1062,
+        "prompt_tokens": 5768,
+        "total_tokens": 6830,
+        "completion_tokens_details": {
+          "accepted_prediction_tokens": null,
+          "audio_tokens": null,
+          "reasoning_tokens": 952,
+          "rejected_prediction_tokens": null,
+          "text_tokens": null
+        },
+        "prompt_tokens_details": {
+          "audio_tokens": null,
+          "cache_write_tokens": null,
+          "cached_tokens": 0,
+          "image_tokens": null,
+          "text_tokens": null,
+          "created_cache_tokens": 0,
+          "multimodal_tokens": null
+        },
+        "prompt_cache_hit_tokens": 0,
+        "prompt_cache_miss_tokens": 5768
+      }
+    },
+    {
+      "model": "nvidia/nemotron-3-super-120b-a12b",
+      "started_at": "2026-09-28T08:25:34.481972+00:00",
+      "latency_s": 32.26,
+      "finish_reason": "stop",
+      "content_is_none": false,
+      "has_reasoning": true,
+      "usage": {
+        "completion_tokens": 6307,
+        "prompt_tokens": 5947,
+        "total_tokens": 12254,
+        "completion_tokens_details": {
+          "accepted_prediction_tokens": null,
+          "audio_tokens": null,
+          "reasoning_tokens": 6200,
+          "rejected_prediction_tokens": null,
+          "text_tokens": null
+        },
+        "prompt_tokens_details": {
+          "audio_tokens": null,
+          "cache_write_tokens": null,
+          "cached_tokens": 0,
+          "image_tokens": null,
+          "text_tokens": null,
+          "created_cache_tokens": 0,
+          "multimodal_tokens": null
+        },
+        "prompt_cache_hit_tokens": 0,
+        "prompt_cache_miss_tokens": 5947
+      }
+    },
+    {
+      "model": "nvidia/Nemotron-3-Ultra-550b-a55b",
+      "started_at": "2026-09-28T08:26:31.393687+00:00",
+      "latency_s": 2.0,
+      "finish_reason": "stop",
+      "content_is_none": false,
+      "has_reasoning": true,
+      "usage": {
+        "completion_tokens": 342,
+        "prompt_tokens": 665,
+        "total_tokens": 1007,
+        "completion_tokens_details": {
+          "accepted_prediction_tokens": null,
+          "audio_tokens": null,
+          "reasoning_tokens": 254,
+          "rejected_prediction_tokens": null,
+          "text_tokens": null
+        },
+        "prompt_tokens_details": {
+          "audio_tokens": null,
+          "cache_write_tokens": null,
+          "cached_tokens": 0,
+          "image_tokens": null,
+          "text_tokens": null,
+          "multimodal_tokens": null
+        },
+        "prompt_cache_hit_tokens": 0,
+        "prompt_cache_miss_tokens": 665
+      }
+    }
+  ],
+  "cost_guard": {
+    "spent_usd": 0.6737551400000001,
+    "model_spent_usd": 0.01703222,
+    "sandbox_spent_usd": 0.6567229200000001,
+    "remaining_usd": 1.3262448599999999,
+    "model_usage": [
+      {
+        "model": "nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B",
+        "prompt_tokens": 2995,
+        "completion_tokens": 1153,
+        "cost_usd": 0.00045641999999999997
+      },
+      {
+        "model": "nvidia/nemotron-3-super-120b-a12b",
+        "prompt_tokens": 280,
+        "completion_tokens": 161,
+        "cost_usd": 0.0002289
+      },
+      {
+        "model": "nvidia/nemotron-3-super-120b-a12b",
+        "prompt_tokens": 4384,
+        "completion_tokens": 3549,
+        "cost_usd": 0.0045093
+      },
+      {
+        "model": "nvidia/nemotron-3-super-120b-a12b",
+        "prompt_tokens": 5768,
+        "completion_tokens": 1062,
+        "cost_usd": 0.0026861999999999997
+      },
+      {
+        "model": "nvidia/nemotron-3-super-120b-a12b",
+        "prompt_tokens": 5947,
+        "completion_tokens": 6307,
+        "cost_usd": 0.0074604
+      },
+      {
+        "model": "nvidia/Nemotron-3-Ultra-550b-a55b",
+        "prompt_tokens": 665,
+        "completion_tokens": 342,
+        "cost_usd": 0.001691
+      }
+    ],
+    "prices_usd_per_1m": {
+      "nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B": [
+        0.06,
+        0.24
+      ],
+      "nvidia/nemotron-3-super-120b-a12b": [
+        0.3,
+        0.9
+      ],
+      "nvidia/Nemotron-3-Ultra-550b-a55b": [
+        1.0,
+        3.0
+      ]
+    },
+    "prices_source": "https://api.tokenfactory.nebius.com/v1/models?verbose=true (pricing field)",
+    "prices_retrieved": "2026-09-24"
+  }
+}
