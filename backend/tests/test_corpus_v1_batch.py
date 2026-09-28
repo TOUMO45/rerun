@@ -233,3 +233,12 @@ def test_summary_headline_counts_primary_measured_entries_only():
     assert p["recovered_repair_mode"] == {"deterministic": 1, "model_assisted": 1}
     assert p["headline"] == "PRIMARY: 2/5 of 9"
     assert s["command_not_a_run"]["n"] == 1
+
+
+def test_batch_refuses_to_start_when_the_upload_smoke_test_fails(repo, monkeypatch):
+    ran = []
+    monkeypatch.setattr(batch, "run_smoke", lambda: {"ok": False, "runs": [{"error": "ApiTimeoutError"}]})
+    monkeypatch.setattr(batch, "run_batch", lambda frozen, runner=None: ran.append(1))
+    assert batch.main(["--corpus", "corpus-v1", "--harness-tag", TAG]) == 3
+    assert ran == []
+    assert list(batch.out_dir("corpus-v1", TAG).glob("smoke_*.json"))  # the failed smoke test is recorded

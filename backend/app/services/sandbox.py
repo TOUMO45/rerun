@@ -139,9 +139,12 @@ if bad:
 print("RERUN_UPLOAD_VERIFIED %d file(s)" % len(m))
 """
 
+# The archive is deleted right after extraction, BEFORE the manifest check
+# (harness-v1.2): the corpus-v1 probe ran out of sandbox storage at 150 MB with
+# archive + extracted tree both on disk. The check reads only the extracted tree.
 EXTRACT_COMMAND = (
-    f"tar -xpf {UPLOAD_ARCHIVE} --no-same-owner && python3 {UPLOAD_DIR}/verify.py "
-    f"&& rm -rf {UPLOAD_DIR} {UPLOAD_ARCHIVE}"
+    f"tar -xpf {UPLOAD_ARCHIVE} --no-same-owner && rm -f {UPLOAD_ARCHIVE} "
+    f"&& python3 {UPLOAD_DIR}/verify.py && rm -rf {UPLOAD_DIR}"
 )
 
 
@@ -232,6 +235,10 @@ class SandboxRunResult:
     # any fake/duck-typed result that doesn't set it (all existing tests),
     # so this stays optional rather than a breaking required field.
     sandbox_id: str | None = None
+    # Seconds spent uploading the archive (apply_files) and running RERUN's
+    # extract+verify step; None when there was no upload (and for fakes).
+    upload_seconds: float | None = None
+    extract_seconds: float | None = None
 
     @property
     def final(self) -> StepResult:
@@ -377,9 +384,12 @@ def _run_once(
     # environment image the final step ran on.
     last_image_uuid = getattr(current, "uuid", None)
 
+    upload_seconds = None
     try:
         if archive is not None:
+            upload_started = time.monotonic()
             current = current.apply_files(files={UPLOAD_ARCHIVE: archive})
+            upload_seconds = round(time.monotonic() - upload_started, 2)
             retained_images.append(current)
             last_image_uuid = getattr(current, "uuid", None) or last_image_uuid
             commands = [EXTRACT_COMMAND, *commands]
@@ -399,6 +409,7 @@ def _run_once(
         # repo happens to need.
         deadline = time.monotonic() + wall_clock_seconds
         extract_cost = 0.0
+        extract_seconds = None
         for i, cmd in enumerate(commands):
             is_last = i == len(commands) - 1
             remaining = deadline - time.monotonic()
@@ -425,6 +436,7 @@ def _run_once(
                         f"post-extraction check failed (exit code {step.exit_code})", stderr=step.stderr[-2000:]
                     )
                 extract_cost = step.cost_usd
+                extract_seconds = step.elapsed_seconds
                 continue
             steps.append(step)
             if executed.exit_code != 0:
@@ -435,7 +447,9 @@ def _run_once(
             steps[0] = StepResult(first.command, first.exit_code, first.stdout, first.stderr,
                                   first.elapsed_seconds, first.cost_usd + extract_cost)
         sandbox_id = str(last_image_uuid) if last_image_uuid is not None else None
-        return SandboxRunResult(steps=tuple(steps), sandbox_id=sandbox_id)
+        return SandboxRunResult(
+            steps=tuple(steps), sandbox_id=sandbox_id, upload_seconds=upload_seconds, extract_seconds=extract_seconds
+        )
 
     except OperationTimedOutError as exc:
         raise SandboxError(f"sandbox execution exceeded {wall_clock_seconds}s wall clock: {exc}") from exc

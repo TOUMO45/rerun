@@ -1,7 +1,7 @@
 {
   "corpus_version": "corpus-v2",
   "registered": "2026-09-28",
-  "status": "PRE-REGISTERED, sealed in the harness-v1.1 commit before any corpus-v2 candidate was screened. Draw with: backend/.venv/Scripts/python.exe scripts/draw_corpus.py draw-v2",
+  "status": "PRE-REGISTERED, sealed in the harness-v1.2 commit before any corpus-v2 candidate was screened. Draw with: backend/.venv/Scripts/python.exe scripts/draw_corpus.py draw-v2",
   "purpose": "Pre-registered sampling rule for RERUN's second Batch Lab corpus. It fixes corpus-v1's post-draw finding (E5 accepted install/download/preprocessing/setup steps and unfilled placeholders as the 'run command') BEFORE any corpus-v2 candidate is screened.",
   "relation_to_corpus_v1": {
     "datasets_frame_population": "identical to corpus-v1 (backend/app/batch/corpus_v1/prereg.json): same pwc-archive revisions, frame regexes and population.csv",
@@ -18,7 +18,7 @@
     "placeholder_regex": "<[^>]+>|\\{[^}]*\\}|/path/to|path/to/|YOUR_|your_|xxx|\\.\\.\\.",
     "placeholder_regex_flags": "IGNORECASE",
     "exclusion_rules": {
-      "implementation": "backend/app/batch/command_rules.py::matched_rules (corpus-v1 amendment-1 rules, unchanged), as sealed in the harness-v1.1 commit; draw-v2 refuses to run if any regex there differs from this file",
+      "implementation": "backend/app/batch/command_rules.py::matched_rules (corpus-v1 amendment-1 rules, unchanged), as sealed in the harness-v1.2 commit; draw-v2 refuses to run if any regex there differs from this file",
       "stem": "script file name without extension, or a python -m module's last dotted component; stem regexes IGNORECASE",
       "args": "shell-split words after the runnable target; arg regexes case-sensitive",
       "R1_INSTALL": {
@@ -53,5 +53,12 @@
     "corpus_hash.txt"
   ],
   "corpus_hash_definition": "sha256 of canonical JSON {prereg_sha256, entries sorted by name with name, repo_url, commit_sha, command} (as corpus-v1)",
-  "harness": "The corpus-v2 batch runs on the harness-v1.1 tag with no harness change. A harness bug found by corpus-v2 is recorded, not fixed; the batch stops."
+  "harness": "The corpus-v2 batch runs on the harness-v1.2 tag with no harness change. A harness bug found by corpus-v2 is recorded, not fixed; the batch stops.",
+  "amendment_1": {
+    "date": "2026-09-28",
+    "change": "harness reference only: harness-v1.1 -> harness-v1.2 (in: /status, /eligibility/exclusion_rules/implementation, /harness). Seed, frame, population, eligibility (E1-E4, E5_v2 and its exclusion rules), duplicates, target and draw procedure are unchanged.",
+    "reason": "harness-v1.1 had a deterministic defect (the Nebius SDK's silent 10 s transport timeout made every upload over ~10 s fail), found on corpus-v1 (a disclosed development set).",
+    "nothing_observed": "Nothing from corpus-v2 was drawn, screened or observed before this change: no draw-v2 run, no screening_log.jsonl, corpus.yaml or corpus_hash.txt exist for corpus-v2.",
+    "previous_prereg_sha256": "fc100dde4e0bcdd55614c506b7e64a38dc792326de935219ea7d19806f13dbcc"
+  }
 }

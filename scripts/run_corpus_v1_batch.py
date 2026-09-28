@@ -40,10 +40,12 @@ from __future__ import annotations
 
 import argparse
 import hashlib
+import importlib.util
 import json
 import re
 import subprocess
 import sys
+from datetime import datetime, timezone
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -270,6 +272,13 @@ def _run_live(corpus: str, name: str, corpus_hash: str, meta: dict, path: Path) 
     )
 
 
+def run_smoke() -> dict:
+    spec = importlib.util.spec_from_file_location("smoke_upload", ROOT / "scripts" / "smoke_upload.py")
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module.smoke()
+
+
 def load_records(odir: Path) -> list[dict]:
     return [json.loads(p.read_text(encoding="utf-8")) for p in sorted(odir.glob("[0-9][0-9]_*.json"))]
 
@@ -359,6 +368,16 @@ def main(argv: list[str] | None = None) -> int:
             print(f"REFUSING TO START: {exc}", file=sys.stderr)
             return 2
         print(f"preflight OK: {frozen}", flush=True)
+        # harness-v1.2: every batch starts with the live upload smoke test
+        # (small + ~150 MB archive through the real client); no pass, no batch.
+        smoke = run_smoke()
+        odir.mkdir(parents=True, exist_ok=True)
+        stamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
+        (odir / f"smoke_{stamp}.json").write_text(json.dumps(smoke, indent=2) + "\n", encoding="utf-8", newline="\n")
+        if not smoke.get("ok"):
+            print(f"REFUSING TO START: pre-batch upload smoke test failed: {[r.get('error') for r in smoke['runs']]}", file=sys.stderr)
+            return 3
+        print("upload smoke test OK: " + ", ".join(f"{r['archive_bytes'] / 1e6:.1f} MB in {r['seconds']} s" for r in smoke["runs"]), flush=True)
         run_batch(frozen)
     summary = summarize(load_records(odir))
     odir.mkdir(parents=True, exist_ok=True)

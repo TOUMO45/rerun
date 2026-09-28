@@ -367,3 +367,31 @@ this probe, fixed **before any harness-v1.2 run** and independent of every corpu
   cap is the 150 MB archive; if 150 MB fails, no cap can be set and the work stops.
 - The probe record (sizes, seconds, effective throughput, cost) is committed in
   `runs/upload_probe/`, and the cap constant is set from it in the harness-v1.2 seal.
+
+### Upload cap probe — amendment 1 (registered 2026-09-28, after the first probe, before any new probe upload)
+
+The first probe (record `runs/upload_probe/probe_2026-09-28.json`) failed at its smallest
+size: the 150 MB archive **uploaded** (scaled transport timeout 180 s held; 254 s in total,
+0.59 MB/s effective) but the sandbox operation then failed with `OSError 28 'No space left
+on device'`, while `df` inside a sandbox shows a shared ~47 TB root filesystem. So some
+per-instance storage limit, not documented by Nebius, applies; the extract step kept the
+archive and the extracted tree on disk at the same time (~2× the archive). Per the rule,
+no cap was set and work stopped. Amended rule (human decision), replacing the sizes above:
+
+1. **Extract step:** the archive is deleted immediately after extraction, *before* the
+   manifest check (`tar -x … && rm -f <archive> && python3 verify.py && rm -rf <dir>`);
+   the check reads only the extracted tree (tested: command order; a real Linux round
+   trip where the archive is gone and a tampered file is still caught).
+2. **Sizes, pre-declared:** **25, 50, 75, 100, 125 MB** (decimal; incompressible seeded
+   synthetic data, seed 20260928), ascending, **stopping at the first failure**. **Cap =
+   the largest passing size.** If 25 MB fails: stop, no cap.
+3. **Recorded per step:** upload time (`apply_files`), effective upload MB/s, extract+verify
+   time, the extracted tree size (`du`) and `df` (a true per-instance peak is not measurable
+   from inside the sandbox: `df` shows the shared root filesystem), cost, and the error
+   text on failure.
+4. **Timeout constant from the probe:** `UPLOAD_MIN_THROUGHPUT_MBPS = 0.5 × the slowest
+   measured upload MB/s among passing steps`; the transport timeout stays
+   `max(60 s, size_MB / UPLOAD_MIN_THROUGHPUT_MBPS + 30 s)`, reported at the cap size.
+5. **Pre-batch smoke test** = a small upload + an upload at the cap size.
+
+Nebius has been asked for the documented limit in parallel; the probe does not wait for it.

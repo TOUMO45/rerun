@@ -1,11 +1,12 @@
 """Live upload checks through RERUN's real sandbox client (harness-v1.2).
 
-  probe   The pre-registered upload-cap probe (METHODOLOGY, "Upload cap"):
-          synthetic archives of PROBE_SIZES_MB, uploaded, extracted and
-          verified in a real Nebius sandbox. The cap is the largest probed size
-          that passes; if the smallest fails, no cap can be set (stop).
-  smoke   The pre-batch smoke test: a small upload plus a ~SMOKE_LARGE_MB one.
-          Required before every batch (the batch driver calls it).
+  probe   The pre-registered upload-cap probe (METHODOLOGY, "Upload cap",
+          amendment 1): synthetic archives of PROBE_SIZES_MB, ascending,
+          stopping at the first failure. Cap = the largest passing size; if the
+          smallest fails, no cap can be set (stop). It also sets the assumed
+          upload throughput: 0.5 x the slowest measured MB/s among passing steps.
+  smoke   The pre-batch smoke test: a small upload plus an upload at the cap
+          size (sandbox.UPLOAD_CAP_BYTES). Required before every batch.
 
 Synthetic data is incompressible (seeded random bytes, 50 MB files), so the
 archive size is the transfer size. Nothing about any corpus entry is used.
@@ -28,8 +29,8 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "backend"))
 
-PROBE_SIZES_MB = (150, 500)
-SMOKE_LARGE_MB = 150
+PROBE_SIZES_MB = (25, 50, 75, 100, 125)
+THROUGHPUT_SAFETY = 0.5
 FILE_MB = 50
 SEED = 20260928
 
@@ -42,7 +43,10 @@ def synthetic_files(total_mb: int) -> dict[str, bytes]:
         files[f"data/blob_{i:03d}.bin"] = rng.randbytes(size * 1_000_000)
         remaining -= size
         i += 1
-    files["run.sh"] = b"#!/bin/sh\necho UPLOAD_OK $(ls data | wc -l) file(s) $(du -sb data | cut -f1) bytes\n"
+    files["run.sh"] = (
+        b"#!/bin/sh\necho UPLOAD_OK $(ls data | wc -l) file(s)\n"
+        b"echo EXTRACTED_BYTES $(du -sb . 2>/dev/null | cut -f1)\necho DF $(df -B1 . | tail -1)\n"
+    )
     return files
 
 
@@ -79,6 +83,14 @@ def upload_once(total_mb: int | None) -> dict:
             stdout=result.final.stdout.strip()[-300:],
             stderr=result.final.stderr.strip()[-300:],
             cost_usd=result.total_cost_usd,
+            upload_seconds=result.upload_seconds,
+            extract_seconds=result.extract_seconds,
+            upload_mb_per_s=round(archive_bytes / 1e6 / result.upload_seconds, 3) if result.upload_seconds else None,
+            # Peak disk: the tree after extraction (the archive is already
+            # deleted). `df` inside the sandbox reports a shared ~47 TB rootfs,
+            # so a true per-instance peak is not measurable from inside.
+            extracted_tree_bytes=_field(result.final.stdout, "EXTRACTED_BYTES"),
+            df=_field(result.final.stdout, "DF", whole=True),
         )
     except Exception as exc:  # recorded, never hidden
         record.update(ok=False, error=f"{type(exc).__name__}: {str(exc)[:500]}")
@@ -88,26 +100,53 @@ def upload_once(total_mb: int | None) -> dict:
     return record
 
 
+def _field(stdout: str, key: str, whole: bool = False):
+    for line in (stdout or "").splitlines():
+        if line.startswith(key + " "):
+            value = line[len(key) + 1:].strip()
+            return value if whole else (int(value) if value.isdigit() else value)
+    return None
+
+
 def probe() -> dict:
+    from app.services import timeouts
+
     runs = []
     for size in PROBE_SIZES_MB:
         runs.append(upload_once(size))
         if not runs[-1]["ok"]:
             break
-    passing = [r["archive_bytes"] for r in runs if r["ok"]]
+    passing = [r for r in runs if r["ok"]]
+    cap = max((r["archive_bytes"] for r in passing), default=None)
+    rates = [r["upload_mb_per_s"] for r in passing if r.get("upload_mb_per_s")]
+    throughput = round(THROUGHPUT_SAFETY * min(rates), 3) if rates else None
+    timeout_at_cap = (
+        max(timeouts.SANDBOX_TRANSPORT_FLOOR_S, cap / 1e6 / throughput + timeouts.UPLOAD_MARGIN_S)
+        if cap and throughput else None
+    )
     return {
-        "kind": "upload-cap probe (pre-registered)",
+        "kind": "upload-cap probe (pre-registered, amendment 1)",
         "sizes_mb": list(PROBE_SIZES_MB),
         "runs": runs,
-        "cap_bytes": max(passing) if passing else None,
-        "decision": (f"cap = {max(passing):,} bytes (largest probed archive that uploaded and verified)"
-                     if passing else "no probed size passed — no cap can be set; stop"),
+        "cap_bytes": cap,
+        "slowest_passing_upload_mb_per_s": min(rates) if rates else None,
+        "assumed_min_throughput_mb_per_s": throughput,
+        "transport_timeout_at_cap_s": round(timeout_at_cap, 1) if timeout_at_cap else None,
+        "decision": (f"cap = {cap:,} bytes (largest passing); assumed throughput = {THROUGHPUT_SAFETY} x {min(rates)} MB/s"
+                     if cap else "the smallest probed size failed — no cap can be set; stop"),
     }
 
 
 def smoke() -> dict:
-    runs = [upload_once(None), upload_once(SMOKE_LARGE_MB)]
-    return {"kind": "pre-batch upload smoke test", "runs": runs, "ok": all(r["ok"] for r in runs)}
+    from app.services import sandbox
+
+    cap = sandbox.UPLOAD_CAP_BYTES
+    if not cap:
+        return {"kind": "pre-batch upload smoke test", "runs": [], "ok": False, "error": "no upload cap set"}
+    # The largest whole-MB synthetic archive that stays within the cap.
+    cap_mb = max(1, int(cap // 1_000_000) - 1)
+    runs = [upload_once(None), upload_once(cap_mb)]
+    return {"kind": "pre-batch upload smoke test", "cap_bytes": cap, "runs": runs, "ok": all(r["ok"] for r in runs)}
 
 
 def main(argv: list[str] | None = None) -> int:
