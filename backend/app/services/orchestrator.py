@@ -668,6 +668,69 @@ def _run_stages(
                     _log("[era] unknown (no dependency-file history and no commit date)")
             return era_cache[0]
 
+        # Failed-move memory: normalized env changes this run applied and then
+        # saw the re-execution fail. A proposal repeating one is re-asked once,
+        # then rejected (found live: TTPT's repairer re-proposed a no-op numpy add).
+        failed_moves: set[tuple] = set()
+        isolated_packages: set[str] = set()
+
+        def _auto_build_isolation(failed: SandboxRunResult) -> SandboxRunResult | None:
+            """Deterministic step (no model): when the failed run's log meets
+            the env gate's own build-isolation rule for a locked package, build
+            that package with --no-build-isolation and re-execute. Returns the
+            re-execution's result, or None if the rule doesn't hold."""
+            nonlocal plan, current_requirements
+            if resolved_lock is None or current_requirements is None:
+                return None
+            locked = tuple(current_requirements.splitlines())
+            log = f"{failed.final.stderr}\n{failed.final.stdout}"
+            found = env_repair.find_build_isolation_candidate(log, locked, frozenset(isolated_packages))
+            if found is None:
+                return None
+            package, module, evidence = found
+            isolated_packages.add(package)
+            change = env_repair.EnvChange(
+                op="pip_no_build_isolation",
+                package=package,
+                justification=f"deterministic: {package}'s isolated build could not import {module}, which the lock installs",
+                evidence=evidence,
+            )
+            step = {"step": "pip_no_build_isolation", "package": package, "module": module, "evidence": evidence}
+            # The same gate a model proposal faces.
+            violations = env_repair.check_env_delta(
+                (change,), log_text=log, imported_modules=frozenset(), has_requirements_txt=True, locked_requirements=locked
+            )
+            if violations:
+                _log(f"[time-machine] build-isolation step refused by the env gate: {'; '.join(v.reason for v in violations)}")
+                return None
+            plan, new_requirements = env_repair.apply_env_delta(plan, (change,), current_requirements)
+            if new_requirements is not None:
+                current_requirements = new_requirements
+            _log(f"[time-machine] deterministic step: pip_no_build_isolation {package} (evidence: {evidence})")
+            try:
+                result = _execute(workdir)
+            except CostLimitExceeded as exc:
+                _log(f"[time-machine] stopped: daily cost ceiling reached: {exc}")
+                return None
+            _log(f"[time-machine] re-execution id={result.sandbox_id} exit_code={result.final.exit_code}")
+            attempts.append(
+                AttemptRecord(
+                    0, "", "PASS", (), result.final.exit_code, result.final.stdout[-2000:], result.final.stderr[-2000:],
+                    (), (change.as_dict(),), (), origin="time_machine", time_machine=step,
+                )
+            )
+            if not result.succeeded:
+                failed_moves.add(env_repair.change_key(change))
+            return result
+
+        def _with_build_isolation(result: SandboxRunResult) -> SandboxRunResult:
+            while not result.succeeded:
+                next_result = _auto_build_isolation(result)
+                if next_result is None:
+                    break
+                result = next_result
+            return result
+
         # --- Time machine (attempt 0): the repo's own era, deterministically --
         if classifier.repair_layer_for(classification.code) == "env":
             state.stage = "time_machine"
@@ -717,6 +780,7 @@ def _run_stages(
                                 tm_result.final.stderr[-2000:], (), (), (), origin="time_machine", time_machine=tm_record,
                             )
                         )
+                        tm_result = _with_build_isolation(tm_result)
                         sandbox_result = tm_result
                         if tm_result.succeeded:
                             verdict = "RUNS_AFTER_REPAIR"
@@ -901,6 +965,35 @@ def _run_stages(
                     _cite(())
                     attempts.append(AttemptRecord(attempt_number, "", "DECLINED", (), None, "", ""))
                     continue
+
+            def _repeats(changes):
+                return [c for c in changes if env_repair.change_key(c) in failed_moves]
+
+            repeated = _repeats(env_changes)
+            if repeated:
+                described = ", ".join(f"{c.op} {c.package or c.command or c.version}" for c in repeated)
+                _log(f"[repair {attempt_number}] proposal repeats change(s) already tried and failed this run ({described}); re-asked once (same attempt)")
+                proposal = _propose(
+                    "Your previous reply was rejected: it repeats environment change(s) this run already applied "
+                    f"and then saw fail ({described}). They are already in effect, so repeating them cannot help. "
+                    "Propose a DIFFERENT fix, or decline. Reply again with the complete JSON object."
+                )
+                if not proposal.has_change:
+                    _log(f"[repair {attempt_number}] declined after re-ask: {proposal.explanation}")
+                    _cite(())
+                    attempts.append(AttemptRecord(attempt_number, "", "DECLINED", (), None, "", ""))
+                    continue
+                env_changes, env_violations = _env_check(proposal)
+                repeated = _repeats(env_changes)
+                if repeated:
+                    # Repeated again: the attempt (already counted) is used up.
+                    env_violations = tuple(env_violations) + tuple(
+                        env_repair.Violation(
+                            rule=env_repair.EnvRule.ENV_REPEATS_FAILED_CHANGE,
+                            reason=f"repeats '{c.op} {c.package or c.command or c.version}', already tried and failed this run",
+                        )
+                        for c in repeated
+                    )
             env_delta_dicts = tuple(c.as_dict() for c in env_changes)
 
             # --- Tamper gate on the code diff (every touched file) ------------
@@ -1006,6 +1099,9 @@ def _run_stages(
                     cited_resolved,
                 )
             )
+            if not rerun_result.succeeded:
+                failed_moves.update(env_repair.change_key(c) for c in env_changes)
+                rerun_result = _with_build_isolation(rerun_result)
 
             if rerun_result.succeeded:
                 verdict = "RUNS_AFTER_REPAIR"

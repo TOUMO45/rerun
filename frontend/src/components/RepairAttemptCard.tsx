@@ -1,3 +1,4 @@
+import { isDeterministicStep } from "../api";
 import type { RepairAttemptDiff, ResolvedSource, TavilySource, TimeMachineRecord } from "../api";
 import { DiffView } from "./DiffView";
 import { EnvDeltaView } from "./EnvDeltaView";
@@ -136,7 +137,23 @@ export function TimeMachineView({ record }: { record: TimeMachineRecord }) {
  */
 export function RepairAttemptCard({ attempt }: { attempt: RepairAttemptDiff }) {
   const envChanges = attempt.env_delta ?? [];
-  if (attempt.origin === "time_machine" && attempt.time_machine) {
+  if (attempt.origin === "time_machine" && isDeterministicStep(attempt.time_machine)) {
+    const step = attempt.time_machine;
+    return (
+      <div className="rounded-sm border border-signal-dim bg-signal-dim/10 px-4 py-3">
+        <Header
+          label={`Time machine — deterministic step: ${step.step} ${step.package}, re-execution exit code ${attempt.exit_code}`}
+          tone="signal"
+        />
+        <p className="mt-2 font-mono text-[11px] text-text-secondary">
+          {step.package}'s isolated build could not import {step.module}, which the lock installs (evidence: {step.evidence})
+        </p>
+        <EnvDeltaView changes={envChanges} />
+      </div>
+    );
+  }
+  const eraRecord = attempt.time_machine;
+  if (attempt.origin === "time_machine" && eraRecord && !isDeterministicStep(eraRecord)) {
     const ran = attempt.exit_code !== null && attempt.exit_code !== undefined;
     return (
       <div className="rounded-sm border border-signal-dim bg-signal-dim/10 px-4 py-3">
@@ -144,7 +161,7 @@ export function RepairAttemptCard({ attempt }: { attempt: RepairAttemptDiff }) {
           label={`Time machine — era environment${ran ? `, re-execution exit code ${attempt.exit_code}` : " (not applied)"}`}
           tone={ran ? "signal" : "neutral"}
         />
-        <TimeMachineView record={attempt.time_machine} />
+        <TimeMachineView record={eraRecord} />
       </div>
     );
   }

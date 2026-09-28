@@ -56,6 +56,21 @@ class EnvRule:
     REDUCED_SCALE = "REDUCED_SCALE"
     # pip_no_build_isolation without the build-log evidence that justifies it.
     ENV_BUILD_ISOLATION_UNJUSTIFIED = "ENV_BUILD_ISOLATION_UNJUSTIFIED"
+    # Re-proposes a change this run already applied and saw fail.
+    ENV_REPEATS_FAILED_CHANGE = "ENV_REPEATS_FAILED_CHANGE"
+
+
+def change_key(c: "EnvChange") -> tuple:
+    """Normalized identity of an env change for the failed-move memory:
+    what it does, not why (justification/evidence are ignored)."""
+    return (
+        c.op,
+        _norm(c.package) if c.package else "",
+        (c.version or "").strip(),
+        (c.git_url or "").strip().rstrip("/").removesuffix(".git").lower(),
+        (c.commit or "").strip().lower(),
+        " ".join((c.command or "").split()),
+    )
 
 
 # PEP 508 distribution name.
@@ -206,13 +221,41 @@ def build_isolation_evidence(package: str, log_text: str, locked_requirements: t
     (TTPT v5, dassl -> numpy). No cross-line ordering is assumed: the
     orchestrator's log is stderr then stdout, so pip's "Collecting" line
     (stdout) comes after the build traceback (stderr)."""
+    found = build_isolation_match(package, log_text, locked_requirements)
+    return found[0] if found else None
+
+
+def build_isolation_match(
+    package: str, log_text: str, locked_requirements: tuple[str, ...]
+) -> tuple[str, str] | None:
+    """(module, the verbatim log line it was named on) — the one
+    implementation of the rule `build_isolation_evidence` documents, shared
+    by the env gate and the deterministic time-machine step."""
     if not any(_norm(m.group(1)) == _norm(package) for m in _COLLECTING_RE.finditer(log_text)):
         return None
     locked = {name for name in (_requirement_name(line) for line in locked_requirements) if name}
     for match in _NO_MODULE_RE.finditer(log_text):
         window = log_text[max(0, match.start() - _BUILD_WINDOW) : match.start()]
         if _BUILD_BACKEND_RE.search(window) and _dists_for_module(match.group(1)) & locked:
-            return match.group(1)
+            start = log_text.rfind("\n", 0, match.start()) + 1
+            end = log_text.find("\n", match.end())
+            return match.group(1), log_text[start : end if end != -1 else len(log_text)].strip()
+    return None
+
+
+def find_build_isolation_candidate(
+    log_text: str, locked_requirements: tuple[str, ...], exclude: frozenset[str] = frozenset()
+) -> tuple[str, str, str] | None:
+    """The first package in the lock (lock order) for which the build-isolation
+    rule holds: (package, module, evidence line). `exclude` holds normalized
+    names already handled this run."""
+    for line in locked_requirements:
+        package = _requirement_name(line)
+        if not package or package in exclude:
+            continue
+        found = build_isolation_match(package, log_text, locked_requirements)
+        if found:
+            return package, found[0], found[1]
     return None
 
 

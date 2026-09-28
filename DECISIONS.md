@@ -3698,3 +3698,38 @@ real gate (repaired → RUNS_AFTER_REPAIR; module not in lock → REJECT, BLOCKE
 `--no-build-isolation` install ever runs). Mutation check: dropping the lock-membership
 condition fails both negative controls. Backend 585 passed, 8 skipped; frontend 8 passed,
 tsc clean.
+
+## 2026-09-28 — A3 TTPT dev run; A2b: deterministic build isolation + failed-move memory
+
+**A3 dev run** (`runs/dev_run_ttpt_a3.json`, `dev_run: true` — harness development, never a
+corpus statistic): BLOCKED `DEP_MISSING`, model_assisted, recovery false, tree verified
+(105 files), $0.6738 of the $2 cap ($0.0170 model). The A1 fix held live (missing `git` →
+`SYS_LIB_MISSING`), but the model never chose the new op: repair 3 re-proposed `add
+numpy==2.1.0` (already in the lock). Decision (human): apply the op deterministically.
+
+**A2b.1 — deterministic step.** After any failed execution once the time machine has
+resolved a lock (the era run, and every failed model re-execution),
+`env_repair.find_build_isolation_candidate` walks the lock and applies the **same rule
+the env gate uses** (`build_isolation_match`, now the single implementation behind
+`build_isolation_evidence`). On a match the change is passed through the real env gate,
+applied (two-stage install) and re-executed, with no model call. Recorded as an
+`origin: time_machine` attempt (so `repair_mode` stays deterministic) whose
+`time_machine` = `{step, package, module, evidence}` — the evidence is the verbatim log
+line. Once per package per run. UI: new deterministic-step card; the era record is picked
+explicitly (the old code would have crashed reading `era` from the step record).
+Tests: the finder on the **real TTPT v5 log** → (`dassl`, `numpy`, the exact line);
+negative — numpy removed from that real lock → nothing; already-handled package skipped;
+end to end → RUNS_AFTER_REPAIR, deterministic, no model consulted, step + evidence in the
+certificate; the not-in-lock negative end to end never fires it. Mutation: removing the
+step from the era path fails the positive end-to-end test.
+
+**A2b.2 — failed-move memory.** Env changes applied and then seen failing are remembered
+by normalized identity (`env_repair.change_key`: op, PEP 503 name, version, git source,
+command; wording ignored). A proposal repeating one → one re-ask inside the same attempt
+(not consuming an attempt); repeated again → REJECT `ENV_REPEATS_FAILED_CHANGE`, the
+attempt counts. Tests (`test_failed_move_memory.py`, 5): key normalization; repeat →
+re-ask → different proposal accepted (3 model calls for 2 attempts, the repeat never
+executed); repeat twice → REJECT then the next attempt proceeds (exactly one re-ask);
+repeats exhaust the budget → BLOCKED; different version is not a repeat. Mutation:
+disabling the check fails 3 tests. Backend 594 passed, 8 skipped; frontend 9 passed, tsc
+clean, build green.

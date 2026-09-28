@@ -276,6 +276,44 @@ describe("Certificate — time machine", () => {
     expect(env.textContent).toContain("tensorflow==1.13.1");
     expect(screen.getByText(/Time machine — era environment, re-execution exit code 0/)).toBeTruthy();
   });
+
+  it("renders a deterministic --no-build-isolation step after the era run (A2b)", async () => {
+    const era: RepairAttemptDiff = {
+      attempt_number: 0,
+      diff_text: "",
+      gate_decision: "PASS",
+      gate_violations: [],
+      exit_code: 1,
+      origin: "time_machine",
+      time_machine: {
+        era: { date: "2024-08-30", source: "dependency-files", detail: { "requirements.txt": "2024-08-30" } },
+        python: { version: "3.12", reason: "era", source: "" },
+        undeclared_imports: [],
+        apt_added: [],
+        apt_reason: "",
+        lock: { ok: true, lock: ["numpy==2.1.0"], inputs: [], not_on_index: [], command: "", error: "" },
+      },
+    };
+    const step: RepairAttemptDiff = {
+      attempt_number: 0,
+      diff_text: "",
+      gate_decision: "PASS",
+      gate_violations: [],
+      exit_code: 0,
+      origin: "time_machine",
+      env_delta: [{ op: "pip_no_build_isolation", package: "dassl", version: null, git_url: null, commit: null, justification: "deterministic", evidence: "ModuleNotFoundError: No module named 'numpy'" }],
+      time_machine: { step: "pip_no_build_isolation", package: "dassl", module: "numpy", evidence: "ModuleNotFoundError: No module named 'numpy'" },
+    };
+    getRun.mockResolvedValue(makeRun({ verdict: "RUNS_AFTER_REPAIR", taxonomy_code: null }));
+    getCertificate.mockResolvedValue(makeCert([era, step], { verdict: "RUNS_AFTER_REPAIR" }));
+    renderCertificate();
+
+    const env = (await screen.findByRole("heading", { name: "Environment Delta" })).parentElement!;
+    expect(env.textContent).toContain("2024-08-30");
+    expect(env.textContent).toContain("pip install --no-build-isolation dassl");
+    expect(screen.getByText(/Time machine — deterministic step: pip_no_build_isolation dassl, re-execution exit code 0/)).toBeTruthy();
+    expect(screen.getByText(/isolated build could not import numpy/)).toBeTruthy();
+  });
 });
 
 describe("Certificate — baseline vs RERUN (bundle v2)", () => {

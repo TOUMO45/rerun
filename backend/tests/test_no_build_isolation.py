@@ -13,7 +13,9 @@ git+…", stderr the isolated build backend's traceback)."""
 from __future__ import annotations
 
 import json
+import shlex
 from datetime import date
+from pathlib import Path
 
 import pytest
 
@@ -26,6 +28,7 @@ from app.services.env_repair import (
     apply_env_delta,
     build_isolation_evidence,
     check_env_delta,
+    find_build_isolation_candidate,
 )
 from app.services.intake import RepoIntake
 from app.services.orchestrator import PipelineDeps, run_pipeline
@@ -215,23 +218,69 @@ _NBI_REPLY = {
 }
 
 
-def test_end_to_end_isolated_build_failure_is_repaired(tmp_path, monkeypatch):
+def test_end_to_end_isolated_build_failure_is_repaired_deterministically(tmp_path, monkeypatch):
+    """A2b: the time machine applies the op itself — no model is consulted,
+    and the certificate records the deterministic step with its evidence."""
     lock_with_numpy = ("numpy==2.1.0", "setuptools==74.0.0", DASSL)
-    result, sandbox = _run(tmp_path, monkeypatch, lock_with_numpy, [_NBI_REPLY])
+    result, sandbox = _run(tmp_path, monkeypatch, lock_with_numpy, [])
     assert result.verdict == "RUNS_AFTER_REPAIR", result.full_log
-    attempt = [a for a in result.attempts if a.origin == "model"][0]
-    assert attempt.gate_decision == "PASS"
-    assert attempt.env_delta[0]["op"] == "pip_no_build_isolation"
+    assert result.repair_mode == "deterministic"
+    assert not [a for a in result.attempts if a.origin == "model"]
+    step = result.attempts[-1]
+    assert step.origin == "time_machine" and step.gate_decision == "PASS"
+    assert step.env_delta[0]["op"] == "pip_no_build_isolation" and step.env_delta[0]["package"] == "dassl"
+    assert step.time_machine == {
+        "step": "pip_no_build_isolation", "package": "dassl", "module": "numpy", "evidence": EVIDENCE,
+    }
     assert "--no-build-isolation" in sandbox.calls[-1]["install_commands"][-1]
+    # Baseline, era lock, then the build-isolation step: three executions.
+    assert len(sandbox.calls) == 3
+    certificate_steps = [d for d in result.certificate()["diffs"] if (d["time_machine"] or {}).get("step")]
+    assert certificate_steps[0]["time_machine"]["evidence"] == EVIDENCE
 
 
 def test_end_to_end_negative_control_module_not_in_lock_is_rejected(tmp_path, monkeypatch):
-    """Same build failure, but numpy is not in the lock: the gate refuses
-    the op, no --no-build-isolation install ever runs, the run is BLOCKED."""
+    """Same build failure, but numpy is not in the lock: the deterministic
+    step does not fire, the gate refuses the model's op, no
+    --no-build-isolation install ever runs, the run is BLOCKED."""
     lock_without_numpy = ("setuptools==74.0.0", DASSL)
     result, sandbox = _run(tmp_path, monkeypatch, lock_without_numpy, [_NBI_REPLY])
+    assert not [a for a in result.attempts if (a.time_machine or {}).get("step")]
     attempt = [a for a in result.attempts if a.origin == "model"][0]
     assert attempt.gate_decision == "REJECT"
     assert {v["rule"] for v in attempt.gate_violations} == {EnvRule.ENV_BUILD_ISOLATION_UNJUSTIFIED}
     assert result.verdict == "BLOCKED"
     assert not any("--no-build-isolation" in c for call in sandbox.calls for c in call["install_commands"])
+
+
+# --- A2b: the deterministic finder on the REAL TTPT v5 build log ----------
+
+_V5 = Path(__file__).resolve().parents[2] / "runs" / "live_run_ttpt_v5.json"
+
+
+def _v5_log_and_lock():
+    record = json.loads(_V5.read_text(encoding="utf-8"))
+    attempt = record["result"]["attempts"][3]  # repair 3: the isolated-build failure
+    log = f"{attempt['stderr_tail']}\n{attempt['stdout_tail']}"
+    write = record["certificate"]["build_plan"]["install_commands"][0].split(" > ")[0]
+    lock = tuple(shlex.split(write)[2:])  # printf '%s\n' <lock lines...>
+    return log, lock
+
+
+def test_deterministic_finder_positive_on_the_real_ttpt_v5_log():
+    log, lock = _v5_log_and_lock()
+    assert any(line.startswith("numpy==") for line in lock) and any(line.startswith("dassl @ git+") for line in lock)
+    package, module, evidence = find_build_isolation_candidate(log, lock)
+    assert (package, module) == ("dassl", "numpy")
+    assert evidence == "ModuleNotFoundError: No module named 'numpy'"
+    assert evidence in log
+
+
+def test_deterministic_finder_negative_on_the_real_log_when_module_not_in_lock():
+    log, lock = _v5_log_and_lock()
+    assert find_build_isolation_candidate(log, tuple(l for l in lock if not l.startswith("numpy=="))) is None
+
+
+def test_deterministic_finder_skips_packages_already_handled():
+    log, lock = _v5_log_and_lock()
+    assert find_build_isolation_candidate(log, lock, exclude=frozenset({"dassl"})) is None

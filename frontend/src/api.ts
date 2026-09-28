@@ -82,7 +82,22 @@ export interface RepairAttemptDiff {
   resolved_sources?: ResolvedSource[];
   /** "time_machine" = RERUN's deterministic era environment (attempt 0); "model" = a repairer proposal. */
   origin?: "model" | "time_machine";
-  time_machine?: TimeMachineRecord | null;
+  time_machine?: TimeMachineRecord | DeterministicStepRecord | null;
+}
+
+/** A deterministic time-machine step taken after the era run (no model), e.g.
+ * building one locked package with --no-build-isolation. */
+export interface DeterministicStepRecord {
+  step: string;
+  package: string;
+  module: string;
+  evidence: string;
+}
+
+export function isDeterministicStep(
+  record: TimeMachineRecord | DeterministicStepRecord | null | undefined,
+): record is DeterministicStepRecord {
+  return !!record && "step" in record;
 }
 
 export interface TimeMachineRecord {

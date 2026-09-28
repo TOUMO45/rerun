@@ -1,6 +1,6 @@
 import { useParams } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { api, ApiError } from "../api";
+import { api, ApiError, isDeterministicStep } from "../api";
 import type { Baseline } from "../api";
 import { VerdictBadge } from "../components/VerdictBadge";
 import { RepairAttemptCard, TimeMachineView } from "../components/RepairAttemptCard";
@@ -37,7 +37,11 @@ export function Certificate() {
     (a) => a.gate_decision === "PASS" && a.exit_code !== null && a.exit_code !== undefined,
   );
   const appliedEnvChanges = applied.flatMap((a) => a.env_delta ?? []);
-  const timeMachine = applied.find((a) => a.origin === "time_machine")?.time_machine ?? null;
+  // The era record; later deterministic steps (e.g. --no-build-isolation) are
+  // listed with the other applied env changes below it.
+  const eraRecord = applied.find((a) => a.origin === "time_machine" && a.time_machine && !isDeterministicStep(a.time_machine))
+    ?.time_machine;
+  const timeMachine = eraRecord && !isDeterministicStep(eraRecord) ? eraRecord : null;
   const appliedCodeDiff = applied
     .map((a) => a.diff_text)
     .filter((d) => d.trim())
