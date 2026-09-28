@@ -1,0 +1,249 @@
+{
+  "amendment": "corpus-v1/amendment-1",
+  "classification_rules": {
+    "applied_by": "backend/app/batch/command_rules.py (matched_rules / classify_command), identically to every entry",
+    "arg_regex_flags": "none (case-sensitive)",
+    "decision": "COMMAND_NOT_A_RUN if ANY rule matches, else PRIMARY",
+    "rules": {
+      "R1_INSTALL": {
+        "arg_regex": "^(install|develop)$",
+        "description": "an install step: a setup.py/install script, or an `install`/`develop` argument",
+        "stem_regex": "^(setup|install)$"
+      },
+      "R2_DOWNLOAD": {
+        "description": "a download step (stem contains 'download')",
+        "stem_regex": "download"
+      },
+      "R3_PREPROCESS": {
+        "description": "a (pre)processing step (stem starts with 'process' or 'preprocess')",
+        "stem_regex": "^(pre_?)?process"
+      },
+      "R4_SETUP_SCRIPT": {
+        "description": "a setup/preparation script (stem starts with pre_run, prepare, setup_ or init_env)",
+        "stem_regex": "^(pre_?run|prepare|setup_|init_?env)"
+      },
+      "R5_PLACEHOLDER": {
+        "arg_regex": "\\$\\{?[A-Za-z_]|\\[[^\\]]*\\|[^\\]]*\\]|(?:^|=)[A-Z]+(?:_[A-Z]+)+$",
+        "description": "an unfilled placeholder in an argument after the target: a $VAR/${VAR} reference, an [a|b] choice list, or a whole value in ALL_CAPS with at least one underscore (CONF_FILE, LOG_DIR; not TTL2, D4)"
+      }
+    },
+    "stem_regex_flags": "IGNORECASE",
+    "target": "the first `python|python3|bash|sh <path>.py|.sh` or `python -m <module>` after optional leading VAR=value assignments; stem = script file name without extension, or the module's last dotted component; args = the shell-split words after the target"
+  },
+  "command_not_a_run": {
+    "definition": "Entries whose recorded command matches at least one rule below. They are executed exactly like the primary entries (same harness, same caps) and reported separately as category COMMAND_NOT_A_RUN; they are never counted in the recovery rate or any headline number.",
+    "ids": [
+      3,
+      6,
+      10,
+      13,
+      14,
+      17,
+      18,
+      19
+    ],
+    "manual_review_reason": {
+      "10": "unfilled placeholders CONF_FILE / LOG_DIR",
+      "13": "a data download (download.sh)",
+      "14": "preprocessing (process.py)",
+      "17": "an unfilled [ellipse|sawtooth|…] choice list",
+      "18": "preprocessing (data/basketball/read_raw.py) with an unfilled $RAW_DATA_DIR",
+      "19": "a setup script (tools/pre_run.sh)",
+      "3": "preprocessing (preprocess.py) with an unfilled $TEXT",
+      "6": "an install step (python setup.py install)"
+    },
+    "note": "#18 is preprocessing in the manual review; the rules catch it through R5 ($RAW_DATA_DIR) only — R3 matches stems starting with 'process'/'preprocess', not 'read_raw'."
+  },
+  "corpus_hash": "063b700c38006bcf3160c64674a196cdf2fddb768a0c3de232746181aeef7d5c",
+  "corpus_version": "corpus-v1",
+  "corpus_yaml_sha256": "cd9293c084c26d73c83d04a2417b2c5b32a8b5899207bcaddff7612e5b332ba1",
+  "entries": [
+    {
+      "category": "PRIMARY",
+      "command": "python train.py",
+      "id": 1,
+      "name": "neuroailab__Neural-Alignment",
+      "rules_matched": []
+    },
+    {
+      "category": "PRIMARY",
+      "command": "python train.py",
+      "id": 2,
+      "name": "bluer555__KernelGCN",
+      "rules_matched": []
+    },
+    {
+      "category": "COMMAND_NOT_A_RUN",
+      "command": "python preprocess.py --only-source --trainpref $TEXT/wiki.train.tokens --validpref $TEXT/wiki.valid.tokens --testpref $TEXT/wiki.test.tokens --destdir data-bin/wikitext-103 --workers 20",
+      "id": 3,
+      "name": "urvashik__knnlm",
+      "rules_matched": [
+        "R3_PREPROCESS",
+        "R5_PLACEHOLDER"
+      ]
+    },
+    {
+      "category": "PRIMARY",
+      "command": "python mains/pnpnet_main.py --config_path configs/pnp_net_configs.yaml",
+      "id": 4,
+      "name": "Lucas2012__ProbabilisticNeuralProgrammedNetwork",
+      "rules_matched": []
+    },
+    {
+      "category": "PRIMARY",
+      "command": "python -m main.train -data_root data/kinship/S1 -slice_dim 8 -batchsize 16 -use_gcn 1 -embedding_size 64 -gcn_free_size 32 -load_method 0 -exp_folder exp -exp_name kinship -device cuda",
+      "id": 5,
+      "name": "expressGNN__ExpressGNN",
+      "rules_matched": []
+    },
+    {
+      "category": "COMMAND_NOT_A_RUN",
+      "command": "python setup.py install",
+      "id": 6,
+      "name": "mlohaus__SearchFair",
+      "rules_matched": [
+        "R1_INSTALL"
+      ]
+    },
+    {
+      "category": "PRIMARY",
+      "command": "python run_experiment.py --visual --pretrained_encoder --mapType=minecraft-insp --syntax=TTL2 --network=PrediNet --mem --multimodal --num_neurons=50 --seedB=0 --batch_size=512  --mem_type=rim",
+      "id": 7,
+      "name": "bgleon__latent-goal-architectures",
+      "rules_matched": []
+    },
+    {
+      "category": "PRIMARY",
+      "command": "python3 train_CelebA.py",
+      "id": 8,
+      "name": "lissomx__MSP",
+      "rules_matched": []
+    },
+    {
+      "category": "PRIMARY",
+      "command": "bash run.sh",
+      "id": 9,
+      "name": "YuchenJin__autolrs",
+      "rules_matched": []
+    },
+    {
+      "category": "COMMAND_NOT_A_RUN",
+      "command": "python -m alf.bin.train --conf=CONF_FILE --root_dir=LOG_DIR",
+      "id": 10,
+      "name": "HorizonRobotics__alf",
+      "rules_matched": [
+        "R5_PLACEHOLDER"
+      ]
+    },
+    {
+      "category": "PRIMARY",
+      "command": "CUDA_VISIBLE_DEVICES=0 python run.py doom tmaze --num_steps=500000 --burnin=10000 --epsilon_period=40000",
+      "id": 11,
+      "name": "danecor__VaST",
+      "rules_matched": []
+    },
+    {
+      "category": "PRIMARY",
+      "command": "bash scripts/reproduce-darts.sh search debug",
+      "id": 12,
+      "name": "kcyu2014__eval-nas",
+      "rules_matched": []
+    },
+    {
+      "category": "COMMAND_NOT_A_RUN",
+      "command": "bash download.sh",
+      "id": 13,
+      "name": "edadaltocg__igeood",
+      "rules_matched": [
+        "R2_DOWNLOAD"
+      ]
+    },
+    {
+      "category": "COMMAND_NOT_A_RUN",
+      "command": "python process.py",
+      "id": 14,
+      "name": "StatsDLMathsRecomSys__Inductive-representation-learning-on-temporal-graphs",
+      "rules_matched": [
+        "R3_PREPROCESS"
+      ]
+    },
+    {
+      "category": "PRIMARY",
+      "command": "python ib_vgg_train.py --gpu 0 --batch-norm --resume-vgg-pt baseline/cifar10/checkpoint_299_nocrop.tar --ban-crop --opt adam --cfg D4 --epochs 300 --lr 1.4e-3 --weight-decay 5e-5 --kl-fac 1.4e-5 --save-dir ib_vgg_chk/D4",
+      "id": 15,
+      "name": "zhuchen03__VIBNet",
+      "rules_matched": []
+    },
+    {
+      "category": "PRIMARY",
+      "command": "python main.py --model_name ours -v",
+      "id": 16,
+      "name": "ElementAI__osaka",
+      "rules_matched": []
+    },
+    {
+      "category": "COMMAND_NOT_A_RUN",
+      "command": "python -m nfe.train --experiment synthetic --data [ellipse|sawtooth|sink|square|triangle] --model [ode|flow] --flow-model [coupling|resnet] --solver [rk4|dopri5]",
+      "id": 17,
+      "name": "mbilos__neural-flows-experiments",
+      "rules_matched": [
+        "R5_PLACEHOLDER"
+      ]
+    },
+    {
+      "category": "COMMAND_NOT_A_RUN",
+      "command": "python data/basketball/read_raw.py --input-dir $RAW_DATA_DIR --output-dir $OUTPUT_DIR",
+      "id": 18,
+      "name": "Rose-STL-Lab__mrtl",
+      "rules_matched": [
+        "R5_PLACEHOLDER"
+      ]
+    },
+    {
+      "category": "COMMAND_NOT_A_RUN",
+      "command": "bash ./tools/pre_run.sh",
+      "id": 19,
+      "name": "hwang595__ATOMO",
+      "rules_matched": [
+        "R4_SETUP_SCRIPT"
+      ]
+    },
+    {
+      "category": "PRIMARY",
+      "command": "python main.py ./data/cifar.python --dataset cifar10 --arch resnet_ddg --epochs 300 --learning_rate 0.01 --schedule 150 225 --gammas 0.1 0.1 --batch_size 128 --manualSeed 2 --depth 110 --splits 2",
+      "id": 20,
+      "name": "slowbull__DDG",
+      "rules_matched": []
+    }
+  ],
+  "kind": "pre-results analysis amendment",
+  "no_outcomes_observed": "At classification time no corpus-v1 entry had been executed by RERUN (no baseline, no repair, no verdict for any of the 20). The classification reads only the command strings in corpus.yaml. The only live runs since the draw are development runs of TTPT (dev_run: true), which is not a corpus-v1 entry.",
+  "prereg_sha256": "c52ab36da806f11802740dfe6bbdabe56b163c13bd286f208467c193fbcb620a",
+  "primary_endpoint": {
+    "definition": "The entries whose recorded command is a genuine run of the paper's code (no rule below matches). The recovery rate and every headline number are computed over these entries only.",
+    "ids": [
+      1,
+      2,
+      4,
+      5,
+      7,
+      8,
+      9,
+      11,
+      12,
+      15,
+      16,
+      20
+    ]
+  },
+  "registered": "2026-09-28",
+  "reporting": {
+    "blocked": "primary entries with final verdict BLOCKED, broken down by taxonomy code (reason)",
+    "failed_as_published": "primary entries whose baseline (declared install + recorded command, before RERUN changes anything) FAILS",
+    "headline": "PRIMARY: <recovered>/<failed-as-published> of 12",
+    "invalid_harness": "primary entries ending INVALID_HARNESS (RERUN's fault) — reported, excluded from the rate",
+    "recovered": "primary entries with baseline FAILS and final verdict RUNS_AFTER_REPAIR (RUNS_AFTER_REPAIR)",
+    "repair_mode_split": "deterministic vs model_assisted, over recovered primary entries"
+  },
+  "sampling_unchanged": "The corpus is run exactly as drawn: all 20 entries, their pinned commits and recorded commands, unchanged. This amendment changes only how results are analysed and reported."
+}

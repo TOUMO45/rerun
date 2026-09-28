@@ -3733,3 +3733,42 @@ executed); repeat twice → REJECT then the next attempt proceeds (exactly one r
 repeats exhaust the budget → BLOCKED; different version is not a repeat. Mutation:
 disabling the check fails 3 tests. Backend 594 passed, 8 skipped; frontend 9 passed, tsc
 clean, build green.
+
+## 2026-09-28 — TTPT dev run 2 (A2b harness): past the dependency wall → DATA_MISSING
+
+`runs/dev_run_ttpt_a2b.json` (`dev_run: true`, not a corpus statistic): BLOCKED
+`DATA_MISSING`, model_assisted, recovery false, tree verified (105 files), passport
+verified. Spend **$1.2686** of $2 ($0.0396 model, $1.2289 sandbox). Steps: baseline FAILS
+`DEP_MISSING` (torch) → **deterministic** era lock (py3.12, 36 pkgs) → `dassl` missing →
+**model** `pip_git dassl` (resolver-verified) → no `git` (`SYS_LIB_MISSING`, A1) →
+**model** `apt git` → isolated-build `No module named 'numpy'` → **deterministic**
+`pip_no_build_isolation dassl` (A2b; evidence the verbatim line) → the install now
+succeeds and `run_ttpt.sh` starts training → `FileNotFoundError:
+'/path/to/dataset/folder/imagenet/classnames.txt'` (`DATA_MISSING` — ImageNet isn't in the
+repo; the wall DECISIONS predicted on 2026-09-24) → **model** repair 3 unparseable twice,
+REJECT. Honest end state: the environment is now fully reproducible; the data is not.
+
+## 2026-09-28 — C: corpus-v1 amendment 1 (pre-results) + the batch driver
+
+Committed before the batch and before the freeze; the `harness-v1` tag goes on this
+commit (human decision: amendment first, then tag, so "HEAD == tag" holds literally).
+`backend/app/batch/command_rules.py` (R1 install, R2 download, R3 (pre)process, R4 setup
+script, R5 placeholder) — pure, reads only command strings. `scripts/write_amendment.py`
+applies it and refuses to write unless it equals the manual post-draw review entry by
+entry → `amendment-1.json` (PRIMARY #1,2,4,5,7,8,9,11,12,15,16,20; COMMAND_NOT_A_RUN
+#3,6,10,13,14,17,18,19) + `amendment-1.sha256` (`63d409a3…622d`). METHODOLOGY section
+"amendment 1" states the rules, the endpoint, the no-outcomes statement and the reporting.
+Tests (`test_amendment.py`, 39): per-entry reproduction of the manual split, each rule on
+its own case, TTL2/D4/CIFAR10/RGB/L2 and `VAR=0` prefixes are not placeholders, the
+committed file equals the rules' output and its pinned sha256. Mutation: loosening R5's
+ALL-CAPS test fails #7, #15, the TTL2-style tests and the pinned-file test.
+`scripts/run_corpus_v1_batch.py`: preflight refuses unless the tree is clean (only
+untracked batch output tolerated, for resume), HEAD == `harness-v1` == origin's tag,
+amendment sha256 == file == pinned constant, and the recomputed corpus hash == corpus.yaml
+== corpus_hash.txt; then one `live_run.py` per entry ($2 cap, corpus hash into the
+passport, harness tag/commit + category + amendment sha in `record.batch`), stopping
+before the total could pass $40 or at a run without a verdict. `summarize()` is pure:
+table of all records, headline over PRIMARY only. Tests (`test_corpus_v1_batch.py`, 9)
+incl. refusals (dirty, HEAD≠tag, tampered amendment) and the headline arithmetic. Found
+while testing on the real repo: `_git()` stripped the porcelain output's leading space
+(` M x` → `M x`); rstrip only now, regression test. Backend 642 passed, 8 skipped.

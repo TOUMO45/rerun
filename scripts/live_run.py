@@ -92,9 +92,13 @@ def main(argv: list[str] | None = None) -> int:
         action="store_true",
         help="label the record dev_run: true (harness development; never counted in corpus statistics)",
     )
+    # Batch Lab (scripts/run_corpus_v1_batch.py) passes these; ad-hoc runs don't.
+    parser.add_argument("--corpus", type=Path, default=None, help="corpus.yaml to take --name from (default: corpus-v0)")
+    parser.add_argument("--corpus-hash", default=None, help="frozen corpus hash, carried into the passport (bundle v3)")
+    parser.add_argument("--batch-meta", default=None, help="JSON object recorded verbatim under record['batch']")
     args = parser.parse_args(argv)
 
-    entry = next((e for e in load_corpus() if e.name == args.name), None)
+    entry = next((e for e in load_corpus(args.corpus) if e.name == args.name), None)
     if entry is None:
         print(f"no corpus entry named {args.name!r}", file=sys.stderr)
         return 2
@@ -121,6 +125,7 @@ def main(argv: list[str] | None = None) -> int:
         # A development run exercises the harness; runner.aggregate_batch_results
         # refuses any record carrying dev_run: true.
         "dev_run": bool(args.dev_run),
+        "batch": json.loads(args.batch_meta) if args.batch_meta else None,
         "started_at": _now(),
         "corpus_entry": {
             "name": entry.name,
@@ -170,9 +175,11 @@ def main(argv: list[str] | None = None) -> int:
             run_id=f"live-{entry.name}",
             on_event=on_event,
             documented_command=entry.command,
+            corpus_hash=args.corpus_hash,
         )
         record["pipeline_duration_s"] = round(time.monotonic() - t0, 2)
         record["repair_mode"] = result.repair_mode
+        record["tree_integrity"] = result.tree_integrity
         record["result"] = {
             "verdict": result.verdict,
             "taxonomy_code": result.taxonomy_code,

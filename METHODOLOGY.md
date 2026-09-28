@@ -192,3 +192,60 @@ found in $PATH`, and — only for names on the fixed list — `<x>: command not 
 repository-local script or helper (`./train.sh: No such file or directory`, `run_exp:
 command not found`) is **not** a system dependency and never gets this code; a missing
 data file stays `DATA_MISSING`.
+
+## corpus-v1 — amendment 1: pre-results analysis amendment (registered 2026-09-28)
+
+Decision: corpus-v1 is **run exactly as registered and drawn** — all 20 entries, their
+pinned commits and recorded commands, unchanged. This amendment changes only how the
+results are **analysed and reported**, and it was committed **before the batch started**
+and before the harness was frozen (the `harness-v1` tag is on the amendment's own commit).
+Machine-readable: [`backend/app/batch/corpus_v1/amendment-1.json`](backend/app/batch/corpus_v1/amendment-1.json),
+sha256 `63d409a3ffc92b016fde502b90e53500a48287b7a286c7078148ac3650b9622d` (also in
+`amendment-1.sha256` and pinned in `scripts/run_corpus_v1_batch.py`, which refuses to
+start if any of the three disagree).
+
+**No outcomes observed.** At classification time no corpus-v1 entry had been executed by
+RERUN — no baseline, repair or verdict for any of the 20. The classification reads only
+the command strings in `corpus.yaml`. The only live runs since the draw are development
+runs of TTPT (`dev_run: true`), which is not a corpus-v1 entry.
+
+**Primary endpoint = the 12 genuine run commands:** entries **#1, 2, 4, 5, 7, 8, 9, 11,
+12, 15, 16, 20** (neuroailab/Neural-Alignment, bluer555/KernelGCN,
+Lucas2012/ProbabilisticNeuralProgrammedNetwork, expressGNN/ExpressGNN,
+bgleon/latent-goal-architectures, lissomx/MSP, YuchenJin/autolrs, danecor/VaST,
+kcyu2014/eval-nas, zhuchen03/VIBNet, ElementAI/osaka, slowbull/DDG). The recovery rate
+and every headline number are computed over these 12 only.
+
+**`COMMAND_NOT_A_RUN` = the other 8:** **#3, 6, 10, 13, 14, 17, 18, 19**. They are
+executed exactly like the primary entries (same frozen harness, same $2 cap), reported
+separately, and **never counted in the recovery rate** or any headline number.
+
+**Classification rules** (`backend/app/batch/command_rules.py`, applied identically to
+every entry; an entry is `COMMAND_NOT_A_RUN` if ANY rule matches). The *target* is the
+first `python|python3|bash|sh <path>.py|.sh` or `python -m <module>` after optional
+`VAR=value` assignments; the *stem* is the script's file name without extension (or the
+module's last component), matched case-insensitively; *args* are the shell-split words
+after the target, matched case-sensitively.
+
+| Rule | Tests | Regex |
+|---|---|---|
+| R1_INSTALL | stem, or any arg | stem `^(setup\|install)$`; arg `^(install\|develop)$` |
+| R2_DOWNLOAD | stem | `download` |
+| R3_PREPROCESS | stem | `^(pre_?)?process` |
+| R4_SETUP_SCRIPT | stem | `^(pre_?run\|prepare\|setup_\|init_?env)` |
+| R5_PLACEHOLDER | any arg | `\$\{?[A-Za-z_]` or `\[[^\]]*\|[^\]]*\]` or `(?:^\|=)[A-Z]+(?:_[A-Z]+)+$` |
+
+Result: #3 R3+R5 (`preprocess.py`, `$TEXT`), #6 R1 (`setup.py install`), #10 R5
+(`CONF_FILE`, `LOG_DIR`), #13 R2 (`download.sh`), #14 R3 (`process.py`), #17 R5
+(`[ellipse|sawtooth|…]`), #18 R5 (`$RAW_DATA_DIR` — the manual review called it
+preprocessing; R3 does not match `read_raw`, R5 catches it), #19 R4 (`pre_run.sh`). The
+rules reproduce the manual post-draw review **entry by entry** (tested, and
+`scripts/write_amendment.py` refuses to write the amendment if they don't). R5's
+ALL-CAPS test requires an underscore so real values such as `TTL2` (#7) and `D4` (#15)
+are not placeholders (tested; loosening it fails #7 and #15).
+
+**Reported for the 12:** failed as published (baseline `FAILS`) / `RUNS_AFTER_REPAIR`
+(baseline `FAILS` and final `RUNS_AFTER_REPAIR`) / `BLOCKED` by taxonomy code /
+`INVALID_HARNESS` (RERUN's fault, excluded from the rate); deterministic vs
+model_assisted among the recovered; total spend. Headline: `PRIMARY: <recovered>/<failed
+as published> of 12`.
