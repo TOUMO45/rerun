@@ -3655,3 +3655,16 @@ stderr lines (regression), 8 binary-missing forms, and a negative control of 4 d
 lines that must stay DATA_MISSING. Mutation check: against the previous classifier 9 of
 the new tests fail (incl. the regression), the negative controls pass on both. Backend
 568 passed, 8 skipped.
+
+## 2026-09-28 — A1 follow-up: repo-local "command not found" is not a system dependency
+
+The first A1 rule matched `<anything>: command not found` / `sh: N: <anything>: not
+found`, so `bash: run_exp: command not found` (a repo's own helper) was classified
+SYS_LIB_MISSING. Both forms are now restricted to names on the fixed tool list (the
+classifier is pure and has no repo tree, so the list is the rule), with a lookbehind so
+`./make` doesn't count. Added python/python2/python3/pip/pip3/conda/nvidia-smi to the
+list. Enum name unchanged (old certificates); METHODOLOGY documents that SYS_LIB_MISSING
+covers missing system tools/binaries. Negative controls (6): `./train.sh: No such file or
+directory` (± `bash:`), `run_exp: command not found` (bash, in-script), `sh: 1: run_exp:
+not found`, `./make: command not found`. Mutation check: restoring the broad patterns
+fails 4 of them; restored rule → 49/49 classifier tests. Backend 574 passed, 8 skipped.

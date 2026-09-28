@@ -179,3 +179,16 @@ choice lists and ALL-CAPS argument values as placeholders, and pick the first
 *remaining* command. Whether the Batch Lab runs corpus-v1 as registered (reporting the 8
 as their own category) or a re-registered corpus-v2 is a decision for the human; the batch
 has not been run.
+
+## Taxonomy note — `SYS_LIB_MISSING` covers missing system tools/binaries
+
+The code keeps its historical name (certificates already issued carry it), but since
+2026-09-28 it covers **any missing system dependency**: shared libraries and headers as
+before, **and** missing system tools/binaries (git, gcc, make, cmake, nvcc, wget, …; the
+fixed list is `classifier.SYSTEM_BINARIES`). The binary forms are pip's `Cannot find
+command '<x>'`, `/usr/bin/env: '<x>': No such file or directory`, `executable file not
+found in $PATH`, and — only for names on the fixed list — `<x>: command not found`,
+`sh: N: <x>: not found` and `[Errno 2] No such file or directory: '<x>'`. A missing
+repository-local script or helper (`./train.sh: No such file or directory`, `run_exp:
+command not found`) is **not** a system dependency and never gets this code; a missing
+data file stays `DATA_MISSING`.

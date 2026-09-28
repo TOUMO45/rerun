@@ -307,3 +307,20 @@ def test_missing_system_binary_is_sys_lib_missing(stderr):
 )
 def test_missing_system_binary_negative_control_data_files_stay_data_missing(stderr):
     assert _code(stderr) == TaxonomyCode.DATA_MISSING
+
+
+@pytest.mark.parametrize(
+    "stderr",
+    [
+        # A repository's own script or helper that isn't found is a repository
+        # problem, never a missing system dependency.
+        "./train.sh: No such file or directory",
+        "bash: ./train.sh: No such file or directory",
+        "bash: run_exp: command not found",
+        "run_all.sh: line 7: run_exp: command not found",
+        "sh: 1: run_exp: not found",
+        "bash: ./make: command not found",
+    ],
+)
+def test_missing_repo_local_script_is_not_sys_lib_missing(stderr):
+    assert _code(stderr) != TaxonomyCode.SYS_LIB_MISSING
