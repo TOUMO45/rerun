@@ -1,0 +1,240 @@
+{
+  "run_kind": "live end-to-end run",
+  "dev_run": false,
+  "batch": {
+    "harness_tag": "harness-v1.1",
+    "harness_commit": "2c8178e9eb806815021b711a79b0d7d68bc463b6",
+    "head_commit": "2c8178e9eb806815021b711a79b0d7d68bc463b6",
+    "corpus": "corpus-v1",
+    "amendment_sha256": "63d409a3ffc92b016fde502b90e53500a48287b7a286c7078148ac3650b9622d",
+    "corpus_hash": "063b700c38006bcf3160c64674a196cdf2fddb768a0c3de232746181aeef7d5c",
+    "entry_id": 6,
+    "category": "COMMAND_NOT_A_RUN",
+    "rules_matched": [
+      "R1_INSTALL"
+    ],
+    "per_entry_cap_usd": 2.0,
+    "total_cap_usd": 40.0
+  },
+  "started_at": "2026-09-28T18:03:58.858633+00:00",
+  "corpus_entry": {
+    "name": "mlohaus__SearchFair",
+    "repo_url": "https://github.com/mlohaus/SearchFair",
+    "commit_sha": "9dfa24f91eeed644d7dbbd047229f18f54c4bcb3",
+    "command": "python setup.py install",
+    "command_source": "README.md line 21"
+  },
+  "config": {
+    "models": {
+      "recon": "nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B",
+      "planner": "nvidia/nemotron-3-super-120b-a12b",
+      "repairer": "nvidia/nemotron-3-super-120b-a12b",
+      "adjudicator": "nvidia/Nemotron-3-Ultra-550b-a55b"
+    },
+    "sandbox_backend": "token_factory",
+    "sandbox_image_default": "python:3.11-slim",
+    "sandbox_wall_clock_seconds": 600.0,
+    "max_attempts": 3,
+    "tavily_configured": true,
+    "cost_cap_usd": 2.0
+  },
+  "intake": {
+    "duration_s": 79.46,
+    "resolved_sha": "9dfa24f91eeed644d7dbbd047229f18f54c4bcb3",
+    "dependency_files": [
+      "setup.py"
+    ],
+    "declared_dependencies": [
+      "cvxpy",
+      "matplotlib",
+      "numpy",
+      "pandas",
+      "scikit-learn"
+    ],
+    "entrypoint_candidates": [
+      "examples/get_real_data.py",
+      "examples/get_synthetic_data.py"
+    ],
+    "notebook_paths": [
+      "examples/real_data.ipynb",
+      "examples/toy_data.ipynb"
+    ]
+  },
+  "pipeline_duration_s": 109.23,
+  "repair_mode": "deterministic",
+  "tree_integrity": {
+    "status": "verified",
+    "tree_sha": "a0270dfac9a8bea32b49d14c59688c4393d63e97",
+    "files_checked": 14,
+    "excluded_patched": []
+  },
+  "result": {
+    "verdict": "INFRA_ERROR",
+    "taxonomy_code": null,
+    "indeterminate_reason": "INFRA_ERROR:sandbox:ApiTimeoutError: sandbox: ApiTimeoutError: ApiTimeoutError(request=RequestInfo(url='https://api.tokenfactory.nebius.com/sandboxes/v1/files', method='POST'), response=None, timeout_type='read') after 4 attempt(s) after 4 attempt(s) \u2014 an external service failed during 'sandbox'; this is not a verdict on the repository.",
+    "reason_code": "INFRA_ERROR:sandbox:ApiTimeoutError",
+    "error_traceback": "",
+    "attempts": [],
+    "certificate_prose": "An external service RERUN depends on failed during this run, so nothing is claimed about the repository. Verifies that the artifact executes. Does not verify the paper's numerical results."
+  },
+  "certificate": {
+    "repo_url": "https://github.com/mlohaus/SearchFair",
+    "commit_sha": "9dfa24f91eeed644d7dbbd047229f18f54c4bcb3",
+    "build_plan": {
+      "base_image": "python:3.7-slim",
+      "apt_install": [],
+      "install_commands": [
+        "pip install ."
+      ],
+      "execute_command": "python setup.py install",
+      "notes": [
+        "execute command is the repository's documented command (corpus ground truth)"
+      ]
+    },
+    "full_log": "[intake] cloned https://github.com/mlohaus/SearchFair@9dfa24f91eeed644d7dbbd047229f18f54c4bcb3\n[recon] calling Nemotron Nano\n[recon] entrypoint=examples/get_real_data.py confidence=0.65\n[planner] build plan: {'base_image': 'python:3.7-slim', 'apt_install': [], 'install_commands': ['pip install .'], 'execute_command': 'python setup.py install', 'notes': [\"execute command is the repository's documented command (corpus ground truth)\"]}\n[integrity] verified 14 file(s) against tree a0270dfac9a8bea32b49d14c59688c4393d63e97\n[sandbox] starting build+execute (wall_clock_seconds=600)\n[infra] INFRA_ERROR:sandbox:ApiTimeoutError: sandbox: ApiTimeoutError: ApiTimeoutError(request=RequestInfo(url='https://api.tokenfactory.nebius.com/sandboxes/v1/files', method='POST'), response=None, timeout_type='read') after 4 attempt(s) after 4 attempt(s) \u2014 an external service failed during 'sandbox'; this is not a verdict on the repository.",
+    "diffs": [],
+    "verdict": "INFRA_ERROR",
+    "timestamp": "2026-09-28T18:07:07.554623+00:00",
+    "bundle_version": 3,
+    "baseline": {
+      "result": "NOT_RUN"
+    },
+    "recovery": false,
+    "tree_integrity": {
+      "status": "verified",
+      "tree_sha": "a0270dfac9a8bea32b49d14c59688c4393d63e97",
+      "files_checked": 14,
+      "excluded_patched": []
+    },
+    "corpus_hash": "063b700c38006bcf3160c64674a196cdf2fddb768a0c3de232746181aeef7d5c",
+    "reproduction_passport_hash": "74dc669ad7abc1e84691346de7bf90b1251b55c96c861fa46c95ff20b4f9b4f8"
+  },
+  "finished_at": "2026-09-28T18:07:07.591248+00:00",
+  "events": [
+    {
+      "t_s": 0.0,
+      "at": "2026-09-28T18:05:18.322480+00:00",
+      "line": "[intake] cloned https://github.com/mlohaus/SearchFair@9dfa24f91eeed644d7dbbd047229f18f54c4bcb3"
+    },
+    {
+      "t_s": 0.0,
+      "at": "2026-09-28T18:05:18.323049+00:00",
+      "line": "[recon] calling Nemotron Nano"
+    },
+    {
+      "t_s": 17.2,
+      "at": "2026-09-28T18:05:35.518023+00:00",
+      "line": "[recon] entrypoint=examples/get_real_data.py confidence=0.65"
+    },
+    {
+      "t_s": 32.87,
+      "at": "2026-09-28T18:05:51.195239+00:00",
+      "line": "[planner] build plan: {'base_image': 'python:3.7-slim', 'apt_install': [], 'install_commands': ['pip install .'], 'execute_command': 'python setup.py install', 'notes': [\"execute command is the repository's documented command (corpus ground truth)\"]}"
+    },
+    {
+      "t_s": 33.11,
+      "at": "2026-09-28T18:05:51.431367+00:00",
+      "line": "[integrity] verified 14 file(s) against tree a0270dfac9a8bea32b49d14c59688c4393d63e97"
+    },
+    {
+      "t_s": 33.11,
+      "at": "2026-09-28T18:05:51.431427+00:00",
+      "line": "[sandbox] starting build+execute (wall_clock_seconds=600)"
+    },
+    {
+      "t_s": 109.23,
+      "at": "2026-09-28T18:07:07.554553+00:00",
+      "line": "[infra] INFRA_ERROR:sandbox:ApiTimeoutError: sandbox: ApiTimeoutError: ApiTimeoutError(request=RequestInfo(url='https://api.tokenfactory.nebius.com/sandboxes/v1/files', method='POST'), response=None, timeout_type='read') after 4 attempt(s) after 4 attempt(s) \u2014 an external service failed during 'sandbox'; this is not a verdict on the repository."
+    }
+  ],
+  "model_calls": [
+    {
+      "model": "nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B",
+      "started_at": "2026-09-28T18:05:18.676319+00:00",
+      "latency_s": 16.84,
+      "finish_reason": "stop",
+      "content_is_none": false,
+      "has_reasoning": true,
+      "usage": {
+        "completion_tokens": 1381,
+        "prompt_tokens": 3274,
+        "total_tokens": 4655,
+        "completion_tokens_details": null,
+        "prompt_tokens_details": null
+      }
+    },
+    {
+      "model": "nvidia/nemotron-3-super-120b-a12b",
+      "started_at": "2026-09-28T18:05:35.520020+00:00",
+      "error": "APITimeoutError: Request timed out.",
+      "latency_s": 6.4
+    },
+    {
+      "model": "nvidia/nemotron-3-super-120b-a12b",
+      "started_at": "2026-09-28T18:05:43.925969+00:00",
+      "latency_s": 7.27,
+      "finish_reason": "stop",
+      "content_is_none": false,
+      "has_reasoning": true,
+      "usage": {
+        "completion_tokens": 202,
+        "prompt_tokens": 291,
+        "total_tokens": 493,
+        "completion_tokens_details": {
+          "accepted_prediction_tokens": null,
+          "audio_tokens": null,
+          "reasoning_tokens": 192,
+          "rejected_prediction_tokens": null,
+          "text_tokens": null
+        },
+        "prompt_tokens_details": {
+          "audio_tokens": null,
+          "cache_write_tokens": null,
+          "cached_tokens": 0,
+          "image_tokens": null,
+          "text_tokens": null,
+          "created_cache_tokens": 0,
+          "multimodal_tokens": null
+        },
+        "prompt_cache_hit_tokens": 0,
+        "prompt_cache_miss_tokens": 291
+      }
+    }
+  ],
+  "cost_guard": {
+    "spent_usd": 0.0007969800000000001,
+    "model_spent_usd": 0.0007969800000000001,
+    "sandbox_spent_usd": 0.0,
+    "remaining_usd": 1.99920302,
+    "model_usage": [
+      {
+        "model": "nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B",
+        "prompt_tokens": 3274,
+        "completion_tokens": 1381,
+        "cost_usd": 0.00052788
+      },
+      {
+        "model": "nvidia/nemotron-3-super-120b-a12b",
+        "prompt_tokens": 291,
+        "completion_tokens": 202,
+        "cost_usd": 0.00026910000000000004
+      }
+    ],
+    "prices_usd_per_1m": {
+      "nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B": [
+        0.06,
+        0.24
+      ],
+      "nvidia/nemotron-3-super-120b-a12b": [
+        0.3,
+        0.9
+      ],
+      "nvidia/Nemotron-3-Ultra-550b-a55b": [
+        1.0,
+        3.0
+      ]
+    },
+    "prices_source": "https://api.tokenfactory.nebius.com/v1/models?verbose=true (pricing field)",
+    "prices_retrieved": "2026-09-24"
+  }
+}

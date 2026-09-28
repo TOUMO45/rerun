@@ -1,0 +1,839 @@
+{
+  "run_kind": "live end-to-end run",
+  "dev_run": false,
+  "batch": {
+    "harness_tag": "harness-v1.1",
+    "harness_commit": "2c8178e9eb806815021b711a79b0d7d68bc463b6",
+    "head_commit": "2c8178e9eb806815021b711a79b0d7d68bc463b6",
+    "corpus": "corpus-v1",
+    "amendment_sha256": "63d409a3ffc92b016fde502b90e53500a48287b7a286c7078148ac3650b9622d",
+    "corpus_hash": "063b700c38006bcf3160c64674a196cdf2fddb768a0c3de232746181aeef7d5c",
+    "entry_id": 4,
+    "category": "PRIMARY",
+    "rules_matched": [],
+    "per_entry_cap_usd": 2.0,
+    "total_cap_usd": 40.0
+  },
+  "started_at": "2026-09-28T17:59:15.749884+00:00",
+  "corpus_entry": {
+    "name": "Lucas2012__ProbabilisticNeuralProgrammedNetwork",
+    "repo_url": "https://github.com/Lucas2012/ProbabilisticNeuralProgrammedNetwork",
+    "commit_sha": "56e33dae1ec01580bca267011adf6c45c1fd505d",
+    "command": "python mains/pnpnet_main.py --config_path configs/pnp_net_configs.yaml",
+    "command_source": "README.md line 153"
+  },
+  "config": {
+    "models": {
+      "recon": "nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B",
+      "planner": "nvidia/nemotron-3-super-120b-a12b",
+      "repairer": "nvidia/nemotron-3-super-120b-a12b",
+      "adjudicator": "nvidia/Nemotron-3-Ultra-550b-a55b"
+    },
+    "sandbox_backend": "token_factory",
+    "sandbox_image_default": "python:3.11-slim",
+    "sandbox_wall_clock_seconds": 600.0,
+    "max_attempts": 3,
+    "tavily_configured": true,
+    "cost_cap_usd": 2.0
+  },
+  "intake": {
+    "duration_s": 5.11,
+    "resolved_sha": "56e33dae1ec01580bca267011adf6c45c1fd505d",
+    "dependency_files": [
+      "requirements.txt"
+    ],
+    "declared_dependencies": [
+      "torch",
+      "torchvision"
+    ],
+    "entrypoint_candidates": [
+      "lib/LambdaBiKLD.py",
+      "lib/config.py",
+      "lib/data_loader/clevr/clevr_tree.py",
+      "lib/data_loader/clevr/treeutils.py",
+      "mains/pnpnet_main.py"
+    ],
+    "notebook_paths": []
+  },
+  "pipeline_duration_s": 163.46,
+  "repair_mode": "model_assisted",
+  "tree_integrity": {
+    "status": "verified",
+    "tree_sha": "bb36e4cd312e88a6a8a96cecb1ae81d90c374e4c",
+    "files_checked": 50,
+    "excluded_patched": []
+  },
+  "result": {
+    "verdict": "BLOCKED",
+    "taxonomy_code": "DEP_YANKED",
+    "indeterminate_reason": "",
+    "reason_code": null,
+    "error_traceback": "",
+    "attempts": [
+      {
+        "attempt_number": 0,
+        "diff_text": "",
+        "gate_decision": "DECLINED",
+        "gate_violations": [],
+        "exit_code": null,
+        "stdout_tail": "",
+        "stderr_tail": "error: No solution found when resolving dependencies\n  cause: Because there is no version of torch==0.4.0 and you require torch==0.4.0, we can conclude that your requirements are unsatisfiable.\n",
+        "tavily_sources": [],
+        "env_delta": [],
+        "resolved_sources": [],
+        "origin": "time_machine",
+        "time_machine": {
+          "era": {
+            "date": "2018-12-03",
+            "source": "dependency-files",
+            "detail": {
+              "requirements.txt": "2018-12-03"
+            }
+          },
+          "python": {
+            "version": "3.6",
+            "reason": "newest CPython first released \u2265180 days before the era date 2018-12-03 (https://devguide.python.org/versions/ (first release dates, retrieved 2026-09-24))",
+            "source": "https://devguide.python.org/versions/ (first release dates, retrieved 2026-09-24)"
+          },
+          "undeclared_imports": [
+            "IPython",
+            "pillow",
+            "numpy",
+            "pytz",
+            "scipy",
+            "pyyaml"
+          ],
+          "import_mappings": [
+            {
+              "import": "PIL",
+              "distribution": "pillow",
+              "source": "pipreqs",
+              "confidence": "normal"
+            },
+            {
+              "import": "yaml",
+              "distribution": "pyyaml",
+              "source": "pipreqs",
+              "confidence": "normal"
+            }
+          ],
+          "apt_added": [],
+          "apt_reason": "",
+          "lock": {
+            "ok": false,
+            "lock": [],
+            "inputs": [
+              "torch==0.4.0",
+              "torchvision==0.2.1",
+              "IPython",
+              "pillow",
+              "numpy",
+              "pytz",
+              "scipy",
+              "pyyaml"
+            ],
+            "not_on_index": [],
+            "command": "pip compile - --no-header --no-annotate --quiet --exclude-newer 2018-12-04T00:00:00Z --python-version 3.6 --python-platform x86_64-unknown-linux-gnu --python C:\\Users\\E16\\AppData\\Roaming\\uv\\python\\cpython-3.8.20-windows-x86_64-none\\python.exe",
+            "error": "error: No solution found when resolving dependencies\n  cause: Because there is no version of torch==0.4.0 and you require torch==0.4.0, we can conclude that your requirements are unsatisfiable.\n"
+          }
+        }
+      },
+      {
+        "attempt_number": 1,
+        "diff_text": "--- a/requirements.txt\n+++ b/requirements.txt\n@@ -1,2 +1,2 @@\n-torch==0.4.0\n-torchvision==0.2.1\n+torch==1.13.0\n+torchvision==0.14.0\n",
+        "gate_decision": "PASS",
+        "gate_violations": [],
+        "exit_code": null,
+        "stdout_tail": "",
+        "stderr_tail": "gate-approved patch failed to apply: error: patch failed: requirements.txt:1\nerror: requirements.txt: patch does not apply",
+        "tavily_sources": [],
+        "env_delta": [],
+        "resolved_sources": [],
+        "origin": "model",
+        "time_machine": null
+      },
+      {
+        "attempt_number": 2,
+        "diff_text": "--- a/requirements.txt\n+++ b/requirements.txt\n@@ -1,2 +1,2 @@\n-torch==0.4.0\n-torchvision==0.2.1\n+torch==1.13.0\n+torchvision==0.14.0\n",
+        "gate_decision": "PASS",
+        "gate_violations": [],
+        "exit_code": null,
+        "stdout_tail": "",
+        "stderr_tail": "gate-approved patch failed to apply: error: patch failed: requirements.txt:1\nerror: requirements.txt: patch does not apply",
+        "tavily_sources": [],
+        "env_delta": [],
+        "resolved_sources": [],
+        "origin": "model",
+        "time_machine": null
+      },
+      {
+        "attempt_number": 3,
+        "diff_text": "--- a/requirements.txt\n+++ b/requirements.txt\n@@ -1,2 +1,2 @@\n-torch==0.4.0\n+torch==2.0.0\n torchvision==0.2.1\n",
+        "gate_decision": "PASS",
+        "gate_violations": [],
+        "exit_code": null,
+        "stdout_tail": "",
+        "stderr_tail": "gate-approved patch failed to apply: error: patch failed: requirements.txt:1\nerror: requirements.txt: patch does not apply",
+        "tavily_sources": [],
+        "env_delta": [],
+        "resolved_sources": [],
+        "origin": "model",
+        "time_machine": null
+      }
+    ],
+    "certificate_prose": "The execution was blocked after three repair attempts due to a yanked dependency (DEP_YANKED). The run log indicates that the dependency issue could not be resolved despite multiple repair attempts. Verifies that the artifact executes. Does not verify the paper's numerical results."
+  },
+  "certificate": {
+    "repo_url": "https://github.com/Lucas2012/ProbabilisticNeuralProgrammedNetwork",
+    "commit_sha": "56e33dae1ec01580bca267011adf6c45c1fd505d",
+    "build_plan": {
+      "base_image": "python:3.11-slim",
+      "apt_install": [],
+      "install_commands": [
+        "pip install -r requirements.txt"
+      ],
+      "execute_command": "python mains/pnpnet_main.py --config_path configs/pnp_net_configs.yaml",
+      "notes": [
+        "execute command is the repository's documented command (corpus ground truth)"
+      ]
+    },
+    "full_log": "[intake] cloned https://github.com/Lucas2012/ProbabilisticNeuralProgrammedNetwork@56e33dae1ec01580bca267011adf6c45c1fd505d\n[recon] calling Nemotron Nano\n[recon] entrypoint=mains/pnpnet_main.py confidence=0.90\n[planner] build plan: {'base_image': 'python:3.11-slim', 'apt_install': [], 'install_commands': ['pip install -r requirements.txt'], 'execute_command': 'python mains/pnpnet_main.py --config_path configs/pnp_net_configs.yaml', 'notes': [\"execute command is the repository's documented command (corpus ground truth)\"]}\n[integrity] verified 50 file(s) against tree bb36e4cd312e88a6a8a96cecb1ae81d90c374e4c\n[sandbox] starting build+execute (wall_clock_seconds=600)\n[cost_guard] recorded $0.0125 sandbox spend, $1.9864 remaining today\n[sandbox] id=1b90d6e3-a66d-49af-ac54-338ad7e4af5c exit_code=1\n[baseline] as-is run: FAILS (exit code 1)\n[classifier] DEP_YANKED: ERROR: Could not find a version that satisfies the requirement torch==0.4.0 (from versions: 1.13.0, 1.13.1, 2.0.0, 2.0.1, 2.1.0, 2.1.1, 2.1.2, 2.2.0, 2.2.1, 2.2.2, 2.3.0, 2.3.1, 2.4.0, 2.4.1, 2.5.0, 2.5.1, 2.6.0, 2.7.0, 2.7.1, 2.8.0, 2.9.0, 2.9.1, 2.10.0, 2.11.0, 2.12.0, 2.12.1, 2.13.0, 2.14.0)\n[era] 2018-12-03 from dependency-files {'requirements.txt': '2018-12-03'}\n[import-map] PIL -> pillow (pipreqs, confidence normal)\n[import-map] yaml -> pyyaml (pipreqs, confidence normal)\n[time-machine] could not lock the era environment: error: No solution found when resolving dependencies\n  cause: Because there is no version of torch==0.4.0 and you require torch==0.4.0, we can conclude that your requirements are unsatisfiable.\n\n[resolver] torch: 0 verified git source(s), PyPI found (1 release(s) shown), era 2018-12-03; query: 'torch python package version compatible 2018 release history'\n[tavily] 5 result(s) for 'torch python package version compatible 2018 release history'\n[repair 1] tamper gate PASS (code) \u2014 applying and re-executing\n[repair 1] gate-approved patch failed to apply cleanly: gate-approved patch failed to apply: error: patch failed: requirements.txt:1\nerror: requirements.txt: patch does not apply\n[citations] not cited (not used in a decision): https://pytorch.org/get-started/previous-versions\n[citations] not cited (not used in a decision): https://dev-discuss.pytorch.org/t/torch-compile-support-for-python-3-14-completed/3276\n[citations] not cited (not used in a decision): https://discuss.pytorch.org/t/compatibility-of-python-3-12-with-py-torch/219215\n[citations] not cited (not used in a decision): https://www.python.org/doc/versions\n[citations] not cited (not used in a decision): https://pytorch.org/blog/pytorch2-6\n[citations] not cited (offered, not used): https://pypi.org/project/torch/2.14.0/\n[resolver] torch: 0 verified git source(s), PyPI found (1 release(s) shown), era 2018-12-03; query: 'torch python package version compatible 2018 release history'\n[tavily] 5 result(s) for 'torch python package version compatible 2018 release history'\n[repair 2] tamper gate PASS (code) \u2014 applying and re-executing\n[repair 2] gate-approved patch failed to apply cleanly: gate-approved patch failed to apply: error: patch failed: requirements.txt:1\nerror: requirements.txt: patch does not apply\n[citations] not cited (not used in a decision): https://pytorch.org/get-started/previous-versions\n[citations] not cited (not used in a decision): https://dev-discuss.pytorch.org/t/torch-compile-support-for-python-3-14-completed/3276\n[citations] not cited (not used in a decision): https://discuss.pytorch.org/t/compatibility-of-python-3-12-with-py-torch/219215\n[citations] not cited (not used in a decision): https://www.python.org/doc/versions\n[citations] not cited (not used in a decision): https://pytorch.org/blog/pytorch2-6\n[citations] not cited (offered, not used): https://pypi.org/project/torch/2.14.0/\n[resolver] torch: 0 verified git source(s), PyPI found (1 release(s) shown), era 2018-12-03; query: 'torch python package version compatible 2018 release history'\n[tavily] 5 result(s) for 'torch python package version compatible 2018 release history'\n[repair 3] env change lacked justification/evidence; re-asked once (same attempt)\n[repair 3] tamper gate PASS (code) \u2014 applying and re-executing\n[repair 3] gate-approved patch failed to apply cleanly: gate-approved patch failed to apply: error: patch failed: requirements.txt:1\nerror: requirements.txt: patch does not apply\n[citations] not cited (not used in a decision): https://pytorch.org/get-started/previous-versions\n[citations] not cited (not used in a decision): https://dev-discuss.pytorch.org/t/torch-compile-support-for-python-3-14-completed/3276\n[citations] not cited (not used in a decision): https://discuss.pytorch.org/t/compatibility-of-python-3-12-with-py-torch/219215\n[citations] not cited (not used in a decision): https://www.python.org/doc/versions\n[citations] not cited (not used in a decision): https://pytorch.org/blog/pytorch2-6\n[citations] not cited (offered, not used): https://pypi.org/project/torch/2.14.0/\n[verdict] BLOCKED after 3 repair attempt(s): DEP_YANKED",
+    "diffs": [
+      {
+        "attempt_number": 0,
+        "diff_text": "",
+        "gate_decision": "DECLINED",
+        "gate_violations": [],
+        "exit_code": null,
+        "stdout_tail": "",
+        "stderr_tail": "error: No solution found when resolving dependencies\n  cause: Because there is no version of torch==0.4.0 and you require torch==0.4.0, we can conclude that your requirements are unsatisfiable.\n",
+        "tavily_sources": [],
+        "env_delta": [],
+        "resolved_sources": [],
+        "origin": "time_machine",
+        "time_machine": {
+          "era": {
+            "date": "2018-12-03",
+            "source": "dependency-files",
+            "detail": {
+              "requirements.txt": "2018-12-03"
+            }
+          },
+          "python": {
+            "version": "3.6",
+            "reason": "newest CPython first released \u2265180 days before the era date 2018-12-03 (https://devguide.python.org/versions/ (first release dates, retrieved 2026-09-24))",
+            "source": "https://devguide.python.org/versions/ (first release dates, retrieved 2026-09-24)"
+          },
+          "undeclared_imports": [
+            "IPython",
+            "pillow",
+            "numpy",
+            "pytz",
+            "scipy",
+            "pyyaml"
+          ],
+          "import_mappings": [
+            {
+              "import": "PIL",
+              "distribution": "pillow",
+              "source": "pipreqs",
+              "confidence": "normal"
+            },
+            {
+              "import": "yaml",
+              "distribution": "pyyaml",
+              "source": "pipreqs",
+              "confidence": "normal"
+            }
+          ],
+          "apt_added": [],
+          "apt_reason": "",
+          "lock": {
+            "ok": false,
+            "lock": [],
+            "inputs": [
+              "torch==0.4.0",
+              "torchvision==0.2.1",
+              "IPython",
+              "pillow",
+              "numpy",
+              "pytz",
+              "scipy",
+              "pyyaml"
+            ],
+            "not_on_index": [],
+            "command": "pip compile - --no-header --no-annotate --quiet --exclude-newer 2018-12-04T00:00:00Z --python-version 3.6 --python-platform x86_64-unknown-linux-gnu --python C:\\Users\\E16\\AppData\\Roaming\\uv\\python\\cpython-3.8.20-windows-x86_64-none\\python.exe",
+            "error": "error: No solution found when resolving dependencies\n  cause: Because there is no version of torch==0.4.0 and you require torch==0.4.0, we can conclude that your requirements are unsatisfiable.\n"
+          }
+        }
+      },
+      {
+        "attempt_number": 1,
+        "diff_text": "--- a/requirements.txt\n+++ b/requirements.txt\n@@ -1,2 +1,2 @@\n-torch==0.4.0\n-torchvision==0.2.1\n+torch==1.13.0\n+torchvision==0.14.0\n",
+        "gate_decision": "PASS",
+        "gate_violations": [],
+        "exit_code": null,
+        "stdout_tail": "",
+        "stderr_tail": "gate-approved patch failed to apply: error: patch failed: requirements.txt:1\nerror: requirements.txt: patch does not apply",
+        "tavily_sources": [],
+        "env_delta": [],
+        "resolved_sources": [],
+        "origin": "model",
+        "time_machine": null
+      },
+      {
+        "attempt_number": 2,
+        "diff_text": "--- a/requirements.txt\n+++ b/requirements.txt\n@@ -1,2 +1,2 @@\n-torch==0.4.0\n-torchvision==0.2.1\n+torch==1.13.0\n+torchvision==0.14.0\n",
+        "gate_decision": "PASS",
+        "gate_violations": [],
+        "exit_code": null,
+        "stdout_tail": "",
+        "stderr_tail": "gate-approved patch failed to apply: error: patch failed: requirements.txt:1\nerror: requirements.txt: patch does not apply",
+        "tavily_sources": [],
+        "env_delta": [],
+        "resolved_sources": [],
+        "origin": "model",
+        "time_machine": null
+      },
+      {
+        "attempt_number": 3,
+        "diff_text": "--- a/requirements.txt\n+++ b/requirements.txt\n@@ -1,2 +1,2 @@\n-torch==0.4.0\n+torch==2.0.0\n torchvision==0.2.1\n",
+        "gate_decision": "PASS",
+        "gate_violations": [],
+        "exit_code": null,
+        "stdout_tail": "",
+        "stderr_tail": "gate-approved patch failed to apply: error: patch failed: requirements.txt:1\nerror: requirements.txt: patch does not apply",
+        "tavily_sources": [],
+        "env_delta": [],
+        "resolved_sources": [],
+        "origin": "model",
+        "time_machine": null
+      }
+    ],
+    "verdict": "BLOCKED",
+    "timestamp": "2026-09-28T18:02:04.325219+00:00",
+    "bundle_version": 3,
+    "baseline": {
+      "result": "FAILS",
+      "exit_code": 1,
+      "base_image": "python:3.11-slim",
+      "install_commands": [
+        "pip install -r requirements.txt"
+      ],
+      "execute_command": "python mains/pnpnet_main.py --config_path configs/pnp_net_configs.yaml",
+      "sandbox_id": "1b90d6e3-a66d-49af-ac54-338ad7e4af5c",
+      "taxonomy_code": "DEP_YANKED",
+      "evidence": "ERROR: Could not find a version that satisfies the requirement torch==0.4.0 (from versions: 1.13.0, 1.13.1, 2.0.0, 2.0.1, 2.1.0, 2.1.1, 2.1.2, 2.2.0, 2.2.1, 2.2.2, 2.3.0, 2.3.1, 2.4.0, 2.4.1, 2.5.0, 2.5.1, 2.6.0, 2.7.0, 2.7.1, 2.8.0, 2.9.0, 2.9.1, 2.10.0, 2.11.0, 2.12.0, 2.12.1, 2.13.0, 2.14.0)"
+    },
+    "recovery": false,
+    "tree_integrity": {
+      "status": "verified",
+      "tree_sha": "bb36e4cd312e88a6a8a96cecb1ae81d90c374e4c",
+      "files_checked": 50,
+      "excluded_patched": []
+    },
+    "corpus_hash": "063b700c38006bcf3160c64674a196cdf2fddb768a0c3de232746181aeef7d5c",
+    "reproduction_passport_hash": "33182331c8ba6680243c3913c8dc6da9b4377b57d8ad75831d099fcf8d4837c9"
+  },
+  "finished_at": "2026-09-28T18:02:04.388823+00:00",
+  "events": [
+    {
+      "t_s": 0.0,
+      "at": "2026-09-28T17:59:20.861608+00:00",
+      "line": "[intake] cloned https://github.com/Lucas2012/ProbabilisticNeuralProgrammedNetwork@56e33dae1ec01580bca267011adf6c45c1fd505d"
+    },
+    {
+      "t_s": 0.0,
+      "at": "2026-09-28T17:59:20.863818+00:00",
+      "line": "[recon] calling Nemotron Nano"
+    },
+    {
+      "t_s": 16.55,
+      "at": "2026-09-28T17:59:37.411707+00:00",
+      "line": "[recon] entrypoint=mains/pnpnet_main.py confidence=0.90"
+    },
+    {
+      "t_s": 18.48,
+      "at": "2026-09-28T17:59:39.339847+00:00",
+      "line": "[planner] build plan: {'base_image': 'python:3.11-slim', 'apt_install': [], 'install_commands': ['pip install -r requirements.txt'], 'execute_command': 'python mains/pnpnet_main.py --config_path configs/pnp_net_configs.yaml', 'notes': [\"execute command is the repository's documented command (corpus ground truth)\"]}"
+    },
+    {
+      "t_s": 18.74,
+      "at": "2026-09-28T17:59:39.604228+00:00",
+      "line": "[integrity] verified 50 file(s) against tree bb36e4cd312e88a6a8a96cecb1ae81d90c374e4c"
+    },
+    {
+      "t_s": 18.74,
+      "at": "2026-09-28T17:59:39.604289+00:00",
+      "line": "[sandbox] starting build+execute (wall_clock_seconds=600)"
+    },
+    {
+      "t_s": 30.21,
+      "at": "2026-09-28T17:59:51.076196+00:00",
+      "line": "[cost_guard] recorded $0.0125 sandbox spend, $1.9864 remaining today"
+    },
+    {
+      "t_s": 30.21,
+      "at": "2026-09-28T17:59:51.076294+00:00",
+      "line": "[sandbox] id=1b90d6e3-a66d-49af-ac54-338ad7e4af5c exit_code=1"
+    },
+    {
+      "t_s": 30.21,
+      "at": "2026-09-28T17:59:51.076325+00:00",
+      "line": "[baseline] as-is run: FAILS (exit code 1)"
+    },
+    {
+      "t_s": 30.21,
+      "at": "2026-09-28T17:59:51.076526+00:00",
+      "line": "[classifier] DEP_YANKED: ERROR: Could not find a version that satisfies the requirement torch==0.4.0 (from versions: 1.13.0, 1.13.1, 2.0.0, 2.0.1, 2.1.0, 2.1.1, 2.1.2, 2.2.0, 2.2.1, 2.2.2, 2.3.0, 2.3.1, 2.4.0, 2.4.1, 2.5.0, 2.5.1, 2.6.0, 2.7.0, 2.7.1, 2.8.0, 2.9.0, 2.9.1, 2.10.0, 2.11.0, 2.12.0, 2.12.1, 2.13.0, 2.14.0)"
+    },
+    {
+      "t_s": 31.16,
+      "at": "2026-09-28T17:59:52.018505+00:00",
+      "line": "[era] 2018-12-03 from dependency-files {'requirements.txt': '2018-12-03'}"
+    },
+    {
+      "t_s": 31.31,
+      "at": "2026-09-28T17:59:52.172266+00:00",
+      "line": "[import-map] PIL -> pillow (pipreqs, confidence normal)"
+    },
+    {
+      "t_s": 31.31,
+      "at": "2026-09-28T17:59:52.172338+00:00",
+      "line": "[import-map] yaml -> pyyaml (pipreqs, confidence normal)"
+    },
+    {
+      "t_s": 32.15,
+      "at": "2026-09-28T17:59:53.007304+00:00",
+      "line": "[time-machine] could not lock the era environment: error: No solution found when resolving dependencies\n  cause: Because there is no version of torch==0.4.0 and you require torch==0.4.0, we can conclude that your requirements are unsatisfiable.\n"
+    },
+    {
+      "t_s": 35.02,
+      "at": "2026-09-28T17:59:55.886171+00:00",
+      "line": "[resolver] torch: 0 verified git source(s), PyPI found (1 release(s) shown), era 2018-12-03; query: 'torch python package version compatible 2018 release history'"
+    },
+    {
+      "t_s": 35.02,
+      "at": "2026-09-28T17:59:55.886263+00:00",
+      "line": "[tavily] 5 result(s) for 'torch python package version compatible 2018 release history'"
+    },
+    {
+      "t_s": 55.98,
+      "at": "2026-09-28T18:00:16.844878+00:00",
+      "line": "[repair 1] tamper gate PASS (code) \u2014 applying and re-executing"
+    },
+    {
+      "t_s": 56.03,
+      "at": "2026-09-28T18:00:16.893566+00:00",
+      "line": "[repair 1] gate-approved patch failed to apply cleanly: gate-approved patch failed to apply: error: patch failed: requirements.txt:1\nerror: requirements.txt: patch does not apply"
+    },
+    {
+      "t_s": 56.03,
+      "at": "2026-09-28T18:00:16.893656+00:00",
+      "line": "[citations] not cited (not used in a decision): https://pytorch.org/get-started/previous-versions"
+    },
+    {
+      "t_s": 56.03,
+      "at": "2026-09-28T18:00:16.893678+00:00",
+      "line": "[citations] not cited (not used in a decision): https://dev-discuss.pytorch.org/t/torch-compile-support-for-python-3-14-completed/3276"
+    },
+    {
+      "t_s": 56.03,
+      "at": "2026-09-28T18:00:16.893694+00:00",
+      "line": "[citations] not cited (not used in a decision): https://discuss.pytorch.org/t/compatibility-of-python-3-12-with-py-torch/219215"
+    },
+    {
+      "t_s": 56.03,
+      "at": "2026-09-28T18:00:16.893708+00:00",
+      "line": "[citations] not cited (not used in a decision): https://www.python.org/doc/versions"
+    },
+    {
+      "t_s": 56.03,
+      "at": "2026-09-28T18:00:16.893723+00:00",
+      "line": "[citations] not cited (not used in a decision): https://pytorch.org/blog/pytorch2-6"
+    },
+    {
+      "t_s": 56.03,
+      "at": "2026-09-28T18:00:16.893738+00:00",
+      "line": "[citations] not cited (offered, not used): https://pypi.org/project/torch/2.14.0/"
+    },
+    {
+      "t_s": 59.24,
+      "at": "2026-09-28T18:00:20.101048+00:00",
+      "line": "[resolver] torch: 0 verified git source(s), PyPI found (1 release(s) shown), era 2018-12-03; query: 'torch python package version compatible 2018 release history'"
+    },
+    {
+      "t_s": 59.24,
+      "at": "2026-09-28T18:00:20.101106+00:00",
+      "line": "[tavily] 5 result(s) for 'torch python package version compatible 2018 release history'"
+    },
+    {
+      "t_s": 87.93,
+      "at": "2026-09-28T18:00:48.786755+00:00",
+      "line": "[repair 2] tamper gate PASS (code) \u2014 applying and re-executing"
+    },
+    {
+      "t_s": 87.98,
+      "at": "2026-09-28T18:00:48.839994+00:00",
+      "line": "[repair 2] gate-approved patch failed to apply cleanly: gate-approved patch failed to apply: error: patch failed: requirements.txt:1\nerror: requirements.txt: patch does not apply"
+    },
+    {
+      "t_s": 87.98,
+      "at": "2026-09-28T18:00:48.840084+00:00",
+      "line": "[citations] not cited (not used in a decision): https://pytorch.org/get-started/previous-versions"
+    },
+    {
+      "t_s": 87.98,
+      "at": "2026-09-28T18:00:48.840108+00:00",
+      "line": "[citations] not cited (not used in a decision): https://dev-discuss.pytorch.org/t/torch-compile-support-for-python-3-14-completed/3276"
+    },
+    {
+      "t_s": 87.98,
+      "at": "2026-09-28T18:00:48.840126+00:00",
+      "line": "[citations] not cited (not used in a decision): https://discuss.pytorch.org/t/compatibility-of-python-3-12-with-py-torch/219215"
+    },
+    {
+      "t_s": 87.98,
+      "at": "2026-09-28T18:00:48.840141+00:00",
+      "line": "[citations] not cited (not used in a decision): https://www.python.org/doc/versions"
+    },
+    {
+      "t_s": 87.98,
+      "at": "2026-09-28T18:00:48.840157+00:00",
+      "line": "[citations] not cited (not used in a decision): https://pytorch.org/blog/pytorch2-6"
+    },
+    {
+      "t_s": 87.98,
+      "at": "2026-09-28T18:00:48.840174+00:00",
+      "line": "[citations] not cited (offered, not used): https://pypi.org/project/torch/2.14.0/"
+    },
+    {
+      "t_s": 90.31,
+      "at": "2026-09-28T18:00:51.173214+00:00",
+      "line": "[resolver] torch: 0 verified git source(s), PyPI found (1 release(s) shown), era 2018-12-03; query: 'torch python package version compatible 2018 release history'"
+    },
+    {
+      "t_s": 90.31,
+      "at": "2026-09-28T18:00:51.173276+00:00",
+      "line": "[tavily] 5 result(s) for 'torch python package version compatible 2018 release history'"
+    },
+    {
+      "t_s": 122.97,
+      "at": "2026-09-28T18:01:23.833404+00:00",
+      "line": "[repair 3] env change lacked justification/evidence; re-asked once (same attempt)"
+    },
+    {
+      "t_s": 161.56,
+      "at": "2026-09-28T18:02:02.424816+00:00",
+      "line": "[repair 3] tamper gate PASS (code) \u2014 applying and re-executing"
+    },
+    {
+      "t_s": 161.61,
+      "at": "2026-09-28T18:02:02.471606+00:00",
+      "line": "[repair 3] gate-approved patch failed to apply cleanly: gate-approved patch failed to apply: error: patch failed: requirements.txt:1\nerror: requirements.txt: patch does not apply"
+    },
+    {
+      "t_s": 161.61,
+      "at": "2026-09-28T18:02:02.471693+00:00",
+      "line": "[citations] not cited (not used in a decision): https://pytorch.org/get-started/previous-versions"
+    },
+    {
+      "t_s": 161.61,
+      "at": "2026-09-28T18:02:02.471715+00:00",
+      "line": "[citations] not cited (not used in a decision): https://dev-discuss.pytorch.org/t/torch-compile-support-for-python-3-14-completed/3276"
+    },
+    {
+      "t_s": 161.61,
+      "at": "2026-09-28T18:02:02.471731+00:00",
+      "line": "[citations] not cited (not used in a decision): https://discuss.pytorch.org/t/compatibility-of-python-3-12-with-py-torch/219215"
+    },
+    {
+      "t_s": 161.61,
+      "at": "2026-09-28T18:02:02.471744+00:00",
+      "line": "[citations] not cited (not used in a decision): https://www.python.org/doc/versions"
+    },
+    {
+      "t_s": 161.61,
+      "at": "2026-09-28T18:02:02.471758+00:00",
+      "line": "[citations] not cited (not used in a decision): https://pytorch.org/blog/pytorch2-6"
+    },
+    {
+      "t_s": 161.61,
+      "at": "2026-09-28T18:02:02.471772+00:00",
+      "line": "[citations] not cited (offered, not used): https://pypi.org/project/torch/2.14.0/"
+    },
+    {
+      "t_s": 161.61,
+      "at": "2026-09-28T18:02:02.471807+00:00",
+      "line": "[verdict] BLOCKED after 3 repair attempt(s): DEP_YANKED"
+    }
+  ],
+  "model_calls": [
+    {
+      "model": "nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B",
+      "started_at": "2026-09-28T17:59:21.268002+00:00",
+      "latency_s": 16.14,
+      "finish_reason": "stop",
+      "content_is_none": false,
+      "has_reasoning": true,
+      "usage": {
+        "completion_tokens": 2118,
+        "prompt_tokens": 4929,
+        "total_tokens": 7047,
+        "completion_tokens_details": null,
+        "prompt_tokens_details": null
+      }
+    },
+    {
+      "model": "nvidia/nemotron-3-super-120b-a12b",
+      "started_at": "2026-09-28T17:59:37.412935+00:00",
+      "latency_s": 1.93,
+      "finish_reason": "stop",
+      "content_is_none": false,
+      "has_reasoning": true,
+      "usage": {
+        "completion_tokens": 209,
+        "prompt_tokens": 274,
+        "total_tokens": 483,
+        "completion_tokens_details": {
+          "accepted_prediction_tokens": null,
+          "audio_tokens": null,
+          "reasoning_tokens": 199,
+          "rejected_prediction_tokens": null,
+          "text_tokens": null
+        },
+        "prompt_tokens_details": {
+          "audio_tokens": null,
+          "cache_write_tokens": null,
+          "cached_tokens": 0,
+          "image_tokens": null,
+          "text_tokens": null,
+          "created_cache_tokens": 0,
+          "multimodal_tokens": null
+        },
+        "prompt_cache_hit_tokens": 0,
+        "prompt_cache_miss_tokens": 274
+      }
+    },
+    {
+      "model": "nvidia/nemotron-3-super-120b-a12b",
+      "started_at": "2026-09-28T17:59:55.890972+00:00",
+      "latency_s": 20.95,
+      "finish_reason": "stop",
+      "content_is_none": false,
+      "has_reasoning": true,
+      "usage": {
+        "completion_tokens": 4571,
+        "prompt_tokens": 3570,
+        "total_tokens": 8141,
+        "completion_tokens_details": {
+          "accepted_prediction_tokens": null,
+          "audio_tokens": null,
+          "reasoning_tokens": 4450,
+          "rejected_prediction_tokens": null,
+          "text_tokens": null
+        },
+        "prompt_tokens_details": {
+          "audio_tokens": null,
+          "cache_write_tokens": null,
+          "cached_tokens": 0,
+          "image_tokens": null,
+          "text_tokens": null,
+          "created_cache_tokens": 0,
+          "multimodal_tokens": null
+        },
+        "prompt_cache_hit_tokens": 0,
+        "prompt_cache_miss_tokens": 3570
+      }
+    },
+    {
+      "model": "nvidia/nemotron-3-super-120b-a12b",
+      "started_at": "2026-09-28T18:00:20.104732+00:00",
+      "latency_s": 28.68,
+      "finish_reason": "stop",
+      "content_is_none": false,
+      "has_reasoning": true,
+      "usage": {
+        "completion_tokens": 5103,
+        "prompt_tokens": 3576,
+        "total_tokens": 8679,
+        "completion_tokens_details": {
+          "accepted_prediction_tokens": null,
+          "audio_tokens": null,
+          "reasoning_tokens": 4985,
+          "rejected_prediction_tokens": null,
+          "text_tokens": null
+        },
+        "prompt_tokens_details": {
+          "audio_tokens": null,
+          "cache_write_tokens": null,
+          "cached_tokens": 0,
+          "image_tokens": null,
+          "text_tokens": null,
+          "created_cache_tokens": 0,
+          "multimodal_tokens": null
+        },
+        "prompt_cache_hit_tokens": 0,
+        "prompt_cache_miss_tokens": 3576
+      }
+    },
+    {
+      "model": "nvidia/nemotron-3-super-120b-a12b",
+      "started_at": "2026-09-28T18:00:51.177142+00:00",
+      "latency_s": 32.66,
+      "finish_reason": "stop",
+      "content_is_none": false,
+      "has_reasoning": true,
+      "usage": {
+        "completion_tokens": 4500,
+        "prompt_tokens": 3576,
+        "total_tokens": 8076,
+        "completion_tokens_details": {
+          "accepted_prediction_tokens": null,
+          "audio_tokens": null,
+          "reasoning_tokens": 4367,
+          "rejected_prediction_tokens": null,
+          "text_tokens": null
+        },
+        "prompt_tokens_details": {
+          "audio_tokens": null,
+          "cache_write_tokens": null,
+          "cached_tokens": 0,
+          "image_tokens": null,
+          "text_tokens": null,
+          "created_cache_tokens": 0,
+          "multimodal_tokens": null
+        },
+        "prompt_cache_hit_tokens": 0,
+        "prompt_cache_miss_tokens": 3576
+      }
+    },
+    {
+      "model": "nvidia/nemotron-3-super-120b-a12b",
+      "started_at": "2026-09-28T18:01:23.836970+00:00",
+      "latency_s": 38.59,
+      "finish_reason": "stop",
+      "content_is_none": false,
+      "has_reasoning": true,
+      "usage": {
+        "completion_tokens": 7121,
+        "prompt_tokens": 3692,
+        "total_tokens": 10813,
+        "completion_tokens_details": {
+          "accepted_prediction_tokens": null,
+          "audio_tokens": null,
+          "reasoning_tokens": 6990,
+          "rejected_prediction_tokens": null,
+          "text_tokens": null
+        },
+        "prompt_tokens_details": {
+          "audio_tokens": null,
+          "cache_write_tokens": null,
+          "cached_tokens": 0,
+          "image_tokens": null,
+          "text_tokens": null,
+          "created_cache_tokens": 0,
+          "multimodal_tokens": null
+        },
+        "prompt_cache_hit_tokens": 0,
+        "prompt_cache_miss_tokens": 3692
+      }
+    },
+    {
+      "model": "nvidia/Nemotron-3-Ultra-550b-a55b",
+      "started_at": "2026-09-28T18:02:02.473773+00:00",
+      "latency_s": 1.85,
+      "finish_reason": "stop",
+      "content_is_none": false,
+      "has_reasoning": true,
+      "usage": {
+        "completion_tokens": 430,
+        "prompt_tokens": 676,
+        "total_tokens": 1106,
+        "completion_tokens_details": {
+          "accepted_prediction_tokens": null,
+          "audio_tokens": null,
+          "reasoning_tokens": 345,
+          "rejected_prediction_tokens": null,
+          "text_tokens": null
+        },
+        "prompt_tokens_details": {
+          "audio_tokens": null,
+          "cache_write_tokens": null,
+          "cached_tokens": 0,
+          "image_tokens": null,
+          "text_tokens": null,
+          "multimodal_tokens": null
+        },
+        "prompt_cache_hit_tokens": 0,
+        "prompt_cache_miss_tokens": 676
+      }
+    }
+  ],
+  "cost_guard": {
+    "spent_usd": 0.03907651000000001,
+    "model_spent_usd": 0.02653006,
+    "sandbox_spent_usd": 0.01254645,
+    "remaining_usd": 1.9609234899999999,
+    "model_usage": [
+      {
+        "model": "nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B",
+        "prompt_tokens": 4929,
+        "completion_tokens": 2118,
+        "cost_usd": 0.00080406
+      },
+      {
+        "model": "nvidia/nemotron-3-super-120b-a12b",
+        "prompt_tokens": 274,
+        "completion_tokens": 209,
+        "cost_usd": 0.0002703
+      },
+      {
+        "model": "nvidia/nemotron-3-super-120b-a12b",
+        "prompt_tokens": 3570,
+        "completion_tokens": 4571,
+        "cost_usd": 0.005184900000000001
+      },
+      {
+        "model": "nvidia/nemotron-3-super-120b-a12b",
+        "prompt_tokens": 3576,
+        "completion_tokens": 5103,
+        "cost_usd": 0.0056655
+      },
+      {
+        "model": "nvidia/nemotron-3-super-120b-a12b",
+        "prompt_tokens": 3576,
+        "completion_tokens": 4500,
+        "cost_usd": 0.0051228
+      },
+      {
+        "model": "nvidia/nemotron-3-super-120b-a12b",
+        "prompt_tokens": 3692,
+        "completion_tokens": 7121,
+        "cost_usd": 0.0075165
+      },
+      {
+        "model": "nvidia/Nemotron-3-Ultra-550b-a55b",
+        "prompt_tokens": 676,
+        "completion_tokens": 430,
+        "cost_usd": 0.001966
+      }
+    ],
+    "prices_usd_per_1m": {
+      "nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B": [
+        0.06,
+        0.24
+      ],
+      "nvidia/nemotron-3-super-120b-a12b": [
+        0.3,
+        0.9
+      ],
+      "nvidia/Nemotron-3-Ultra-550b-a55b": [
+        1.0,
+        3.0
+      ]
+    },
+    "prices_source": "https://api.tokenfactory.nebius.com/v1/models?verbose=true (pricing field)",
+    "prices_retrieved": "2026-09-24"
+  }
+}

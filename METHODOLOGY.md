@@ -319,3 +319,31 @@ sha256 `fc100dde4e0bcdd55614c506b7e64a38dc792326de935219ea7d19806f13dbcc` (also 
   and `command_rules`' exclusion regexes all equal the registered values.
 - **Run:** on `harness-v1.1` with no harness change (the batch preflight enforces it). A
   harness bug found by corpus-v2 is recorded, not fixed, and the batch stops.
+
+## Re-queue rule for INFRA_ERROR (operational; registered 2026-09-28, before resuming)
+
+An entry whose run ended **INFRA_ERROR with no baseline execution** (baseline `NOT_RUN`:
+nothing of the repository ran, so no outcome about it was observed) is **re-queued, at
+most 2 times**. Its record is moved, unmodified, to the batch's `void_infra/` folder with
+a note of the re-queue attempt, and the resumed batch (same harness tag, same caps, same
+circuit breaker) runs it again. After a second re-queue that still ends INFRA_ERROR, the
+entry **stays INFRA_ERROR permanently** and is excluded from the denominator (reported as
+such). An INFRA_ERROR after a baseline ran is not re-queued. The rule is mechanical and
+applies identically to corpus-v1 and corpus-v2. First application: corpus-v1 #5
+ExpressGNN and #6 SearchFair (sandbox upload read timeouts during a transient Nebius
+outage; re-queue attempt 1 of 2).
+
+## Known limitations (harness-v1.1, recorded not fixed)
+
+- **Era lock: "no versions" sinks the whole lock.** `time_machine.compile_lock` drops an
+  input only when uv reports it "was not found in the package registry". When uv instead
+  reports "there are no versions of X" (the name exists on PyPI but has no installable
+  version for the era, or is a different project), the whole era lock fails and the run
+  continues without the era environment (model repairs only). Affected so far (corpus-v1 on
+  harness-v1.1): **#1 neuroailab/Neural-Alignment** (`tfutils`, the lab's own library, not
+  installable from PyPI in 2020) and **#4 Lucas2012/ProbabilisticNeuralProgrammedNetwork**
+  (`torch==0.4.0`, no longer installable from PyPI). Present since harness-v1; not fixed
+  because the harness is frozen for both corpora.
+- **Retry window vs. real outages.** The sealed retry policy waits 2 s, 4 s and 8 s (4
+  attempts, about 14 s); a Nebius outage longer than that ends the entry INFRA_ERROR (handled
+  by the circuit breaker and the re-queue rule above).

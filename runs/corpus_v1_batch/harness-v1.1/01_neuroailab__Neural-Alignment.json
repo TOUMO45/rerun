@@ -1,0 +1,973 @@
+{
+  "run_kind": "live end-to-end run",
+  "dev_run": false,
+  "batch": {
+    "harness_tag": "harness-v1.1",
+    "harness_commit": "2c8178e9eb806815021b711a79b0d7d68bc463b6",
+    "head_commit": "2c8178e9eb806815021b711a79b0d7d68bc463b6",
+    "corpus": "corpus-v1",
+    "amendment_sha256": "63d409a3ffc92b016fde502b90e53500a48287b7a286c7078148ac3650b9622d",
+    "corpus_hash": "063b700c38006bcf3160c64674a196cdf2fddb768a0c3de232746181aeef7d5c",
+    "entry_id": 1,
+    "category": "PRIMARY",
+    "rules_matched": [],
+    "per_entry_cap_usd": 2.0,
+    "total_cap_usd": 40.0
+  },
+  "started_at": "2026-09-28T17:46:19.679723+00:00",
+  "corpus_entry": {
+    "name": "neuroailab__Neural-Alignment",
+    "repo_url": "https://github.com/neuroailab/Neural-Alignment",
+    "commit_sha": "d83defbccbfab9e6df51098abe50d4c74f1d481f",
+    "command": "python train.py",
+    "command_source": "README.md line 97"
+  },
+  "config": {
+    "models": {
+      "recon": "nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B",
+      "planner": "nvidia/nemotron-3-super-120b-a12b",
+      "repairer": "nvidia/nemotron-3-super-120b-a12b",
+      "adjudicator": "nvidia/Nemotron-3-Ultra-550b-a55b"
+    },
+    "sandbox_backend": "token_factory",
+    "sandbox_image_default": "python:3.11-slim",
+    "sandbox_wall_clock_seconds": 600.0,
+    "max_attempts": 3,
+    "tavily_configured": true,
+    "cost_cap_usd": 2.0
+  },
+  "intake": {
+    "duration_s": 1.96,
+    "resolved_sha": "d83defbccbfab9e6df51098abe50d4c74f1d481f",
+    "dependency_files": [],
+    "declared_dependencies": [],
+    "entrypoint_candidates": [
+      "test.py",
+      "train.py"
+    ],
+    "notebook_paths": []
+  },
+  "pipeline_duration_s": 179.88,
+  "repair_mode": "model_assisted",
+  "tree_integrity": {
+    "status": "verified",
+    "tree_sha": "b9e0d5973f88d7ced1134e59ff576c39ae7556f7",
+    "files_checked": 28,
+    "excluded_patched": []
+  },
+  "result": {
+    "verdict": "BLOCKED",
+    "taxonomy_code": "RUNTIME_ERROR_OTHER",
+    "indeterminate_reason": "",
+    "reason_code": null,
+    "error_traceback": "",
+    "attempts": [
+      {
+        "attempt_number": 0,
+        "diff_text": "",
+        "gate_decision": "DECLINED",
+        "gate_violations": [],
+        "exit_code": null,
+        "stdout_tail": "",
+        "stderr_tail": "error: No solution found when resolving dependencies\n  cause: Because there are no versions of tfutils and you require tfutils, we can conclude that your requirements are unsatisfiable.\n",
+        "tavily_sources": [],
+        "env_delta": [],
+        "resolved_sources": [],
+        "origin": "time_machine",
+        "time_machine": {
+          "era": {
+            "date": "2020-10-22",
+            "source": "pinned-commit",
+            "detail": {
+              "note": "no dependency files in the repository"
+            }
+          },
+          "python": {
+            "version": "3.8",
+            "reason": "newest CPython first released \u2265180 days before the era date 2020-10-22 (https://devguide.python.org/versions/ (first release dates, retrieved 2026-09-24))",
+            "source": "https://devguide.python.org/versions/ (first release dates, retrieved 2026-09-24)"
+          },
+          "undeclared_imports": [
+            "absl-py",
+            "dill",
+            "numpy",
+            "tensorflow",
+            "tfutils"
+          ],
+          "import_mappings": [
+            {
+              "import": "absl",
+              "distribution": "absl-py",
+              "source": "pigar+rank",
+              "confidence": "normal"
+            }
+          ],
+          "apt_added": [],
+          "apt_reason": "",
+          "lock": {
+            "ok": false,
+            "lock": [],
+            "inputs": [
+              "absl-py",
+              "dill",
+              "numpy",
+              "tensorflow",
+              "tfutils"
+            ],
+            "not_on_index": [],
+            "command": "pip compile - --no-header --no-annotate --quiet --exclude-newer 2020-10-23T00:00:00Z --python-version 3.8 --python-platform x86_64-unknown-linux-gnu --python C:\\Users\\E16\\AppData\\Roaming\\uv\\python\\cpython-3.8.20-windows-x86_64-none\\python.exe",
+            "error": "error: No solution found when resolving dependencies\n  cause: Because there are no versions of tfutils and you require tfutils, we can conclude that your requirements are unsatisfiable.\n"
+          }
+        }
+      },
+      {
+        "attempt_number": 1,
+        "diff_text": "",
+        "gate_decision": "PASS",
+        "gate_violations": [],
+        "exit_code": 1,
+        "stdout_tail": "",
+        "stderr_tail": "Traceback (most recent call last):\n  File \"//train.py\", line 14, in <module>\n    import tensorflow as tf\nModuleNotFoundError: No module named 'tensorflow'\n",
+        "tavily_sources": [],
+        "env_delta": [
+          {
+            "command": null,
+            "op": "add",
+            "package": "absl-py",
+            "version": "0.10.0",
+            "git_url": null,
+            "commit": null,
+            "justification": "Adding missing absl-py package to resolve ModuleNotFoundError for absl",
+            "evidence": "ModuleNotFoundError: No module named 'absl'"
+          }
+        ],
+        "resolved_sources": [
+          {
+            "kind": "pypi",
+            "package": "absl-py",
+            "version": "0.10.0",
+            "uploaded": "2020-08-19",
+            "cpython_tags": [],
+            "url": "https://pypi.org/project/absl-py/0.10.0/"
+          }
+        ],
+        "origin": "model",
+        "time_machine": null
+      },
+      {
+        "attempt_number": 2,
+        "diff_text": "",
+        "gate_decision": "PASS",
+        "gate_violations": [],
+        "exit_code": 1,
+        "stdout_tail": "",
+        "stderr_tail": "thon3.7/site-packages/tensorflow_core/core/framework/graph_pb2.py\", line 16, in <module>\n    from tensorflow.core.framework import node_def_pb2 as tensorflow_dot_core_dot_framework_dot_node__def__pb2\n  File \"/usr/local/lib/python3.7/site-packages/tensorflow_core/core/framework/node_def_pb2.py\", line 16, in <module>\n    from tensorflow.core.framework import attr_value_pb2 as tensorflow_dot_core_dot_framework_dot_attr__value__pb2\n  File \"/usr/local/lib/python3.7/site-packages/tensorflow_core/core/framework/attr_value_pb2.py\", line 16, in <module>\n    from tensorflow.core.framework import tensor_pb2 as tensorflow_dot_core_dot_framework_dot_tensor__pb2\n  File \"/usr/local/lib/python3.7/site-packages/tensorflow_core/core/framework/tensor_pb2.py\", line 16, in <module>\n    from tensorflow.core.framework import resource_handle_pb2 as tensorflow_dot_core_dot_framework_dot_resource__handle__pb2\n  File \"/usr/local/lib/python3.7/site-packages/tensorflow_core/core/framework/resource_handle_pb2.py\", line 16, in <module>\n    from tensorflow.core.framework import tensor_shape_pb2 as tensorflow_dot_core_dot_framework_dot_tensor__shape__pb2\n  File \"/usr/local/lib/python3.7/site-packages/tensorflow_core/core/framework/tensor_shape_pb2.py\", line 42, in <module>\n    serialized_options=None, file=DESCRIPTOR),\n  File \"/usr/local/lib/python3.7/site-packages/google/protobuf/descriptor.py\", line 561, in __new__\n    _message.Message._CheckCalledFromGeneratedFile()\nTypeError: Descriptors cannot not be created directly.\nIf this call came from a _pb2.py file, your generated code is out of date and must be regenerated with protoc >= 3.19.0.\nIf you cannot immediately regenerate your protos, some other possible workarounds are:\n 1. Downgrade the protobuf package to 3.20.x or lower.\n 2. Set PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION=python (but this will use pure-Python parsing and will be much slower).\n\nMore information: https://developers.google.com/protocol-buffers/docs/news/2022-05-06#python-updates\n",
+        "tavily_sources": [],
+        "env_delta": [
+          {
+            "command": null,
+            "op": "python",
+            "package": null,
+            "version": "3.7",
+            "git_url": null,
+            "commit": null,
+            "justification": "TensorFlow 1.15.4 requires Python 3.7 compatibility",
+            "evidence": "ModuleNotFoundError: No module named 'tensorflow'"
+          },
+          {
+            "command": null,
+            "op": "add",
+            "package": "tensorflow",
+            "version": "1.15.4",
+            "git_url": null,
+            "commit": null,
+            "justification": "Install TensorFlow 1.15.4 to provide the missing module",
+            "evidence": "ModuleNotFoundError: No module named 'tensorflow'"
+          },
+          {
+            "command": null,
+            "op": "add",
+            "package": "numpy",
+            "version": null,
+            "git_url": null,
+            "commit": null,
+            "justification": "NumPy is a required third-party dependency not present in the environment",
+            "evidence": "ModuleNotFoundError: No module named 'tensorflow'"
+          }
+        ],
+        "resolved_sources": [
+          {
+            "kind": "pypi",
+            "package": "tensorflow",
+            "version": "1.15.4",
+            "uploaded": "2020-09-24",
+            "cpython_tags": [
+              "cp35",
+              "cp36",
+              "cp37"
+            ],
+            "url": "https://pypi.org/project/tensorflow/1.15.4/"
+          }
+        ],
+        "origin": "model",
+        "time_machine": null
+      },
+      {
+        "attempt_number": 3,
+        "diff_text": "--- a/test.py\n+++ b/test.py\n",
+        "gate_decision": "PASS",
+        "gate_violations": [],
+        "exit_code": null,
+        "stdout_tail": "",
+        "stderr_tail": "gate-approved patch failed to apply: error: No valid patches in input (allow with \"--allow-empty\")",
+        "tavily_sources": [],
+        "env_delta": [],
+        "resolved_sources": [],
+        "origin": "model",
+        "time_machine": null
+      }
+    ],
+    "certificate_prose": "The repository's code was blocked after three repair attempts due to a runtime error (RUNTIME_ERROR_OTHER). The final repair attempt failed because the gate-approved patch could not be applied cleanly, with the error \"No valid patches in input (allow with \"--allow-empty\")\". The execution did not complete successfully. Verifies that the artifact executes. Does not verify the paper's numerical results."
+  },
+  "certificate": {
+    "repo_url": "https://github.com/neuroailab/Neural-Alignment",
+    "commit_sha": "d83defbccbfab9e6df51098abe50d4c74f1d481f",
+    "build_plan": {
+      "base_image": "python:3.7-slim",
+      "apt_install": [],
+      "install_commands": [
+        "true  # no declared dependency file found; nothing to install",
+        "pip install absl-py==0.10.0",
+        "pip install tensorflow==1.15.4 numpy"
+      ],
+      "execute_command": "python train.py",
+      "notes": [
+        "execute command is the repository's documented command (corpus ground truth)",
+        "env delta: add absl-py \u2014 Adding missing absl-py package to resolve ModuleNotFoundError for absl",
+        "env delta: python 3.7 \u2014 TensorFlow 1.15.4 requires Python 3.7 compatibility",
+        "env delta: add tensorflow \u2014 Install TensorFlow 1.15.4 to provide the missing module",
+        "env delta: add numpy \u2014 NumPy is a required third-party dependency not present in the environment"
+      ]
+    },
+    "full_log": "[intake] cloned https://github.com/neuroailab/Neural-Alignment@d83defbccbfab9e6df51098abe50d4c74f1d481f\n[recon] calling Nemotron Nano\n[recon] entrypoint=test.py confidence=0.85\n[planner] build plan: {'base_image': 'python:3.11-slim', 'apt_install': [], 'install_commands': ['true  # no declared dependency file found; nothing to install'], 'execute_command': 'python train.py', 'notes': [\"execute command is the repository's documented command (corpus ground truth)\"]}\n[integrity] verified 28 file(s) against tree b9e0d5973f88d7ced1134e59ff576c39ae7556f7\n[sandbox] starting build+execute (wall_clock_seconds=600)\n[cost_guard] recorded $0.0010 sandbox spend, $1.9984 remaining today\n[sandbox] id=b0fe1e0a-a29e-46ed-8f18-b4ebe4dbe6c9 exit_code=1\n[baseline] as-is run: FAILS (exit code 1)\n[classifier] DEP_MISSING: ModuleNotFoundError: No module named 'absl'\n[era] 2020-10-22 from pinned-commit {'note': 'no dependency files in the repository'}\n[import-map] absl -> absl-py (pigar+rank, confidence normal)\n[time-machine] could not lock the era environment: error: No solution found when resolving dependencies\n  cause: Because there are no versions of tfutils and you require tfutils, we can conclude that your requirements are unsatisfiable.\n\n[import-map] absl -> absl-py (pigar+rank, confidence normal) for the resolver\n[resolver] absl-py: 0 verified git source(s), PyPI found (6 release(s) shown), era 2020-10-22; query: 'absl-py python package version compatible 2020 release history'\n[tavily] 5 result(s) for 'absl-py python package version compatible 2020 release history'\n[repair 1] tamper gate PASS (env) \u2014 applying and re-executing\n[repair 1] env delta applied; build plan now: {'base_image': 'python:3.11-slim', 'apt_install': [], 'install_commands': ['true  # no declared dependency file found; nothing to install', 'pip install absl-py==0.10.0'], 'execute_command': 'python train.py', 'notes': [\"execute command is the repository's documented command (corpus ground truth)\", 'env delta: add absl-py \u2014 Adding missing absl-py package to resolve ModuleNotFoundError for absl']}\n[citations] not cited (not used in a decision): https://en.wikipedia.org/wiki/Python_(programming_language)\n[citations] not cited (not used in a decision): https://github.com/abseil/abseil-py\n[citations] not cited (not used in a decision): https://discuss.python.org/t/using-abi-instead-of-release-version-in-site-packages-path/5663\n[citations] not cited (not used in a decision): https://www.chainguard.dev/unchained/this-shit-is-hard-the-complexities-of-fixing-python-library-security-issues-at-scale\n[citations] not cited (not used in a decision): https://www.cbinsights.com/company/python-package-index/alternatives-competitors\n[citations] not cited (offered, not used): https://pypi.org/project/absl-py/0.9.0/\n[citations] not cited (offered, not used): https://pypi.org/project/absl-py/0.8.1/\n[citations] not cited (offered, not used): https://pypi.org/project/absl-py/0.8.0/\n[citations] not cited (offered, not used): https://pypi.org/project/absl-py/0.7.1/\n[citations] not cited (offered, not used): https://pypi.org/project/absl-py/2.5.0/\n[integrity] verified 28 file(s) against tree b9e0d5973f88d7ced1134e59ff576c39ae7556f7\n[sandbox] starting build+execute (wall_clock_seconds=600)\n[cost_guard] recorded $0.0136 sandbox spend, $1.9814 remaining today\n[repair 1] re-execution id=c2ec111f-23d6-497d-9771-e017ff8a4386 exit_code=1\n[classifier] DEP_MISSING: ModuleNotFoundError: No module named 'tensorflow'\n[resolver] tensorflow: 0 verified git source(s), PyPI found (6 release(s) shown), era 2020-10-22; query: 'tensorflow python package version compatible 2020 release history'\n[tavily] 5 result(s) for 'tensorflow python package version compatible 2020 release history'\n[repair 2] tamper gate PASS (env) \u2014 applying and re-executing\n[repair 2] env delta applied; build plan now: {'base_image': 'python:3.7-slim', 'apt_install': [], 'install_commands': ['true  # no declared dependency file found; nothing to install', 'pip install absl-py==0.10.0', 'pip install tensorflow==1.15.4 numpy'], 'execute_command': 'python train.py', 'notes': [\"execute command is the repository's documented command (corpus ground truth)\", 'env delta: add absl-py \u2014 Adding missing absl-py package to resolve ModuleNotFoundError for absl', 'env delta: python 3.7 \u2014 TensorFlow 1.15.4 requires Python 3.7 compatibility', 'env delta: add tensorflow \u2014 Install TensorFlow 1.15.4 to provide the missing module', 'env delta: add numpy \u2014 NumPy is a required third-party dependency not present in the environment']}\n[citations] not cited (not used in a decision): https://discuss.ai.google.dev/t/python-and-tensorflow-compatible-versions/32173\n[citations] not cited (not used in a decision): https://github.com/tensorflow/tensorflow/releases\n[citations] not cited (not used in a decision): https://www.tensorflow.org/guide/versions\n[citations] not cited (not used in a decision): https://en.wikipedia.org/wiki/TensorFlow\n[citations] not cited (not used in a decision): https://www.tensorflow.org/install/pip\n[citations] not cited (offered, not used): https://pypi.org/project/tensorflow/2.0.3/\n[citations] not cited (offered, not used): https://pypi.org/project/tensorflow/2.1.2/\n[citations] not cited (offered, not used): https://pypi.org/project/tensorflow/2.2.1/\n[citations] not cited (offered, not used): https://pypi.org/project/tensorflow/2.3.1/\n[citations] not cited (offered, not used): https://pypi.org/project/tensorflow/2.21.0/\n[integrity] verified 28 file(s) against tree b9e0d5973f88d7ced1134e59ff576c39ae7556f7\n[sandbox] starting build+execute (wall_clock_seconds=600)\n[cost_guard] recorded $0.1512 sandbox spend, $1.8260 remaining today\n[repair 2] re-execution id=94166223-687c-4af0-8844-fe3f25f80e8d exit_code=1\n[classifier] RUNTIME_ERROR_OTHER: TypeError: Descriptors cannot not be created directly.\n[tavily] 3 result(s) for 'python runtime error other fix: TypeError: Descriptors cannot not be created directly.'\n[repair 3] tamper gate PASS (code) \u2014 applying and re-executing\n[repair 3] gate-approved patch failed to apply cleanly: gate-approved patch failed to apply: error: No valid patches in input (allow with \"--allow-empty\")\n[citations] not cited (not used in a decision): https://itsourcecode.com/typeerror/typeerror-descriptors-cannot-not-be-created-directly-solved\n[citations] not cited (not used in a decision): https://www.geeksforgeeks.org/python/how-to-fix-the-typeerror-descriptors-cannot-be-created-directly-in-python\n[citations] not cited (not used in a decision): https://learn.microsoft.com/en-us/azure/machine-learning/how-to-troubleshoot-protobuf-descriptor-error?view=azureml-api-2\n[verdict] BLOCKED after 3 repair attempt(s): RUNTIME_ERROR_OTHER",
+    "diffs": [
+      {
+        "attempt_number": 0,
+        "diff_text": "",
+        "gate_decision": "DECLINED",
+        "gate_violations": [],
+        "exit_code": null,
+        "stdout_tail": "",
+        "stderr_tail": "error: No solution found when resolving dependencies\n  cause: Because there are no versions of tfutils and you require tfutils, we can conclude that your requirements are unsatisfiable.\n",
+        "tavily_sources": [],
+        "env_delta": [],
+        "resolved_sources": [],
+        "origin": "time_machine",
+        "time_machine": {
+          "era": {
+            "date": "2020-10-22",
+            "source": "pinned-commit",
+            "detail": {
+              "note": "no dependency files in the repository"
+            }
+          },
+          "python": {
+            "version": "3.8",
+            "reason": "newest CPython first released \u2265180 days before the era date 2020-10-22 (https://devguide.python.org/versions/ (first release dates, retrieved 2026-09-24))",
+            "source": "https://devguide.python.org/versions/ (first release dates, retrieved 2026-09-24)"
+          },
+          "undeclared_imports": [
+            "absl-py",
+            "dill",
+            "numpy",
+            "tensorflow",
+            "tfutils"
+          ],
+          "import_mappings": [
+            {
+              "import": "absl",
+              "distribution": "absl-py",
+              "source": "pigar+rank",
+              "confidence": "normal"
+            }
+          ],
+          "apt_added": [],
+          "apt_reason": "",
+          "lock": {
+            "ok": false,
+            "lock": [],
+            "inputs": [
+              "absl-py",
+              "dill",
+              "numpy",
+              "tensorflow",
+              "tfutils"
+            ],
+            "not_on_index": [],
+            "command": "pip compile - --no-header --no-annotate --quiet --exclude-newer 2020-10-23T00:00:00Z --python-version 3.8 --python-platform x86_64-unknown-linux-gnu --python C:\\Users\\E16\\AppData\\Roaming\\uv\\python\\cpython-3.8.20-windows-x86_64-none\\python.exe",
+            "error": "error: No solution found when resolving dependencies\n  cause: Because there are no versions of tfutils and you require tfutils, we can conclude that your requirements are unsatisfiable.\n"
+          }
+        }
+      },
+      {
+        "attempt_number": 1,
+        "diff_text": "",
+        "gate_decision": "PASS",
+        "gate_violations": [],
+        "exit_code": 1,
+        "stdout_tail": "",
+        "stderr_tail": "Traceback (most recent call last):\n  File \"//train.py\", line 14, in <module>\n    import tensorflow as tf\nModuleNotFoundError: No module named 'tensorflow'\n",
+        "tavily_sources": [],
+        "env_delta": [
+          {
+            "command": null,
+            "op": "add",
+            "package": "absl-py",
+            "version": "0.10.0",
+            "git_url": null,
+            "commit": null,
+            "justification": "Adding missing absl-py package to resolve ModuleNotFoundError for absl",
+            "evidence": "ModuleNotFoundError: No module named 'absl'"
+          }
+        ],
+        "resolved_sources": [
+          {
+            "kind": "pypi",
+            "package": "absl-py",
+            "version": "0.10.0",
+            "uploaded": "2020-08-19",
+            "cpython_tags": [],
+            "url": "https://pypi.org/project/absl-py/0.10.0/"
+          }
+        ],
+        "origin": "model",
+        "time_machine": null
+      },
+      {
+        "attempt_number": 2,
+        "diff_text": "",
+        "gate_decision": "PASS",
+        "gate_violations": [],
+        "exit_code": 1,
+        "stdout_tail": "",
+        "stderr_tail": "thon3.7/site-packages/tensorflow_core/core/framework/graph_pb2.py\", line 16, in <module>\n    from tensorflow.core.framework import node_def_pb2 as tensorflow_dot_core_dot_framework_dot_node__def__pb2\n  File \"/usr/local/lib/python3.7/site-packages/tensorflow_core/core/framework/node_def_pb2.py\", line 16, in <module>\n    from tensorflow.core.framework import attr_value_pb2 as tensorflow_dot_core_dot_framework_dot_attr__value__pb2\n  File \"/usr/local/lib/python3.7/site-packages/tensorflow_core/core/framework/attr_value_pb2.py\", line 16, in <module>\n    from tensorflow.core.framework import tensor_pb2 as tensorflow_dot_core_dot_framework_dot_tensor__pb2\n  File \"/usr/local/lib/python3.7/site-packages/tensorflow_core/core/framework/tensor_pb2.py\", line 16, in <module>\n    from tensorflow.core.framework import resource_handle_pb2 as tensorflow_dot_core_dot_framework_dot_resource__handle__pb2\n  File \"/usr/local/lib/python3.7/site-packages/tensorflow_core/core/framework/resource_handle_pb2.py\", line 16, in <module>\n    from tensorflow.core.framework import tensor_shape_pb2 as tensorflow_dot_core_dot_framework_dot_tensor__shape__pb2\n  File \"/usr/local/lib/python3.7/site-packages/tensorflow_core/core/framework/tensor_shape_pb2.py\", line 42, in <module>\n    serialized_options=None, file=DESCRIPTOR),\n  File \"/usr/local/lib/python3.7/site-packages/google/protobuf/descriptor.py\", line 561, in __new__\n    _message.Message._CheckCalledFromGeneratedFile()\nTypeError: Descriptors cannot not be created directly.\nIf this call came from a _pb2.py file, your generated code is out of date and must be regenerated with protoc >= 3.19.0.\nIf you cannot immediately regenerate your protos, some other possible workarounds are:\n 1. Downgrade the protobuf package to 3.20.x or lower.\n 2. Set PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION=python (but this will use pure-Python parsing and will be much slower).\n\nMore information: https://developers.google.com/protocol-buffers/docs/news/2022-05-06#python-updates\n",
+        "tavily_sources": [],
+        "env_delta": [
+          {
+            "command": null,
+            "op": "python",
+            "package": null,
+            "version": "3.7",
+            "git_url": null,
+            "commit": null,
+            "justification": "TensorFlow 1.15.4 requires Python 3.7 compatibility",
+            "evidence": "ModuleNotFoundError: No module named 'tensorflow'"
+          },
+          {
+            "command": null,
+            "op": "add",
+            "package": "tensorflow",
+            "version": "1.15.4",
+            "git_url": null,
+            "commit": null,
+            "justification": "Install TensorFlow 1.15.4 to provide the missing module",
+            "evidence": "ModuleNotFoundError: No module named 'tensorflow'"
+          },
+          {
+            "command": null,
+            "op": "add",
+            "package": "numpy",
+            "version": null,
+            "git_url": null,
+            "commit": null,
+            "justification": "NumPy is a required third-party dependency not present in the environment",
+            "evidence": "ModuleNotFoundError: No module named 'tensorflow'"
+          }
+        ],
+        "resolved_sources": [
+          {
+            "kind": "pypi",
+            "package": "tensorflow",
+            "version": "1.15.4",
+            "uploaded": "2020-09-24",
+            "cpython_tags": [
+              "cp35",
+              "cp36",
+              "cp37"
+            ],
+            "url": "https://pypi.org/project/tensorflow/1.15.4/"
+          }
+        ],
+        "origin": "model",
+        "time_machine": null
+      },
+      {
+        "attempt_number": 3,
+        "diff_text": "--- a/test.py\n+++ b/test.py\n",
+        "gate_decision": "PASS",
+        "gate_violations": [],
+        "exit_code": null,
+        "stdout_tail": "",
+        "stderr_tail": "gate-approved patch failed to apply: error: No valid patches in input (allow with \"--allow-empty\")",
+        "tavily_sources": [],
+        "env_delta": [],
+        "resolved_sources": [],
+        "origin": "model",
+        "time_machine": null
+      }
+    ],
+    "verdict": "BLOCKED",
+    "timestamp": "2026-09-28T17:49:21.516175+00:00",
+    "bundle_version": 3,
+    "baseline": {
+      "result": "FAILS",
+      "exit_code": 1,
+      "base_image": "python:3.11-slim",
+      "install_commands": [
+        "true  # no declared dependency file found; nothing to install"
+      ],
+      "execute_command": "python train.py",
+      "sandbox_id": "b0fe1e0a-a29e-46ed-8f18-b4ebe4dbe6c9",
+      "taxonomy_code": "DEP_MISSING",
+      "evidence": "ModuleNotFoundError: No module named 'absl'"
+    },
+    "recovery": false,
+    "tree_integrity": {
+      "status": "verified",
+      "tree_sha": "b9e0d5973f88d7ced1134e59ff576c39ae7556f7",
+      "files_checked": 28,
+      "excluded_patched": []
+    },
+    "corpus_hash": "063b700c38006bcf3160c64674a196cdf2fddb768a0c3de232746181aeef7d5c",
+    "reproduction_passport_hash": "d6e5264a078f5b7a52f2391b32f8a803c12f559ae0f36fb75ae6d21b93860384"
+  },
+  "finished_at": "2026-09-28T17:49:21.550978+00:00",
+  "events": [
+    {
+      "t_s": 0.0,
+      "at": "2026-09-28T17:46:21.639111+00:00",
+      "line": "[intake] cloned https://github.com/neuroailab/Neural-Alignment@d83defbccbfab9e6df51098abe50d4c74f1d481f"
+    },
+    {
+      "t_s": 0.01,
+      "at": "2026-09-28T17:46:21.650937+00:00",
+      "line": "[recon] calling Nemotron Nano"
+    },
+    {
+      "t_s": 15.32,
+      "at": "2026-09-28T17:46:36.954413+00:00",
+      "line": "[recon] entrypoint=test.py confidence=0.85"
+    },
+    {
+      "t_s": 19.84,
+      "at": "2026-09-28T17:46:41.479469+00:00",
+      "line": "[planner] build plan: {'base_image': 'python:3.11-slim', 'apt_install': [], 'install_commands': ['true  # no declared dependency file found; nothing to install'], 'execute_command': 'python train.py', 'notes': [\"execute command is the repository's documented command (corpus ground truth)\"]}"
+    },
+    {
+      "t_s": 20.03,
+      "at": "2026-09-28T17:46:41.665024+00:00",
+      "line": "[integrity] verified 28 file(s) against tree b9e0d5973f88d7ced1134e59ff576c39ae7556f7"
+    },
+    {
+      "t_s": 20.03,
+      "at": "2026-09-28T17:46:41.665082+00:00",
+      "line": "[sandbox] starting build+execute (wall_clock_seconds=600)"
+    },
+    {
+      "t_s": 29.12,
+      "at": "2026-09-28T17:46:50.755565+00:00",
+      "line": "[cost_guard] recorded $0.0010 sandbox spend, $1.9984 remaining today"
+    },
+    {
+      "t_s": 29.12,
+      "at": "2026-09-28T17:46:50.755649+00:00",
+      "line": "[sandbox] id=b0fe1e0a-a29e-46ed-8f18-b4ebe4dbe6c9 exit_code=1"
+    },
+    {
+      "t_s": 29.12,
+      "at": "2026-09-28T17:46:50.755679+00:00",
+      "line": "[baseline] as-is run: FAILS (exit code 1)"
+    },
+    {
+      "t_s": 29.12,
+      "at": "2026-09-28T17:46:50.759843+00:00",
+      "line": "[classifier] DEP_MISSING: ModuleNotFoundError: No module named 'absl'"
+    },
+    {
+      "t_s": 29.19,
+      "at": "2026-09-28T17:46:50.827164+00:00",
+      "line": "[era] 2020-10-22 from pinned-commit {'note': 'no dependency files in the repository'}"
+    },
+    {
+      "t_s": 29.35,
+      "at": "2026-09-28T17:46:50.985756+00:00",
+      "line": "[import-map] absl -> absl-py (pigar+rank, confidence normal)"
+    },
+    {
+      "t_s": 36.64,
+      "at": "2026-09-28T17:46:58.278575+00:00",
+      "line": "[time-machine] could not lock the era environment: error: No solution found when resolving dependencies\n  cause: Because there are no versions of tfutils and you require tfutils, we can conclude that your requirements are unsatisfiable.\n"
+    },
+    {
+      "t_s": 39.36,
+      "at": "2026-09-28T17:47:00.997312+00:00",
+      "line": "[import-map] absl -> absl-py (pigar+rank, confidence normal) for the resolver"
+    },
+    {
+      "t_s": 39.36,
+      "at": "2026-09-28T17:47:00.997448+00:00",
+      "line": "[resolver] absl-py: 0 verified git source(s), PyPI found (6 release(s) shown), era 2020-10-22; query: 'absl-py python package version compatible 2020 release history'"
+    },
+    {
+      "t_s": 39.36,
+      "at": "2026-09-28T17:47:00.997482+00:00",
+      "line": "[tavily] 5 result(s) for 'absl-py python package version compatible 2020 release history'"
+    },
+    {
+      "t_s": 60.17,
+      "at": "2026-09-28T17:47:21.811179+00:00",
+      "line": "[repair 1] tamper gate PASS (env) \u2014 applying and re-executing"
+    },
+    {
+      "t_s": 60.17,
+      "at": "2026-09-28T17:47:21.811316+00:00",
+      "line": "[repair 1] env delta applied; build plan now: {'base_image': 'python:3.11-slim', 'apt_install': [], 'install_commands': ['true  # no declared dependency file found; nothing to install', 'pip install absl-py==0.10.0'], 'execute_command': 'python train.py', 'notes': [\"execute command is the repository's documented command (corpus ground truth)\", 'env delta: add absl-py \u2014 Adding missing absl-py package to resolve ModuleNotFoundError for absl']}"
+    },
+    {
+      "t_s": 60.17,
+      "at": "2026-09-28T17:47:21.811374+00:00",
+      "line": "[citations] not cited (not used in a decision): https://en.wikipedia.org/wiki/Python_(programming_language)"
+    },
+    {
+      "t_s": 60.17,
+      "at": "2026-09-28T17:47:21.811393+00:00",
+      "line": "[citations] not cited (not used in a decision): https://github.com/abseil/abseil-py"
+    },
+    {
+      "t_s": 60.17,
+      "at": "2026-09-28T17:47:21.811408+00:00",
+      "line": "[citations] not cited (not used in a decision): https://discuss.python.org/t/using-abi-instead-of-release-version-in-site-packages-path/5663"
+    },
+    {
+      "t_s": 60.17,
+      "at": "2026-09-28T17:47:21.811422+00:00",
+      "line": "[citations] not cited (not used in a decision): https://www.chainguard.dev/unchained/this-shit-is-hard-the-complexities-of-fixing-python-library-security-issues-at-scale"
+    },
+    {
+      "t_s": 60.17,
+      "at": "2026-09-28T17:47:21.811435+00:00",
+      "line": "[citations] not cited (not used in a decision): https://www.cbinsights.com/company/python-package-index/alternatives-competitors"
+    },
+    {
+      "t_s": 60.17,
+      "at": "2026-09-28T17:47:21.811450+00:00",
+      "line": "[citations] not cited (offered, not used): https://pypi.org/project/absl-py/0.9.0/"
+    },
+    {
+      "t_s": 60.17,
+      "at": "2026-09-28T17:47:21.811465+00:00",
+      "line": "[citations] not cited (offered, not used): https://pypi.org/project/absl-py/0.8.1/"
+    },
+    {
+      "t_s": 60.17,
+      "at": "2026-09-28T17:47:21.811479+00:00",
+      "line": "[citations] not cited (offered, not used): https://pypi.org/project/absl-py/0.8.0/"
+    },
+    {
+      "t_s": 60.17,
+      "at": "2026-09-28T17:47:21.811492+00:00",
+      "line": "[citations] not cited (offered, not used): https://pypi.org/project/absl-py/0.7.1/"
+    },
+    {
+      "t_s": 60.17,
+      "at": "2026-09-28T17:47:21.811506+00:00",
+      "line": "[citations] not cited (offered, not used): https://pypi.org/project/absl-py/2.5.0/"
+    },
+    {
+      "t_s": 60.29,
+      "at": "2026-09-28T17:47:21.933136+00:00",
+      "line": "[integrity] verified 28 file(s) against tree b9e0d5973f88d7ced1134e59ff576c39ae7556f7"
+    },
+    {
+      "t_s": 60.29,
+      "at": "2026-09-28T17:47:21.933195+00:00",
+      "line": "[sandbox] starting build+execute (wall_clock_seconds=600)"
+    },
+    {
+      "t_s": 73.54,
+      "at": "2026-09-28T17:47:35.181730+00:00",
+      "line": "[cost_guard] recorded $0.0136 sandbox spend, $1.9814 remaining today"
+    },
+    {
+      "t_s": 73.54,
+      "at": "2026-09-28T17:47:35.181827+00:00",
+      "line": "[repair 1] re-execution id=c2ec111f-23d6-497d-9771-e017ff8a4386 exit_code=1"
+    },
+    {
+      "t_s": 73.54,
+      "at": "2026-09-28T17:47:35.181986+00:00",
+      "line": "[classifier] DEP_MISSING: ModuleNotFoundError: No module named 'tensorflow'"
+    },
+    {
+      "t_s": 76.85,
+      "at": "2026-09-28T17:47:38.485251+00:00",
+      "line": "[resolver] tensorflow: 0 verified git source(s), PyPI found (6 release(s) shown), era 2020-10-22; query: 'tensorflow python package version compatible 2020 release history'"
+    },
+    {
+      "t_s": 76.85,
+      "at": "2026-09-28T17:47:38.485329+00:00",
+      "line": "[tavily] 5 result(s) for 'tensorflow python package version compatible 2020 release history'"
+    },
+    {
+      "t_s": 98.27,
+      "at": "2026-09-28T17:47:59.907127+00:00",
+      "line": "[repair 2] tamper gate PASS (env) \u2014 applying and re-executing"
+    },
+    {
+      "t_s": 98.27,
+      "at": "2026-09-28T17:47:59.907234+00:00",
+      "line": "[repair 2] env delta applied; build plan now: {'base_image': 'python:3.7-slim', 'apt_install': [], 'install_commands': ['true  # no declared dependency file found; nothing to install', 'pip install absl-py==0.10.0', 'pip install tensorflow==1.15.4 numpy'], 'execute_command': 'python train.py', 'notes': [\"execute command is the repository's documented command (corpus ground truth)\", 'env delta: add absl-py \u2014 Adding missing absl-py package to resolve ModuleNotFoundError for absl', 'env delta: python 3.7 \u2014 TensorFlow 1.15.4 requires Python 3.7 compatibility', 'env delta: add tensorflow \u2014 Install TensorFlow 1.15.4 to provide the missing module', 'env delta: add numpy \u2014 NumPy is a required third-party dependency not present in the environment']}"
+    },
+    {
+      "t_s": 98.27,
+      "at": "2026-09-28T17:47:59.907277+00:00",
+      "line": "[citations] not cited (not used in a decision): https://discuss.ai.google.dev/t/python-and-tensorflow-compatible-versions/32173"
+    },
+    {
+      "t_s": 98.27,
+      "at": "2026-09-28T17:47:59.907291+00:00",
+      "line": "[citations] not cited (not used in a decision): https://github.com/tensorflow/tensorflow/releases"
+    },
+    {
+      "t_s": 98.27,
+      "at": "2026-09-28T17:47:59.907301+00:00",
+      "line": "[citations] not cited (not used in a decision): https://www.tensorflow.org/guide/versions"
+    },
+    {
+      "t_s": 98.27,
+      "at": "2026-09-28T17:47:59.907310+00:00",
+      "line": "[citations] not cited (not used in a decision): https://en.wikipedia.org/wiki/TensorFlow"
+    },
+    {
+      "t_s": 98.27,
+      "at": "2026-09-28T17:47:59.907318+00:00",
+      "line": "[citations] not cited (not used in a decision): https://www.tensorflow.org/install/pip"
+    },
+    {
+      "t_s": 98.27,
+      "at": "2026-09-28T17:47:59.907328+00:00",
+      "line": "[citations] not cited (offered, not used): https://pypi.org/project/tensorflow/2.0.3/"
+    },
+    {
+      "t_s": 98.27,
+      "at": "2026-09-28T17:47:59.907336+00:00",
+      "line": "[citations] not cited (offered, not used): https://pypi.org/project/tensorflow/2.1.2/"
+    },
+    {
+      "t_s": 98.27,
+      "at": "2026-09-28T17:47:59.907345+00:00",
+      "line": "[citations] not cited (offered, not used): https://pypi.org/project/tensorflow/2.2.1/"
+    },
+    {
+      "t_s": 98.27,
+      "at": "2026-09-28T17:47:59.907353+00:00",
+      "line": "[citations] not cited (offered, not used): https://pypi.org/project/tensorflow/2.3.1/"
+    },
+    {
+      "t_s": 98.27,
+      "at": "2026-09-28T17:47:59.907361+00:00",
+      "line": "[citations] not cited (offered, not used): https://pypi.org/project/tensorflow/2.21.0/"
+    },
+    {
+      "t_s": 98.41,
+      "at": "2026-09-28T17:48:00.052349+00:00",
+      "line": "[integrity] verified 28 file(s) against tree b9e0d5973f88d7ced1134e59ff576c39ae7556f7"
+    },
+    {
+      "t_s": 98.41,
+      "at": "2026-09-28T17:48:00.052407+00:00",
+      "line": "[sandbox] starting build+execute (wall_clock_seconds=600)"
+    },
+    {
+      "t_s": 157.13,
+      "at": "2026-09-28T17:48:58.769296+00:00",
+      "line": "[cost_guard] recorded $0.1512 sandbox spend, $1.8260 remaining today"
+    },
+    {
+      "t_s": 157.13,
+      "at": "2026-09-28T17:48:58.769382+00:00",
+      "line": "[repair 2] re-execution id=94166223-687c-4af0-8844-fe3f25f80e8d exit_code=1"
+    },
+    {
+      "t_s": 157.13,
+      "at": "2026-09-28T17:48:58.771038+00:00",
+      "line": "[classifier] RUNTIME_ERROR_OTHER: TypeError: Descriptors cannot not be created directly."
+    },
+    {
+      "t_s": 159.11,
+      "at": "2026-09-28T17:49:00.753135+00:00",
+      "line": "[tavily] 3 result(s) for 'python runtime error other fix: TypeError: Descriptors cannot not be created directly.'"
+    },
+    {
+      "t_s": 178.08,
+      "at": "2026-09-28T17:49:19.715472+00:00",
+      "line": "[repair 3] tamper gate PASS (code) \u2014 applying and re-executing"
+    },
+    {
+      "t_s": 178.12,
+      "at": "2026-09-28T17:49:19.762988+00:00",
+      "line": "[repair 3] gate-approved patch failed to apply cleanly: gate-approved patch failed to apply: error: No valid patches in input (allow with \"--allow-empty\")"
+    },
+    {
+      "t_s": 178.12,
+      "at": "2026-09-28T17:49:19.763043+00:00",
+      "line": "[citations] not cited (not used in a decision): https://itsourcecode.com/typeerror/typeerror-descriptors-cannot-not-be-created-directly-solved"
+    },
+    {
+      "t_s": 178.12,
+      "at": "2026-09-28T17:49:19.763056+00:00",
+      "line": "[citations] not cited (not used in a decision): https://www.geeksforgeeks.org/python/how-to-fix-the-typeerror-descriptors-cannot-be-created-directly-in-python"
+    },
+    {
+      "t_s": 178.12,
+      "at": "2026-09-28T17:49:19.763065+00:00",
+      "line": "[citations] not cited (not used in a decision): https://learn.microsoft.com/en-us/azure/machine-learning/how-to-troubleshoot-protobuf-descriptor-error?view=azureml-api-2"
+    },
+    {
+      "t_s": 178.12,
+      "at": "2026-09-28T17:49:19.763091+00:00",
+      "line": "[verdict] BLOCKED after 3 repair attempt(s): RUNTIME_ERROR_OTHER"
+    }
+  ],
+  "model_calls": [
+    {
+      "model": "nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B",
+      "started_at": "2026-09-28T17:46:22.042348+00:00",
+      "latency_s": 14.91,
+      "finish_reason": "stop",
+      "content_is_none": false,
+      "has_reasoning": true,
+      "usage": {
+        "completion_tokens": 1239,
+        "prompt_tokens": 1782,
+        "total_tokens": 3021,
+        "completion_tokens_details": null,
+        "prompt_tokens_details": null
+      }
+    },
+    {
+      "model": "nvidia/nemotron-3-super-120b-a12b",
+      "started_at": "2026-09-28T17:46:36.958202+00:00",
+      "latency_s": 4.52,
+      "finish_reason": "stop",
+      "content_is_none": false,
+      "has_reasoning": true,
+      "usage": {
+        "completion_tokens": 40,
+        "prompt_tokens": 274,
+        "total_tokens": 314,
+        "completion_tokens_details": {
+          "accepted_prediction_tokens": null,
+          "audio_tokens": null,
+          "reasoning_tokens": 30,
+          "rejected_prediction_tokens": null,
+          "text_tokens": null
+        },
+        "prompt_tokens_details": {
+          "audio_tokens": null,
+          "cache_write_tokens": null,
+          "cached_tokens": 0,
+          "image_tokens": null,
+          "text_tokens": null,
+          "created_cache_tokens": 0,
+          "multimodal_tokens": null
+        },
+        "prompt_cache_hit_tokens": 0,
+        "prompt_cache_miss_tokens": 274
+      }
+    },
+    {
+      "model": "nvidia/nemotron-3-super-120b-a12b",
+      "started_at": "2026-09-28T17:47:01.001275+00:00",
+      "latency_s": 20.81,
+      "finish_reason": "stop",
+      "content_is_none": false,
+      "has_reasoning": true,
+      "usage": {
+        "completion_tokens": 2589,
+        "prompt_tokens": 3476,
+        "total_tokens": 6065,
+        "completion_tokens_details": {
+          "accepted_prediction_tokens": null,
+          "audio_tokens": null,
+          "reasoning_tokens": 2467,
+          "rejected_prediction_tokens": null,
+          "text_tokens": null
+        },
+        "prompt_tokens_details": {
+          "audio_tokens": null,
+          "cache_write_tokens": null,
+          "cached_tokens": 0,
+          "image_tokens": null,
+          "text_tokens": null,
+          "created_cache_tokens": 0,
+          "multimodal_tokens": null
+        },
+        "prompt_cache_hit_tokens": 0,
+        "prompt_cache_miss_tokens": 3476
+      }
+    },
+    {
+      "model": "nvidia/nemotron-3-super-120b-a12b",
+      "started_at": "2026-09-28T17:47:38.489094+00:00",
+      "latency_s": 21.42,
+      "finish_reason": "stop",
+      "content_is_none": false,
+      "has_reasoning": true,
+      "usage": {
+        "completion_tokens": 3430,
+        "prompt_tokens": 3710,
+        "total_tokens": 7140,
+        "completion_tokens_details": {
+          "accepted_prediction_tokens": null,
+          "audio_tokens": null,
+          "reasoning_tokens": 3180,
+          "rejected_prediction_tokens": null,
+          "text_tokens": null
+        },
+        "prompt_tokens_details": {
+          "audio_tokens": null,
+          "cache_write_tokens": null,
+          "cached_tokens": 0,
+          "image_tokens": null,
+          "text_tokens": null,
+          "created_cache_tokens": 0,
+          "multimodal_tokens": null
+        },
+        "prompt_cache_hit_tokens": 0,
+        "prompt_cache_miss_tokens": 3710
+      }
+    },
+    {
+      "model": "nvidia/nemotron-3-super-120b-a12b",
+      "started_at": "2026-09-28T17:49:00.755769+00:00",
+      "latency_s": 18.95,
+      "finish_reason": "stop",
+      "content_is_none": false,
+      "has_reasoning": true,
+      "usage": {
+        "completion_tokens": 1841,
+        "prompt_tokens": 3893,
+        "total_tokens": 5734,
+        "completion_tokens_details": {
+          "accepted_prediction_tokens": null,
+          "audio_tokens": null,
+          "reasoning_tokens": 1746,
+          "rejected_prediction_tokens": null,
+          "text_tokens": null
+        },
+        "prompt_tokens_details": {
+          "audio_tokens": null,
+          "cache_write_tokens": null,
+          "cached_tokens": 0,
+          "image_tokens": null,
+          "text_tokens": null,
+          "created_cache_tokens": 0,
+          "multimodal_tokens": null
+        },
+        "prompt_cache_hit_tokens": 0,
+        "prompt_cache_miss_tokens": 3893
+      }
+    },
+    {
+      "model": "nvidia/Nemotron-3-Ultra-550b-a55b",
+      "started_at": "2026-09-28T17:49:19.764686+00:00",
+      "latency_s": 1.75,
+      "finish_reason": "stop",
+      "content_is_none": false,
+      "has_reasoning": true,
+      "usage": {
+        "completion_tokens": 423,
+        "prompt_tokens": 722,
+        "total_tokens": 1145,
+        "completion_tokens_details": {
+          "accepted_prediction_tokens": null,
+          "audio_tokens": null,
+          "reasoning_tokens": 309,
+          "rejected_prediction_tokens": null,
+          "text_tokens": null
+        },
+        "prompt_tokens_details": {
+          "audio_tokens": null,
+          "cache_write_tokens": null,
+          "cached_tokens": 0,
+          "image_tokens": null,
+          "text_tokens": null,
+          "multimodal_tokens": null
+        },
+        "prompt_cache_hit_tokens": 0,
+        "prompt_cache_miss_tokens": 722
+      }
+    }
+  ],
+  "cost_guard": {
+    "spent_usd": 0.17878828,
+    "model_spent_usd": 0.01291118,
+    "sandbox_spent_usd": 0.1658771,
+    "remaining_usd": 1.82121172,
+    "model_usage": [
+      {
+        "model": "nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B",
+        "prompt_tokens": 1782,
+        "completion_tokens": 1239,
+        "cost_usd": 0.00040428
+      },
+      {
+        "model": "nvidia/nemotron-3-super-120b-a12b",
+        "prompt_tokens": 274,
+        "completion_tokens": 40,
+        "cost_usd": 0.0001182
+      },
+      {
+        "model": "nvidia/nemotron-3-super-120b-a12b",
+        "prompt_tokens": 3476,
+        "completion_tokens": 2589,
+        "cost_usd": 0.0033728999999999994
+      },
+      {
+        "model": "nvidia/nemotron-3-super-120b-a12b",
+        "prompt_tokens": 3710,
+        "completion_tokens": 3430,
+        "cost_usd": 0.0042
+      },
+      {
+        "model": "nvidia/nemotron-3-super-120b-a12b",
+        "prompt_tokens": 3893,
+        "completion_tokens": 1841,
+        "cost_usd": 0.0028248
+      },
+      {
+        "model": "nvidia/Nemotron-3-Ultra-550b-a55b",
+        "prompt_tokens": 722,
+        "completion_tokens": 423,
+        "cost_usd": 0.001991
+      }
+    ],
+    "prices_usd_per_1m": {
+      "nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B": [
+        0.06,
+        0.24
+      ],
+      "nvidia/nemotron-3-super-120b-a12b": [
+        0.3,
+        0.9
+      ],
+      "nvidia/Nemotron-3-Ultra-550b-a55b": [
+        1.0,
+        3.0
+      ]
+    },
+    "prices_source": "https://api.tokenfactory.nebius.com/v1/models?verbose=true (pricing field)",
+    "prices_retrieved": "2026-09-24"
+  }
+}
