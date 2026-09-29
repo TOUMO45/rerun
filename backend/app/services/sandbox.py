@@ -54,7 +54,7 @@ from contree_sdk.config import ContreeConfig
 from contree_sdk.sdk.exceptions import ContreeError, OperationTimedOutError
 from contree_sdk.sdk.exceptions.api import ApiStatusCodeError, ApiTimeoutError, ContreeTransportError
 
-from app.services import timeouts
+from app.services import sandbox_limits, timeouts
 from app.services.infra import InfraError, retry_call
 
 
@@ -86,11 +86,13 @@ class UploadTooLargeError(RuntimeError):
         super().__init__(f"upload archive is {archive_bytes:,} bytes; the pre-declared cap is {cap_bytes:,} bytes")
 
 
-# Largest upload archive RERUN sends, fixed BEFORE any harness-v1.2 run by the
-# pre-registered live probe (METHODOLOGY, "Upload cap", amendment 1; record
-# runs/upload_probe/probe_2026-09-29_amendment1.json): the largest passing
-# probed archive (125 MB step). Nebius documents no upload limit.
-UPLOAD_CAP_BYTES: int | None = 125_009_920
+# Largest upload archive RERUN sends: 120 MiB, from the Nebius Sandboxes team's
+# documented 128 MB per-file limit (email 2026-09-29) with a margin; see
+# sandbox_limits.py for the unit reasoning. Harness-v1.2 used 125,009,920 B, the top
+# step of RERUN's own probe ladder (not a Nebius number); superseded in harness-v1.3.
+# Over the limit the repository is fetched inside the sandbox instead
+# (`download_source`), and only without such a route is it UploadTooLargeError.
+UPLOAD_CAP_BYTES: int | None = sandbox_limits.MAX_UPLOAD_BYTES
 
 
 class UploadIntegrityError(RuntimeError):
@@ -149,6 +151,17 @@ EXTRACT_COMMAND = (
 )
 
 
+def extract_command_for(source: "sandbox_limits.DownloadSource | None") -> str:
+    """The RERUN-owned first step: unpack the tar (and, on the download route, fetch
+    the pinned source), verify against the manifest, then remove RERUN's files."""
+    if source is None:
+        return EXTRACT_COMMAND
+    return (
+        f"tar -xpf {UPLOAD_ARCHIVE} --no-same-owner && rm -f {UPLOAD_ARCHIVE} "
+        f"&& {source.fetch_command()} && python3 {UPLOAD_DIR}/verify.py && rm -rf {UPLOAD_DIR}"
+    )
+
+
 def _blob_sha1(data: bytes) -> str:
     return hashlib.sha1(b"blob %d\0" % len(data) + data).hexdigest()
 
@@ -161,9 +174,13 @@ def build_upload_archive(
     upload_files: dict[str, str | Path | bytes],
     modes: dict[str, str] | None = None,
     mtime: float | None = None,
+    manifest_only: bool = False,
 ) -> tuple[bytes, dict[str, list[str]]]:
     """(tar bytes, manifest path -> [git blob SHA-1 of the bytes put in the
-    tar, octal file mode]). `modes` maps path -> git mode ("100755"/"100644")."""
+    tar, octal file mode]). `modes` maps path -> git mode ("100755"/"100644").
+    `manifest_only` (download route): the tar carries only the manifest and the
+    verifier; the files themselves are fetched inside the sandbox and checked
+    against the same manifest."""
     mtime = time.time() if mtime is None else mtime
     modes = modes or {}
     manifest: dict[str, list[str]] = {}
@@ -182,7 +199,8 @@ def build_upload_archive(
             if name.startswith("/") or ".." in name.split("/") or name.split("/")[0] in (UPLOAD_DIR, UPLOAD_ARCHIVE):
                 raise UploadIntegrityError(f"refusing to archive unsafe or reserved path {rel!r}")
             mode = file_mode_for(modes.get(rel))
-            _add(name, data, mode)
+            if not manifest_only:
+                _add(name, data, mode)
             manifest[name] = [_blob_sha1(data), f"{mode:04o}"]
         _add(f"{UPLOAD_DIR}/manifest.json", json.dumps(manifest, sort_keys=True).encode("utf-8"))
         _add(f"{UPLOAD_DIR}/verify.py", _VERIFY_SCRIPT.encode("utf-8"))
@@ -285,6 +303,7 @@ def run_build_and_execute(
     wall_clock_seconds: float,
     upload_files: dict[str, str | Path | bytes] | None = None,
     file_modes: dict[str, str] | None = None,
+    download_source: "sandbox_limits.DownloadSource | None" = None,
 ) -> SandboxRunResult:
     """Run the full build-plan pipeline in an isolated Token Factory
     Sandbox: reference/import the base image, upload the repo, run each
@@ -314,12 +333,23 @@ def run_build_and_execute(
             "Populate .env from .env.example before running a real sandbox."
         )
 
-    commands = [*install_commands, execute_command]
+    # Setup is split into separate operations (system packages, torch, the rest),
+    # each checked against the per-operation filesystem-delta limit.
+    setup = sandbox_limits.check_ops(sandbox_limits.split_setup_ops(install_commands))
+    commands = [*(op.command for op in setup), execute_command]
     if not [c for c in commands if c]:
         raise SandboxError("no commands to run: install_commands and execute_command are both empty")
-    archive = build_upload_archive(upload_files, file_modes)[0] if upload_files else None
-    if archive is not None and UPLOAD_CAP_BYTES is not None and len(archive) > UPLOAD_CAP_BYTES:
-        raise UploadTooLargeError(len(archive), UPLOAD_CAP_BYTES)
+    archive, extract_command = None, EXTRACT_COMMAND
+    if upload_files:
+        archive = build_upload_archive(upload_files, file_modes)[0]
+        limit = UPLOAD_CAP_BYTES if UPLOAD_CAP_BYTES is not None else 1 << 62
+        decision = sandbox_limits.decide_upload(len(archive), download_source, limit)
+        if decision.mode == "refuse":
+            raise UploadTooLargeError(len(archive), limit)
+        if decision.mode == "download":
+            # Never a local upload of an over-limit repo: send the manifest only.
+            archive = build_upload_archive(upload_files, file_modes, manifest_only=True)[0]
+            extract_command = extract_command_for(download_source)
 
     # harness-v1.1: transient API failures (timeouts, transport errors, 429,
     # 5xx) re-run the whole chain from a fresh image with bounded exponential
@@ -334,6 +364,7 @@ def run_build_and_execute(
                 commands=commands,
                 wall_clock_seconds=wall_clock_seconds,
                 archive=archive,
+                extract_command=extract_command,
             ),
             source="sandbox",
             is_transient=_is_transient_sandbox_error,
@@ -357,6 +388,7 @@ def _run_once(
     commands: list[str],
     wall_clock_seconds: float,
     archive: bytes | None,
+    extract_command: str = EXTRACT_COMMAND,
 ) -> SandboxRunResult:
     """One attempt of the whole chain. Raises the SDK's own errors (the
     caller classifies them), SandboxError for the wall clock, and
@@ -393,7 +425,7 @@ def _run_once(
             upload_seconds = round(time.monotonic() - upload_started, 2)
             retained_images.append(current)
             last_image_uuid = getattr(current, "uuid", None) or last_image_uuid
-            commands = [EXTRACT_COMMAND, *commands]
+            commands = [extract_command, *commands]
 
         # `wall_clock_seconds` is meant to be a single hard ceiling for the
         # WHOLE attempt (§4: "hard limits (wall clock...)"; the TIMEOUT
@@ -430,7 +462,7 @@ def _run_once(
             last_image_uuid = getattr(executed, "uuid", None) or last_image_uuid
             if not is_last:
                 retained_images.append(executed)
-            if cmd == EXTRACT_COMMAND:
+            if cmd == extract_command:
                 # RERUN's own step: never part of the repo's result.
                 if step.exit_code != 0:
                     raise UploadIntegrityError(

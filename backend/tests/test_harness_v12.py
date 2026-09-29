@@ -35,7 +35,9 @@ def test_transport_timeout_scales_with_the_archive_with_a_floor(archive_mb, expe
 
 def test_constants_come_from_the_probe_record():
     record = json.loads((ROOT / "runs" / "upload_probe" / "probe_2026-09-29_amendment1.json").read_text(encoding="utf-8"))
-    assert sandbox.UPLOAD_CAP_BYTES == record["cap_bytes"] == 125_009_920
+    # harness-v1.3: the enforced cap is 120 MiB (sandbox_limits); the probe's top step
+    # (125,009,920 B) stays recorded history and is below it.
+    assert record["cap_bytes"] == 125_009_920 < sandbox.UPLOAD_CAP_BYTES == 120 * 1024 * 1024
     assert timeouts.UPLOAD_MIN_THROUGHPUT_MBPS == record["assumed_min_throughput_mb_per_s"] == 0.987
     assert timeouts.sandbox_transport_timeout(record["cap_bytes"]) == pytest.approx(record["transport_timeout_at_cap_s"], abs=0.1)
 

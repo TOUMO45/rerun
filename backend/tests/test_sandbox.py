@@ -211,7 +211,8 @@ def test_run_build_and_execute_stops_before_exceeding_the_shared_deadline(monkey
     real_commands_run = [shell for shell, _ in recorded_timeouts if shell != "true"]
     # Two 50s steps already exceed the 60s deadline - the third (execute)
     # command must never have been started.
-    assert real_commands_run == ["pip install numpy", "pip install torch"]
+    # (harness-v1.3: torch is its own setup op and runs before the rest.)
+    assert real_commands_run == ["pip install torch", "pip install numpy"]
 
 
 # --- sandbox_id (§8 S2: "Live sandbox badge (id, elapsed time, ...)") ------

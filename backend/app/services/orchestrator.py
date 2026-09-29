@@ -46,7 +46,7 @@ from app.services import (
     time_machine,
     tree_integrity,
 )
-from app.services import compute_sandbox, import_names, infra, timeouts
+from app.services import compute_sandbox, import_names, infra, sandbox_limits, timeouts
 from app.services.cost_guard import CostGuard, CostLimitExceeded
 from app.services.intake import RepoIntake, read_text_capped
 from app.services.model_client import NebiusChatClient
@@ -342,6 +342,18 @@ class PipelineDeps:
     default_sandbox_image: str = "python:3.11-slim"
 
 
+def _accepts_kwarg(fn: Callable, name: str) -> bool:
+    """True if `fn` takes keyword `name` (or **kwargs): lets the download route be
+    passed to the real runner without breaking injected test runners."""
+    import inspect
+
+    try:
+        params = inspect.signature(fn).parameters.values()
+    except (TypeError, ValueError):
+        return False
+    return any(p.name == name or p.kind is inspect.Parameter.VAR_KEYWORD for p in params)
+
+
 def _make_compute_sandbox_runner(settings) -> callable:
     """Adapter so the Compute backend can be dropped into
     `PipelineDeps.sandbox_runner` without changing run_pipeline's call
@@ -609,8 +621,13 @@ def _run_stages(
             + (f"; excluded patched: {sorted(state.patched_paths)}" if state.patched_paths else "")
         )
         _log(f"[sandbox] starting build+execute (wall_clock_seconds={deps.sandbox_wall_clock_seconds:.0f})")
+        # Over-limit repos are fetched inside the sandbox, never uploaded (sandbox_limits).
+        runner_kwargs = {}
+        if _accepts_kwarg(deps.sandbox_runner, "download_source"):
+            runner_kwargs["download_source"] = sandbox_limits.DownloadSource.from_repo_url(repo_url, commit_sha)
         try:
             result = deps.sandbox_runner(
+                **runner_kwargs,
                 api_key=deps.sandbox_api_key,
                 project_id=deps.sandbox_project_id,
                 base_image=plan.base_image,

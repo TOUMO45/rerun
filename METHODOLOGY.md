@@ -551,3 +551,28 @@ repository. That verdict is not valid evidence about the repo. Not fixed (harnes
 torch-dependent repo in corpus-v2 is at risk of the same misattribution. Also note the
 classifier labelled the first error SYS_LIB_MISSING, then the failed repair changed the final
 code. Entries #4-#20 were not run.
+
+## Sandbox limits (Phase 1; source: Nebius Sandboxes team email, 2026-09-29)
+
+Nebius states two limits for Token Factory Sandboxes: **128 MB per uploaded file** and **12 GB of
+filesystem changes per single operation**. The email gives no unit. Code: `backend/app/services/sandbox_limits.py`.
+
+- **Upload limit enforced: 120 MiB = 125,829,120 B.** That is under the smaller reading of "128 MB"
+  (128,000,000 B) with 1.7 % of headroom; the archive size is measured exactly, so the margin only covers the
+  server's accounting. The unit is **not settled by evidence**: (1) `125,009,920` (harness-v1.2's cap) is not a
+  Nebius number: it is the top step (125 MB decimal + tar overhead) of RERUN's own pre-registered probe ladder
+  25/50/75/100/125 MB, which stopped there; (2) the first probe uploaded a 150 MB archive (above both readings)
+  and only failed afterwards inside the operation (ENOSPC), so the endpoint did not reject it either.
+  A boundary probe at 128,000,000 / 134,217,728 B would settle it; it has not been run.
+- **Over the limit → in-sandbox download, never a local upload.** Only the manifest and verifier are uploaded;
+  the sandbox fetches the pinned commit (`codeload.github.com` tarball; no git needed in the image) and checks every
+  file against the same git-blob manifest as the upload route (`RERUN_UPLOAD_VERIFIED`, else exit 97 →
+  INVALID_HARNESS). Only GitHub repos at a full 40-hex SHA qualify; otherwise `UPLOAD_TOO_LARGE`. Dry-run on real
+  Linux (WSL): `octocat/Hello-World@7fd1a60` verified; a tampered manifest failed with exit 97.
+- **Setup is split into separate operations:** (a) system packages, (b) torch, (c) everything else, in that order.
+  A `pip install` naming torch and other packages is split; commands with shell operators are never split.
+- **12 GB per operation:** the SDK exposes no layer size, so each op is checked against an **ESTIMATE** (installed-size
+  constants in `sandbox_limits.py`, deliberately high; planning ceiling = 80 % of 12 GB read as decimal) before it runs,
+  and an actual quota failure is classified afterwards (`SANDBOX_QUOTA`, Phase 2). The estimates are not measurements.
+- Effect on results: entries over 120 MiB are now run instead of ending `UPLOAD_TOO_LARGE`. The pilot's entry 2
+  (185,856,000 B) is such a case and stays recorded as-is in the frozen pilot.
