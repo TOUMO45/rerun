@@ -97,6 +97,11 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--corpus", type=Path, default=None, help="corpus.yaml to take --name from (default: corpus-v0)")
     parser.add_argument("--corpus-hash", default=None, help="frozen corpus hash, carried into the passport (bundle v3)")
     parser.add_argument("--batch-meta", default=None, help="JSON object recorded verbatim under record['batch']")
+    parser.add_argument(
+        "--dry-run-wsl", action="store_true",
+        help="standing rule (2026-09-29): run the real pipeline with the sandbox replaced by a local WSL run "
+        "(scripts/wsl_dryrun.py); the record is labelled dry_run and dev_run and never counted",
+    )
     args = parser.parse_args(argv)
 
     entry = next((e for e in load_corpus(args.corpus) if e.name == args.name), None)
@@ -108,6 +113,14 @@ def main(argv: list[str] | None = None) -> int:
     deps = build_pipeline_deps(settings)
     client = _RecordingNebiusChatClient(api_key=settings.nebius_api_key, base_url=settings.nebius_base_url)
     deps = replace(deps, recon_client=client, repair_client=client, adjudicator_client=client, planner_client=client)
+    if args.dry_run_wsl:
+        import importlib.util
+
+        spec = importlib.util.spec_from_file_location("wsl_dryrun", Path(__file__).with_name("wsl_dryrun.py"))
+        dry = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(dry)
+        deps = replace(deps, sandbox_runner=dry.run_build_and_execute)
+        args.dev_run = True
     cost_guard = CostGuard(
         daily_cost_ceiling_usd=args.cost_cap_usd,
         max_attempts_per_run=settings.max_attempts_per_run,
@@ -126,6 +139,7 @@ def main(argv: list[str] | None = None) -> int:
         # A development run exercises the harness; runner.aggregate_batch_results
         # refuses any record carrying dev_run: true.
         "dev_run": bool(args.dev_run),
+        "dry_run": "wsl" if args.dry_run_wsl else None,
         "batch": json.loads(args.batch_meta) if args.batch_meta else None,
         "started_at": _now(),
         "corpus_entry": {

@@ -44,7 +44,9 @@ def synthetic_files(total_mb: int) -> dict[str, bytes]:
         remaining -= size
         i += 1
     files["run.sh"] = (
-        b"#!/bin/sh\necho UPLOAD_OK $(ls data | wc -l) file(s)\n"
+        # Quoted: an unquoted "file(s)" is a sh syntax error (it voided the
+        # first amendment-1 probe run at 25 MB).
+        b"#!/bin/sh\necho \"UPLOAD_OK $(ls data | wc -l) files\"\n"
         b"echo EXTRACTED_BYTES $(du -sb . 2>/dev/null | cut -f1)\necho DF $(df -B1 . | tail -1)\n"
     )
     return files
@@ -132,8 +134,11 @@ def probe() -> dict:
         "slowest_passing_upload_mb_per_s": min(rates) if rates else None,
         "assumed_min_throughput_mb_per_s": throughput,
         "transport_timeout_at_cap_s": round(timeout_at_cap, 1) if timeout_at_cap else None,
-        "decision": (f"cap = {cap:,} bytes (largest passing); assumed throughput = {THROUGHPUT_SAFETY} x {min(rates)} MB/s"
-                     if cap else "the smallest probed size failed — no cap can be set; stop"),
+        "decision": (
+            f"cap = {cap:,} bytes (largest passing); assumed throughput = "
+            + (f"{THROUGHPUT_SAFETY} x {min(rates)} MB/s" if rates else "not measurable (no timed upload)")
+            if cap else "the smallest probed size failed — no cap can be set; stop"
+        ),
     }
 
 
@@ -153,7 +158,22 @@ def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument("mode", choices=("probe", "smoke"))
     parser.add_argument("--out", type=Path, default=None)
+    parser.add_argument(
+        "--dry-run", action="store_true",
+        help="local WSL dry run: the real archive, extraction, check and payload, no Nebius (sizes 1 and 2 MB)",
+    )
     args = parser.parse_args(argv)
+    if args.dry_run:
+        global PROBE_SIZES_MB
+        import importlib.util
+
+        from app.services import sandbox
+
+        spec = importlib.util.spec_from_file_location("wsl_dryrun", ROOT / "scripts" / "wsl_dryrun.py")
+        dry = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(dry)
+        sandbox.run_build_and_execute = dry.run_build_and_execute
+        PROBE_SIZES_MB = (1, 2)
     outcome = probe() if args.mode == "probe" else smoke()
     if args.out:
         args.out.parent.mkdir(parents=True, exist_ok=True)

@@ -202,3 +202,38 @@ def test_check_runs_on_the_extracted_tree_after_the_archive_is_gone():
 
     bad = v11._run_extract_in_linux(v11._retar(archive, tamper), "true")
     assert bad.returncode == sandbox.UPLOAD_MISMATCH_EXIT and "a/b.txt (content)" in bad.stderr
+
+
+def test_operation_timeout_is_passed_explicitly_not_left_to_the_sdk_default(monkeypatch):
+    """SANDBOX_OPERATION_S equals the SDK default (1000 s), so the value alone
+    can't show it was set: capture the keyword arguments instead."""
+    seen = {}
+    real = sandbox.ContreeConfig
+
+    def recorder(**kwargs):
+        seen.update(kwargs)
+        return real(**kwargs)
+
+    monkeypatch.setattr(sandbox, "ContreeConfig", recorder)
+    monkeypatch.setattr(sandbox, "ContreeSync", _fake_contree())
+    sandbox.run_build_and_execute(api_key="k", base_image="python:3.11-slim", install_commands=[],
+                                  execute_command="true", wall_clock_seconds=60, upload_files={"a.txt": b"a"})
+    assert seen["operation_timeout"] == timeouts.SANDBOX_OPERATION_S
+    assert "transport_timeout" in seen
+
+
+@pytest.mark.skipif(not _v11()._wsl_available(), reason="needs a Linux filesystem (WSL kali-linux or POSIX host)")
+def test_probe_payload_runs_under_sh_after_the_real_extraction():
+    """Regression: the first amendment-1 probe run was voided because the
+    payload's unquoted `file(s)` is a sh syntax error."""
+    spec = importlib.util.spec_from_file_location("smoke_upload", ROOT / "scripts" / "smoke_upload.py")
+    smoke = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(smoke)
+    files = smoke.synthetic_files(1)
+    modes = {p: ("100755" if p == "run.sh" else "100644") for p in files}
+    archive, _ = sandbox.build_upload_archive(files, modes)
+    out = _v11()._run_extract_in_linux(archive, "./run.sh")
+    assert out.returncode == 0, out.stderr
+    assert "UPLOAD_OK 1 files" in out.stdout
+    assert smoke._field(out.stdout, "EXTRACTED_BYTES") >= 1_000_000
+    assert smoke._field(out.stdout, "DF", whole=True)
