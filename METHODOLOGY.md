@@ -510,3 +510,20 @@ BLOCKED 5, TIMEOUT 2 (#10 alf, #17 neural-flows).
 - **Wall clock 600 s includes the install**: #10 and #17 timed out inside the repository's
   own dependency install; a genuine TIMEOUT under the pre-registered ceiling, but heavy
   installs make it likely.
+
+### Known limitations found during the corpus-v2 draw (recorded, not fixed — harness frozen)
+
+- **draw-v2 import-order bug**: `scripts/draw_corpus.py draw-v2` imports
+  `app.batch.command_rules` before `check_v2_registration` puts `backend/` on `sys.path`, so a
+  plain run crashes with `ModuleNotFoundError: 'app'` before anything is screened. The sealed
+  code was run unchanged with `PYTHONPATH=backend`; the registration check still ran before
+  screening. No code changed.
+- **R5 (placeholder) misses placeholders without an underscore**, e.g. `--dataset DATASET`
+  (draw #54, IST-DASLab/M-FAC, now in corpus-v2). Such a command counts as a run command under
+  the sealed rules; if it fails for that reason it will be a COMMAND_NOT_A_RUN-type outcome
+  reported as-is, not re-classified after seeing results.
+
+## corpus-v2 — drawn (2026-09-29)
+
+75 draws screened under the sealed pre-registration (seed 20260928); 20 eligible; corpus_hash
+`7df090bea7013974f9f10fb8959ab0162734b51c83a80f744f9c310ce694fbdc`. Outputs: `backend/app/batch/corpus_v2/{corpus.yaml,corpus_hash.txt,screening_log.jsonl}`.
