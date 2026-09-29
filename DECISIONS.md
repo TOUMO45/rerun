@@ -3797,3 +3797,26 @@ Tests: `test_harness_v11.py` (71, incl. a real Linux round trip in WSL) and
 `test_corpus_v1_batch.py` (19, real temporary git repo). 18/18 mutations caught. Live smoke
 test of the tar upload on Nebius: verified, `./run.sh` executable, $0.0009. Backend 723
 passed, 8 skipped; frontend 9 passed, tsc clean.
+
+## 2026-09-29 — harness-v1.2: explicit timeouts, scaled upload timeout, pre-registered upload cap
+
+corpus-v1 on harness-v1.1 stopped twice on #5/#6 with identical upload timeouts after
+passing smoke tests. Diagnosis (free: rebuilt the exact archives locally): 0.2/13.3 MB
+uploaded, 30.6/125.6 MB never — the Nebius SDK's silent 10 s `transport_timeout`. Human
+decision (b): harness-v1.2. Timeout audit → `timeouts.py` (every value explicit). Upload
+cap: Nebius documents none (upload endpoint spec, limits page, SDK and CLI docs checked),
+so a pre-registered live probe sets it. First probe (150/500 MB): 150 MB uploaded but the
+sandbox operation failed `OSError 28 No space left on device` (`df` shows 47 TB shared) →
+no cap, stop. Amendment 1 (human): delete the archive before the check; sizes 25–125 MB;
+throughput constant = 0.5 × slowest passing MB/s; smoke at the cap. Its first run was
+voided by a bug in the probe's own payload (unquoted `file(s)`); standing rule since:
+every Nebius script gets a local WSL dry run first (`scripts/wsl_dryrun.py`; also
+`live_run.py --dry-run-wsl`). The dry run then caught a crash in the probe's summary. Re-run:
+all five sizes passed → cap 125,009,920 bytes, throughput 0.987 MB/s, timeout 156.7 s at
+the cap; probe cost $0.017. New verdict `UPLOAD_TOO_LARGE` (RERUN's fault, separate).
+Batch driver runs the smoke test (small + cap size) before every batch. Re-queue rule
+amended: only transient failures; an identical repeat after a passing smoke test is a
+deterministic harness defect (stop). harness-v1.1 corpus-v1 records voided; corpus-v2
+re-sealed (harness reference only). Mutation checks 9/9 (a first run was 8/9: the
+operation-timeout value equals the SDK default, so the test now checks it is passed
+explicitly). Backend 742 passed, 9 skipped; frontend tsc clean.

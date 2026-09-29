@@ -395,3 +395,82 @@ no cap was set and work stopped. Amended rule (human decision), replacing the si
 5. **Pre-batch smoke test** = a small upload + an upload at the cap size.
 
 Nebius has been asked for the documented limit in parallel; the probe does not wait for it.
+
+### Upload cap — result (probe re-run 2026-09-29, `runs/upload_probe/probe_2026-09-29_amendment1.json`)
+
+All five pre-declared sizes passed (upload, extract + verify, payload), none failed:
+
+| Archive | Upload | Upload MB/s | Extract + verify | Cost |
+|---|---|---|---|---|
+| 25.0 MB | 9.5 s | 2.62 | 0.12 s | $0.0021 |
+| 50.0 MB | 18.4 s | 2.72 | 0.18 s | $0.0030 |
+| 75.0 MB | 38.0 s | **1.97** (slowest) | 0.22 s | $0.0034 |
+| 100.0 MB | 33.3 s | 3.00 | 0.28 s | $0.0041 |
+| 125.0 MB | 47.2 s | 2.65 | 0.31 s | $0.0043 |
+
+**Cap = 125,009,920 bytes** (the largest passing size). **Assumed throughput = 0.5 × 1.973 =
+0.987 MB/s**; transport timeout = `max(60 s, size_MB / 0.987 + 30 s)` = **156.7 s at the cap**.
+The voided first run of amendment 1 (a payload bug in the probe itself) was not used. Every
+script that runs on Nebius is first dry-run locally under WSL (`scripts/wsl_dryrun.py`:
+the real archive, extraction, check and payload on a Linux filesystem); the probe's dry run
+found and fixed a crash in the probe's own summary code before the live run.
+
+## Harness changes v1.1 → v1.2 (sealed 2026-09-29)
+
+**Exposed by** corpus-v1 on harness-v1.1: #6 SearchFair (30.6 MB archive) and #5 ExpressGNN
+(125.6 MB) failed identically twice with `INFRA_ERROR:sandbox:ApiTimeoutError` while small
+smoke uploads passed. Root cause: the Nebius SDK's HTTP `transport_timeout` was never set, so
+its silent default of **10 s** applied to every upload. All harness-v1.1 corpus-v1 records
+are void (`runs/corpus_v1_batch/void_harness-v1.1/`, README; #2 KernelGCN's
+RUNS_AFTER_REPAIR noted as valid but superseded). corpus-v1 is re-run, all 20, on v1.2.
+
+1. **Timeout audit** (`backend/app/services/timeouts.py`): every client/SDK/subprocess
+   timeout is an explicit sealed constant; none relies on a silent default. Before → now:
+   sandbox HTTP 10 s (SDK default) → scaled to the archive (below); sandbox operations
+   1000 s (SDK default) → explicit 1000 s; model API connect 5 s / read-write-pool 600 s
+   (SDK default) → explicit 10 / 600 / 60 / 60 s; Tavily 60 s (library default) → explicit
+   60 s; GitHub/PyPI 15 s, git fetch 300 s, git local 30 s, `ls-tree` 60 s, `uv` 300/30 s,
+   sandbox cleanup 30 s — unchanged, now named constants.
+2. **Transport timeout scaled to the archive**: `max(60 s, size_MB / 0.987 MB/s + 30 s)`;
+   the throughput constant comes from the probe (above).
+3. **Pre-declared upload cap**: archives over **125,009,920 bytes** end with verdict
+   **`UPLOAD_TOO_LARGE`** before any network call — a harness limitation, RERUN's fault,
+   excluded from every rate and reported separately. Nebius documents no limit; the cap is
+   set by the pre-registered probe (above), not by any corpus entry.
+4. **Extract step**: the archive is deleted immediately after extraction, before the
+   manifest check (the first probe hit an undocumented per-sandbox storage limit with
+   archive + tree on disk).
+5. **Pre-batch smoke test** (enforced by the batch driver; recorded in the batch folder):
+   a small upload + an upload at the cap size; a failure refuses the batch.
+6. Tests: `test_harness_v12.py` (timeout formula pinned to the probe's constants, explicit
+   SDK/model/Tavily timeouts, cap before any network call, `UPLOAD_TOO_LARGE` verdict, archive
+   deleted before the check with a real Linux round trip, the probe payload under `sh`);
+   **9/9 mutations caught** (e.g. fixed 10 s transport timeout → 9 tests red).
+
+**corpus-v2 re-sealed** for v1.2: only its harness reference changed (v1.1 → v1.2, in
+`status`, `harness` and the exclusion-rules implementation note); seed, frame, rules and
+exclusions unchanged; `prereg.json` carries `amendment_1` stating that nothing from corpus-v2
+was drawn or observed before the change (new sha256 in `prereg.sha256`).
+
+**Freeze.** No harness changes after `harness-v1.2`. A further defect is recorded under
+Known Limitations and the batch continues — **unless** it attributes a failure to a
+repository that is not the repository's fault; only that class stops a batch.
+
+## Re-queue rule — amendment (registered 2026-09-29, before any harness-v1.2 run)
+
+Re-queue applies **only to transient failures**. A failure that **repeats identically on
+the same entry after a successful smoke test** is a **deterministic harness defect**: the
+batch stops and the entry is **not** re-queued (it is handled as a harness change or a
+Known Limitation, never as an outage). This is what the harness-v1.1 upload timeouts were.
+
+## Known limitations (harness-v1.2 additions)
+
+- **Upload cap 125,009,920 bytes.** Larger repositories end `UPLOAD_TOO_LARGE` and are not
+  measured (reported separately). Repositories that ship large datasets are therefore
+  systematically unmeasured in both corpora.
+- **Per-sandbox storage limit is undocumented.** The first probe hit `OSError 28 'No space
+  left on device'` at 150 MB (archive + extracted tree), while `df` inside the sandbox shows
+  a shared ~47 TB root filesystem; a true per-instance peak is not measurable from inside.
+  A repository whose install or run writes a lot to disk may hit it (reported as the error).
+- **Local WSL dry runs** exercise RERUN's own wiring, not the sandbox image (the host's
+  Linux, not `python:X-slim`), so their verdicts are meaningless and never recorded as runs.

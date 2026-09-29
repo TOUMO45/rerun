@@ -31,9 +31,10 @@ from __future__ import annotations
 # size of the one upload archive (harness-v1.1 sends the repository as a
 # single tar): max(FLOOR, size_MB / MIN_THROUGHPUT + MARGIN).
 SANDBOX_TRANSPORT_FLOOR_S = 60.0
-# Assumed worst-case upstream throughput to the Nebius API. Deliberately low
-# (1 MB/s); the live probe (METHODOLOGY, "Upload cap") records the measured rate.
-UPLOAD_MIN_THROUGHPUT_MBPS = 1.0
+# Assumed worst-case upstream throughput to the Nebius API, set by the
+# pre-registered probe (runs/upload_probe/probe_2026-09-29_amendment1.json):
+# 0.5 x the slowest measured upload rate among passing steps (1.973 MB/s at 75 MB).
+UPLOAD_MIN_THROUGHPUT_MBPS = 0.987
 # Server-side time after the body is sent (hashing/storing) plus slack.
 UPLOAD_MARGIN_S = 30.0
 SANDBOX_OPERATION_S = 1000.0

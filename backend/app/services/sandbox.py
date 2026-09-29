@@ -87,9 +87,10 @@ class UploadTooLargeError(RuntimeError):
 
 
 # Largest upload archive RERUN sends, fixed BEFORE any harness-v1.2 run by the
-# pre-registered live probe (METHODOLOGY, "Upload cap"). Nebius documents no
-# upload limit. None = not yet decided (only the probe itself runs then).
-UPLOAD_CAP_BYTES: int | None = None
+# pre-registered live probe (METHODOLOGY, "Upload cap", amendment 1; record
+# runs/upload_probe/probe_2026-09-29_amendment1.json): the largest passing
+# probed archive (125 MB step). Nebius documents no upload limit.
+UPLOAD_CAP_BYTES: int | None = 125_009_920
 
 
 class UploadIntegrityError(RuntimeError):

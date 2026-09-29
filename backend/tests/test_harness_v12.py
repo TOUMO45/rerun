@@ -26,10 +26,18 @@ ROOT = Path(__file__).resolve().parents[2]
 
 @pytest.mark.parametrize(
     "archive_mb, expected_s",
-    [(0, 60.0), (0.2, 60.0), (13.3, 60.0), (30.6, 60.6), (125.6, 155.6), (150, 180.0), (500, 530.0)],
+    # UPLOAD_MIN_THROUGHPUT_MBPS = 0.987 (probe), margin 30 s, floor 60 s.
+    [(0, 60.0), (0.2, 60.0), (13.3, 60.0), (30.6, 61.003), (125.00992, 156.656), (150, 181.976)],
 )
 def test_transport_timeout_scales_with_the_archive_with_a_floor(archive_mb, expected_s):
-    assert timeouts.sandbox_transport_timeout(int(archive_mb * 1_000_000)) == pytest.approx(expected_s)
+    assert timeouts.sandbox_transport_timeout(int(archive_mb * 1_000_000)) == pytest.approx(expected_s, abs=0.01)
+
+
+def test_constants_come_from_the_probe_record():
+    record = json.loads((ROOT / "runs" / "upload_probe" / "probe_2026-09-29_amendment1.json").read_text(encoding="utf-8"))
+    assert sandbox.UPLOAD_CAP_BYTES == record["cap_bytes"] == 125_009_920
+    assert timeouts.UPLOAD_MIN_THROUGHPUT_MBPS == record["assumed_min_throughput_mb_per_s"] == 0.987
+    assert timeouts.sandbox_transport_timeout(record["cap_bytes"]) == pytest.approx(record["transport_timeout_at_cap_s"], abs=0.1)
 
 
 def test_transport_timeout_is_never_the_silent_sdk_default():
