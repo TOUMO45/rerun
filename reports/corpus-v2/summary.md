@@ -4,11 +4,11 @@ corpus `corpus-v2` · corpus hash `7df090bea7013974f9f10fb8959ab0162734b51c83a80
 
 ## Results
 
-| # | entry | verdict | failure class | repair attempts | Tavily cited | resolver cited | spent USD | note |
-|--:|---|---|---|--:|:-:|:-:|--:|---|
-| 1 | nadiinchi__power_laws_deep_ensembles | BLOCKED | DEP_MISSING | 3 | N | Y | 0.06 |  |
-| 2 | DeformableFriends__NeuralTracking | UPLOAD_TOO_LARGE | UPLOAD_TOO_LARGE | 0 | N | N | 0.00 | RERUN-side upload cap (185,856,000 B > 125,009,920 B); not a verdict on the repo |
-| 3 | autumn9999__vmtl | BLOCKED | RUNTIME_ERROR_OTHER | 3 | N | N | 0.32 | MISATTRIBUTED: sandbox refuses torch's executable-stack .so (libtorch_cpu.so); charged to the repo by the harness |
+| # | entry | verdict | failure class | first repo error | attribution | repair attempts | Tavily cited | resolver cited | spent USD | note |
+|--:|---|---|---|---|---|--:|:-:|:-:|--:|---|
+| 1 | nadiinchi__power_laws_deep_ensembles | BLOCKED | DEP_MISSING | ModuleNotFoundError: No module named 'tabulate' | REPO/ENV | 3 | N | Y | 0.06 |  |
+| 2 | DeformableFriends__NeuralTracking | UPLOAD_TOO_LARGE | UPLOAD_TOO_LARGE | — | — | 0 | N | N | 0.00 | RERUN-side upload cap (185,856,000 B > 125,009,920 B); not a verdict on the repo |
+| 3 | autumn9999__vmtl | BLOCKED | RUNTIME_ERROR_OTHER | — | ENV/PLATFORM | 3 | N | N | 0.32 | MISATTRIBUTED: sandbox refuses torch's executable-stack .so (libtorch_cpu.so); charged to the repo by the harness |
 
 ## PRIMARY
 
@@ -34,7 +34,7 @@ For every BLOCKED entry: the **first** error the classifier saw and the **last**
 
 This is a **pilot run**, not a baseline. Corpus `corpus-v2`, hash `7df090be…`, harness tag `harness-v1.2`.
 
-- **Run A** — entries 1–3, 2026-09-29 18:53–20:09 UTC+0 (records committed in `56fc710`).
+- **Run A** — entries 1–3, 2026-09-29 18:53–19:09 UTC (records committed in `56fc710`).
 - **Stopped by the operator** at entry 4 under the freeze rule (a failure charged to the repository that is
   not the repository's fault: entry 3). Entry 4 (`damo-cv/img-comp-reference`) was started and killed
   before completing; it has **no record** and is not counted. Entries 4–20 were **not run** on this harness.
@@ -43,6 +43,7 @@ This is a **pilot run**, not a baseline. Corpus `corpus-v2`, hash `7df090be…`,
 - No run B exists on `harness-v1.2`. The full 20-entry evaluation is the corpus-v2.1 ablation on a new sealed harness tag.
 - What the pilot found: (1) the Nebius sandbox refuses shared objects that require an executable stack
   (stock PyTorch wheels fail to load); (2) an upload cap of 125,009,920 B.
+- **Reading the PRIMARY lines:** they count entry 3 as measured and failed. Entry 3 is MISATTRIBUTED (see its note), so the honest measured count is 1, not 2. The harness was frozen, so the driver's own line was not edited.
 
 ## Not counted as verdicts about the repository
 

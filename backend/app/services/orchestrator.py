@@ -46,7 +46,7 @@ from app.services import (
     time_machine,
     tree_integrity,
 )
-from app.services import compute_sandbox, import_names, infra, sandbox_limits, timeouts
+from app.services import compute_sandbox, error_chain, import_names, infra, sandbox_limits, timeouts
 from app.services.cost_guard import CostGuard, CostLimitExceeded
 from app.services.intake import RepoIntake, read_text_capped
 from app.services.model_client import NebiusChatClient
@@ -85,6 +85,9 @@ OUR_FAULT_CODES: tuple[str, ...] = (
     tree_integrity.INVALID_HARNESS,
     infra.INFRA_ERROR,  # an external service failed (harness-v1.1)
     UPLOAD_TOO_LARGE,  # the archive exceeds the pre-declared upload cap (harness-v1.2)
+    # Phase 2: infrastructure limits and platform refusals say nothing about the paper's code.
+    "SANDBOX_QUOTA",
+    "SANDBOX_INCOMPAT",
 )
 
 _REASON_CODE_RE = re.compile(r"^([A-Z][A-Z_]*(?::[A-Za-z0-9_.-]+)*): ")
@@ -122,6 +125,25 @@ class _RunState:
     tree_integrity: dict = field(default_factory=lambda: {"status": "not_checked"})
     patched_paths: set = field(default_factory=set)
     corpus_hash: str | None = None
+    # Every classified failure of the run, in order, with attribution (error_chain.py).
+    error_chain: "error_chain.ErrorChain" = field(default_factory=error_chain.ErrorChain)
+
+
+def _verdict_record(state: "_RunState | None", taxonomy_code: str | None, indeterminate_reason: str) -> dict:
+    """The verdict-record fields the passport hash covers (bundle v4)."""
+    chain = state.error_chain if state is not None else error_chain.ErrorChain()
+    return {
+        "taxonomy_code": taxonomy_code,
+        "indeterminate_reason": indeterminate_reason,
+        "error_chain": chain.as_list(),
+        "first_repo_error": chain.first_repo_error,
+        "last_error": chain.last_error,
+    }
+
+
+def _chain_kwargs(state: "_RunState | None") -> dict:
+    chain = state.error_chain if state is not None else error_chain.ErrorChain()
+    return {"error_chain": tuple(chain.as_list()), "first_repo_error": chain.first_repo_error, "last_error": chain.last_error}
 
 
 @dataclass(frozen=True)
@@ -186,6 +208,10 @@ class PipelineResult:
     recovery: bool = False
     tree_integrity: dict | None = None
     corpus_hash: str | None = None
+    # Bundle v4: the ordered failures with attribution, the first REPO-attributed one, the last one.
+    error_chain: tuple[dict, ...] = ()
+    first_repo_error: str | None = None
+    last_error: str | None = None
 
     @property
     def repair_mode(self) -> str:
@@ -209,6 +235,11 @@ class PipelineResult:
             "recovery": self.recovery,
             "tree_integrity": self.tree_integrity,
             "corpus_hash": self.corpus_hash,
+            "taxonomy_code": self.taxonomy_code,
+            "indeterminate_reason": self.indeterminate_reason,
+            "error_chain": list(self.error_chain),
+            "first_repo_error": self.first_repo_error,
+            "last_error": self.last_error,
             "reproduction_passport_hash": self.reproduction_passport_hash,
         }
 
@@ -491,12 +522,14 @@ def run_pipeline(
         )
     except infra.InfraError as exc:
         return _finalize_infra_error(exc, state=state, repo_url=repo_url, commit_sha=commit_sha, on_event=on_event)
-    except UploadTooLargeError as exc:
+    except (UploadTooLargeError, sandbox_limits.FsDeltaExceeded) as exc:
+        # Phase 2: an infrastructure limit, not evidence about the repository.
         return _finalize_not_measured(
-            UPLOAD_TOO_LARGE,
-            f"{UPLOAD_TOO_LARGE}: {exc} — a pre-declared harness limitation; nothing was uploaded and this is "
+            "INDETERMINATE",
+            f"SANDBOX_QUOTA: {exc} — a Nebius sandbox limit; nothing was uploaded/run past it and this is "
             "not a verdict on the repository.",
             state=state, repo_url=repo_url, commit_sha=commit_sha, on_event=on_event,
+            taxonomy_code="SANDBOX_QUOTA",
         )
     except Exception as exc:  # noqa: BLE001 - this IS the boundary
         return _finalize_pipeline_error(
@@ -697,6 +730,27 @@ def _run_stages(
     attempts: list[AttemptRecord] = state.attempts
     verdict = "RUNS_CLEAN" if sandbox_result.succeeded else None
     taxonomy_code: str | None = None
+    indeterminate_reason = ""
+
+    def _note_failure(attempt_number: int, classification) -> str | None:
+        """Record a classified failure in the run's error chain. Returns an
+        INDETERMINATE reason if the failure is sandbox-side (a limit or a platform
+        refusal): no repair can fix it and it is not evidence about the code."""
+        state.error_chain.record(
+            attempt_number,
+            classification.code,
+            classification.evidence,
+            error_chain.attribute(
+                classification.code,
+                classification.evidence,
+                declared_deps=intake_result.declared_dependencies,
+                python_claim=intake_result.python_version_hint,
+                base_image=plan.base_image,
+            ),
+        )
+        if classification.code in classifier.TaxonomyCode.SANDBOX_CODES:
+            return f"{classification.code}: {classification.evidence} — a sandbox-side failure, not a verdict on the repository."
+        return None
 
     if not sandbox_result.succeeded:
         state.stage = "classifier"
@@ -710,6 +764,24 @@ def _run_stages(
         state.baseline["taxonomy_code"] = classification.code
         state.baseline["evidence"] = classification.evidence
         _log(f"[classifier] {classification.code}: {classification.evidence}")
+        sandbox_reason = _note_failure(0, classification)
+        if sandbox_reason:
+            _log(f"[verdict] INDETERMINATE: {sandbox_reason}")
+            return _finalize(
+                verdict="INDETERMINATE",
+                taxonomy_code=classification.code,
+                indeterminate_reason=sandbox_reason,
+                attempts=(),
+                build_plan_dict=plan.as_dict(),
+                log_lines=log_lines,
+                deps=deps,
+                cost_guard=cost_guard,
+                on_event=on_event,
+                attempts_used=0,
+                repo_url=repo_url,
+                commit_sha=commit_sha,
+                state=state,
+            )
 
         # Env repair edits a RERUN-owned copy of requirements.txt (never the
         # repo's file); this tracks it across attempts. Imports are scanned
@@ -865,6 +937,10 @@ def _run_stages(
                             )
                             taxonomy_code = classification.code
                             _log(f"[classifier] {classification.code}: {classification.evidence}")
+                            sandbox_reason = _note_failure(0, classification)
+                            if sandbox_reason:
+                                verdict, indeterminate_reason = "INDETERMINATE", sandbox_reason
+                                _log(f"[verdict] INDETERMINATE: {sandbox_reason}")
                 else:
                     _log(f"[time-machine] could not lock the era environment: {lock.error[-300:]}")
                     attempts.append(
@@ -1193,6 +1269,11 @@ def _run_stages(
             taxonomy_code = classification.code
             sandbox_result = rerun_result
             _log(f"[classifier] {classification.code}: {classification.evidence}")
+            sandbox_reason = _note_failure(attempt_number, classification)
+            if sandbox_reason:
+                verdict, indeterminate_reason = "INDETERMINATE", sandbox_reason
+                _log(f"[verdict] INDETERMINATE: {sandbox_reason}")
+                break
 
         if verdict is None:
             verdict = "BLOCKED"
@@ -1202,7 +1283,7 @@ def _run_stages(
     return _finalize(
         verdict=verdict,
         taxonomy_code=taxonomy_code,
-        indeterminate_reason="",
+        indeterminate_reason=indeterminate_reason,
         attempts=tuple(attempts),
         build_plan_dict=plan.as_dict(),
         log_lines=log_lines,
@@ -1274,6 +1355,7 @@ def _finalize(
         "recovery": recovery,
         "tree_integrity": dict(state.tree_integrity) if state is not None else {"status": "not_checked"},
         "corpus_hash": getattr(state, "corpus_hash", None),
+        **_verdict_record(state, taxonomy_code, indeterminate_reason),
     }
     passport_hash = passport.compute_passport_hash(certificate_for_hash)
 
@@ -1293,6 +1375,7 @@ def _finalize(
         recovery=recovery,
         tree_integrity=certificate_for_hash["tree_integrity"],
         corpus_hash=certificate_for_hash["corpus_hash"],
+        **_chain_kwargs(state),
     )
 
 
@@ -1370,6 +1453,7 @@ def _finalize_pipeline_error(
                 "recovery": False,
                 "tree_integrity": dict(state.tree_integrity),
                 "corpus_hash": getattr(state, "corpus_hash", None),
+                **_verdict_record(state, None, reason),
             }
         )
     except Exception:  # noqa: BLE001
@@ -1392,6 +1476,7 @@ def _finalize_pipeline_error(
         recovery=False,
         tree_integrity=dict(state.tree_integrity),
         corpus_hash=getattr(state, "corpus_hash", None),
+        **_chain_kwargs(state),
     )
 
 
@@ -1438,6 +1523,7 @@ def _finalize_invalid_harness(
         "recovery": False,
         "tree_integrity": dict(state.tree_integrity),
         "corpus_hash": getattr(state, "corpus_hash", None),
+        **_verdict_record(state, None, reason),
     }
     return PipelineResult(
         verdict=verdict,
@@ -1455,6 +1541,7 @@ def _finalize_invalid_harness(
         recovery=False,
         tree_integrity=cert["tree_integrity"],
         corpus_hash=cert["corpus_hash"],
+        **_chain_kwargs(state),
     )
 
 
@@ -1496,6 +1583,7 @@ def _finalize_not_measured(
     repo_url: str,
     commit_sha: str,
     on_event: Callable[[str], None] | None,
+    taxonomy_code: str | None = None,
 ) -> PipelineResult:
     """End a run that measured nothing about the repository (INFRA_ERROR,
     UPLOAD_TOO_LARGE): a signed certificate carrying the reason; the
@@ -1510,7 +1598,9 @@ def _finalize_not_measured(
             except Exception:  # noqa: BLE001
                 pass
 
-    _log(f"[{'infra' if verdict == infra.INFRA_ERROR else 'harness-limit'}] {reason}")
+    _log(f"[{'infra' if verdict == infra.INFRA_ERROR else 'sandbox-limit' if taxonomy_code else 'harness-limit'}] {reason}")
+    if taxonomy_code:
+        state.error_chain.record(0, taxonomy_code, reason, error_chain.SANDBOX_QUOTA if taxonomy_code == "SANDBOX_QUOTA" else error_chain.PLATFORM)
     attempts = tuple(state.attempts)
     timestamp = datetime.now(timezone.utc).isoformat()
     full_log = "\n".join(log_lines)
@@ -1528,10 +1618,11 @@ def _finalize_not_measured(
         "recovery": False,
         "tree_integrity": dict(state.tree_integrity),
         "corpus_hash": getattr(state, "corpus_hash", None),
+        **_verdict_record(state, taxonomy_code, reason),
     }
     return PipelineResult(
         verdict=verdict,
-        taxonomy_code=None,
+        taxonomy_code=taxonomy_code,
         indeterminate_reason=reason,
         attempts=attempts,
         build_plan=state.build_plan_dict,
@@ -1545,4 +1636,5 @@ def _finalize_not_measured(
         recovery=False,
         tree_integrity=cert["tree_integrity"],
         corpus_hash=cert["corpus_hash"],
+        **_chain_kwargs(state),
     )

@@ -92,6 +92,11 @@ def templated_certificate_prose(verdict: str, taxonomy_code: str | None, attempt
         "INFRA_ERROR": "An external service RERUN depends on failed during this run, so nothing is claimed about the repository.",
         "UPLOAD_TOO_LARGE": "The repository exceeds RERUN's pre-declared upload size limit, so it was not run and nothing is claimed about it.",
     }.get(verdict, f"Verdict: {verdict}.")
+    if verdict == "INDETERMINATE" and taxonomy_code in ("SANDBOX_QUOTA", "SANDBOX_INCOMPAT"):
+        base = (
+            "The Nebius sandbox refused to load or store something the run needed "
+            f"({taxonomy_code}); a platform limit is not evidence about the repository's code, so nothing is claimed about it."
+        )
     return f"{base} {SCOPE_BOUNDARY_LINE}"
 
 

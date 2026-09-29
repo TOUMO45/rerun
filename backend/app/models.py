@@ -86,5 +86,11 @@ class Certificate(Base):
     # Passport bundle v3 fields.
     tree_integrity: Mapped[dict | None] = mapped_column(JSON, nullable=True)
     corpus_hash: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    # Passport bundle v4 fields: the hashed verdict record.
+    taxonomy_code: Mapped[str | None] = mapped_column(String(64), nullable=True)
+    indeterminate_reason: Mapped[str | None] = mapped_column(Text, nullable=True)
+    error_chain: Mapped[list | None] = mapped_column(JSON, nullable=True)
+    first_repo_error: Mapped[str | None] = mapped_column(Text, nullable=True)
+    last_error: Mapped[str | None] = mapped_column(Text, nullable=True)
 
     run: Mapped[Run] = relationship(back_populates="certificate")

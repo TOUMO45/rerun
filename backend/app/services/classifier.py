@@ -37,6 +37,10 @@ class TaxonomyCode:
     GPU_REQUIRED = "GPU_REQUIRED"
     NETWORK_BLOCKED = "NETWORK_BLOCKED"
     RUNTIME_ERROR_OTHER = "RUNTIME_ERROR_OTHER"
+    # Sandbox-side failures (Phase 2). Verdict INDETERMINATE, never BLOCKED: an
+    # infrastructure limit or a platform refusal is not evidence about the paper's code.
+    SANDBOX_QUOTA = "SANDBOX_QUOTA"  # a Nebius limit: upload rejected, fs delta, disk full
+    SANDBOX_INCOMPAT = "SANDBOX_INCOMPAT"  # the platform refuses to load a valid artifact
 
     FAMILY = {
         DEP_UNPINNED_CONFLICT: "Dependencies",
@@ -52,7 +56,11 @@ class TaxonomyCode:
         GPU_REQUIRED: "Resources",
         NETWORK_BLOCKED: "Environment",
         RUNTIME_ERROR_OTHER: "Code",
+        SANDBOX_QUOTA: "Platform",
+        SANDBOX_INCOMPAT: "Platform",
     }
+
+    SANDBOX_CODES = frozenset({SANDBOX_QUOTA, SANDBOX_INCOMPAT})
 
     ALL = tuple(FAMILY.keys())
 
@@ -136,6 +144,32 @@ _BINARY_ALT = "|".join(re.escape(b) for b in SYSTEM_BINARIES)
 
 
 _RULES: tuple[_Rule, ...] = (
+    # --- Sandbox platform (checked before everything else: whatever fails ----
+    # downstream of a platform refusal or an exhausted quota is a consequence,
+    # and a repair cannot fix it). `libtorch_cpu.so: cannot enable executable
+    # stack` would otherwise match the SYS_LIB_MISSING shared-object rules.
+    _Rule(
+        TaxonomyCode.SANDBOX_INCOMPAT,
+        _p(
+            r"cannot enable executable stack as shared object requires",
+            r"\bBad system call\b",
+            r"\bseccomp\b.*(denied|blocked|violation|not permitted)",
+            r"Operation not permitted:? .*\bseccomp\b",
+        ),
+    ),
+    _Rule(
+        TaxonomyCode.SANDBOX_QUOTA,
+        _p(
+            r"No space left on device",
+            r"\[Errno 28\]",
+            r"Disk quota exceeded",
+            r"\[Errno 122\]",
+            r"\b413\b.{0,40}(Request Entity Too Large|Payload Too Large)",
+            r"(Request Entity Too Large|Payload Too Large)",
+            r"upload (was )?(rejected|refused)",
+            r"filesystem (delta|changes?) (limit|exceeded)",
+        ),
+    ),
     # --- Data / credentials (checked early: very specific signal) --------
     _Rule(
         TaxonomyCode.DATA_CREDENTIALS,

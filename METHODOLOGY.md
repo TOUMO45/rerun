@@ -576,3 +576,37 @@ filesystem changes per single operation**. The email gives no unit. Code: `backe
   and an actual quota failure is classified afterwards (`SANDBOX_QUOTA`, Phase 2). The estimates are not measurements.
 - Effect on results: entries over 120 MiB are now run instead of ending `UPLOAD_TOO_LARGE`. The pilot's entry 2
   (185,856,000 B) is such a case and stays recorded as-is in the frozen pilot.
+
+## Failure classes SANDBOX_QUOTA / SANDBOX_INCOMPAT, the error chain, and attribution (Phase 2)
+
+**Why.** The pilot (entry 3) showed the sandbox refusing torch's shared objects while the harness charged the
+failure to the repository. A platform limit or refusal is not evidence about a paper's code, so it must never
+produce BLOCKED.
+
+- `SANDBOX_QUOTA` — a Nebius limit: upload rejected/too large, filesystem delta exceeded, disk full (`ENOSPC`,
+  `EDQUOT`, HTTP 413). `SANDBOX_INCOMPAT` — the platform refuses to load a valid artifact: executable-stack refusal
+  (`cannot enable executable stack as shared object requires`), seccomp/syscall denial (`Bad system call`). Both are
+  checked **before** every other rule (an exec-stack refusal used to match SYS_LIB_MISSING and start a useless apt
+  repair loop). Verdict = **INDETERMINATE**, reason code = the class; the run stops at once (no repair attempts);
+  both are excluded from every rate like RERUN's own faults. A repo over the upload limit with no download route now
+  ends INDETERMINATE / SANDBOX_QUOTA instead of `UPLOAD_TOO_LARGE`; frozen pilot records keep their old verdict.
+- **Error chain.** Every classified failure of a run, in order: `{error, class, attribution, cleared_by}`.
+  Attribution ∈ `REPO`, `ENV`, `SANDBOX_QUOTA`, `PLATFORM`:
+  - a missing package the repo imports but does not declare → REPO (undeclared dependency);
+  - a missing package the repo declares that our runner failed to install → ENV;
+  - **exception (deliberate):** `torch`/`torchvision`/`torchaudio` missing → ENV, because the runner provides them by policy;
+  - a Python-version failure (removed stdlib name, e.g. `collections.Iterable`) → REPO only if the repo declares/accepts
+    the Python version we ran, else ENV (we chose a version it never claimed);
+  - quota → SANDBOX_QUOTA; platform refusal → PLATFORM; runner network policy → ENV;
+  - a failure that follows a PLATFORM/SANDBOX_QUOTA link inherits it (it is a consequence, not the repo's fault).
+- **`first_repo_error`** = the first chain link attributed REPO, whether or not a later repair cleared it (None if
+  there is none). **`last_error`** is kept for debugging. The results table shows `first_repo_error` and the attributions.
+  ENV / SANDBOX / PLATFORM failures are reported separately and excluded from the Reproducibility Recovery Rate.
+- **Passport bundle v4** hashes the whole verdict record: `taxonomy_code`, `indeterminate_reason`, `error_chain`,
+  `first_repo_error`, `last_error` (on top of v3's fields). Older certificates keep verifying.
+- Regression on the pilot: entry 1's chain is `tabulate` missing (REPO — the repo declares no dependency), `Iterable`
+  import error (ENV — we chose py3.11, the repo claims no version), `torch` missing (ENV). So its `first_repo_error` is
+  the `tabulate` error, not the `Iterable` one; entry 3's exec-stack refusal is PLATFORM and its `first_repo_error` is none.
+- Limits of the rebuild: frozen pilot records carry no chain, so the summary rebuilds it from the `[classifier]` log
+  lines (re-reading the evidence with today's sandbox rules); `cleared_by` there is the classifier-line ordinal, not the
+  attempt number. Records from harness-v1.3 on store the chain natively.

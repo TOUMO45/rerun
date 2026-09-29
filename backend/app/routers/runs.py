@@ -76,6 +76,11 @@ def _persist_pipeline_result(run: Run, result: PipelineResult, db: Session) -> N
             recovery=result.recovery,
             tree_integrity=result.tree_integrity,
             corpus_hash=result.corpus_hash,
+            taxonomy_code=result.taxonomy_code,
+            indeterminate_reason=result.indeterminate_reason,
+            error_chain=list(result.error_chain),
+            first_repo_error=result.first_repo_error,
+            last_error=result.last_error,
         )
     )
     db.commit()

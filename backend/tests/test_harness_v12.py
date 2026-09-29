@@ -146,9 +146,11 @@ def test_upload_too_large_is_a_harness_limitation_verdict(tmp_path):
     result = run_pipeline(repo_url="https://example.com/r", commit_sha="a" * 40, workdir=tmp_path, intake_result=intake,
                           deps=deps, cost_guard=CostGuard(daily_cost_ceiling_usd=10), run_id="big",
                           documented_command="python train.py")
-    assert result.verdict == UPLOAD_TOO_LARGE
-    assert reason_code_of(result.indeterminate_reason) == UPLOAD_TOO_LARGE and is_our_fault(UPLOAD_TOO_LARGE)
-    assert result.baseline["result"] == "NOT_RUN" and result.taxonomy_code is None
+    # Phase 2: an upload limit is an infrastructure limit -> INDETERMINATE / SANDBOX_QUOTA, never BLOCKED.
+    assert result.verdict == "INDETERMINATE"
+    assert reason_code_of(result.indeterminate_reason) == "SANDBOX_QUOTA" and is_our_fault("SANDBOX_QUOTA")
+    assert result.baseline["result"] == "NOT_RUN" and result.taxonomy_code == "SANDBOX_QUOTA"
+    assert result.error_chain[0]["attribution"] == "SANDBOX_QUOTA" and result.first_repo_error is None
 
 
 def test_batch_summary_reports_upload_too_large_separately():

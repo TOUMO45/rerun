@@ -47,7 +47,12 @@ CANONICAL_FIELDS_BY_VERSION: dict[int, tuple[str, ...]] = {
     #     corpus the run belongs to; null for ad-hoc runs).
     3: CANONICAL_FIELDS + ("bundle_version", "baseline", "recovery", "tree_integrity", "corpus_hash"),
 }
-CURRENT_BUNDLE_VERSION = 3
+# v4 (Phase 2): the full verdict record is hashed: + taxonomy_code, indeterminate_reason,
+#     error_chain (ordered failures with attribution), first_repo_error, last_error.
+CANONICAL_FIELDS_BY_VERSION[4] = CANONICAL_FIELDS_BY_VERSION[3] + (
+    "taxonomy_code", "indeterminate_reason", "error_chain", "first_repo_error", "last_error",
+)
+CURRENT_BUNDLE_VERSION = 4
 
 PASSPORT_FIELD = "reproduction_passport_hash"
 

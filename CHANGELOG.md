@@ -17,3 +17,11 @@ same-harness ablation (CONTROL: repair off / TREATMENT: repair on), replacing "v
 repos (manifest-only upload; the sandbox fetches the pinned GitHub commit and verifies it against the git-blob manifest;
 WSL dry run passed, tamper caught), setup split into system/torch/rest operations, and a per-op 12 GB delta ESTIMATE
 check. 26 new tests; suite 768 passed, 9 skipped.
+
+## Phase 2 — SANDBOX_QUOTA / SANDBOX_INCOMPAT, error chain, attribution (2026-09-29)
+Sandbox-side failures (quota/limit; platform refusal such as the exec-stack refusal that sank pilot entry 3) now end
+INDETERMINATE and stop the repair loop; they are excluded from every rate. Every run records an ordered error chain with
+attribution (REPO / ENV / SANDBOX_QUOTA / PLATFORM), `first_repo_error` (first REPO link) and `last_error`; passport bundle
+v4 hashes the whole verdict record. Regression tests derive entry 1's chain from its real pilot log (first repo error =
+undeclared `tabulate`; the `Iterable` error is ENV because we chose py3.11). Deviation from the brief, flagged: torch-family
+missing is ENV even though undeclared (runner-provided by policy). Suite: 795 passed, 9 skipped.

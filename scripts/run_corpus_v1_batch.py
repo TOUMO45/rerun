@@ -302,6 +302,9 @@ def summarize(records: list[dict]) -> dict:
             "verdict": result.get("verdict"),
             "taxonomy_code": result.get("taxonomy_code"),
             "reason_code": result.get("reason_code"),
+            "first_repo_error": result.get("first_repo_error"),
+            "last_error": result.get("last_error"),
+            "attribution": sorted({link["attribution"] for link in result.get("error_chain") or []}),
             "recovery": bool(cert.get("recovery")),
             "repair_mode": r.get("repair_mode"),
             "tree_integrity": (r.get("tree_integrity") or cert.get("tree_integrity") or {}).get("status"),
@@ -311,9 +314,11 @@ def summarize(records: list[dict]) -> dict:
             "error": r.get("error"),
         })
     our_fault = ("INFRA_ERROR", "INVALID_HARNESS", "UPLOAD_TOO_LARGE")
+    # Phase 2: sandbox-side INDETERMINATE (SANDBOX_QUOTA / SANDBOX_INCOMPAT) is not a repository verdict.
+    sandbox_side = lambda row: (row["reason_code"] or "").startswith(("SANDBOX_QUOTA", "SANDBOX_INCOMPAT"))  # noqa: E731
     primary = [row for row in rows if row["category"] == "PRIMARY"]
     measured = [row for row in primary if row["verdict"] not in our_fault
-                and not (row["reason_code"] or "").startswith("PIPELINE_ERROR")]
+                and not (row["reason_code"] or "").startswith("PIPELINE_ERROR") and not sandbox_side(row)]
     failed = [row for row in measured if row["baseline"] == "FAILS"]
     recovered = [row for row in failed if row["verdict"] == "RUNS_AFTER_REPAIR"]
     blocked: dict[str, int] = {}
@@ -335,6 +340,7 @@ def summarize(records: list[dict]) -> dict:
             "invalid_harness": sum(1 for row in primary if row["verdict"] == "INVALID_HARNESS"),
             "infra_error": sum(1 for row in primary if row["verdict"] == "INFRA_ERROR"),
             "upload_too_large": sum(1 for row in primary if row["verdict"] == "UPLOAD_TOO_LARGE"),
+            "sandbox_side": sum(1 for row in primary if sandbox_side(row)),
             "pipeline_error": sum(1 for row in primary if (row["reason_code"] or "").startswith("PIPELINE_ERROR")),
             "verdicts": dict(sorted(verdicts.items())),
             "recovered_repair_mode": {

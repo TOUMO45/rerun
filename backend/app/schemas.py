@@ -52,6 +52,11 @@ class CertificateOut(BaseModel):
     recovery: bool | None = None
     tree_integrity: dict | None = None
     corpus_hash: str | None = None
+    taxonomy_code: str | None = None
+    indeterminate_reason: str | None = None
+    error_chain: list | None = None
+    first_repo_error: str | None = None
+    last_error: str | None = None
 
 
 class HealthOut(BaseModel):

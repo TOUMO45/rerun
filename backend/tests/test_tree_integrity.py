@@ -159,7 +159,7 @@ def test_verified_tree_is_recorded_in_the_passport(tmp_path, upstream):
     result = _run(dest, sha, calls)
     assert result.verdict == "RUNS_CLEAN"
     cert = result.certificate()
-    assert cert["bundle_version"] == 3
+    assert cert["bundle_version"] == 4
     assert cert["tree_integrity"]["status"] == "verified" and len(cert["tree_integrity"]["tree_sha"]) == 40
     assert verify_certificate(cert)
     tampered = dict(cert, tree_integrity={**cert["tree_integrity"], "status": "failed"})

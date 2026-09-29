@@ -54,6 +54,12 @@ _ADDED_COLUMNS = {
         ("recovery", "BOOLEAN"),
         ("tree_integrity", "JSON"),
         ("corpus_hash", "VARCHAR(64)"),
+        # bundle v4 (Phase 2): the hashed verdict record
+        ("taxonomy_code", "VARCHAR(64)"),
+        ("indeterminate_reason", "TEXT"),
+        ("error_chain", "JSON"),
+        ("first_repo_error", "TEXT"),
+        ("last_error", "TEXT"),
     ),
 }
 
