@@ -528,7 +528,13 @@ BLOCKED 5, TIMEOUT 2 (#10 alf, #17 neural-flows).
 75 draws screened under the sealed pre-registration (seed 20260928); 20 eligible; corpus_hash
 `7df090bea7013974f9f10fb8959ab0162734b51c83a80f744f9c310ce694fbdc`. Outputs: `backend/app/batch/corpus_v2/{corpus.yaml,corpus_hash.txt,screening_log.jsonl}`.
 
-## corpus-v2 batch on harness-v1.2 — STOPPED after 3 of 20 (2026-09-29)
+## Pilot run (harness-v1.2, 3/20) — STOPPED (2026-09-29)
+
+> Role, decided 2026-09-29: this is a **pilot**, not the baseline. It discovered a sandbox
+> incompatibility (executable-stack refusal for torch's shared objects) and an upload cap.
+> Entries 1–3 stay frozen (#2 UPLOAD_TOO_LARGE, #3 MISATTRIBUTED). The full evaluation is the
+> corpus-v2.1 ablation (CONTROL: repair off; TREATMENT: repair on) on one newly sealed harness tag.
+> Summary: `reports/corpus-v2/summary.md`.
 
 Stopped under the freeze rule (a failure attributed to the repository that is not the
 repository's fault). Entries run: #1 nadiinchi/power_laws_deep_ensembles BLOCKED DEP_MISSING
