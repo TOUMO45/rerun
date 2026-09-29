@@ -1,0 +1,675 @@
+{
+  "run_kind": "live end-to-end run",
+  "dev_run": false,
+  "dry_run": null,
+  "batch": {
+    "harness_tag": "harness-v1.2",
+    "harness_commit": "668c907baeef0cbb29338f118dfc8975dd812993",
+    "head_commit": "668c907baeef0cbb29338f118dfc8975dd812993",
+    "corpus": "corpus-v1",
+    "amendment_sha256": "63d409a3ffc92b016fde502b90e53500a48287b7a286c7078148ac3650b9622d",
+    "corpus_hash": "063b700c38006bcf3160c64674a196cdf2fddb768a0c3de232746181aeef7d5c",
+    "entry_id": 11,
+    "category": "PRIMARY",
+    "rules_matched": [],
+    "per_entry_cap_usd": 2.0,
+    "total_cap_usd": 40.0
+  },
+  "started_at": "2026-09-29T10:41:38.750653+00:00",
+  "corpus_entry": {
+    "name": "danecor__VaST",
+    "repo_url": "https://github.com/danecor/VaST",
+    "commit_sha": "b262615f54c7d89904e919055b60be6b9f6bd81a",
+    "command": "CUDA_VISIBLE_DEVICES=0 python run.py doom tmaze --num_steps=500000 --burnin=10000 --epsilon_period=40000",
+    "command_source": "README.md line 41"
+  },
+  "config": {
+    "models": {
+      "recon": "nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B",
+      "planner": "nvidia/nemotron-3-super-120b-a12b",
+      "repairer": "nvidia/nemotron-3-super-120b-a12b",
+      "adjudicator": "nvidia/Nemotron-3-Ultra-550b-a55b"
+    },
+    "sandbox_backend": "token_factory",
+    "sandbox_image_default": "python:3.11-slim",
+    "sandbox_wall_clock_seconds": 600.0,
+    "max_attempts": 3,
+    "tavily_configured": true,
+    "cost_cap_usd": 2.0
+  },
+  "intake": {
+    "duration_s": 11.84,
+    "resolved_sha": "b262615f54c7d89904e919055b60be6b9f6bd81a",
+    "dependency_files": [
+      "requirements.txt"
+    ],
+    "declared_dependencies": [
+      "atari-py",
+      "bottleneck",
+      "cython",
+      "h5py",
+      "matplotlib",
+      "numpy",
+      "pyyaml",
+      "scikit-image",
+      "scipy",
+      "tables",
+      "tblib",
+      "vizdoom"
+    ],
+    "entrypoint_candidates": [
+      "run.py"
+    ],
+    "notebook_paths": []
+  },
+  "pipeline_duration_s": 188.36,
+  "repair_mode": "model_assisted",
+  "tree_integrity": {
+    "status": "verified",
+    "tree_sha": "caa258641d3e5873d97305c253e8187a22acba8c",
+    "files_checked": 47,
+    "excluded_patched": []
+  },
+  "result": {
+    "verdict": "BLOCKED",
+    "taxonomy_code": "RUNTIME_ERROR_OTHER",
+    "indeterminate_reason": "",
+    "reason_code": null,
+    "error_traceback": "",
+    "attempts": [
+      {
+        "attempt_number": 1,
+        "diff_text": "",
+        "gate_decision": "DECLINED",
+        "gate_violations": [],
+        "exit_code": null,
+        "stdout_tail": "",
+        "stderr_tail": "",
+        "tavily_sources": [],
+        "env_delta": [],
+        "resolved_sources": [],
+        "origin": "model",
+        "time_machine": null
+      },
+      {
+        "attempt_number": 2,
+        "diff_text": "--- a/requirements.txt\n+++ b/requirements.txt\n@@ -1,5 +1,5 @@\n numpy==1.14.2\n scipy==1.0.1\n-matplotlib==2.2.2\n+matplotlib==3.3.4\n scikit-image==0.13.1\n pyyaml==3.12\n",
+        "gate_decision": "PASS",
+        "gate_violations": [],
+        "exit_code": null,
+        "stdout_tail": "",
+        "stderr_tail": "gate-approved patch failed to apply: error: patch failed: requirements.txt:1\nerror: requirements.txt: patch does not apply",
+        "tavily_sources": [],
+        "env_delta": [],
+        "resolved_sources": [],
+        "origin": "model",
+        "time_machine": null
+      },
+      {
+        "attempt_number": 3,
+        "diff_text": "--- a/run.py\n+++ b/run.py\n",
+        "gate_decision": "PASS",
+        "gate_violations": [],
+        "exit_code": null,
+        "stdout_tail": "",
+        "stderr_tail": "gate-approved patch failed to apply: error: No valid patches in input (allow with \"--allow-empty\")",
+        "tavily_sources": [],
+        "env_delta": [],
+        "resolved_sources": [],
+        "origin": "model",
+        "time_machine": null
+      }
+    ],
+    "certificate_prose": "After three repair attempts, the gate-approved patch failed to apply cleanly with the error 'No valid patches in input (allow with \"--allow-empty\")'. The execution was blocked due to a runtime error classified as RUNTIME_ERROR_OTHER. Verifies that the artifact executes. Does not verify the paper's numerical results."
+  },
+  "certificate": {
+    "repo_url": "https://github.com/danecor/VaST",
+    "commit_sha": "b262615f54c7d89904e919055b60be6b9f6bd81a",
+    "build_plan": {
+      "base_image": "python:3.11-slim",
+      "apt_install": [
+        "libhdf5-serial-dev",
+        "liblapack-dev",
+        "libopenblas-dev",
+        "libyaml-dev",
+        "python3-dev"
+      ],
+      "install_commands": [
+        "pip install -r requirements.txt"
+      ],
+      "execute_command": "CUDA_VISIBLE_DEVICES=0 python run.py doom tmaze --num_steps=500000 --burnin=10000 --epsilon_period=40000",
+      "notes": [
+        "execute command is the repository's documented command (corpus ground truth)",
+        "apt package list enriched by Nemotron Super"
+      ]
+    },
+    "full_log": "[intake] cloned https://github.com/danecor/VaST@b262615f54c7d89904e919055b60be6b9f6bd81a\n[recon] calling Nemotron Nano\n[recon] entrypoint=run.py confidence=0.80\n[planner] build plan: {'base_image': 'python:3.11-slim', 'apt_install': ['libhdf5-serial-dev', 'liblapack-dev', 'libopenblas-dev', 'libyaml-dev', 'python3-dev'], 'install_commands': ['pip install -r requirements.txt'], 'execute_command': 'CUDA_VISIBLE_DEVICES=0 python run.py doom tmaze --num_steps=500000 --burnin=10000 --epsilon_period=40000', 'notes': [\"execute command is the repository's documented command (corpus ground truth)\", 'apt package list enriched by Nemotron Super']}\n[integrity] verified 47 file(s) against tree caa258641d3e5873d97305c253e8187a22acba8c\n[sandbox] starting build+execute (wall_clock_seconds=600)\n[cost_guard] recorded $0.1543 sandbox spend, $1.8441 remaining today\n[sandbox] id=e6e6020d-21cf-494a-b31a-a2ecb675948f exit_code=1\n[baseline] as-is run: FAILS (exit code 1)\n[classifier] RUNTIME_ERROR_OTHER: AttributeError: module 'platform' has no attribute 'linux_distribution'\n[tavily] 3 result(s) for 'python runtime error other fix: AttributeError: module 'platform' has no attribute 'linux_distribution''\n[repair 1] first reply was not valid JSON; re-asked once (same attempt)\n[repair 1] declined: repair model reply was not valid JSON twice: model response was not valid JSON: Extra data: line 7 column 1 (char 370)\n---\n\n{\n  \"code_diff\": \"--- a/requirements.txt\\\\n+++ b/requirements.txt\\\\n@@ -1,4 +1,4 @@\\\\nnumpy==1.14.2\\\\nscipy==1.0.1\\\\n-matplotlib==2.2.2\\\\n+matplotlib==3.5.0\\\\nscikit-image==0.13.1\",\n  \"env_delta\": [],\n  \"explanation\": \"Updated matplotlib version from 2.2.2 to 3.5.0 to resolve compatibility with Python 3.11 by removing deprecated platform.linux_distribution usage.\"\n}\n\n</output>\n[citations] not cited (not used in a decision): https://assets.publishing.service.gov.uk/media/5a7e47a0e5274a2e87db0b50/ED1._Nursery_Schools_as_at_September_2013.xls\n[citations] not cited (not used in a decision): https://assets.publishing.service.gov.uk/media/5a7de98b40f0b62302687eed/EYC2._Children_s_centres_as_at_07-08-13.xls\n[citations] not cited (not used in a decision): https://assets.publishing.service.gov.uk/media/5a7cfa4ae5274a2af0ae29fd/C2b._Credit_Card_Spending_12-13.xls\n[tavily] 3 result(s) for 'python runtime error other fix: AttributeError: module 'platform' has no attribute 'linux_distribution''\n[repair 2] first reply was not valid JSON; re-asked once (same attempt)\n[repair 2] tamper gate PASS (code) \u2014 applying and re-executing\n[repair 2] gate-approved patch failed to apply cleanly: gate-approved patch failed to apply: error: patch failed: requirements.txt:1\nerror: requirements.txt: patch does not apply\n[citations] not cited (not used in a decision): https://itsourcecode.com/attributeerror/attributeerror-module-platform-has-no-attribute-linux_distribution\n[citations] not cited (not used in a decision): https://bugs.launchpad.net/bugs/1864993\n[citations] not cited (not used in a decision): https://blog.csdn.net/qq_42415326/article/details/104767193\n[tavily] 3 result(s) for 'python runtime error other fix: AttributeError: module 'platform' has no attribute 'linux_distribution''\n[repair 3] tamper gate PASS (code) \u2014 applying and re-executing\n[repair 3] gate-approved patch failed to apply cleanly: gate-approved patch failed to apply: error: No valid patches in input (allow with \"--allow-empty\")\n[citations] not cited (not used in a decision): https://itsourcecode.com/attributeerror/attributeerror-module-platform-has-no-attribute-linux_distribution\n[citations] not cited (not used in a decision): https://bugs.launchpad.net/bugs/1864993\n[citations] not cited (not used in a decision): https://www.imooc.com/article/341738\n[verdict] BLOCKED after 3 repair attempt(s): RUNTIME_ERROR_OTHER",
+    "diffs": [
+      {
+        "attempt_number": 1,
+        "diff_text": "",
+        "gate_decision": "DECLINED",
+        "gate_violations": [],
+        "exit_code": null,
+        "stdout_tail": "",
+        "stderr_tail": "",
+        "tavily_sources": [],
+        "env_delta": [],
+        "resolved_sources": [],
+        "origin": "model",
+        "time_machine": null
+      },
+      {
+        "attempt_number": 2,
+        "diff_text": "--- a/requirements.txt\n+++ b/requirements.txt\n@@ -1,5 +1,5 @@\n numpy==1.14.2\n scipy==1.0.1\n-matplotlib==2.2.2\n+matplotlib==3.3.4\n scikit-image==0.13.1\n pyyaml==3.12\n",
+        "gate_decision": "PASS",
+        "gate_violations": [],
+        "exit_code": null,
+        "stdout_tail": "",
+        "stderr_tail": "gate-approved patch failed to apply: error: patch failed: requirements.txt:1\nerror: requirements.txt: patch does not apply",
+        "tavily_sources": [],
+        "env_delta": [],
+        "resolved_sources": [],
+        "origin": "model",
+        "time_machine": null
+      },
+      {
+        "attempt_number": 3,
+        "diff_text": "--- a/run.py\n+++ b/run.py\n",
+        "gate_decision": "PASS",
+        "gate_violations": [],
+        "exit_code": null,
+        "stdout_tail": "",
+        "stderr_tail": "gate-approved patch failed to apply: error: No valid patches in input (allow with \"--allow-empty\")",
+        "tavily_sources": [],
+        "env_delta": [],
+        "resolved_sources": [],
+        "origin": "model",
+        "time_machine": null
+      }
+    ],
+    "verdict": "BLOCKED",
+    "timestamp": "2026-09-29T10:44:58.949319+00:00",
+    "bundle_version": 3,
+    "baseline": {
+      "result": "FAILS",
+      "exit_code": 1,
+      "base_image": "python:3.11-slim",
+      "install_commands": [
+        "apt-get update && apt-get install -y libhdf5-serial-dev liblapack-dev libopenblas-dev libyaml-dev python3-dev",
+        "pip install -r requirements.txt"
+      ],
+      "execute_command": "CUDA_VISIBLE_DEVICES=0 python run.py doom tmaze --num_steps=500000 --burnin=10000 --epsilon_period=40000",
+      "sandbox_id": "e6e6020d-21cf-494a-b31a-a2ecb675948f",
+      "taxonomy_code": "RUNTIME_ERROR_OTHER",
+      "evidence": "AttributeError: module 'platform' has no attribute 'linux_distribution'"
+    },
+    "recovery": false,
+    "tree_integrity": {
+      "status": "verified",
+      "tree_sha": "caa258641d3e5873d97305c253e8187a22acba8c",
+      "files_checked": 47,
+      "excluded_patched": []
+    },
+    "corpus_hash": "063b700c38006bcf3160c64674a196cdf2fddb768a0c3de232746181aeef7d5c",
+    "reproduction_passport_hash": "2d424723a4b1cdab6b789e69f2b12456ea4e7060e6c78daba8f9165b3619bd70"
+  },
+  "finished_at": "2026-09-29T10:44:59.004758+00:00",
+  "events": [
+    {
+      "t_s": 0.0,
+      "at": "2026-09-29T10:41:50.591702+00:00",
+      "line": "[intake] cloned https://github.com/danecor/VaST@b262615f54c7d89904e919055b60be6b9f6bd81a"
+    },
+    {
+      "t_s": 0.01,
+      "at": "2026-09-29T10:41:50.600290+00:00",
+      "line": "[recon] calling Nemotron Nano"
+    },
+    {
+      "t_s": 5.33,
+      "at": "2026-09-29T10:41:55.916712+00:00",
+      "line": "[recon] entrypoint=run.py confidence=0.80"
+    },
+    {
+      "t_s": 13.24,
+      "at": "2026-09-29T10:42:03.834208+00:00",
+      "line": "[planner] build plan: {'base_image': 'python:3.11-slim', 'apt_install': ['libhdf5-serial-dev', 'liblapack-dev', 'libopenblas-dev', 'libyaml-dev', 'python3-dev'], 'install_commands': ['pip install -r requirements.txt'], 'execute_command': 'CUDA_VISIBLE_DEVICES=0 python run.py doom tmaze --num_steps=500000 --burnin=10000 --epsilon_period=40000', 'notes': [\"execute command is the repository's documented command (corpus ground truth)\", 'apt package list enriched by Nemotron Super']}"
+    },
+    {
+      "t_s": 13.76,
+      "at": "2026-09-29T10:42:04.347604+00:00",
+      "line": "[integrity] verified 47 file(s) against tree caa258641d3e5873d97305c253e8187a22acba8c"
+    },
+    {
+      "t_s": 13.76,
+      "at": "2026-09-29T10:42:04.347686+00:00",
+      "line": "[sandbox] starting build+execute (wall_clock_seconds=600)"
+    },
+    {
+      "t_s": 70.9,
+      "at": "2026-09-29T10:43:01.496437+00:00",
+      "line": "[cost_guard] recorded $0.1543 sandbox spend, $1.8441 remaining today"
+    },
+    {
+      "t_s": 70.9,
+      "at": "2026-09-29T10:43:01.496525+00:00",
+      "line": "[sandbox] id=e6e6020d-21cf-494a-b31a-a2ecb675948f exit_code=1"
+    },
+    {
+      "t_s": 70.9,
+      "at": "2026-09-29T10:43:01.496554+00:00",
+      "line": "[baseline] as-is run: FAILS (exit code 1)"
+    },
+    {
+      "t_s": 70.91,
+      "at": "2026-09-29T10:43:01.500336+00:00",
+      "line": "[classifier] RUNTIME_ERROR_OTHER: AttributeError: module 'platform' has no attribute 'linux_distribution'"
+    },
+    {
+      "t_s": 74.02,
+      "at": "2026-09-29T10:43:04.608605+00:00",
+      "line": "[tavily] 3 result(s) for 'python runtime error other fix: AttributeError: module 'platform' has no attribute 'linux_distribution''"
+    },
+    {
+      "t_s": 116.46,
+      "at": "2026-09-29T10:43:47.054674+00:00",
+      "line": "[repair 1] first reply was not valid JSON; re-asked once (same attempt)"
+    },
+    {
+      "t_s": 116.46,
+      "at": "2026-09-29T10:43:47.054733+00:00",
+      "line": "[repair 1] declined: repair model reply was not valid JSON twice: model response was not valid JSON: Extra data: line 7 column 1 (char 370)\n---\n\n{\n  \"code_diff\": \"--- a/requirements.txt\\\\n+++ b/requirements.txt\\\\n@@ -1,4 +1,4 @@\\\\nnumpy==1.14.2\\\\nscipy==1.0.1\\\\n-matplotlib==2.2.2\\\\n+matplotlib==3.5.0\\\\nscikit-image==0.13.1\",\n  \"env_delta\": [],\n  \"explanation\": \"Updated matplotlib version from 2.2.2 to 3.5.0 to resolve compatibility with Python 3.11 by removing deprecated platform.linux_distribution usage.\"\n}\n\n</output>"
+    },
+    {
+      "t_s": 116.46,
+      "at": "2026-09-29T10:43:47.054759+00:00",
+      "line": "[citations] not cited (not used in a decision): https://assets.publishing.service.gov.uk/media/5a7e47a0e5274a2e87db0b50/ED1._Nursery_Schools_as_at_September_2013.xls"
+    },
+    {
+      "t_s": 116.46,
+      "at": "2026-09-29T10:43:47.054784+00:00",
+      "line": "[citations] not cited (not used in a decision): https://assets.publishing.service.gov.uk/media/5a7de98b40f0b62302687eed/EYC2._Children_s_centres_as_at_07-08-13.xls"
+    },
+    {
+      "t_s": 116.46,
+      "at": "2026-09-29T10:43:47.054795+00:00",
+      "line": "[citations] not cited (not used in a decision): https://assets.publishing.service.gov.uk/media/5a7cfa4ae5274a2af0ae29fd/C2b._Credit_Card_Spending_12-13.xls"
+    },
+    {
+      "t_s": 119.51,
+      "at": "2026-09-29T10:43:50.100324+00:00",
+      "line": "[tavily] 3 result(s) for 'python runtime error other fix: AttributeError: module 'platform' has no attribute 'linux_distribution''"
+    },
+    {
+      "t_s": 171.86,
+      "at": "2026-09-29T10:44:42.455010+00:00",
+      "line": "[repair 2] first reply was not valid JSON; re-asked once (same attempt)"
+    },
+    {
+      "t_s": 171.87,
+      "at": "2026-09-29T10:44:42.457592+00:00",
+      "line": "[repair 2] tamper gate PASS (code) \u2014 applying and re-executing"
+    },
+    {
+      "t_s": 171.91,
+      "at": "2026-09-29T10:44:42.503833+00:00",
+      "line": "[repair 2] gate-approved patch failed to apply cleanly: gate-approved patch failed to apply: error: patch failed: requirements.txt:1\nerror: requirements.txt: patch does not apply"
+    },
+    {
+      "t_s": 171.91,
+      "at": "2026-09-29T10:44:42.503892+00:00",
+      "line": "[citations] not cited (not used in a decision): https://itsourcecode.com/attributeerror/attributeerror-module-platform-has-no-attribute-linux_distribution"
+    },
+    {
+      "t_s": 171.91,
+      "at": "2026-09-29T10:44:42.503908+00:00",
+      "line": "[citations] not cited (not used in a decision): https://bugs.launchpad.net/bugs/1864993"
+    },
+    {
+      "t_s": 171.91,
+      "at": "2026-09-29T10:44:42.503919+00:00",
+      "line": "[citations] not cited (not used in a decision): https://blog.csdn.net/qq_42415326/article/details/104767193"
+    },
+    {
+      "t_s": 174.34,
+      "at": "2026-09-29T10:44:44.929556+00:00",
+      "line": "[tavily] 3 result(s) for 'python runtime error other fix: AttributeError: module 'platform' has no attribute 'linux_distribution''"
+    },
+    {
+      "t_s": 186.42,
+      "at": "2026-09-29T10:44:57.010041+00:00",
+      "line": "[repair 3] tamper gate PASS (code) \u2014 applying and re-executing"
+    },
+    {
+      "t_s": 186.48,
+      "at": "2026-09-29T10:44:57.068435+00:00",
+      "line": "[repair 3] gate-approved patch failed to apply cleanly: gate-approved patch failed to apply: error: No valid patches in input (allow with \"--allow-empty\")"
+    },
+    {
+      "t_s": 186.48,
+      "at": "2026-09-29T10:44:57.068493+00:00",
+      "line": "[citations] not cited (not used in a decision): https://itsourcecode.com/attributeerror/attributeerror-module-platform-has-no-attribute-linux_distribution"
+    },
+    {
+      "t_s": 186.48,
+      "at": "2026-09-29T10:44:57.068508+00:00",
+      "line": "[citations] not cited (not used in a decision): https://bugs.launchpad.net/bugs/1864993"
+    },
+    {
+      "t_s": 186.48,
+      "at": "2026-09-29T10:44:57.068518+00:00",
+      "line": "[citations] not cited (not used in a decision): https://www.imooc.com/article/341738"
+    },
+    {
+      "t_s": 186.48,
+      "at": "2026-09-29T10:44:57.068548+00:00",
+      "line": "[verdict] BLOCKED after 3 repair attempt(s): RUNTIME_ERROR_OTHER"
+    }
+  ],
+  "model_calls": [
+    {
+      "model": "nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B",
+      "started_at": "2026-09-29T10:41:50.993888+00:00",
+      "latency_s": 4.92,
+      "finish_reason": "stop",
+      "content_is_none": false,
+      "has_reasoning": true,
+      "usage": {
+        "completion_tokens": 663,
+        "prompt_tokens": 1725,
+        "total_tokens": 2388,
+        "completion_tokens_details": null,
+        "prompt_tokens_details": null
+      }
+    },
+    {
+      "model": "nvidia/nemotron-3-super-120b-a12b",
+      "started_at": "2026-09-29T10:41:55.919030+00:00",
+      "latency_s": 7.92,
+      "finish_reason": "stop",
+      "content_is_none": false,
+      "has_reasoning": true,
+      "usage": {
+        "completion_tokens": 1332,
+        "prompt_tokens": 323,
+        "total_tokens": 1655,
+        "completion_tokens_details": {
+          "accepted_prediction_tokens": null,
+          "audio_tokens": null,
+          "reasoning_tokens": 1282,
+          "rejected_prediction_tokens": null,
+          "text_tokens": null
+        },
+        "prompt_tokens_details": {
+          "audio_tokens": null,
+          "cache_write_tokens": null,
+          "cached_tokens": 0,
+          "image_tokens": null,
+          "text_tokens": null,
+          "created_cache_tokens": 0,
+          "multimodal_tokens": null
+        },
+        "prompt_cache_hit_tokens": 0,
+        "prompt_cache_miss_tokens": 323
+      }
+    },
+    {
+      "model": "nvidia/nemotron-3-super-120b-a12b",
+      "started_at": "2026-09-29T10:43:04.661284+00:00",
+      "latency_s": 20.89,
+      "finish_reason": "stop",
+      "content_is_none": false,
+      "has_reasoning": true,
+      "usage": {
+        "completion_tokens": 4281,
+        "prompt_tokens": 5172,
+        "total_tokens": 9453,
+        "completion_tokens_details": {
+          "accepted_prediction_tokens": null,
+          "audio_tokens": null,
+          "reasoning_tokens": 3793,
+          "rejected_prediction_tokens": null,
+          "text_tokens": null
+        },
+        "prompt_tokens_details": {
+          "audio_tokens": null,
+          "cache_write_tokens": null,
+          "cached_tokens": 0,
+          "image_tokens": null,
+          "text_tokens": null,
+          "created_cache_tokens": 0,
+          "multimodal_tokens": null
+        },
+        "prompt_cache_hit_tokens": 0,
+        "prompt_cache_miss_tokens": 5172
+      }
+    },
+    {
+      "model": "nvidia/nemotron-3-super-120b-a12b",
+      "started_at": "2026-09-29T10:43:25.550966+00:00",
+      "latency_s": 21.5,
+      "finish_reason": "stop",
+      "content_is_none": false,
+      "has_reasoning": true,
+      "usage": {
+        "completion_tokens": 4297,
+        "prompt_tokens": 5233,
+        "total_tokens": 9530,
+        "completion_tokens_details": {
+          "accepted_prediction_tokens": null,
+          "audio_tokens": null,
+          "reasoning_tokens": 4153,
+          "rejected_prediction_tokens": null,
+          "text_tokens": null
+        },
+        "prompt_tokens_details": {
+          "audio_tokens": null,
+          "cache_write_tokens": null,
+          "cached_tokens": 0,
+          "image_tokens": null,
+          "text_tokens": null,
+          "created_cache_tokens": 0,
+          "multimodal_tokens": null
+        },
+        "prompt_cache_hit_tokens": 0,
+        "prompt_cache_miss_tokens": 5233
+      }
+    },
+    {
+      "model": "nvidia/nemotron-3-super-120b-a12b",
+      "started_at": "2026-09-29T10:43:50.104434+00:00",
+      "latency_s": 30.64,
+      "finish_reason": "stop",
+      "content_is_none": false,
+      "has_reasoning": true,
+      "usage": {
+        "completion_tokens": 6496,
+        "prompt_tokens": 5366,
+        "total_tokens": 11862,
+        "completion_tokens_details": {
+          "accepted_prediction_tokens": null,
+          "audio_tokens": null,
+          "reasoning_tokens": 6061,
+          "rejected_prediction_tokens": null,
+          "text_tokens": null
+        },
+        "prompt_tokens_details": {
+          "audio_tokens": null,
+          "cache_write_tokens": null,
+          "cached_tokens": 0,
+          "image_tokens": null,
+          "text_tokens": null,
+          "created_cache_tokens": 0,
+          "multimodal_tokens": null
+        },
+        "prompt_cache_hit_tokens": 0,
+        "prompt_cache_miss_tokens": 5366
+      }
+    },
+    {
+      "model": "nvidia/nemotron-3-super-120b-a12b",
+      "started_at": "2026-09-29T10:44:20.751813+00:00",
+      "latency_s": 21.7,
+      "finish_reason": "stop",
+      "content_is_none": false,
+      "has_reasoning": true,
+      "usage": {
+        "completion_tokens": 4301,
+        "prompt_tokens": 5427,
+        "total_tokens": 9728,
+        "completion_tokens_details": {
+          "accepted_prediction_tokens": null,
+          "audio_tokens": null,
+          "reasoning_tokens": 4158,
+          "rejected_prediction_tokens": null,
+          "text_tokens": null
+        },
+        "prompt_tokens_details": {
+          "audio_tokens": null,
+          "cache_write_tokens": null,
+          "cached_tokens": 0,
+          "image_tokens": null,
+          "text_tokens": null,
+          "created_cache_tokens": 0,
+          "multimodal_tokens": null
+        },
+        "prompt_cache_hit_tokens": 0,
+        "prompt_cache_miss_tokens": 5427
+      }
+    },
+    {
+      "model": "nvidia/nemotron-3-super-120b-a12b",
+      "started_at": "2026-09-29T10:44:44.932943+00:00",
+      "latency_s": 12.07,
+      "finish_reason": "stop",
+      "content_is_none": false,
+      "has_reasoning": true,
+      "usage": {
+        "completion_tokens": 2256,
+        "prompt_tokens": 5339,
+        "total_tokens": 7595,
+        "completion_tokens_details": {
+          "accepted_prediction_tokens": null,
+          "audio_tokens": null,
+          "reasoning_tokens": 2107,
+          "rejected_prediction_tokens": null,
+          "text_tokens": null
+        },
+        "prompt_tokens_details": {
+          "audio_tokens": null,
+          "cache_write_tokens": null,
+          "cached_tokens": 0,
+          "image_tokens": null,
+          "text_tokens": null,
+          "created_cache_tokens": 0,
+          "multimodal_tokens": null
+        },
+        "prompt_cache_hit_tokens": 0,
+        "prompt_cache_miss_tokens": 5339
+      }
+    },
+    {
+      "model": "nvidia/Nemotron-3-Ultra-550b-a55b",
+      "started_at": "2026-09-29T10:44:57.069919+00:00",
+      "latency_s": 1.88,
+      "finish_reason": "stop",
+      "content_is_none": false,
+      "has_reasoning": true,
+      "usage": {
+        "completion_tokens": 361,
+        "prompt_tokens": 691,
+        "total_tokens": 1052,
+        "completion_tokens_details": {
+          "accepted_prediction_tokens": null,
+          "audio_tokens": null,
+          "reasoning_tokens": 263,
+          "rejected_prediction_tokens": null,
+          "text_tokens": null
+        },
+        "prompt_tokens_details": {
+          "audio_tokens": null,
+          "cache_write_tokens": null,
+          "cached_tokens": 0,
+          "image_tokens": null,
+          "text_tokens": null,
+          "multimodal_tokens": null
+        },
+        "prompt_cache_hit_tokens": 0,
+        "prompt_cache_miss_tokens": 691
+      }
+    }
+  ],
+  "cost_guard": {
+    "spent_usd": 0.18507289000000002,
+    "model_spent_usd": 0.03076132,
+    "sandbox_spent_usd": 0.15431157,
+    "remaining_usd": 1.81492711,
+    "model_usage": [
+      {
+        "model": "nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B",
+        "prompt_tokens": 1725,
+        "completion_tokens": 663,
+        "cost_usd": 0.00026262000000000003
+      },
+      {
+        "model": "nvidia/nemotron-3-super-120b-a12b",
+        "prompt_tokens": 323,
+        "completion_tokens": 1332,
+        "cost_usd": 0.0012957
+      },
+      {
+        "model": "nvidia/nemotron-3-super-120b-a12b",
+        "prompt_tokens": 5172,
+        "completion_tokens": 4281,
+        "cost_usd": 0.0054045
+      },
+      {
+        "model": "nvidia/nemotron-3-super-120b-a12b",
+        "prompt_tokens": 5233,
+        "completion_tokens": 4297,
+        "cost_usd": 0.0054372
+      },
+      {
+        "model": "nvidia/nemotron-3-super-120b-a12b",
+        "prompt_tokens": 5366,
+        "completion_tokens": 6496,
+        "cost_usd": 0.0074562000000000005
+      },
+      {
+        "model": "nvidia/nemotron-3-super-120b-a12b",
+        "prompt_tokens": 5427,
+        "completion_tokens": 4301,
+        "cost_usd": 0.005499
+      },
+      {
+        "model": "nvidia/nemotron-3-super-120b-a12b",
+        "prompt_tokens": 5339,
+        "completion_tokens": 2256,
+        "cost_usd": 0.0036321000000000005
+      },
+      {
+        "model": "nvidia/Nemotron-3-Ultra-550b-a55b",
+        "prompt_tokens": 691,
+        "completion_tokens": 361,
+        "cost_usd": 0.001774
+      }
+    ],
+    "prices_usd_per_1m": {
+      "nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B": [
+        0.06,
+        0.24
+      ],
+      "nvidia/nemotron-3-super-120b-a12b": [
+        0.3,
+        0.9
+      ],
+      "nvidia/Nemotron-3-Ultra-550b-a55b": [
+        1.0,
+        3.0
+      ]
+    },
+    "prices_source": "https://api.tokenfactory.nebius.com/v1/models?verbose=true (pricing field)",
+    "prices_retrieved": "2026-09-24"
+  }
+}

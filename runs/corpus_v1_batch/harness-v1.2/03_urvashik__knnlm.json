@@ -1,0 +1,736 @@
+{
+  "run_kind": "live end-to-end run",
+  "dev_run": false,
+  "dry_run": null,
+  "batch": {
+    "harness_tag": "harness-v1.2",
+    "harness_commit": "668c907baeef0cbb29338f118dfc8975dd812993",
+    "head_commit": "668c907baeef0cbb29338f118dfc8975dd812993",
+    "corpus": "corpus-v1",
+    "amendment_sha256": "63d409a3ffc92b016fde502b90e53500a48287b7a286c7078148ac3650b9622d",
+    "corpus_hash": "063b700c38006bcf3160c64674a196cdf2fddb768a0c3de232746181aeef7d5c",
+    "entry_id": 3,
+    "category": "COMMAND_NOT_A_RUN",
+    "rules_matched": [
+      "R3_PREPROCESS",
+      "R5_PLACEHOLDER"
+    ],
+    "per_entry_cap_usd": 2.0,
+    "total_cap_usd": 40.0
+  },
+  "started_at": "2026-09-29T09:55:23.208854+00:00",
+  "corpus_entry": {
+    "name": "urvashik__knnlm",
+    "repo_url": "https://github.com/urvashik/knnlm",
+    "commit_sha": "8afab92bfcc8be28eccdf41fb82582a80977346e",
+    "command": "python preprocess.py --only-source --trainpref $TEXT/wiki.train.tokens --validpref $TEXT/wiki.valid.tokens --testpref $TEXT/wiki.test.tokens --destdir data-bin/wikitext-103 --workers 20",
+    "command_source": "README.md line 47"
+  },
+  "config": {
+    "models": {
+      "recon": "nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B",
+      "planner": "nvidia/nemotron-3-super-120b-a12b",
+      "repairer": "nvidia/nemotron-3-super-120b-a12b",
+      "adjudicator": "nvidia/Nemotron-3-Ultra-550b-a55b"
+    },
+    "sandbox_backend": "token_factory",
+    "sandbox_image_default": "python:3.11-slim",
+    "sandbox_wall_clock_seconds": 600.0,
+    "max_attempts": 3,
+    "tavily_configured": true,
+    "cost_cap_usd": 2.0
+  },
+  "intake": {
+    "duration_s": 8.37,
+    "resolved_sha": "8afab92bfcc8be28eccdf41fb82582a80977346e",
+    "dependency_files": [
+      "setup.py"
+    ],
+    "declared_dependencies": [
+      "cffi",
+      "cython",
+      "numpy",
+      "regex",
+      "sacrebleu",
+      "torch",
+      "tqdm"
+    ],
+    "entrypoint_candidates": [
+      "eval_lm.py",
+      "examples/noisychannel/rerank.py",
+      "examples/noisychannel/rerank_generate.py",
+      "examples/noisychannel/rerank_score_bw.py",
+      "examples/noisychannel/rerank_score_lm.py",
+      "examples/noisychannel/rerank_tune.py",
+      "examples/roberta/multiprocessing_bpe_encoder.py",
+      "examples/roberta/preprocess_RACE.py",
+      "examples/speech_recognition/datasets/asr_prep_json.py",
+      "examples/speech_recognition/infer.py",
+      "examples/translation_moe/score.py",
+      "fairseq/modules/dynamicconv_layer/cuda_function_gen.py",
+      "fairseq/modules/lightconv_layer/cuda_function_gen.py",
+      "fairseq_cli/eval_lm.py",
+      "fairseq_cli/generate.py",
+      "fairseq_cli/interactive.py",
+      "fairseq_cli/preprocess.py",
+      "fairseq_cli/score.py",
+      "fairseq_cli/train.py",
+      "fairseq_cli/validate.py",
+      "generate.py",
+      "interactive.py",
+      "preprocess.py",
+      "score.py",
+      "scripts/average_checkpoints.py",
+      "scripts/build_sym_alignment.py",
+      "scripts/compare_namespaces.py",
+      "scripts/count_docs.py",
+      "scripts/read_binarized.py",
+      "scripts/rm_pt.py",
+      "scripts/shard_docs.py",
+      "scripts/split_train_valid_docs.py",
+      "scripts/spm_decode.py",
+      "scripts/spm_encode.py",
+      "scripts/spm_train.py",
+      "scripts/wav2vec_featurize.py",
+      "scripts/wav2vec_manifest.py",
+      "tests/speech_recognition/test_collaters.py",
+      "tests/test_average_checkpoints.py",
+      "tests/test_backtranslation_dataset.py",
+      "tests/test_binaries.py",
+      "tests/test_bmuf.py",
+      "tests/test_character_token_embedder.py",
+      "tests/test_convtbc.py",
+      "tests/test_dictionary.py",
+      "tests/test_export.py",
+      "tests/test_iterators.py",
+      "tests/test_label_smoothing.py",
+      "tests/test_memory_efficient_fp16.py",
+      "tests/test_metrics.py",
+      "tests/test_multihead_attention.py",
+      "tests/test_noising.py",
+      "tests/test_reproducibility.py",
+      "tests/test_resampling_dataset.py",
+      "tests/test_sequence_generator.py",
+      "tests/test_sequence_scorer.py",
+      "tests/test_sparse_multihead_attention.py",
+      "tests/test_token_block_dataset.py",
+      "tests/test_train.py",
+      "tests/test_utils.py",
+      "train.py",
+      "validate.py"
+    ],
+    "notebook_paths": []
+  },
+  "pipeline_duration_s": 344.19,
+  "repair_mode": "model_assisted",
+  "tree_integrity": {
+    "status": "verified",
+    "tree_sha": "3cdacf8c48a9c360066d7ffe558abbf270f759d2",
+    "files_checked": 415,
+    "excluded_patched": []
+  },
+  "result": {
+    "verdict": "BLOCKED",
+    "taxonomy_code": "RUNTIME_ERROR_OTHER",
+    "indeterminate_reason": "",
+    "reason_code": null,
+    "error_traceback": "",
+    "attempts": [
+      {
+        "attempt_number": 1,
+        "diff_text": "",
+        "gate_decision": "PASS",
+        "gate_violations": [],
+        "exit_code": 1,
+        "stdout_tail": "",
+        "stderr_tail": "Traceback (most recent call last):\n  File \"//preprocess.py\", line 7, in <module>\n    from fairseq_cli.preprocess import cli_main\n  File \"/fairseq_cli/preprocess.py\", line 18, in <module>\n    from fairseq import options, tasks, utils\n  File \"/fairseq/__init__.py\", line 9, in <module>\n    import fairseq.criterions  # noqa\n    ^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/fairseq/criterions/__init__.py\", line 10, in <module>\n    from fairseq.criterions.fairseq_criterion import FairseqCriterion\n  File \"/fairseq/criterions/fairseq_criterion.py\", line 10, in <module>\n    from fairseq import metrics, utils\n  File \"/fairseq/utils.py\", line 21, in <module>\n    from fairseq.modules import gelu, gelu_accurate\n  File \"/fairseq/modules/__init__.py\", line 9, in <module>\n    from .character_token_embedder import CharacterTokenEmbedder\n  File \"/fairseq/modules/character_token_embedder.py\", line 13, in <module>\n    from fairseq.data import Dictionary\n  File \"/fairseq/data/__init__.py\", line 20, in <module>\n    from .indexed_dataset import IndexedCachedDataset, IndexedDataset, IndexedRawTextDataset, MMapIndexedDataset\n  File \"/fairseq/data/indexed_dataset.py\", line 89, in <module>\n    6: np.float,\n       ^^^^^^^^\n  File \"/usr/local/lib/python3.11/site-packages/numpy/__init__.py\", line 775, in __getattr__\n    raise AttributeError(__former_attrs__[attr], name=None)\nAttributeError: module 'numpy' has no attribute 'float'.\n`np.float` was a deprecated alias for the builtin `float`. To avoid this error in existing code, use `float` by itself. Doing this will not modify any behavior and is safe. If you specifically wanted the numpy scalar type, use `np.float64` here.\nThe aliases was originally deprecated in NumPy 1.20; for more details and guidance see the original release note at:\n    https://numpy.org/devdocs/release/1.20.0-notes.html#deprecations\n",
+        "tavily_sources": [],
+        "env_delta": [
+          {
+            "command": null,
+            "op": "apt",
+            "package": "g++",
+            "version": null,
+            "git_url": null,
+            "commit": null,
+            "justification": "Install g++ compiler to build C++ extensions.",
+            "evidence": "error: command 'g++' failed: No such file or directory"
+          }
+        ],
+        "resolved_sources": [],
+        "origin": "model",
+        "time_machine": null
+      },
+      {
+        "attempt_number": 2,
+        "diff_text": "--- a/fairseq/data/indexed_dataset.py\n+++ b/fairseq/data/indexed_dataset.py\n@@ -84,7 +84,7 @@\n     _FLOAT_SIZES = {\n         4: np.float32,\n         8: np.float64,\n-        6: np.float,\n+        6: float,\n     }\n",
+        "gate_decision": "REJECT",
+        "gate_violations": [
+          {
+            "rule": "UNPARSEABLE_PATCH",
+            "reason": "diff could not be parsed: Hunk is shorter than expected",
+            "file": ""
+          }
+        ],
+        "exit_code": null,
+        "stdout_tail": "",
+        "stderr_tail": "",
+        "tavily_sources": [],
+        "env_delta": [],
+        "resolved_sources": [],
+        "origin": "model",
+        "time_machine": null
+      },
+      {
+        "attempt_number": 3,
+        "diff_text": "--- a/fairseq/data/indexed_dataset.py\n+++ b/fairseq/data/indexed_dataset.py\n@@ -86,7 +86,7 @@\n     5: np.int,\n-    6: np.float,\n+    6: float,\n     7: np.int64,\n     8: np.int64,\n     9: np.uint8,\n",
+        "gate_decision": "REJECT",
+        "gate_violations": [
+          {
+            "rule": "UNPARSEABLE_PATCH",
+            "reason": "diff could not be parsed: Hunk is shorter than expected",
+            "file": ""
+          }
+        ],
+        "exit_code": null,
+        "stdout_tail": "",
+        "stderr_tail": "",
+        "tavily_sources": [],
+        "env_delta": [],
+        "resolved_sources": [],
+        "origin": "model",
+        "time_machine": null
+      }
+    ],
+    "certificate_prose": "After three repair attempts, the tamper gate rejected the proposed diff because it could not be parsed (hunk shorter than expected). The run log records a final verdict of BLOCKED with taxonomy code RUNTIME_ERROR_OTHER. Verifies that the artifact executes. Does not verify the paper's numerical results."
+  },
+  "certificate": {
+    "repo_url": "https://github.com/urvashik/knnlm",
+    "commit_sha": "8afab92bfcc8be28eccdf41fb82582a80977346e",
+    "build_plan": {
+      "base_image": "python:3.11-slim",
+      "apt_install": [
+        "g++",
+        "libffi-dev",
+        "python3-dev"
+      ],
+      "install_commands": [
+        "pip install ."
+      ],
+      "execute_command": "python preprocess.py --only-source --trainpref $TEXT/wiki.train.tokens --validpref $TEXT/wiki.valid.tokens --testpref $TEXT/wiki.test.tokens --destdir data-bin/wikitext-103 --workers 20",
+      "notes": [
+        "execute command is the repository's documented command (corpus ground truth)",
+        "apt package list enriched by Nemotron Super",
+        "env delta: apt g++ \u2014 Install g++ compiler to build C++ extensions."
+      ]
+    },
+    "full_log": "[intake] cloned https://github.com/urvashik/knnlm@8afab92bfcc8be28eccdf41fb82582a80977346e\n[recon] calling Nemotron Nano\n[recon] RECON_MODEL_ERROR: recon model call failed: prompt estimated at 44559 tokens exceeds the per-attempt ceiling: requested 44559 tokens exceeds the 20000-token per-attempt ceiling \u2014 proceeding with the documented command: python preprocess.py --only-source --trainpref $TEXT/wiki.train.tokens --validpref $TEXT/wiki.valid.tokens --testpref $TEXT/wiki.test.tokens --destdir data-bin/wikitext-103 --workers 20\n[planner] build plan: {'base_image': 'python:3.11-slim', 'apt_install': ['libffi-dev', 'python3-dev'], 'install_commands': ['pip install .'], 'execute_command': 'python preprocess.py --only-source --trainpref $TEXT/wiki.train.tokens --validpref $TEXT/wiki.valid.tokens --testpref $TEXT/wiki.test.tokens --destdir data-bin/wikitext-103 --workers 20', 'notes': [\"execute command is the repository's documented command (corpus ground truth)\", 'apt package list enriched by Nemotron Super']}\n[integrity] verified 415 file(s) against tree 3cdacf8c48a9c360066d7ffe558abbf270f759d2\n[sandbox] starting build+execute (wall_clock_seconds=600)\n[cost_guard] recorded $0.2632 sandbox spend, $1.7361 remaining today\n[sandbox] id=0d27051d-2a2c-421a-a438-83c2d68d3d6f exit_code=1\n[baseline] as-is run: FAILS (exit code 1)\n[classifier] DATA_MISSING: error: command 'g++' failed: No such file or directory\n[tavily] 3 result(s) for 'python data missing fix: error: command 'g++' failed: No such file or directory'\n[repair 1] tamper gate PASS (env) \u2014 applying and re-executing\n[repair 1] env delta applied; build plan now: {'base_image': 'python:3.11-slim', 'apt_install': ['g++', 'libffi-dev', 'python3-dev'], 'install_commands': ['pip install .'], 'execute_command': 'python preprocess.py --only-source --trainpref $TEXT/wiki.train.tokens --validpref $TEXT/wiki.valid.tokens --testpref $TEXT/wiki.test.tokens --destdir data-bin/wikitext-103 --workers 20', 'notes': [\"execute command is the repository's documented command (corpus ground truth)\", 'apt package list enriched by Nemotron Super', 'env delta: apt g++ \u2014 Install g++ compiler to build C++ extensions.']}\n[citations] not cited (not used in a decision): https://www.centron.de/en/tutorials/fix-python-no-such-file-or-directory-compiler-errors\n[citations] not cited (not used in a decision): https://www.digitalocean.com/community/tutorials/how-to-fix-python-no-such-file-or-directory-compiler-errors-when-installing-packages\n[citations] not cited (not used in a decision): https://discourse.mc-stan.org/t/issues-with-stan-in-python-error-command-make-error-during-processing-no-such-file-or-directory/36790\n[integrity] verified 415 file(s) against tree 3cdacf8c48a9c360066d7ffe558abbf270f759d2\n[sandbox] starting build+execute (wall_clock_seconds=600)\n[cost_guard] recorded $0.6956 sandbox spend, $1.0365 remaining today\n[repair 1] re-execution id=be285fb0-dd1d-4462-82d8-52efdde95c92 exit_code=1\n[classifier] RUNTIME_ERROR_OTHER: AttributeError: module 'numpy' has no attribute 'float'.\n[tavily] 3 result(s) for 'python runtime error other fix: AttributeError: module 'numpy' has no attribute 'float'.'\n[repair 2] first reply was not valid JSON; re-asked once (same attempt)\n[repair 2] tamper gate REJECT: diff could not be parsed: Hunk is shorter than expected\n[citations] not cited (not used in a decision): https://www.geeksforgeeks.org/python/how-to-fix-attributeerror-module-numpy-has-no-attribute-float-in-python\n[citations] not cited (not used in a decision): https://discuss.roboflow.com/t/bytetracker-error-attributeerror-module-numpy-has-no-attribute-float/4851\n[citations] not cited (not used in a decision): https://forums.developer.nvidia.com/t/attributeerror-module-numpy-has-no-attribute-float/270702\n[tavily] 3 result(s) for 'python runtime error other fix: AttributeError: module 'numpy' has no attribute 'float'.'\n[repair 3] tamper gate REJECT: diff could not be parsed: Hunk is shorter than expected\n[citations] not cited (not used in a decision): https://www.geeksforgeeks.org/python/how-to-fix-attributeerror-module-numpy-has-no-attribute-float-in-python\n[citations] not cited (not used in a decision): https://discuss.roboflow.com/t/bytetracker-error-attributeerror-module-numpy-has-no-attribute-float/4851\n[citations] not cited (not used in a decision): https://forums.developer.nvidia.com/t/attributeerror-module-numpy-has-no-attribute-float/270702\n[verdict] BLOCKED after 3 repair attempt(s): RUNTIME_ERROR_OTHER",
+    "diffs": [
+      {
+        "attempt_number": 1,
+        "diff_text": "",
+        "gate_decision": "PASS",
+        "gate_violations": [],
+        "exit_code": 1,
+        "stdout_tail": "",
+        "stderr_tail": "Traceback (most recent call last):\n  File \"//preprocess.py\", line 7, in <module>\n    from fairseq_cli.preprocess import cli_main\n  File \"/fairseq_cli/preprocess.py\", line 18, in <module>\n    from fairseq import options, tasks, utils\n  File \"/fairseq/__init__.py\", line 9, in <module>\n    import fairseq.criterions  # noqa\n    ^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/fairseq/criterions/__init__.py\", line 10, in <module>\n    from fairseq.criterions.fairseq_criterion import FairseqCriterion\n  File \"/fairseq/criterions/fairseq_criterion.py\", line 10, in <module>\n    from fairseq import metrics, utils\n  File \"/fairseq/utils.py\", line 21, in <module>\n    from fairseq.modules import gelu, gelu_accurate\n  File \"/fairseq/modules/__init__.py\", line 9, in <module>\n    from .character_token_embedder import CharacterTokenEmbedder\n  File \"/fairseq/modules/character_token_embedder.py\", line 13, in <module>\n    from fairseq.data import Dictionary\n  File \"/fairseq/data/__init__.py\", line 20, in <module>\n    from .indexed_dataset import IndexedCachedDataset, IndexedDataset, IndexedRawTextDataset, MMapIndexedDataset\n  File \"/fairseq/data/indexed_dataset.py\", line 89, in <module>\n    6: np.float,\n       ^^^^^^^^\n  File \"/usr/local/lib/python3.11/site-packages/numpy/__init__.py\", line 775, in __getattr__\n    raise AttributeError(__former_attrs__[attr], name=None)\nAttributeError: module 'numpy' has no attribute 'float'.\n`np.float` was a deprecated alias for the builtin `float`. To avoid this error in existing code, use `float` by itself. Doing this will not modify any behavior and is safe. If you specifically wanted the numpy scalar type, use `np.float64` here.\nThe aliases was originally deprecated in NumPy 1.20; for more details and guidance see the original release note at:\n    https://numpy.org/devdocs/release/1.20.0-notes.html#deprecations\n",
+        "tavily_sources": [],
+        "env_delta": [
+          {
+            "command": null,
+            "op": "apt",
+            "package": "g++",
+            "version": null,
+            "git_url": null,
+            "commit": null,
+            "justification": "Install g++ compiler to build C++ extensions.",
+            "evidence": "error: command 'g++' failed: No such file or directory"
+          }
+        ],
+        "resolved_sources": [],
+        "origin": "model",
+        "time_machine": null
+      },
+      {
+        "attempt_number": 2,
+        "diff_text": "--- a/fairseq/data/indexed_dataset.py\n+++ b/fairseq/data/indexed_dataset.py\n@@ -84,7 +84,7 @@\n     _FLOAT_SIZES = {\n         4: np.float32,\n         8: np.float64,\n-        6: np.float,\n+        6: float,\n     }\n",
+        "gate_decision": "REJECT",
+        "gate_violations": [
+          {
+            "rule": "UNPARSEABLE_PATCH",
+            "reason": "diff could not be parsed: Hunk is shorter than expected",
+            "file": ""
+          }
+        ],
+        "exit_code": null,
+        "stdout_tail": "",
+        "stderr_tail": "",
+        "tavily_sources": [],
+        "env_delta": [],
+        "resolved_sources": [],
+        "origin": "model",
+        "time_machine": null
+      },
+      {
+        "attempt_number": 3,
+        "diff_text": "--- a/fairseq/data/indexed_dataset.py\n+++ b/fairseq/data/indexed_dataset.py\n@@ -86,7 +86,7 @@\n     5: np.int,\n-    6: np.float,\n+    6: float,\n     7: np.int64,\n     8: np.int64,\n     9: np.uint8,\n",
+        "gate_decision": "REJECT",
+        "gate_violations": [
+          {
+            "rule": "UNPARSEABLE_PATCH",
+            "reason": "diff could not be parsed: Hunk is shorter than expected",
+            "file": ""
+          }
+        ],
+        "exit_code": null,
+        "stdout_tail": "",
+        "stderr_tail": "",
+        "tavily_sources": [],
+        "env_delta": [],
+        "resolved_sources": [],
+        "origin": "model",
+        "time_machine": null
+      }
+    ],
+    "verdict": "BLOCKED",
+    "timestamp": "2026-09-29T10:01:15.774434+00:00",
+    "bundle_version": 3,
+    "baseline": {
+      "result": "FAILS",
+      "exit_code": 1,
+      "base_image": "python:3.11-slim",
+      "install_commands": [
+        "apt-get update && apt-get install -y libffi-dev python3-dev",
+        "pip install ."
+      ],
+      "execute_command": "python preprocess.py --only-source --trainpref $TEXT/wiki.train.tokens --validpref $TEXT/wiki.valid.tokens --testpref $TEXT/wiki.test.tokens --destdir data-bin/wikitext-103 --workers 20",
+      "sandbox_id": "0d27051d-2a2c-421a-a438-83c2d68d3d6f",
+      "taxonomy_code": "DATA_MISSING",
+      "evidence": "error: command 'g++' failed: No such file or directory"
+    },
+    "recovery": false,
+    "tree_integrity": {
+      "status": "verified",
+      "tree_sha": "3cdacf8c48a9c360066d7ffe558abbf270f759d2",
+      "files_checked": 415,
+      "excluded_patched": []
+    },
+    "corpus_hash": "063b700c38006bcf3160c64674a196cdf2fddb768a0c3de232746181aeef7d5c",
+    "reproduction_passport_hash": "466907fec50180a80bc8a3e0ce954d009ee4e4efe67149b6c07967b9de2a66cb"
+  },
+  "finished_at": "2026-09-29T10:01:15.891297+00:00",
+  "events": [
+    {
+      "t_s": 0.0,
+      "at": "2026-09-29T09:55:31.581257+00:00",
+      "line": "[intake] cloned https://github.com/urvashik/knnlm@8afab92bfcc8be28eccdf41fb82582a80977346e"
+    },
+    {
+      "t_s": 0.03,
+      "at": "2026-09-29T09:55:31.609975+00:00",
+      "line": "[recon] calling Nemotron Nano"
+    },
+    {
+      "t_s": 0.16,
+      "at": "2026-09-29T09:55:31.741632+00:00",
+      "line": "[recon] RECON_MODEL_ERROR: recon model call failed: prompt estimated at 44559 tokens exceeds the per-attempt ceiling: requested 44559 tokens exceeds the 20000-token per-attempt ceiling \u2014 proceeding with the documented command: python preprocess.py --only-source --trainpref $TEXT/wiki.train.tokens --validpref $TEXT/wiki.valid.tokens --testpref $TEXT/wiki.test.tokens --destdir data-bin/wikitext-103 --workers 20"
+    },
+    {
+      "t_s": 4.21,
+      "at": "2026-09-29T09:55:35.789850+00:00",
+      "line": "[planner] build plan: {'base_image': 'python:3.11-slim', 'apt_install': ['libffi-dev', 'python3-dev'], 'install_commands': ['pip install .'], 'execute_command': 'python preprocess.py --only-source --trainpref $TEXT/wiki.train.tokens --validpref $TEXT/wiki.valid.tokens --testpref $TEXT/wiki.test.tokens --destdir data-bin/wikitext-103 --workers 20', 'notes': [\"execute command is the repository's documented command (corpus ground truth)\", 'apt package list enriched by Nemotron Super']}"
+    },
+    {
+      "t_s": 5.21,
+      "at": "2026-09-29T09:55:36.787481+00:00",
+      "line": "[integrity] verified 415 file(s) against tree 3cdacf8c48a9c360066d7ffe558abbf270f759d2"
+    },
+    {
+      "t_s": 5.21,
+      "at": "2026-09-29T09:55:36.787547+00:00",
+      "line": "[sandbox] starting build+execute (wall_clock_seconds=600)"
+    },
+    {
+      "t_s": 92.51,
+      "at": "2026-09-29T09:57:04.094869+00:00",
+      "line": "[cost_guard] recorded $0.2632 sandbox spend, $1.7361 remaining today"
+    },
+    {
+      "t_s": 92.51,
+      "at": "2026-09-29T09:57:04.095131+00:00",
+      "line": "[sandbox] id=0d27051d-2a2c-421a-a438-83c2d68d3d6f exit_code=1"
+    },
+    {
+      "t_s": 92.51,
+      "at": "2026-09-29T09:57:04.095239+00:00",
+      "line": "[baseline] as-is run: FAILS (exit code 1)"
+    },
+    {
+      "t_s": 92.54,
+      "at": "2026-09-29T09:57:04.116280+00:00",
+      "line": "[classifier] DATA_MISSING: error: command 'g++' failed: No such file or directory"
+    },
+    {
+      "t_s": 94.42,
+      "at": "2026-09-29T09:57:06.005839+00:00",
+      "line": "[tavily] 3 result(s) for 'python data missing fix: error: command 'g++' failed: No such file or directory'"
+    },
+    {
+      "t_s": 107.03,
+      "at": "2026-09-29T09:57:18.611044+00:00",
+      "line": "[repair 1] tamper gate PASS (env) \u2014 applying and re-executing"
+    },
+    {
+      "t_s": 107.03,
+      "at": "2026-09-29T09:57:18.611133+00:00",
+      "line": "[repair 1] env delta applied; build plan now: {'base_image': 'python:3.11-slim', 'apt_install': ['g++', 'libffi-dev', 'python3-dev'], 'install_commands': ['pip install .'], 'execute_command': 'python preprocess.py --only-source --trainpref $TEXT/wiki.train.tokens --validpref $TEXT/wiki.valid.tokens --testpref $TEXT/wiki.test.tokens --destdir data-bin/wikitext-103 --workers 20', 'notes': [\"execute command is the repository's documented command (corpus ground truth)\", 'apt package list enriched by Nemotron Super', 'env delta: apt g++ \u2014 Install g++ compiler to build C++ extensions.']}"
+    },
+    {
+      "t_s": 107.03,
+      "at": "2026-09-29T09:57:18.611155+00:00",
+      "line": "[citations] not cited (not used in a decision): https://www.centron.de/en/tutorials/fix-python-no-such-file-or-directory-compiler-errors"
+    },
+    {
+      "t_s": 107.03,
+      "at": "2026-09-29T09:57:18.611165+00:00",
+      "line": "[citations] not cited (not used in a decision): https://www.digitalocean.com/community/tutorials/how-to-fix-python-no-such-file-or-directory-compiler-errors-when-installing-packages"
+    },
+    {
+      "t_s": 107.03,
+      "at": "2026-09-29T09:57:18.611173+00:00",
+      "line": "[citations] not cited (not used in a decision): https://discourse.mc-stan.org/t/issues-with-stan-in-python-error-command-make-error-during-processing-no-such-file-or-directory/36790"
+    },
+    {
+      "t_s": 107.23,
+      "at": "2026-09-29T09:57:18.813354+00:00",
+      "line": "[integrity] verified 415 file(s) against tree 3cdacf8c48a9c360066d7ffe558abbf270f759d2"
+    },
+    {
+      "t_s": 107.23,
+      "at": "2026-09-29T09:57:18.813404+00:00",
+      "line": "[sandbox] starting build+execute (wall_clock_seconds=600)"
+    },
+    {
+      "t_s": 277.25,
+      "at": "2026-09-29T10:00:08.834398+00:00",
+      "line": "[cost_guard] recorded $0.6956 sandbox spend, $1.0365 remaining today"
+    },
+    {
+      "t_s": 277.25,
+      "at": "2026-09-29T10:00:08.834845+00:00",
+      "line": "[repair 1] re-execution id=be285fb0-dd1d-4462-82d8-52efdde95c92 exit_code=1"
+    },
+    {
+      "t_s": 277.25,
+      "at": "2026-09-29T10:00:08.835907+00:00",
+      "line": "[classifier] RUNTIME_ERROR_OTHER: AttributeError: module 'numpy' has no attribute 'float'."
+    },
+    {
+      "t_s": 278.29,
+      "at": "2026-09-29T10:00:09.873641+00:00",
+      "line": "[tavily] 3 result(s) for 'python runtime error other fix: AttributeError: module 'numpy' has no attribute 'float'.'"
+    },
+    {
+      "t_s": 312.08,
+      "at": "2026-09-29T10:00:43.658227+00:00",
+      "line": "[repair 2] first reply was not valid JSON; re-asked once (same attempt)"
+    },
+    {
+      "t_s": 312.08,
+      "at": "2026-09-29T10:00:43.658805+00:00",
+      "line": "[repair 2] tamper gate REJECT: diff could not be parsed: Hunk is shorter than expected"
+    },
+    {
+      "t_s": 312.08,
+      "at": "2026-09-29T10:00:43.658834+00:00",
+      "line": "[citations] not cited (not used in a decision): https://www.geeksforgeeks.org/python/how-to-fix-attributeerror-module-numpy-has-no-attribute-float-in-python"
+    },
+    {
+      "t_s": 312.08,
+      "at": "2026-09-29T10:00:43.658847+00:00",
+      "line": "[citations] not cited (not used in a decision): https://discuss.roboflow.com/t/bytetracker-error-attributeerror-module-numpy-has-no-attribute-float/4851"
+    },
+    {
+      "t_s": 312.08,
+      "at": "2026-09-29T10:00:43.658855+00:00",
+      "line": "[citations] not cited (not used in a decision): https://forums.developer.nvidia.com/t/attributeerror-module-numpy-has-no-attribute-float/270702"
+    },
+    {
+      "t_s": 313.87,
+      "at": "2026-09-29T10:00:45.446461+00:00",
+      "line": "[tavily] 3 result(s) for 'python runtime error other fix: AttributeError: module 'numpy' has no attribute 'float'.'"
+    },
+    {
+      "t_s": 342.62,
+      "at": "2026-09-29T10:01:14.202039+00:00",
+      "line": "[repair 3] tamper gate REJECT: diff could not be parsed: Hunk is shorter than expected"
+    },
+    {
+      "t_s": 342.62,
+      "at": "2026-09-29T10:01:14.202091+00:00",
+      "line": "[citations] not cited (not used in a decision): https://www.geeksforgeeks.org/python/how-to-fix-attributeerror-module-numpy-has-no-attribute-float-in-python"
+    },
+    {
+      "t_s": 342.62,
+      "at": "2026-09-29T10:01:14.202105+00:00",
+      "line": "[citations] not cited (not used in a decision): https://discuss.roboflow.com/t/bytetracker-error-attributeerror-module-numpy-has-no-attribute-float/4851"
+    },
+    {
+      "t_s": 342.62,
+      "at": "2026-09-29T10:01:14.202114+00:00",
+      "line": "[citations] not cited (not used in a decision): https://forums.developer.nvidia.com/t/attributeerror-module-numpy-has-no-attribute-float/270702"
+    },
+    {
+      "t_s": 342.62,
+      "at": "2026-09-29T10:01:14.202137+00:00",
+      "line": "[verdict] BLOCKED after 3 repair attempt(s): RUNTIME_ERROR_OTHER"
+    }
+  ],
+  "model_calls": [
+    {
+      "model": "nvidia/nemotron-3-super-120b-a12b",
+      "started_at": "2026-09-29T09:55:31.845474+00:00",
+      "latency_s": 3.94,
+      "finish_reason": "stop",
+      "content_is_none": false,
+      "has_reasoning": true,
+      "usage": {
+        "completion_tokens": 587,
+        "prompt_tokens": 296,
+        "total_tokens": 883,
+        "completion_tokens_details": {
+          "accepted_prediction_tokens": null,
+          "audio_tokens": null,
+          "reasoning_tokens": 568,
+          "rejected_prediction_tokens": null,
+          "text_tokens": null
+        },
+        "prompt_tokens_details": {
+          "audio_tokens": null,
+          "cache_write_tokens": null,
+          "cached_tokens": 0,
+          "image_tokens": null,
+          "text_tokens": null,
+          "created_cache_tokens": 0,
+          "multimodal_tokens": null
+        },
+        "prompt_cache_hit_tokens": 0,
+        "prompt_cache_miss_tokens": 296
+      }
+    },
+    {
+      "model": "nvidia/nemotron-3-super-120b-a12b",
+      "started_at": "2026-09-29T09:57:06.553313+00:00",
+      "latency_s": 12.06,
+      "finish_reason": "stop",
+      "content_is_none": false,
+      "has_reasoning": true,
+      "usage": {
+        "completion_tokens": 2112,
+        "prompt_tokens": 7226,
+        "total_tokens": 9338,
+        "completion_tokens_details": {
+          "accepted_prediction_tokens": null,
+          "audio_tokens": null,
+          "reasoning_tokens": 2012,
+          "rejected_prediction_tokens": null,
+          "text_tokens": null
+        },
+        "prompt_tokens_details": {
+          "audio_tokens": null,
+          "cache_write_tokens": null,
+          "cached_tokens": 0,
+          "image_tokens": null,
+          "text_tokens": null,
+          "created_cache_tokens": 0,
+          "multimodal_tokens": null
+        },
+        "prompt_cache_hit_tokens": 0,
+        "prompt_cache_miss_tokens": 7226
+      }
+    },
+    {
+      "model": "nvidia/nemotron-3-super-120b-a12b",
+      "started_at": "2026-09-29T10:00:09.876732+00:00",
+      "latency_s": 22.3,
+      "finish_reason": "stop",
+      "content_is_none": false,
+      "has_reasoning": true,
+      "usage": {
+        "completion_tokens": 3802,
+        "prompt_tokens": 4214,
+        "total_tokens": 8016,
+        "completion_tokens_details": {
+          "accepted_prediction_tokens": null,
+          "audio_tokens": null,
+          "reasoning_tokens": 3588,
+          "rejected_prediction_tokens": null,
+          "text_tokens": null
+        },
+        "prompt_tokens_details": {
+          "audio_tokens": null,
+          "cache_write_tokens": null,
+          "cached_tokens": 0,
+          "image_tokens": null,
+          "text_tokens": null,
+          "created_cache_tokens": 0,
+          "multimodal_tokens": null
+        },
+        "prompt_cache_hit_tokens": 0,
+        "prompt_cache_miss_tokens": 4214
+      }
+    },
+    {
+      "model": "nvidia/nemotron-3-super-120b-a12b",
+      "started_at": "2026-09-29T10:00:32.182150+00:00",
+      "latency_s": 11.48,
+      "finish_reason": "stop",
+      "content_is_none": false,
+      "has_reasoning": true,
+      "usage": {
+        "completion_tokens": 1425,
+        "prompt_tokens": 4275,
+        "total_tokens": 5700,
+        "completion_tokens_details": {
+          "accepted_prediction_tokens": null,
+          "audio_tokens": null,
+          "reasoning_tokens": 1297,
+          "rejected_prediction_tokens": null,
+          "text_tokens": null
+        },
+        "prompt_tokens_details": {
+          "audio_tokens": null,
+          "cache_write_tokens": null,
+          "cached_tokens": 0,
+          "image_tokens": null,
+          "text_tokens": null,
+          "created_cache_tokens": 0,
+          "multimodal_tokens": null
+        },
+        "prompt_cache_hit_tokens": 0,
+        "prompt_cache_miss_tokens": 4275
+      }
+    },
+    {
+      "model": "nvidia/nemotron-3-super-120b-a12b",
+      "started_at": "2026-09-29T10:00:45.449531+00:00",
+      "latency_s": 28.75,
+      "finish_reason": "stop",
+      "content_is_none": false,
+      "has_reasoning": true,
+      "usage": {
+        "completion_tokens": 4011,
+        "prompt_tokens": 4220,
+        "total_tokens": 8231,
+        "completion_tokens_details": {
+          "accepted_prediction_tokens": null,
+          "audio_tokens": null,
+          "reasoning_tokens": 3862,
+          "rejected_prediction_tokens": null,
+          "text_tokens": null
+        },
+        "prompt_tokens_details": {
+          "audio_tokens": null,
+          "cache_write_tokens": null,
+          "cached_tokens": 0,
+          "image_tokens": null,
+          "text_tokens": null,
+          "created_cache_tokens": 0,
+          "multimodal_tokens": null
+        },
+        "prompt_cache_hit_tokens": 0,
+        "prompt_cache_miss_tokens": 4220
+      }
+    },
+    {
+      "model": "nvidia/Nemotron-3-Ultra-550b-a55b",
+      "started_at": "2026-09-29T10:01:14.203603+00:00",
+      "latency_s": 1.57,
+      "finish_reason": "stop",
+      "content_is_none": false,
+      "has_reasoning": true,
+      "usage": {
+        "completion_tokens": 313,
+        "prompt_tokens": 721,
+        "total_tokens": 1034,
+        "completion_tokens_details": {
+          "accepted_prediction_tokens": null,
+          "audio_tokens": null,
+          "reasoning_tokens": 220,
+          "rejected_prediction_tokens": null,
+          "text_tokens": null
+        },
+        "prompt_tokens_details": {
+          "audio_tokens": null,
+          "cache_write_tokens": null,
+          "cached_tokens": 0,
+          "image_tokens": null,
+          "text_tokens": null,
+          "multimodal_tokens": null
+        },
+        "prompt_cache_hit_tokens": 0,
+        "prompt_cache_miss_tokens": 721
+      }
+    }
+  ],
+  "cost_guard": {
+    "spent_usd": 0.9773290200000001,
+    "model_spent_usd": 0.0184726,
+    "sandbox_spent_usd": 0.95885642,
+    "remaining_usd": 1.02267098,
+    "model_usage": [
+      {
+        "model": "nvidia/nemotron-3-super-120b-a12b",
+        "prompt_tokens": 296,
+        "completion_tokens": 587,
+        "cost_usd": 0.0006171
+      },
+      {
+        "model": "nvidia/nemotron-3-super-120b-a12b",
+        "prompt_tokens": 7226,
+        "completion_tokens": 2112,
+        "cost_usd": 0.0040685999999999995
+      },
+      {
+        "model": "nvidia/nemotron-3-super-120b-a12b",
+        "prompt_tokens": 4214,
+        "completion_tokens": 3802,
+        "cost_usd": 0.004686
+      },
+      {
+        "model": "nvidia/nemotron-3-super-120b-a12b",
+        "prompt_tokens": 4275,
+        "completion_tokens": 1425,
+        "cost_usd": 0.002565
+      },
+      {
+        "model": "nvidia/nemotron-3-super-120b-a12b",
+        "prompt_tokens": 4220,
+        "completion_tokens": 4011,
+        "cost_usd": 0.0048759
+      },
+      {
+        "model": "nvidia/Nemotron-3-Ultra-550b-a55b",
+        "prompt_tokens": 721,
+        "completion_tokens": 313,
+        "cost_usd": 0.00166
+      }
+    ],
+    "prices_usd_per_1m": {
+      "nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B": [
+        0.06,
+        0.24
+      ],
+      "nvidia/nemotron-3-super-120b-a12b": [
+        0.3,
+        0.9
+      ],
+      "nvidia/Nemotron-3-Ultra-550b-a55b": [
+        1.0,
+        3.0
+      ]
+    },
+    "prices_source": "https://api.tokenfactory.nebius.com/v1/models?verbose=true (pricing field)",
+    "prices_retrieved": "2026-09-24"
+  }
+}

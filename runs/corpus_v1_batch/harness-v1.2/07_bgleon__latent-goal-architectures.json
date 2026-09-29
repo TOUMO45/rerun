@@ -1,0 +1,838 @@
+{
+  "run_kind": "live end-to-end run",
+  "dev_run": false,
+  "dry_run": null,
+  "batch": {
+    "harness_tag": "harness-v1.2",
+    "harness_commit": "668c907baeef0cbb29338f118dfc8975dd812993",
+    "head_commit": "668c907baeef0cbb29338f118dfc8975dd812993",
+    "corpus": "corpus-v1",
+    "amendment_sha256": "63d409a3ffc92b016fde502b90e53500a48287b7a286c7078148ac3650b9622d",
+    "corpus_hash": "063b700c38006bcf3160c64674a196cdf2fddb768a0c3de232746181aeef7d5c",
+    "entry_id": 7,
+    "category": "PRIMARY",
+    "rules_matched": [],
+    "per_entry_cap_usd": 2.0,
+    "total_cap_usd": 40.0
+  },
+  "started_at": "2026-09-29T10:09:16.104641+00:00",
+  "corpus_entry": {
+    "name": "bgleon__latent-goal-architectures",
+    "repo_url": "https://github.com/bgleon/latent-goal-architectures",
+    "commit_sha": "42cdf466cb123c090596fcd14400307fe76f5da2",
+    "command": "python run_experiment.py --visual --pretrained_encoder --mapType=minecraft-insp --syntax=TTL2 --network=PrediNet --mem --multimodal --num_neurons=50 --seedB=0 --batch_size=512  --mem_type=rim",
+    "command_source": "README.md line 11"
+  },
+  "config": {
+    "models": {
+      "recon": "nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B",
+      "planner": "nvidia/nemotron-3-super-120b-a12b",
+      "repairer": "nvidia/nemotron-3-super-120b-a12b",
+      "adjudicator": "nvidia/Nemotron-3-Ultra-550b-a55b"
+    },
+    "sandbox_backend": "token_factory",
+    "sandbox_image_default": "python:3.11-slim",
+    "sandbox_wall_clock_seconds": 600.0,
+    "max_attempts": 3,
+    "tavily_configured": true,
+    "cost_cap_usd": 2.0
+  },
+  "intake": {
+    "duration_s": 2.89,
+    "resolved_sha": "42cdf466cb123c090596fcd14400307fe76f5da2",
+    "dependency_files": [],
+    "declared_dependencies": [],
+    "entrypoint_candidates": [
+      "run_experiment.py",
+      "utils/game.py",
+      "utils/generated_games.py",
+      "utils/utils.py"
+    ],
+    "notebook_paths": []
+  },
+  "pipeline_duration_s": 355.59,
+  "repair_mode": "model_assisted",
+  "tree_integrity": {
+    "status": "failed",
+    "reason": "git ls-tree failed"
+  },
+  "result": {
+    "verdict": "INVALID_HARNESS",
+    "taxonomy_code": null,
+    "indeterminate_reason": "INVALID_HARNESS: cannot list the committed tree: fatal: not a git repository (or any of the parent directories): .git",
+    "reason_code": "INVALID_HARNESS",
+    "error_traceback": "",
+    "attempts": [
+      {
+        "attempt_number": 0,
+        "diff_text": "",
+        "gate_decision": "PASS",
+        "gate_violations": [],
+        "exit_code": 1,
+        "stdout_tail": "",
+        "stderr_tail": "2026-09-29 10:12:23.964490: W tensorflow/stream_executor/platform/default/dso_loader.cc:64] Could not load dynamic library 'libcudart.so.11.0'; dlerror: libcudart.so.11.0: cannot open shared object file: No such file or directory\n2026-09-29 10:12:23.964569: I tensorflow/stream_executor/cuda/cudart_stub.cc:29] Ignore above cudart dlerror if you do not have a GPU set up on your machine.\nTraceback (most recent call last):\n  File \"//run_experiment.py\", line 2, in <module>\n    from agents.neuro_symbolic_agent  import NSAgent\n  File \"/agents/neuro_symbolic_agent.py\", line 1, in <module>\n    from agents.modules.a2c_tl import *\n  File \"/agents/modules/a2c_tl.py\", line 7, in <module>\n    from utils.networks import *\n  File \"/utils/networks.py\", line 2, in <module>\n    import sonnet as snt\n  File \"/usr/local/lib/python3.10/site-packages/sonnet/__init__.py\", line 2, in <module>\n    from graphs import Sonnet, D3Graph, MatplotGraph\nModuleNotFoundError: No module named 'graphs'\n",
+        "tavily_sources": [],
+        "env_delta": [],
+        "resolved_sources": [],
+        "origin": "time_machine",
+        "time_machine": {
+          "era": {
+            "date": "2022-04-21",
+            "source": "pinned-commit",
+            "detail": {
+              "note": "no dependency files in the repository"
+            }
+          },
+          "python": {
+            "version": "3.10",
+            "reason": "newest CPython first released \u2265180 days before the era date 2022-04-21 (https://devguide.python.org/versions/ (first release dates, retrieved 2026-09-24))",
+            "source": "https://devguide.python.org/versions/ (first release dates, retrieved 2026-09-24)"
+          },
+          "undeclared_imports": [
+            "pillow",
+            "gym",
+            "matplotlib",
+            "numpy",
+            "sonnet",
+            "tensorflow",
+            "tensorflow_probability"
+          ],
+          "import_mappings": [
+            {
+              "import": "PIL",
+              "distribution": "pillow",
+              "source": "pipreqs",
+              "confidence": "normal"
+            }
+          ],
+          "apt_added": [],
+          "apt_reason": "",
+          "lock": {
+            "ok": true,
+            "lock": [
+              "absl-py==1.0.0",
+              "astunparse==1.6.3",
+              "cachetools==5.0.0",
+              "certifi==2021.10.8",
+              "charset-normalizer==2.0.12",
+              "cloudpickle==2.0.0",
+              "cycler==0.11.0",
+              "decorator==5.1.1",
+              "dm-tree==0.1.7",
+              "flatbuffers==2.0",
+              "fonttools==4.33.0",
+              "gast==0.5.3",
+              "google-auth==2.6.6",
+              "google-auth-oauthlib==0.4.6",
+              "google-pasta==0.2.0",
+              "grpcio==1.44.0",
+              "gym==0.23.1",
+              "gym-notices==0.0.6",
+              "h5py==3.6.0",
+              "idna==3.3",
+              "keras==2.8.0",
+              "keras-preprocessing==1.1.2",
+              "kiwisolver==1.4.2",
+              "libclang==13.0.0",
+              "markdown==3.3.6",
+              "matplotlib==3.5.1",
+              "networkx==1.8.1",
+              "numpy==1.22.3",
+              "oauthlib==3.2.0",
+              "opt-einsum==3.3.0",
+              "packaging==21.3",
+              "pillow==9.1.0",
+              "protobuf==3.20.0",
+              "pyasn1==0.4.8",
+              "pyasn1-modules==0.2.8",
+              "pyparsing==3.0.8",
+              "python-dateutil==2.8.2",
+              "requests==2.27.1",
+              "requests-oauthlib==1.3.1",
+              "rsa==4.8",
+              "setuptools==62.1.0",
+              "six==1.16.0",
+              "sonnet==0.1.6",
+              "tensorboard==2.8.0",
+              "tensorboard-data-server==0.6.1",
+              "tensorboard-plugin-wit==1.8.1",
+              "tensorflow==2.8.0",
+              "tensorflow-io-gcs-filesystem==0.25.0",
+              "tensorflow-probability==0.16.0",
+              "termcolor==1.1.0",
+              "tf-estimator-nightly==2.8.0.dev2021122109",
+              "typing-extensions==4.2.0",
+              "urllib3==1.26.9",
+              "werkzeug==2.1.1",
+              "wheel==0.37.1",
+              "wrapt==1.14.0"
+            ],
+            "inputs": [
+              "pillow",
+              "gym",
+              "matplotlib",
+              "numpy",
+              "sonnet",
+              "tensorflow",
+              "tensorflow_probability"
+            ],
+            "not_on_index": [],
+            "command": "pip compile - --no-header --no-annotate --quiet --exclude-newer 2022-04-22T00:00:00Z --python-version 3.10 --python-platform x86_64-unknown-linux-gnu --python C:\\Users\\E16\\AppData\\Roaming\\uv\\python\\cpython-3.8.20-windows-x86_64-none\\python.exe",
+            "error": ""
+          }
+        }
+      },
+      {
+        "attempt_number": 1,
+        "diff_text": "",
+        "gate_decision": "PASS",
+        "gate_violations": [],
+        "exit_code": 1,
+        "stdout_tail": "",
+        "stderr_tail": "2026-09-29 10:14:08.217043: W tensorflow/stream_executor/platform/default/dso_loader.cc:64] Could not load dynamic library 'libcudart.so.11.0'; dlerror: libcudart.so.11.0: cannot open shared object file: No such file or directory\n2026-09-29 10:14:08.217119: I tensorflow/stream_executor/cuda/cudart_stub.cc:29] Ignore above cudart dlerror if you do not have a GPU set up on your machine.\nTraceback (most recent call last):\n  File \"//run_experiment.py\", line 2, in <module>\n    from agents.neuro_symbolic_agent  import NSAgent\n  File \"/agents/neuro_symbolic_agent.py\", line 1, in <module>\n    from agents.modules.a2c_tl import *\n  File \"/agents/modules/a2c_tl.py\", line 7, in <module>\n    from utils.networks import *\n  File \"/utils/networks.py\", line 2, in <module>\n    import sonnet as snt\n  File \"/usr/local/lib/python3.10/site-packages/sonnet/__init__.py\", line 2, in <module>\n    from graphs import Sonnet, D3Graph, MatplotGraph\nImportError: cannot import name 'Sonnet' from 'graphs' (/usr/local/lib/python3.10/site-packages/graphs/__init__.py)\n",
+        "tavily_sources": [],
+        "env_delta": [
+          {
+            "command": null,
+            "op": "add",
+            "package": "graphs",
+            "version": "0.1.3",
+            "git_url": null,
+            "commit": null,
+            "justification": "Add missing graphs package required by sonnet import",
+            "evidence": "ModuleNotFoundError: No module named 'graphs'"
+          }
+        ],
+        "resolved_sources": [
+          {
+            "kind": "pypi",
+            "package": "graphs",
+            "version": "0.1.3",
+            "uploaded": "2017-12-14",
+            "cpython_tags": [],
+            "url": "https://pypi.org/project/graphs/0.1.3/"
+          }
+        ],
+        "origin": "model",
+        "time_machine": null
+      }
+    ],
+    "certificate_prose": "RERUN's harness could not prove the uploaded files were the committed ones, so nothing is claimed about the repository. Verifies that the artifact executes. Does not verify the paper's numerical results."
+  },
+  "certificate": {
+    "repo_url": "https://github.com/bgleon/latent-goal-architectures",
+    "commit_sha": "42cdf466cb123c090596fcd14400307fe76f5da2",
+    "build_plan": {
+      "base_image": "python:3.11-slim",
+      "apt_install": [],
+      "install_commands": [
+        "true  # no declared dependency file found; nothing to install"
+      ],
+      "execute_command": "python run_experiment.py --visual --pretrained_encoder --mapType=minecraft-insp --syntax=TTL2 --network=PrediNet --mem --multimodal --num_neurons=50 --seedB=0 --batch_size=512  --mem_type=rim",
+      "notes": [
+        "execute command is the repository's documented command (corpus ground truth)"
+      ]
+    },
+    "full_log": "[intake] cloned https://github.com/bgleon/latent-goal-architectures@42cdf466cb123c090596fcd14400307fe76f5da2\n[recon] calling Nemotron Nano\n[recon] entrypoint=run_experiment.py confidence=0.75\n[planner] build plan: {'base_image': 'python:3.11-slim', 'apt_install': [], 'install_commands': ['true  # no declared dependency file found; nothing to install'], 'execute_command': 'python run_experiment.py --visual --pretrained_encoder --mapType=minecraft-insp --syntax=TTL2 --network=PrediNet --mem --multimodal --num_neurons=50 --seedB=0 --batch_size=512  --mem_type=rim', 'notes': [\"execute command is the repository's documented command (corpus ground truth)\"]}\n[integrity] verified 84 file(s) against tree 5ba6b728c5d2972a8500d59e8f4e442cddfa3ee1\n[sandbox] starting build+execute (wall_clock_seconds=600)\n[cost_guard] recorded $0.0014 sandbox spend, $1.9978 remaining today\n[sandbox] id=18a9ba47-12e4-4666-ad0e-9b94ce8b22be exit_code=1\n[baseline] as-is run: FAILS (exit code 1)\n[classifier] DEP_MISSING: ModuleNotFoundError: No module named 'tensorflow'\n[era] 2022-04-21 from pinned-commit {'note': 'no dependency files in the repository'}\n[import-map] PIL -> pillow (pipreqs, confidence normal)\n[time-machine] era 2022-04-21 (pinned-commit) -> python 3.10; locked 56 package(s) with uv --exclude-newer; not on the index: none\n[integrity] verified 84 file(s) against tree 5ba6b728c5d2972a8500d59e8f4e442cddfa3ee1\n[sandbox] starting build+execute (wall_clock_seconds=600)\n[cost_guard] recorded $0.3197 sandbox spend, $1.6782 remaining today\n[time-machine] re-execution id=fd3efdd7-87f2-46b6-9ceb-58d85d76e064 exit_code=1\n[classifier] DEP_MISSING: ModuleNotFoundError: No module named 'graphs'\n[resolver] graphs: 0 verified git source(s), PyPI found (5 release(s) shown), era 2022-04-21; query: 'graphs python package version compatible 2022 release history'\n[tavily] 5 result(s) for 'graphs python package version compatible 2022 release history'\n[repair 1] tamper gate PASS (env) \u2014 applying and re-executing\n[repair 1] env delta applied; build plan now: {'base_image': 'python:3.10-slim', 'apt_install': [], 'install_commands': [\"printf '%s\\\\n' absl-py==1.0.0 astunparse==1.6.3 cachetools==5.0.0 certifi==2021.10.8 charset-normalizer==2.0.12 cloudpickle==2.0.0 cycler==0.11.0 decorator==5.1.1 dm-tree==0.1.7 flatbuffers==2.0 fonttools==4.33.0 gast==0.5.3 google-auth==2.6.6 google-auth-oauthlib==0.4.6 google-pasta==0.2.0 grpcio==1.44.0 gym==0.23.1 gym-notices==0.0.6 h5py==3.6.0 idna==3.3 keras==2.8.0 keras-preprocessing==1.1.2 kiwisolver==1.4.2 libclang==13.0.0 markdown==3.3.6 matplotlib==3.5.1 networkx==1.8.1 numpy==1.22.3 oauthlib==3.2.0 opt-einsum==3.3.0 packaging==21.3 pillow==9.1.0 protobuf==3.20.0 pyasn1==0.4.8 pyasn1-modules==0.2.8 pyparsing==3.0.8 python-dateutil==2.8.2 requests==2.27.1 requests-oauthlib==1.3.1 rsa==4.8 setuptools==62.1.0 six==1.16.0 sonnet==0.1.6 tensorboard==2.8.0 tensorboard-data-server==0.6.1 tensorboard-plugin-wit==1.8.1 tensorflow==2.8.0 tensorflow-io-gcs-filesystem==0.25.0 tensorflow-probability==0.16.0 termcolor==1.1.0 tf-estimator-nightly==2.8.0.dev2021122109 typing-extensions==4.2.0 urllib3==1.26.9 werkzeug==2.1.1 wheel==0.37.1 wrapt==1.14.0 graphs==0.1.3 > .rerun-requirements.txt && pip install -r .rerun-requirements.txt\"], 'execute_command': 'python run_experiment.py --visual --pretrained_encoder --mapType=minecraft-insp --syntax=TTL2 --network=PrediNet --mem --multimodal --num_neurons=50 --seedB=0 --batch_size=512  --mem_type=rim', 'notes': [\"execute command is the repository's documented command (corpus ground truth)\", 'time machine: python 3.10, 56 locked package(s)', 'env delta: add graphs \u2014 Add missing graphs package required by sonnet import']}\n[citations] not cited (not used in a decision): https://leimao.github.io/blog/Python-Pip-Package-Get-Available-Versions\n[citations] not cited (not used in a decision): https://devguide.python.org/versions\n[citations] not cited (not used in a decision): https://en.wikipedia.org/wiki/Python_(programming_language)\n[citations] not cited (not used in a decision): https://scientific-python.org/specs/spec-0000\n[citations] not cited (not used in a decision): https://pyreadiness.org\n[citations] not cited (offered, not used): https://pypi.org/project/graphs/0.1.2/\n[citations] not cited (offered, not used): https://pypi.org/project/graphs/0.1.1/\n[citations] not cited (offered, not used): https://pypi.org/project/graphs/0.1.0/\n[citations] not cited (offered, not used): https://pypi.org/project/graphs/0.0.4/\n[integrity] verified 84 file(s) against tree 5ba6b728c5d2972a8500d59e8f4e442cddfa3ee1\n[sandbox] starting build+execute (wall_clock_seconds=600)\n[cost_guard] recorded $0.4396 sandbox spend, $1.2355 remaining today\n[repair 1] re-execution id=5690ada3-f725-4823-a520-92647baf50ce exit_code=1\n[classifier] SYS_LIB_MISSING: 2026-09-29 10:14:08.217043: W tensorflow/stream_executor/platform/default/dso_loader.cc:64] Could not load dynamic library 'libcudart.so.11.0'; dlerror: libcudart.so.11.0: cannot open shared object file: No such file or directory\n[tavily] 3 result(s) for 'python sys lib missing fix: 2026-09-29 10:14:08.217043: W tensorflow/stream_executor/platform/default/dso_loader.cc:64] Could not load dynamic library 'libcudart.so.11.0'; dlerro'\n[repair 2] proposal repeats change(s) already tried and failed this run (add graphs); re-asked once (same attempt)\n[repair 2] tamper gate PASS (env) \u2014 applying and re-executing\n[repair 2] env delta applied; build plan now: {'base_image': 'python:3.10-slim', 'apt_install': [], 'install_commands': [\"printf '%s\\\\n' absl-py==1.0.0 astunparse==1.6.3 cachetools==5.0.0 certifi==2021.10.8 charset-normalizer==2.0.12 cloudpickle==2.0.0 cycler==0.11.0 decorator==5.1.1 dm-tree==0.1.7 flatbuffers==2.0 fonttools==4.33.0 gast==0.5.3 google-auth==2.6.6 google-auth-oauthlib==0.4.6 google-pasta==0.2.0 grpcio==1.44.0 gym==0.23.1 gym-notices==0.0.6 h5py==3.6.0 idna==3.3 keras==2.8.0 keras-preprocessing==1.1.2 kiwisolver==1.4.2 libclang==13.0.0 markdown==3.3.6 matplotlib==3.5.1 networkx==1.8.1 numpy==1.22.3 oauthlib==3.2.0 opt-einsum==3.3.0 packaging==21.3 pillow==9.1.0 protobuf==3.20.0 pyasn1==0.4.8 pyasn1-modules==0.2.8 pyparsing==3.0.8 python-dateutil==2.8.2 requests==2.27.1 requests-oauthlib==1.3.1 rsa==4.8 setuptools==62.1.0 six==1.16.0 sonnet==0.1.5 tensorboard==2.8.0 tensorboard-data-server==0.6.1 tensorboard-plugin-wit==1.8.1 tensorflow==2.8.0 tensorflow-io-gcs-filesystem==0.25.0 tensorflow-probability==0.16.0 termcolor==1.1.0 tf-estimator-nightly==2.8.0.dev2021122109 typing-extensions==4.2.0 urllib3==1.26.9 werkzeug==2.1.1 wheel==0.37.1 wrapt==1.14.0 graphs==0.1.3 > .rerun-requirements.txt && pip install -r .rerun-requirements.txt\"], 'execute_command': 'python run_experiment.py --visual --pretrained_encoder --mapType=minecraft-insp --syntax=TTL2 --network=PrediNet --mem --multimodal --num_neurons=50 --seedB=0 --batch_size=512  --mem_type=rim', 'notes': [\"execute command is the repository's documented command (corpus ground truth)\", 'time machine: python 3.10, 56 locked package(s)', 'env delta: add graphs \u2014 Add missing graphs package required by sonnet import', 'env delta: pin sonnet \u2014 Downgrade sonnet to version 0.1.5 to avoid the problematic import from graphs in its __init__.py']}\n[citations] not cited (not used in a decision): https://discuss.ai.google.dev/t/could-not-load-dynamic-library-libcudart-so-11-0/28220\n[citations] not cited (not used in a decision): https://forum.image.sc/t/installing-dlc-ran-into-problems-with-tensorflow-libcudart-so-11-0/80962\n[citations] not cited (not used in a decision): https://forums.developer.nvidia.com/t/tensorflow-fails-to-find-libcudart/154411\n[integrity] FAILED \u2014 cannot list the committed tree: fatal: not a git repository (or any of the parent directories): .git\n[verdict] INVALID_HARNESS \u2014 the run is void; this is RERUN's fault, not the repository's",
+    "diffs": [
+      {
+        "attempt_number": 0,
+        "diff_text": "",
+        "gate_decision": "PASS",
+        "gate_violations": [],
+        "exit_code": 1,
+        "stdout_tail": "",
+        "stderr_tail": "2026-09-29 10:12:23.964490: W tensorflow/stream_executor/platform/default/dso_loader.cc:64] Could not load dynamic library 'libcudart.so.11.0'; dlerror: libcudart.so.11.0: cannot open shared object file: No such file or directory\n2026-09-29 10:12:23.964569: I tensorflow/stream_executor/cuda/cudart_stub.cc:29] Ignore above cudart dlerror if you do not have a GPU set up on your machine.\nTraceback (most recent call last):\n  File \"//run_experiment.py\", line 2, in <module>\n    from agents.neuro_symbolic_agent  import NSAgent\n  File \"/agents/neuro_symbolic_agent.py\", line 1, in <module>\n    from agents.modules.a2c_tl import *\n  File \"/agents/modules/a2c_tl.py\", line 7, in <module>\n    from utils.networks import *\n  File \"/utils/networks.py\", line 2, in <module>\n    import sonnet as snt\n  File \"/usr/local/lib/python3.10/site-packages/sonnet/__init__.py\", line 2, in <module>\n    from graphs import Sonnet, D3Graph, MatplotGraph\nModuleNotFoundError: No module named 'graphs'\n",
+        "tavily_sources": [],
+        "env_delta": [],
+        "resolved_sources": [],
+        "origin": "time_machine",
+        "time_machine": {
+          "era": {
+            "date": "2022-04-21",
+            "source": "pinned-commit",
+            "detail": {
+              "note": "no dependency files in the repository"
+            }
+          },
+          "python": {
+            "version": "3.10",
+            "reason": "newest CPython first released \u2265180 days before the era date 2022-04-21 (https://devguide.python.org/versions/ (first release dates, retrieved 2026-09-24))",
+            "source": "https://devguide.python.org/versions/ (first release dates, retrieved 2026-09-24)"
+          },
+          "undeclared_imports": [
+            "pillow",
+            "gym",
+            "matplotlib",
+            "numpy",
+            "sonnet",
+            "tensorflow",
+            "tensorflow_probability"
+          ],
+          "import_mappings": [
+            {
+              "import": "PIL",
+              "distribution": "pillow",
+              "source": "pipreqs",
+              "confidence": "normal"
+            }
+          ],
+          "apt_added": [],
+          "apt_reason": "",
+          "lock": {
+            "ok": true,
+            "lock": [
+              "absl-py==1.0.0",
+              "astunparse==1.6.3",
+              "cachetools==5.0.0",
+              "certifi==2021.10.8",
+              "charset-normalizer==2.0.12",
+              "cloudpickle==2.0.0",
+              "cycler==0.11.0",
+              "decorator==5.1.1",
+              "dm-tree==0.1.7",
+              "flatbuffers==2.0",
+              "fonttools==4.33.0",
+              "gast==0.5.3",
+              "google-auth==2.6.6",
+              "google-auth-oauthlib==0.4.6",
+              "google-pasta==0.2.0",
+              "grpcio==1.44.0",
+              "gym==0.23.1",
+              "gym-notices==0.0.6",
+              "h5py==3.6.0",
+              "idna==3.3",
+              "keras==2.8.0",
+              "keras-preprocessing==1.1.2",
+              "kiwisolver==1.4.2",
+              "libclang==13.0.0",
+              "markdown==3.3.6",
+              "matplotlib==3.5.1",
+              "networkx==1.8.1",
+              "numpy==1.22.3",
+              "oauthlib==3.2.0",
+              "opt-einsum==3.3.0",
+              "packaging==21.3",
+              "pillow==9.1.0",
+              "protobuf==3.20.0",
+              "pyasn1==0.4.8",
+              "pyasn1-modules==0.2.8",
+              "pyparsing==3.0.8",
+              "python-dateutil==2.8.2",
+              "requests==2.27.1",
+              "requests-oauthlib==1.3.1",
+              "rsa==4.8",
+              "setuptools==62.1.0",
+              "six==1.16.0",
+              "sonnet==0.1.6",
+              "tensorboard==2.8.0",
+              "tensorboard-data-server==0.6.1",
+              "tensorboard-plugin-wit==1.8.1",
+              "tensorflow==2.8.0",
+              "tensorflow-io-gcs-filesystem==0.25.0",
+              "tensorflow-probability==0.16.0",
+              "termcolor==1.1.0",
+              "tf-estimator-nightly==2.8.0.dev2021122109",
+              "typing-extensions==4.2.0",
+              "urllib3==1.26.9",
+              "werkzeug==2.1.1",
+              "wheel==0.37.1",
+              "wrapt==1.14.0"
+            ],
+            "inputs": [
+              "pillow",
+              "gym",
+              "matplotlib",
+              "numpy",
+              "sonnet",
+              "tensorflow",
+              "tensorflow_probability"
+            ],
+            "not_on_index": [],
+            "command": "pip compile - --no-header --no-annotate --quiet --exclude-newer 2022-04-22T00:00:00Z --python-version 3.10 --python-platform x86_64-unknown-linux-gnu --python C:\\Users\\E16\\AppData\\Roaming\\uv\\python\\cpython-3.8.20-windows-x86_64-none\\python.exe",
+            "error": ""
+          }
+        }
+      },
+      {
+        "attempt_number": 1,
+        "diff_text": "",
+        "gate_decision": "PASS",
+        "gate_violations": [],
+        "exit_code": 1,
+        "stdout_tail": "",
+        "stderr_tail": "2026-09-29 10:14:08.217043: W tensorflow/stream_executor/platform/default/dso_loader.cc:64] Could not load dynamic library 'libcudart.so.11.0'; dlerror: libcudart.so.11.0: cannot open shared object file: No such file or directory\n2026-09-29 10:14:08.217119: I tensorflow/stream_executor/cuda/cudart_stub.cc:29] Ignore above cudart dlerror if you do not have a GPU set up on your machine.\nTraceback (most recent call last):\n  File \"//run_experiment.py\", line 2, in <module>\n    from agents.neuro_symbolic_agent  import NSAgent\n  File \"/agents/neuro_symbolic_agent.py\", line 1, in <module>\n    from agents.modules.a2c_tl import *\n  File \"/agents/modules/a2c_tl.py\", line 7, in <module>\n    from utils.networks import *\n  File \"/utils/networks.py\", line 2, in <module>\n    import sonnet as snt\n  File \"/usr/local/lib/python3.10/site-packages/sonnet/__init__.py\", line 2, in <module>\n    from graphs import Sonnet, D3Graph, MatplotGraph\nImportError: cannot import name 'Sonnet' from 'graphs' (/usr/local/lib/python3.10/site-packages/graphs/__init__.py)\n",
+        "tavily_sources": [],
+        "env_delta": [
+          {
+            "command": null,
+            "op": "add",
+            "package": "graphs",
+            "version": "0.1.3",
+            "git_url": null,
+            "commit": null,
+            "justification": "Add missing graphs package required by sonnet import",
+            "evidence": "ModuleNotFoundError: No module named 'graphs'"
+          }
+        ],
+        "resolved_sources": [
+          {
+            "kind": "pypi",
+            "package": "graphs",
+            "version": "0.1.3",
+            "uploaded": "2017-12-14",
+            "cpython_tags": [],
+            "url": "https://pypi.org/project/graphs/0.1.3/"
+          }
+        ],
+        "origin": "model",
+        "time_machine": null
+      }
+    ],
+    "verdict": "INVALID_HARNESS",
+    "timestamp": "2026-09-29T10:15:14.587828+00:00",
+    "bundle_version": 3,
+    "baseline": {
+      "result": "FAILS",
+      "exit_code": 1,
+      "base_image": "python:3.11-slim",
+      "install_commands": [
+        "true  # no declared dependency file found; nothing to install"
+      ],
+      "execute_command": "python run_experiment.py --visual --pretrained_encoder --mapType=minecraft-insp --syntax=TTL2 --network=PrediNet --mem --multimodal --num_neurons=50 --seedB=0 --batch_size=512  --mem_type=rim",
+      "sandbox_id": "18a9ba47-12e4-4666-ad0e-9b94ce8b22be",
+      "taxonomy_code": "DEP_MISSING",
+      "evidence": "ModuleNotFoundError: No module named 'tensorflow'"
+    },
+    "recovery": false,
+    "tree_integrity": {
+      "status": "failed",
+      "reason": "git ls-tree failed"
+    },
+    "corpus_hash": "063b700c38006bcf3160c64674a196cdf2fddb768a0c3de232746181aeef7d5c",
+    "reproduction_passport_hash": "20aacba85c38c301b08a1ea30c4ca2384a45dc57dd44a2789e81e96fda57a0b6"
+  },
+  "finished_at": "2026-09-29T10:15:14.681089+00:00",
+  "events": [
+    {
+      "t_s": 0.0,
+      "at": "2026-09-29T10:09:18.994286+00:00",
+      "line": "[intake] cloned https://github.com/bgleon/latent-goal-architectures@42cdf466cb123c090596fcd14400307fe76f5da2"
+    },
+    {
+      "t_s": 0.01,
+      "at": "2026-09-29T10:09:19.006135+00:00",
+      "line": "[recon] calling Nemotron Nano"
+    },
+    {
+      "t_s": 13.5,
+      "at": "2026-09-29T10:09:32.491269+00:00",
+      "line": "[recon] entrypoint=run_experiment.py confidence=0.75"
+    },
+    {
+      "t_s": 14.82,
+      "at": "2026-09-29T10:09:33.812443+00:00",
+      "line": "[planner] build plan: {'base_image': 'python:3.11-slim', 'apt_install': [], 'install_commands': ['true  # no declared dependency file found; nothing to install'], 'execute_command': 'python run_experiment.py --visual --pretrained_encoder --mapType=minecraft-insp --syntax=TTL2 --network=PrediNet --mem --multimodal --num_neurons=50 --seedB=0 --batch_size=512  --mem_type=rim', 'notes': [\"execute command is the repository's documented command (corpus ground truth)\"]}"
+    },
+    {
+      "t_s": 14.97,
+      "at": "2026-09-29T10:09:33.965536+00:00",
+      "line": "[integrity] verified 84 file(s) against tree 5ba6b728c5d2972a8500d59e8f4e442cddfa3ee1"
+    },
+    {
+      "t_s": 14.97,
+      "at": "2026-09-29T10:09:33.965596+00:00",
+      "line": "[sandbox] starting build+execute (wall_clock_seconds=600)"
+    },
+    {
+      "t_s": 26.52,
+      "at": "2026-09-29T10:09:45.516296+00:00",
+      "line": "[cost_guard] recorded $0.0014 sandbox spend, $1.9978 remaining today"
+    },
+    {
+      "t_s": 26.52,
+      "at": "2026-09-29T10:09:45.516420+00:00",
+      "line": "[sandbox] id=18a9ba47-12e4-4666-ad0e-9b94ce8b22be exit_code=1"
+    },
+    {
+      "t_s": 26.52,
+      "at": "2026-09-29T10:09:45.516461+00:00",
+      "line": "[baseline] as-is run: FAILS (exit code 1)"
+    },
+    {
+      "t_s": 26.53,
+      "at": "2026-09-29T10:09:45.522517+00:00",
+      "line": "[classifier] DEP_MISSING: ModuleNotFoundError: No module named 'tensorflow'"
+    },
+    {
+      "t_s": 26.63,
+      "at": "2026-09-29T10:09:45.624352+00:00",
+      "line": "[era] 2022-04-21 from pinned-commit {'note': 'no dependency files in the repository'}"
+    },
+    {
+      "t_s": 27.26,
+      "at": "2026-09-29T10:09:46.254438+00:00",
+      "line": "[import-map] PIL -> pillow (pipreqs, confidence normal)"
+    },
+    {
+      "t_s": 49.45,
+      "at": "2026-09-29T10:10:08.447462+00:00",
+      "line": "[time-machine] era 2022-04-21 (pinned-commit) -> python 3.10; locked 56 package(s) with uv --exclude-newer; not on the index: none"
+    },
+    {
+      "t_s": 49.61,
+      "at": "2026-09-29T10:10:08.604952+00:00",
+      "line": "[integrity] verified 84 file(s) against tree 5ba6b728c5d2972a8500d59e8f4e442cddfa3ee1"
+    },
+    {
+      "t_s": 49.61,
+      "at": "2026-09-29T10:10:08.605019+00:00",
+      "line": "[sandbox] starting build+execute (wall_clock_seconds=600)"
+    },
+    {
+      "t_s": 193.07,
+      "at": "2026-09-29T10:12:32.059519+00:00",
+      "line": "[cost_guard] recorded $0.3197 sandbox spend, $1.6782 remaining today"
+    },
+    {
+      "t_s": 193.07,
+      "at": "2026-09-29T10:12:32.059653+00:00",
+      "line": "[time-machine] re-execution id=fd3efdd7-87f2-46b6-9ceb-58d85d76e064 exit_code=1"
+    },
+    {
+      "t_s": 193.07,
+      "at": "2026-09-29T10:12:32.060604+00:00",
+      "line": "[classifier] DEP_MISSING: ModuleNotFoundError: No module named 'graphs'"
+    },
+    {
+      "t_s": 195.86,
+      "at": "2026-09-29T10:12:34.849647+00:00",
+      "line": "[resolver] graphs: 0 verified git source(s), PyPI found (5 release(s) shown), era 2022-04-21; query: 'graphs python package version compatible 2022 release history'"
+    },
+    {
+      "t_s": 195.86,
+      "at": "2026-09-29T10:12:34.849722+00:00",
+      "line": "[tavily] 5 result(s) for 'graphs python package version compatible 2022 release history'"
+    },
+    {
+      "t_s": 202.66,
+      "at": "2026-09-29T10:12:41.658608+00:00",
+      "line": "[repair 1] tamper gate PASS (env) \u2014 applying and re-executing"
+    },
+    {
+      "t_s": 202.66,
+      "at": "2026-09-29T10:12:41.659069+00:00",
+      "line": "[repair 1] env delta applied; build plan now: {'base_image': 'python:3.10-slim', 'apt_install': [], 'install_commands': [\"printf '%s\\\\n' absl-py==1.0.0 astunparse==1.6.3 cachetools==5.0.0 certifi==2021.10.8 charset-normalizer==2.0.12 cloudpickle==2.0.0 cycler==0.11.0 decorator==5.1.1 dm-tree==0.1.7 flatbuffers==2.0 fonttools==4.33.0 gast==0.5.3 google-auth==2.6.6 google-auth-oauthlib==0.4.6 google-pasta==0.2.0 grpcio==1.44.0 gym==0.23.1 gym-notices==0.0.6 h5py==3.6.0 idna==3.3 keras==2.8.0 keras-preprocessing==1.1.2 kiwisolver==1.4.2 libclang==13.0.0 markdown==3.3.6 matplotlib==3.5.1 networkx==1.8.1 numpy==1.22.3 oauthlib==3.2.0 opt-einsum==3.3.0 packaging==21.3 pillow==9.1.0 protobuf==3.20.0 pyasn1==0.4.8 pyasn1-modules==0.2.8 pyparsing==3.0.8 python-dateutil==2.8.2 requests==2.27.1 requests-oauthlib==1.3.1 rsa==4.8 setuptools==62.1.0 six==1.16.0 sonnet==0.1.6 tensorboard==2.8.0 tensorboard-data-server==0.6.1 tensorboard-plugin-wit==1.8.1 tensorflow==2.8.0 tensorflow-io-gcs-filesystem==0.25.0 tensorflow-probability==0.16.0 termcolor==1.1.0 tf-estimator-nightly==2.8.0.dev2021122109 typing-extensions==4.2.0 urllib3==1.26.9 werkzeug==2.1.1 wheel==0.37.1 wrapt==1.14.0 graphs==0.1.3 > .rerun-requirements.txt && pip install -r .rerun-requirements.txt\"], 'execute_command': 'python run_experiment.py --visual --pretrained_encoder --mapType=minecraft-insp --syntax=TTL2 --network=PrediNet --mem --multimodal --num_neurons=50 --seedB=0 --batch_size=512  --mem_type=rim', 'notes': [\"execute command is the repository's documented command (corpus ground truth)\", 'time machine: python 3.10, 56 locked package(s)', 'env delta: add graphs \u2014 Add missing graphs package required by sonnet import']}"
+    },
+    {
+      "t_s": 202.66,
+      "at": "2026-09-29T10:12:41.659136+00:00",
+      "line": "[citations] not cited (not used in a decision): https://leimao.github.io/blog/Python-Pip-Package-Get-Available-Versions"
+    },
+    {
+      "t_s": 202.66,
+      "at": "2026-09-29T10:12:41.659167+00:00",
+      "line": "[citations] not cited (not used in a decision): https://devguide.python.org/versions"
+    },
+    {
+      "t_s": 202.66,
+      "at": "2026-09-29T10:12:41.659184+00:00",
+      "line": "[citations] not cited (not used in a decision): https://en.wikipedia.org/wiki/Python_(programming_language)"
+    },
+    {
+      "t_s": 202.66,
+      "at": "2026-09-29T10:12:41.659197+00:00",
+      "line": "[citations] not cited (not used in a decision): https://scientific-python.org/specs/spec-0000"
+    },
+    {
+      "t_s": 202.66,
+      "at": "2026-09-29T10:12:41.659211+00:00",
+      "line": "[citations] not cited (not used in a decision): https://pyreadiness.org"
+    },
+    {
+      "t_s": 202.66,
+      "at": "2026-09-29T10:12:41.659227+00:00",
+      "line": "[citations] not cited (offered, not used): https://pypi.org/project/graphs/0.1.2/"
+    },
+    {
+      "t_s": 202.66,
+      "at": "2026-09-29T10:12:41.659242+00:00",
+      "line": "[citations] not cited (offered, not used): https://pypi.org/project/graphs/0.1.1/"
+    },
+    {
+      "t_s": 202.66,
+      "at": "2026-09-29T10:12:41.659256+00:00",
+      "line": "[citations] not cited (offered, not used): https://pypi.org/project/graphs/0.1.0/"
+    },
+    {
+      "t_s": 202.67,
+      "at": "2026-09-29T10:12:41.659268+00:00",
+      "line": "[citations] not cited (offered, not used): https://pypi.org/project/graphs/0.0.4/"
+    },
+    {
+      "t_s": 202.8,
+      "at": "2026-09-29T10:12:41.789542+00:00",
+      "line": "[integrity] verified 84 file(s) against tree 5ba6b728c5d2972a8500d59e8f4e442cddfa3ee1"
+    },
+    {
+      "t_s": 202.8,
+      "at": "2026-09-29T10:12:41.789598+00:00",
+      "line": "[sandbox] starting build+execute (wall_clock_seconds=600)"
+    },
+    {
+      "t_s": 303.62,
+      "at": "2026-09-29T10:14:22.618365+00:00",
+      "line": "[cost_guard] recorded $0.4396 sandbox spend, $1.2355 remaining today"
+    },
+    {
+      "t_s": 303.62,
+      "at": "2026-09-29T10:14:22.618512+00:00",
+      "line": "[repair 1] re-execution id=5690ada3-f725-4823-a520-92647baf50ce exit_code=1"
+    },
+    {
+      "t_s": 303.63,
+      "at": "2026-09-29T10:14:22.619544+00:00",
+      "line": "[classifier] SYS_LIB_MISSING: 2026-09-29 10:14:08.217043: W tensorflow/stream_executor/platform/default/dso_loader.cc:64] Could not load dynamic library 'libcudart.so.11.0'; dlerror: libcudart.so.11.0: cannot open shared object file: No such file or directory"
+    },
+    {
+      "t_s": 306.36,
+      "at": "2026-09-29T10:14:25.355893+00:00",
+      "line": "[tavily] 3 result(s) for 'python sys lib missing fix: 2026-09-29 10:14:08.217043: W tensorflow/stream_executor/platform/default/dso_loader.cc:64] Could not load dynamic library 'libcudart.so.11.0'; dlerro'"
+    },
+    {
+      "t_s": 327.54,
+      "at": "2026-09-29T10:14:46.536870+00:00",
+      "line": "[repair 2] proposal repeats change(s) already tried and failed this run (add graphs); re-asked once (same attempt)"
+    },
+    {
+      "t_s": 355.52,
+      "at": "2026-09-29T10:15:14.518558+00:00",
+      "line": "[repair 2] tamper gate PASS (env) \u2014 applying and re-executing"
+    },
+    {
+      "t_s": 355.52,
+      "at": "2026-09-29T10:15:14.518809+00:00",
+      "line": "[repair 2] env delta applied; build plan now: {'base_image': 'python:3.10-slim', 'apt_install': [], 'install_commands': [\"printf '%s\\\\n' absl-py==1.0.0 astunparse==1.6.3 cachetools==5.0.0 certifi==2021.10.8 charset-normalizer==2.0.12 cloudpickle==2.0.0 cycler==0.11.0 decorator==5.1.1 dm-tree==0.1.7 flatbuffers==2.0 fonttools==4.33.0 gast==0.5.3 google-auth==2.6.6 google-auth-oauthlib==0.4.6 google-pasta==0.2.0 grpcio==1.44.0 gym==0.23.1 gym-notices==0.0.6 h5py==3.6.0 idna==3.3 keras==2.8.0 keras-preprocessing==1.1.2 kiwisolver==1.4.2 libclang==13.0.0 markdown==3.3.6 matplotlib==3.5.1 networkx==1.8.1 numpy==1.22.3 oauthlib==3.2.0 opt-einsum==3.3.0 packaging==21.3 pillow==9.1.0 protobuf==3.20.0 pyasn1==0.4.8 pyasn1-modules==0.2.8 pyparsing==3.0.8 python-dateutil==2.8.2 requests==2.27.1 requests-oauthlib==1.3.1 rsa==4.8 setuptools==62.1.0 six==1.16.0 sonnet==0.1.5 tensorboard==2.8.0 tensorboard-data-server==0.6.1 tensorboard-plugin-wit==1.8.1 tensorflow==2.8.0 tensorflow-io-gcs-filesystem==0.25.0 tensorflow-probability==0.16.0 termcolor==1.1.0 tf-estimator-nightly==2.8.0.dev2021122109 typing-extensions==4.2.0 urllib3==1.26.9 werkzeug==2.1.1 wheel==0.37.1 wrapt==1.14.0 graphs==0.1.3 > .rerun-requirements.txt && pip install -r .rerun-requirements.txt\"], 'execute_command': 'python run_experiment.py --visual --pretrained_encoder --mapType=minecraft-insp --syntax=TTL2 --network=PrediNet --mem --multimodal --num_neurons=50 --seedB=0 --batch_size=512  --mem_type=rim', 'notes': [\"execute command is the repository's documented command (corpus ground truth)\", 'time machine: python 3.10, 56 locked package(s)', 'env delta: add graphs \u2014 Add missing graphs package required by sonnet import', 'env delta: pin sonnet \u2014 Downgrade sonnet to version 0.1.5 to avoid the problematic import from graphs in its __init__.py']}"
+    },
+    {
+      "t_s": 355.52,
+      "at": "2026-09-29T10:15:14.518838+00:00",
+      "line": "[citations] not cited (not used in a decision): https://discuss.ai.google.dev/t/could-not-load-dynamic-library-libcudart-so-11-0/28220"
+    },
+    {
+      "t_s": 355.52,
+      "at": "2026-09-29T10:15:14.518852+00:00",
+      "line": "[citations] not cited (not used in a decision): https://forum.image.sc/t/installing-dlc-ran-into-problems-with-tensorflow-libcudart-so-11-0/80962"
+    },
+    {
+      "t_s": 355.52,
+      "at": "2026-09-29T10:15:14.518935+00:00",
+      "line": "[citations] not cited (not used in a decision): https://forums.developer.nvidia.com/t/tensorflow-fails-to-find-libcudart/154411"
+    },
+    {
+      "t_s": 355.59,
+      "at": "2026-09-29T10:15:14.587764+00:00",
+      "line": "[integrity] FAILED \u2014 cannot list the committed tree: fatal: not a git repository (or any of the parent directories): .git"
+    },
+    {
+      "t_s": 355.59,
+      "at": "2026-09-29T10:15:14.587812+00:00",
+      "line": "[verdict] INVALID_HARNESS \u2014 the run is void; this is RERUN's fault, not the repository's"
+    }
+  ],
+  "model_calls": [
+    {
+      "model": "nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B",
+      "started_at": "2026-09-29T10:09:19.232188+00:00",
+      "latency_s": 13.26,
+      "finish_reason": "stop",
+      "content_is_none": false,
+      "has_reasoning": true,
+      "usage": {
+        "completion_tokens": 1319,
+        "prompt_tokens": 5748,
+        "total_tokens": 7067,
+        "completion_tokens_details": null,
+        "prompt_tokens_details": null
+      }
+    },
+    {
+      "model": "nvidia/nemotron-3-super-120b-a12b",
+      "started_at": "2026-09-29T10:09:32.492548+00:00",
+      "latency_s": 1.32,
+      "finish_reason": "stop",
+      "content_is_none": false,
+      "has_reasoning": true,
+      "usage": {
+        "completion_tokens": 60,
+        "prompt_tokens": 272,
+        "total_tokens": 332,
+        "completion_tokens_details": {
+          "accepted_prediction_tokens": null,
+          "audio_tokens": null,
+          "reasoning_tokens": 50,
+          "rejected_prediction_tokens": null,
+          "text_tokens": null
+        },
+        "prompt_tokens_details": {
+          "audio_tokens": null,
+          "cache_write_tokens": null,
+          "cached_tokens": 0,
+          "image_tokens": null,
+          "text_tokens": null,
+          "created_cache_tokens": 0,
+          "multimodal_tokens": null
+        },
+        "prompt_cache_hit_tokens": 0,
+        "prompt_cache_miss_tokens": 272
+      }
+    },
+    {
+      "model": "nvidia/nemotron-3-super-120b-a12b",
+      "started_at": "2026-09-29T10:12:34.854955+00:00",
+      "latency_s": 6.8,
+      "finish_reason": "stop",
+      "content_is_none": false,
+      "has_reasoning": true,
+      "usage": {
+        "completion_tokens": 597,
+        "prompt_tokens": 8340,
+        "total_tokens": 8937,
+        "completion_tokens_details": {
+          "accepted_prediction_tokens": null,
+          "audio_tokens": null,
+          "reasoning_tokens": 491,
+          "rejected_prediction_tokens": null,
+          "text_tokens": null
+        },
+        "prompt_tokens_details": {
+          "audio_tokens": null,
+          "cache_write_tokens": null,
+          "cached_tokens": 0,
+          "image_tokens": null,
+          "text_tokens": null,
+          "created_cache_tokens": 0,
+          "multimodal_tokens": null
+        },
+        "prompt_cache_hit_tokens": 0,
+        "prompt_cache_miss_tokens": 8340
+      }
+    },
+    {
+      "model": "nvidia/nemotron-3-super-120b-a12b",
+      "started_at": "2026-09-29T10:14:25.360488+00:00",
+      "latency_s": 21.18,
+      "finish_reason": "stop",
+      "content_is_none": false,
+      "has_reasoning": true,
+      "usage": {
+        "completion_tokens": 4116,
+        "prompt_tokens": 7950,
+        "total_tokens": 12066,
+        "completion_tokens_details": {
+          "accepted_prediction_tokens": null,
+          "audio_tokens": null,
+          "reasoning_tokens": 3953,
+          "rejected_prediction_tokens": null,
+          "text_tokens": null
+        },
+        "prompt_tokens_details": {
+          "audio_tokens": null,
+          "cache_write_tokens": null,
+          "cached_tokens": 0,
+          "image_tokens": null,
+          "text_tokens": null,
+          "created_cache_tokens": 0,
+          "multimodal_tokens": null
+        },
+        "prompt_cache_hit_tokens": 0,
+        "prompt_cache_miss_tokens": 7950
+      }
+    },
+    {
+      "model": "nvidia/nemotron-3-super-120b-a12b",
+      "started_at": "2026-09-29T10:14:46.540933+00:00",
+      "latency_s": 27.98,
+      "finish_reason": "stop",
+      "content_is_none": false,
+      "has_reasoning": true,
+      "usage": {
+        "completion_tokens": 4170,
+        "prompt_tokens": 8009,
+        "total_tokens": 12179,
+        "completion_tokens_details": {
+          "accepted_prediction_tokens": null,
+          "audio_tokens": null,
+          "reasoning_tokens": 4001,
+          "rejected_prediction_tokens": null,
+          "text_tokens": null
+        },
+        "prompt_tokens_details": {
+          "audio_tokens": null,
+          "cache_write_tokens": null,
+          "cached_tokens": 0,
+          "image_tokens": null,
+          "text_tokens": null,
+          "created_cache_tokens": 0,
+          "multimodal_tokens": null
+        },
+        "prompt_cache_hit_tokens": 0,
+        "prompt_cache_miss_tokens": 8009
+      }
+    }
+  ],
+  "cost_guard": {
+    "spent_usd": 0.7767211800000001,
+    "model_spent_usd": 0.01608144,
+    "sandbox_spent_usd": 0.76063974,
+    "remaining_usd": 1.22327882,
+    "model_usage": [
+      {
+        "model": "nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B",
+        "prompt_tokens": 5748,
+        "completion_tokens": 1319,
+        "cost_usd": 0.00066144
+      },
+      {
+        "model": "nvidia/nemotron-3-super-120b-a12b",
+        "prompt_tokens": 272,
+        "completion_tokens": 60,
+        "cost_usd": 0.0001356
+      },
+      {
+        "model": "nvidia/nemotron-3-super-120b-a12b",
+        "prompt_tokens": 8340,
+        "completion_tokens": 597,
+        "cost_usd": 0.0030393
+      },
+      {
+        "model": "nvidia/nemotron-3-super-120b-a12b",
+        "prompt_tokens": 7950,
+        "completion_tokens": 4116,
+        "cost_usd": 0.0060894
+      },
+      {
+        "model": "nvidia/nemotron-3-super-120b-a12b",
+        "prompt_tokens": 8009,
+        "completion_tokens": 4170,
+        "cost_usd": 0.0061557
+      }
+    ],
+    "prices_usd_per_1m": {
+      "nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B": [
+        0.06,
+        0.24
+      ],
+      "nvidia/nemotron-3-super-120b-a12b": [
+        0.3,
+        0.9
+      ],
+      "nvidia/Nemotron-3-Ultra-550b-a55b": [
+        1.0,
+        3.0
+      ]
+    },
+    "prices_source": "https://api.tokenfactory.nebius.com/v1/models?verbose=true (pricing field)",
+    "prices_retrieved": "2026-09-24"
+  }
+}

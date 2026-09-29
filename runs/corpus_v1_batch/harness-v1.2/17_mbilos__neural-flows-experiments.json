@@ -1,0 +1,324 @@
+{
+  "run_kind": "live end-to-end run",
+  "dev_run": false,
+  "dry_run": null,
+  "batch": {
+    "harness_tag": "harness-v1.2",
+    "harness_commit": "668c907baeef0cbb29338f118dfc8975dd812993",
+    "head_commit": "668c907baeef0cbb29338f118dfc8975dd812993",
+    "corpus": "corpus-v1",
+    "amendment_sha256": "63d409a3ffc92b016fde502b90e53500a48287b7a286c7078148ac3650b9622d",
+    "corpus_hash": "063b700c38006bcf3160c64674a196cdf2fddb768a0c3de232746181aeef7d5c",
+    "entry_id": 17,
+    "category": "COMMAND_NOT_A_RUN",
+    "rules_matched": [
+      "R5_PLACEHOLDER"
+    ],
+    "per_entry_cap_usd": 2.0,
+    "total_cap_usd": 40.0
+  },
+  "started_at": "2026-09-29T11:15:36.776166+00:00",
+  "corpus_entry": {
+    "name": "mbilos__neural-flows-experiments",
+    "repo_url": "https://github.com/mbilos/neural-flows-experiments",
+    "commit_sha": "bd19f7c92461e83521e268c1a235ef845a3dd963",
+    "command": "python -m nfe.train --experiment synthetic --data [ellipse|sawtooth|sink|square|triangle] --model [ode|flow] --flow-model [coupling|resnet] --solver [rk4|dopri5]",
+    "command_source": "README.md line 114"
+  },
+  "config": {
+    "models": {
+      "recon": "nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B",
+      "planner": "nvidia/nemotron-3-super-120b-a12b",
+      "repairer": "nvidia/nemotron-3-super-120b-a12b",
+      "adjudicator": "nvidia/Nemotron-3-Ultra-550b-a55b"
+    },
+    "sandbox_backend": "token_factory",
+    "sandbox_image_default": "python:3.11-slim",
+    "sandbox_wall_clock_seconds": 600.0,
+    "max_attempts": 3,
+    "tavily_configured": true,
+    "cost_cap_usd": 2.0
+  },
+  "intake": {
+    "duration_s": 9.34,
+    "resolved_sha": "bd19f7c92461e83521e268c1a235ef845a3dd963",
+    "dependency_files": [
+      "setup.py"
+    ],
+    "declared_dependencies": [
+      "lxml",
+      "matplotlib",
+      "numpy",
+      "pandas",
+      "reverse_geocoder",
+      "scipy",
+      "sklearn",
+      "stribor",
+      "torch",
+      "torchdiffeq",
+      "torchvision",
+      "tqdm"
+    ],
+    "entrypoint_candidates": [
+      "nfe/experiments/gru_ode_bayes/experiment.py",
+      "nfe/experiments/latent_ode/experiment.py",
+      "nfe/experiments/latent_ode/mujoco_physics.py",
+      "nfe/experiments/latent_ode/person_activity.py",
+      "nfe/experiments/latent_ode/physionet.py",
+      "nfe/experiments/stpp/data/download_and_preprocess_citibike.py",
+      "nfe/experiments/stpp/data/download_and_preprocess_covid19.py",
+      "nfe/experiments/stpp/data/download_and_preprocess_earthquakes.py",
+      "nfe/experiments/stpp/experiment.py",
+      "nfe/experiments/stpp/models/spatial/attention.py",
+      "nfe/experiments/stpp/toy_datasets.py",
+      "nfe/experiments/synthetic/experiment.py",
+      "nfe/experiments/synthetic/generate.py",
+      "nfe/experiments/tpp/experiment.py",
+      "nfe/experiments/tpp/generate.py",
+      "nfe/train.py"
+    ],
+    "notebook_paths": [
+      "nfe/experiments/gru_ode_bayes/data_preproc/admissions.ipynb",
+      "nfe/experiments/gru_ode_bayes/data_preproc/datamerging.ipynb",
+      "nfe/experiments/gru_ode_bayes/data_preproc/inputevents.ipynb",
+      "nfe/experiments/gru_ode_bayes/data_preproc/labevents.ipynb",
+      "nfe/experiments/gru_ode_bayes/data_preproc/mimic_prep.ipynb",
+      "nfe/experiments/gru_ode_bayes/data_preproc/outputs.ipynb",
+      "nfe/experiments/gru_ode_bayes/data_preproc/prescriptions.ipynb"
+    ]
+  },
+  "pipeline_duration_s": 738.4,
+  "repair_mode": "deterministic",
+  "tree_integrity": {
+    "status": "verified",
+    "tree_sha": "d73bc4f57319440b00578dd8f9b874217d8137c8",
+    "files_checked": 90,
+    "excluded_patched": []
+  },
+  "result": {
+    "verdict": "TIMEOUT",
+    "taxonomy_code": null,
+    "indeterminate_reason": "",
+    "reason_code": null,
+    "error_traceback": "",
+    "attempts": [],
+    "certificate_prose": "The sandbox execution exceeded the 600-second wall-clock limit and timed out, as indicated by the log entry 'sandbox execution exceeded 600.0s wall clock: Operation 01a0ece2-c2bd-7408-9ec9-5ec255519c27 has timed out'. No repair attempts were made. Verifies that the artifact executes. Does not verify the paper's numerical results."
+  },
+  "certificate": {
+    "repo_url": "https://github.com/mbilos/neural-flows-experiments",
+    "commit_sha": "bd19f7c92461e83521e268c1a235ef845a3dd963",
+    "build_plan": {
+      "base_image": "python:3.6-slim",
+      "apt_install": [],
+      "install_commands": [
+        "pip install ."
+      ],
+      "execute_command": "python -m nfe.train --experiment synthetic --data [ellipse|sawtooth|sink|square|triangle] --model [ode|flow] --flow-model [coupling|resnet] --solver [rk4|dopri5]",
+      "notes": [
+        "execute command is the repository's documented command (corpus ground truth)"
+      ]
+    },
+    "full_log": "[intake] cloned https://github.com/mbilos/neural-flows-experiments@bd19f7c92461e83521e268c1a235ef845a3dd963\n[recon] calling Nemotron Nano\n[recon] entrypoint=nfe/experiments/latent_ode/experiment.py confidence=0.85\n[planner] build plan: {'base_image': 'python:3.6-slim', 'apt_install': [], 'install_commands': ['pip install .'], 'execute_command': 'python -m nfe.train --experiment synthetic --data [ellipse|sawtooth|sink|square|triangle] --model [ode|flow] --flow-model [coupling|resnet] --solver [rk4|dopri5]', 'notes': [\"execute command is the repository's documented command (corpus ground truth)\"]}\n[integrity] verified 90 file(s) against tree d73bc4f57319440b00578dd8f9b874217d8137c8\n[sandbox] starting build+execute (wall_clock_seconds=600)\n[sandbox] execution error: sandbox execution exceeded 600.0s wall clock: Operation 01a0ece2-c2bd-7408-9ec9-5ec255519c27 has timed out",
+    "diffs": [],
+    "verdict": "TIMEOUT",
+    "timestamp": "2026-09-29T11:28:04.519217+00:00",
+    "bundle_version": 3,
+    "baseline": {
+      "result": "NOT_RUN"
+    },
+    "recovery": false,
+    "tree_integrity": {
+      "status": "verified",
+      "tree_sha": "d73bc4f57319440b00578dd8f9b874217d8137c8",
+      "files_checked": 90,
+      "excluded_patched": []
+    },
+    "corpus_hash": "063b700c38006bcf3160c64674a196cdf2fddb768a0c3de232746181aeef7d5c",
+    "reproduction_passport_hash": "8657bf5e218deb3dc889e6e7cef2f57274992f7d9ab21d52943bd9449c934f8c"
+  },
+  "finished_at": "2026-09-29T11:28:04.551837+00:00",
+  "events": [
+    {
+      "t_s": 0.0,
+      "at": "2026-09-29T11:15:46.116646+00:00",
+      "line": "[intake] cloned https://github.com/mbilos/neural-flows-experiments@bd19f7c92461e83521e268c1a235ef845a3dd963"
+    },
+    {
+      "t_s": 0.06,
+      "at": "2026-09-29T11:15:46.174104+00:00",
+      "line": "[recon] calling Nemotron Nano"
+    },
+    {
+      "t_s": 102.88,
+      "at": "2026-09-29T11:17:29.000201+00:00",
+      "line": "[recon] entrypoint=nfe/experiments/latent_ode/experiment.py confidence=0.85"
+    },
+    {
+      "t_s": 106.13,
+      "at": "2026-09-29T11:17:32.244147+00:00",
+      "line": "[planner] build plan: {'base_image': 'python:3.6-slim', 'apt_install': [], 'install_commands': ['pip install .'], 'execute_command': 'python -m nfe.train --experiment synthetic --data [ellipse|sawtooth|sink|square|triangle] --model [ode|flow] --flow-model [coupling|resnet] --solver [rk4|dopri5]', 'notes': [\"execute command is the repository's documented command (corpus ground truth)\"]}"
+    },
+    {
+      "t_s": 106.43,
+      "at": "2026-09-29T11:17:32.542830+00:00",
+      "line": "[integrity] verified 90 file(s) against tree d73bc4f57319440b00578dd8f9b874217d8137c8"
+    },
+    {
+      "t_s": 106.43,
+      "at": "2026-09-29T11:17:32.542880+00:00",
+      "line": "[sandbox] starting build+execute (wall_clock_seconds=600)"
+    },
+    {
+      "t_s": 736.74,
+      "at": "2026-09-29T11:28:02.858189+00:00",
+      "line": "[sandbox] execution error: sandbox execution exceeded 600.0s wall clock: Operation 01a0ece2-c2bd-7408-9ec9-5ec255519c27 has timed out"
+    }
+  ],
+  "model_calls": [
+    {
+      "model": "nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B",
+      "started_at": "2026-09-29T11:15:46.393458+00:00",
+      "latency_s": 38.72,
+      "finish_reason": "length",
+      "content_is_none": true,
+      "has_reasoning": true,
+      "usage": {
+        "completion_tokens": 4096,
+        "prompt_tokens": 17123,
+        "total_tokens": 21219,
+        "completion_tokens_details": null,
+        "prompt_tokens_details": null
+      }
+    },
+    {
+      "model": "nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B",
+      "started_at": "2026-09-29T11:16:25.110501+00:00",
+      "latency_s": 63.89,
+      "finish_reason": "stop",
+      "content_is_none": false,
+      "has_reasoning": true,
+      "usage": {
+        "completion_tokens": 7349,
+        "prompt_tokens": 17123,
+        "total_tokens": 24472,
+        "completion_tokens_details": null,
+        "prompt_tokens_details": {
+          "audio_tokens": null,
+          "cache_write_tokens": null,
+          "cached_tokens": 16896,
+          "image_tokens": null,
+          "text_tokens": null
+        }
+      }
+    },
+    {
+      "model": "nvidia/nemotron-3-super-120b-a12b",
+      "started_at": "2026-09-29T11:17:29.001764+00:00",
+      "latency_s": 3.24,
+      "finish_reason": "stop",
+      "content_is_none": false,
+      "has_reasoning": true,
+      "usage": {
+        "completion_tokens": 363,
+        "prompt_tokens": 322,
+        "total_tokens": 685,
+        "completion_tokens_details": {
+          "accepted_prediction_tokens": null,
+          "audio_tokens": null,
+          "reasoning_tokens": 353,
+          "rejected_prediction_tokens": null,
+          "text_tokens": null
+        },
+        "prompt_tokens_details": {
+          "audio_tokens": null,
+          "cache_write_tokens": null,
+          "cached_tokens": 0,
+          "image_tokens": null,
+          "text_tokens": null,
+          "created_cache_tokens": 0,
+          "multimodal_tokens": null
+        },
+        "prompt_cache_hit_tokens": 0,
+        "prompt_cache_miss_tokens": 322
+      }
+    },
+    {
+      "model": "nvidia/Nemotron-3-Ultra-550b-a55b",
+      "started_at": "2026-09-29T11:28:02.860037+00:00",
+      "latency_s": 1.66,
+      "finish_reason": "stop",
+      "content_is_none": false,
+      "has_reasoning": true,
+      "usage": {
+        "completion_tokens": 305,
+        "prompt_tokens": 801,
+        "total_tokens": 1106,
+        "completion_tokens_details": {
+          "accepted_prediction_tokens": null,
+          "audio_tokens": null,
+          "reasoning_tokens": 179,
+          "rejected_prediction_tokens": null,
+          "text_tokens": null
+        },
+        "prompt_tokens_details": {
+          "audio_tokens": null,
+          "cache_write_tokens": null,
+          "cached_tokens": 0,
+          "image_tokens": null,
+          "text_tokens": null,
+          "multimodal_tokens": null
+        },
+        "prompt_cache_hit_tokens": 0,
+        "prompt_cache_miss_tokens": 801
+      }
+    }
+  ],
+  "cost_guard": {
+    "spent_usd": 0.00694086,
+    "model_spent_usd": 0.00694086,
+    "sandbox_spent_usd": 0.0,
+    "remaining_usd": 1.99305914,
+    "model_usage": [
+      {
+        "model": "nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B",
+        "prompt_tokens": 17123,
+        "completion_tokens": 4096,
+        "cost_usd": 0.0020104199999999997
+      },
+      {
+        "model": "nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B",
+        "prompt_tokens": 17123,
+        "completion_tokens": 7349,
+        "cost_usd": 0.0027911399999999997
+      },
+      {
+        "model": "nvidia/nemotron-3-super-120b-a12b",
+        "prompt_tokens": 322,
+        "completion_tokens": 363,
+        "cost_usd": 0.00042329999999999993
+      },
+      {
+        "model": "nvidia/Nemotron-3-Ultra-550b-a55b",
+        "prompt_tokens": 801,
+        "completion_tokens": 305,
+        "cost_usd": 0.001716
+      }
+    ],
+    "prices_usd_per_1m": {
+      "nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B": [
+        0.06,
+        0.24
+      ],
+      "nvidia/nemotron-3-super-120b-a12b": [
+        0.3,
+        0.9
+      ],
+      "nvidia/Nemotron-3-Ultra-550b-a55b": [
+        1.0,
+        3.0
+      ]
+    },
+    "prices_source": "https://api.tokenfactory.nebius.com/v1/models?verbose=true (pricing field)",
+    "prices_retrieved": "2026-09-24"
+  }
+}

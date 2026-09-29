@@ -1,0 +1,302 @@
+{
+  "run_kind": "live end-to-end run",
+  "dev_run": false,
+  "dry_run": null,
+  "batch": {
+    "harness_tag": "harness-v1.2",
+    "harness_commit": "668c907baeef0cbb29338f118dfc8975dd812993",
+    "head_commit": "668c907baeef0cbb29338f118dfc8975dd812993",
+    "corpus": "corpus-v1",
+    "amendment_sha256": "63d409a3ffc92b016fde502b90e53500a48287b7a286c7078148ac3650b9622d",
+    "corpus_hash": "063b700c38006bcf3160c64674a196cdf2fddb768a0c3de232746181aeef7d5c",
+    "entry_id": 13,
+    "category": "COMMAND_NOT_A_RUN",
+    "rules_matched": [
+      "R2_DOWNLOAD"
+    ],
+    "per_entry_cap_usd": 2.0,
+    "total_cap_usd": 40.0
+  },
+  "started_at": "2026-09-29T10:51:58.136322+00:00",
+  "corpus_entry": {
+    "name": "edadaltocg__igeood",
+    "repo_url": "https://github.com/edadaltocg/igeood",
+    "commit_sha": "db532b1a29530b87862b6c083cf247fab3e9b0fc",
+    "command": "bash download.sh",
+    "command_source": "README.md line 49"
+  },
+  "config": {
+    "models": {
+      "recon": "nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B",
+      "planner": "nvidia/nemotron-3-super-120b-a12b",
+      "repairer": "nvidia/nemotron-3-super-120b-a12b",
+      "adjudicator": "nvidia/Nemotron-3-Ultra-550b-a55b"
+    },
+    "sandbox_backend": "token_factory",
+    "sandbox_image_default": "python:3.11-slim",
+    "sandbox_wall_clock_seconds": 600.0,
+    "max_attempts": 3,
+    "tavily_configured": true,
+    "cost_cap_usd": 2.0
+  },
+  "intake": {
+    "duration_s": 2.71,
+    "resolved_sha": "db532b1a29530b87862b6c083cf247fab3e9b0fc",
+    "dependency_files": [
+      "requirements.txt"
+    ],
+    "declared_dependencies": [
+      "numpy",
+      "optuna",
+      "pandas",
+      "pillow",
+      "pyyaml",
+      "scikit-learn",
+      "scipy",
+      "torch",
+      "torchvision",
+      "tqdm"
+    ],
+    "entrypoint_candidates": [
+      "eval.py",
+      "hyperparameter_tuning/hyper_tuning.py",
+      "src/adv_samples.py",
+      "src/estimators.py",
+      "train/trainer.py"
+    ],
+    "notebook_paths": []
+  },
+  "pipeline_duration_s": 187.8,
+  "repair_mode": "deterministic",
+  "tree_integrity": {
+    "status": "verified",
+    "tree_sha": "5203d5e2989e57950e6102345282532e45882de5",
+    "files_checked": 34,
+    "excluded_patched": []
+  },
+  "result": {
+    "verdict": "RUNS_CLEAN",
+    "taxonomy_code": null,
+    "indeterminate_reason": "",
+    "reason_code": null,
+    "error_traceback": "",
+    "attempts": [],
+    "certificate_prose": "The sandbox execution completed with exit code 0, and the baseline as-is run is recorded as RUNS_CLEAN. The run log shows integrity verification of 34 files and a successful build+execute phase within the time limit. Verifies that the artifact executes. Does not verify the paper's numerical results."
+  },
+  "certificate": {
+    "repo_url": "https://github.com/edadaltocg/igeood",
+    "commit_sha": "db532b1a29530b87862b6c083cf247fab3e9b0fc",
+    "build_plan": {
+      "base_image": "python:3.11-slim",
+      "apt_install": [
+        "libfreetype6-dev",
+        "libjpeg-dev",
+        "libyaml-dev",
+        "zlib1g-dev"
+      ],
+      "install_commands": [
+        "pip install -r requirements.txt"
+      ],
+      "execute_command": "bash download.sh",
+      "notes": [
+        "execute command is the repository's documented command (corpus ground truth)",
+        "apt package list enriched by Nemotron Super"
+      ]
+    },
+    "full_log": "[intake] cloned https://github.com/edadaltocg/igeood@db532b1a29530b87862b6c083cf247fab3e9b0fc\n[recon] calling Nemotron Nano\n[recon] entrypoint=eval.py confidence=0.85\n[planner] build plan: {'base_image': 'python:3.11-slim', 'apt_install': ['libfreetype6-dev', 'libjpeg-dev', 'libyaml-dev', 'zlib1g-dev'], 'install_commands': ['pip install -r requirements.txt'], 'execute_command': 'bash download.sh', 'notes': [\"execute command is the repository's documented command (corpus ground truth)\", 'apt package list enriched by Nemotron Super']}\n[integrity] verified 34 file(s) against tree 5203d5e2989e57950e6102345282532e45882de5\n[sandbox] starting build+execute (wall_clock_seconds=600)\n[cost_guard] recorded $0.5817 sandbox spend, $1.4168 remaining today\n[sandbox] id=b94708c2-7884-426f-85f7-49741a4d4b9c exit_code=0\n[baseline] as-is run: RUNS_CLEAN (exit code 0)",
+    "diffs": [],
+    "verdict": "RUNS_CLEAN",
+    "timestamp": "2026-09-29T10:55:08.648166+00:00",
+    "bundle_version": 3,
+    "baseline": {
+      "result": "RUNS_CLEAN",
+      "exit_code": 0,
+      "base_image": "python:3.11-slim",
+      "install_commands": [
+        "apt-get update && apt-get install -y libfreetype6-dev libjpeg-dev libyaml-dev zlib1g-dev",
+        "pip install -r requirements.txt"
+      ],
+      "execute_command": "bash download.sh",
+      "sandbox_id": "b94708c2-7884-426f-85f7-49741a4d4b9c",
+      "taxonomy_code": null,
+      "evidence": ""
+    },
+    "recovery": false,
+    "tree_integrity": {
+      "status": "verified",
+      "tree_sha": "5203d5e2989e57950e6102345282532e45882de5",
+      "files_checked": 34,
+      "excluded_patched": []
+    },
+    "corpus_hash": "063b700c38006bcf3160c64674a196cdf2fddb768a0c3de232746181aeef7d5c",
+    "reproduction_passport_hash": "829659e60564298f31469056d974be79e4e04f9ea1ef2ee52a1037d6a3892879"
+  },
+  "finished_at": "2026-09-29T10:55:08.692285+00:00",
+  "events": [
+    {
+      "t_s": 0.0,
+      "at": "2026-09-29T10:52:00.848768+00:00",
+      "line": "[intake] cloned https://github.com/edadaltocg/igeood@db532b1a29530b87862b6c083cf247fab3e9b0fc"
+    },
+    {
+      "t_s": 0.0,
+      "at": "2026-09-29T10:52:00.850324+00:00",
+      "line": "[recon] calling Nemotron Nano"
+    },
+    {
+      "t_s": 19.99,
+      "at": "2026-09-29T10:52:20.835052+00:00",
+      "line": "[recon] entrypoint=eval.py confidence=0.85"
+    },
+    {
+      "t_s": 23.85,
+      "at": "2026-09-29T10:52:24.701549+00:00",
+      "line": "[planner] build plan: {'base_image': 'python:3.11-slim', 'apt_install': ['libfreetype6-dev', 'libjpeg-dev', 'libyaml-dev', 'zlib1g-dev'], 'install_commands': ['pip install -r requirements.txt'], 'execute_command': 'bash download.sh', 'notes': [\"execute command is the repository's documented command (corpus ground truth)\", 'apt package list enriched by Nemotron Super']}"
+    },
+    {
+      "t_s": 24.02,
+      "at": "2026-09-29T10:52:24.871221+00:00",
+      "line": "[integrity] verified 34 file(s) against tree 5203d5e2989e57950e6102345282532e45882de5"
+    },
+    {
+      "t_s": 24.02,
+      "at": "2026-09-29T10:52:24.871284+00:00",
+      "line": "[sandbox] starting build+execute (wall_clock_seconds=600)"
+    },
+    {
+      "t_s": 186.37,
+      "at": "2026-09-29T10:55:07.214951+00:00",
+      "line": "[cost_guard] recorded $0.5817 sandbox spend, $1.4168 remaining today"
+    },
+    {
+      "t_s": 186.37,
+      "at": "2026-09-29T10:55:07.215037+00:00",
+      "line": "[sandbox] id=b94708c2-7884-426f-85f7-49741a4d4b9c exit_code=0"
+    },
+    {
+      "t_s": 186.37,
+      "at": "2026-09-29T10:55:07.215067+00:00",
+      "line": "[baseline] as-is run: RUNS_CLEAN (exit code 0)"
+    }
+  ],
+  "model_calls": [
+    {
+      "model": "nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B",
+      "started_at": "2026-09-29T10:52:01.154384+00:00",
+      "latency_s": 19.68,
+      "finish_reason": "stop",
+      "content_is_none": false,
+      "has_reasoning": true,
+      "usage": {
+        "completion_tokens": 2222,
+        "prompt_tokens": 6224,
+        "total_tokens": 8446,
+        "completion_tokens_details": null,
+        "prompt_tokens_details": null
+      }
+    },
+    {
+      "model": "nvidia/nemotron-3-super-120b-a12b",
+      "started_at": "2026-09-29T10:52:20.836587+00:00",
+      "latency_s": 3.86,
+      "finish_reason": "stop",
+      "content_is_none": false,
+      "has_reasoning": true,
+      "usage": {
+        "completion_tokens": 580,
+        "prompt_tokens": 314,
+        "total_tokens": 894,
+        "completion_tokens_details": {
+          "accepted_prediction_tokens": null,
+          "audio_tokens": null,
+          "reasoning_tokens": 549,
+          "rejected_prediction_tokens": null,
+          "text_tokens": null
+        },
+        "prompt_tokens_details": {
+          "audio_tokens": null,
+          "cache_write_tokens": null,
+          "cached_tokens": 0,
+          "image_tokens": null,
+          "text_tokens": null,
+          "created_cache_tokens": 0,
+          "multimodal_tokens": null
+        },
+        "prompt_cache_hit_tokens": 0,
+        "prompt_cache_miss_tokens": 314
+      }
+    },
+    {
+      "model": "nvidia/Nemotron-3-Ultra-550b-a55b",
+      "started_at": "2026-09-29T10:55:07.216483+00:00",
+      "latency_s": 1.43,
+      "finish_reason": "stop",
+      "content_is_none": false,
+      "has_reasoning": true,
+      "usage": {
+        "completion_tokens": 154,
+        "prompt_tokens": 695,
+        "total_tokens": 849,
+        "completion_tokens_details": {
+          "accepted_prediction_tokens": null,
+          "audio_tokens": null,
+          "reasoning_tokens": 58,
+          "rejected_prediction_tokens": null,
+          "text_tokens": null
+        },
+        "prompt_tokens_details": {
+          "audio_tokens": null,
+          "cache_write_tokens": null,
+          "cached_tokens": 0,
+          "image_tokens": null,
+          "text_tokens": null,
+          "multimodal_tokens": null
+        },
+        "prompt_cache_hit_tokens": 0,
+        "prompt_cache_miss_tokens": 695
+      }
+    }
+  ],
+  "cost_guard": {
+    "spent_usd": 0.5843720499999999,
+    "model_spent_usd": 0.00267992,
+    "sandbox_spent_usd": 0.58169213,
+    "remaining_usd": 1.4156279500000002,
+    "model_usage": [
+      {
+        "model": "nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B",
+        "prompt_tokens": 6224,
+        "completion_tokens": 2222,
+        "cost_usd": 0.0009067200000000001
+      },
+      {
+        "model": "nvidia/nemotron-3-super-120b-a12b",
+        "prompt_tokens": 314,
+        "completion_tokens": 580,
+        "cost_usd": 0.0006162
+      },
+      {
+        "model": "nvidia/Nemotron-3-Ultra-550b-a55b",
+        "prompt_tokens": 695,
+        "completion_tokens": 154,
+        "cost_usd": 0.001157
+      }
+    ],
+    "prices_usd_per_1m": {
+      "nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B": [
+        0.06,
+        0.24
+      ],
+      "nvidia/nemotron-3-super-120b-a12b": [
+        0.3,
+        0.9
+      ],
+      "nvidia/Nemotron-3-Ultra-550b-a55b": [
+        1.0,
+        3.0
+      ]
+    },
+    "prices_source": "https://api.tokenfactory.nebius.com/v1/models?verbose=true (pricing field)",
+    "prices_retrieved": "2026-09-24"
+  }
+}

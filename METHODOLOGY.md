@@ -474,3 +474,39 @@ Known Limitation, never as an outage). This is what the harness-v1.1 upload time
   A repository whose install or run writes a lot to disk may hit it (reported as the error).
 - **Local WSL dry runs** exercise RERUN's own wiring, not the sandbox image (the host's
   Linux, not `python:X-slim`), so their verdicts are meaningless and never recorded as runs.
+
+## corpus-v1 on harness-v1.2 — result (2026-09-29; disclosed development set)
+
+All 20 entries, from scratch, on `harness-v1.2` (`668c907`): pre-batch smoke test passed
+(small + 124 MB); no circuit-breaker stop; total spend **$8.53** of the $40 cap. Records:
+`runs/corpus_v1_batch/harness-v1.2/` (`summary.json`).
+
+**PRIMARY (the 12, amendment 1): 1 recovered of 10 that failed as published (n measured = 10
+of 12).** No primary entry ran as published. Recovered: #2 bluer555/KernelGCN
+(RUNS_AFTER_REPAIR, deterministic: era environment only, no model, no code change; 200
+training epochs and a printed test accuracy; tree and passport verified). BLOCKED by reason:
+RUNTIME_ERROR_OTHER 4 (#11 VaST, #12 eval-nas, #15 VIBNet, #20 DDG), DEP_YANKED 2 (#4, #16
+osaka), DEP_NOT_ON_PYPI 1 (#1 Neural-Alignment, `tfutils`), DEP_MISSING 1 (#9 autolrs),
+DATA_MISSING 1 (#8 MSP). Not measured (RERUN's side, excluded): #5 ExpressGNN
+`UPLOAD_TOO_LARGE` (125.6 MB > 125.0 MB cap), #7 latent-goal-architectures `INVALID_HARNESS`.
+Repair mode among the recovered: deterministic 1, model-assisted 0.
+**COMMAND_NOT_A_RUN (the 8, never counted):** RUNS_CLEAN 1 (#13 igeood's `download.sh`),
+BLOCKED 5, TIMEOUT 2 (#10 alf, #17 neural-flows).
+
+### Known limitations found during this batch (recorded, not fixed — harness frozen)
+
+- **#7: the local checkout's `.git` became unreadable mid-run** (`fatal: not a git
+  repository` before repair 2, after the same 84 files had verified twice). The integrity gate
+  correctly voided the run (`INVALID_HARNESS`, RERUN's fault, excluded); cause on the host not
+  determined.
+- **Cost of timed-out sandbox steps is not reported** by Nebius (#10 $0.0025, #17 $0.0069 for
+  runs that used the full 600 s wall clock), so total spend is under-reported for TIMEOUTs.
+- **Recon is skipped for large repositories**: #10 alf's recon prompt (~108.7k tokens)
+  exceeded the 20k per-attempt token ceiling (`RECON_MODEL_ERROR`); the run proceeded with the
+  documented command, as designed, without recon's eval/model names.
+- **Python 2 code is not attemptable as such**: #20 DDG fails with `SyntaxError` (Python 2
+  syntax); it is classified RUNTIME_ERROR_OTHER and routed to code repair (the model's three
+  diffs were all rejected by the tamper gate); the sandbox supports Python ≥ 3.6 only.
+- **Wall clock 600 s includes the install**: #10 and #17 timed out inside the repository's
+  own dependency install; a genuine TIMEOUT under the pre-registered ceiling, but heavy
+  installs make it likely.

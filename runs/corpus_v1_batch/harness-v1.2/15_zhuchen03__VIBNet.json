@@ -1,0 +1,894 @@
+{
+  "run_kind": "live end-to-end run",
+  "dev_run": false,
+  "dry_run": null,
+  "batch": {
+    "harness_tag": "harness-v1.2",
+    "harness_commit": "668c907baeef0cbb29338f118dfc8975dd812993",
+    "head_commit": "668c907baeef0cbb29338f118dfc8975dd812993",
+    "corpus": "corpus-v1",
+    "amendment_sha256": "63d409a3ffc92b016fde502b90e53500a48287b7a286c7078148ac3650b9622d",
+    "corpus_hash": "063b700c38006bcf3160c64674a196cdf2fddb768a0c3de232746181aeef7d5c",
+    "entry_id": 15,
+    "category": "PRIMARY",
+    "rules_matched": [],
+    "per_entry_cap_usd": 2.0,
+    "total_cap_usd": 40.0
+  },
+  "started_at": "2026-09-29T10:58:08.351904+00:00",
+  "corpus_entry": {
+    "name": "zhuchen03__VIBNet",
+    "repo_url": "https://github.com/zhuchen03/VIBNet",
+    "commit_sha": "2ebc51c9321a9b0f99aab3ee5eb7da7df75ddcc1",
+    "command": "python ib_vgg_train.py --gpu 0 --batch-norm --resume-vgg-pt baseline/cifar10/checkpoint_299_nocrop.tar --ban-crop --opt adam --cfg D4 --epochs 300 --lr 1.4e-3 --weight-decay 5e-5 --kl-fac 1.4e-5 --save-dir ib_vgg_chk/D4",
+    "command_source": "README.md line 49"
+  },
+  "config": {
+    "models": {
+      "recon": "nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B",
+      "planner": "nvidia/nemotron-3-super-120b-a12b",
+      "repairer": "nvidia/nemotron-3-super-120b-a12b",
+      "adjudicator": "nvidia/Nemotron-3-Ultra-550b-a55b"
+    },
+    "sandbox_backend": "token_factory",
+    "sandbox_image_default": "python:3.11-slim",
+    "sandbox_wall_clock_seconds": 600.0,
+    "max_attempts": 3,
+    "tavily_configured": true,
+    "cost_cap_usd": 2.0
+  },
+  "intake": {
+    "duration_s": 2.88,
+    "resolved_sha": "2ebc51c9321a9b0f99aab3ee5eb7da7df75ddcc1",
+    "dependency_files": [],
+    "declared_dependencies": [],
+    "entrypoint_candidates": [
+      "ib_vgg_train.py"
+    ],
+    "notebook_paths": []
+  },
+  "pipeline_duration_s": 909.87,
+  "repair_mode": "model_assisted",
+  "tree_integrity": {
+    "status": "verified",
+    "tree_sha": "362c99dc58a7c6458f366f28b7e84112be806382",
+    "files_checked": 6,
+    "excluded_patched": []
+  },
+  "result": {
+    "verdict": "BLOCKED",
+    "taxonomy_code": "RUNTIME_ERROR_OTHER",
+    "indeterminate_reason": "",
+    "reason_code": null,
+    "error_traceback": "",
+    "attempts": [
+      {
+        "attempt_number": 0,
+        "diff_text": "",
+        "gate_decision": "PASS",
+        "gate_violations": [],
+        "exit_code": 1,
+        "stdout_tail": "",
+        "stderr_tail": "Traceback (most recent call last):\n  File \"//ib_vgg_train.py\", line 7, in <module>\n    import torch\n  File \"/usr/local/lib/python3.10/site-packages/torch/__init__.py\", line 202, in <module>\n    from torch._C import *  # noqa: F403\nImportError: libtorch_cpu.so: cannot enable executable stack as shared object requires: Invalid argument\n",
+        "tavily_sources": [],
+        "env_delta": [],
+        "resolved_sources": [],
+        "origin": "time_machine",
+        "time_machine": {
+          "era": {
+            "date": "2022-08-03",
+            "source": "pinned-commit",
+            "detail": {
+              "note": "no dependency files in the repository"
+            }
+          },
+          "python": {
+            "version": "3.10",
+            "reason": "newest CPython first released \u2265180 days before the era date 2022-08-03 (https://devguide.python.org/versions/ (first release dates, retrieved 2026-09-24))",
+            "source": "https://devguide.python.org/versions/ (first release dates, retrieved 2026-09-24)"
+          },
+          "undeclared_imports": [
+            "numpy",
+            "tensorboardX",
+            "torch",
+            "torchvision"
+          ],
+          "import_mappings": [],
+          "apt_added": [],
+          "apt_reason": "",
+          "lock": {
+            "ok": true,
+            "lock": [
+              "certifi==2022.6.15",
+              "charset-normalizer==2.1.0",
+              "idna==3.3",
+              "numpy==1.23.1",
+              "pillow==9.2.0",
+              "protobuf==3.20.1",
+              "requests==2.28.1",
+              "tensorboardx==2.5.1",
+              "torch==1.12.0",
+              "torchvision==0.13.0",
+              "typing-extensions==4.3.0",
+              "urllib3==1.26.11"
+            ],
+            "inputs": [
+              "numpy",
+              "tensorboardX",
+              "torch",
+              "torchvision"
+            ],
+            "not_on_index": [],
+            "command": "pip compile - --no-header --no-annotate --quiet --exclude-newer 2022-08-04T00:00:00Z --python-version 3.10 --python-platform x86_64-unknown-linux-gnu --python C:\\Users\\E16\\AppData\\Roaming\\uv\\python\\cpython-3.8.20-windows-x86_64-none\\python.exe",
+            "error": ""
+          }
+        }
+      },
+      {
+        "attempt_number": 1,
+        "diff_text": "",
+        "gate_decision": "PASS",
+        "gate_violations": [],
+        "exit_code": 1,
+        "stdout_tail": "",
+        "stderr_tail": "Traceback (most recent call last):\n  File \"//ib_vgg_train.py\", line 7, in <module>\n    import torch\n  File \"/usr/local/lib/python3.10/site-packages/torch/__init__.py\", line 202, in <module>\n    from torch._C import *  # noqa: F403\nImportError: libtorch_cpu.so: cannot enable executable stack as shared object requires: Invalid argument\n",
+        "tavily_sources": [],
+        "env_delta": [
+          {
+            "command": null,
+            "op": "apt",
+            "package": "libgomp1",
+            "version": null,
+            "git_url": null,
+            "commit": null,
+            "justification": "Install libgomp1 to resolve libtorch_cpu.so executable stack issue",
+            "evidence": "ImportError: libtorch_cpu.so: cannot enable executable stack as shared object requires: Invalid argument"
+          }
+        ],
+        "resolved_sources": [],
+        "origin": "model",
+        "time_machine": null
+      },
+      {
+        "attempt_number": 2,
+        "diff_text": "",
+        "gate_decision": "PASS",
+        "gate_violations": [],
+        "exit_code": -1,
+        "stdout_tail": "",
+        "stderr_tail": ".4%\r8.4%\r8.5%\r8.5%\r8.5%\r8.5%\r8.5%\r8.6%\r8.6%\r8.6%\r8.6%\r8.6%\r8.6%\r8.7%\r8.7%\r8.7%\r8.7%\r8.7%\r8.8%\r8.8%\r8.8%\r8.8%\r8.8%\r8.9%\r8.9%\r8.9%\r8.9%\r8.9%\r9.0%\r9.0%\r9.0%\r9.0%\r9.0%\r9.1%\r9.1%\r9.1%\r9.1%\r9.1%\r9.1%\r9.2%\r9.2%\r9.2%\r9.2%\r9.2%\r9.3%\r9.3%\r9.3%\r9.3%\r9.3%\r9.4%\r9.4%\r9.4%\r9.4%\r9.4%\r9.5%\r9.5%\r9.5%\r9.5%\r9.5%\r9.6%\r9.6%\r9.6%\r9.6%\r9.6%\r9.6%\r9.7%\r9.7%\r9.7%\r9.7%\r9.7%\r9.8%\r9.8%\r9.8%\r9.8%\r9.8%\r9.9%\r9.9%\r9.9%\r9.9%\r9.9%\r10.0%\r10.0%\r10.0%\r10.0%\r10.0%\r10.1%\r10.1%\r10.1%\r10.1%\r10.1%\r10.1%\r10.2%\r10.2%\r10.2%\r10.2%\r10.2%\r10.3%\r10.3%\r10.3%\r10.3%\r10.3%\r10.4%\r10.4%\r10.4%\r10.4%\r10.4%\r10.5%\r10.5%\r10.5%\r10.5%\r10.5%\r10.6%\r10.6%\r10.6%\r10.6%\r10.6%\r10.6%\r10.7%\r10.7%\r10.7%\r10.7%\r10.7%\r10.8%\r10.8%\r10.8%\r10.8%\r10.8%\r10.9%\r10.9%\r10.9%\r10.9%\r10.9%\r11.0%\r11.0%\r11.0%\r11.0%\r11.0%\r11.1%\r11.1%\r11.1%\r11.1%\r11.1%\r11.1%\r11.2%\r11.2%\r11.2%\r11.2%\r11.2%\r11.3%\r11.3%\r11.3%\r11.3%\r11.3%\r11.4%\r11.4%\r11.4%\r11.4%\r11.4%\r11.5%\r11.5%\r11.5%\r11.5%\r11.5%\r11.6%\r11.6%\r11.6%\r11.6%\r11.6%\r11.6%\r11.7%\r11.7%\r11.7%\r11.7%\r11.7%\r11.8%\r11.8%\r11.8%\r11.8%\r11.8%\r11.9%\r11.9%\r11.9%\r11.9%\r11.9%\r12.0%\r12.0%\r12.0%\r12.0%\r12.0%\r12.1%\r12.1%\r12.1%\r12.1%\r12.1%\r12.1%\r12.2%\r12.2%\r12.2%\r12.2%\r12.2%\r12.3%\r12.3%\r12.3%\r12.3%\r12.3%\r12.4%\r12.4%\r12.4%\r12.4%\r12.4%\r12.5%\r12.5%\r12.5%\r12.5%\r12.5%\r12.5%\r12.6%\r12.6%\r12.6%\r12.6%\r12.6%\r12.7%\r12.7%\r12.7%\r12.7%\r12.7%\r12.8%\r12.8%\r12.8%\r12.8%\r12.8%\r12.9%\r12.9%\r12.9%\r12.9%\r12.9%\r13.0%\r13.0%\r13.0%\r13.0%\r13.0%\r13.0%\r13.1%\r13.1%\r13.1%\r13.1%\r13.1%\r13.2%\r13.2%\r13.2%\r13.2%\r13.2%\r13.3%\r13.3%\r13.3%\r13.3%\r13.3%\r13.4%\r13.4%\r13.4%\r13.4%\r13.4%\r13.5%\r13.5%\r13.5%\r13.5%\r13.5%\r13.5%\r13.6%\r13.6%\r13.6%\r13.6%\r13.6%\r13.7%\r13.7%\r13.7%\r13.7%\r13.7%\r13.8%\r13.8%\r13.8%\r13.8%\r13.8%\r13.9%\r13.9%\r13.9%\r13.9%\r13.9%\r14.0%\r14.0%\r14.0%\r14.0%\r14.0%\r14.0%\r14.1%\r14.1%\r14.1%\r14.1%\r14.1%\r14.2%\r14.2%\r14.2%\r14.2%\r14.2%\r14.3%\r14.3%\r14.3%\r14.3%\r14.3%\r14.4%\r14.4%\r14.4%\r14.4%\r14.4%\r14.5%\r14.5%\r14.5%\r14.5%\r14.5%\r14.5%\r14.6%\r14.6%\r14.6%\r14.6%\r14.6%\r14.7%\r14.7%\r14.7%\r14.7%\r14.7%\r14.8%\r14.8%\r14.8%\r14.8%\r14.8%\r14.9%\r14.9%\r14.9%\r14.9%\r14.9%\r15.0%\r15.0%\r15.0%\r15.0%\r15.0%\r15.0%\r15.1%",
+        "tavily_sources": [],
+        "env_delta": [
+          {
+            "command": null,
+            "op": "pin",
+            "package": "torch",
+            "version": "1.13.0",
+            "git_url": null,
+            "commit": null,
+            "justification": "Upgrade PyTorch to version 1.13.0 which may have fixed the libtorch_cpu.so executable stack issue",
+            "evidence": "ImportError: libtorch_cpu.so: cannot enable executable stack as shared object requires: Invalid argument"
+          },
+          {
+            "command": null,
+            "op": "pin",
+            "package": "torchvision",
+            "version": "0.14.0",
+            "git_url": null,
+            "commit": null,
+            "justification": "Upgrade torchvision to maintain compatibility with PyTorch 1.13.0",
+            "evidence": "ImportError: libtorch_cpu.so: cannot enable executable stack as shared object requires: Invalid argument"
+          }
+        ],
+        "resolved_sources": [],
+        "origin": "model",
+        "time_machine": null
+      },
+      {
+        "attempt_number": 3,
+        "diff_text": "--- a/ib_vgg_train.py\n+++ b/ib_vgg_train.py\n@@ -110,7 +110,7 @@\n         loss = ce_loss\n         if kl_fac > 0:\n             loss += kl_total * kl_fac\n \n-        writer.add_scalar('train_kld', kl_total.data, ite)\n+        writer.add_scalar('train_kld', kl_total.item(), ite)\n \n         # compute gradient and do SGD step\n",
+        "gate_decision": "PASS",
+        "gate_violations": [],
+        "exit_code": null,
+        "stdout_tail": "",
+        "stderr_tail": "gate-approved patch failed to apply: error: patch failed: ib_vgg_train.py:110\nerror: ib_vgg_train.py: patch does not apply",
+        "tavily_sources": [],
+        "env_delta": [],
+        "resolved_sources": [],
+        "origin": "model",
+        "time_machine": null
+      }
+    ],
+    "certificate_prose": "The repository's code encountered a runtime error during execution, and a gate-approved patch failed to apply cleanly at ib_vgg_train.py:110. After three repair attempts, the patch still did not apply, resulting in a BLOCKED verdict with taxonomy code RUNTIME_ERROR_OTHER. Verifies that the artifact executes. Does not verify the paper's numerical results."
+  },
+  "certificate": {
+    "repo_url": "https://github.com/zhuchen03/VIBNet",
+    "commit_sha": "2ebc51c9321a9b0f99aab3ee5eb7da7df75ddcc1",
+    "build_plan": {
+      "base_image": "python:3.10-slim",
+      "apt_install": [
+        "libgomp1"
+      ],
+      "install_commands": [
+        "printf '%s\\n' certifi==2022.6.15 charset-normalizer==2.1.0 idna==3.3 numpy==1.23.1 pillow==9.2.0 protobuf==3.20.1 requests==2.28.1 tensorboardx==2.5.1 torch==1.13.0 torchvision==0.14.0 typing-extensions==4.3.0 urllib3==1.26.11 > .rerun-requirements.txt && pip install -r .rerun-requirements.txt"
+      ],
+      "execute_command": "python ib_vgg_train.py --gpu 0 --batch-norm --resume-vgg-pt baseline/cifar10/checkpoint_299_nocrop.tar --ban-crop --opt adam --cfg D4 --epochs 300 --lr 1.4e-3 --weight-decay 5e-5 --kl-fac 1.4e-5 --save-dir ib_vgg_chk/D4",
+      "notes": [
+        "execute command is the repository's documented command (corpus ground truth)",
+        "time machine: python 3.10, 12 locked package(s)",
+        "env delta: apt libgomp1 \u2014 Install libgomp1 to resolve libtorch_cpu.so executable stack issue",
+        "env delta: pin torch \u2014 Upgrade PyTorch to version 1.13.0 which may have fixed the libtorch_cpu.so executable stack issue",
+        "env delta: pin torchvision \u2014 Upgrade torchvision to maintain compatibility with PyTorch 1.13.0"
+      ]
+    },
+    "full_log": "[intake] cloned https://github.com/zhuchen03/VIBNet@2ebc51c9321a9b0f99aab3ee5eb7da7df75ddcc1\n[recon] calling Nemotron Nano\n[recon] entrypoint=ib_vgg_train.py confidence=0.85\n[planner] build plan: {'base_image': 'python:3.11-slim', 'apt_install': [], 'install_commands': ['true  # no declared dependency file found; nothing to install'], 'execute_command': 'python ib_vgg_train.py --gpu 0 --batch-norm --resume-vgg-pt baseline/cifar10/checkpoint_299_nocrop.tar --ban-crop --opt adam --cfg D4 --epochs 300 --lr 1.4e-3 --weight-decay 5e-5 --kl-fac 1.4e-5 --save-dir ib_vgg_chk/D4', 'notes': [\"execute command is the repository's documented command (corpus ground truth)\"]}\n[integrity] verified 6 file(s) against tree 362c99dc58a7c6458f366f28b7e84112be806382\n[sandbox] starting build+execute (wall_clock_seconds=600)\n[cost_guard] recorded $0.0012 sandbox spend, $1.9982 remaining today\n[sandbox] id=9839a567-826b-46df-b350-cd1f60aa14fb exit_code=1\n[baseline] as-is run: FAILS (exit code 1)\n[classifier] DEP_MISSING: ModuleNotFoundError: No module named 'numpy'\n[era] 2022-08-03 from pinned-commit {'note': 'no dependency files in the repository'}\n[time-machine] era 2022-08-03 (pinned-commit) -> python 3.10; locked 12 package(s) with uv --exclude-newer; not on the index: none\n[integrity] verified 6 file(s) against tree 362c99dc58a7c6458f366f28b7e84112be806382\n[sandbox] starting build+execute (wall_clock_seconds=600)\n[cost_guard] recorded $0.2126 sandbox spend, $1.7856 remaining today\n[time-machine] re-execution id=21f0bc78-307a-4250-9653-ca84d0e8a787 exit_code=1\n[classifier] SYS_LIB_MISSING: ImportError: libtorch_cpu.so: cannot enable executable stack as shared object requires: Invalid argument\n[tavily] 3 result(s) for 'python sys lib missing fix: ImportError: libtorch_cpu.so: cannot enable executable stack as shared object requires: Invalid argument'\n[repair 1] env change lacked justification/evidence; re-asked once (same attempt)\n[repair 1] tamper gate PASS (env) \u2014 applying and re-executing\n[repair 1] env delta applied; build plan now: {'base_image': 'python:3.10-slim', 'apt_install': ['libgomp1'], 'install_commands': [\"printf '%s\\\\n' certifi==2022.6.15 charset-normalizer==2.1.0 idna==3.3 numpy==1.23.1 pillow==9.2.0 protobuf==3.20.1 requests==2.28.1 tensorboardx==2.5.1 torch==1.12.0 torchvision==0.13.0 typing-extensions==4.3.0 urllib3==1.26.11 > .rerun-requirements.txt && pip install -r .rerun-requirements.txt\"], 'execute_command': 'python ib_vgg_train.py --gpu 0 --batch-norm --resume-vgg-pt baseline/cifar10/checkpoint_299_nocrop.tar --ban-crop --opt adam --cfg D4 --epochs 300 --lr 1.4e-3 --weight-decay 5e-5 --kl-fac 1.4e-5 --save-dir ib_vgg_chk/D4', 'notes': [\"execute command is the repository's documented command (corpus ground truth)\", 'time machine: python 3.10, 12 locked package(s)', 'env delta: apt libgomp1 \u2014 Install libgomp1 to resolve libtorch_cpu.so executable stack issue']}\n[citations] not cited (not used in a decision): https://github.com/conda-forge/pytorch-cpu-feedstock/issues/350\n[citations] not cited (not used in a decision): https://www.duk.io/blog/general/clearing-execstack-bit\n[citations] not cited (not used in a decision): https://discussion.fedoraproject.org/t/unable-to-use-python-package-due-to-oserror-cannot-enable-executable-stack-as-shared-object-requires-invalid-argument/161445\n[integrity] verified 6 file(s) against tree 362c99dc58a7c6458f366f28b7e84112be806382\n[sandbox] starting build+execute (wall_clock_seconds=600)\n[cost_guard] recorded $0.2289 sandbox spend, $1.5473 remaining today\n[repair 1] re-execution id=af6f54f4-1cd8-42e2-a3bc-523f8302f365 exit_code=1\n[classifier] SYS_LIB_MISSING: ImportError: libtorch_cpu.so: cannot enable executable stack as shared object requires: Invalid argument\n[tavily] 3 result(s) for 'python sys lib missing fix: ImportError: libtorch_cpu.so: cannot enable executable stack as shared object requires: Invalid argument'\n[repair 2] tamper gate PASS (env) \u2014 applying and re-executing\n[repair 2] env delta applied; build plan now: {'base_image': 'python:3.10-slim', 'apt_install': ['libgomp1'], 'install_commands': [\"printf '%s\\\\n' certifi==2022.6.15 charset-normalizer==2.1.0 idna==3.3 numpy==1.23.1 pillow==9.2.0 protobuf==3.20.1 requests==2.28.1 tensorboardx==2.5.1 torch==1.13.0 torchvision==0.14.0 typing-extensions==4.3.0 urllib3==1.26.11 > .rerun-requirements.txt && pip install -r .rerun-requirements.txt\"], 'execute_command': 'python ib_vgg_train.py --gpu 0 --batch-norm --resume-vgg-pt baseline/cifar10/checkpoint_299_nocrop.tar --ban-crop --opt adam --cfg D4 --epochs 300 --lr 1.4e-3 --weight-decay 5e-5 --kl-fac 1.4e-5 --save-dir ib_vgg_chk/D4', 'notes': [\"execute command is the repository's documented command (corpus ground truth)\", 'time machine: python 3.10, 12 locked package(s)', 'env delta: apt libgomp1 \u2014 Install libgomp1 to resolve libtorch_cpu.so executable stack issue', 'env delta: pin torch \u2014 Upgrade PyTorch to version 1.13.0 which may have fixed the libtorch_cpu.so executable stack issue', 'env delta: pin torchvision \u2014 Upgrade torchvision to maintain compatibility with PyTorch 1.13.0']}\n[citations] not cited (not used in a decision): https://github.com/conda-forge/pytorch-cpu-feedstock/issues/350\n[citations] not cited (not used in a decision): https://www.duk.io/blog/general/clearing-execstack-bit\n[citations] not cited (not used in a decision): https://discussion.fedoraproject.org/t/unable-to-use-python-package-due-to-oserror-cannot-enable-executable-stack-as-shared-object-requires-invalid-argument/161445\n[integrity] verified 6 file(s) against tree 362c99dc58a7c6458f366f28b7e84112be806382\n[sandbox] starting build+execute (wall_clock_seconds=600)\n[cost_guard] recorded $0.3493 sandbox spend, $1.1931 remaining today\n[repair 2] re-execution id=3968ec08-ef8c-407d-80c1-4ba79326aaf1 exit_code=-1\n[classifier] RUNTIME_ERROR_OTHER: 15.1%\n[tavily] 3 result(s) for 'python runtime error other fix: 15.1%'\n[repair 3] tamper gate PASS (code) \u2014 applying and re-executing\n[repair 3] gate-approved patch failed to apply cleanly: gate-approved patch failed to apply: error: patch failed: ib_vgg_train.py:110\nerror: ib_vgg_train.py: patch does not apply\n[citations] not cited (not used in a decision): https://rollbar.com/blog/python-runtime-error\n[citations] not cited (not used in a decision): https://initialcommit.com/blog/python-runtimeerror\n[citations] not cited (not used in a decision): https://realpython.com/ref/builtin-exceptions/runtimeerror\n[verdict] BLOCKED after 3 repair attempt(s): RUNTIME_ERROR_OTHER",
+    "diffs": [
+      {
+        "attempt_number": 0,
+        "diff_text": "",
+        "gate_decision": "PASS",
+        "gate_violations": [],
+        "exit_code": 1,
+        "stdout_tail": "",
+        "stderr_tail": "Traceback (most recent call last):\n  File \"//ib_vgg_train.py\", line 7, in <module>\n    import torch\n  File \"/usr/local/lib/python3.10/site-packages/torch/__init__.py\", line 202, in <module>\n    from torch._C import *  # noqa: F403\nImportError: libtorch_cpu.so: cannot enable executable stack as shared object requires: Invalid argument\n",
+        "tavily_sources": [],
+        "env_delta": [],
+        "resolved_sources": [],
+        "origin": "time_machine",
+        "time_machine": {
+          "era": {
+            "date": "2022-08-03",
+            "source": "pinned-commit",
+            "detail": {
+              "note": "no dependency files in the repository"
+            }
+          },
+          "python": {
+            "version": "3.10",
+            "reason": "newest CPython first released \u2265180 days before the era date 2022-08-03 (https://devguide.python.org/versions/ (first release dates, retrieved 2026-09-24))",
+            "source": "https://devguide.python.org/versions/ (first release dates, retrieved 2026-09-24)"
+          },
+          "undeclared_imports": [
+            "numpy",
+            "tensorboardX",
+            "torch",
+            "torchvision"
+          ],
+          "import_mappings": [],
+          "apt_added": [],
+          "apt_reason": "",
+          "lock": {
+            "ok": true,
+            "lock": [
+              "certifi==2022.6.15",
+              "charset-normalizer==2.1.0",
+              "idna==3.3",
+              "numpy==1.23.1",
+              "pillow==9.2.0",
+              "protobuf==3.20.1",
+              "requests==2.28.1",
+              "tensorboardx==2.5.1",
+              "torch==1.12.0",
+              "torchvision==0.13.0",
+              "typing-extensions==4.3.0",
+              "urllib3==1.26.11"
+            ],
+            "inputs": [
+              "numpy",
+              "tensorboardX",
+              "torch",
+              "torchvision"
+            ],
+            "not_on_index": [],
+            "command": "pip compile - --no-header --no-annotate --quiet --exclude-newer 2022-08-04T00:00:00Z --python-version 3.10 --python-platform x86_64-unknown-linux-gnu --python C:\\Users\\E16\\AppData\\Roaming\\uv\\python\\cpython-3.8.20-windows-x86_64-none\\python.exe",
+            "error": ""
+          }
+        }
+      },
+      {
+        "attempt_number": 1,
+        "diff_text": "",
+        "gate_decision": "PASS",
+        "gate_violations": [],
+        "exit_code": 1,
+        "stdout_tail": "",
+        "stderr_tail": "Traceback (most recent call last):\n  File \"//ib_vgg_train.py\", line 7, in <module>\n    import torch\n  File \"/usr/local/lib/python3.10/site-packages/torch/__init__.py\", line 202, in <module>\n    from torch._C import *  # noqa: F403\nImportError: libtorch_cpu.so: cannot enable executable stack as shared object requires: Invalid argument\n",
+        "tavily_sources": [],
+        "env_delta": [
+          {
+            "command": null,
+            "op": "apt",
+            "package": "libgomp1",
+            "version": null,
+            "git_url": null,
+            "commit": null,
+            "justification": "Install libgomp1 to resolve libtorch_cpu.so executable stack issue",
+            "evidence": "ImportError: libtorch_cpu.so: cannot enable executable stack as shared object requires: Invalid argument"
+          }
+        ],
+        "resolved_sources": [],
+        "origin": "model",
+        "time_machine": null
+      },
+      {
+        "attempt_number": 2,
+        "diff_text": "",
+        "gate_decision": "PASS",
+        "gate_violations": [],
+        "exit_code": -1,
+        "stdout_tail": "",
+        "stderr_tail": ".4%\r8.4%\r8.5%\r8.5%\r8.5%\r8.5%\r8.5%\r8.6%\r8.6%\r8.6%\r8.6%\r8.6%\r8.6%\r8.7%\r8.7%\r8.7%\r8.7%\r8.7%\r8.8%\r8.8%\r8.8%\r8.8%\r8.8%\r8.9%\r8.9%\r8.9%\r8.9%\r8.9%\r9.0%\r9.0%\r9.0%\r9.0%\r9.0%\r9.1%\r9.1%\r9.1%\r9.1%\r9.1%\r9.1%\r9.2%\r9.2%\r9.2%\r9.2%\r9.2%\r9.3%\r9.3%\r9.3%\r9.3%\r9.3%\r9.4%\r9.4%\r9.4%\r9.4%\r9.4%\r9.5%\r9.5%\r9.5%\r9.5%\r9.5%\r9.6%\r9.6%\r9.6%\r9.6%\r9.6%\r9.6%\r9.7%\r9.7%\r9.7%\r9.7%\r9.7%\r9.8%\r9.8%\r9.8%\r9.8%\r9.8%\r9.9%\r9.9%\r9.9%\r9.9%\r9.9%\r10.0%\r10.0%\r10.0%\r10.0%\r10.0%\r10.1%\r10.1%\r10.1%\r10.1%\r10.1%\r10.1%\r10.2%\r10.2%\r10.2%\r10.2%\r10.2%\r10.3%\r10.3%\r10.3%\r10.3%\r10.3%\r10.4%\r10.4%\r10.4%\r10.4%\r10.4%\r10.5%\r10.5%\r10.5%\r10.5%\r10.5%\r10.6%\r10.6%\r10.6%\r10.6%\r10.6%\r10.6%\r10.7%\r10.7%\r10.7%\r10.7%\r10.7%\r10.8%\r10.8%\r10.8%\r10.8%\r10.8%\r10.9%\r10.9%\r10.9%\r10.9%\r10.9%\r11.0%\r11.0%\r11.0%\r11.0%\r11.0%\r11.1%\r11.1%\r11.1%\r11.1%\r11.1%\r11.1%\r11.2%\r11.2%\r11.2%\r11.2%\r11.2%\r11.3%\r11.3%\r11.3%\r11.3%\r11.3%\r11.4%\r11.4%\r11.4%\r11.4%\r11.4%\r11.5%\r11.5%\r11.5%\r11.5%\r11.5%\r11.6%\r11.6%\r11.6%\r11.6%\r11.6%\r11.6%\r11.7%\r11.7%\r11.7%\r11.7%\r11.7%\r11.8%\r11.8%\r11.8%\r11.8%\r11.8%\r11.9%\r11.9%\r11.9%\r11.9%\r11.9%\r12.0%\r12.0%\r12.0%\r12.0%\r12.0%\r12.1%\r12.1%\r12.1%\r12.1%\r12.1%\r12.1%\r12.2%\r12.2%\r12.2%\r12.2%\r12.2%\r12.3%\r12.3%\r12.3%\r12.3%\r12.3%\r12.4%\r12.4%\r12.4%\r12.4%\r12.4%\r12.5%\r12.5%\r12.5%\r12.5%\r12.5%\r12.5%\r12.6%\r12.6%\r12.6%\r12.6%\r12.6%\r12.7%\r12.7%\r12.7%\r12.7%\r12.7%\r12.8%\r12.8%\r12.8%\r12.8%\r12.8%\r12.9%\r12.9%\r12.9%\r12.9%\r12.9%\r13.0%\r13.0%\r13.0%\r13.0%\r13.0%\r13.0%\r13.1%\r13.1%\r13.1%\r13.1%\r13.1%\r13.2%\r13.2%\r13.2%\r13.2%\r13.2%\r13.3%\r13.3%\r13.3%\r13.3%\r13.3%\r13.4%\r13.4%\r13.4%\r13.4%\r13.4%\r13.5%\r13.5%\r13.5%\r13.5%\r13.5%\r13.5%\r13.6%\r13.6%\r13.6%\r13.6%\r13.6%\r13.7%\r13.7%\r13.7%\r13.7%\r13.7%\r13.8%\r13.8%\r13.8%\r13.8%\r13.8%\r13.9%\r13.9%\r13.9%\r13.9%\r13.9%\r14.0%\r14.0%\r14.0%\r14.0%\r14.0%\r14.0%\r14.1%\r14.1%\r14.1%\r14.1%\r14.1%\r14.2%\r14.2%\r14.2%\r14.2%\r14.2%\r14.3%\r14.3%\r14.3%\r14.3%\r14.3%\r14.4%\r14.4%\r14.4%\r14.4%\r14.4%\r14.5%\r14.5%\r14.5%\r14.5%\r14.5%\r14.5%\r14.6%\r14.6%\r14.6%\r14.6%\r14.6%\r14.7%\r14.7%\r14.7%\r14.7%\r14.7%\r14.8%\r14.8%\r14.8%\r14.8%\r14.8%\r14.9%\r14.9%\r14.9%\r14.9%\r14.9%\r15.0%\r15.0%\r15.0%\r15.0%\r15.0%\r15.0%\r15.1%",
+        "tavily_sources": [],
+        "env_delta": [
+          {
+            "command": null,
+            "op": "pin",
+            "package": "torch",
+            "version": "1.13.0",
+            "git_url": null,
+            "commit": null,
+            "justification": "Upgrade PyTorch to version 1.13.0 which may have fixed the libtorch_cpu.so executable stack issue",
+            "evidence": "ImportError: libtorch_cpu.so: cannot enable executable stack as shared object requires: Invalid argument"
+          },
+          {
+            "command": null,
+            "op": "pin",
+            "package": "torchvision",
+            "version": "0.14.0",
+            "git_url": null,
+            "commit": null,
+            "justification": "Upgrade torchvision to maintain compatibility with PyTorch 1.13.0",
+            "evidence": "ImportError: libtorch_cpu.so: cannot enable executable stack as shared object requires: Invalid argument"
+          }
+        ],
+        "resolved_sources": [],
+        "origin": "model",
+        "time_machine": null
+      },
+      {
+        "attempt_number": 3,
+        "diff_text": "--- a/ib_vgg_train.py\n+++ b/ib_vgg_train.py\n@@ -110,7 +110,7 @@\n         loss = ce_loss\n         if kl_fac > 0:\n             loss += kl_total * kl_fac\n \n-        writer.add_scalar('train_kld', kl_total.data, ite)\n+        writer.add_scalar('train_kld', kl_total.item(), ite)\n \n         # compute gradient and do SGD step\n",
+        "gate_decision": "PASS",
+        "gate_violations": [],
+        "exit_code": null,
+        "stdout_tail": "",
+        "stderr_tail": "gate-approved patch failed to apply: error: patch failed: ib_vgg_train.py:110\nerror: ib_vgg_train.py: patch does not apply",
+        "tavily_sources": [],
+        "env_delta": [],
+        "resolved_sources": [],
+        "origin": "model",
+        "time_machine": null
+      }
+    ],
+    "verdict": "BLOCKED",
+    "timestamp": "2026-09-29T11:13:21.098972+00:00",
+    "bundle_version": 3,
+    "baseline": {
+      "result": "FAILS",
+      "exit_code": 1,
+      "base_image": "python:3.11-slim",
+      "install_commands": [
+        "true  # no declared dependency file found; nothing to install"
+      ],
+      "execute_command": "python ib_vgg_train.py --gpu 0 --batch-norm --resume-vgg-pt baseline/cifar10/checkpoint_299_nocrop.tar --ban-crop --opt adam --cfg D4 --epochs 300 --lr 1.4e-3 --weight-decay 5e-5 --kl-fac 1.4e-5 --save-dir ib_vgg_chk/D4",
+      "sandbox_id": "9839a567-826b-46df-b350-cd1f60aa14fb",
+      "taxonomy_code": "DEP_MISSING",
+      "evidence": "ModuleNotFoundError: No module named 'numpy'"
+    },
+    "recovery": false,
+    "tree_integrity": {
+      "status": "verified",
+      "tree_sha": "362c99dc58a7c6458f366f28b7e84112be806382",
+      "files_checked": 6,
+      "excluded_patched": []
+    },
+    "corpus_hash": "063b700c38006bcf3160c64674a196cdf2fddb768a0c3de232746181aeef7d5c",
+    "reproduction_passport_hash": "a17343c036556b7e34da87a403ef392345218f577e13727a32810a0a04a413a8"
+  },
+  "finished_at": "2026-09-29T11:13:21.112958+00:00",
+  "events": [
+    {
+      "t_s": 0.0,
+      "at": "2026-09-29T10:58:11.233925+00:00",
+      "line": "[intake] cloned https://github.com/zhuchen03/VIBNet@2ebc51c9321a9b0f99aab3ee5eb7da7df75ddcc1"
+    },
+    {
+      "t_s": 0.0,
+      "at": "2026-09-29T10:58:11.234237+00:00",
+      "line": "[recon] calling Nemotron Nano"
+    },
+    {
+      "t_s": 11.89,
+      "at": "2026-09-29T10:58:23.127324+00:00",
+      "line": "[recon] entrypoint=ib_vgg_train.py confidence=0.85"
+    },
+    {
+      "t_s": 12.91,
+      "at": "2026-09-29T10:58:24.148784+00:00",
+      "line": "[planner] build plan: {'base_image': 'python:3.11-slim', 'apt_install': [], 'install_commands': ['true  # no declared dependency file found; nothing to install'], 'execute_command': 'python ib_vgg_train.py --gpu 0 --batch-norm --resume-vgg-pt baseline/cifar10/checkpoint_299_nocrop.tar --ban-crop --opt adam --cfg D4 --epochs 300 --lr 1.4e-3 --weight-decay 5e-5 --kl-fac 1.4e-5 --save-dir ib_vgg_chk/D4', 'notes': [\"execute command is the repository's documented command (corpus ground truth)\"]}"
+    },
+    {
+      "t_s": 13.04,
+      "at": "2026-09-29T10:58:24.274845+00:00",
+      "line": "[integrity] verified 6 file(s) against tree 362c99dc58a7c6458f366f28b7e84112be806382"
+    },
+    {
+      "t_s": 13.04,
+      "at": "2026-09-29T10:58:24.274898+00:00",
+      "line": "[sandbox] starting build+execute (wall_clock_seconds=600)"
+    },
+    {
+      "t_s": 25.57,
+      "at": "2026-09-29T10:58:36.807728+00:00",
+      "line": "[cost_guard] recorded $0.0012 sandbox spend, $1.9982 remaining today"
+    },
+    {
+      "t_s": 25.57,
+      "at": "2026-09-29T10:58:36.807787+00:00",
+      "line": "[sandbox] id=9839a567-826b-46df-b350-cd1f60aa14fb exit_code=1"
+    },
+    {
+      "t_s": 25.57,
+      "at": "2026-09-29T10:58:36.807810+00:00",
+      "line": "[baseline] as-is run: FAILS (exit code 1)"
+    },
+    {
+      "t_s": 25.58,
+      "at": "2026-09-29T10:58:36.812351+00:00",
+      "line": "[classifier] DEP_MISSING: ModuleNotFoundError: No module named 'numpy'"
+    },
+    {
+      "t_s": 25.63,
+      "at": "2026-09-29T10:58:36.866722+00:00",
+      "line": "[era] 2022-08-03 from pinned-commit {'note': 'no dependency files in the repository'}"
+    },
+    {
+      "t_s": 28.04,
+      "at": "2026-09-29T10:58:39.271171+00:00",
+      "line": "[time-machine] era 2022-08-03 (pinned-commit) -> python 3.10; locked 12 package(s) with uv --exclude-newer; not on the index: none"
+    },
+    {
+      "t_s": 28.13,
+      "at": "2026-09-29T10:58:39.363440+00:00",
+      "line": "[integrity] verified 6 file(s) against tree 362c99dc58a7c6458f366f28b7e84112be806382"
+    },
+    {
+      "t_s": 28.13,
+      "at": "2026-09-29T10:58:39.363490+00:00",
+      "line": "[sandbox] starting build+execute (wall_clock_seconds=600)"
+    },
+    {
+      "t_s": 136.71,
+      "at": "2026-09-29T11:00:27.940566+00:00",
+      "line": "[cost_guard] recorded $0.2126 sandbox spend, $1.7856 remaining today"
+    },
+    {
+      "t_s": 136.71,
+      "at": "2026-09-29T11:00:27.940645+00:00",
+      "line": "[time-machine] re-execution id=21f0bc78-307a-4250-9653-ca84d0e8a787 exit_code=1"
+    },
+    {
+      "t_s": 136.71,
+      "at": "2026-09-29T11:00:27.941045+00:00",
+      "line": "[classifier] SYS_LIB_MISSING: ImportError: libtorch_cpu.so: cannot enable executable stack as shared object requires: Invalid argument"
+    },
+    {
+      "t_s": 139.18,
+      "at": "2026-09-29T11:00:30.413016+00:00",
+      "line": "[tavily] 3 result(s) for 'python sys lib missing fix: ImportError: libtorch_cpu.so: cannot enable executable stack as shared object requires: Invalid argument'"
+    },
+    {
+      "t_s": 162.1,
+      "at": "2026-09-29T11:00:53.337145+00:00",
+      "line": "[repair 1] env change lacked justification/evidence; re-asked once (same attempt)"
+    },
+    {
+      "t_s": 168.45,
+      "at": "2026-09-29T11:00:59.685430+00:00",
+      "line": "[repair 1] tamper gate PASS (env) \u2014 applying and re-executing"
+    },
+    {
+      "t_s": 168.45,
+      "at": "2026-09-29T11:00:59.685565+00:00",
+      "line": "[repair 1] env delta applied; build plan now: {'base_image': 'python:3.10-slim', 'apt_install': ['libgomp1'], 'install_commands': [\"printf '%s\\\\n' certifi==2022.6.15 charset-normalizer==2.1.0 idna==3.3 numpy==1.23.1 pillow==9.2.0 protobuf==3.20.1 requests==2.28.1 tensorboardx==2.5.1 torch==1.12.0 torchvision==0.13.0 typing-extensions==4.3.0 urllib3==1.26.11 > .rerun-requirements.txt && pip install -r .rerun-requirements.txt\"], 'execute_command': 'python ib_vgg_train.py --gpu 0 --batch-norm --resume-vgg-pt baseline/cifar10/checkpoint_299_nocrop.tar --ban-crop --opt adam --cfg D4 --epochs 300 --lr 1.4e-3 --weight-decay 5e-5 --kl-fac 1.4e-5 --save-dir ib_vgg_chk/D4', 'notes': [\"execute command is the repository's documented command (corpus ground truth)\", 'time machine: python 3.10, 12 locked package(s)', 'env delta: apt libgomp1 \u2014 Install libgomp1 to resolve libtorch_cpu.so executable stack issue']}"
+    },
+    {
+      "t_s": 168.45,
+      "at": "2026-09-29T11:00:59.685604+00:00",
+      "line": "[citations] not cited (not used in a decision): https://github.com/conda-forge/pytorch-cpu-feedstock/issues/350"
+    },
+    {
+      "t_s": 168.45,
+      "at": "2026-09-29T11:00:59.685616+00:00",
+      "line": "[citations] not cited (not used in a decision): https://www.duk.io/blog/general/clearing-execstack-bit"
+    },
+    {
+      "t_s": 168.45,
+      "at": "2026-09-29T11:00:59.685626+00:00",
+      "line": "[citations] not cited (not used in a decision): https://discussion.fedoraproject.org/t/unable-to-use-python-package-due-to-oserror-cannot-enable-executable-stack-as-shared-object-requires-invalid-argument/161445"
+    },
+    {
+      "t_s": 168.58,
+      "at": "2026-09-29T11:00:59.812398+00:00",
+      "line": "[integrity] verified 6 file(s) against tree 362c99dc58a7c6458f366f28b7e84112be806382"
+    },
+    {
+      "t_s": 168.58,
+      "at": "2026-09-29T11:00:59.812456+00:00",
+      "line": "[sandbox] starting build+execute (wall_clock_seconds=600)"
+    },
+    {
+      "t_s": 256.83,
+      "at": "2026-09-29T11:02:28.060831+00:00",
+      "line": "[cost_guard] recorded $0.2289 sandbox spend, $1.5473 remaining today"
+    },
+    {
+      "t_s": 256.83,
+      "at": "2026-09-29T11:02:28.060923+00:00",
+      "line": "[repair 1] re-execution id=af6f54f4-1cd8-42e2-a3bc-523f8302f365 exit_code=1"
+    },
+    {
+      "t_s": 256.83,
+      "at": "2026-09-29T11:02:28.061254+00:00",
+      "line": "[classifier] SYS_LIB_MISSING: ImportError: libtorch_cpu.so: cannot enable executable stack as shared object requires: Invalid argument"
+    },
+    {
+      "t_s": 259.28,
+      "at": "2026-09-29T11:02:30.517727+00:00",
+      "line": "[tavily] 3 result(s) for 'python sys lib missing fix: ImportError: libtorch_cpu.so: cannot enable executable stack as shared object requires: Invalid argument'"
+    },
+    {
+      "t_s": 272.6,
+      "at": "2026-09-29T11:02:43.829467+00:00",
+      "line": "[repair 2] tamper gate PASS (env) \u2014 applying and re-executing"
+    },
+    {
+      "t_s": 272.6,
+      "at": "2026-09-29T11:02:43.829687+00:00",
+      "line": "[repair 2] env delta applied; build plan now: {'base_image': 'python:3.10-slim', 'apt_install': ['libgomp1'], 'install_commands': [\"printf '%s\\\\n' certifi==2022.6.15 charset-normalizer==2.1.0 idna==3.3 numpy==1.23.1 pillow==9.2.0 protobuf==3.20.1 requests==2.28.1 tensorboardx==2.5.1 torch==1.13.0 torchvision==0.14.0 typing-extensions==4.3.0 urllib3==1.26.11 > .rerun-requirements.txt && pip install -r .rerun-requirements.txt\"], 'execute_command': 'python ib_vgg_train.py --gpu 0 --batch-norm --resume-vgg-pt baseline/cifar10/checkpoint_299_nocrop.tar --ban-crop --opt adam --cfg D4 --epochs 300 --lr 1.4e-3 --weight-decay 5e-5 --kl-fac 1.4e-5 --save-dir ib_vgg_chk/D4', 'notes': [\"execute command is the repository's documented command (corpus ground truth)\", 'time machine: python 3.10, 12 locked package(s)', 'env delta: apt libgomp1 \u2014 Install libgomp1 to resolve libtorch_cpu.so executable stack issue', 'env delta: pin torch \u2014 Upgrade PyTorch to version 1.13.0 which may have fixed the libtorch_cpu.so executable stack issue', 'env delta: pin torchvision \u2014 Upgrade torchvision to maintain compatibility with PyTorch 1.13.0']}"
+    },
+    {
+      "t_s": 272.6,
+      "at": "2026-09-29T11:02:43.829724+00:00",
+      "line": "[citations] not cited (not used in a decision): https://github.com/conda-forge/pytorch-cpu-feedstock/issues/350"
+    },
+    {
+      "t_s": 272.6,
+      "at": "2026-09-29T11:02:43.829737+00:00",
+      "line": "[citations] not cited (not used in a decision): https://www.duk.io/blog/general/clearing-execstack-bit"
+    },
+    {
+      "t_s": 272.6,
+      "at": "2026-09-29T11:02:43.829747+00:00",
+      "line": "[citations] not cited (not used in a decision): https://discussion.fedoraproject.org/t/unable-to-use-python-package-due-to-oserror-cannot-enable-executable-stack-as-shared-object-requires-invalid-argument/161445"
+    },
+    {
+      "t_s": 272.69,
+      "at": "2026-09-29T11:02:43.922769+00:00",
+      "line": "[integrity] verified 6 file(s) against tree 362c99dc58a7c6458f366f28b7e84112be806382"
+    },
+    {
+      "t_s": 272.69,
+      "at": "2026-09-29T11:02:43.922829+00:00",
+      "line": "[sandbox] starting build+execute (wall_clock_seconds=600)"
+    },
+    {
+      "t_s": 881.59,
+      "at": "2026-09-29T11:12:52.825822+00:00",
+      "line": "[cost_guard] recorded $0.3493 sandbox spend, $1.1931 remaining today"
+    },
+    {
+      "t_s": 881.59,
+      "at": "2026-09-29T11:12:52.825916+00:00",
+      "line": "[repair 2] re-execution id=3968ec08-ef8c-407d-80c1-4ba79326aaf1 exit_code=-1"
+    },
+    {
+      "t_s": 881.6,
+      "at": "2026-09-29T11:12:52.829209+00:00",
+      "line": "[classifier] RUNTIME_ERROR_OTHER: 15.1%"
+    },
+    {
+      "t_s": 882.81,
+      "at": "2026-09-29T11:12:54.047453+00:00",
+      "line": "[tavily] 3 result(s) for 'python runtime error other fix: 15.1%'"
+    },
+    {
+      "t_s": 907.94,
+      "at": "2026-09-29T11:13:19.177380+00:00",
+      "line": "[repair 3] tamper gate PASS (code) \u2014 applying and re-executing"
+    },
+    {
+      "t_s": 908.01,
+      "at": "2026-09-29T11:13:19.240259+00:00",
+      "line": "[repair 3] gate-approved patch failed to apply cleanly: gate-approved patch failed to apply: error: patch failed: ib_vgg_train.py:110\nerror: ib_vgg_train.py: patch does not apply"
+    },
+    {
+      "t_s": 908.01,
+      "at": "2026-09-29T11:13:19.240315+00:00",
+      "line": "[citations] not cited (not used in a decision): https://rollbar.com/blog/python-runtime-error"
+    },
+    {
+      "t_s": 908.01,
+      "at": "2026-09-29T11:13:19.240328+00:00",
+      "line": "[citations] not cited (not used in a decision): https://initialcommit.com/blog/python-runtimeerror"
+    },
+    {
+      "t_s": 908.01,
+      "at": "2026-09-29T11:13:19.240337+00:00",
+      "line": "[citations] not cited (not used in a decision): https://realpython.com/ref/builtin-exceptions/runtimeerror"
+    },
+    {
+      "t_s": 908.01,
+      "at": "2026-09-29T11:13:19.240364+00:00",
+      "line": "[verdict] BLOCKED after 3 repair attempt(s): RUNTIME_ERROR_OTHER"
+    }
+  ],
+  "model_calls": [
+    {
+      "model": "nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B",
+      "started_at": "2026-09-29T10:58:11.448460+00:00",
+      "latency_s": 11.68,
+      "finish_reason": "stop",
+      "content_is_none": false,
+      "has_reasoning": true,
+      "usage": {
+        "completion_tokens": 1300,
+        "prompt_tokens": 1722,
+        "total_tokens": 3022,
+        "completion_tokens_details": null,
+        "prompt_tokens_details": null
+      }
+    },
+    {
+      "model": "nvidia/nemotron-3-super-120b-a12b",
+      "started_at": "2026-09-29T10:58:23.129063+00:00",
+      "latency_s": 1.02,
+      "finish_reason": "stop",
+      "content_is_none": false,
+      "has_reasoning": true,
+      "usage": {
+        "completion_tokens": 49,
+        "prompt_tokens": 270,
+        "total_tokens": 319,
+        "completion_tokens_details": {
+          "accepted_prediction_tokens": null,
+          "audio_tokens": null,
+          "reasoning_tokens": 39,
+          "rejected_prediction_tokens": null,
+          "text_tokens": null
+        },
+        "prompt_tokens_details": {
+          "audio_tokens": null,
+          "cache_write_tokens": null,
+          "cached_tokens": 0,
+          "image_tokens": null,
+          "text_tokens": null,
+          "created_cache_tokens": 0,
+          "multimodal_tokens": null
+        },
+        "prompt_cache_hit_tokens": 0,
+        "prompt_cache_miss_tokens": 270
+      }
+    },
+    {
+      "model": "nvidia/nemotron-3-super-120b-a12b",
+      "started_at": "2026-09-29T11:00:30.417616+00:00",
+      "latency_s": 22.92,
+      "finish_reason": "stop",
+      "content_is_none": false,
+      "has_reasoning": true,
+      "usage": {
+        "completion_tokens": 4403,
+        "prompt_tokens": 7717,
+        "total_tokens": 12120,
+        "completion_tokens_details": {
+          "accepted_prediction_tokens": null,
+          "audio_tokens": null,
+          "reasoning_tokens": 4270,
+          "rejected_prediction_tokens": null,
+          "text_tokens": null
+        },
+        "prompt_tokens_details": {
+          "audio_tokens": null,
+          "cache_write_tokens": null,
+          "cached_tokens": 0,
+          "image_tokens": null,
+          "text_tokens": null,
+          "created_cache_tokens": 0,
+          "multimodal_tokens": null
+        },
+        "prompt_cache_hit_tokens": 0,
+        "prompt_cache_miss_tokens": 7717
+      }
+    },
+    {
+      "model": "nvidia/nemotron-3-super-120b-a12b",
+      "started_at": "2026-09-29T11:00:53.341273+00:00",
+      "latency_s": 6.34,
+      "finish_reason": "stop",
+      "content_is_none": false,
+      "has_reasoning": true,
+      "usage": {
+        "completion_tokens": 898,
+        "prompt_tokens": 7827,
+        "total_tokens": 8725,
+        "completion_tokens_details": {
+          "accepted_prediction_tokens": null,
+          "audio_tokens": null,
+          "reasoning_tokens": 786,
+          "rejected_prediction_tokens": null,
+          "text_tokens": null
+        },
+        "prompt_tokens_details": {
+          "audio_tokens": null,
+          "cache_write_tokens": null,
+          "cached_tokens": 0,
+          "image_tokens": null,
+          "text_tokens": null,
+          "created_cache_tokens": 0,
+          "multimodal_tokens": null
+        },
+        "prompt_cache_hit_tokens": 0,
+        "prompt_cache_miss_tokens": 7827
+      }
+    },
+    {
+      "model": "nvidia/nemotron-3-super-120b-a12b",
+      "started_at": "2026-09-29T11:02:30.521815+00:00",
+      "latency_s": 13.31,
+      "finish_reason": "stop",
+      "content_is_none": false,
+      "has_reasoning": true,
+      "usage": {
+        "completion_tokens": 2830,
+        "prompt_tokens": 7719,
+        "total_tokens": 10549,
+        "completion_tokens_details": {
+          "accepted_prediction_tokens": null,
+          "audio_tokens": null,
+          "reasoning_tokens": 2592,
+          "rejected_prediction_tokens": null,
+          "text_tokens": null
+        },
+        "prompt_tokens_details": {
+          "audio_tokens": null,
+          "cache_write_tokens": null,
+          "cached_tokens": 0,
+          "image_tokens": null,
+          "text_tokens": null,
+          "created_cache_tokens": 0,
+          "multimodal_tokens": null
+        },
+        "prompt_cache_hit_tokens": 0,
+        "prompt_cache_miss_tokens": 7719
+      }
+    },
+    {
+      "model": "nvidia/nemotron-3-super-120b-a12b",
+      "started_at": "2026-09-29T11:12:54.052493+00:00",
+      "latency_s": 25.08,
+      "finish_reason": "stop",
+      "content_is_none": false,
+      "has_reasoning": true,
+      "usage": {
+        "completion_tokens": 5745,
+        "prompt_tokens": 11333,
+        "total_tokens": 17078,
+        "completion_tokens_details": {
+          "accepted_prediction_tokens": null,
+          "audio_tokens": null,
+          "reasoning_tokens": 5566,
+          "rejected_prediction_tokens": null,
+          "text_tokens": null
+        },
+        "prompt_tokens_details": {
+          "audio_tokens": null,
+          "cache_write_tokens": null,
+          "cached_tokens": 0,
+          "image_tokens": null,
+          "text_tokens": null,
+          "created_cache_tokens": 0,
+          "multimodal_tokens": null
+        },
+        "prompt_cache_hit_tokens": 0,
+        "prompt_cache_miss_tokens": 11333
+      }
+    },
+    {
+      "model": "nvidia/Nemotron-3-Ultra-550b-a55b",
+      "started_at": "2026-09-29T11:13:19.241727+00:00",
+      "latency_s": 1.86,
+      "finish_reason": "stop",
+      "content_is_none": false,
+      "has_reasoning": true,
+      "usage": {
+        "completion_tokens": 345,
+        "prompt_tokens": 686,
+        "total_tokens": 1031,
+        "completion_tokens_details": {
+          "accepted_prediction_tokens": null,
+          "audio_tokens": null,
+          "reasoning_tokens": 237,
+          "rejected_prediction_tokens": null,
+          "text_tokens": null
+        },
+        "prompt_tokens_details": {
+          "audio_tokens": null,
+          "cache_write_tokens": null,
+          "cached_tokens": 0,
+          "image_tokens": null,
+          "text_tokens": null,
+          "multimodal_tokens": null
+        },
+        "prompt_cache_hit_tokens": 0,
+        "prompt_cache_miss_tokens": 686
+      }
+    }
+  ],
+  "cost_guard": {
+    "spent_usd": 0.8171821499999999,
+    "model_spent_usd": 0.02512862,
+    "sandbox_spent_usd": 0.79205353,
+    "remaining_usd": 1.1828178500000002,
+    "model_usage": [
+      {
+        "model": "nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B",
+        "prompt_tokens": 1722,
+        "completion_tokens": 1300,
+        "cost_usd": 0.00041532
+      },
+      {
+        "model": "nvidia/nemotron-3-super-120b-a12b",
+        "prompt_tokens": 270,
+        "completion_tokens": 49,
+        "cost_usd": 0.0001251
+      },
+      {
+        "model": "nvidia/nemotron-3-super-120b-a12b",
+        "prompt_tokens": 7717,
+        "completion_tokens": 4403,
+        "cost_usd": 0.0062778
+      },
+      {
+        "model": "nvidia/nemotron-3-super-120b-a12b",
+        "prompt_tokens": 7827,
+        "completion_tokens": 898,
+        "cost_usd": 0.0031563000000000003
+      },
+      {
+        "model": "nvidia/nemotron-3-super-120b-a12b",
+        "prompt_tokens": 7719,
+        "completion_tokens": 2830,
+        "cost_usd": 0.0048627
+      },
+      {
+        "model": "nvidia/nemotron-3-super-120b-a12b",
+        "prompt_tokens": 11333,
+        "completion_tokens": 5745,
+        "cost_usd": 0.008570399999999999
+      },
+      {
+        "model": "nvidia/Nemotron-3-Ultra-550b-a55b",
+        "prompt_tokens": 686,
+        "completion_tokens": 345,
+        "cost_usd": 0.001721
+      }
+    ],
+    "prices_usd_per_1m": {
+      "nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B": [
+        0.06,
+        0.24
+      ],
+      "nvidia/nemotron-3-super-120b-a12b": [
+        0.3,
+        0.9
+      ],
+      "nvidia/Nemotron-3-Ultra-550b-a55b": [
+        1.0,
+        3.0
+      ]
+    },
+    "prices_source": "https://api.tokenfactory.nebius.com/v1/models?verbose=true (pricing field)",
+    "prices_retrieved": "2026-09-24"
+  }
+}
