@@ -646,3 +646,29 @@ and kept in the plan notes. This removes failures of the `collections.Iterable` 
 remaining ones attributable to the repo (REPO iff the repo claims the version we ran). `NEBIUS_SANDBOX_IMAGE` now only supplies the
 image for repos that declare nothing; the batch driver's preflight refuses any value other than `python:3.10-slim` (an untracked
 `.env` saying 3.11 would otherwise silently change every such entry). Tests: 6 fixture repos plus precedence and fallback cases.
+
+## corpus-v2.1 ablation: pre-registration (written 2026-09-29, before any harness-v1.3 batch)
+
+**Question.** Of the repositories that fail as published because of the repository, what fraction does the agent (repair loop +
+Tavily + tamper gate) get to run, with everything else held fixed?
+
+**Design.** One sealed harness tag (`harness-v1.3`), the same 20 entries, the same corpus hash `7df090be…`, two arms:
+CONTROL = `repair_enabled=false` (no time machine, no repair loop, no Tavily: the repository as-is inside the fixed runner);
+TREATMENT = full RERUN (time machine, repair loop, Tavily, tamper gate). The runner-level fixes (sandbox limits, torch,
+Python 3.10 policy, error chain) are identical in both arms, so they cannot inflate the difference. The pilot
+(`harness-v1.2`, 3/20) is not a baseline and is not used in any number here.
+CONTROL runs first (cheap: no repair calls); TREATMENT second.
+
+**Pre-declared analysis** (`scripts/compare_batches.py`, sealed with the harness): each entry lands in exactly one of
+CONTROL_PASS, REPO_RECOVERED, REPO_STILL_FAILING, UNSTABLE_AS_IS, ENV_ONLY, SANDBOX_SIDE, NOT_MEASURED (definitions in the script's
+docstring). **Reproducibility Recovery Rate = REPO_RECOVERED / (REPO_RECOVERED + REPO_STILL_FAILING + UNSTABLE_AS_IS)**, the
+denominator printed beside it, with a 95 % Wilson interval. ENV and SANDBOX/PLATFORM rows are reported separately and never enter the
+rate; runner-fix and repo-fix numbers are never merged. n is at most 20, so the interval will be wide, and that is the honest size of
+the claim. Researcher-hours saved stays an ESTIMATE (REPO_RECOVERED × 3 h).
+
+**Stop conditions** (halt and report, do not continue): (1) torch still refuses after the exec-stack fix; (2) TREATMENT turns any
+CONTROL pass into a non-pass (a REGRESSION row); (3) a Tavily-derived fix touches a tamper-gate-protected file; (4) total sandbox
+spend over the operator's cap. `SANDBOX_INCOMPAT` and `SANDBOX_QUOTA` are *predicted* failure classes (Phases 1–2), not stops.
+*Open on 2026-09-29:* the spend cap as first written, 3× the pilot's spend, is $1.13, below one control arm's expected cost (the v1
+corpus batch cost $8.53 on harness-v1.2), so no batch has been started; the operator's number is awaited.
+The driver's own hard ceilings stay: $2 per entry, $40 per arm.

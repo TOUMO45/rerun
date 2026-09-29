@@ -157,7 +157,8 @@ def test_preflight_refuses_corpus_v2_before_it_is_drawn(repo):
 
 def test_data_allowlist():
     assert batch.disallowed_changes(["runs/a/b.json", "DECISIONS.md", "METHODOLOGY.md",
-                                     "backend/app/batch/corpus_v2/corpus.yaml"]) == []
+                                     "backend/app/batch/corpus_v2/corpus.yaml",
+                                     "reports/comparison.md", "CHANGELOG.md"]) == []
     assert batch.disallowed_changes(["backend/app/batch/corpus_v2/prereg.json", "scripts/x.py"]) == [
         "backend/app/batch/corpus_v2/prereg.json", "scripts/x.py"]
 

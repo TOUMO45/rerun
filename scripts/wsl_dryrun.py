@@ -36,6 +36,8 @@ def run_build_and_execute(
     wall_clock_seconds: float,
     upload_files=None,
     file_modes=None,
+    download_source=None,  # accepted for signature parity; a dry run never fetches (the source is local)
+    torch_setup=None,  # accepted for parity; Kali's pip is externally managed, torch is verified live (runs/torch_check/)
 ):
     from app.services import sandbox
 
@@ -50,7 +52,8 @@ def run_build_and_execute(
     extract = "{ " + sandbox.EXTRACT_COMMAND + "; } || exit $?; " if archive is not None else ""
     script = (
         'set -e; D=$(mktemp -d); cp "$SRC" "$D/' + sandbox.UPLOAD_ARCHIVE + '"; cd "$D"; '
-        + extract + " && ".join(f"( {c} )" for c in steps) + '; rc=$?; cd /; rm -rf "$D"; exit $rc'
+        # A newline before ")" so a trailing `# comment` in a step cannot swallow the closing parenthesis.
+        + extract + " && ".join("( " + c + "\n)" for c in steps) + '; rc=$?; cd /; rm -rf "$D"; exit $rc'
     )
     t0 = time.monotonic()
     try:

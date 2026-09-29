@@ -102,6 +102,11 @@ def main(argv: list[str] | None = None) -> int:
         help="standing rule (2026-09-29): run the real pipeline with the sandbox replaced by a local WSL run "
         "(scripts/wsl_dryrun.py); the record is labelled dry_run and dev_run and never counted",
     )
+    parser.add_argument(
+        "--arm", choices=("control", "treatment"), default="treatment",
+        help="ablation arm: control = no time machine, no repair loop, no Tavily (repo as-is in the fixed runner); "
+        "treatment = full RERUN",
+    )
     args = parser.parse_args(argv)
 
     entry = next((e for e in load_corpus(args.corpus) if e.name == args.name), None)
@@ -113,6 +118,8 @@ def main(argv: list[str] | None = None) -> int:
     deps = build_pipeline_deps(settings)
     client = _RecordingNebiusChatClient(api_key=settings.nebius_api_key, base_url=settings.nebius_base_url)
     deps = replace(deps, recon_client=client, repair_client=client, adjudicator_client=client, planner_client=client)
+    if args.arm == "control":
+        deps = replace(deps, repair_enabled=False, max_attempts=0, tavily_client=None)
     if args.dry_run_wsl:
         import importlib.util
 
@@ -159,6 +166,8 @@ def main(argv: list[str] | None = None) -> int:
             "sandbox_backend": settings.nebius_sandbox_backend,
             "sandbox_image_default": deps.default_sandbox_image,
             "sandbox_wall_clock_seconds": deps.sandbox_wall_clock_seconds,
+            "arm": args.arm,
+            "repair_enabled": deps.repair_enabled,
             "max_attempts": deps.max_attempts,
             "tavily_configured": deps.tavily_client is not None,
             "cost_cap_usd": args.cost_cap_usd,

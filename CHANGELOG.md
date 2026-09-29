@@ -33,3 +33,12 @@ executable-stack refusal and is fixed by `patchelf --clear-execstack`. Python de
 (reason logged; 6-fixture resolver tests). Not done, with reasons: pre-warmed snapshot (SDK supports `tag_as`; low value, adds
 mutable state) and pre-installing numpy/scipy/tabulate (would hide REPO-attributable undeclared dependencies). Preflight now refuses
 a non-sealed `NEBIUS_SANDBOX_IMAGE`. Suite: 815 passed, 9 skipped.
+
+## Phase 3b — harness-v1.3 driver and ablation plumbing (2026-09-29)
+`live_run.py --arm control|treatment` (control: `repair_enabled=false`, no Tavily, no time machine); the batch driver owns its children
+(kill-on-close job object on Windows, process group elsewhere; verified with a real process test), writes a driver log and pid file,
+validates every record on resume (complete JSON, frozen hash/tag/arm, verifying passport, no driver error, never a dev run) and re-runs an
+invalid one once; `scripts/watch_batch.py` reports pid-alive AND summary-absent with a timestamp on every line;
+`scripts/compare_batches.py` implements the pre-registered analysis (categories never merged, stated denominator, Wilson interval, regression
+exit code). The spend ceiling is a parameter (`--total-cap-usd`, `--already-spent-usd`) so one cap can span both arms without a re-seal. Preflight now allows `reports/` and `CHANGELOG.md` as post-tag data. Pre-registration written in METHODOLOGY. No batch started:
+the spend cap as written (3× pilot = $1.13) is below one arm's expected cost; awaiting the operator's number.

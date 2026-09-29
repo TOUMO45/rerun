@@ -350,6 +350,9 @@ class PipelineDeps:
     planner_client: object = None
     planner_model: str | None = None
     max_attempts: int = 3
+    # False = the CONTROL arm of the ablation: no time machine, no repair loop, no Tavily. The
+    # verdict is what the repository does as-is inside the fixed runner.
+    repair_enabled: bool = True
     sandbox_runner: callable = run_build_and_execute
     apply_diff: callable = _apply_diff_with_git
     # A real tavily.TavilyClient (or a fake satisfying its one-method
@@ -883,7 +886,7 @@ def _run_stages(
             return result
 
         # --- Time machine (attempt 0): the repo's own era, deterministically --
-        if classifier.repair_layer_for(classification.code) == "env":
+        if deps.repair_enabled and classifier.repair_layer_for(classification.code) == "env":
             state.stage = "time_machine"
             era = _era()
             if era is not None:
@@ -963,7 +966,7 @@ def _run_stages(
                         AttemptRecord(0, "", "DECLINED", (), None, "", lock.error[-2000:], origin="time_machine", time_machine=tm_record)
                     )
 
-        for attempt_number in range(1, deps.max_attempts + 1):
+        for attempt_number in range(1, (deps.max_attempts if deps.repair_enabled else 0) + 1):
             if verdict is not None:
                 break
             try:

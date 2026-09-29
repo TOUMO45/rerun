@@ -63,6 +63,9 @@ DATA_ALLOWLIST = (
     re.compile(r"^runs/"),
     re.compile(r"^DECISIONS\.md$"),
     re.compile(r"^METHODOLOGY\.md$"),
+    # harness-v1.3: results are committed between the two ablation arms (reports are outputs of scripts/, not code).
+    re.compile(r"^CHANGELOG\.md$"),
+    re.compile(r"^reports/"),
     re.compile(r"^backend/app/batch/corpus_v2/(screening_log\.jsonl|corpus\.yaml|corpus_hash\.txt)$"),
 )
 # Must be byte-identical (same git blob) at HEAD and at the tag.
@@ -114,8 +117,9 @@ def corpus_dir(corpus: str) -> Path:
     return BATCH_DIR / corpus.replace("-", "_")
 
 
-def out_dir(corpus: str, tag: str) -> Path:
-    return ROOT / "runs" / f"{corpus.replace('-', '_')}_batch" / tag
+def out_dir(corpus: str, tag: str, arm: str | None = None) -> Path:
+    base = ROOT / "runs" / f"{corpus.replace('-', '_')}_batch" / tag
+    return base / arm if arm else base
 
 
 def recompute_corpus_hash(cdir: Path) -> str:
@@ -242,26 +246,146 @@ def _record_path(odir: Path, entry_id: int, name: str) -> Path:
     return odir / f"{entry_id:02d}_{name}.json"
 
 
+def record_problems(path: Path, entry_name: str, frozen: dict) -> list[str]:
+    """Why a record on disk cannot be trusted (empty list = valid): complete JSON, the fields a verdict
+    needs, the frozen corpus/harness/arm, no driver error, and a passport that verifies."""
+    try:
+        record = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, ValueError) as exc:
+        return [f"unreadable JSON ({type(exc).__name__})"]
+    problems: list[str] = []
+    batch = record.get("batch") or {}
+    if (record.get("corpus_entry") or {}).get("name") != entry_name:
+        problems.append("entry name differs")
+    for key in ("corpus_hash", "harness_tag", "harness_commit"):
+        if batch.get(key) != frozen.get(key):
+            problems.append(f"batch.{key} differs from the frozen value")
+    if frozen.get("arm") and (record.get("config") or {}).get("arm") != frozen["arm"]:
+        problems.append("arm differs")
+    if record.get("dev_run"):
+        problems.append("development run (never counted)")
+    if record.get("error"):
+        problems.append(f"driver error recorded: {str(record['error'])[:80]}")
+    if not record.get("finished_at"):
+        problems.append("no finished_at (the run did not finish writing)")
+    result = record.get("result") or {}
+    if not result.get("verdict"):
+        problems.append("no verdict")
+    if not isinstance((record.get("cost_guard") or {}).get("spent_usd"), (int, float)):
+        problems.append("no cost_guard.spent_usd")
+    certificate = record.get("certificate")
+    if result.get("verdict") != "INFRA_ERROR" or certificate:
+        if not isinstance(certificate, dict) or not certificate.get("reproduction_passport_hash"):
+            problems.append("no signed certificate")
+        else:
+            sys.path.insert(0, str(ROOT / "backend"))
+            from app.services.passport import verify_certificate
+
+            try:
+                if not verify_certificate(certificate):
+                    problems.append("passport hash does not verify")
+            except Exception as exc:  # noqa: BLE001
+                problems.append(f"passport check failed ({type(exc).__name__})")
+    return problems
+
+
+def own_children() -> None:
+    """Put this driver in a kill-on-close job (Windows) so its children die with it: an orphan whose parent
+    crashed can otherwise finish and write a record nobody is supervising. (POSIX children get their own
+    process group and are killed by `_run_live`.) Best effort; failure is reported, not fatal."""
+    if sys.platform != "win32":
+        return
+    try:
+        import ctypes
+        from ctypes import wintypes
+
+        kernel32 = ctypes.WinDLL("kernel32", use_last_error=True)
+        kernel32.CreateJobObjectW.restype = wintypes.HANDLE
+        kernel32.GetCurrentProcess.restype = wintypes.HANDLE
+        kernel32.SetInformationJobObject.argtypes = [wintypes.HANDLE, ctypes.c_int, ctypes.c_void_p, wintypes.DWORD]
+        kernel32.AssignProcessToJobObject.argtypes = [wintypes.HANDLE, wintypes.HANDLE]
+        job = kernel32.CreateJobObjectW(None, None)
+
+        class _Basic(ctypes.Structure):
+            _fields_ = [("PerProcessUserTimeLimit", ctypes.c_int64), ("PerJobUserTimeLimit", ctypes.c_int64),
+                        ("LimitFlags", wintypes.DWORD), ("MinimumWorkingSetSize", ctypes.c_size_t),
+                        ("MaximumWorkingSetSize", ctypes.c_size_t), ("ActiveProcessLimit", wintypes.DWORD),
+                        ("Affinity", ctypes.c_size_t), ("PriorityClass", wintypes.DWORD),
+                        ("SchedulingClass", wintypes.DWORD)]
+
+        class _IO(ctypes.Structure):
+            _fields_ = [(n, ctypes.c_uint64) for n in ("R", "W", "O", "RB", "WB", "OB")]
+
+        class _Extended(ctypes.Structure):
+            _fields_ = [("BasicLimitInformation", _Basic), ("IoInfo", _IO), ("ProcessMemoryLimit", ctypes.c_size_t),
+                        ("JobMemoryLimit", ctypes.c_size_t), ("PeakProcessMemoryUsed", ctypes.c_size_t),
+                        ("PeakJobMemoryUsed", ctypes.c_size_t)]
+
+        info = _Extended()
+        info.BasicLimitInformation.LimitFlags = 0x2000  # JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE
+        ok = kernel32.SetInformationJobObject(job, 9, ctypes.byref(info), ctypes.sizeof(info))
+        ok = ok and kernel32.AssignProcessToJobObject(job, kernel32.GetCurrentProcess())
+        if not ok:
+            raise OSError(ctypes.get_last_error(), "job object setup failed")
+        globals()["_JOB_HANDLE"] = job  # keep the handle alive for the life of the driver
+    except Exception as exc:  # noqa: BLE001
+        print(f"WARNING: could not own children via a job object: {exc}", flush=True)
+
+
+class _Tee:
+    """stdout/stderr -> the terminal AND the driver log file (a crashed terminal must not eat the evidence)."""
+
+    def __init__(self, stream, log):
+        self._stream, self._log = stream, log
+
+    def write(self, text):
+        self._stream.write(text)
+        self._log.write(text)
+        self._log.flush()
+        return len(text)
+
+    def flush(self):
+        self._stream.flush()
+        self._log.flush()
+
+    def __getattr__(self, name):
+        return getattr(self._stream, name)
+
+
 def run_batch(frozen: dict, *, runner=None) -> list[dict]:
-    corpus, tag = frozen["corpus"], frozen["harness_tag"]
-    odir = out_dir(corpus, tag)
+    corpus, tag, arm = frozen["corpus"], frozen["harness_tag"], frozen.get("arm")
+    odir = out_dir(corpus, tag, arm)
     odir.mkdir(parents=True, exist_ok=True)
     runner = runner or _run_live
-    spent, consecutive_infra = 0.0, 0
+    # The ceiling is a parameter (--total-cap-usd) so the operator's cap can span both ablation arms:
+    # --already-spent-usd carries the other arm's spend in.
+    total_cap = frozen.get("total_cap_usd", TOTAL_CAP_USD)
+    spent, consecutive_infra = float(frozen.get("already_spent_usd", 0.0)), 0
     for row in entries_for(corpus):
         path = _record_path(odir, row["id"], row["name"])
         if path.exists():
-            record = json.loads(path.read_text(encoding="utf-8"))
-            spent += record["cost_guard"]["spent_usd"]
-            verdict = (record.get("result") or {}).get("verdict")
-            consecutive_infra = consecutive_infra + 1 if verdict == "INFRA_ERROR" else 0
-            print(f"#{row['id']:2} {row['name']}: record exists, skipped (resume)", flush=True)
-            continue
-        if spent + PER_ENTRY_CAP_USD > TOTAL_CAP_USD + 1e-9:
-            print(f"STOP: ${spent:.4f} spent; another ${PER_ENTRY_CAP_USD} cap would pass the ${TOTAL_CAP_USD} total", flush=True)
+            problems = record_problems(path, row["name"], frozen)
+            if not problems:
+                record = json.loads(path.read_text(encoding="utf-8"))
+                spent += record["cost_guard"]["spent_usd"]
+                verdict = (record.get("result") or {}).get("verdict")
+                consecutive_infra = consecutive_infra + 1 if verdict == "INFRA_ERROR" else 0
+                print(f"#{row['id']:2} {row['name']}: valid record exists, skipped (resume)", flush=True)
+                continue
+            # A record a dead child or a crashed driver left behind is never trusted: set it aside (kept as
+            # evidence) and re-run the entry. Once per entry: a second invalid record is a defect, so stop.
+            if list(odir.glob(f"{path.name}.invalid-*")):
+                print(f"STOP: #{row['id']} {row['name']} produced an invalid record twice: {problems}", flush=True)
+                break
+            stamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
+            path.rename(path.with_name(f"{path.name}.invalid-{stamp}"))
+            print(f"#{row['id']:2} {row['name']}: existing record INVALID ({'; '.join(problems)}); set aside, re-running",
+                  flush=True)
+        if spent + PER_ENTRY_CAP_USD > total_cap + 1e-9:
+            print(f"STOP: ${spent:.4f} spent; another ${PER_ENTRY_CAP_USD} cap would pass the ${total_cap} total", flush=True)
             break
         meta = {**frozen, "entry_id": row["id"], "category": row["category"], "rules_matched": row["rules_matched"],
-                "per_entry_cap_usd": PER_ENTRY_CAP_USD, "total_cap_usd": TOTAL_CAP_USD}
+                "per_entry_cap_usd": PER_ENTRY_CAP_USD, "total_cap_usd": total_cap}
         print(f"#{row['id']:2} {row['name']} [{row['category']}] starting", flush=True)
         runner(corpus, row["name"], frozen["corpus_hash"], meta, path)
         record = json.loads(path.read_text(encoding="utf-8"))
@@ -280,14 +404,29 @@ def run_batch(frozen: dict, *, runner=None) -> list[dict]:
 
 
 def _run_live(corpus: str, name: str, corpus_hash: str, meta: dict, path: Path) -> None:
-    subprocess.run(
-        [str(PYTHON), str(ROOT / "scripts" / "live_run.py"),
-         "--corpus", str(corpus_dir(corpus) / "corpus.yaml"), "--name", name,
-         "--cost-cap-usd", str(PER_ENTRY_CAP_USD), "--corpus-hash", corpus_hash,
-         "--batch-meta", json.dumps(meta), "--out", str(path)],
-        cwd=ROOT,
-        check=False,
-    )
+    cmd = [str(PYTHON), str(ROOT / "scripts" / "live_run.py"),
+           "--corpus", str(corpus_dir(corpus) / "corpus.yaml"), "--name", name,
+           "--cost-cap-usd", str(PER_ENTRY_CAP_USD), "--corpus-hash", corpus_hash,
+           "--batch-meta", json.dumps(meta), "--out", str(path)]
+    if meta.get("arm"):
+        cmd += ["--arm", meta["arm"]]
+    kwargs = {"start_new_session": True} if sys.platform != "win32" else {}
+    proc = subprocess.Popen(cmd, cwd=ROOT, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True,
+                            encoding="utf-8", errors="replace", **kwargs)
+    try:
+        for line in proc.stdout:  # the child's events reach the driver log too
+            print(line.rstrip("\n"), flush=True)
+        proc.wait()
+    finally:
+        if proc.poll() is None:  # the driver is unwinding (exception, Ctrl-C): never leave an orphan
+            if sys.platform == "win32":
+                subprocess.run(["taskkill", "/F", "/T", "/PID", str(proc.pid)], capture_output=True)
+            else:
+                import os
+                import signal
+
+                os.killpg(proc.pid, signal.SIGKILL)
+            proc.wait()
 
 
 def run_smoke() -> dict:
@@ -298,7 +437,13 @@ def run_smoke() -> dict:
 
 
 def load_records(odir: Path) -> list[dict]:
-    return [json.loads(p.read_text(encoding="utf-8")) for p in sorted(odir.glob("[0-9][0-9]_*.json"))]
+    records = []
+    for p in sorted(odir.glob("[0-9][0-9]_*.json")):
+        try:
+            records.append(json.loads(p.read_text(encoding="utf-8")))
+        except ValueError:
+            print(f"WARNING: {p.name} is not valid JSON; left out of the summary", flush=True)
+    return records
 
 
 def summarize(records: list[dict]) -> dict:
@@ -379,24 +524,42 @@ def summarize(records: list[dict]) -> dict:
 
 
 def main(argv: list[str] | None = None) -> int:
+    import os
+
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument("--corpus", choices=("corpus-v1", "corpus-v2"), required=True)
     parser.add_argument("--harness-tag", default=DEFAULT_HARNESS_TAG)
+    parser.add_argument("--arm", choices=("control", "treatment"),
+                        help="ablation arm (corpus-v2.1): control = repair off, Tavily off; treatment = full RERUN. "
+                        "Records go to <tag>/<arm>/.")
+    parser.add_argument("--total-cap-usd", type=float, default=TOTAL_CAP_USD,
+                        help="stop before any entry whose per-entry cap could pass this total (default %(default)s)")
+    parser.add_argument("--already-spent-usd", type=float, default=0.0,
+                        help="spend to count against the total before this run starts (e.g. the other arm's)")
     parser.add_argument("--summarize-only", action="store_true", help="skip preflight/runs; summarize existing records")
     args = parser.parse_args(argv)
-    odir = out_dir(args.corpus, args.harness_tag)
+    odir = out_dir(args.corpus, args.harness_tag, args.arm)
     if not args.summarize_only:
         try:
             frozen = preflight(args.corpus, args.harness_tag)
         except PreflightError as exc:
             print(f"REFUSING TO START: {exc}", file=sys.stderr)
             return 2
-        print(f"preflight OK: {frozen}", flush=True)
-        # harness-v1.2: every batch starts with the live upload smoke test
-        # (small + ~150 MB archive through the real client); no pass, no batch.
-        smoke = run_smoke()
+        if args.arm:
+            frozen["arm"] = args.arm
+        frozen["total_cap_usd"], frozen["already_spent_usd"] = args.total_cap_usd, args.already_spent_usd
         odir.mkdir(parents=True, exist_ok=True)
         stamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
+        # The driver's own output survives a closed terminal, and its pid lets a watcher tell "running" from "gone".
+        log = open(odir / f"driver_{stamp}.log", "a", encoding="utf-8", newline="\n")
+        sys.stdout, sys.stderr = _Tee(sys.stdout, log), _Tee(sys.stderr, log)
+        (odir / "driver.pid").write_text(str(os.getpid()) + "\n", encoding="utf-8", newline="\n")
+        own_children()
+        print(f"driver pid {os.getpid()} started {stamp}Z arm={args.arm}", flush=True)
+        print(f"preflight OK: {frozen}", flush=True)
+        # harness-v1.2: every batch starts with the live upload smoke test
+        # (small + cap-size archive through the real client); no pass, no batch.
+        smoke = run_smoke()
         (odir / f"smoke_{stamp}.json").write_text(json.dumps(smoke, indent=2) + "\n", encoding="utf-8", newline="\n")
         if not smoke.get("ok"):
             print(f"REFUSING TO START: pre-batch upload smoke test failed: {[r.get('error') for r in smoke['runs']]}", file=sys.stderr)
