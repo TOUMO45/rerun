@@ -1,0 +1,951 @@
+{
+  "run_kind": "live end-to-end run",
+  "dev_run": false,
+  "dry_run": null,
+  "batch": {
+    "harness_tag": "harness-v1.2",
+    "harness_commit": "668c907baeef0cbb29338f118dfc8975dd812993",
+    "head_commit": "2ea34772cbf5d176e78dfd6e599c409bd711a259",
+    "corpus": "corpus-v2",
+    "prereg_sha256": "ae5a722249156e058d3d360bdc63fa8224140d0688f1daa307ecfa93a98c7284",
+    "corpus_hash": "7df090bea7013974f9f10fb8959ab0162734b51c83a80f744f9c310ce694fbdc",
+    "entry_id": 1,
+    "category": "PRIMARY",
+    "rules_matched": [],
+    "per_entry_cap_usd": 2.0,
+    "total_cap_usd": 40.0
+  },
+  "started_at": "2026-09-29T18:53:11.074997+00:00",
+  "corpus_entry": {
+    "name": "nadiinchi__power_laws_deep_ensembles",
+    "repo_url": "https://github.com/nadiinchi/power_laws_deep_ensembles",
+    "commit_sha": "d0aaf2f309a833199cdca58b6459fd56b194c50c",
+    "command": "python3 train.py --dir=logs/oct --data_path=./data/ --dataset=CIFAR100 --use_test --transform=VGG --model=VGG16 --save_freq=200 --print_freq=5 --epochs=200 --wd=0.001 --lr=0.05 --dropout 0.5 --comment width64 --seed 25477 --width 64 --num-nets 8 --num-exps=5 --not-save-weights",
+    "command_source": "README.md line 10"
+  },
+  "config": {
+    "models": {
+      "recon": "nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B",
+      "planner": "nvidia/nemotron-3-super-120b-a12b",
+      "repairer": "nvidia/nemotron-3-super-120b-a12b",
+      "adjudicator": "nvidia/Nemotron-3-Ultra-550b-a55b"
+    },
+    "sandbox_backend": "token_factory",
+    "sandbox_image_default": "python:3.11-slim",
+    "sandbox_wall_clock_seconds": 600.0,
+    "max_attempts": 3,
+    "tavily_configured": true,
+    "cost_cap_usd": 2.0
+  },
+  "intake": {
+    "duration_s": 2.72,
+    "resolved_sha": "d0aaf2f309a833199cdca58b6459fd56b194c50c",
+    "dependency_files": [],
+    "declared_dependencies": [],
+    "entrypoint_candidates": [
+      "train.py"
+    ],
+    "notebook_paths": []
+  },
+  "pipeline_duration_s": 156.98,
+  "repair_mode": "model_assisted",
+  "tree_integrity": {
+    "status": "verified",
+    "tree_sha": "8816889b0fab7d8f3770ab268822f2051826849e",
+    "files_checked": 14,
+    "excluded_patched": []
+  },
+  "result": {
+    "verdict": "BLOCKED",
+    "taxonomy_code": "DEP_MISSING",
+    "indeterminate_reason": "",
+    "reason_code": null,
+    "error_traceback": "",
+    "attempts": [
+      {
+        "attempt_number": 0,
+        "diff_text": "",
+        "gate_decision": "DECLINED",
+        "gate_violations": [],
+        "exit_code": null,
+        "stdout_tail": "",
+        "stderr_tail": "error: No solution found when resolving dependencies\n  cause: Because there are no versions of curves and you require curves, we can conclude that your requirements are unsatisfiable.\n\nhint: `curves` was filtered by `exclude-newer` to only include packages uploaded before 2020-10-23T00:00:00Z. The latest version satisfying the requirement is v0.1.6, published at 2025-11-13T10:06:28.412Z. Consider using `exclude-newer-package` to override the cutoff for this package.\n",
+        "tavily_sources": [],
+        "env_delta": [],
+        "resolved_sources": [],
+        "origin": "time_machine",
+        "time_machine": {
+          "era": {
+            "date": "2020-10-22",
+            "source": "pinned-commit",
+            "detail": {
+              "note": "no dependency files in the repository"
+            }
+          },
+          "python": {
+            "version": "3.8",
+            "reason": "newest CPython first released \u2265180 days before the era date 2020-10-22 (https://devguide.python.org/versions/ (first release dates, retrieved 2026-09-24))",
+            "source": "https://devguide.python.org/versions/ (first release dates, retrieved 2026-09-24)"
+          },
+          "undeclared_imports": [
+            "curves",
+            "numpy",
+            "pandas",
+            "scipy",
+            "scikit-learn",
+            "tabulate",
+            "torch",
+            "torchvision"
+          ],
+          "import_mappings": [
+            {
+              "import": "sklearn",
+              "distribution": "scikit-learn",
+              "source": "pipreqs",
+              "confidence": "normal"
+            }
+          ],
+          "apt_added": [],
+          "apt_reason": "",
+          "lock": {
+            "ok": false,
+            "lock": [],
+            "inputs": [
+              "curves",
+              "numpy",
+              "pandas",
+              "scipy",
+              "scikit-learn",
+              "tabulate",
+              "torch",
+              "torchvision"
+            ],
+            "not_on_index": [],
+            "command": "pip compile - --no-header --no-annotate --quiet --exclude-newer 2020-10-23T00:00:00Z --python-version 3.8 --python-platform x86_64-unknown-linux-gnu --python C:\\Users\\E16\\AppData\\Roaming\\uv\\python\\cpython-3.8.20-windows-x86_64-none\\python.exe",
+            "error": "error: No solution found when resolving dependencies\n  cause: Because there are no versions of curves and you require curves, we can conclude that your requirements are unsatisfiable.\n\nhint: `curves` was filtered by `exclude-newer` to only include packages uploaded before 2020-10-23T00:00:00Z. The latest version satisfying the requirement is v0.1.6, published at 2025-11-13T10:06:28.412Z. Consider using `exclude-newer-package` to override the cutoff for this package.\n"
+          }
+        }
+      },
+      {
+        "attempt_number": 1,
+        "diff_text": "",
+        "gate_decision": "PASS",
+        "gate_violations": [],
+        "exit_code": 1,
+        "stdout_tail": "",
+        "stderr_tail": "Traceback (most recent call last):\n  File \"//train.py\", line 4, in <module>\n    import tabulate\n  File \"/usr/local/lib/python3.11/site-packages/tabulate.py\", line 16, in <module>\n    from collections import Iterable\nImportError: cannot import name 'Iterable' from 'collections' (/usr/local/lib/python3.11/collections/__init__.py)\n",
+        "tavily_sources": [],
+        "env_delta": [
+          {
+            "command": null,
+            "op": "add",
+            "package": "tabulate",
+            "version": "0.8.7",
+            "git_url": null,
+            "commit": null,
+            "justification": "The code imports tabulate but it is not installed, causing ModuleNotFoundError.",
+            "evidence": "ModuleNotFoundError: No module named 'tabulate'"
+          }
+        ],
+        "resolved_sources": [
+          {
+            "kind": "pypi",
+            "package": "tabulate",
+            "version": "0.8.7",
+            "uploaded": "2020-03-22",
+            "cpython_tags": [],
+            "url": "https://pypi.org/project/tabulate/0.8.7/"
+          }
+        ],
+        "origin": "model",
+        "time_machine": null
+      },
+      {
+        "attempt_number": 2,
+        "diff_text": "--- a/train.py\n+++ b/train.py\n@@ -1,6 +1,12 @@\n import argparse\n import os\n import sys\n+if sys.version_info >= (3, 10):\n+    import collections\n+    import collections.abc\n+    if not hasattr(collections, 'Iterable'):\n+        collections.Iterable = collections.abc.Iterable\n+\n import tabulate\n import string\n import time\n",
+        "gate_decision": "PASS",
+        "gate_violations": [],
+        "exit_code": null,
+        "stdout_tail": "",
+        "stderr_tail": "gate-approved patch failed to apply: error: patch failed: train.py:1\nerror: train.py: patch does not apply",
+        "tavily_sources": [],
+        "env_delta": [],
+        "resolved_sources": [],
+        "origin": "model",
+        "time_machine": null
+      },
+      {
+        "attempt_number": 3,
+        "diff_text": "",
+        "gate_decision": "PASS",
+        "gate_violations": [],
+        "exit_code": 1,
+        "stdout_tail": "",
+        "stderr_tail": "Traceback (most recent call last):\n  File \"//train.py\", line 7, in <module>\n    import torch\nModuleNotFoundError: No module named 'torch'\n",
+        "tavily_sources": [],
+        "env_delta": [
+          {
+            "command": null,
+            "op": "pin",
+            "package": "tabulate",
+            "version": "0.8.9",
+            "git_url": null,
+            "commit": null,
+            "justification": "Upgrade tabulate to a version that imports Iterable from collections.abc, fixing the ImportError under Python 3.11",
+            "evidence": "ImportError: cannot import name 'Iterable' from 'collections' (/usr/local/lib/python3.11/collections/__init__.py)"
+          }
+        ],
+        "resolved_sources": [],
+        "origin": "model",
+        "time_machine": null
+      }
+    ],
+    "certificate_prose": "After three repair attempts, the repository's code still fails to execute due to a missing dependency: the Python module 'torch' is not found, resulting in a ModuleNotFoundError. The run log shows the classifier identified this as DEP_MISSING and the verdict remains BLOCKED. Verifies that the artifact executes. Does not verify the paper's numerical results."
+  },
+  "certificate": {
+    "repo_url": "https://github.com/nadiinchi/power_laws_deep_ensembles",
+    "commit_sha": "d0aaf2f309a833199cdca58b6459fd56b194c50c",
+    "build_plan": {
+      "base_image": "python:3.11-slim",
+      "apt_install": [],
+      "install_commands": [
+        "true  # no declared dependency file found; nothing to install",
+        "pip install tabulate==0.8.7",
+        "pip install tabulate==0.8.9"
+      ],
+      "execute_command": "python3 train.py --dir=logs/oct --data_path=./data/ --dataset=CIFAR100 --use_test --transform=VGG --model=VGG16 --save_freq=200 --print_freq=5 --epochs=200 --wd=0.001 --lr=0.05 --dropout 0.5 --comment width64 --seed 25477 --width 64 --num-nets 8 --num-exps=5 --not-save-weights",
+      "notes": [
+        "execute command is the repository's documented command (corpus ground truth)",
+        "env delta: add tabulate \u2014 The code imports tabulate but it is not installed, causing ModuleNotFoundError.",
+        "env delta: pin tabulate \u2014 Upgrade tabulate to a version that imports Iterable from collections.abc, fixing the ImportError under Python 3.11"
+      ]
+    },
+    "full_log": "[intake] cloned https://github.com/nadiinchi/power_laws_deep_ensembles@d0aaf2f309a833199cdca58b6459fd56b194c50c\n[recon] calling Nemotron Nano\n[recon] entrypoint=train.py confidence=0.90\n[planner] build plan: {'base_image': 'python:3.11-slim', 'apt_install': [], 'install_commands': ['true  # no declared dependency file found; nothing to install'], 'execute_command': 'python3 train.py --dir=logs/oct --data_path=./data/ --dataset=CIFAR100 --use_test --transform=VGG --model=VGG16 --save_freq=200 --print_freq=5 --epochs=200 --wd=0.001 --lr=0.05 --dropout 0.5 --comment width64 --seed 25477 --width 64 --num-nets 8 --num-exps=5 --not-save-weights', 'notes': [\"execute command is the repository's documented command (corpus ground truth)\"]}\n[integrity] verified 14 file(s) against tree 8816889b0fab7d8f3770ab268822f2051826849e\n[sandbox] starting build+execute (wall_clock_seconds=600)\n[cost_guard] recorded $0.0012 sandbox spend, $1.9983 remaining today\n[sandbox] id=086e8201-fcc0-44cc-a702-24abbae91643 exit_code=1\n[baseline] as-is run: FAILS (exit code 1)\n[classifier] DEP_MISSING: ModuleNotFoundError: No module named 'tabulate'\n[era] 2020-10-22 from pinned-commit {'note': 'no dependency files in the repository'}\n[import-map] sklearn -> scikit-learn (pipreqs, confidence normal)\n[time-machine] could not lock the era environment: satisfiable.\n\nhint: `curves` was filtered by `exclude-newer` to only include packages uploaded before 2020-10-23T00:00:00Z. The latest version satisfying the requirement is v0.1.6, published at 2025-11-13T10:06:28.412Z. Consider using `exclude-newer-package` to override the cutoff for this package.\n\n[resolver] tabulate: 0 verified git source(s), PyPI found (6 release(s) shown), era 2020-10-22; query: 'tabulate python package version compatible 2020 release history'\n[tavily] 5 result(s) for 'tabulate python package version compatible 2020 release history'\n[repair 1] tamper gate PASS (env) \u2014 applying and re-executing\n[repair 1] env delta applied; build plan now: {'base_image': 'python:3.11-slim', 'apt_install': [], 'install_commands': ['true  # no declared dependency file found; nothing to install', 'pip install tabulate==0.8.7'], 'execute_command': 'python3 train.py --dir=logs/oct --data_path=./data/ --dataset=CIFAR100 --use_test --transform=VGG --model=VGG16 --save_freq=200 --print_freq=5 --epochs=200 --wd=0.001 --lr=0.05 --dropout 0.5 --comment width64 --seed 25477 --width 64 --num-nets 8 --num-exps=5 --not-save-weights', 'notes': [\"execute command is the repository's documented command (corpus ground truth)\", 'env delta: add tabulate \u2014 The code imports tabulate but it is not installed, causing ModuleNotFoundError.']}\n[citations] not cited (not used in a decision): https://www.python.org/downloads\n[citations] not cited (not used in a decision): https://en.wikipedia.org/wiki/Python_(programming_language)\n[citations] not cited (not used in a decision): https://packaging.python.org/specifications/platform-compatibility-tags\n[citations] not cited (not used in a decision): https://discuss.avogadro.cc/t/lets-decide-on-a-python-version-policy-should-we-align-to-the-scientific-python-policy/6387\n[citations] not cited (not used in a decision): https://www.chainguard.dev/unchained/this-shit-is-hard-the-complexities-of-fixing-python-library-security-issues-at-scale\n[citations] not cited (offered, not used): https://pypi.org/project/tabulate/0.8.6/\n[citations] not cited (offered, not used): https://pypi.org/project/tabulate/0.8.5/\n[citations] not cited (offered, not used): https://pypi.org/project/tabulate/0.8.4/\n[citations] not cited (offered, not used): https://pypi.org/project/tabulate/0.8.3/\n[citations] not cited (offered, not used): https://pypi.org/project/tabulate/0.10.0/\n[integrity] verified 14 file(s) against tree 8816889b0fab7d8f3770ab268822f2051826849e\n[sandbox] starting build+execute (wall_clock_seconds=600)\n[cost_guard] recorded $0.0128 sandbox spend, $1.9828 remaining today\n[repair 1] re-execution id=ee151766-4b16-4732-a5eb-05ee7021a80d exit_code=1\n[classifier] RUNTIME_ERROR_OTHER: ImportError: cannot import name 'Iterable' from 'collections' (/usr/local/lib/python3.11/collections/__init__.py)\n[tavily] 3 result(s) for 'python runtime error other fix: ImportError: cannot import name 'Iterable' from 'collections' (/usr/local/lib/python3.11/collections/__init__.py)'\n[repair 2] tamper gate PASS (code) \u2014 applying and re-executing\n[repair 2] gate-approved patch failed to apply cleanly: gate-approved patch failed to apply: error: patch failed: train.py:1\nerror: train.py: patch does not apply\n[citations] not cited (not used in a decision): https://www.chainguard.dev/unchained/wolfi-moves-to-usrmerge-standard\n[citations] not cited (not used in a decision): https://assets.publishing.service.gov.uk/media/5a7e47a0e5274a2e87db0b50/ED1._Nursery_Schools_as_at_September_2013.xls\n[citations] not cited (not used in a decision): https://docs.graphbit.ai/python\n[tavily] 3 result(s) for 'python runtime error other fix: ImportError: cannot import name 'Iterable' from 'collections' (/usr/local/lib/python3.11/collections/__init__.py)'\n[repair 3] env change lacked justification/evidence; re-asked once (same attempt)\n[repair 3] tamper gate PASS (env) \u2014 applying and re-executing\n[repair 3] env delta applied; build plan now: {'base_image': 'python:3.11-slim', 'apt_install': [], 'install_commands': ['true  # no declared dependency file found; nothing to install', 'pip install tabulate==0.8.7', 'pip install tabulate==0.8.9'], 'execute_command': 'python3 train.py --dir=logs/oct --data_path=./data/ --dataset=CIFAR100 --use_test --transform=VGG --model=VGG16 --save_freq=200 --print_freq=5 --epochs=200 --wd=0.001 --lr=0.05 --dropout 0.5 --comment width64 --seed 25477 --width 64 --num-nets 8 --num-exps=5 --not-save-weights', 'notes': [\"execute command is the repository's documented command (corpus ground truth)\", 'env delta: add tabulate \u2014 The code imports tabulate but it is not installed, causing ModuleNotFoundError.', 'env delta: pin tabulate \u2014 Upgrade tabulate to a version that imports Iterable from collections.abc, fixing the ImportError under Python 3.11']}\n[citations] not cited (not used in a decision): https://itsourcecode.com/importerror/importerror-cannot-import-name-iterable-from-collections\n[citations] not cited (not used in a decision): https://bobbyhadz.com/blog/python-importerror-cannot-import-name-mapping-from-collections\n[citations] not cited (not used in a decision): https://www.nbshare.io/notebook/589110167/ImportError-cannot-import-name-Iterabler-from-collections-python-3-10\n[integrity] verified 14 file(s) against tree 8816889b0fab7d8f3770ab268822f2051826849e\n[sandbox] starting build+execute (wall_clock_seconds=600)\n[cost_guard] recorded $0.0166 sandbox spend, $1.9451 remaining today\n[repair 3] re-execution id=9e09ccac-6e2f-458a-be30-881d32ce0027 exit_code=1\n[classifier] DEP_MISSING: ModuleNotFoundError: No module named 'torch'\n[verdict] BLOCKED after 3 repair attempt(s): DEP_MISSING",
+    "diffs": [
+      {
+        "attempt_number": 0,
+        "diff_text": "",
+        "gate_decision": "DECLINED",
+        "gate_violations": [],
+        "exit_code": null,
+        "stdout_tail": "",
+        "stderr_tail": "error: No solution found when resolving dependencies\n  cause: Because there are no versions of curves and you require curves, we can conclude that your requirements are unsatisfiable.\n\nhint: `curves` was filtered by `exclude-newer` to only include packages uploaded before 2020-10-23T00:00:00Z. The latest version satisfying the requirement is v0.1.6, published at 2025-11-13T10:06:28.412Z. Consider using `exclude-newer-package` to override the cutoff for this package.\n",
+        "tavily_sources": [],
+        "env_delta": [],
+        "resolved_sources": [],
+        "origin": "time_machine",
+        "time_machine": {
+          "era": {
+            "date": "2020-10-22",
+            "source": "pinned-commit",
+            "detail": {
+              "note": "no dependency files in the repository"
+            }
+          },
+          "python": {
+            "version": "3.8",
+            "reason": "newest CPython first released \u2265180 days before the era date 2020-10-22 (https://devguide.python.org/versions/ (first release dates, retrieved 2026-09-24))",
+            "source": "https://devguide.python.org/versions/ (first release dates, retrieved 2026-09-24)"
+          },
+          "undeclared_imports": [
+            "curves",
+            "numpy",
+            "pandas",
+            "scipy",
+            "scikit-learn",
+            "tabulate",
+            "torch",
+            "torchvision"
+          ],
+          "import_mappings": [
+            {
+              "import": "sklearn",
+              "distribution": "scikit-learn",
+              "source": "pipreqs",
+              "confidence": "normal"
+            }
+          ],
+          "apt_added": [],
+          "apt_reason": "",
+          "lock": {
+            "ok": false,
+            "lock": [],
+            "inputs": [
+              "curves",
+              "numpy",
+              "pandas",
+              "scipy",
+              "scikit-learn",
+              "tabulate",
+              "torch",
+              "torchvision"
+            ],
+            "not_on_index": [],
+            "command": "pip compile - --no-header --no-annotate --quiet --exclude-newer 2020-10-23T00:00:00Z --python-version 3.8 --python-platform x86_64-unknown-linux-gnu --python C:\\Users\\E16\\AppData\\Roaming\\uv\\python\\cpython-3.8.20-windows-x86_64-none\\python.exe",
+            "error": "error: No solution found when resolving dependencies\n  cause: Because there are no versions of curves and you require curves, we can conclude that your requirements are unsatisfiable.\n\nhint: `curves` was filtered by `exclude-newer` to only include packages uploaded before 2020-10-23T00:00:00Z. The latest version satisfying the requirement is v0.1.6, published at 2025-11-13T10:06:28.412Z. Consider using `exclude-newer-package` to override the cutoff for this package.\n"
+          }
+        }
+      },
+      {
+        "attempt_number": 1,
+        "diff_text": "",
+        "gate_decision": "PASS",
+        "gate_violations": [],
+        "exit_code": 1,
+        "stdout_tail": "",
+        "stderr_tail": "Traceback (most recent call last):\n  File \"//train.py\", line 4, in <module>\n    import tabulate\n  File \"/usr/local/lib/python3.11/site-packages/tabulate.py\", line 16, in <module>\n    from collections import Iterable\nImportError: cannot import name 'Iterable' from 'collections' (/usr/local/lib/python3.11/collections/__init__.py)\n",
+        "tavily_sources": [],
+        "env_delta": [
+          {
+            "command": null,
+            "op": "add",
+            "package": "tabulate",
+            "version": "0.8.7",
+            "git_url": null,
+            "commit": null,
+            "justification": "The code imports tabulate but it is not installed, causing ModuleNotFoundError.",
+            "evidence": "ModuleNotFoundError: No module named 'tabulate'"
+          }
+        ],
+        "resolved_sources": [
+          {
+            "kind": "pypi",
+            "package": "tabulate",
+            "version": "0.8.7",
+            "uploaded": "2020-03-22",
+            "cpython_tags": [],
+            "url": "https://pypi.org/project/tabulate/0.8.7/"
+          }
+        ],
+        "origin": "model",
+        "time_machine": null
+      },
+      {
+        "attempt_number": 2,
+        "diff_text": "--- a/train.py\n+++ b/train.py\n@@ -1,6 +1,12 @@\n import argparse\n import os\n import sys\n+if sys.version_info >= (3, 10):\n+    import collections\n+    import collections.abc\n+    if not hasattr(collections, 'Iterable'):\n+        collections.Iterable = collections.abc.Iterable\n+\n import tabulate\n import string\n import time\n",
+        "gate_decision": "PASS",
+        "gate_violations": [],
+        "exit_code": null,
+        "stdout_tail": "",
+        "stderr_tail": "gate-approved patch failed to apply: error: patch failed: train.py:1\nerror: train.py: patch does not apply",
+        "tavily_sources": [],
+        "env_delta": [],
+        "resolved_sources": [],
+        "origin": "model",
+        "time_machine": null
+      },
+      {
+        "attempt_number": 3,
+        "diff_text": "",
+        "gate_decision": "PASS",
+        "gate_violations": [],
+        "exit_code": 1,
+        "stdout_tail": "",
+        "stderr_tail": "Traceback (most recent call last):\n  File \"//train.py\", line 7, in <module>\n    import torch\nModuleNotFoundError: No module named 'torch'\n",
+        "tavily_sources": [],
+        "env_delta": [
+          {
+            "command": null,
+            "op": "pin",
+            "package": "tabulate",
+            "version": "0.8.9",
+            "git_url": null,
+            "commit": null,
+            "justification": "Upgrade tabulate to a version that imports Iterable from collections.abc, fixing the ImportError under Python 3.11",
+            "evidence": "ImportError: cannot import name 'Iterable' from 'collections' (/usr/local/lib/python3.11/collections/__init__.py)"
+          }
+        ],
+        "resolved_sources": [],
+        "origin": "model",
+        "time_machine": null
+      }
+    ],
+    "verdict": "BLOCKED",
+    "timestamp": "2026-09-29T18:55:50.769490+00:00",
+    "bundle_version": 3,
+    "baseline": {
+      "result": "FAILS",
+      "exit_code": 1,
+      "base_image": "python:3.11-slim",
+      "install_commands": [
+        "true  # no declared dependency file found; nothing to install"
+      ],
+      "execute_command": "python3 train.py --dir=logs/oct --data_path=./data/ --dataset=CIFAR100 --use_test --transform=VGG --model=VGG16 --save_freq=200 --print_freq=5 --epochs=200 --wd=0.001 --lr=0.05 --dropout 0.5 --comment width64 --seed 25477 --width 64 --num-nets 8 --num-exps=5 --not-save-weights",
+      "sandbox_id": "086e8201-fcc0-44cc-a702-24abbae91643",
+      "taxonomy_code": "DEP_MISSING",
+      "evidence": "ModuleNotFoundError: No module named 'tabulate'"
+    },
+    "recovery": false,
+    "tree_integrity": {
+      "status": "verified",
+      "tree_sha": "8816889b0fab7d8f3770ab268822f2051826849e",
+      "files_checked": 14,
+      "excluded_patched": []
+    },
+    "corpus_hash": "7df090bea7013974f9f10fb8959ab0162734b51c83a80f744f9c310ce694fbdc",
+    "reproduction_passport_hash": "5961c58189360e72d5a036c594394a798c74394c9c7345330962a5cbbf4b3929"
+  },
+  "finished_at": "2026-09-29T18:55:50.797288+00:00",
+  "events": [
+    {
+      "t_s": 0.0,
+      "at": "2026-09-29T18:53:13.792988+00:00",
+      "line": "[intake] cloned https://github.com/nadiinchi/power_laws_deep_ensembles@d0aaf2f309a833199cdca58b6459fd56b194c50c"
+    },
+    {
+      "t_s": 0.01,
+      "at": "2026-09-29T18:53:13.801751+00:00",
+      "line": "[recon] calling Nemotron Nano"
+    },
+    {
+      "t_s": 11.17,
+      "at": "2026-09-29T18:53:24.961157+00:00",
+      "line": "[recon] entrypoint=train.py confidence=0.90"
+    },
+    {
+      "t_s": 12.16,
+      "at": "2026-09-29T18:53:25.952244+00:00",
+      "line": "[planner] build plan: {'base_image': 'python:3.11-slim', 'apt_install': [], 'install_commands': ['true  # no declared dependency file found; nothing to install'], 'execute_command': 'python3 train.py --dir=logs/oct --data_path=./data/ --dataset=CIFAR100 --use_test --transform=VGG --model=VGG16 --save_freq=200 --print_freq=5 --epochs=200 --wd=0.001 --lr=0.05 --dropout 0.5 --comment width64 --seed 25477 --width 64 --num-nets 8 --num-exps=5 --not-save-weights', 'notes': [\"execute command is the repository's documented command (corpus ground truth)\"]}"
+    },
+    {
+      "t_s": 12.3,
+      "at": "2026-09-29T18:53:26.089931+00:00",
+      "line": "[integrity] verified 14 file(s) against tree 8816889b0fab7d8f3770ab268822f2051826849e"
+    },
+    {
+      "t_s": 12.3,
+      "at": "2026-09-29T18:53:26.089979+00:00",
+      "line": "[sandbox] starting build+execute (wall_clock_seconds=600)"
+    },
+    {
+      "t_s": 21.4,
+      "at": "2026-09-29T18:53:35.188062+00:00",
+      "line": "[cost_guard] recorded $0.0012 sandbox spend, $1.9983 remaining today"
+    },
+    {
+      "t_s": 21.4,
+      "at": "2026-09-29T18:53:35.188126+00:00",
+      "line": "[sandbox] id=086e8201-fcc0-44cc-a702-24abbae91643 exit_code=1"
+    },
+    {
+      "t_s": 21.4,
+      "at": "2026-09-29T18:53:35.188156+00:00",
+      "line": "[baseline] as-is run: FAILS (exit code 1)"
+    },
+    {
+      "t_s": 21.41,
+      "at": "2026-09-29T18:53:35.200694+00:00",
+      "line": "[classifier] DEP_MISSING: ModuleNotFoundError: No module named 'tabulate'"
+    },
+    {
+      "t_s": 21.47,
+      "at": "2026-09-29T18:53:35.262369+00:00",
+      "line": "[era] 2020-10-22 from pinned-commit {'note': 'no dependency files in the repository'}"
+    },
+    {
+      "t_s": 21.53,
+      "at": "2026-09-29T18:53:35.323212+00:00",
+      "line": "[import-map] sklearn -> scikit-learn (pipreqs, confidence normal)"
+    },
+    {
+      "t_s": 22.69,
+      "at": "2026-09-29T18:53:36.481900+00:00",
+      "line": "[time-machine] could not lock the era environment: satisfiable.\n\nhint: `curves` was filtered by `exclude-newer` to only include packages uploaded before 2020-10-23T00:00:00Z. The latest version satisfying the requirement is v0.1.6, published at 2025-11-13T10:06:28.412Z. Consider using `exclude-newer-package` to override the cutoff for this package.\n"
+    },
+    {
+      "t_s": 26.57,
+      "at": "2026-09-29T18:53:40.358015+00:00",
+      "line": "[resolver] tabulate: 0 verified git source(s), PyPI found (6 release(s) shown), era 2020-10-22; query: 'tabulate python package version compatible 2020 release history'"
+    },
+    {
+      "t_s": 26.57,
+      "at": "2026-09-29T18:53:40.358079+00:00",
+      "line": "[tavily] 5 result(s) for 'tabulate python package version compatible 2020 release history'"
+    },
+    {
+      "t_s": 33.53,
+      "at": "2026-09-29T18:53:47.323184+00:00",
+      "line": "[repair 1] tamper gate PASS (env) \u2014 applying and re-executing"
+    },
+    {
+      "t_s": 33.53,
+      "at": "2026-09-29T18:53:47.323281+00:00",
+      "line": "[repair 1] env delta applied; build plan now: {'base_image': 'python:3.11-slim', 'apt_install': [], 'install_commands': ['true  # no declared dependency file found; nothing to install', 'pip install tabulate==0.8.7'], 'execute_command': 'python3 train.py --dir=logs/oct --data_path=./data/ --dataset=CIFAR100 --use_test --transform=VGG --model=VGG16 --save_freq=200 --print_freq=5 --epochs=200 --wd=0.001 --lr=0.05 --dropout 0.5 --comment width64 --seed 25477 --width 64 --num-nets 8 --num-exps=5 --not-save-weights', 'notes': [\"execute command is the repository's documented command (corpus ground truth)\", 'env delta: add tabulate \u2014 The code imports tabulate but it is not installed, causing ModuleNotFoundError.']}"
+    },
+    {
+      "t_s": 33.53,
+      "at": "2026-09-29T18:53:47.323319+00:00",
+      "line": "[citations] not cited (not used in a decision): https://www.python.org/downloads"
+    },
+    {
+      "t_s": 33.53,
+      "at": "2026-09-29T18:53:47.323331+00:00",
+      "line": "[citations] not cited (not used in a decision): https://en.wikipedia.org/wiki/Python_(programming_language)"
+    },
+    {
+      "t_s": 33.53,
+      "at": "2026-09-29T18:53:47.323340+00:00",
+      "line": "[citations] not cited (not used in a decision): https://packaging.python.org/specifications/platform-compatibility-tags"
+    },
+    {
+      "t_s": 33.53,
+      "at": "2026-09-29T18:53:47.323349+00:00",
+      "line": "[citations] not cited (not used in a decision): https://discuss.avogadro.cc/t/lets-decide-on-a-python-version-policy-should-we-align-to-the-scientific-python-policy/6387"
+    },
+    {
+      "t_s": 33.53,
+      "at": "2026-09-29T18:53:47.323416+00:00",
+      "line": "[citations] not cited (not used in a decision): https://www.chainguard.dev/unchained/this-shit-is-hard-the-complexities-of-fixing-python-library-security-issues-at-scale"
+    },
+    {
+      "t_s": 33.53,
+      "at": "2026-09-29T18:53:47.323435+00:00",
+      "line": "[citations] not cited (offered, not used): https://pypi.org/project/tabulate/0.8.6/"
+    },
+    {
+      "t_s": 33.53,
+      "at": "2026-09-29T18:53:47.323455+00:00",
+      "line": "[citations] not cited (offered, not used): https://pypi.org/project/tabulate/0.8.5/"
+    },
+    {
+      "t_s": 33.53,
+      "at": "2026-09-29T18:53:47.323470+00:00",
+      "line": "[citations] not cited (offered, not used): https://pypi.org/project/tabulate/0.8.4/"
+    },
+    {
+      "t_s": 33.53,
+      "at": "2026-09-29T18:53:47.323482+00:00",
+      "line": "[citations] not cited (offered, not used): https://pypi.org/project/tabulate/0.8.3/"
+    },
+    {
+      "t_s": 33.53,
+      "at": "2026-09-29T18:53:47.323490+00:00",
+      "line": "[citations] not cited (offered, not used): https://pypi.org/project/tabulate/0.10.0/"
+    },
+    {
+      "t_s": 33.63,
+      "at": "2026-09-29T18:53:47.427817+00:00",
+      "line": "[integrity] verified 14 file(s) against tree 8816889b0fab7d8f3770ab268822f2051826849e"
+    },
+    {
+      "t_s": 33.63,
+      "at": "2026-09-29T18:53:47.427885+00:00",
+      "line": "[sandbox] starting build+execute (wall_clock_seconds=600)"
+    },
+    {
+      "t_s": 48.71,
+      "at": "2026-09-29T18:54:02.501413+00:00",
+      "line": "[cost_guard] recorded $0.0128 sandbox spend, $1.9828 remaining today"
+    },
+    {
+      "t_s": 48.71,
+      "at": "2026-09-29T18:54:02.501500+00:00",
+      "line": "[repair 1] re-execution id=ee151766-4b16-4732-a5eb-05ee7021a80d exit_code=1"
+    },
+    {
+      "t_s": 48.71,
+      "at": "2026-09-29T18:54:02.501783+00:00",
+      "line": "[classifier] RUNTIME_ERROR_OTHER: ImportError: cannot import name 'Iterable' from 'collections' (/usr/local/lib/python3.11/collections/__init__.py)"
+    },
+    {
+      "t_s": 51.5,
+      "at": "2026-09-29T18:54:05.295770+00:00",
+      "line": "[tavily] 3 result(s) for 'python runtime error other fix: ImportError: cannot import name 'Iterable' from 'collections' (/usr/local/lib/python3.11/collections/__init__.py)'"
+    },
+    {
+      "t_s": 101.5,
+      "at": "2026-09-29T18:54:55.294290+00:00",
+      "line": "[repair 2] tamper gate PASS (code) \u2014 applying and re-executing"
+    },
+    {
+      "t_s": 101.56,
+      "at": "2026-09-29T18:54:55.357156+00:00",
+      "line": "[repair 2] gate-approved patch failed to apply cleanly: gate-approved patch failed to apply: error: patch failed: train.py:1\nerror: train.py: patch does not apply"
+    },
+    {
+      "t_s": 101.56,
+      "at": "2026-09-29T18:54:55.357211+00:00",
+      "line": "[citations] not cited (not used in a decision): https://www.chainguard.dev/unchained/wolfi-moves-to-usrmerge-standard"
+    },
+    {
+      "t_s": 101.56,
+      "at": "2026-09-29T18:54:55.357223+00:00",
+      "line": "[citations] not cited (not used in a decision): https://assets.publishing.service.gov.uk/media/5a7e47a0e5274a2e87db0b50/ED1._Nursery_Schools_as_at_September_2013.xls"
+    },
+    {
+      "t_s": 101.56,
+      "at": "2026-09-29T18:54:55.357232+00:00",
+      "line": "[citations] not cited (not used in a decision): https://docs.graphbit.ai/python"
+    },
+    {
+      "t_s": 103.85,
+      "at": "2026-09-29T18:54:57.639511+00:00",
+      "line": "[tavily] 3 result(s) for 'python runtime error other fix: ImportError: cannot import name 'Iterable' from 'collections' (/usr/local/lib/python3.11/collections/__init__.py)'"
+    },
+    {
+      "t_s": 130.47,
+      "at": "2026-09-29T18:55:24.258819+00:00",
+      "line": "[repair 3] env change lacked justification/evidence; re-asked once (same attempt)"
+    },
+    {
+      "t_s": 135.36,
+      "at": "2026-09-29T18:55:29.150650+00:00",
+      "line": "[repair 3] tamper gate PASS (env) \u2014 applying and re-executing"
+    },
+    {
+      "t_s": 135.36,
+      "at": "2026-09-29T18:55:29.150749+00:00",
+      "line": "[repair 3] env delta applied; build plan now: {'base_image': 'python:3.11-slim', 'apt_install': [], 'install_commands': ['true  # no declared dependency file found; nothing to install', 'pip install tabulate==0.8.7', 'pip install tabulate==0.8.9'], 'execute_command': 'python3 train.py --dir=logs/oct --data_path=./data/ --dataset=CIFAR100 --use_test --transform=VGG --model=VGG16 --save_freq=200 --print_freq=5 --epochs=200 --wd=0.001 --lr=0.05 --dropout 0.5 --comment width64 --seed 25477 --width 64 --num-nets 8 --num-exps=5 --not-save-weights', 'notes': [\"execute command is the repository's documented command (corpus ground truth)\", 'env delta: add tabulate \u2014 The code imports tabulate but it is not installed, causing ModuleNotFoundError.', 'env delta: pin tabulate \u2014 Upgrade tabulate to a version that imports Iterable from collections.abc, fixing the ImportError under Python 3.11']}"
+    },
+    {
+      "t_s": 135.36,
+      "at": "2026-09-29T18:55:29.150774+00:00",
+      "line": "[citations] not cited (not used in a decision): https://itsourcecode.com/importerror/importerror-cannot-import-name-iterable-from-collections"
+    },
+    {
+      "t_s": 135.36,
+      "at": "2026-09-29T18:55:29.150785+00:00",
+      "line": "[citations] not cited (not used in a decision): https://bobbyhadz.com/blog/python-importerror-cannot-import-name-mapping-from-collections"
+    },
+    {
+      "t_s": 135.36,
+      "at": "2026-09-29T18:55:29.150794+00:00",
+      "line": "[citations] not cited (not used in a decision): https://www.nbshare.io/notebook/589110167/ImportError-cannot-import-name-Iterabler-from-collections-python-3-10"
+    },
+    {
+      "t_s": 135.45,
+      "at": "2026-09-29T18:55:29.245439+00:00",
+      "line": "[integrity] verified 14 file(s) against tree 8816889b0fab7d8f3770ab268822f2051826849e"
+    },
+    {
+      "t_s": 135.45,
+      "at": "2026-09-29T18:55:29.245493+00:00",
+      "line": "[sandbox] starting build+execute (wall_clock_seconds=600)"
+    },
+    {
+      "t_s": 155.18,
+      "at": "2026-09-29T18:55:48.975292+00:00",
+      "line": "[cost_guard] recorded $0.0166 sandbox spend, $1.9451 remaining today"
+    },
+    {
+      "t_s": 155.18,
+      "at": "2026-09-29T18:55:48.975392+00:00",
+      "line": "[repair 3] re-execution id=9e09ccac-6e2f-458a-be30-881d32ce0027 exit_code=1"
+    },
+    {
+      "t_s": 155.18,
+      "at": "2026-09-29T18:55:48.975554+00:00",
+      "line": "[classifier] DEP_MISSING: ModuleNotFoundError: No module named 'torch'"
+    },
+    {
+      "t_s": 155.18,
+      "at": "2026-09-29T18:55:48.975578+00:00",
+      "line": "[verdict] BLOCKED after 3 repair attempt(s): DEP_MISSING"
+    }
+  ],
+  "model_calls": [
+    {
+      "model": "nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B",
+      "started_at": "2026-09-29T18:53:14.083816+00:00",
+      "latency_s": 10.88,
+      "finish_reason": "stop",
+      "content_is_none": false,
+      "has_reasoning": true,
+      "usage": {
+        "completion_tokens": 994,
+        "prompt_tokens": 1624,
+        "total_tokens": 2618,
+        "completion_tokens_details": null,
+        "prompt_tokens_details": null
+      }
+    },
+    {
+      "model": "nvidia/nemotron-3-super-120b-a12b",
+      "started_at": "2026-09-29T18:53:24.962517+00:00",
+      "latency_s": 0.99,
+      "finish_reason": "stop",
+      "content_is_none": false,
+      "has_reasoning": true,
+      "usage": {
+        "completion_tokens": 37,
+        "prompt_tokens": 270,
+        "total_tokens": 307,
+        "completion_tokens_details": {
+          "accepted_prediction_tokens": null,
+          "audio_tokens": null,
+          "reasoning_tokens": 27,
+          "rejected_prediction_tokens": null,
+          "text_tokens": null
+        },
+        "prompt_tokens_details": {
+          "audio_tokens": null,
+          "cache_write_tokens": null,
+          "cached_tokens": 0,
+          "image_tokens": null,
+          "text_tokens": null,
+          "created_cache_tokens": 0,
+          "multimodal_tokens": null
+        },
+        "prompt_cache_hit_tokens": 0,
+        "prompt_cache_miss_tokens": 270
+      }
+    },
+    {
+      "model": "nvidia/nemotron-3-super-120b-a12b",
+      "started_at": "2026-09-29T18:53:40.361562+00:00",
+      "latency_s": 6.96,
+      "finish_reason": "stop",
+      "content_is_none": false,
+      "has_reasoning": true,
+      "usage": {
+        "completion_tokens": 1308,
+        "prompt_tokens": 5344,
+        "total_tokens": 6652,
+        "completion_tokens_details": {
+          "accepted_prediction_tokens": null,
+          "audio_tokens": null,
+          "reasoning_tokens": 1192,
+          "rejected_prediction_tokens": null,
+          "text_tokens": null
+        },
+        "prompt_tokens_details": {
+          "audio_tokens": null,
+          "cache_write_tokens": null,
+          "cached_tokens": 0,
+          "image_tokens": null,
+          "text_tokens": null,
+          "created_cache_tokens": 0,
+          "multimodal_tokens": null
+        },
+        "prompt_cache_hit_tokens": 0,
+        "prompt_cache_miss_tokens": 5344
+      }
+    },
+    {
+      "model": "nvidia/nemotron-3-super-120b-a12b",
+      "started_at": "2026-09-29T18:54:05.299015+00:00",
+      "latency_s": 35.81,
+      "finish_reason": "length",
+      "content_is_none": true,
+      "has_reasoning": true,
+      "usage": {
+        "completion_tokens": 8192,
+        "prompt_tokens": 4601,
+        "total_tokens": 12793,
+        "completion_tokens_details": {
+          "accepted_prediction_tokens": null,
+          "audio_tokens": null,
+          "reasoning_tokens": 8192,
+          "rejected_prediction_tokens": null,
+          "text_tokens": null
+        },
+        "prompt_tokens_details": {
+          "audio_tokens": null,
+          "cache_write_tokens": null,
+          "cached_tokens": 0,
+          "image_tokens": null,
+          "text_tokens": null,
+          "created_cache_tokens": 0,
+          "multimodal_tokens": null
+        },
+        "prompt_cache_hit_tokens": 0,
+        "prompt_cache_miss_tokens": 4601
+      }
+    },
+    {
+      "model": "nvidia/nemotron-3-super-120b-a12b",
+      "started_at": "2026-09-29T18:54:41.106366+00:00",
+      "latency_s": 14.16,
+      "finish_reason": "stop",
+      "content_is_none": false,
+      "has_reasoning": true,
+      "usage": {
+        "completion_tokens": 3182,
+        "prompt_tokens": 4601,
+        "total_tokens": 7783,
+        "completion_tokens_details": {
+          "accepted_prediction_tokens": null,
+          "audio_tokens": null,
+          "reasoning_tokens": 3031,
+          "rejected_prediction_tokens": null,
+          "text_tokens": null
+        },
+        "prompt_tokens_details": {
+          "audio_tokens": null,
+          "cache_write_tokens": null,
+          "cached_tokens": 0,
+          "image_tokens": null,
+          "text_tokens": null,
+          "created_cache_tokens": 0,
+          "multimodal_tokens": null
+        },
+        "prompt_cache_hit_tokens": 0,
+        "prompt_cache_miss_tokens": 4601
+      }
+    },
+    {
+      "model": "nvidia/nemotron-3-super-120b-a12b",
+      "started_at": "2026-09-29T18:54:57.643615+00:00",
+      "latency_s": 26.62,
+      "finish_reason": "stop",
+      "content_is_none": false,
+      "has_reasoning": true,
+      "usage": {
+        "completion_tokens": 5357,
+        "prompt_tokens": 4652,
+        "total_tokens": 10009,
+        "completion_tokens_details": {
+          "accepted_prediction_tokens": null,
+          "audio_tokens": null,
+          "reasoning_tokens": 5266,
+          "rejected_prediction_tokens": null,
+          "text_tokens": null
+        },
+        "prompt_tokens_details": {
+          "audio_tokens": null,
+          "cache_write_tokens": null,
+          "cached_tokens": 0,
+          "image_tokens": null,
+          "text_tokens": null,
+          "created_cache_tokens": 0,
+          "multimodal_tokens": null
+        },
+        "prompt_cache_hit_tokens": 0,
+        "prompt_cache_miss_tokens": 4652
+      }
+    },
+    {
+      "model": "nvidia/nemotron-3-super-120b-a12b",
+      "started_at": "2026-09-29T18:55:24.261935+00:00",
+      "latency_s": 4.89,
+      "finish_reason": "stop",
+      "content_is_none": false,
+      "has_reasoning": true,
+      "usage": {
+        "completion_tokens": 533,
+        "prompt_tokens": 4736,
+        "total_tokens": 5269,
+        "completion_tokens_details": {
+          "accepted_prediction_tokens": null,
+          "audio_tokens": null,
+          "reasoning_tokens": 384,
+          "rejected_prediction_tokens": null,
+          "text_tokens": null
+        },
+        "prompt_tokens_details": {
+          "audio_tokens": null,
+          "cache_write_tokens": null,
+          "cached_tokens": 0,
+          "image_tokens": null,
+          "text_tokens": null,
+          "created_cache_tokens": 0,
+          "multimodal_tokens": null
+        },
+        "prompt_cache_hit_tokens": 0,
+        "prompt_cache_miss_tokens": 4736
+      }
+    },
+    {
+      "model": "nvidia/Nemotron-3-Ultra-550b-a55b",
+      "started_at": "2026-09-29T18:55:48.977115+00:00",
+      "latency_s": 1.79,
+      "finish_reason": "stop",
+      "content_is_none": false,
+      "has_reasoning": true,
+      "usage": {
+        "completion_tokens": 399,
+        "prompt_tokens": 666,
+        "total_tokens": 1065,
+        "completion_tokens_details": {
+          "accepted_prediction_tokens": null,
+          "audio_tokens": null,
+          "reasoning_tokens": 294,
+          "rejected_prediction_tokens": null,
+          "text_tokens": null
+        },
+        "prompt_tokens_details": {
+          "audio_tokens": null,
+          "cache_write_tokens": null,
+          "cached_tokens": 0,
+          "image_tokens": null,
+          "text_tokens": null,
+          "multimodal_tokens": null
+        },
+        "prompt_cache_hit_tokens": 0,
+        "prompt_cache_miss_tokens": 666
+      }
+    }
+  ],
+  "cost_guard": {
+    "spent_usd": 0.05680515999999999,
+    "model_spent_usd": 0.0262083,
+    "sandbox_spent_usd": 0.030596859999999997,
+    "remaining_usd": 1.94319484,
+    "model_usage": [
+      {
+        "model": "nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B",
+        "prompt_tokens": 1624,
+        "completion_tokens": 994,
+        "cost_usd": 0.000336
+      },
+      {
+        "model": "nvidia/nemotron-3-super-120b-a12b",
+        "prompt_tokens": 270,
+        "completion_tokens": 37,
+        "cost_usd": 0.00011430000000000001
+      },
+      {
+        "model": "nvidia/nemotron-3-super-120b-a12b",
+        "prompt_tokens": 5344,
+        "completion_tokens": 1308,
+        "cost_usd": 0.0027804
+      },
+      {
+        "model": "nvidia/nemotron-3-super-120b-a12b",
+        "prompt_tokens": 4601,
+        "completion_tokens": 8192,
+        "cost_usd": 0.0087531
+      },
+      {
+        "model": "nvidia/nemotron-3-super-120b-a12b",
+        "prompt_tokens": 4601,
+        "completion_tokens": 3182,
+        "cost_usd": 0.004244100000000001
+      },
+      {
+        "model": "nvidia/nemotron-3-super-120b-a12b",
+        "prompt_tokens": 4652,
+        "completion_tokens": 5357,
+        "cost_usd": 0.0062169
+      },
+      {
+        "model": "nvidia/nemotron-3-super-120b-a12b",
+        "prompt_tokens": 4736,
+        "completion_tokens": 533,
+        "cost_usd": 0.0019005
+      },
+      {
+        "model": "nvidia/Nemotron-3-Ultra-550b-a55b",
+        "prompt_tokens": 666,
+        "completion_tokens": 399,
+        "cost_usd": 0.001863
+      }
+    ],
+    "prices_usd_per_1m": {
+      "nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B": [
+        0.06,
+        0.24
+      ],
+      "nvidia/nemotron-3-super-120b-a12b": [
+        0.3,
+        0.9
+      ],
+      "nvidia/Nemotron-3-Ultra-550b-a55b": [
+        1.0,
+        3.0
+      ]
+    },
+    "prices_source": "https://api.tokenfactory.nebius.com/v1/models?verbose=true (pricing field)",
+    "prices_retrieved": "2026-09-24"
+  }
+}

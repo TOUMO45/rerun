@@ -1,0 +1,227 @@
+{
+  "run_kind": "live end-to-end run",
+  "dev_run": false,
+  "dry_run": null,
+  "batch": {
+    "harness_tag": "harness-v1.2",
+    "harness_commit": "668c907baeef0cbb29338f118dfc8975dd812993",
+    "head_commit": "2ea34772cbf5d176e78dfd6e599c409bd711a259",
+    "corpus": "corpus-v2",
+    "prereg_sha256": "ae5a722249156e058d3d360bdc63fa8224140d0688f1daa307ecfa93a98c7284",
+    "corpus_hash": "7df090bea7013974f9f10fb8959ab0162734b51c83a80f744f9c310ce694fbdc",
+    "entry_id": 2,
+    "category": "PRIMARY",
+    "rules_matched": [],
+    "per_entry_cap_usd": 2.0,
+    "total_cap_usd": 40.0
+  },
+  "started_at": "2026-09-29T18:55:54.020050+00:00",
+  "corpus_entry": {
+    "name": "DeformableFriends__NeuralTracking",
+    "repo_url": "https://github.com/DeformableFriends/NeuralTracking",
+    "commit_sha": "015256369a94a56b0e478fd100326b9aa97ec9a7",
+    "command": "sh start_nnrt.sh",
+    "command_source": "README.md line 58"
+  },
+  "config": {
+    "models": {
+      "recon": "nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B",
+      "planner": "nvidia/nemotron-3-super-120b-a12b",
+      "repairer": "nvidia/nemotron-3-super-120b-a12b",
+      "adjudicator": "nvidia/Nemotron-3-Ultra-550b-a55b"
+    },
+    "sandbox_backend": "token_factory",
+    "sandbox_image_default": "python:3.11-slim",
+    "sandbox_wall_clock_seconds": 600.0,
+    "max_attempts": 3,
+    "tavily_configured": true,
+    "cost_cap_usd": 2.0
+  },
+  "intake": {
+    "duration_s": 182.26,
+    "resolved_sha": "015256369a94a56b0e478fd100326b9aa97ec9a7",
+    "dependency_files": [],
+    "declared_dependencies": [],
+    "entrypoint_candidates": [
+      "create_graph_data.py",
+      "evaluate.py",
+      "example_viz.py",
+      "generate.py",
+      "model/evaluate.py",
+      "train.py",
+      "utils/snapshot_manager.py"
+    ],
+    "notebook_paths": []
+  },
+  "pipeline_duration_s": 25.2,
+  "repair_mode": "deterministic",
+  "tree_integrity": {
+    "status": "verified",
+    "tree_sha": "f7b41297c60b54f204f854bd80aac9b796a1b80c",
+    "files_checked": 374,
+    "excluded_patched": []
+  },
+  "result": {
+    "verdict": "UPLOAD_TOO_LARGE",
+    "taxonomy_code": null,
+    "indeterminate_reason": "UPLOAD_TOO_LARGE: upload archive is 185,856,000 bytes; the pre-declared cap is 125,009,920 bytes \u2014 a pre-declared harness limitation; nothing was uploaded and this is not a verdict on the repository.",
+    "reason_code": "UPLOAD_TOO_LARGE",
+    "error_traceback": "",
+    "attempts": [],
+    "certificate_prose": "The repository exceeds RERUN's pre-declared upload size limit, so it was not run and nothing is claimed about it. Verifies that the artifact executes. Does not verify the paper's numerical results."
+  },
+  "certificate": {
+    "repo_url": "https://github.com/DeformableFriends/NeuralTracking",
+    "commit_sha": "015256369a94a56b0e478fd100326b9aa97ec9a7",
+    "build_plan": {
+      "base_image": "python:3.11-slim",
+      "apt_install": [],
+      "install_commands": [
+        "true  # no declared dependency file found; nothing to install"
+      ],
+      "execute_command": "sh start_nnrt.sh",
+      "notes": [
+        "execute command is the repository's documented command (corpus ground truth)"
+      ]
+    },
+    "full_log": "[intake] cloned https://github.com/DeformableFriends/NeuralTracking@015256369a94a56b0e478fd100326b9aa97ec9a7\n[recon] calling Nemotron Nano\n[recon] entrypoint=model/evaluate.py confidence=0.78\n[planner] build plan: {'base_image': 'python:3.11-slim', 'apt_install': [], 'install_commands': ['true  # no declared dependency file found; nothing to install'], 'execute_command': 'sh start_nnrt.sh', 'notes': [\"execute command is the repository's documented command (corpus ground truth)\"]}\n[integrity] verified 374 file(s) against tree f7b41297c60b54f204f854bd80aac9b796a1b80c\n[sandbox] starting build+execute (wall_clock_seconds=600)\n[harness-limit] UPLOAD_TOO_LARGE: upload archive is 185,856,000 bytes; the pre-declared cap is 125,009,920 bytes \u2014 a pre-declared harness limitation; nothing was uploaded and this is not a verdict on the repository.",
+    "diffs": [],
+    "verdict": "UPLOAD_TOO_LARGE",
+    "timestamp": "2026-09-29T18:59:21.466264+00:00",
+    "bundle_version": 3,
+    "baseline": {
+      "result": "NOT_RUN"
+    },
+    "recovery": false,
+    "tree_integrity": {
+      "status": "verified",
+      "tree_sha": "f7b41297c60b54f204f854bd80aac9b796a1b80c",
+      "files_checked": 374,
+      "excluded_patched": []
+    },
+    "corpus_hash": "7df090bea7013974f9f10fb8959ab0162734b51c83a80f744f9c310ce694fbdc",
+    "reproduction_passport_hash": "6587a93ab7e9cb98a69198ac6a313dd10c6985d091acc127659bf9841b7a0f50"
+  },
+  "finished_at": "2026-09-29T18:59:21.590440+00:00",
+  "events": [
+    {
+      "t_s": 0.0,
+      "at": "2026-09-29T18:58:56.277547+00:00",
+      "line": "[intake] cloned https://github.com/DeformableFriends/NeuralTracking@015256369a94a56b0e478fd100326b9aa97ec9a7"
+    },
+    {
+      "t_s": 0.01,
+      "at": "2026-09-29T18:58:56.288595+00:00",
+      "line": "[recon] calling Nemotron Nano"
+    },
+    {
+      "t_s": 20.48,
+      "at": "2026-09-29T18:59:16.752898+00:00",
+      "line": "[recon] entrypoint=model/evaluate.py confidence=0.78"
+    },
+    {
+      "t_s": 21.53,
+      "at": "2026-09-29T18:59:17.806563+00:00",
+      "line": "[planner] build plan: {'base_image': 'python:3.11-slim', 'apt_install': [], 'install_commands': ['true  # no declared dependency file found; nothing to install'], 'execute_command': 'sh start_nnrt.sh', 'notes': [\"execute command is the repository's documented command (corpus ground truth)\"]}"
+    },
+    {
+      "t_s": 24.48,
+      "at": "2026-09-29T18:59:20.757780+00:00",
+      "line": "[integrity] verified 374 file(s) against tree f7b41297c60b54f204f854bd80aac9b796a1b80c"
+    },
+    {
+      "t_s": 24.48,
+      "at": "2026-09-29T18:59:20.757827+00:00",
+      "line": "[sandbox] starting build+execute (wall_clock_seconds=600)"
+    },
+    {
+      "t_s": 25.19,
+      "at": "2026-09-29T18:59:21.466192+00:00",
+      "line": "[harness-limit] UPLOAD_TOO_LARGE: upload archive is 185,856,000 bytes; the pre-declared cap is 125,009,920 bytes \u2014 a pre-declared harness limitation; nothing was uploaded and this is not a verdict on the repository."
+    }
+  ],
+  "model_calls": [
+    {
+      "model": "nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B",
+      "started_at": "2026-09-29T18:58:56.501585+00:00",
+      "latency_s": 20.25,
+      "finish_reason": "stop",
+      "content_is_none": false,
+      "has_reasoning": true,
+      "usage": {
+        "completion_tokens": 2741,
+        "prompt_tokens": 7006,
+        "total_tokens": 9747,
+        "completion_tokens_details": null,
+        "prompt_tokens_details": null
+      }
+    },
+    {
+      "model": "nvidia/nemotron-3-super-120b-a12b",
+      "started_at": "2026-09-29T18:59:16.754265+00:00",
+      "latency_s": 1.05,
+      "finish_reason": "stop",
+      "content_is_none": false,
+      "has_reasoning": true,
+      "usage": {
+        "completion_tokens": 40,
+        "prompt_tokens": 270,
+        "total_tokens": 310,
+        "completion_tokens_details": {
+          "accepted_prediction_tokens": null,
+          "audio_tokens": null,
+          "reasoning_tokens": 30,
+          "rejected_prediction_tokens": null,
+          "text_tokens": null
+        },
+        "prompt_tokens_details": {
+          "audio_tokens": null,
+          "cache_write_tokens": null,
+          "cached_tokens": 0,
+          "image_tokens": null,
+          "text_tokens": null,
+          "created_cache_tokens": 0,
+          "multimodal_tokens": null
+        },
+        "prompt_cache_hit_tokens": 0,
+        "prompt_cache_miss_tokens": 270
+      }
+    }
+  ],
+  "cost_guard": {
+    "spent_usd": 0.0011952,
+    "model_spent_usd": 0.0011952,
+    "sandbox_spent_usd": 0.0,
+    "remaining_usd": 1.9988048,
+    "model_usage": [
+      {
+        "model": "nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B",
+        "prompt_tokens": 7006,
+        "completion_tokens": 2741,
+        "cost_usd": 0.0010782
+      },
+      {
+        "model": "nvidia/nemotron-3-super-120b-a12b",
+        "prompt_tokens": 270,
+        "completion_tokens": 40,
+        "cost_usd": 0.000117
+      }
+    ],
+    "prices_usd_per_1m": {
+      "nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B": [
+        0.06,
+        0.24
+      ],
+      "nvidia/nemotron-3-super-120b-a12b": [
+        0.3,
+        0.9
+      ],
+      "nvidia/Nemotron-3-Ultra-550b-a55b": [
+        1.0,
+        3.0
+      ]
+    },
+    "prices_source": "https://api.tokenfactory.nebius.com/v1/models?verbose=true (pricing field)",
+    "prices_retrieved": "2026-09-24"
+  }
+}

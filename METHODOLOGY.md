@@ -527,3 +527,21 @@ BLOCKED 5, TIMEOUT 2 (#10 alf, #17 neural-flows).
 
 75 draws screened under the sealed pre-registration (seed 20260928); 20 eligible; corpus_hash
 `7df090bea7013974f9f10fb8959ab0162734b51c83a80f744f9c310ce694fbdc`. Outputs: `backend/app/batch/corpus_v2/{corpus.yaml,corpus_hash.txt,screening_log.jsonl}`.
+
+## corpus-v2 batch on harness-v1.2 — STOPPED after 3 of 20 (2026-09-29)
+
+Stopped under the freeze rule (a failure attributed to the repository that is not the
+repository's fault). Entries run: #1 nadiinchi/power_laws_deep_ensembles BLOCKED DEP_MISSING
+($0.0568); #2 DeformableFriends/NeuralTracking UPLOAD_TOO_LARGE (185,856,000 B > cap; excluded,
+$0.0012); #3 autumn9999/vmtl BLOCKED RUNTIME_ERROR_OTHER ($0.3193). Entry #4 was started and
+killed by the operator before completing; it has no record and is not counted. Total $0.3773.
+
+**Misattribution (#3):** after `torch` was installed, importing it failed with
+`libtorch_cpu.so: cannot enable executable stack as shared object requires: Invalid argument`.
+The Nebius sandbox refuses executable-stack shared objects, so the stock PyTorch wheel cannot
+load there whatever the repo does. The repair loop then tried `apt install execstack`
+(`Unable to locate package`), and the run ended BLOCKED/RUNTIME_ERROR_OTHER, charged to the
+repository. That verdict is not valid evidence about the repo. Not fixed (harness frozen); any
+torch-dependent repo in corpus-v2 is at risk of the same misattribution. Also note the
+classifier labelled the first error SYS_LIB_MISSING, then the failed repair changed the final
+code. Entries #4-#20 were not run.
