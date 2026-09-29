@@ -1,0 +1,49 @@
+{
+  "stage": "b",
+  "torch_spec": "torch",
+  "base_image": "python:3.10-slim",
+  "dry_run_wsl": false,
+  "install_commands": [
+    "pip install torch --index-url https://download.pytorch.org/whl/cpu --extra-index-url https://pypi.org/simple",
+    "python -c '\nimport glob, importlib.util, os, struct, subprocess, sys\nspec = importlib.util.find_spec(\"torch\")\nroot = os.path.join(os.path.dirname(spec.origin), \"lib\")\nPT_GNU_STACK = 0x6474e551\nbad = []\nfor path in sorted(glob.glob(os.path.join(root, \"*.so*\"))):\n    with open(path, \"rb\") as f:\n        head = f.read(64)\n        if head[:4] != b\"\\x7fELF\" or head[4] != 2:\n            continue\n        phoff, = struct.unpack_from(\"<Q\", head, 32)\n        phentsize, phnum = struct.unpack_from(\"<HH\", head, 54)\n        f.seek(phoff)\n        for _ in range(phnum):\n            ph = f.read(phentsize)\n            p_type, p_flags = struct.unpack_from(\"<II\", ph, 0)\n            if p_type == PT_GNU_STACK and p_flags & 1:\n                bad.append(path)\nif bad:\n    subprocess.check_call([sys.executable, \"-m\", \"pip\", \"install\", \"-q\", \"patchelf\"])\n    for path in bad:\n        subprocess.check_call([\"patchelf\", \"--clear-execstack\", path])\n    print(\"RERUN_EXECSTACK_CLEARED\", len(bad))\nsubprocess.check_call([sys.executable, \"-c\", \"import torch; print('\"'\"'RERUN_TORCH_OK'\"'\"', torch.__version__)\"])\n'"
+  ],
+  "execute_command": "echo GLIBC $(ldd --version 2>&1 | head -1); echo KERNEL $(uname -r); echo PYTHON $(python -V 2>&1); echo ARCH $(uname -m); python -c 'import torch; print(\"TORCH_OK\", torch.__version__)'",
+  "started_at": "2026-09-29T20:23:34.793520+00:00",
+  "steps": [
+    {
+      "command": "pip install --index-url https://download.pytorch.org/whl/cpu --extra-index-url https://pypi.org/simple torch",
+      "exit_code": 0,
+      "stdout": "Looking in indexes: https://download.pytorch.org/whl/cpu, https://pypi.org/simple\nCollecting torch\n  Obtaining dependency information for torch from https://download-r2.pytorch.org/whl/cpu/torch-2.14.0%2Bcpu-cp310-cp310-manylinux_2_28_x86_64.whl.metadata\n  Downloading https://download-r2.pytorch.org/whl/cpu/torch-2.14.0%2Bcpu-cp310-cp310-manylinux_2_28_x86_64.whl.metadata (37 kB)\nCollecting typing-extensions>=4.10.0\n  Downloading typing_extensions-4.16.0-py3-none-any.whl (45 kB)\n     \u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501 45.6/45.6 kB 9.8 MB/s eta 0:00:00\nCollecting fsspec>=0.8.5\n  Downloading fsspec-2026.9.0-py3-none-any.whl (221 kB)\n     \u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501 221.7/221.7 kB 43.4 MB/s eta 0:00:00\nCollecting filelock\n  Downloading filelock-4.0.6-py3-none-any.whl (109 kB)\n     \u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501 109.1/109.1 kB 29.5 MB/s eta 0:00:00\nCollecting networkx>=2.5.1\n  Downloading networkx-3.4.2-py3-none-any.whl (1.7 MB)\n     \u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501 1.7/1.7 MB 76.5 MB/s eta 0:00:00\nRequirement already satisfied: setuptools>=77.0.3 in /usr/local/lib/python3.10/site-packages (from torch) (79.0.1)\nCollecting jinja2\n  Downloading jinja2-3.1.6-py3-none-any.whl (134 kB)\n     \u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501 134.9/134.9 kB 36.2 MB/s eta 0:00:00\nCollecting sympy>=1.13.3\n  Downloading sympy-1.14.0-py3-none-any.whl (6.3 MB)\n     \u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501 6.3/6.3 MB 76.6 MB/s eta 0:00:00\nCollecting mpmath<1.4,>=1.1.0\n  Downloading mpmath-1.3.0-py3-none-any.whl (536 kB)\n     \u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501 536.2/536.2 kB 64.7 MB/s eta 0:00:00\nCollecting MarkupSafe>=2.0\n  Downloading markupsafe-3.0.3-cp310-cp310-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl (20 kB)\nDownloading https://download-r2.pytorch.org/whl/cpu/torch-2.14.0%2Bcpu-cp310-cp310-manylinux_2_28_x86_64.whl (196.2 MB)\n   \u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501 196.2/196.2 MB 17.2 MB/s eta 0:00:00\nUsing cached https://download-r2.pytorch.org/whl/cpu/torch-2.14.0%2Bcpu-cp310-cp310-manylinux_2_28_x86_64.whl (196.2 MB)\nInstalling collected packages: mpmath, typing-extensions, sympy, networkx, MarkupSafe, fsspec, filelock, jinja2, torch\nSuccessfully installed MarkupSafe-3.0.3 filelock-4.0.6 fsspec-2026.9.0 jinja2-3.1.6 mpmath-1.3.0 networkx-3.4.2 sympy-1.14.0 torch-2.14.0+cpu typing-extensions-4.16.0\n",
+      "stderr": "WARNING: Running pip as the 'root' user can result in broken permissions and conflicting behaviour with the system package manager. It is recommended to use a virtual environment instead: https://pip.pypa.io/warnings/venv\n\n[notice] A new release of pip is available: 23.0.1 -> 26.2.1\n[notice] To update, run: pip install --upgrade pip\n",
+      "seconds": 16.06,
+      "cost_usd": 0.16571638000000002
+    },
+    {
+      "command": "python -c '\nimport glob, importlib.util, os, struct, subprocess, sys\nspec = importlib.util.find_spec(\"torch\")\nroot = os.path.join(os.path.dirname(spec.origin), \"lib\")\nPT_GNU_STACK = 0x6474e551\nbad = [",
+      "exit_code": 0,
+      "stdout": "RERUN_TORCH_OK 2.14.0+cpu\n",
+      "stderr": "/usr/local/lib/python3.10/site-packages/torch/_subclasses/functional_tensor.py:368: UserWarning: Failed to initialize NumPy: No module named 'numpy' (Triggered internally at /__w/pytorch/pytorch/torch/csrc/utils/tensor_numpy.cpp:84.)\n  cpu = _conversion_method_template(device=torch.device(\"cpu\"))\n",
+      "seconds": 1.0,
+      "cost_usd": 0.011029530000000001
+    },
+    {
+      "command": "echo GLIBC $(ldd --version 2>&1 | head -1); echo KERNEL $(uname -r); echo PYTHON $(python -V 2>&1); echo ARCH $(uname -m); python -c 'import torch; print(\"TORCH_OK\", torch.__version__)'",
+      "exit_code": 0,
+      "stdout": "GLIBC ldd (Debian GLIBC 2.41-12+deb13u2) 2.41\nKERNEL 7.0.6\nPYTHON Python 3.10.20\nARCH x86_64\nTORCH_OK 2.14.0+cpu\n",
+      "stderr": "/usr/local/lib/python3.10/site-packages/torch/_subclasses/functional_tensor.py:368: UserWarning: Failed to initialize NumPy: No module named 'numpy' (Triggered internally at /__w/pytorch/pytorch/torch/csrc/utils/tensor_numpy.cpp:84.)\n  cpu = _conversion_method_template(device=torch.device(\"cpu\"))\n",
+      "seconds": 0.98,
+      "cost_usd": 0.010837510000000002
+    }
+  ],
+  "torch_ok": true,
+  "sandbox_id": "6d60edab-93d2-44bd-b39d-5db90c76e53a",
+  "cost_usd": 0.1876,
+  "glibc": "ldd (Debian GLIBC 2.41-12+deb13u2) 2.41",
+  "kernel": "7.0.6",
+  "python": "Python 3.10.20",
+  "arch": "x86_64",
+  "execstack_cleared": [],
+  "exec_stack_refused": false,
+  "wall_seconds": 48.56,
+  "finished_at": "2026-09-29T20:24:23.353325+00:00"
+}

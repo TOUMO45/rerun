@@ -54,7 +54,7 @@ from contree_sdk.config import ContreeConfig
 from contree_sdk.sdk.exceptions import ContreeError, OperationTimedOutError
 from contree_sdk.sdk.exceptions.api import ApiStatusCodeError, ApiTimeoutError, ContreeTransportError
 
-from app.services import sandbox_limits, timeouts
+from app.services import runner_env, sandbox_limits, timeouts
 from app.services.infra import InfraError, retry_call
 
 
@@ -304,6 +304,7 @@ def run_build_and_execute(
     upload_files: dict[str, str | Path | bytes] | None = None,
     file_modes: dict[str, str] | None = None,
     download_source: "sandbox_limits.DownloadSource | None" = None,
+    torch_setup: "runner_env.TorchSetup | None" = None,
 ) -> SandboxRunResult:
     """Run the full build-plan pipeline in an isolated Token Factory
     Sandbox: reference/import the base image, upload the repo, run each
@@ -335,7 +336,8 @@ def run_build_and_execute(
 
     # Setup is split into separate operations (system packages, torch, the rest),
     # each checked against the per-operation filesystem-delta limit.
-    setup = sandbox_limits.check_ops(sandbox_limits.split_setup_ops(install_commands))
+    runner_torch = (torch_setup.install_command, torch_setup.fix_command) if torch_setup else ()
+    setup = sandbox_limits.check_ops(sandbox_limits.split_setup_ops(install_commands, runner_torch))
     commands = [*(op.command for op in setup), execute_command]
     if not [c for c in commands if c]:
         raise SandboxError("no commands to run: install_commands and execute_command are both empty")

@@ -199,6 +199,8 @@ def estimate_op_delta(kind: OpKind, command: str) -> int:
     if kind == "system":
         n = sum(_apt_packages(shlex.split(seg)) for seg in (_split_and(command) or [command]))
         return _EST_APT_BASE + n * _EST_APT_PER_PACKAGE
+    if kind == "torch" and "RERUN_TORCH_OK" in command:
+        return 50 * 10**6  # the exec-stack fix: pip install patchelf + a flag flip on a few libraries
     if kind == "torch":
         has_index = any(t.startswith(("--index-url", "-i")) for t in tokens)
         return _EST_TORCH_CUDA if any(_CUDA_INDEX.search(t) for t in tokens) or not has_index else _EST_TORCH_CPU
@@ -230,7 +232,7 @@ def _pip_install_tokens(command: str) -> list[str] | None:
     return tokens if tokens[:2] == ["pip", "install"] else None
 
 
-def split_setup_ops(steps: Iterable[str]) -> list[SetupOp]:
+def split_setup_ops(steps: Iterable[str], runner_torch: tuple[str, ...] = ()) -> list[SetupOp]:
     """Order the planner's install steps into separate sandbox operations:
     (a) system packages, (b) torch, (c) everything else. Relative order inside a
     class is preserved. A `pip install` naming torch alongside other packages is
@@ -271,7 +273,9 @@ def split_setup_ops(steps: Iterable[str]) -> list[SetupOp]:
                     rest.append(SetupOp("requirements", rest_cmd, estimate_op_delta("requirements", rest_cmd)))
                 continue
         rest.append(SetupOp("requirements", step, estimate_op_delta("requirements", step)))
-    return [*system, *torch, *rest]
+    # Runner-provided torch ops (install, then exec-stack fix + verify) come before any torch op a step asks for.
+    provided = [SetupOp("torch", cmd, estimate_op_delta("torch", cmd)) for cmd in runner_torch]
+    return [*system, *provided, *torch, *rest]
 
 
 def check_ops(ops: Iterable[SetupOp]) -> list[SetupOp]:

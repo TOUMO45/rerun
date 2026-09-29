@@ -32,6 +32,17 @@ def _commit(repo: Path, message: str) -> str:
     return _run(repo, "rev-parse", "HEAD")
 
 
+@pytest.fixture(autouse=True)
+def _sealed_image_setting(monkeypatch):
+    """Preflight reads NEBIUS_SANDBOX_IMAGE from settings; a machine's untracked .env must not decide these tests."""
+    from app.config import get_settings
+
+    monkeypatch.setenv("NEBIUS_SANDBOX_IMAGE", batch.SEALED_SANDBOX_IMAGE)
+    get_settings.cache_clear()
+    yield
+    get_settings.cache_clear()
+
+
 @pytest.fixture
 def repo(tmp_path, monkeypatch):
     """A repo with harness code, the sealed corpus files, a tag pushed to a

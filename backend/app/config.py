@@ -58,7 +58,8 @@ class Settings(BaseSettings):
 
     # Nebius Sandboxes / Serverless Jobs
     nebius_project_id: str = ""
-    nebius_sandbox_image: str = "python:3.11-slim"
+    # Used only for repos that declare no Python version (python_policy); sealed default is 3.10.
+    nebius_sandbox_image: str = "python:3.10-slim"
     nebius_sandbox_wall_clock_seconds: float = 600.0
 
     # Which backend actually executes untrusted repo code (RERUN directive

@@ -610,3 +610,39 @@ produce BLOCKED.
 - Limits of the rebuild: frozen pilot records carry no chain, so the summary rebuilds it from the `[classifier]` log
   lines (re-reading the evidence with today's sandbox rules); `cleared_by` there is the classifier-line ordinal, not the
   attempt number. Records from harness-v1.3 on store the chain natively.
+
+## Runner environment policy: torch and Python version (Phase 3)
+
+**torch (decision ladder, each step verified with `import torch` in a real Nebius sandbox; records in `runs/torch_check/`,
+produced by `scripts/torch_sandbox_check.py`).** Sandbox: Debian `glibc 2.41-12+deb13u2`, kernel `7.0.6`, x86_64
+(the `python:3.x-slim` images are Debian 13).
+
+| Step | Spec / image | Result |
+|---|---|---|
+| (a) newest CPU wheel | `torch` → 2.14.0+cpu, py3.11 | **loads** |
+| (a) old pin | `torch==1.12.1` → 1.12.1+cpu, py3.10 | **refused**: `libtorch_cpu.so: cannot enable executable stack as shared object requires: Invalid argument` (the pilot's entry-3 error, reproduced) |
+| (b) patchelf | same pin: `patchelf --clear-execstack` on the RWE library, then import | **loads** (1 library: `torch/lib/libtorch_cpu.so`) |
+| runner's own ops | pin 1.12.1 and unpinned, exactly the commands `runner_env` emits | both load; the fix clears 1 library for the old pin and none for 2.14.0 |
+
+So the brief's premise ("recent builds ship without the exec-stack flag") holds for the newest wheel and fails for old pins,
+which is what repos pin. Step (c) (Nebius email) was **not** needed. Policy (`backend/app/services/runner_env.py`):
+torch/torchvision/torchaudio are installed by the **runner**, for repos that pin or import them, as their own sandbox
+operation from the CPU wheels (`--index-url https://download.pytorch.org/whl/cpu`, PyPI as an extra index — the CPU index alone
+cannot supply an old pin's dependencies, found live), pinned as the repo pins them (`+cuXXX` dropped); a second operation
+clears the exec-stack flag on any torch library that has it and verifies the import. CUDA only if the repo pins a CUDA build
+**and** the sandbox exposes a GPU; it does not, so never. A refusal that survives the fix is `SANDBOX_INCOMPAT` (INDETERMINATE).
+Limitation: a pin whose local suffix is not on the CPU index (rare) still fails, and is classified, not hidden.
+
+*Not done, and why.* **Pre-warmed snapshot:** the SDK supports it (`image.tag_as`), but a snapshot would cover only unpinned
+torch on one Python minor (saves ≈ $0.17 and ≈ 16 s per torch repo) and adds mutable external state to a sealed harness; and
+pre-installing numpy/scipy/tabulate, as the brief suggested, would **hide undeclared-dependency defects** that the attribution
+rules count as REPO (pilot entry 1 failed on undeclared `tabulate`). Only torch is provided. Spend on the ladder: $0.69 (script
+records + two runs whose records were overwritten after an index fix), outside any batch.
+
+**Python version policy** (`python_policy.py`): default CPython **3.10**, unless the repo declares a version (`.python-version`,
+`pyproject.toml`, `setup.py`/`setup.cfg`, `environment.yml`, `Pipfile`, README) — first available minor that satisfies the declaration,
+order 3.10, 3.9, 3.8, 3.11, 3.7, 3.12, 3.13, 3.6 (so "3.7 or later" resolves to 3.10, not 3.7). The reason is logged (`[python] ...`)
+and kept in the plan notes. This removes failures of the `collections.Iterable` class caused by *our* choice of 3.11 and makes the
+remaining ones attributable to the repo (REPO iff the repo claims the version we ran). `NEBIUS_SANDBOX_IMAGE` now only supplies the
+image for repos that declare nothing; the batch driver's preflight refuses any value other than `python:3.10-slim` (an untracked
+`.env` saying 3.11 would otherwise silently change every such entry). Tests: 6 fixture repos plus precedence and fallback cases.

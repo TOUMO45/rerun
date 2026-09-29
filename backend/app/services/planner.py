@@ -147,6 +147,8 @@ def build_plan(
     cost_guard=None,
     default_image: str = "python:3.11-slim",
     documented_command: str | None = None,
+    base_image_override: str | None = None,
+    extra_notes: tuple[str, ...] = (),
 ) -> BuildPlan:
     """Build the deterministic base plan, then optionally enrich apt
     packages via Nemotron Super. `client`/`model` are optional — omitting
@@ -164,7 +166,9 @@ def build_plan(
     notes: list[str] = []
     if documented_command:
         notes.append("execute command is the repository's documented command (corpus ground truth)")
-    base_image = _base_image_for(recon.python_version or intake.python_version_hint, default_image)
+    # `base_image_override` (python_policy) is authoritative: the policy already read the repo's declarations.
+    base_image = base_image_override or _base_image_for(recon.python_version or intake.python_version_hint, default_image)
+    notes.extend(extra_notes)
     install_commands = _deterministic_install_commands(intake)
     apt_packages = set(_known_apt_packages(intake.declared_dependencies))
 

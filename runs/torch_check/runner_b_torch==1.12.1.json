@@ -1,0 +1,51 @@
+{
+  "stage": "b",
+  "torch_spec": "torch==1.12.1",
+  "base_image": "python:3.10-slim",
+  "dry_run_wsl": false,
+  "install_commands": [
+    "pip install torch==1.12.1 --index-url https://download.pytorch.org/whl/cpu --extra-index-url https://pypi.org/simple",
+    "python -c '\nimport glob, importlib.util, os, struct, subprocess, sys\nspec = importlib.util.find_spec(\"torch\")\nroot = os.path.join(os.path.dirname(spec.origin), \"lib\")\nPT_GNU_STACK = 0x6474e551\nbad = []\nfor path in sorted(glob.glob(os.path.join(root, \"*.so*\"))):\n    with open(path, \"rb\") as f:\n        head = f.read(64)\n        if head[:4] != b\"\\x7fELF\" or head[4] != 2:\n            continue\n        phoff, = struct.unpack_from(\"<Q\", head, 32)\n        phentsize, phnum = struct.unpack_from(\"<HH\", head, 54)\n        f.seek(phoff)\n        for _ in range(phnum):\n            ph = f.read(phentsize)\n            p_type, p_flags = struct.unpack_from(\"<II\", ph, 0)\n            if p_type == PT_GNU_STACK and p_flags & 1:\n                bad.append(path)\nif bad:\n    subprocess.check_call([sys.executable, \"-m\", \"pip\", \"install\", \"-q\", \"patchelf\"])\n    for path in bad:\n        subprocess.check_call([\"patchelf\", \"--clear-execstack\", path])\n    print(\"RERUN_EXECSTACK_CLEARED\", len(bad))\nsubprocess.check_call([sys.executable, \"-c\", \"import torch; print('\"'\"'RERUN_TORCH_OK'\"'\"', torch.__version__)\"])\n'"
+  ],
+  "execute_command": "echo GLIBC $(ldd --version 2>&1 | head -1); echo KERNEL $(uname -r); echo PYTHON $(python -V 2>&1); echo ARCH $(uname -m); python -c 'import torch; print(\"TORCH_OK\", torch.__version__)'",
+  "started_at": "2026-09-29T20:22:57.356045+00:00",
+  "steps": [
+    {
+      "command": "pip install --index-url https://download.pytorch.org/whl/cpu --extra-index-url https://pypi.org/simple torch==1.12.1",
+      "exit_code": 0,
+      "stdout": "Looking in indexes: https://download.pytorch.org/whl/cpu, https://pypi.org/simple\nCollecting torch==1.12.1\n  Downloading https://download-r2.pytorch.org/whl/cpu/torch-1.12.1%2Bcpu-cp310-cp310-linux_x86_64.whl (189.2 MB)\n     \u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501 189.2/189.2 MB 16.4 MB/s eta 0:00:00\nCollecting typing-extensions\n  Downloading typing_extensions-4.16.0-py3-none-any.whl (45 kB)\n     \u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501 45.6/45.6 kB 8.6 MB/s eta 0:00:00\nInstalling collected packages: typing-extensions, torch\nSuccessfully installed torch-1.12.1+cpu typing-extensions-4.16.0\n",
+      "stderr": "WARNING: Running pip as the 'root' user can result in broken permissions and conflicting behaviour with the system package manager. It is recommended to use a virtual environment instead: https://pip.pypa.io/warnings/venv\n\n[notice] A new release of pip is available: 23.0.1 -> 26.2.1\n[notice] To update, run: pip install --upgrade pip\n",
+      "seconds": 8.02,
+      "cost_usd": 0.08327568999999999
+    },
+    {
+      "command": "python -c '\nimport glob, importlib.util, os, struct, subprocess, sys\nspec = importlib.util.find_spec(\"torch\")\nroot = os.path.join(os.path.dirname(spec.origin), \"lib\")\nPT_GNU_STACK = 0x6474e551\nbad = [",
+      "exit_code": 0,
+      "stdout": "RERUN_TORCH_OK 1.12.1+cpu\nRERUN_EXECSTACK_CLEARED 1\n",
+      "stderr": "WARNING: Running pip as the 'root' user can result in broken permissions and conflicting behaviour with the system package manager. It is recommended to use a virtual environment instead: https://pip.pypa.io/warnings/venv\n\n[notice] A new release of pip is available: 23.0.1 -> 26.2.1\n[notice] To update, run: pip install --upgrade pip\n",
+      "seconds": 1.0,
+      "cost_usd": 0.012480020000000001
+    },
+    {
+      "command": "echo GLIBC $(ldd --version 2>&1 | head -1); echo KERNEL $(uname -r); echo PYTHON $(python -V 2>&1); echo ARCH $(uname -m); python -c 'import torch; print(\"TORCH_OK\", torch.__version__)'",
+      "exit_code": 0,
+      "stdout": "GLIBC ldd (Debian GLIBC 2.41-12+deb13u2) 2.41\nKERNEL 7.0.6\nPYTHON Python 3.10.20\nARCH x86_64\nTORCH_OK 1.12.1+cpu\n",
+      "stderr": "",
+      "seconds": 0.41,
+      "cost_usd": 0.00475542
+    }
+  ],
+  "torch_ok": true,
+  "sandbox_id": "67fc38a0-12e8-4426-badb-cb00959bdfa6",
+  "cost_usd": 0.1005,
+  "glibc": "ldd (Debian GLIBC 2.41-12+deb13u2) 2.41",
+  "kernel": "7.0.6",
+  "python": "Python 3.10.20",
+  "arch": "x86_64",
+  "execstack_cleared": [
+    "RERUN_EXECSTACK_CLEARED 1"
+  ],
+  "exec_stack_refused": false,
+  "wall_seconds": 36.21,
+  "finished_at": "2026-09-29T20:23:33.562385+00:00"
+}

@@ -25,3 +25,11 @@ attribution (REPO / ENV / SANDBOX_QUOTA / PLATFORM), `first_repo_error` (first R
 v4 hashes the whole verdict record. Regression tests derive entry 1's chain from its real pilot log (first repo error =
 undeclared `tabulate`; the `Iterable` error is ENV because we chose py3.11). Deviation from the brief, flagged: torch-family
 missing is ENV even though undeclared (runner-provided by policy). Suite: 795 passed, 9 skipped.
+
+## Phase 3 — runner-level torch and Python policy (2026-09-29)
+Torch is now provided by the runner (CPU wheels as their own op, then an exec-stack fix + `import torch` verification op),
+verified in a real sandbox (glibc 2.41, kernel 7.0.6): the newest wheel loads; an old pin (1.12.1) reproduces the pilot's
+executable-stack refusal and is fixed by `patchelf --clear-execstack`. Python defaults to 3.10 unless the repo declares a version
+(reason logged; 6-fixture resolver tests). Not done, with reasons: pre-warmed snapshot (SDK supports `tag_as`; low value, adds
+mutable state) and pre-installing numpy/scipy/tabulate (would hide REPO-attributable undeclared dependencies). Preflight now refuses
+a non-sealed `NEBIUS_SANDBOX_IMAGE`. Suite: 815 passed, 9 skipped.

@@ -83,6 +83,20 @@ class PreflightError(RuntimeError):
     pass
 
 
+SEALED_SANDBOX_IMAGE = "python:3.10-slim"
+
+
+def check_sandbox_image(configured: str) -> None:
+    """The Python policy's default image is part of the sealed harness. NEBIUS_SANDBOX_IMAGE (an untracked
+    .env value) still decides the image of a repo that declares no Python version, so a machine whose .env says
+    3.11 would silently change every such entry: refuse instead."""
+    if configured != SEALED_SANDBOX_IMAGE:
+        raise PreflightError(
+            f"NEBIUS_SANDBOX_IMAGE is {configured!r}; the sealed harness requires {SEALED_SANDBOX_IMAGE!r} "
+            "(fix or remove the value in .env)"
+        )
+
+
 def _git(*args: str) -> str:
     # rstrip only: `status --porcelain` lines start with a significant space (" M path").
     return subprocess.run(["git", *args], cwd=ROOT, capture_output=True, text=True, check=True).stdout.rstrip()
@@ -205,6 +219,10 @@ def preflight(corpus: str, tag: str) -> dict:
     if not (corpus_hash == recorded_hash == hash_file):
         raise PreflightError(f"corpus hash mismatch: recomputed {corpus_hash}, yaml {recorded_hash}, file {hash_file}")
     frozen["corpus_hash"] = corpus_hash
+    sys.path.insert(0, str(ROOT / "backend"))
+    from app.config import get_settings
+
+    check_sandbox_image(get_settings().nebius_sandbox_image)
     return frozen
 
 

@@ -46,7 +46,7 @@ from app.services import (
     time_machine,
     tree_integrity,
 )
-from app.services import compute_sandbox, error_chain, import_names, infra, sandbox_limits, timeouts
+from app.services import compute_sandbox, error_chain, import_names, infra, python_policy, runner_env, sandbox_limits, timeouts
 from app.services.cost_guard import CostGuard, CostLimitExceeded
 from app.services.intake import RepoIntake, read_text_capped
 from app.services.model_client import NebiusChatClient
@@ -370,7 +370,7 @@ class PipelineDeps:
     tree_verifier: callable = None
     # NEBIUS_SANDBOX_IMAGE — the base image planner.build_plan() falls back
     # to when recon can't pin an exact Python version from the repo.
-    default_sandbox_image: str = "python:3.11-slim"
+    default_sandbox_image: str = python_policy.DEFAULT_IMAGE
 
 
 def _accepts_kwarg(fn: Callable, name: str) -> bool:
@@ -615,13 +615,21 @@ def _run_stages(
         _log(f"[recon] entrypoint={recon_result.entrypoint} confidence={recon_result.confidence:.2f}")
 
     state.stage = "planner"
+    # Python policy: 3.10 unless the repo declares otherwise; the reason is logged and kept in the plan notes.
+    python_choice = python_policy.resolve_from_repo(workdir)
+    # A repo that declares nothing gets the operator-configured default image (NEBIUS_SANDBOX_IMAGE; the
+    # sealed default is python:3.10-slim, and the batch driver's preflight refuses any other value).
+    plan_image = python_choice.image if python_choice.is_declared else deps.default_sandbox_image
+    _log(f"[python] {plan_image} ({python_choice.source}): {python_choice.reason}")
     plan = planner.build_plan(
         intake_result,
         recon_result,
         client=deps.planner_client,
         model=deps.planner_model,
         cost_guard=cost_guard,
-        default_image=deps.default_sandbox_image,
+        default_image=plan_image,
+        base_image_override=plan_image,
+        extra_notes=(f"base image {plan_image}: {python_choice.reason}",),
         documented_command=documented_command,
     )
     state.build_plan_dict = plan.as_dict()
@@ -658,6 +666,14 @@ def _run_stages(
         runner_kwargs = {}
         if _accepts_kwarg(deps.sandbox_runner, "download_source"):
             runner_kwargs["download_source"] = sandbox_limits.DownloadSource.from_repo_url(repo_url, commit_sha)
+        # Torch is provided by the runner (CPU wheels, exec-stack fix, verified import): runner_env.
+        if _accepts_kwarg(deps.sandbox_runner, "torch_setup"):
+            torch_setup = runner_env.plan_torch_setup(
+                [*plan.as_shell_steps(), *intake_result.dependency_files.values()], current_workdir
+            )
+            if torch_setup is not None:
+                _log(f"[runner] torch: {torch_setup.reason}")
+            runner_kwargs["torch_setup"] = torch_setup
         try:
             result = deps.sandbox_runner(
                 **runner_kwargs,

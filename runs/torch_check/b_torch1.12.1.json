@@ -1,0 +1,60 @@
+{
+  "stage": "b",
+  "torch_spec": "torch==1.12.1",
+  "base_image": "python:3.10-slim",
+  "dry_run_wsl": false,
+  "install_commands": [
+    "pip install torch==1.12.1 --index-url https://download.pytorch.org/whl/cpu --extra-index-url https://pypi.org/simple",
+    "pip install patchelf",
+    "python -c '\nimport glob, os, struct, sys\nimport importlib.util\nspec = importlib.util.find_spec(\"torch\")\nroot = os.path.join(os.path.dirname(spec.origin), \"lib\")\nPT_GNU_STACK = 0x6474e551\nfor path in sorted(glob.glob(os.path.join(root, \"*.so*\"))):\n    with open(path, \"rb\") as f:\n        head = f.read(64)\n        if head[:4] != b\"\\x7fELF\" or head[4] != 2:\n            continue\n        phoff, = struct.unpack_from(\"<Q\", head, 32)\n        phentsize, phnum = struct.unpack_from(\"<HH\", head, 54)\n        f.seek(phoff)\n        for _ in range(phnum):\n            ph = f.read(phentsize)\n            p_type, p_flags = struct.unpack_from(\"<II\", ph, 0)\n            if p_type == PT_GNU_STACK and p_flags & 1:\n                print(\"RWE\", path)\n' > /tmp/rwe.txt; cat /tmp/rwe.txt; for f in $(awk '$1==\"RWE\"{print $2}' /tmp/rwe.txt); do patchelf --clear-execstack \"$f\" || exit 1; done; python -c '\nimport glob, os, struct, sys\nimport importlib.util\nspec = importlib.util.find_spec(\"torch\")\nroot = os.path.join(os.path.dirname(spec.origin), \"lib\")\nPT_GNU_STACK = 0x6474e551\nfor path in sorted(glob.glob(os.path.join(root, \"*.so*\"))):\n    with open(path, \"rb\") as f:\n        head = f.read(64)\n        if head[:4] != b\"\\x7fELF\" or head[4] != 2:\n            continue\n        phoff, = struct.unpack_from(\"<Q\", head, 32)\n        phentsize, phnum = struct.unpack_from(\"<HH\", head, 54)\n        f.seek(phoff)\n        for _ in range(phnum):\n            ph = f.read(phentsize)\n            p_type, p_flags = struct.unpack_from(\"<II\", ph, 0)\n            if p_type == PT_GNU_STACK and p_flags & 1:\n                print(\"RWE\", path)\n'"
+  ],
+  "execute_command": "echo GLIBC $(ldd --version 2>&1 | head -1); echo KERNEL $(uname -r); echo PYTHON $(python -V 2>&1); echo ARCH $(uname -m); python -c 'import torch; print(\"TORCH_OK\", torch.__version__)'",
+  "started_at": "2026-09-29T20:14:32.580807+00:00",
+  "steps": [
+    {
+      "command": "pip install --index-url https://download.pytorch.org/whl/cpu --extra-index-url https://pypi.org/simple torch==1.12.1",
+      "exit_code": 0,
+      "stdout": "Looking in indexes: https://download.pytorch.org/whl/cpu, https://pypi.org/simple\nCollecting torch==1.12.1\n  Downloading https://download-r2.pytorch.org/whl/cpu/torch-1.12.1%2Bcpu-cp310-cp310-linux_x86_64.whl (189.2 MB)\n     \u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501 189.2/189.2 MB 17.5 MB/s eta 0:00:00\nCollecting typing-extensions\n  Downloading typing_extensions-4.16.0-py3-none-any.whl (45 kB)\n     \u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501 45.6/45.6 kB 3.8 MB/s eta 0:00:00\nInstalling collected packages: typing-extensions, torch\nSuccessfully installed torch-1.12.1+cpu typing-extensions-4.16.0\n",
+      "stderr": "WARNING: Running pip as the 'root' user can result in broken permissions and conflicting behaviour with the system package manager. It is recommended to use a virtual environment instead: https://pip.pypa.io/warnings/venv\n\n[notice] A new release of pip is available: 23.0.1 -> 26.2.1\n[notice] To update, run: pip install --upgrade pip\n",
+      "seconds": 7.66,
+      "cost_usd": 0.07965373
+    },
+    {
+      "command": "pip install patchelf",
+      "exit_code": 0,
+      "stdout": "Collecting patchelf\n  Downloading patchelf-0.19.1.0-py3-none-manylinux1_x86_64.manylinux_2_5_x86_64.musllinux_1_1_x86_64.whl (549 kB)\n     \u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501 549.4/549.4 kB 45.0 MB/s eta 0:00:00\nInstalling collected packages: patchelf\nSuccessfully installed patchelf-0.19.1.0\n",
+      "stderr": "WARNING: Running pip as the 'root' user can result in broken permissions and conflicting behaviour with the system package manager. It is recommended to use a virtual environment instead: https://pip.pypa.io/warnings/venv\n\n[notice] A new release of pip is available: 23.0.1 -> 26.2.1\n[notice] To update, run: pip install --upgrade pip\n",
+      "seconds": 0.39,
+      "cost_usd": 0.00411683
+    },
+    {
+      "command": "python -c '\nimport glob, os, struct, sys\nimport importlib.util\nspec = importlib.util.find_spec(\"torch\")\nroot = os.path.join(os.path.dirname(spec.origin), \"lib\")\nPT_GNU_STACK = 0x6474e551\nfor path in s",
+      "exit_code": 0,
+      "stdout": "RWE /usr/local/lib/python3.10/site-packages/torch/lib/libtorch_cpu.so\n",
+      "stderr": "",
+      "seconds": 0.27,
+      "cost_usd": 0.00513069
+    },
+    {
+      "command": "echo GLIBC $(ldd --version 2>&1 | head -1); echo KERNEL $(uname -r); echo PYTHON $(python -V 2>&1); echo ARCH $(uname -m); python -c 'import torch; print(\"TORCH_OK\", torch.__version__)'",
+      "exit_code": 0,
+      "stdout": "GLIBC ldd (Debian GLIBC 2.41-12+deb13u2) 2.41\nKERNEL 7.0.6\nPYTHON Python 3.10.20\nARCH x86_64\nTORCH_OK 1.12.1+cpu\n",
+      "stderr": "",
+      "seconds": 0.44,
+      "cost_usd": 0.005075690000000001
+    }
+  ],
+  "torch_ok": true,
+  "sandbox_id": "17fb0b82-c33e-4b73-b5bd-20a2af945f28",
+  "cost_usd": 0.094,
+  "glibc": "ldd (Debian GLIBC 2.41-12+deb13u2) 2.41",
+  "kernel": "7.0.6",
+  "python": "Python 3.10.20",
+  "arch": "x86_64",
+  "rwe_libraries": [
+    "/usr/local/lib/python3.10/site-packages/torch/lib/libtorch_cpu.so"
+  ],
+  "exec_stack_refused": false,
+  "wall_seconds": 37.08,
+  "finished_at": "2026-09-29T20:15:09.657862+00:00"
+}

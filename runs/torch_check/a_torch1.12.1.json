@@ -1,0 +1,40 @@
+{
+  "stage": "a",
+  "torch_spec": "torch==1.12.1",
+  "base_image": "python:3.10-slim",
+  "dry_run_wsl": false,
+  "install_commands": [
+    "pip install torch==1.12.1 --index-url https://download.pytorch.org/whl/cpu --extra-index-url https://pypi.org/simple"
+  ],
+  "execute_command": "echo GLIBC $(ldd --version 2>&1 | head -1); echo KERNEL $(uname -r); echo PYTHON $(python -V 2>&1); echo ARCH $(uname -m); python -c 'import torch; print(\"TORCH_OK\", torch.__version__)'",
+  "started_at": "2026-09-29T20:14:04.096202+00:00",
+  "steps": [
+    {
+      "command": "pip install --index-url https://download.pytorch.org/whl/cpu --extra-index-url https://pypi.org/simple torch==1.12.1",
+      "exit_code": 0,
+      "stdout": "Looking in indexes: https://download.pytorch.org/whl/cpu, https://pypi.org/simple\nCollecting torch==1.12.1\n  Downloading https://download-r2.pytorch.org/whl/cpu/torch-1.12.1%2Bcpu-cp310-cp310-linux_x86_64.whl (189.2 MB)\n     \u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501 189.2/189.2 MB 16.9 MB/s eta 0:00:00\nCollecting typing-extensions\n  Downloading typing_extensions-4.16.0-py3-none-any.whl (45 kB)\n     \u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501 45.6/45.6 kB 10.8 MB/s eta 0:00:00\nInstalling collected packages: typing-extensions, torch\nSuccessfully installed torch-1.12.1+cpu typing-extensions-4.16.0\n",
+      "stderr": "WARNING: Running pip as the 'root' user can result in broken permissions and conflicting behaviour with the system package manager. It is recommended to use a virtual environment instead: https://pip.pypa.io/warnings/venv\n\n[notice] A new release of pip is available: 23.0.1 -> 26.2.1\n[notice] To update, run: pip install --upgrade pip\n",
+      "seconds": 7.78,
+      "cost_usd": 0.08084587
+    },
+    {
+      "command": "echo GLIBC $(ldd --version 2>&1 | head -1); echo KERNEL $(uname -r); echo PYTHON $(python -V 2>&1); echo ARCH $(uname -m); python -c 'import torch; print(\"TORCH_OK\", torch.__version__)'",
+      "exit_code": 1,
+      "stdout": "GLIBC ldd (Debian GLIBC 2.41-12+deb13u2) 2.41\nKERNEL 7.0.6\nPYTHON Python 3.10.20\nARCH x86_64\n",
+      "stderr": "Traceback (most recent call last):\n  File \"<string>\", line 1, in <module>\n  File \"/usr/local/lib/python3.10/site-packages/torch/__init__.py\", line 202, in <module>\n    from torch._C import *  # noqa: F403\nImportError: libtorch_cpu.so: cannot enable executable stack as shared object requires: Invalid argument\n",
+      "seconds": 0.05,
+      "cost_usd": 0.0005465
+    }
+  ],
+  "torch_ok": false,
+  "sandbox_id": "9103b388-b5f3-4de6-9da2-34a1bf89f917",
+  "cost_usd": 0.0814,
+  "glibc": "ldd (Debian GLIBC 2.41-12+deb13u2) 2.41",
+  "kernel": "7.0.6",
+  "python": "Python 3.10.20",
+  "arch": "x86_64",
+  "rwe_libraries": [],
+  "exec_stack_refused": true,
+  "wall_seconds": 27.26,
+  "finished_at": "2026-09-29T20:14:31.360912+00:00"
+}
