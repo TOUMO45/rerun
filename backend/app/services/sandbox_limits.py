@@ -4,25 +4,26 @@ email, 2026-09-29):
   * 128 MB per uploaded file;
   * 12 GB of filesystem changes per single operation.
 
-The email gives no unit for "MB"/"GB". This module therefore enforces the
-*smaller* reading with a margin, and says so:
+The email gives no unit; the boundary probe (runs/upload_probe/boundary_*.json,
+2026-09-30, one incompressible file per size through apply_files) measured it:
+
+  128,000,000 B (128 MB decimal)  accepted
+  133,169,152 B (127 MiB)         accepted
+  134,217,728 B (128 MiB)         REJECTED (OSError 28 ENOSPC during the upload operation)
+  135,266,304 B (129 MiB)         REJECTED (same)
+
+So the limit is 128 MiB read as an exclusive bound (accepted <= 127 MiB, rejected
+>= 128 MiB); the exact byte between them was not probed.
 
   MAX_UPLOAD_BYTES = 120 MiB = 125,829,120 B
-      128 MB decimal = 128,000,000 B is the smaller reading of the email;
-      120 MiB leaves 2,170,880 B (1.7 %) of headroom below it. The archive
-      size is measured exactly (len of the tar bytes), so the margin only has
-      to cover unknowns in the server's accounting, not our own arithmetic.
+      5.5 % below the largest accepted size (127 MiB); the 5 % margin rule would
+      give 126,510,694 B, and 120 MiB is inside it. The archive size is measured
+      exactly (len of the tar bytes), so the margin covers only the server's
+      accounting. The value is unchanged from harness-v1.3; only the evidence is new.
 
-What the repo's own evidence says about the unit (nothing new was probed):
-  * `125,009,920` (the harness-v1.2 UPLOAD_CAP_BYTES) is NOT a Nebius number.
-    It is the largest step (125 MB decimal + tar overhead) of RERUN's own
-    pre-registered probe ladder 25/50/75/100/125 MB, which stopped there. It is
-    119.2 MiB and was never a discovered ceiling.
-  * The first probe uploaded a 150 MB (143 MiB) archive successfully (the failure
-    came afterwards, inside the sandbox operation: ENOSPC). That is above both
-    readings of "128 MB", so the endpoint did not reject it; it cannot settle the
-    unit. Settling it needs a boundary probe (e.g. 128,000,000 / 134,217,728 B),
-    which has not been run.
+(History: `125,009,920`, harness-v1.2's cap, was never a Nebius number: the top step
+of RERUN's own 25/50/75/100/125 MB probe ladder. The first probe's 150 MB archive was
+rejected by the same ENOSPC, which is consistent with the limit measured above.)
 
 MAX_FS_DELTA_PER_OP_BYTES = 12 GB, read as decimal (the smaller reading). RERUN
 cannot measure a per-operation filesystem delta from the SDK (it exposes no layer

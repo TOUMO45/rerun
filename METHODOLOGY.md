@@ -557,13 +557,14 @@ code. Entries #4-#20 were not run.
 Nebius states two limits for Token Factory Sandboxes: **128 MB per uploaded file** and **12 GB of
 filesystem changes per single operation**. The email gives no unit. Code: `backend/app/services/sandbox_limits.py`.
 
-- **Upload limit enforced: 120 MiB = 125,829,120 B.** That is under the smaller reading of "128 MB"
-  (128,000,000 B) with 1.7 % of headroom; the archive size is measured exactly, so the margin only covers the
-  server's accounting. The unit is **not settled by evidence**: (1) `125,009,920` (harness-v1.2's cap) is not a
-  Nebius number: it is the top step (125 MB decimal + tar overhead) of RERUN's own pre-registered probe ladder
-  25/50/75/100/125 MB, which stopped there; (2) the first probe uploaded a 150 MB archive (above both readings)
-  and only failed afterwards inside the operation (ENOSPC), so the endpoint did not reject it either.
-  A boundary probe at 128,000,000 / 134,217,728 B would settle it; it has not been run.
+- **Upload limit enforced: 120 MiB = 125,829,120 B, measured (boundary probe, 2026-09-30, `runs/upload_probe/boundary_*.json`).**
+  One incompressible file per size, uploaded with the SDK's `apply_files`: **128,000,000 B (128 MB decimal) accepted; 133,169,152 B
+  (127 MiB) accepted; 134,217,728 B (128 MiB) rejected; 135,266,304 B (129 MiB) rejected** (rejection = `OSError 28 ENOSPC` during the
+  upload operation). So Nebius's "128 MB" is 128 MiB as an exclusive bound; the exact byte between 127 and 128 MiB was not probed.
+  120 MiB is 5.5 % below the largest accepted size (the ~5 % margin rule gives 126,510,694 B), so the constant is unchanged from
+  harness-v1.3; the sealed docstring was updated and the harness re-sealed as `harness-v1.3.1`. (`125,009,920`, harness-v1.2's cap, was
+  never a Nebius number: the top step of RERUN's own probe ladder.) The archive size is measured exactly, so the margin covers only the
+  server's accounting.
 - **Over the limit → in-sandbox download, never a local upload.** Only the manifest and verifier are uploaded;
   the sandbox fetches the pinned commit (`codeload.github.com` tarball; no git needed in the image) and checks every
   file against the same git-blob manifest as the upload route (`RERUN_UPLOAD_VERIFIED`, else exit 97 →
@@ -594,7 +595,9 @@ produce BLOCKED.
   Attribution ∈ `REPO`, `ENV`, `SANDBOX_QUOTA`, `PLATFORM`:
   - a missing package the repo imports but does not declare → REPO (undeclared dependency);
   - a missing package the repo declares that our runner failed to install → ENV;
-  - **exception (deliberate):** `torch`/`torchvision`/`torchaudio` missing → ENV, because the runner provides them by policy;
+  - **exception (deliberate):** `torch`/`torchvision`/`torchaudio` missing → ENV **even when the repo does not declare it** (accepted by the operator 2026-09-30), because the runner provides torch by policy (Phase 3):
+    a repo that imports torch is served torch by the runner, so a missing torch is our failure to provide it, never the repo's omission; the
+    cost is that a genuinely undeclared torch dependency is not counted against the repo (conservative for the RRR denominator);
   - a Python-version failure (removed stdlib name, e.g. `collections.Iterable`) → REPO only if the repo declares/accepts
     the Python version we ran, else ENV (we chose a version it never claimed);
   - quota → SANDBOX_QUOTA; platform refusal → PLATFORM; runner network policy → ENV;
@@ -669,6 +672,7 @@ the claim. Researcher-hours saved stays an ESTIMATE (REPO_RECOVERED × 3 h).
 **Stop conditions** (halt and report, do not continue): (1) torch still refuses after the exec-stack fix; (2) TREATMENT turns any
 CONTROL pass into a non-pass (a REGRESSION row); (3) a Tavily-derived fix touches a tamper-gate-protected file; (4) total sandbox
 spend over the operator's cap. `SANDBOX_INCOMPAT` and `SANDBOX_QUOTA` are *predicted* failure classes (Phases 1–2), not stops.
-*Open on 2026-09-29:* the spend cap as first written, 3× the pilot's spend, is $1.13, below one control arm's expected cost (the v1
-corpus batch cost $8.53 on harness-v1.2), so no batch has been started; the operator's number is awaited.
-The driver's own hard ceilings stay: $2 per entry, $40 per arm.
+*Settled 2026-09-30:* the operator's total spend cap is **$25 across both arms** (`--total-cap-usd 25`; the 3×-pilot figure of $1.13 was
+below one arm's expected cost). Per-entry ceiling stays $2. Cumulative spend is logged per entry and reported by the watcher.
+*Gate before TREATMENT:* if CONTROL has fewer than 8 entries with a REPO-attributed non-PASS, TREATMENT is not run (the RRR denominator
+would be too small); the corpus draw is extended instead (same rules, new seed, documented).

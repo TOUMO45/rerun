@@ -42,3 +42,13 @@ invalid one once; `scripts/watch_batch.py` reports pid-alive AND summary-absent 
 `scripts/compare_batches.py` implements the pre-registered analysis (categories never merged, stated denominator, Wilson interval, regression
 exit code). The spend ceiling is a parameter (`--total-cap-usd`, `--already-spent-usd`) so one cap can span both arms without a re-seal. Preflight now allows `reports/` and `CHANGELOG.md` as post-tag data. Pre-registration written in METHODOLOGY. No batch started:
 the spend cap as written (3× pilot = $1.13) is below one arm's expected cost; awaiting the operator's number.
+
+## Phase 3c — upload boundary probe, spend cap, harness-v1.3.1 (2026-09-30)
+`scripts/upload_boundary_probe.py` (records `runs/upload_probe/boundary_*.json`): 128,000,000 B and 127 MiB accepted; 128 MiB and 129 MiB
+rejected (ENOSPC in the upload op). MAX_UPLOAD_BYTES stays 120 MiB (5.5 % below the largest accepted size); docstring and METHODOLOGY
+"Sandbox limits" updated from "unsettled" to measured; re-sealed as `harness-v1.3.1` (no behavioural change vs v1.3). Operator decisions:
+total spend cap $25 across both arms (`--total-cap-usd 25`), per-entry $2 unchanged; torch-family missing = ENV even when undeclared
+(rationale in METHODOLOGY); TREATMENT gated on >= 8 CONTROL entries with a REPO-attributed non-PASS.
+
+**Operator environment (not in git; `.env` is untracked):** `NEBIUS_SANDBOX_IMAGE` changed `python:3.11-slim` -> `python:3.10-slim`
+(the sealed driver requires it).
