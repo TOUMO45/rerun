@@ -27,7 +27,7 @@
 
 control spend: $4.08
 
-## TREATMENT (9/20 records)
+## TREATMENT (20/20 records)
 
 | # | entry | verdict | class | attribution | python_version_used | how chosen | repairs (tag) | cost USD |
 |--:|---|---|---|---|--:|---|---|--:|
@@ -40,8 +40,19 @@ control spend: $4.08
 | 7 | albertometelli__pfqi | BLOCKED | RUNTIME_ERROR_OTHER | REPO | 3.8 | time-machine era lock (pinned-commit) | 0:env_only+python_version_change; 1:env_only; 2:env_only; 3:env_only | 0.54 |
 | 8 | edenton__svg | BLOCKED | RUNTIME_ERROR_OTHER | ENV/REPO | 3.10 | policy:default; era lock FAILED (era python 3.6 computed but not used) | 0:none(not applied); 1:env_only; 2:env_only; 3:source_patch(not applied) | 0.82 |
 | 9 | omarfoq__fedem | INDETERMINATE | DEP_YANKED | ENV | 3.10 | policy:default | — | 0.19 |
+| 10 | alevine0__patchSmoothing | BLOCKED | GPU_REQUIRED | REPO | 3.10 | time-machine era lock (pinned-commit) | 0:env_only; 1:source_patch(not applied); 2:source_patch(not applied); 3:none(not applied) | 0.72 |
+| 11 | JindongGu__VoteAttack | INDETERMINATE | RUNTIME_ERROR_OTHER | ENV/REPO | 3.9 | time-machine era lock (pinned-commit) | 0:env_only+python_version_change | 0.54 |
+| 12 | Mehran-k__SimplE | BLOCKED | RUNTIME_ERROR_OTHER | REPO | 3.7 | time-machine era lock (pinned-commit) | 0:env_only+python_version_change; 1:env_only; 2:none(not applied); 3:env_only | 0.32 |
+| 13 | seongjunyun__neo_gnns | BLOCKED | DEP_MISSING | REPO | 3.8 | policy:README; era lock FAILED (era python 3.9 computed but not used) | 0:none(not applied); 1:env_only; 2:env_only; 3:none(not applied) | 5.68 |
+| 14 | IST-DASLab__M-FAC | BLOCKED | RUNTIME_ERROR_OTHER | REPO | 3.10 | policy:default | 1:source_patch(not applied); 2:source_patch(not applied); 3:source_patch(not applied) | 0.33 |
+| 15 | YuliaRubanova__latent_ode | INDETERMINATE | PIPELINE_ERROR:sandbox:SandboxError | REPO | 3.8 | time-machine era lock (pinned-commit) | 0:env_only+python_version_change | 0.36 |
+| 16 | bckim92__sequential-knowledge-transformer | BLOCKED | DEP_MISSING | REPO | 3.8 | time-machine era lock (pinned-commit) | 0:env_only+python_version_change; 1:env_only; 2:env_only; 3:none(not applied) | 2.50 |
+| 17 | Haichao-Zhang__FeatureScatter | BLOCKED | RUNTIME_ERROR_OTHER | REPO | 3.10 | policy:default | 1:source_patch(not applied); 2:source_patch(not applied); 3:source_patch(not applied) | 0.32 |
+| 18 | aam-at__adversary_critic | RUNS_CLEAN |  | — | 3.6 | policy:README | — | 0.16 |
+| 19 | lrjconan__RBP | BLOCKED | DEP_MISSING | REPO | 3.10 | policy:default; era lock FAILED (era python 3.7 computed but not used) | 0:none(not applied); 1:none(not applied); 2:env_only; 3:env_only | 0.90 |
+| 20 | XiaoxiaoGuo__fashion-retrieval | BLOCKED | DATA_MISSING | REPO | 3.6 | policy:README; era lock FAILED (era python 3.8 computed but not used) | 0:none(not applied); 1:env_only; 2:env_only; 3:env_only | 0.79 |
 
-treatment spend: $5.04
+treatment spend: $17.68
 
 ## Repair deltas (TREATMENT; the stored delta is in the record named in the JSON)
 
@@ -73,3 +84,35 @@ treatment spend: $5.04
 | 8 | 1 | model | env_only | Y | PASS | add scikit-learn==1.0.1 | 0 | Y |
 | 8 | 2 | model | env_only | Y | PASS | apt python3-distutils | 0 | Y |
 | 8 | 3 | model | source_patch | N | PASS | diff(0 hunk(s), 50 chars) | 0 | Y |
+| 10 | 0 | time_machine | env_only | Y | PASS | era-lock 2022-08-22 py3.10 ok=True | 0 | Y |
+| 10 | 1 | model | source_patch | N | REJECT | diff(1 hunk(s), 105 chars) | 0 | Y |
+| 10 | 2 | model | source_patch | N | REJECT | diff(1 hunk(s), 106 chars) | 0 | Y |
+| 10 | 3 | model | none | N | DECLINED | (nothing stored) | 0 | N |
+| 11 | 0 | time_machine | env_only+python_version_change | Y | PASS | era-lock 2021-05-01 py3.9 ok=True | 0 | Y |
+| 12 | 0 | time_machine | env_only+python_version_change | Y | PASS | era-lock 2020-02-11 py3.7 ok=True | 0 | Y |
+| 12 | 1 | model | env_only | Y | PASS | apt libnvinfer6; apt libnvinfer-plugin6 | 0 | Y |
+| 12 | 2 | model | none | N | DECLINED | (nothing stored) | 0 | N |
+| 12 | 3 | model | env_only | Y | PASS | remove libnvinfer6; remove libnvinfer-plugin6 | 0 | Y |
+| 13 | 0 | time_machine | none | N | DECLINED | era-lock 2022-04-01 py3.9 ok=False | 0 | Y |
+| 13 | 1 | model | env_only | Y | PASS | add torch_sparse==0.6.13 | 0 | Y |
+| 13 | 2 | model | env_only | Y | PASS | apt build-essential | 0 | Y |
+| 13 | 3 | model | none | N | DECLINED | (nothing stored) | 0 | N |
+| 14 | 1 | model | source_patch | N | REJECT | diff(0 hunk(s), 318 chars) | 0 | Y |
+| 14 | 2 | model | source_patch | N | PASS | diff(1 hunk(s), 229 chars) | 0 | Y |
+| 14 | 3 | model | source_patch | N | REJECT | diff(1 hunk(s), 265 chars) | 0 | Y |
+| 15 | 0 | time_machine | env_only+python_version_change | Y | PASS | era-lock 2020-12-03 py3.8 ok=True | 0 | Y |
+| 16 | 0 | time_machine | env_only+python_version_change | Y | PASS | era-lock 2020-06-16 py3.8 ok=True | 0 | Y |
+| 16 | 1 | model | env_only | Y | PASS | apt build-essential | 0 | Y |
+| 16 | 2 | model | env_only | Y | PASS | add ruamel.yaml==0.15.80 | 0 | Y |
+| 16 | 3 | model | none | N | DECLINED | (nothing stored) | 0 | N |
+| 17 | 1 | model | source_patch | N | REJECT | diff(0 hunk(s), 318 chars) | 0 | Y |
+| 17 | 2 | model | source_patch | N | REJECT | diff(2 hunk(s), 572 chars) | 0 | Y |
+| 17 | 3 | model | source_patch | N | REJECT | diff(1 hunk(s), 333 chars) | 0 | Y |
+| 19 | 0 | time_machine | none | N | DECLINED | era-lock 2019-01-11 py3.7 ok=False | 0 | Y |
+| 19 | 1 | model | none | N | DECLINED | (nothing stored) | 0 | N |
+| 19 | 2 | model | env_only | Y | PASS | add operators==1.0.0 | 0 | Y |
+| 19 | 3 | model | env_only | Y | PASS | apt build-essential; apt python3-dev | 0 | Y |
+| 20 | 0 | time_machine | none | N | DECLINED | era-lock 2020-10-03 py3.8 ok=False | 0 | Y |
+| 20 | 1 | model | env_only | Y | PASS | add six==1.15.0 | 0 | Y |
+| 20 | 2 | model | env_only | Y | PASS | add h5py==2.10.0 | 0 | Y |
+| 20 | 3 | model | env_only | Y | PASS | add scikit-image==0.17.2 | 0 | Y |
