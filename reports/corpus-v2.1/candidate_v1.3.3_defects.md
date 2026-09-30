@@ -76,3 +76,11 @@ HARNESS_INDUCED is decided in Phase B3 with the definition written there; this f
 - **D-21** The repairer declared no `cited_sources` in 7 searches (0 citations), including when the top result was the API documentation for the moved function (entry 8).
 - **D-22** An attempt that ends in INVALID_HARNESS is not recorded (entry 8, repair 1).
 
+## Found by the v1.3.4 smoke gate (2026-09-30; `v1.3.3/smoke_gate/SMOKE_GATE_REPORT_v1.3.4.md`; not fixed: stop rule)
+
+- **D-23** The per-repair funding rule starves entries whose re-executions each pay a ~90 s torch install (entries 11, 8: COST_CAP before the repository ran).
+- **D-24** The deterministic "missing gcc -> build-essential" rule fires only on the baseline classification, not after a repair (entry 7: the model proposed `gcc` as a pip package).
+- **D-25** One round of model-placed diagnostics does not locate a deliberate silent `exit 1` (entry 3); RERUN should inject the diagnostic itself.
+- **D-21 (open in practice)** With a REQUIRED `cited_sources`, the repairer filled `reason_no_citation` 9 times out of 9; no `content_match` either. The mechanism is complete; the model does not cite.
+- **v1.3.3 entry 11** was a smoke-limit artefact, not a recovery (run further, a REPO `torch.load` defect).
+
