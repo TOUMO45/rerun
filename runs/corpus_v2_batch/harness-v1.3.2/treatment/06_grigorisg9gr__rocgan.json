@@ -1,0 +1,1249 @@
+{
+  "run_kind": "live end-to-end run",
+  "dev_run": false,
+  "dry_run": null,
+  "batch": {
+    "harness_tag": "harness-v1.3.2",
+    "harness_commit": "77b3cfe1697ad74ad13eac1f77ffe0f1e80c7379",
+    "head_commit": "482173f3f945c40b990c30c87e0acf7e2c2b0c59",
+    "corpus": "corpus-v2",
+    "prereg_sha256": "ae5a722249156e058d3d360bdc63fa8224140d0688f1daa307ecfa93a98c7284",
+    "corpus_hash": "7df090bea7013974f9f10fb8959ab0162734b51c83a80f744f9c310ce694fbdc",
+    "arm": "treatment",
+    "total_cap_usd": 25.0,
+    "already_spent_usd": 4.08,
+    "entry_id": 6,
+    "category": "PRIMARY",
+    "rules_matched": [],
+    "per_entry_cap_usd": 2.0
+  },
+  "started_at": "2026-09-30T13:12:40.545154+00:00",
+  "corpus_entry": {
+    "name": "grigorisg9gr__rocgan",
+    "repo_url": "https://github.com/grigorisg9gr/rocgan",
+    "commit_sha": "0878690e700ae5615131db746616e51e635eb15d",
+    "command": "python jobs/rocgan/train_mn.py '--config jobs/rocgan/iclr_5layer_rocgan_super.yml'",
+    "command_source": "README.rst line 28"
+  },
+  "config": {
+    "models": {
+      "recon": "nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B",
+      "planner": "nvidia/nemotron-3-super-120b-a12b",
+      "repairer": "nvidia/nemotron-3-super-120b-a12b",
+      "adjudicator": "nvidia/Nemotron-3-Ultra-550b-a55b"
+    },
+    "sandbox_backend": "token_factory",
+    "sandbox_image_default": "python:3.10-slim",
+    "sandbox_wall_clock_seconds": 600.0,
+    "arm": "treatment",
+    "repair_enabled": true,
+    "max_attempts": 3,
+    "tavily_configured": true,
+    "cost_cap_usd": 2.0
+  },
+  "intake": {
+    "duration_s": 3.48,
+    "resolved_sha": "0878690e700ae5615131db746616e51e635eb15d",
+    "dependency_files": [],
+    "declared_dependencies": [],
+    "entrypoint_candidates": [
+      "jobs/rocgan/train_mn.py",
+      "jobs/rocgan/train_mn_rocgan.py",
+      "source/functions/msssim.py"
+    ],
+    "notebook_paths": [
+      "demo.ipynb"
+    ]
+  },
+  "pipeline_duration_s": 367.71,
+  "repair_mode": "model_assisted",
+  "tree_integrity": {
+    "status": "verified",
+    "tree_sha": "8a5c2b0008dda683930fffa8e8182a6cd5a92b2d",
+    "files_checked": 72,
+    "excluded_patched": []
+  },
+  "result": {
+    "verdict": "BLOCKED",
+    "taxonomy_code": "DEP_MISSING",
+    "indeterminate_reason": "",
+    "reason_code": null,
+    "error_chain": [
+      {
+        "error": "ModuleNotFoundError: No module named 'chainer'",
+        "class": "DEP_MISSING",
+        "attribution": "REPO",
+        "phase": "repo_run",
+        "cleared_by": 0
+      },
+      {
+        "error": "unable to execute 'gcc': No such file or directory",
+        "class": "SYS_LIB_MISSING",
+        "attribution": "REPO",
+        "phase": "repo_install",
+        "cleared_by": 1
+      },
+      {
+        "error": "ModuleNotFoundError: No module named 'numpy'",
+        "class": "DEP_MISSING",
+        "attribution": "REPO",
+        "phase": "repo_install",
+        "cleared_by": null
+      }
+    ],
+    "first_repo_error": "ModuleNotFoundError: No module named 'chainer'",
+    "last_error": "ModuleNotFoundError: No module named 'numpy'",
+    "error_traceback": "",
+    "attempts": [
+      {
+        "attempt_number": 0,
+        "diff_text": "",
+        "gate_decision": "PASS",
+        "gate_violations": [],
+        "exit_code": 1,
+        "stdout_tail": "hed with status 'error'\n  Running setup.py clean for chainercv\n  Building wheel for chainermn (setup.py): started\n  Building wheel for chainermn (setup.py): finished with status 'done'\n  Created wheel for chainermn: filename=chainermn-1.3.0-py3-none-any.whl size=50109 sha256=43fd18eab64fc31b78e3905b5b898d9d4cc3ac95ba4261219bbd2b6fb885fb67\n  Stored in directory: /root/.cache/pip/wheels/dd/5a/a6/3de2ffd858610eb9c5f99553b0cccee4393b27dd812396e7cb\n  Building wheel for chainerui (setup.py): started\n  Building wheel for chainerui (setup.py): finished with status 'done'\n  Created wheel for chainerui: filename=chainerui-0.11.0-py3-none-any.whl size=1830363 sha256=2d8c8f70fad0e2cf85447aa7a6e41f38fbf15091cabcd5b9f936c8e4118edf89\n  Stored in directory: /root/.cache/pip/wheels/5e/06/94/4ef06c264a9b19e7adfe435824fd71ea04c63350e99d03ecb1\n  Building wheel for mpi4py (setup.py): started\n  Building wheel for mpi4py (setup.py): finished with status 'error'\n  Running setup.py clean for mpi4py\n  Building wheel for pyyaml (setup.py): started\n  Building wheel for pyyaml (setup.py): finished with status 'done'\n  Created wheel for pyyaml: filename=PyYAML-5.3.1-cp38-cp38-linux_x86_64.whl size=44633 sha256=d7282582d3f59ffaf2b8764eaedc856d414aa55bfd75626c645fa502c47745f7\n  Stored in directory: /root/.cache/pip/wheels/13/90/db/290ab3a34f2ef0b5a0f89235dc2d40fea83e77de84ed2dc05c\nSuccessfully built alembic chainer chainermn chainerui pyyaml\nFailed to build chainercv mpi4py\nInstalling collected packages: typing-extensions, python-editor, msgpack, mpi4py, greenlet, filelock, werkzeug, urllib3, sqlalchemy, six, setuptools, pyyaml, pyparsing, pycparser, pillow, numpy, markupsafe, kiwisolver, itsdangerous, click, zope-interface, zope-event, structlog, scipy, python-dateutil, protobuf, mako, jinja2, cycler, cffi, matplotlib, gevent, flask, chainer, alembic, chainerui, chainermn, chainercv\n  Running setup.py install for mpi4py: started\n  Running setup.py install for mpi4py: finished with status 'error'\n",
+        "stderr_tail": "ng src/mpi4py/futures/_lib.py -> build/lib.linux-x86_64-3.8/mpi4py/futures\n      copying src/mpi4py/futures/__init__.py -> build/lib.linux-x86_64-3.8/mpi4py/futures\n      copying src/mpi4py/futures/aplus.py -> build/lib.linux-x86_64-3.8/mpi4py/futures\n      copying src/mpi4py/MPI.pxd -> build/lib.linux-x86_64-3.8/mpi4py\n      copying src/mpi4py/__init__.pxd -> build/lib.linux-x86_64-3.8/mpi4py\n      copying src/mpi4py/libmpi.pxd -> build/lib.linux-x86_64-3.8/mpi4py\n      creating build/lib.linux-x86_64-3.8/mpi4py/include\n      creating build/lib.linux-x86_64-3.8/mpi4py/include/mpi4py\n      copying src/mpi4py/include/mpi4py/mpi4py.MPI_api.h -> build/lib.linux-x86_64-3.8/mpi4py/include/mpi4py\n      copying src/mpi4py/include/mpi4py/mpi4py.MPI.h -> build/lib.linux-x86_64-3.8/mpi4py/include/mpi4py\n      copying src/mpi4py/include/mpi4py/mpi4py.h -> build/lib.linux-x86_64-3.8/mpi4py/include/mpi4py\n      copying src/mpi4py/include/mpi4py/mpi4py.i -> build/lib.linux-x86_64-3.8/mpi4py/include/mpi4py\n      copying src/mpi4py/include/mpi4py/mpi.pxi -> build/lib.linux-x86_64-3.8/mpi4py/include/mpi4py\n      running build_clib\n      MPI configuration: [mpi] from 'mpi.cfg'\n      checking for library 'lmpe' ...\n      gcc -Wno-unused-result -Wsign-compare -DNDEBUG -g -fwrapv -O3 -Wall -fPIC -c _configtest.c -o _configtest.o\n      unable to execute 'gcc': No such file or directory\n      failure.\n      removing: _configtest.c _configtest.o\n      building 'mpe' dylib library\n      creating build/temp.linux-x86_64-3.8\n      creating build/temp.linux-x86_64-3.8/src\n      creating build/temp.linux-x86_64-3.8/src/lib-pmpi\n      gcc -Wno-unused-result -Wsign-compare -DNDEBUG -g -fwrapv -O3 -Wall -fPIC -c src/lib-pmpi/mpe.c -o build/temp.linux-x86_64-3.8/src/lib-pmpi/mpe.o\n      unable to execute 'gcc': No such file or directory\n      warning: build_clib: command 'gcc' failed with exit status 1\n      \n      warning: build_clib: building optional library \"mpe\" failed\n      \n      checking fo",
+        "tavily_sources": [],
+        "env_delta": [],
+        "resolved_sources": [],
+        "origin": "time_machine",
+        "time_machine": {
+          "era": {
+            "date": "2020-07-28",
+            "source": "pinned-commit",
+            "detail": {
+              "note": "no dependency files in the repository"
+            }
+          },
+          "python": {
+            "version": "3.8",
+            "reason": "newest CPython first released \u2265180 days before the era date 2020-07-28 (https://devguide.python.org/versions/ (first release dates, retrieved 2026-09-24))",
+            "source": "https://devguide.python.org/versions/ (first release dates, retrieved 2026-09-24)"
+          },
+          "undeclared_imports": [
+            "pillow",
+            "chainer",
+            "chainercv",
+            "chainermn",
+            "chainerui",
+            "matplotlib",
+            "numpy",
+            "scipy",
+            "pyyaml"
+          ],
+          "import_mappings": [
+            {
+              "import": "PIL",
+              "distribution": "pillow",
+              "source": "pipreqs",
+              "confidence": "normal"
+            },
+            {
+              "import": "yaml",
+              "distribution": "pyyaml",
+              "source": "pipreqs",
+              "confidence": "normal"
+            }
+          ],
+          "apt_added": [],
+          "apt_reason": "",
+          "lock": {
+            "ok": true,
+            "lock": [
+              "alembic==1.4.2",
+              "cffi==1.14.1",
+              "chainer==7.4.0",
+              "chainercv==0.13.1",
+              "chainermn==1.3.0",
+              "chainerui==0.11.0",
+              "click==7.1.2",
+              "cycler==0.10.0",
+              "filelock==3.0.12",
+              "flask==1.1.2",
+              "gevent==20.6.2",
+              "greenlet==0.4.16",
+              "itsdangerous==1.1.0",
+              "jinja2==2.11.2",
+              "kiwisolver==1.2.0",
+              "mako==1.1.3",
+              "markupsafe==1.1.1",
+              "matplotlib==3.3.0",
+              "mpi4py==3.0.3",
+              "msgpack==1.0.0",
+              "numpy==1.19.1",
+              "pillow==7.2.0",
+              "protobuf==3.12.2",
+              "pycparser==2.20",
+              "pyparsing==2.4.7",
+              "python-dateutil==2.8.1",
+              "python-editor==1.0.4",
+              "pyyaml==5.3.1",
+              "scipy==1.5.2",
+              "setuptools==49.2.0",
+              "six==1.15.0",
+              "sqlalchemy==1.3.18",
+              "structlog==20.1.0",
+              "typing-extensions==3.7.4.2",
+              "urllib3==1.25.10",
+              "werkzeug==1.0.1",
+              "zope-event==4.4",
+              "zope-interface==5.1.0"
+            ],
+            "inputs": [
+              "pillow",
+              "chainer",
+              "chainercv",
+              "chainermn",
+              "chainerui",
+              "matplotlib",
+              "numpy",
+              "scipy",
+              "pyyaml"
+            ],
+            "not_on_index": [],
+            "command": "pip compile - --no-header --no-annotate --quiet --exclude-newer 2020-07-29T00:00:00Z --python-version 3.8 --python-platform x86_64-unknown-linux-gnu --python C:\\Users\\E16\\AppData\\Roaming\\uv\\python\\cpython-3.8.20-windows-x86_64-none\\python.exe",
+            "error": ""
+          }
+        }
+      },
+      {
+        "attempt_number": 1,
+        "diff_text": "",
+        "gate_decision": "PASS",
+        "gate_violations": [],
+        "exit_code": 1,
+        "stdout_tail": "hed with status 'error'\n  Running setup.py clean for chainercv\n  Building wheel for chainermn (setup.py): started\n  Building wheel for chainermn (setup.py): finished with status 'done'\n  Created wheel for chainermn: filename=chainermn-1.3.0-py3-none-any.whl size=50109 sha256=6dcde17f826b554bd6f32a125b54e440134b7551cbca168540a62330a22e081a\n  Stored in directory: /root/.cache/pip/wheels/dd/5a/a6/3de2ffd858610eb9c5f99553b0cccee4393b27dd812396e7cb\n  Building wheel for chainerui (setup.py): started\n  Building wheel for chainerui (setup.py): finished with status 'done'\n  Created wheel for chainerui: filename=chainerui-0.11.0-py3-none-any.whl size=1830363 sha256=1428dd0dc25f469e1600030002daa0249502cfd3105112aeaf3d3aaca1a168ea\n  Stored in directory: /root/.cache/pip/wheels/5e/06/94/4ef06c264a9b19e7adfe435824fd71ea04c63350e99d03ecb1\n  Building wheel for mpi4py (setup.py): started\n  Building wheel for mpi4py (setup.py): finished with status 'error'\n  Running setup.py clean for mpi4py\n  Building wheel for pyyaml (setup.py): started\n  Building wheel for pyyaml (setup.py): finished with status 'done'\n  Created wheel for pyyaml: filename=PyYAML-5.3.1-cp38-cp38-linux_x86_64.whl size=44633 sha256=18e1b17bcf739e235717d5399340999fc301da7af177032bafa85bfe29cffa6a\n  Stored in directory: /root/.cache/pip/wheels/13/90/db/290ab3a34f2ef0b5a0f89235dc2d40fea83e77de84ed2dc05c\nSuccessfully built alembic chainer chainermn chainerui pyyaml\nFailed to build chainercv mpi4py\nInstalling collected packages: typing-extensions, python-editor, msgpack, mpi4py, greenlet, filelock, werkzeug, urllib3, sqlalchemy, six, setuptools, pyyaml, pyparsing, pycparser, pillow, numpy, markupsafe, kiwisolver, itsdangerous, click, zope-interface, zope-event, structlog, scipy, python-dateutil, protobuf, mako, jinja2, cycler, cffi, matplotlib, gevent, flask, chainer, alembic, chainerui, chainermn, chainercv\n  Running setup.py install for mpi4py: started\n  Running setup.py install for mpi4py: finished with status 'error'\n",
+        "stderr_tail": "ng src/mpi4py/futures/_lib.py -> build/lib.linux-x86_64-3.8/mpi4py/futures\n      copying src/mpi4py/futures/__init__.py -> build/lib.linux-x86_64-3.8/mpi4py/futures\n      copying src/mpi4py/futures/aplus.py -> build/lib.linux-x86_64-3.8/mpi4py/futures\n      copying src/mpi4py/MPI.pxd -> build/lib.linux-x86_64-3.8/mpi4py\n      copying src/mpi4py/__init__.pxd -> build/lib.linux-x86_64-3.8/mpi4py\n      copying src/mpi4py/libmpi.pxd -> build/lib.linux-x86_64-3.8/mpi4py\n      creating build/lib.linux-x86_64-3.8/mpi4py/include\n      creating build/lib.linux-x86_64-3.8/mpi4py/include/mpi4py\n      copying src/mpi4py/include/mpi4py/mpi4py.MPI_api.h -> build/lib.linux-x86_64-3.8/mpi4py/include/mpi4py\n      copying src/mpi4py/include/mpi4py/mpi4py.MPI.h -> build/lib.linux-x86_64-3.8/mpi4py/include/mpi4py\n      copying src/mpi4py/include/mpi4py/mpi4py.h -> build/lib.linux-x86_64-3.8/mpi4py/include/mpi4py\n      copying src/mpi4py/include/mpi4py/mpi4py.i -> build/lib.linux-x86_64-3.8/mpi4py/include/mpi4py\n      copying src/mpi4py/include/mpi4py/mpi.pxi -> build/lib.linux-x86_64-3.8/mpi4py/include/mpi4py\n      running build_clib\n      MPI configuration: [mpi] from 'mpi.cfg'\n      checking for library 'lmpe' ...\n      gcc -Wno-unused-result -Wsign-compare -DNDEBUG -g -fwrapv -O3 -Wall -fPIC -c _configtest.c -o _configtest.o\n      gcc _configtest.o -llmpe -o _configtest\n      /usr/bin/ld: cannot find -llmpe: No such file or directory\n      collect2: error: ld returned 1 exit status\n      failure.\n      removing: _configtest.c _configtest.o\n      building 'mpe' dylib library\n      creating build/temp.linux-x86_64-3.8\n      creating build/temp.linux-x86_64-3.8/src\n      creating build/temp.linux-x86_64-3.8/src/lib-pmpi\n      gcc -Wno-unused-result -Wsign-compare -DNDEBUG -g -fwrapv -O3 -Wall -fPIC -c src/lib-pmpi/mpe.c -o build/temp.linux-x86_64-3.8/src/lib-pmpi/mpe.o\n      creating build/lib.linux-x86_64-3.8/mpi4py/lib-pmpi\n      gcc -shared -Wl,--no-as-needed build/temp.linux-x86_64",
+        "tavily_sources": [],
+        "env_delta": [
+          {
+            "command": null,
+            "op": "apt",
+            "package": "build-essential",
+            "version": null,
+            "git_url": null,
+            "commit": null,
+            "justification": "The build of chainercv and mpi4py from source requires gcc, which is missing in the base image.",
+            "evidence": "unable to execute 'gcc': No such file or directory"
+          }
+        ],
+        "resolved_sources": [],
+        "origin": "model",
+        "time_machine": null
+      },
+      {
+        "attempt_number": 2,
+        "diff_text": "",
+        "gate_decision": "PASS",
+        "gate_violations": [],
+        "exit_code": 1,
+        "stdout_tail": "hed with status 'error'\n  Running setup.py clean for chainercv\n  Building wheel for chainermn (setup.py): started\n  Building wheel for chainermn (setup.py): finished with status 'done'\n  Created wheel for chainermn: filename=chainermn-1.3.0-py3-none-any.whl size=50109 sha256=e136a11e1893c420e761be2786799e5a61bca92f7708babc6f40d7992a28b423\n  Stored in directory: /root/.cache/pip/wheels/dd/5a/a6/3de2ffd858610eb9c5f99553b0cccee4393b27dd812396e7cb\n  Building wheel for chainerui (setup.py): started\n  Building wheel for chainerui (setup.py): finished with status 'done'\n  Created wheel for chainerui: filename=chainerui-0.11.0-py3-none-any.whl size=1830363 sha256=dfd97710d9e23d5e49b20e32122b693753fdc8205488f1bde68362da1b16126f\n  Stored in directory: /root/.cache/pip/wheels/5e/06/94/4ef06c264a9b19e7adfe435824fd71ea04c63350e99d03ecb1\n  Building wheel for mpi4py (setup.py): started\n  Building wheel for mpi4py (setup.py): finished with status 'error'\n  Running setup.py clean for mpi4py\n  Building wheel for pyyaml (setup.py): started\n  Building wheel for pyyaml (setup.py): finished with status 'done'\n  Created wheel for pyyaml: filename=PyYAML-5.3.1-cp38-cp38-linux_x86_64.whl size=44633 sha256=d8eaa62f0369de2ffac88b4a48cf1362b67115d9be8a6b3ef43a4a51eeeaba19\n  Stored in directory: /root/.cache/pip/wheels/13/90/db/290ab3a34f2ef0b5a0f89235dc2d40fea83e77de84ed2dc05c\nSuccessfully built alembic chainer chainermn chainerui pyyaml\nFailed to build chainercv mpi4py\nInstalling collected packages: typing-extensions, python-editor, msgpack, mpi4py, greenlet, filelock, werkzeug, urllib3, sqlalchemy, six, setuptools, pyyaml, pyparsing, pycparser, pillow, numpy, markupsafe, kiwisolver, itsdangerous, click, zope-interface, zope-event, structlog, scipy, python-dateutil, protobuf, mako, jinja2, cycler, cffi, matplotlib, gevent, flask, chainer, alembic, chainerui, chainermn, chainercv\n  Running setup.py install for mpi4py: started\n  Running setup.py install for mpi4py: finished with status 'error'\n",
+        "stderr_tail": "ng src/mpi4py/futures/_lib.py -> build/lib.linux-x86_64-3.8/mpi4py/futures\n      copying src/mpi4py/futures/__init__.py -> build/lib.linux-x86_64-3.8/mpi4py/futures\n      copying src/mpi4py/futures/aplus.py -> build/lib.linux-x86_64-3.8/mpi4py/futures\n      copying src/mpi4py/MPI.pxd -> build/lib.linux-x86_64-3.8/mpi4py\n      copying src/mpi4py/__init__.pxd -> build/lib.linux-x86_64-3.8/mpi4py\n      copying src/mpi4py/libmpi.pxd -> build/lib.linux-x86_64-3.8/mpi4py\n      creating build/lib.linux-x86_64-3.8/mpi4py/include\n      creating build/lib.linux-x86_64-3.8/mpi4py/include/mpi4py\n      copying src/mpi4py/include/mpi4py/mpi4py.MPI_api.h -> build/lib.linux-x86_64-3.8/mpi4py/include/mpi4py\n      copying src/mpi4py/include/mpi4py/mpi4py.MPI.h -> build/lib.linux-x86_64-3.8/mpi4py/include/mpi4py\n      copying src/mpi4py/include/mpi4py/mpi4py.h -> build/lib.linux-x86_64-3.8/mpi4py/include/mpi4py\n      copying src/mpi4py/include/mpi4py/mpi4py.i -> build/lib.linux-x86_64-3.8/mpi4py/include/mpi4py\n      copying src/mpi4py/include/mpi4py/mpi.pxi -> build/lib.linux-x86_64-3.8/mpi4py/include/mpi4py\n      running build_clib\n      MPI configuration: [mpi] from 'mpi.cfg'\n      checking for library 'lmpe' ...\n      gcc -Wno-unused-result -Wsign-compare -DNDEBUG -g -fwrapv -O3 -Wall -fPIC -c _configtest.c -o _configtest.o\n      gcc _configtest.o -llmpe -o _configtest\n      /usr/bin/ld: cannot find -llmpe: No such file or directory\n      collect2: error: ld returned 1 exit status\n      failure.\n      removing: _configtest.c _configtest.o\n      building 'mpe' dylib library\n      creating build/temp.linux-x86_64-3.8\n      creating build/temp.linux-x86_64-3.8/src\n      creating build/temp.linux-x86_64-3.8/src/lib-pmpi\n      gcc -Wno-unused-result -Wsign-compare -DNDEBUG -g -fwrapv -O3 -Wall -fPIC -c src/lib-pmpi/mpe.c -o build/temp.linux-x86_64-3.8/src/lib-pmpi/mpe.o\n      creating build/lib.linux-x86_64-3.8/mpi4py/lib-pmpi\n      gcc -shared -Wl,--no-as-needed build/temp.linux-x86_64",
+        "tavily_sources": [],
+        "env_delta": [
+          {
+            "command": null,
+            "op": "add",
+            "package": "numpy",
+            "version": "1.19.1",
+            "git_url": null,
+            "commit": null,
+            "justification": "The ModuleNotFoundError indicates numpy is not installed; adding numpy ensures the dependency is satisfied.",
+            "evidence": "ModuleNotFoundError: No module named 'numpy'"
+          }
+        ],
+        "resolved_sources": [
+          {
+            "kind": "pypi",
+            "package": "numpy",
+            "version": "1.19.1",
+            "uploaded": "2020-07-21",
+            "cpython_tags": [
+              "cp36",
+              "cp37",
+              "cp38"
+            ],
+            "url": "https://pypi.org/project/numpy/1.19.1/"
+          }
+        ],
+        "origin": "model",
+        "time_machine": null
+      },
+      {
+        "attempt_number": 3,
+        "diff_text": "",
+        "gate_decision": "PASS",
+        "gate_violations": [],
+        "exit_code": 1,
+        "stdout_tail": "hed with status 'error'\n  Running setup.py clean for chainercv\n  Building wheel for chainermn (setup.py): started\n  Building wheel for chainermn (setup.py): finished with status 'done'\n  Created wheel for chainermn: filename=chainermn-1.3.0-py3-none-any.whl size=50109 sha256=7b997b12c805c0745b760fb14c0d5b11953c322616e43e755fb3df891d5a2967\n  Stored in directory: /root/.cache/pip/wheels/dd/5a/a6/3de2ffd858610eb9c5f99553b0cccee4393b27dd812396e7cb\n  Building wheel for chainerui (setup.py): started\n  Building wheel for chainerui (setup.py): finished with status 'done'\n  Created wheel for chainerui: filename=chainerui-0.11.0-py3-none-any.whl size=1830363 sha256=374e85d391b9d0d97fcf9492b97f152dfe599e90d19e996544ea5ecea965baeb\n  Stored in directory: /root/.cache/pip/wheels/5e/06/94/4ef06c264a9b19e7adfe435824fd71ea04c63350e99d03ecb1\n  Building wheel for mpi4py (setup.py): started\n  Building wheel for mpi4py (setup.py): finished with status 'error'\n  Running setup.py clean for mpi4py\n  Building wheel for pyyaml (setup.py): started\n  Building wheel for pyyaml (setup.py): finished with status 'done'\n  Created wheel for pyyaml: filename=PyYAML-5.3.1-cp38-cp38-linux_x86_64.whl size=44633 sha256=cedfb1b5d8737379e3c3d28797d22f5aadff3b2d614b3867b2bd4dff229bd806\n  Stored in directory: /root/.cache/pip/wheels/13/90/db/290ab3a34f2ef0b5a0f89235dc2d40fea83e77de84ed2dc05c\nSuccessfully built alembic chainer chainermn chainerui pyyaml\nFailed to build chainercv mpi4py\nInstalling collected packages: typing-extensions, python-editor, msgpack, mpi4py, greenlet, filelock, werkzeug, urllib3, sqlalchemy, six, setuptools, pyyaml, pyparsing, pycparser, pillow, numpy, markupsafe, kiwisolver, itsdangerous, click, zope-interface, zope-event, structlog, scipy, python-dateutil, protobuf, mako, jinja2, cycler, cffi, matplotlib, gevent, flask, chainer, alembic, chainerui, chainermn, chainercv\n  Running setup.py install for mpi4py: started\n  Running setup.py install for mpi4py: finished with status 'error'\n",
+        "stderr_tail": "ng src/mpi4py/futures/_lib.py -> build/lib.linux-x86_64-3.8/mpi4py/futures\n      copying src/mpi4py/futures/__init__.py -> build/lib.linux-x86_64-3.8/mpi4py/futures\n      copying src/mpi4py/futures/aplus.py -> build/lib.linux-x86_64-3.8/mpi4py/futures\n      copying src/mpi4py/MPI.pxd -> build/lib.linux-x86_64-3.8/mpi4py\n      copying src/mpi4py/__init__.pxd -> build/lib.linux-x86_64-3.8/mpi4py\n      copying src/mpi4py/libmpi.pxd -> build/lib.linux-x86_64-3.8/mpi4py\n      creating build/lib.linux-x86_64-3.8/mpi4py/include\n      creating build/lib.linux-x86_64-3.8/mpi4py/include/mpi4py\n      copying src/mpi4py/include/mpi4py/mpi4py.MPI_api.h -> build/lib.linux-x86_64-3.8/mpi4py/include/mpi4py\n      copying src/mpi4py/include/mpi4py/mpi4py.MPI.h -> build/lib.linux-x86_64-3.8/mpi4py/include/mpi4py\n      copying src/mpi4py/include/mpi4py/mpi4py.h -> build/lib.linux-x86_64-3.8/mpi4py/include/mpi4py\n      copying src/mpi4py/include/mpi4py/mpi4py.i -> build/lib.linux-x86_64-3.8/mpi4py/include/mpi4py\n      copying src/mpi4py/include/mpi4py/mpi.pxi -> build/lib.linux-x86_64-3.8/mpi4py/include/mpi4py\n      running build_clib\n      MPI configuration: [mpi] from 'mpi.cfg'\n      checking for library 'lmpe' ...\n      gcc -Wno-unused-result -Wsign-compare -DNDEBUG -g -fwrapv -O3 -Wall -fPIC -c _configtest.c -o _configtest.o\n      gcc _configtest.o -llmpe -o _configtest\n      /usr/bin/ld: cannot find -llmpe: No such file or directory\n      collect2: error: ld returned 1 exit status\n      failure.\n      removing: _configtest.c _configtest.o\n      building 'mpe' dylib library\n      creating build/temp.linux-x86_64-3.8\n      creating build/temp.linux-x86_64-3.8/src\n      creating build/temp.linux-x86_64-3.8/src/lib-pmpi\n      gcc -Wno-unused-result -Wsign-compare -DNDEBUG -g -fwrapv -O3 -Wall -fPIC -c src/lib-pmpi/mpe.c -o build/temp.linux-x86_64-3.8/src/lib-pmpi/mpe.o\n      creating build/lib.linux-x86_64-3.8/mpi4py/lib-pmpi\n      gcc -shared -Wl,--no-as-needed build/temp.linux-x86_64",
+        "tavily_sources": [],
+        "env_delta": [
+          {
+            "command": null,
+            "op": "apt",
+            "package": "python3-numpy",
+            "version": null,
+            "git_url": null,
+            "commit": null,
+            "justification": "Install numpy via apt to ensure it is importable when pip installation fails.",
+            "evidence": "ModuleNotFoundError: No module named 'numpy'"
+          }
+        ],
+        "resolved_sources": [],
+        "origin": "model",
+        "time_machine": null
+      }
+    ],
+    "certificate_prose": "The execution was blocked after three repair attempts due to a missing dependency. The run log shows a ModuleNotFoundError for 'numpy' with exit code 1, and the classifier assigned taxonomy code DEP_MISSING. The verdict remains BLOCKED. Verifies that the artifact executes. Does not verify the paper's numerical results."
+  },
+  "certificate": {
+    "repo_url": "https://github.com/grigorisg9gr/rocgan",
+    "commit_sha": "0878690e700ae5615131db746616e51e635eb15d",
+    "build_plan": {
+      "base_image": "python:3.8-slim",
+      "apt_install": [
+        "build-essential",
+        "python3-numpy"
+      ],
+      "install_commands": [
+        "printf '%s\\n' alembic==1.4.2 cffi==1.14.1 chainer==7.4.0 chainercv==0.13.1 chainermn==1.3.0 chainerui==0.11.0 click==7.1.2 cycler==0.10.0 filelock==3.0.12 flask==1.1.2 gevent==20.6.2 greenlet==0.4.16 itsdangerous==1.1.0 jinja2==2.11.2 kiwisolver==1.2.0 mako==1.1.3 markupsafe==1.1.1 matplotlib==3.3.0 mpi4py==3.0.3 msgpack==1.0.0 numpy==1.19.1 pillow==7.2.0 protobuf==3.12.2 pycparser==2.20 pyparsing==2.4.7 python-dateutil==2.8.1 python-editor==1.0.4 pyyaml==5.3.1 scipy==1.5.2 setuptools==49.2.0 six==1.15.0 sqlalchemy==1.3.18 structlog==20.1.0 typing-extensions==3.7.4.2 urllib3==1.25.10 werkzeug==1.0.1 zope-event==4.4 zope-interface==5.1.0 > .rerun-requirements.txt && pip install -r .rerun-requirements.txt"
+      ],
+      "execute_command": "python jobs/rocgan/train_mn.py '--config jobs/rocgan/iclr_5layer_rocgan_super.yml'",
+      "notes": [
+        "execute command is the repository's documented command (corpus ground truth)",
+        "base image python:3.10-slim: no usable Python declaration; RERUN default 3.10",
+        "time machine: python 3.8, 38 locked package(s)",
+        "env delta: apt build-essential \u2014 The build of chainercv and mpi4py from source requires gcc, which is missing in the base image.",
+        "env delta: add numpy \u2014 The ModuleNotFoundError indicates numpy is not installed; adding numpy ensures the dependency is satisfied.",
+        "env delta: apt python3-numpy \u2014 Install numpy via apt to ensure it is importable when pip installation fails."
+      ]
+    },
+    "full_log": "[intake] cloned https://github.com/grigorisg9gr/rocgan@0878690e700ae5615131db746616e51e635eb15d\n[recon] calling Nemotron Nano\n[recon] entrypoint=jobs/rocgan/train_mn_rocgan.py confidence=0.85\n[python] python:3.10-slim (default): no usable Python declaration; RERUN default 3.10\n[planner] build plan: {'base_image': 'python:3.10-slim', 'apt_install': [], 'install_commands': ['true  # no declared dependency file found; nothing to install'], 'execute_command': \"python jobs/rocgan/train_mn.py '--config jobs/rocgan/iclr_5layer_rocgan_super.yml'\", 'notes': [\"execute command is the repository's documented command (corpus ground truth)\", 'base image python:3.10-slim: no usable Python declaration; RERUN default 3.10']}\n[integrity] verified 72 file(s) against tree 8a5c2b0008dda683930fffa8e8182a6cd5a92b2d\n[sandbox] starting build+execute (wall_clock_seconds=600)\n[cost_guard] recorded $0.0015 sandbox spend, $1.9977 remaining today\n[sandbox] id=374f1ae8-354d-42e8-b783-12fc9d01b0f5 exit_code=1\n[baseline] as-is run: FAILS (exit code 1)\n[classifier] DEP_MISSING: ModuleNotFoundError: No module named 'chainer'\n[era] 2020-07-28 from pinned-commit {'note': 'no dependency files in the repository'}\n[import-map] PIL -> pillow (pipreqs, confidence normal)\n[import-map] yaml -> pyyaml (pipreqs, confidence normal)\n[time-machine] era 2020-07-28 (pinned-commit) -> python 3.8; locked 38 package(s) with uv --exclude-newer; not on the index: none\n[integrity] verified 72 file(s) against tree 8a5c2b0008dda683930fffa8e8182a6cd5a92b2d\n[sandbox] starting build+execute (wall_clock_seconds=600)\n[cost_guard] recorded $0.1338 sandbox spend, $1.8640 remaining today\n[time-machine] re-execution id=253578e9-91e2-4201-a04e-c92b23e512aa exit_code=1\n[classifier] SYS_LIB_MISSING: unable to execute 'gcc': No such file or directory\n[tavily] 3 result(s) for 'python sys lib missing fix: unable to execute 'gcc': No such file or directory'\n[repair 1] tamper gate PASS (env) \u2014 applying and re-executing\n[repair 1] env delta applied; build plan now: {'base_image': 'python:3.8-slim', 'apt_install': ['build-essential'], 'install_commands': [\"printf '%s\\\\n' alembic==1.4.2 cffi==1.14.1 chainer==7.4.0 chainercv==0.13.1 chainermn==1.3.0 chainerui==0.11.0 click==7.1.2 cycler==0.10.0 filelock==3.0.12 flask==1.1.2 gevent==20.6.2 greenlet==0.4.16 itsdangerous==1.1.0 jinja2==2.11.2 kiwisolver==1.2.0 mako==1.1.3 markupsafe==1.1.1 matplotlib==3.3.0 mpi4py==3.0.3 msgpack==1.0.0 numpy==1.19.1 pillow==7.2.0 protobuf==3.12.2 pycparser==2.20 pyparsing==2.4.7 python-dateutil==2.8.1 python-editor==1.0.4 pyyaml==5.3.1 scipy==1.5.2 setuptools==49.2.0 six==1.15.0 sqlalchemy==1.3.18 structlog==20.1.0 typing-extensions==3.7.4.2 urllib3==1.25.10 werkzeug==1.0.1 zope-event==4.4 zope-interface==5.1.0 > .rerun-requirements.txt && pip install -r .rerun-requirements.txt\"], 'execute_command': \"python jobs/rocgan/train_mn.py '--config jobs/rocgan/iclr_5layer_rocgan_super.yml'\", 'notes': [\"execute command is the repository's documented command (corpus ground truth)\", 'base image python:3.10-slim: no usable Python declaration; RERUN default 3.10', 'time machine: python 3.8, 38 locked package(s)', 'env delta: apt build-essential \u2014 The build of chainercv and mpi4py from source requires gcc, which is missing in the base image.']}\n[citations] not cited (not used in a decision): https://www.python.org/downloads\n[citations] not cited (not used in a decision): https://www.w3schools.com/python/python_operators.asp\n[citations] not cited (not used in a decision): https://www.python.org\n[integrity] verified 72 file(s) against tree 8a5c2b0008dda683930fffa8e8182a6cd5a92b2d\n[sandbox] starting build+execute (wall_clock_seconds=600)\n[cost_guard] recorded $0.2685 sandbox spend, $1.5923 remaining today\n[repair 1] re-execution id=2b9f2888-8adb-484f-b2fc-e9e56c91494b exit_code=1\n[classifier] DEP_MISSING: ModuleNotFoundError: No module named 'numpy'\n[resolver] numpy: 0 verified git source(s), PyPI found (6 release(s) shown), era 2020-07-28; query: 'numpy python package version compatible 2020 release history'\n[tavily] 5 result(s) for 'numpy python package version compatible 2020 release history'\n[repair 2] env change lacked justification/evidence; re-asked once (same attempt)\n[repair 2] tamper gate PASS (env) \u2014 applying and re-executing\n[repair 2] env delta applied; build plan now: {'base_image': 'python:3.8-slim', 'apt_install': ['build-essential'], 'install_commands': [\"printf '%s\\\\n' alembic==1.4.2 cffi==1.14.1 chainer==7.4.0 chainercv==0.13.1 chainermn==1.3.0 chainerui==0.11.0 click==7.1.2 cycler==0.10.0 filelock==3.0.12 flask==1.1.2 gevent==20.6.2 greenlet==0.4.16 itsdangerous==1.1.0 jinja2==2.11.2 kiwisolver==1.2.0 mako==1.1.3 markupsafe==1.1.1 matplotlib==3.3.0 mpi4py==3.0.3 msgpack==1.0.0 numpy==1.19.1 pillow==7.2.0 protobuf==3.12.2 pycparser==2.20 pyparsing==2.4.7 python-dateutil==2.8.1 python-editor==1.0.4 pyyaml==5.3.1 scipy==1.5.2 setuptools==49.2.0 six==1.15.0 sqlalchemy==1.3.18 structlog==20.1.0 typing-extensions==3.7.4.2 urllib3==1.25.10 werkzeug==1.0.1 zope-event==4.4 zope-interface==5.1.0 > .rerun-requirements.txt && pip install -r .rerun-requirements.txt\"], 'execute_command': \"python jobs/rocgan/train_mn.py '--config jobs/rocgan/iclr_5layer_rocgan_super.yml'\", 'notes': [\"execute command is the repository's documented command (corpus ground truth)\", 'base image python:3.10-slim: no usable Python declaration; RERUN default 3.10', 'time machine: python 3.8, 38 locked package(s)', 'env delta: apt build-essential \u2014 The build of chainercv and mpi4py from source requires gcc, which is missing in the base image.', 'env delta: add numpy \u2014 The ModuleNotFoundError indicates numpy is not installed; adding numpy ensures the dependency is satisfied.']}\n[citations] not cited (not used in a decision): https://numpy.org/news\n[citations] not cited (not used in a decision): https://numpy.org/neps/nep-0029-deprecation_policy.html\n[citations] not cited (not used in a decision): https://endoflife.date/numpy\n[citations] not cited (not used in a decision): https://numpy.org/doc/2.2/dev/depending_on_numpy.html\n[citations] not cited (not used in a decision): https://scientific-python.org/specs/spec-0000\n[citations] not cited (offered, not used): https://pypi.org/project/numpy/1.19.0/\n[citations] not cited (offered, not used): https://pypi.org/project/numpy/1.18.5/\n[citations] not cited (offered, not used): https://pypi.org/project/numpy/1.18.4/\n[citations] not cited (offered, not used): https://pypi.org/project/numpy/1.18.3/\n[citations] not cited (offered, not used): https://pypi.org/project/numpy/2.5.3/\n[integrity] verified 72 file(s) against tree 8a5c2b0008dda683930fffa8e8182a6cd5a92b2d\n[sandbox] starting build+execute (wall_clock_seconds=600)\n[cost_guard] recorded $0.2697 sandbox spend, $1.3095 remaining today\n[repair 2] re-execution id=c20b230e-bfbb-4a2e-ad6c-e995a83118db exit_code=1\n[classifier] DEP_MISSING: ModuleNotFoundError: No module named 'numpy'\n[resolver] numpy: 0 verified git source(s), PyPI found (6 release(s) shown), era 2020-07-28; query: 'numpy python package version compatible 2020 release history'\n[tavily] 5 result(s) for 'numpy python package version compatible 2020 release history'\n[repair 3] proposal repeats change(s) already tried and failed this run (add numpy); re-asked once (same attempt)\n[repair 3] tamper gate PASS (env) \u2014 applying and re-executing\n[repair 3] env delta applied; build plan now: {'base_image': 'python:3.8-slim', 'apt_install': ['build-essential', 'python3-numpy'], 'install_commands': [\"printf '%s\\\\n' alembic==1.4.2 cffi==1.14.1 chainer==7.4.0 chainercv==0.13.1 chainermn==1.3.0 chainerui==0.11.0 click==7.1.2 cycler==0.10.0 filelock==3.0.12 flask==1.1.2 gevent==20.6.2 greenlet==0.4.16 itsdangerous==1.1.0 jinja2==2.11.2 kiwisolver==1.2.0 mako==1.1.3 markupsafe==1.1.1 matplotlib==3.3.0 mpi4py==3.0.3 msgpack==1.0.0 numpy==1.19.1 pillow==7.2.0 protobuf==3.12.2 pycparser==2.20 pyparsing==2.4.7 python-dateutil==2.8.1 python-editor==1.0.4 pyyaml==5.3.1 scipy==1.5.2 setuptools==49.2.0 six==1.15.0 sqlalchemy==1.3.18 structlog==20.1.0 typing-extensions==3.7.4.2 urllib3==1.25.10 werkzeug==1.0.1 zope-event==4.4 zope-interface==5.1.0 > .rerun-requirements.txt && pip install -r .rerun-requirements.txt\"], 'execute_command': \"python jobs/rocgan/train_mn.py '--config jobs/rocgan/iclr_5layer_rocgan_super.yml'\", 'notes': [\"execute command is the repository's documented command (corpus ground truth)\", 'base image python:3.10-slim: no usable Python declaration; RERUN default 3.10', 'time machine: python 3.8, 38 locked package(s)', 'env delta: apt build-essential \u2014 The build of chainercv and mpi4py from source requires gcc, which is missing in the base image.', 'env delta: add numpy \u2014 The ModuleNotFoundError indicates numpy is not installed; adding numpy ensures the dependency is satisfied.', 'env delta: apt python3-numpy \u2014 Install numpy via apt to ensure it is importable when pip installation fails.']}\n[citations] not cited (not used in a decision): https://numpy.org/news\n[citations] not cited (not used in a decision): https://numpy.org/neps/nep-0029-deprecation_policy.html\n[citations] not cited (not used in a decision): https://endoflife.date/numpy\n[citations] not cited (not used in a decision): https://numpy.org/doc/2.2/dev/depending_on_numpy.html\n[citations] not cited (not used in a decision): https://scientific-python.org/specs/spec-0000\n[citations] not cited (offered, not used): https://pypi.org/project/numpy/1.19.1/\n[citations] not cited (offered, not used): https://pypi.org/project/numpy/1.19.0/\n[citations] not cited (offered, not used): https://pypi.org/project/numpy/1.18.5/\n[citations] not cited (offered, not used): https://pypi.org/project/numpy/1.18.4/\n[citations] not cited (offered, not used): https://pypi.org/project/numpy/1.18.3/\n[citations] not cited (offered, not used): https://pypi.org/project/numpy/2.5.3/\n[integrity] verified 72 file(s) against tree 8a5c2b0008dda683930fffa8e8182a6cd5a92b2d\n[sandbox] starting build+execute (wall_clock_seconds=600)\n[cost_guard] recorded $0.2982 sandbox spend, $1.0005 remaining today\n[repair 3] re-execution id=02d26af5-270c-4230-8d70-2bcfd295eb2b exit_code=1\n[classifier] DEP_MISSING: ModuleNotFoundError: No module named 'numpy'\n[verdict] BLOCKED after 3 repair attempt(s): DEP_MISSING",
+    "diffs": [
+      {
+        "attempt_number": 0,
+        "diff_text": "",
+        "gate_decision": "PASS",
+        "gate_violations": [],
+        "exit_code": 1,
+        "stdout_tail": "hed with status 'error'\n  Running setup.py clean for chainercv\n  Building wheel for chainermn (setup.py): started\n  Building wheel for chainermn (setup.py): finished with status 'done'\n  Created wheel for chainermn: filename=chainermn-1.3.0-py3-none-any.whl size=50109 sha256=43fd18eab64fc31b78e3905b5b898d9d4cc3ac95ba4261219bbd2b6fb885fb67\n  Stored in directory: /root/.cache/pip/wheels/dd/5a/a6/3de2ffd858610eb9c5f99553b0cccee4393b27dd812396e7cb\n  Building wheel for chainerui (setup.py): started\n  Building wheel for chainerui (setup.py): finished with status 'done'\n  Created wheel for chainerui: filename=chainerui-0.11.0-py3-none-any.whl size=1830363 sha256=2d8c8f70fad0e2cf85447aa7a6e41f38fbf15091cabcd5b9f936c8e4118edf89\n  Stored in directory: /root/.cache/pip/wheels/5e/06/94/4ef06c264a9b19e7adfe435824fd71ea04c63350e99d03ecb1\n  Building wheel for mpi4py (setup.py): started\n  Building wheel for mpi4py (setup.py): finished with status 'error'\n  Running setup.py clean for mpi4py\n  Building wheel for pyyaml (setup.py): started\n  Building wheel for pyyaml (setup.py): finished with status 'done'\n  Created wheel for pyyaml: filename=PyYAML-5.3.1-cp38-cp38-linux_x86_64.whl size=44633 sha256=d7282582d3f59ffaf2b8764eaedc856d414aa55bfd75626c645fa502c47745f7\n  Stored in directory: /root/.cache/pip/wheels/13/90/db/290ab3a34f2ef0b5a0f89235dc2d40fea83e77de84ed2dc05c\nSuccessfully built alembic chainer chainermn chainerui pyyaml\nFailed to build chainercv mpi4py\nInstalling collected packages: typing-extensions, python-editor, msgpack, mpi4py, greenlet, filelock, werkzeug, urllib3, sqlalchemy, six, setuptools, pyyaml, pyparsing, pycparser, pillow, numpy, markupsafe, kiwisolver, itsdangerous, click, zope-interface, zope-event, structlog, scipy, python-dateutil, protobuf, mako, jinja2, cycler, cffi, matplotlib, gevent, flask, chainer, alembic, chainerui, chainermn, chainercv\n  Running setup.py install for mpi4py: started\n  Running setup.py install for mpi4py: finished with status 'error'\n",
+        "stderr_tail": "ng src/mpi4py/futures/_lib.py -> build/lib.linux-x86_64-3.8/mpi4py/futures\n      copying src/mpi4py/futures/__init__.py -> build/lib.linux-x86_64-3.8/mpi4py/futures\n      copying src/mpi4py/futures/aplus.py -> build/lib.linux-x86_64-3.8/mpi4py/futures\n      copying src/mpi4py/MPI.pxd -> build/lib.linux-x86_64-3.8/mpi4py\n      copying src/mpi4py/__init__.pxd -> build/lib.linux-x86_64-3.8/mpi4py\n      copying src/mpi4py/libmpi.pxd -> build/lib.linux-x86_64-3.8/mpi4py\n      creating build/lib.linux-x86_64-3.8/mpi4py/include\n      creating build/lib.linux-x86_64-3.8/mpi4py/include/mpi4py\n      copying src/mpi4py/include/mpi4py/mpi4py.MPI_api.h -> build/lib.linux-x86_64-3.8/mpi4py/include/mpi4py\n      copying src/mpi4py/include/mpi4py/mpi4py.MPI.h -> build/lib.linux-x86_64-3.8/mpi4py/include/mpi4py\n      copying src/mpi4py/include/mpi4py/mpi4py.h -> build/lib.linux-x86_64-3.8/mpi4py/include/mpi4py\n      copying src/mpi4py/include/mpi4py/mpi4py.i -> build/lib.linux-x86_64-3.8/mpi4py/include/mpi4py\n      copying src/mpi4py/include/mpi4py/mpi.pxi -> build/lib.linux-x86_64-3.8/mpi4py/include/mpi4py\n      running build_clib\n      MPI configuration: [mpi] from 'mpi.cfg'\n      checking for library 'lmpe' ...\n      gcc -Wno-unused-result -Wsign-compare -DNDEBUG -g -fwrapv -O3 -Wall -fPIC -c _configtest.c -o _configtest.o\n      unable to execute 'gcc': No such file or directory\n      failure.\n      removing: _configtest.c _configtest.o\n      building 'mpe' dylib library\n      creating build/temp.linux-x86_64-3.8\n      creating build/temp.linux-x86_64-3.8/src\n      creating build/temp.linux-x86_64-3.8/src/lib-pmpi\n      gcc -Wno-unused-result -Wsign-compare -DNDEBUG -g -fwrapv -O3 -Wall -fPIC -c src/lib-pmpi/mpe.c -o build/temp.linux-x86_64-3.8/src/lib-pmpi/mpe.o\n      unable to execute 'gcc': No such file or directory\n      warning: build_clib: command 'gcc' failed with exit status 1\n      \n      warning: build_clib: building optional library \"mpe\" failed\n      \n      checking fo",
+        "tavily_sources": [],
+        "env_delta": [],
+        "resolved_sources": [],
+        "origin": "time_machine",
+        "time_machine": {
+          "era": {
+            "date": "2020-07-28",
+            "source": "pinned-commit",
+            "detail": {
+              "note": "no dependency files in the repository"
+            }
+          },
+          "python": {
+            "version": "3.8",
+            "reason": "newest CPython first released \u2265180 days before the era date 2020-07-28 (https://devguide.python.org/versions/ (first release dates, retrieved 2026-09-24))",
+            "source": "https://devguide.python.org/versions/ (first release dates, retrieved 2026-09-24)"
+          },
+          "undeclared_imports": [
+            "pillow",
+            "chainer",
+            "chainercv",
+            "chainermn",
+            "chainerui",
+            "matplotlib",
+            "numpy",
+            "scipy",
+            "pyyaml"
+          ],
+          "import_mappings": [
+            {
+              "import": "PIL",
+              "distribution": "pillow",
+              "source": "pipreqs",
+              "confidence": "normal"
+            },
+            {
+              "import": "yaml",
+              "distribution": "pyyaml",
+              "source": "pipreqs",
+              "confidence": "normal"
+            }
+          ],
+          "apt_added": [],
+          "apt_reason": "",
+          "lock": {
+            "ok": true,
+            "lock": [
+              "alembic==1.4.2",
+              "cffi==1.14.1",
+              "chainer==7.4.0",
+              "chainercv==0.13.1",
+              "chainermn==1.3.0",
+              "chainerui==0.11.0",
+              "click==7.1.2",
+              "cycler==0.10.0",
+              "filelock==3.0.12",
+              "flask==1.1.2",
+              "gevent==20.6.2",
+              "greenlet==0.4.16",
+              "itsdangerous==1.1.0",
+              "jinja2==2.11.2",
+              "kiwisolver==1.2.0",
+              "mako==1.1.3",
+              "markupsafe==1.1.1",
+              "matplotlib==3.3.0",
+              "mpi4py==3.0.3",
+              "msgpack==1.0.0",
+              "numpy==1.19.1",
+              "pillow==7.2.0",
+              "protobuf==3.12.2",
+              "pycparser==2.20",
+              "pyparsing==2.4.7",
+              "python-dateutil==2.8.1",
+              "python-editor==1.0.4",
+              "pyyaml==5.3.1",
+              "scipy==1.5.2",
+              "setuptools==49.2.0",
+              "six==1.15.0",
+              "sqlalchemy==1.3.18",
+              "structlog==20.1.0",
+              "typing-extensions==3.7.4.2",
+              "urllib3==1.25.10",
+              "werkzeug==1.0.1",
+              "zope-event==4.4",
+              "zope-interface==5.1.0"
+            ],
+            "inputs": [
+              "pillow",
+              "chainer",
+              "chainercv",
+              "chainermn",
+              "chainerui",
+              "matplotlib",
+              "numpy",
+              "scipy",
+              "pyyaml"
+            ],
+            "not_on_index": [],
+            "command": "pip compile - --no-header --no-annotate --quiet --exclude-newer 2020-07-29T00:00:00Z --python-version 3.8 --python-platform x86_64-unknown-linux-gnu --python C:\\Users\\E16\\AppData\\Roaming\\uv\\python\\cpython-3.8.20-windows-x86_64-none\\python.exe",
+            "error": ""
+          }
+        }
+      },
+      {
+        "attempt_number": 1,
+        "diff_text": "",
+        "gate_decision": "PASS",
+        "gate_violations": [],
+        "exit_code": 1,
+        "stdout_tail": "hed with status 'error'\n  Running setup.py clean for chainercv\n  Building wheel for chainermn (setup.py): started\n  Building wheel for chainermn (setup.py): finished with status 'done'\n  Created wheel for chainermn: filename=chainermn-1.3.0-py3-none-any.whl size=50109 sha256=6dcde17f826b554bd6f32a125b54e440134b7551cbca168540a62330a22e081a\n  Stored in directory: /root/.cache/pip/wheels/dd/5a/a6/3de2ffd858610eb9c5f99553b0cccee4393b27dd812396e7cb\n  Building wheel for chainerui (setup.py): started\n  Building wheel for chainerui (setup.py): finished with status 'done'\n  Created wheel for chainerui: filename=chainerui-0.11.0-py3-none-any.whl size=1830363 sha256=1428dd0dc25f469e1600030002daa0249502cfd3105112aeaf3d3aaca1a168ea\n  Stored in directory: /root/.cache/pip/wheels/5e/06/94/4ef06c264a9b19e7adfe435824fd71ea04c63350e99d03ecb1\n  Building wheel for mpi4py (setup.py): started\n  Building wheel for mpi4py (setup.py): finished with status 'error'\n  Running setup.py clean for mpi4py\n  Building wheel for pyyaml (setup.py): started\n  Building wheel for pyyaml (setup.py): finished with status 'done'\n  Created wheel for pyyaml: filename=PyYAML-5.3.1-cp38-cp38-linux_x86_64.whl size=44633 sha256=18e1b17bcf739e235717d5399340999fc301da7af177032bafa85bfe29cffa6a\n  Stored in directory: /root/.cache/pip/wheels/13/90/db/290ab3a34f2ef0b5a0f89235dc2d40fea83e77de84ed2dc05c\nSuccessfully built alembic chainer chainermn chainerui pyyaml\nFailed to build chainercv mpi4py\nInstalling collected packages: typing-extensions, python-editor, msgpack, mpi4py, greenlet, filelock, werkzeug, urllib3, sqlalchemy, six, setuptools, pyyaml, pyparsing, pycparser, pillow, numpy, markupsafe, kiwisolver, itsdangerous, click, zope-interface, zope-event, structlog, scipy, python-dateutil, protobuf, mako, jinja2, cycler, cffi, matplotlib, gevent, flask, chainer, alembic, chainerui, chainermn, chainercv\n  Running setup.py install for mpi4py: started\n  Running setup.py install for mpi4py: finished with status 'error'\n",
+        "stderr_tail": "ng src/mpi4py/futures/_lib.py -> build/lib.linux-x86_64-3.8/mpi4py/futures\n      copying src/mpi4py/futures/__init__.py -> build/lib.linux-x86_64-3.8/mpi4py/futures\n      copying src/mpi4py/futures/aplus.py -> build/lib.linux-x86_64-3.8/mpi4py/futures\n      copying src/mpi4py/MPI.pxd -> build/lib.linux-x86_64-3.8/mpi4py\n      copying src/mpi4py/__init__.pxd -> build/lib.linux-x86_64-3.8/mpi4py\n      copying src/mpi4py/libmpi.pxd -> build/lib.linux-x86_64-3.8/mpi4py\n      creating build/lib.linux-x86_64-3.8/mpi4py/include\n      creating build/lib.linux-x86_64-3.8/mpi4py/include/mpi4py\n      copying src/mpi4py/include/mpi4py/mpi4py.MPI_api.h -> build/lib.linux-x86_64-3.8/mpi4py/include/mpi4py\n      copying src/mpi4py/include/mpi4py/mpi4py.MPI.h -> build/lib.linux-x86_64-3.8/mpi4py/include/mpi4py\n      copying src/mpi4py/include/mpi4py/mpi4py.h -> build/lib.linux-x86_64-3.8/mpi4py/include/mpi4py\n      copying src/mpi4py/include/mpi4py/mpi4py.i -> build/lib.linux-x86_64-3.8/mpi4py/include/mpi4py\n      copying src/mpi4py/include/mpi4py/mpi.pxi -> build/lib.linux-x86_64-3.8/mpi4py/include/mpi4py\n      running build_clib\n      MPI configuration: [mpi] from 'mpi.cfg'\n      checking for library 'lmpe' ...\n      gcc -Wno-unused-result -Wsign-compare -DNDEBUG -g -fwrapv -O3 -Wall -fPIC -c _configtest.c -o _configtest.o\n      gcc _configtest.o -llmpe -o _configtest\n      /usr/bin/ld: cannot find -llmpe: No such file or directory\n      collect2: error: ld returned 1 exit status\n      failure.\n      removing: _configtest.c _configtest.o\n      building 'mpe' dylib library\n      creating build/temp.linux-x86_64-3.8\n      creating build/temp.linux-x86_64-3.8/src\n      creating build/temp.linux-x86_64-3.8/src/lib-pmpi\n      gcc -Wno-unused-result -Wsign-compare -DNDEBUG -g -fwrapv -O3 -Wall -fPIC -c src/lib-pmpi/mpe.c -o build/temp.linux-x86_64-3.8/src/lib-pmpi/mpe.o\n      creating build/lib.linux-x86_64-3.8/mpi4py/lib-pmpi\n      gcc -shared -Wl,--no-as-needed build/temp.linux-x86_64",
+        "tavily_sources": [],
+        "env_delta": [
+          {
+            "command": null,
+            "op": "apt",
+            "package": "build-essential",
+            "version": null,
+            "git_url": null,
+            "commit": null,
+            "justification": "The build of chainercv and mpi4py from source requires gcc, which is missing in the base image.",
+            "evidence": "unable to execute 'gcc': No such file or directory"
+          }
+        ],
+        "resolved_sources": [],
+        "origin": "model",
+        "time_machine": null
+      },
+      {
+        "attempt_number": 2,
+        "diff_text": "",
+        "gate_decision": "PASS",
+        "gate_violations": [],
+        "exit_code": 1,
+        "stdout_tail": "hed with status 'error'\n  Running setup.py clean for chainercv\n  Building wheel for chainermn (setup.py): started\n  Building wheel for chainermn (setup.py): finished with status 'done'\n  Created wheel for chainermn: filename=chainermn-1.3.0-py3-none-any.whl size=50109 sha256=e136a11e1893c420e761be2786799e5a61bca92f7708babc6f40d7992a28b423\n  Stored in directory: /root/.cache/pip/wheels/dd/5a/a6/3de2ffd858610eb9c5f99553b0cccee4393b27dd812396e7cb\n  Building wheel for chainerui (setup.py): started\n  Building wheel for chainerui (setup.py): finished with status 'done'\n  Created wheel for chainerui: filename=chainerui-0.11.0-py3-none-any.whl size=1830363 sha256=dfd97710d9e23d5e49b20e32122b693753fdc8205488f1bde68362da1b16126f\n  Stored in directory: /root/.cache/pip/wheels/5e/06/94/4ef06c264a9b19e7adfe435824fd71ea04c63350e99d03ecb1\n  Building wheel for mpi4py (setup.py): started\n  Building wheel for mpi4py (setup.py): finished with status 'error'\n  Running setup.py clean for mpi4py\n  Building wheel for pyyaml (setup.py): started\n  Building wheel for pyyaml (setup.py): finished with status 'done'\n  Created wheel for pyyaml: filename=PyYAML-5.3.1-cp38-cp38-linux_x86_64.whl size=44633 sha256=d8eaa62f0369de2ffac88b4a48cf1362b67115d9be8a6b3ef43a4a51eeeaba19\n  Stored in directory: /root/.cache/pip/wheels/13/90/db/290ab3a34f2ef0b5a0f89235dc2d40fea83e77de84ed2dc05c\nSuccessfully built alembic chainer chainermn chainerui pyyaml\nFailed to build chainercv mpi4py\nInstalling collected packages: typing-extensions, python-editor, msgpack, mpi4py, greenlet, filelock, werkzeug, urllib3, sqlalchemy, six, setuptools, pyyaml, pyparsing, pycparser, pillow, numpy, markupsafe, kiwisolver, itsdangerous, click, zope-interface, zope-event, structlog, scipy, python-dateutil, protobuf, mako, jinja2, cycler, cffi, matplotlib, gevent, flask, chainer, alembic, chainerui, chainermn, chainercv\n  Running setup.py install for mpi4py: started\n  Running setup.py install for mpi4py: finished with status 'error'\n",
+        "stderr_tail": "ng src/mpi4py/futures/_lib.py -> build/lib.linux-x86_64-3.8/mpi4py/futures\n      copying src/mpi4py/futures/__init__.py -> build/lib.linux-x86_64-3.8/mpi4py/futures\n      copying src/mpi4py/futures/aplus.py -> build/lib.linux-x86_64-3.8/mpi4py/futures\n      copying src/mpi4py/MPI.pxd -> build/lib.linux-x86_64-3.8/mpi4py\n      copying src/mpi4py/__init__.pxd -> build/lib.linux-x86_64-3.8/mpi4py\n      copying src/mpi4py/libmpi.pxd -> build/lib.linux-x86_64-3.8/mpi4py\n      creating build/lib.linux-x86_64-3.8/mpi4py/include\n      creating build/lib.linux-x86_64-3.8/mpi4py/include/mpi4py\n      copying src/mpi4py/include/mpi4py/mpi4py.MPI_api.h -> build/lib.linux-x86_64-3.8/mpi4py/include/mpi4py\n      copying src/mpi4py/include/mpi4py/mpi4py.MPI.h -> build/lib.linux-x86_64-3.8/mpi4py/include/mpi4py\n      copying src/mpi4py/include/mpi4py/mpi4py.h -> build/lib.linux-x86_64-3.8/mpi4py/include/mpi4py\n      copying src/mpi4py/include/mpi4py/mpi4py.i -> build/lib.linux-x86_64-3.8/mpi4py/include/mpi4py\n      copying src/mpi4py/include/mpi4py/mpi.pxi -> build/lib.linux-x86_64-3.8/mpi4py/include/mpi4py\n      running build_clib\n      MPI configuration: [mpi] from 'mpi.cfg'\n      checking for library 'lmpe' ...\n      gcc -Wno-unused-result -Wsign-compare -DNDEBUG -g -fwrapv -O3 -Wall -fPIC -c _configtest.c -o _configtest.o\n      gcc _configtest.o -llmpe -o _configtest\n      /usr/bin/ld: cannot find -llmpe: No such file or directory\n      collect2: error: ld returned 1 exit status\n      failure.\n      removing: _configtest.c _configtest.o\n      building 'mpe' dylib library\n      creating build/temp.linux-x86_64-3.8\n      creating build/temp.linux-x86_64-3.8/src\n      creating build/temp.linux-x86_64-3.8/src/lib-pmpi\n      gcc -Wno-unused-result -Wsign-compare -DNDEBUG -g -fwrapv -O3 -Wall -fPIC -c src/lib-pmpi/mpe.c -o build/temp.linux-x86_64-3.8/src/lib-pmpi/mpe.o\n      creating build/lib.linux-x86_64-3.8/mpi4py/lib-pmpi\n      gcc -shared -Wl,--no-as-needed build/temp.linux-x86_64",
+        "tavily_sources": [],
+        "env_delta": [
+          {
+            "command": null,
+            "op": "add",
+            "package": "numpy",
+            "version": "1.19.1",
+            "git_url": null,
+            "commit": null,
+            "justification": "The ModuleNotFoundError indicates numpy is not installed; adding numpy ensures the dependency is satisfied.",
+            "evidence": "ModuleNotFoundError: No module named 'numpy'"
+          }
+        ],
+        "resolved_sources": [
+          {
+            "kind": "pypi",
+            "package": "numpy",
+            "version": "1.19.1",
+            "uploaded": "2020-07-21",
+            "cpython_tags": [
+              "cp36",
+              "cp37",
+              "cp38"
+            ],
+            "url": "https://pypi.org/project/numpy/1.19.1/"
+          }
+        ],
+        "origin": "model",
+        "time_machine": null
+      },
+      {
+        "attempt_number": 3,
+        "diff_text": "",
+        "gate_decision": "PASS",
+        "gate_violations": [],
+        "exit_code": 1,
+        "stdout_tail": "hed with status 'error'\n  Running setup.py clean for chainercv\n  Building wheel for chainermn (setup.py): started\n  Building wheel for chainermn (setup.py): finished with status 'done'\n  Created wheel for chainermn: filename=chainermn-1.3.0-py3-none-any.whl size=50109 sha256=7b997b12c805c0745b760fb14c0d5b11953c322616e43e755fb3df891d5a2967\n  Stored in directory: /root/.cache/pip/wheels/dd/5a/a6/3de2ffd858610eb9c5f99553b0cccee4393b27dd812396e7cb\n  Building wheel for chainerui (setup.py): started\n  Building wheel for chainerui (setup.py): finished with status 'done'\n  Created wheel for chainerui: filename=chainerui-0.11.0-py3-none-any.whl size=1830363 sha256=374e85d391b9d0d97fcf9492b97f152dfe599e90d19e996544ea5ecea965baeb\n  Stored in directory: /root/.cache/pip/wheels/5e/06/94/4ef06c264a9b19e7adfe435824fd71ea04c63350e99d03ecb1\n  Building wheel for mpi4py (setup.py): started\n  Building wheel for mpi4py (setup.py): finished with status 'error'\n  Running setup.py clean for mpi4py\n  Building wheel for pyyaml (setup.py): started\n  Building wheel for pyyaml (setup.py): finished with status 'done'\n  Created wheel for pyyaml: filename=PyYAML-5.3.1-cp38-cp38-linux_x86_64.whl size=44633 sha256=cedfb1b5d8737379e3c3d28797d22f5aadff3b2d614b3867b2bd4dff229bd806\n  Stored in directory: /root/.cache/pip/wheels/13/90/db/290ab3a34f2ef0b5a0f89235dc2d40fea83e77de84ed2dc05c\nSuccessfully built alembic chainer chainermn chainerui pyyaml\nFailed to build chainercv mpi4py\nInstalling collected packages: typing-extensions, python-editor, msgpack, mpi4py, greenlet, filelock, werkzeug, urllib3, sqlalchemy, six, setuptools, pyyaml, pyparsing, pycparser, pillow, numpy, markupsafe, kiwisolver, itsdangerous, click, zope-interface, zope-event, structlog, scipy, python-dateutil, protobuf, mako, jinja2, cycler, cffi, matplotlib, gevent, flask, chainer, alembic, chainerui, chainermn, chainercv\n  Running setup.py install for mpi4py: started\n  Running setup.py install for mpi4py: finished with status 'error'\n",
+        "stderr_tail": "ng src/mpi4py/futures/_lib.py -> build/lib.linux-x86_64-3.8/mpi4py/futures\n      copying src/mpi4py/futures/__init__.py -> build/lib.linux-x86_64-3.8/mpi4py/futures\n      copying src/mpi4py/futures/aplus.py -> build/lib.linux-x86_64-3.8/mpi4py/futures\n      copying src/mpi4py/MPI.pxd -> build/lib.linux-x86_64-3.8/mpi4py\n      copying src/mpi4py/__init__.pxd -> build/lib.linux-x86_64-3.8/mpi4py\n      copying src/mpi4py/libmpi.pxd -> build/lib.linux-x86_64-3.8/mpi4py\n      creating build/lib.linux-x86_64-3.8/mpi4py/include\n      creating build/lib.linux-x86_64-3.8/mpi4py/include/mpi4py\n      copying src/mpi4py/include/mpi4py/mpi4py.MPI_api.h -> build/lib.linux-x86_64-3.8/mpi4py/include/mpi4py\n      copying src/mpi4py/include/mpi4py/mpi4py.MPI.h -> build/lib.linux-x86_64-3.8/mpi4py/include/mpi4py\n      copying src/mpi4py/include/mpi4py/mpi4py.h -> build/lib.linux-x86_64-3.8/mpi4py/include/mpi4py\n      copying src/mpi4py/include/mpi4py/mpi4py.i -> build/lib.linux-x86_64-3.8/mpi4py/include/mpi4py\n      copying src/mpi4py/include/mpi4py/mpi.pxi -> build/lib.linux-x86_64-3.8/mpi4py/include/mpi4py\n      running build_clib\n      MPI configuration: [mpi] from 'mpi.cfg'\n      checking for library 'lmpe' ...\n      gcc -Wno-unused-result -Wsign-compare -DNDEBUG -g -fwrapv -O3 -Wall -fPIC -c _configtest.c -o _configtest.o\n      gcc _configtest.o -llmpe -o _configtest\n      /usr/bin/ld: cannot find -llmpe: No such file or directory\n      collect2: error: ld returned 1 exit status\n      failure.\n      removing: _configtest.c _configtest.o\n      building 'mpe' dylib library\n      creating build/temp.linux-x86_64-3.8\n      creating build/temp.linux-x86_64-3.8/src\n      creating build/temp.linux-x86_64-3.8/src/lib-pmpi\n      gcc -Wno-unused-result -Wsign-compare -DNDEBUG -g -fwrapv -O3 -Wall -fPIC -c src/lib-pmpi/mpe.c -o build/temp.linux-x86_64-3.8/src/lib-pmpi/mpe.o\n      creating build/lib.linux-x86_64-3.8/mpi4py/lib-pmpi\n      gcc -shared -Wl,--no-as-needed build/temp.linux-x86_64",
+        "tavily_sources": [],
+        "env_delta": [
+          {
+            "command": null,
+            "op": "apt",
+            "package": "python3-numpy",
+            "version": null,
+            "git_url": null,
+            "commit": null,
+            "justification": "Install numpy via apt to ensure it is importable when pip installation fails.",
+            "evidence": "ModuleNotFoundError: No module named 'numpy'"
+          }
+        ],
+        "resolved_sources": [],
+        "origin": "model",
+        "time_machine": null
+      }
+    ],
+    "verdict": "BLOCKED",
+    "timestamp": "2026-09-30T13:18:51.736928+00:00",
+    "bundle_version": 4,
+    "baseline": {
+      "result": "FAILS",
+      "exit_code": 1,
+      "base_image": "python:3.10-slim",
+      "install_commands": [
+        "true  # no declared dependency file found; nothing to install"
+      ],
+      "execute_command": "python jobs/rocgan/train_mn.py '--config jobs/rocgan/iclr_5layer_rocgan_super.yml'",
+      "sandbox_id": "374f1ae8-354d-42e8-b783-12fc9d01b0f5",
+      "taxonomy_code": "DEP_MISSING",
+      "evidence": "ModuleNotFoundError: No module named 'chainer'"
+    },
+    "recovery": false,
+    "tree_integrity": {
+      "status": "verified",
+      "tree_sha": "8a5c2b0008dda683930fffa8e8182a6cd5a92b2d",
+      "files_checked": 72,
+      "excluded_patched": []
+    },
+    "corpus_hash": "7df090bea7013974f9f10fb8959ab0162734b51c83a80f744f9c310ce694fbdc",
+    "taxonomy_code": "DEP_MISSING",
+    "indeterminate_reason": "",
+    "error_chain": [
+      {
+        "error": "ModuleNotFoundError: No module named 'chainer'",
+        "class": "DEP_MISSING",
+        "attribution": "REPO",
+        "phase": "repo_run",
+        "cleared_by": 0
+      },
+      {
+        "error": "unable to execute 'gcc': No such file or directory",
+        "class": "SYS_LIB_MISSING",
+        "attribution": "REPO",
+        "phase": "repo_install",
+        "cleared_by": 1
+      },
+      {
+        "error": "ModuleNotFoundError: No module named 'numpy'",
+        "class": "DEP_MISSING",
+        "attribution": "REPO",
+        "phase": "repo_install",
+        "cleared_by": null
+      }
+    ],
+    "first_repo_error": "ModuleNotFoundError: No module named 'chainer'",
+    "last_error": "ModuleNotFoundError: No module named 'numpy'",
+    "reproduction_passport_hash": "947a773209f35d028abf8b07bde046b8d191df109149e4d4a9963c82c9cabb51"
+  },
+  "finished_at": "2026-09-30T13:18:51.804745+00:00",
+  "events": [
+    {
+      "t_s": 0.0,
+      "at": "2026-09-30T13:12:44.024376+00:00",
+      "line": "[intake] cloned https://github.com/grigorisg9gr/rocgan@0878690e700ae5615131db746616e51e635eb15d"
+    },
+    {
+      "t_s": 0.0,
+      "at": "2026-09-30T13:12:44.025033+00:00",
+      "line": "[recon] calling Nemotron Nano"
+    },
+    {
+      "t_s": 12.48,
+      "at": "2026-09-30T13:12:56.509014+00:00",
+      "line": "[recon] entrypoint=jobs/rocgan/train_mn_rocgan.py confidence=0.85"
+    },
+    {
+      "t_s": 12.49,
+      "at": "2026-09-30T13:12:56.511565+00:00",
+      "line": "[python] python:3.10-slim (default): no usable Python declaration; RERUN default 3.10"
+    },
+    {
+      "t_s": 13.79,
+      "at": "2026-09-30T13:12:57.819043+00:00",
+      "line": "[planner] build plan: {'base_image': 'python:3.10-slim', 'apt_install': [], 'install_commands': ['true  # no declared dependency file found; nothing to install'], 'execute_command': \"python jobs/rocgan/train_mn.py '--config jobs/rocgan/iclr_5layer_rocgan_super.yml'\", 'notes': [\"execute command is the repository's documented command (corpus ground truth)\", 'base image python:3.10-slim: no usable Python declaration; RERUN default 3.10']}"
+    },
+    {
+      "t_s": 14.07,
+      "at": "2026-09-30T13:12:58.099358+00:00",
+      "line": "[integrity] verified 72 file(s) against tree 8a5c2b0008dda683930fffa8e8182a6cd5a92b2d"
+    },
+    {
+      "t_s": 14.08,
+      "at": "2026-09-30T13:12:58.099399+00:00",
+      "line": "[sandbox] starting build+execute (wall_clock_seconds=600)"
+    },
+    {
+      "t_s": 26.39,
+      "at": "2026-09-30T13:13:10.412498+00:00",
+      "line": "[cost_guard] recorded $0.0015 sandbox spend, $1.9977 remaining today"
+    },
+    {
+      "t_s": 26.39,
+      "at": "2026-09-30T13:13:10.412666+00:00",
+      "line": "[sandbox] id=374f1ae8-354d-42e8-b783-12fc9d01b0f5 exit_code=1"
+    },
+    {
+      "t_s": 26.39,
+      "at": "2026-09-30T13:13:10.412696+00:00",
+      "line": "[baseline] as-is run: FAILS (exit code 1)"
+    },
+    {
+      "t_s": 26.39,
+      "at": "2026-09-30T13:13:10.416405+00:00",
+      "line": "[classifier] DEP_MISSING: ModuleNotFoundError: No module named 'chainer'"
+    },
+    {
+      "t_s": 26.46,
+      "at": "2026-09-30T13:13:10.485865+00:00",
+      "line": "[era] 2020-07-28 from pinned-commit {'note': 'no dependency files in the repository'}"
+    },
+    {
+      "t_s": 26.58,
+      "at": "2026-09-30T13:13:10.605923+00:00",
+      "line": "[import-map] PIL -> pillow (pipreqs, confidence normal)"
+    },
+    {
+      "t_s": 26.58,
+      "at": "2026-09-30T13:13:10.605957+00:00",
+      "line": "[import-map] yaml -> pyyaml (pipreqs, confidence normal)"
+    },
+    {
+      "t_s": 42.84,
+      "at": "2026-09-30T13:13:26.868554+00:00",
+      "line": "[time-machine] era 2020-07-28 (pinned-commit) -> python 3.8; locked 38 package(s) with uv --exclude-newer; not on the index: none"
+    },
+    {
+      "t_s": 42.97,
+      "at": "2026-09-30T13:13:26.990275+00:00",
+      "line": "[integrity] verified 72 file(s) against tree 8a5c2b0008dda683930fffa8e8182a6cd5a92b2d"
+    },
+    {
+      "t_s": 42.97,
+      "at": "2026-09-30T13:13:26.990317+00:00",
+      "line": "[sandbox] starting build+execute (wall_clock_seconds=600)"
+    },
+    {
+      "t_s": 78.69,
+      "at": "2026-09-30T13:14:02.715163+00:00",
+      "line": "[cost_guard] recorded $0.1338 sandbox spend, $1.8640 remaining today"
+    },
+    {
+      "t_s": 78.69,
+      "at": "2026-09-30T13:14:02.715290+00:00",
+      "line": "[time-machine] re-execution id=253578e9-91e2-4201-a04e-c92b23e512aa exit_code=1"
+    },
+    {
+      "t_s": 78.74,
+      "at": "2026-09-30T13:14:02.763711+00:00",
+      "line": "[classifier] SYS_LIB_MISSING: unable to execute 'gcc': No such file or directory"
+    },
+    {
+      "t_s": 81.69,
+      "at": "2026-09-30T13:14:05.717889+00:00",
+      "line": "[tavily] 3 result(s) for 'python sys lib missing fix: unable to execute 'gcc': No such file or directory'"
+    },
+    {
+      "t_s": 86.49,
+      "at": "2026-09-30T13:14:10.518189+00:00",
+      "line": "[repair 1] tamper gate PASS (env) \u2014 applying and re-executing"
+    },
+    {
+      "t_s": 86.49,
+      "at": "2026-09-30T13:14:10.518304+00:00",
+      "line": "[repair 1] env delta applied; build plan now: {'base_image': 'python:3.8-slim', 'apt_install': ['build-essential'], 'install_commands': [\"printf '%s\\\\n' alembic==1.4.2 cffi==1.14.1 chainer==7.4.0 chainercv==0.13.1 chainermn==1.3.0 chainerui==0.11.0 click==7.1.2 cycler==0.10.0 filelock==3.0.12 flask==1.1.2 gevent==20.6.2 greenlet==0.4.16 itsdangerous==1.1.0 jinja2==2.11.2 kiwisolver==1.2.0 mako==1.1.3 markupsafe==1.1.1 matplotlib==3.3.0 mpi4py==3.0.3 msgpack==1.0.0 numpy==1.19.1 pillow==7.2.0 protobuf==3.12.2 pycparser==2.20 pyparsing==2.4.7 python-dateutil==2.8.1 python-editor==1.0.4 pyyaml==5.3.1 scipy==1.5.2 setuptools==49.2.0 six==1.15.0 sqlalchemy==1.3.18 structlog==20.1.0 typing-extensions==3.7.4.2 urllib3==1.25.10 werkzeug==1.0.1 zope-event==4.4 zope-interface==5.1.0 > .rerun-requirements.txt && pip install -r .rerun-requirements.txt\"], 'execute_command': \"python jobs/rocgan/train_mn.py '--config jobs/rocgan/iclr_5layer_rocgan_super.yml'\", 'notes': [\"execute command is the repository's documented command (corpus ground truth)\", 'base image python:3.10-slim: no usable Python declaration; RERUN default 3.10', 'time machine: python 3.8, 38 locked package(s)', 'env delta: apt build-essential \u2014 The build of chainercv and mpi4py from source requires gcc, which is missing in the base image.']}"
+    },
+    {
+      "t_s": 86.49,
+      "at": "2026-09-30T13:14:10.518326+00:00",
+      "line": "[citations] not cited (not used in a decision): https://www.python.org/downloads"
+    },
+    {
+      "t_s": 86.49,
+      "at": "2026-09-30T13:14:10.518336+00:00",
+      "line": "[citations] not cited (not used in a decision): https://www.w3schools.com/python/python_operators.asp"
+    },
+    {
+      "t_s": 86.49,
+      "at": "2026-09-30T13:14:10.518344+00:00",
+      "line": "[citations] not cited (not used in a decision): https://www.python.org"
+    },
+    {
+      "t_s": 86.61,
+      "at": "2026-09-30T13:14:10.635607+00:00",
+      "line": "[integrity] verified 72 file(s) against tree 8a5c2b0008dda683930fffa8e8182a6cd5a92b2d"
+    },
+    {
+      "t_s": 86.61,
+      "at": "2026-09-30T13:14:10.635648+00:00",
+      "line": "[sandbox] starting build+execute (wall_clock_seconds=600)"
+    },
+    {
+      "t_s": 155.61,
+      "at": "2026-09-30T13:15:19.631963+00:00",
+      "line": "[cost_guard] recorded $0.2685 sandbox spend, $1.5923 remaining today"
+    },
+    {
+      "t_s": 155.61,
+      "at": "2026-09-30T13:15:19.632094+00:00",
+      "line": "[repair 1] re-execution id=2b9f2888-8adb-484f-b2fc-e9e56c91494b exit_code=1"
+    },
+    {
+      "t_s": 155.66,
+      "at": "2026-09-30T13:15:19.685603+00:00",
+      "line": "[classifier] DEP_MISSING: ModuleNotFoundError: No module named 'numpy'"
+    },
+    {
+      "t_s": 158.17,
+      "at": "2026-09-30T13:15:22.196740+00:00",
+      "line": "[resolver] numpy: 0 verified git source(s), PyPI found (6 release(s) shown), era 2020-07-28; query: 'numpy python package version compatible 2020 release history'"
+    },
+    {
+      "t_s": 158.17,
+      "at": "2026-09-30T13:15:22.196832+00:00",
+      "line": "[tavily] 5 result(s) for 'numpy python package version compatible 2020 release history'"
+    },
+    {
+      "t_s": 184.69,
+      "at": "2026-09-30T13:15:48.715686+00:00",
+      "line": "[repair 2] env change lacked justification/evidence; re-asked once (same attempt)"
+    },
+    {
+      "t_s": 201.59,
+      "at": "2026-09-30T13:16:05.613632+00:00",
+      "line": "[repair 2] tamper gate PASS (env) \u2014 applying and re-executing"
+    },
+    {
+      "t_s": 201.59,
+      "at": "2026-09-30T13:16:05.613850+00:00",
+      "line": "[repair 2] env delta applied; build plan now: {'base_image': 'python:3.8-slim', 'apt_install': ['build-essential'], 'install_commands': [\"printf '%s\\\\n' alembic==1.4.2 cffi==1.14.1 chainer==7.4.0 chainercv==0.13.1 chainermn==1.3.0 chainerui==0.11.0 click==7.1.2 cycler==0.10.0 filelock==3.0.12 flask==1.1.2 gevent==20.6.2 greenlet==0.4.16 itsdangerous==1.1.0 jinja2==2.11.2 kiwisolver==1.2.0 mako==1.1.3 markupsafe==1.1.1 matplotlib==3.3.0 mpi4py==3.0.3 msgpack==1.0.0 numpy==1.19.1 pillow==7.2.0 protobuf==3.12.2 pycparser==2.20 pyparsing==2.4.7 python-dateutil==2.8.1 python-editor==1.0.4 pyyaml==5.3.1 scipy==1.5.2 setuptools==49.2.0 six==1.15.0 sqlalchemy==1.3.18 structlog==20.1.0 typing-extensions==3.7.4.2 urllib3==1.25.10 werkzeug==1.0.1 zope-event==4.4 zope-interface==5.1.0 > .rerun-requirements.txt && pip install -r .rerun-requirements.txt\"], 'execute_command': \"python jobs/rocgan/train_mn.py '--config jobs/rocgan/iclr_5layer_rocgan_super.yml'\", 'notes': [\"execute command is the repository's documented command (corpus ground truth)\", 'base image python:3.10-slim: no usable Python declaration; RERUN default 3.10', 'time machine: python 3.8, 38 locked package(s)', 'env delta: apt build-essential \u2014 The build of chainercv and mpi4py from source requires gcc, which is missing in the base image.', 'env delta: add numpy \u2014 The ModuleNotFoundError indicates numpy is not installed; adding numpy ensures the dependency is satisfied.']}"
+    },
+    {
+      "t_s": 201.59,
+      "at": "2026-09-30T13:16:05.613905+00:00",
+      "line": "[citations] not cited (not used in a decision): https://numpy.org/news"
+    },
+    {
+      "t_s": 201.59,
+      "at": "2026-09-30T13:16:05.613917+00:00",
+      "line": "[citations] not cited (not used in a decision): https://numpy.org/neps/nep-0029-deprecation_policy.html"
+    },
+    {
+      "t_s": 201.59,
+      "at": "2026-09-30T13:16:05.613925+00:00",
+      "line": "[citations] not cited (not used in a decision): https://endoflife.date/numpy"
+    },
+    {
+      "t_s": 201.59,
+      "at": "2026-09-30T13:16:05.613931+00:00",
+      "line": "[citations] not cited (not used in a decision): https://numpy.org/doc/2.2/dev/depending_on_numpy.html"
+    },
+    {
+      "t_s": 201.59,
+      "at": "2026-09-30T13:16:05.613941+00:00",
+      "line": "[citations] not cited (not used in a decision): https://scientific-python.org/specs/spec-0000"
+    },
+    {
+      "t_s": 201.59,
+      "at": "2026-09-30T13:16:05.613949+00:00",
+      "line": "[citations] not cited (offered, not used): https://pypi.org/project/numpy/1.19.0/"
+    },
+    {
+      "t_s": 201.59,
+      "at": "2026-09-30T13:16:05.613956+00:00",
+      "line": "[citations] not cited (offered, not used): https://pypi.org/project/numpy/1.18.5/"
+    },
+    {
+      "t_s": 201.59,
+      "at": "2026-09-30T13:16:05.613962+00:00",
+      "line": "[citations] not cited (offered, not used): https://pypi.org/project/numpy/1.18.4/"
+    },
+    {
+      "t_s": 201.59,
+      "at": "2026-09-30T13:16:05.613968+00:00",
+      "line": "[citations] not cited (offered, not used): https://pypi.org/project/numpy/1.18.3/"
+    },
+    {
+      "t_s": 201.59,
+      "at": "2026-09-30T13:16:05.613974+00:00",
+      "line": "[citations] not cited (offered, not used): https://pypi.org/project/numpy/2.5.3/"
+    },
+    {
+      "t_s": 201.76,
+      "at": "2026-09-30T13:16:05.781555+00:00",
+      "line": "[integrity] verified 72 file(s) against tree 8a5c2b0008dda683930fffa8e8182a6cd5a92b2d"
+    },
+    {
+      "t_s": 201.76,
+      "at": "2026-09-30T13:16:05.781593+00:00",
+      "line": "[sandbox] starting build+execute (wall_clock_seconds=600)"
+    },
+    {
+      "t_s": 261.9,
+      "at": "2026-09-30T13:17:05.927556+00:00",
+      "line": "[cost_guard] recorded $0.2697 sandbox spend, $1.3095 remaining today"
+    },
+    {
+      "t_s": 261.9,
+      "at": "2026-09-30T13:17:05.927687+00:00",
+      "line": "[repair 2] re-execution id=c20b230e-bfbb-4a2e-ad6c-e995a83118db exit_code=1"
+    },
+    {
+      "t_s": 261.96,
+      "at": "2026-09-30T13:17:05.981225+00:00",
+      "line": "[classifier] DEP_MISSING: ModuleNotFoundError: No module named 'numpy'"
+    },
+    {
+      "t_s": 266.84,
+      "at": "2026-09-30T13:17:10.863234+00:00",
+      "line": "[resolver] numpy: 0 verified git source(s), PyPI found (6 release(s) shown), era 2020-07-28; query: 'numpy python package version compatible 2020 release history'"
+    },
+    {
+      "t_s": 266.84,
+      "at": "2026-09-30T13:17:10.863293+00:00",
+      "line": "[tavily] 5 result(s) for 'numpy python package version compatible 2020 release history'"
+    },
+    {
+      "t_s": 279.29,
+      "at": "2026-09-30T13:17:23.315969+00:00",
+      "line": "[repair 3] proposal repeats change(s) already tried and failed this run (add numpy); re-asked once (same attempt)"
+    },
+    {
+      "t_s": 295.71,
+      "at": "2026-09-30T13:17:39.730357+00:00",
+      "line": "[repair 3] tamper gate PASS (env) \u2014 applying and re-executing"
+    },
+    {
+      "t_s": 295.71,
+      "at": "2026-09-30T13:17:39.730484+00:00",
+      "line": "[repair 3] env delta applied; build plan now: {'base_image': 'python:3.8-slim', 'apt_install': ['build-essential', 'python3-numpy'], 'install_commands': [\"printf '%s\\\\n' alembic==1.4.2 cffi==1.14.1 chainer==7.4.0 chainercv==0.13.1 chainermn==1.3.0 chainerui==0.11.0 click==7.1.2 cycler==0.10.0 filelock==3.0.12 flask==1.1.2 gevent==20.6.2 greenlet==0.4.16 itsdangerous==1.1.0 jinja2==2.11.2 kiwisolver==1.2.0 mako==1.1.3 markupsafe==1.1.1 matplotlib==3.3.0 mpi4py==3.0.3 msgpack==1.0.0 numpy==1.19.1 pillow==7.2.0 protobuf==3.12.2 pycparser==2.20 pyparsing==2.4.7 python-dateutil==2.8.1 python-editor==1.0.4 pyyaml==5.3.1 scipy==1.5.2 setuptools==49.2.0 six==1.15.0 sqlalchemy==1.3.18 structlog==20.1.0 typing-extensions==3.7.4.2 urllib3==1.25.10 werkzeug==1.0.1 zope-event==4.4 zope-interface==5.1.0 > .rerun-requirements.txt && pip install -r .rerun-requirements.txt\"], 'execute_command': \"python jobs/rocgan/train_mn.py '--config jobs/rocgan/iclr_5layer_rocgan_super.yml'\", 'notes': [\"execute command is the repository's documented command (corpus ground truth)\", 'base image python:3.10-slim: no usable Python declaration; RERUN default 3.10', 'time machine: python 3.8, 38 locked package(s)', 'env delta: apt build-essential \u2014 The build of chainercv and mpi4py from source requires gcc, which is missing in the base image.', 'env delta: add numpy \u2014 The ModuleNotFoundError indicates numpy is not installed; adding numpy ensures the dependency is satisfied.', 'env delta: apt python3-numpy \u2014 Install numpy via apt to ensure it is importable when pip installation fails.']}"
+    },
+    {
+      "t_s": 295.71,
+      "at": "2026-09-30T13:17:39.730517+00:00",
+      "line": "[citations] not cited (not used in a decision): https://numpy.org/news"
+    },
+    {
+      "t_s": 295.71,
+      "at": "2026-09-30T13:17:39.730527+00:00",
+      "line": "[citations] not cited (not used in a decision): https://numpy.org/neps/nep-0029-deprecation_policy.html"
+    },
+    {
+      "t_s": 295.71,
+      "at": "2026-09-30T13:17:39.730535+00:00",
+      "line": "[citations] not cited (not used in a decision): https://endoflife.date/numpy"
+    },
+    {
+      "t_s": 295.71,
+      "at": "2026-09-30T13:17:39.730541+00:00",
+      "line": "[citations] not cited (not used in a decision): https://numpy.org/doc/2.2/dev/depending_on_numpy.html"
+    },
+    {
+      "t_s": 295.71,
+      "at": "2026-09-30T13:17:39.730548+00:00",
+      "line": "[citations] not cited (not used in a decision): https://scientific-python.org/specs/spec-0000"
+    },
+    {
+      "t_s": 295.71,
+      "at": "2026-09-30T13:17:39.730560+00:00",
+      "line": "[citations] not cited (offered, not used): https://pypi.org/project/numpy/1.19.1/"
+    },
+    {
+      "t_s": 295.71,
+      "at": "2026-09-30T13:17:39.730577+00:00",
+      "line": "[citations] not cited (offered, not used): https://pypi.org/project/numpy/1.19.0/"
+    },
+    {
+      "t_s": 295.71,
+      "at": "2026-09-30T13:17:39.730585+00:00",
+      "line": "[citations] not cited (offered, not used): https://pypi.org/project/numpy/1.18.5/"
+    },
+    {
+      "t_s": 295.71,
+      "at": "2026-09-30T13:17:39.730597+00:00",
+      "line": "[citations] not cited (offered, not used): https://pypi.org/project/numpy/1.18.4/"
+    },
+    {
+      "t_s": 295.71,
+      "at": "2026-09-30T13:17:39.730605+00:00",
+      "line": "[citations] not cited (offered, not used): https://pypi.org/project/numpy/1.18.3/"
+    },
+    {
+      "t_s": 295.71,
+      "at": "2026-09-30T13:17:39.730611+00:00",
+      "line": "[citations] not cited (offered, not used): https://pypi.org/project/numpy/2.5.3/"
+    },
+    {
+      "t_s": 295.82,
+      "at": "2026-09-30T13:17:39.847520+00:00",
+      "line": "[integrity] verified 72 file(s) against tree 8a5c2b0008dda683930fffa8e8182a6cd5a92b2d"
+    },
+    {
+      "t_s": 295.82,
+      "at": "2026-09-30T13:17:39.847559+00:00",
+      "line": "[sandbox] starting build+execute (wall_clock_seconds=600)"
+    },
+    {
+      "t_s": 365.34,
+      "at": "2026-09-30T13:18:49.366364+00:00",
+      "line": "[cost_guard] recorded $0.2982 sandbox spend, $1.0005 remaining today"
+    },
+    {
+      "t_s": 365.34,
+      "at": "2026-09-30T13:18:49.366482+00:00",
+      "line": "[repair 3] re-execution id=02d26af5-270c-4230-8d70-2bcfd295eb2b exit_code=1"
+    },
+    {
+      "t_s": 365.4,
+      "at": "2026-09-30T13:18:49.420006+00:00",
+      "line": "[classifier] DEP_MISSING: ModuleNotFoundError: No module named 'numpy'"
+    },
+    {
+      "t_s": 365.4,
+      "at": "2026-09-30T13:18:49.420099+00:00",
+      "line": "[verdict] BLOCKED after 3 repair attempt(s): DEP_MISSING"
+    }
+  ],
+  "model_calls": [
+    {
+      "model": "nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B",
+      "started_at": "2026-09-30T13:12:44.236687+00:00",
+      "latency_s": 12.27,
+      "finish_reason": "stop",
+      "content_is_none": false,
+      "has_reasoning": true,
+      "usage": {
+        "completion_tokens": 1709,
+        "prompt_tokens": 4278,
+        "total_tokens": 5987,
+        "completion_tokens_details": null,
+        "prompt_tokens_details": null
+      }
+    },
+    {
+      "model": "nvidia/nemotron-3-super-120b-a12b",
+      "started_at": "2026-09-30T13:12:56.512702+00:00",
+      "latency_s": 1.31,
+      "finish_reason": "stop",
+      "content_is_none": false,
+      "has_reasoning": true,
+      "usage": {
+        "completion_tokens": 37,
+        "prompt_tokens": 272,
+        "total_tokens": 309,
+        "completion_tokens_details": {
+          "accepted_prediction_tokens": null,
+          "audio_tokens": null,
+          "reasoning_tokens": 27,
+          "rejected_prediction_tokens": null,
+          "text_tokens": null
+        },
+        "prompt_tokens_details": {
+          "audio_tokens": null,
+          "cache_write_tokens": null,
+          "cached_tokens": 0,
+          "image_tokens": null,
+          "text_tokens": null,
+          "created_cache_tokens": 0,
+          "multimodal_tokens": null
+        },
+        "prompt_cache_hit_tokens": 0,
+        "prompt_cache_miss_tokens": 272
+      }
+    },
+    {
+      "model": "nvidia/nemotron-3-super-120b-a12b",
+      "started_at": "2026-09-30T13:14:05.722574+00:00",
+      "latency_s": 4.8,
+      "finish_reason": "stop",
+      "content_is_none": false,
+      "has_reasoning": true,
+      "usage": {
+        "completion_tokens": 863,
+        "prompt_tokens": 8155,
+        "total_tokens": 9018,
+        "completion_tokens_details": {
+          "accepted_prediction_tokens": null,
+          "audio_tokens": null,
+          "reasoning_tokens": 749,
+          "rejected_prediction_tokens": null,
+          "text_tokens": null
+        },
+        "prompt_tokens_details": {
+          "audio_tokens": null,
+          "cache_write_tokens": null,
+          "cached_tokens": 0,
+          "image_tokens": null,
+          "text_tokens": null,
+          "created_cache_tokens": 0,
+          "multimodal_tokens": null
+        },
+        "prompt_cache_hit_tokens": 0,
+        "prompt_cache_miss_tokens": 8155
+      }
+    },
+    {
+      "model": "nvidia/nemotron-3-super-120b-a12b",
+      "started_at": "2026-09-30T13:15:22.202242+00:00",
+      "latency_s": 26.51,
+      "finish_reason": "stop",
+      "content_is_none": false,
+      "has_reasoning": true,
+      "usage": {
+        "completion_tokens": 5748,
+        "prompt_tokens": 9516,
+        "total_tokens": 15264,
+        "completion_tokens_details": {
+          "accepted_prediction_tokens": null,
+          "audio_tokens": null,
+          "reasoning_tokens": 5652,
+          "rejected_prediction_tokens": null,
+          "text_tokens": null
+        },
+        "prompt_tokens_details": {
+          "audio_tokens": null,
+          "cache_write_tokens": null,
+          "cached_tokens": 0,
+          "image_tokens": null,
+          "text_tokens": null,
+          "created_cache_tokens": 0,
+          "multimodal_tokens": null
+        },
+        "prompt_cache_hit_tokens": 0,
+        "prompt_cache_miss_tokens": 9516
+      }
+    },
+    {
+      "model": "nvidia/nemotron-3-super-120b-a12b",
+      "started_at": "2026-09-30T13:15:48.720231+00:00",
+      "latency_s": 16.89,
+      "finish_reason": "stop",
+      "content_is_none": false,
+      "has_reasoning": true,
+      "usage": {
+        "completion_tokens": 2480,
+        "prompt_tokens": 9584,
+        "total_tokens": 12064,
+        "completion_tokens_details": {
+          "accepted_prediction_tokens": null,
+          "audio_tokens": null,
+          "reasoning_tokens": 2363,
+          "rejected_prediction_tokens": null,
+          "text_tokens": null
+        },
+        "prompt_tokens_details": {
+          "audio_tokens": null,
+          "cache_write_tokens": null,
+          "cached_tokens": 0,
+          "image_tokens": null,
+          "text_tokens": null,
+          "created_cache_tokens": 0,
+          "multimodal_tokens": null
+        },
+        "prompt_cache_hit_tokens": 0,
+        "prompt_cache_miss_tokens": 9584
+      }
+    },
+    {
+      "model": "nvidia/nemotron-3-super-120b-a12b",
+      "started_at": "2026-09-30T13:17:10.867877+00:00",
+      "latency_s": 12.45,
+      "finish_reason": "stop",
+      "content_is_none": false,
+      "has_reasoning": true,
+      "usage": {
+        "completion_tokens": 2253,
+        "prompt_tokens": 9533,
+        "total_tokens": 11786,
+        "completion_tokens_details": {
+          "accepted_prediction_tokens": null,
+          "audio_tokens": null,
+          "reasoning_tokens": 2143,
+          "rejected_prediction_tokens": null,
+          "text_tokens": null
+        },
+        "prompt_tokens_details": {
+          "audio_tokens": null,
+          "cache_write_tokens": null,
+          "cached_tokens": 0,
+          "image_tokens": null,
+          "text_tokens": null,
+          "created_cache_tokens": 0,
+          "multimodal_tokens": null
+        },
+        "prompt_cache_hit_tokens": 0,
+        "prompt_cache_miss_tokens": 9533
+      }
+    },
+    {
+      "model": "nvidia/nemotron-3-super-120b-a12b",
+      "started_at": "2026-09-30T13:17:23.319867+00:00",
+      "latency_s": 16.41,
+      "finish_reason": "stop",
+      "content_is_none": false,
+      "has_reasoning": true,
+      "usage": {
+        "completion_tokens": 3303,
+        "prompt_tokens": 9594,
+        "total_tokens": 12897,
+        "completion_tokens_details": {
+          "accepted_prediction_tokens": null,
+          "audio_tokens": null,
+          "reasoning_tokens": 3203,
+          "rejected_prediction_tokens": null,
+          "text_tokens": null
+        },
+        "prompt_tokens_details": {
+          "audio_tokens": null,
+          "cache_write_tokens": null,
+          "cached_tokens": 0,
+          "image_tokens": null,
+          "text_tokens": null,
+          "created_cache_tokens": 0,
+          "multimodal_tokens": null
+        },
+        "prompt_cache_hit_tokens": 0,
+        "prompt_cache_miss_tokens": 9594
+      }
+    },
+    {
+      "model": "nvidia/Nemotron-3-Ultra-550b-a55b",
+      "started_at": "2026-09-30T13:18:49.421663+00:00",
+      "latency_s": 2.32,
+      "finish_reason": "stop",
+      "content_is_none": false,
+      "has_reasoning": true,
+      "usage": {
+        "completion_tokens": 415,
+        "prompt_tokens": 668,
+        "total_tokens": 1083,
+        "completion_tokens_details": {
+          "accepted_prediction_tokens": null,
+          "audio_tokens": null,
+          "reasoning_tokens": 317,
+          "rejected_prediction_tokens": null,
+          "text_tokens": null
+        },
+        "prompt_tokens_details": {
+          "audio_tokens": null,
+          "cache_write_tokens": null,
+          "cached_tokens": 0,
+          "image_tokens": null,
+          "text_tokens": null,
+          "multimodal_tokens": null
+        },
+        "prompt_cache_hit_tokens": 0,
+        "prompt_cache_miss_tokens": 668
+      }
+    }
+  ],
+  "cost_guard": {
+    "spent_usd": 1.00138167,
+    "model_spent_usd": 0.029791640000000005,
+    "sandbox_spent_usd": 0.97159003,
+    "remaining_usd": 0.99861833,
+    "model_usage": [
+      {
+        "model": "nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B",
+        "prompt_tokens": 4278,
+        "completion_tokens": 1709,
+        "cost_usd": 0.0006668399999999999
+      },
+      {
+        "model": "nvidia/nemotron-3-super-120b-a12b",
+        "prompt_tokens": 272,
+        "completion_tokens": 37,
+        "cost_usd": 0.0001149
+      },
+      {
+        "model": "nvidia/nemotron-3-super-120b-a12b",
+        "prompt_tokens": 8155,
+        "completion_tokens": 863,
+        "cost_usd": 0.0032232
+      },
+      {
+        "model": "nvidia/nemotron-3-super-120b-a12b",
+        "prompt_tokens": 9516,
+        "completion_tokens": 5748,
+        "cost_usd": 0.008028
+      },
+      {
+        "model": "nvidia/nemotron-3-super-120b-a12b",
+        "prompt_tokens": 9584,
+        "completion_tokens": 2480,
+        "cost_usd": 0.0051072
+      },
+      {
+        "model": "nvidia/nemotron-3-super-120b-a12b",
+        "prompt_tokens": 9533,
+        "completion_tokens": 2253,
+        "cost_usd": 0.004887600000000001
+      },
+      {
+        "model": "nvidia/nemotron-3-super-120b-a12b",
+        "prompt_tokens": 9594,
+        "completion_tokens": 3303,
+        "cost_usd": 0.0058509
+      },
+      {
+        "model": "nvidia/Nemotron-3-Ultra-550b-a55b",
+        "prompt_tokens": 668,
+        "completion_tokens": 415,
+        "cost_usd": 0.001913
+      }
+    ],
+    "prices_usd_per_1m": {
+      "nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B": [
+        0.06,
+        0.24
+      ],
+      "nvidia/nemotron-3-super-120b-a12b": [
+        0.3,
+        0.9
+      ],
+      "nvidia/Nemotron-3-Ultra-550b-a55b": [
+        1.0,
+        3.0
+      ]
+    },
+    "prices_source": "https://api.tokenfactory.nebius.com/v1/models?verbose=true (pricing field)",
+    "prices_retrieved": "2026-09-24"
+  }
+}

@@ -1,0 +1,1170 @@
+{
+  "run_kind": "live end-to-end run",
+  "dev_run": false,
+  "dry_run": null,
+  "batch": {
+    "harness_tag": "harness-v1.3.2",
+    "harness_commit": "77b3cfe1697ad74ad13eac1f77ffe0f1e80c7379",
+    "head_commit": "482173f3f945c40b990c30c87e0acf7e2c2b0c59",
+    "corpus": "corpus-v2",
+    "prereg_sha256": "ae5a722249156e058d3d360bdc63fa8224140d0688f1daa307ecfa93a98c7284",
+    "corpus_hash": "7df090bea7013974f9f10fb8959ab0162734b51c83a80f744f9c310ce694fbdc",
+    "arm": "treatment",
+    "total_cap_usd": 25.0,
+    "already_spent_usd": 4.08,
+    "entry_id": 20,
+    "category": "PRIMARY",
+    "rules_matched": [],
+    "per_entry_cap_usd": 2.0
+  },
+  "started_at": "2026-09-30T15:01:35.178827+00:00",
+  "corpus_entry": {
+    "name": "XiaoxiaoGuo__fashion-retrieval",
+    "repo_url": "https://github.com/XiaoxiaoGuo/fashion-retrieval",
+    "commit_sha": "9ac8b2ca44f7aa16510384047b635ba093568165",
+    "command": "python train_sl.py --log-interval=50 --lr=0.001  --batch-size=128 --model-folder=\"models/\"",
+    "command_source": "README.md line 39"
+  },
+  "config": {
+    "models": {
+      "recon": "nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B",
+      "planner": "nvidia/nemotron-3-super-120b-a12b",
+      "repairer": "nvidia/nemotron-3-super-120b-a12b",
+      "adjudicator": "nvidia/Nemotron-3-Ultra-550b-a55b"
+    },
+    "sandbox_backend": "token_factory",
+    "sandbox_image_default": "python:3.10-slim",
+    "sandbox_wall_clock_seconds": 600.0,
+    "arm": "treatment",
+    "repair_enabled": true,
+    "max_attempts": 3,
+    "tavily_configured": true,
+    "cost_cap_usd": 2.0
+  },
+  "intake": {
+    "duration_s": 2.79,
+    "resolved_sha": "9ac8b2ca44f7aa16510384047b635ba093568165",
+    "dependency_files": [],
+    "declared_dependencies": [],
+    "entrypoint_candidates": [
+      "captioner/neuraltalk2/scripts/prepro_feats.py",
+      "captioner/neuraltalk2/scripts/prepro_labels.py",
+      "captioner/neuraltalk2/train.py",
+      "captioner/prepro_shoe_features.py",
+      "captioner/prepro_shoe_labels.py"
+    ],
+    "notebook_paths": []
+  },
+  "pipeline_duration_s": 306.01,
+  "repair_mode": "model_assisted",
+  "tree_integrity": {
+    "status": "verified",
+    "tree_sha": "2d967e06d1326a8f5458c0771d9f5c33c49c93a0",
+    "files_checked": 76,
+    "excluded_patched": []
+  },
+  "result": {
+    "verdict": "BLOCKED",
+    "taxonomy_code": "DATA_MISSING",
+    "indeterminate_reason": "",
+    "reason_code": null,
+    "error_chain": [
+      {
+        "error": "ModuleNotFoundError: No module named 'six'",
+        "class": "DEP_MISSING",
+        "attribution": "REPO",
+        "phase": "repo_run",
+        "cleared_by": 1
+      },
+      {
+        "error": "ModuleNotFoundError: No module named 'h5py'",
+        "class": "DEP_MISSING",
+        "attribution": "REPO",
+        "phase": "repo_run",
+        "cleared_by": 2
+      },
+      {
+        "error": "ModuleNotFoundError: No module named 'skimage'",
+        "class": "DEP_MISSING",
+        "attribution": "REPO",
+        "phase": "repo_run",
+        "cleared_by": 3
+      },
+      {
+        "error": "FileNotFoundError: [Errno 2] No such file or directory: 'caption_models/infos_best.pkl'",
+        "class": "DATA_MISSING",
+        "attribution": "REPO",
+        "phase": "repo_run",
+        "cleared_by": null
+      }
+    ],
+    "first_repo_error": "ModuleNotFoundError: No module named 'six'",
+    "last_error": "FileNotFoundError: [Errno 2] No such file or directory: 'caption_models/infos_best.pkl'",
+    "error_traceback": "",
+    "attempts": [
+      {
+        "attempt_number": 0,
+        "diff_text": "",
+        "gate_decision": "DECLINED",
+        "gate_violations": [],
+        "exit_code": null,
+        "stdout_tail": "",
+        "stderr_tail": "error: No solution found when resolving dependencies\n  cause: Because there are no versions of pycocoevalcap and you require pycocoevalcap, we can conclude that your requirements are unsatisfiable.\n\nhint: `pycocoevalcap` was filtered by `exclude-newer` to only include packages uploaded before 2020-10-04T00:00:00Z. The latest version satisfying the requirement is v1.2, published at 2020-11-18T11:56:23.026Z. Consider using `exclude-newer-package` to override the cutoff for this package.\n",
+        "tavily_sources": [],
+        "env_delta": [],
+        "resolved_sources": [],
+        "origin": "time_machine",
+        "time_machine": {
+          "era": {
+            "date": "2020-10-03",
+            "source": "pinned-commit",
+            "detail": {
+              "note": "no dependency files in the repository"
+            }
+          },
+          "python": {
+            "version": "3.8",
+            "reason": "newest CPython first released \u2265180 days before the era date 2020-10-03 (https://devguide.python.org/versions/ (first release dates, retrieved 2026-09-24))",
+            "source": "https://devguide.python.org/versions/ (first release dates, retrieved 2026-09-24)"
+          },
+          "undeclared_imports": [
+            "h5py",
+            "numpy",
+            "pycocoevalcap",
+            "pycocotools",
+            "scipy",
+            "six",
+            "scikit-image",
+            "tensorflow",
+            "torch",
+            "torchvision"
+          ],
+          "import_mappings": [
+            {
+              "import": "skimage",
+              "distribution": "scikit-image",
+              "source": "pigar+rank",
+              "confidence": "low"
+            }
+          ],
+          "apt_added": [],
+          "apt_reason": "",
+          "lock": {
+            "ok": false,
+            "lock": [],
+            "inputs": [
+              "h5py",
+              "numpy",
+              "pycocoevalcap",
+              "pycocotools",
+              "scipy",
+              "six",
+              "scikit-image",
+              "tensorflow",
+              "torch",
+              "torchvision"
+            ],
+            "not_on_index": [],
+            "command": "pip compile - --no-header --no-annotate --quiet --exclude-newer 2020-10-04T00:00:00Z --python-version 3.8 --python-platform x86_64-unknown-linux-gnu --python C:\\Users\\E16\\AppData\\Roaming\\uv\\python\\cpython-3.8.20-windows-x86_64-none\\python.exe",
+            "error": "error: No solution found when resolving dependencies\n  cause: Because there are no versions of pycocoevalcap and you require pycocoevalcap, we can conclude that your requirements are unsatisfiable.\n\nhint: `pycocoevalcap` was filtered by `exclude-newer` to only include packages uploaded before 2020-10-04T00:00:00Z. The latest version satisfying the requirement is v1.2, published at 2020-11-18T11:56:23.026Z. Consider using `exclude-newer-package` to override the cutoff for this package.\n"
+          }
+        }
+      },
+      {
+        "attempt_number": 1,
+        "diff_text": "",
+        "gate_decision": "PASS",
+        "gate_violations": [],
+        "exit_code": 1,
+        "stdout_tail": "relative captioning is called\n",
+        "stderr_tail": "Traceback (most recent call last):\n  File \"train_sl.py\", line 7, in <module>\n    import sim_user\n  File \"/sim_user.py\", line 10, in <module>\n    from captioner import captioner\n  File \"/captioner/captioner.py\", line 16, in <module>\n    from dataloader import *\n  File \"captioner/neuraltalk2/dataloader.py\", line 6, in <module>\n    import h5py\nModuleNotFoundError: No module named 'h5py'\n",
+        "tavily_sources": [],
+        "env_delta": [
+          {
+            "command": null,
+            "op": "add",
+            "package": "six",
+            "version": "1.15.0",
+            "git_url": null,
+            "commit": null,
+            "justification": "The error indicates missing 'six' module, which is required by the code.",
+            "evidence": "ModuleNotFoundError: No module named 'six'"
+          }
+        ],
+        "resolved_sources": [
+          {
+            "kind": "pypi",
+            "package": "six",
+            "version": "1.15.0",
+            "uploaded": "2020-05-21",
+            "cpython_tags": [],
+            "url": "https://pypi.org/project/six/1.15.0/"
+          }
+        ],
+        "origin": "model",
+        "time_machine": null
+      },
+      {
+        "attempt_number": 2,
+        "diff_text": "",
+        "gate_decision": "PASS",
+        "gate_violations": [],
+        "exit_code": 1,
+        "stdout_tail": "relative captioning is called\n",
+        "stderr_tail": "Traceback (most recent call last):\n  File \"train_sl.py\", line 7, in <module>\n    import sim_user\n  File \"/sim_user.py\", line 10, in <module>\n    from captioner import captioner\n  File \"/captioner/captioner.py\", line 17, in <module>\n    from dataloaderraw import *\n  File \"captioner/neuraltalk2/dataloaderraw.py\", line 12, in <module>\n    import skimage\nModuleNotFoundError: No module named 'skimage'\n",
+        "tavily_sources": [],
+        "env_delta": [
+          {
+            "command": null,
+            "op": "add",
+            "package": "h5py",
+            "version": "2.10.0",
+            "git_url": null,
+            "commit": null,
+            "justification": "The code imports h5py in dataloader.py but the environment lacks this package.",
+            "evidence": "ModuleNotFoundError: No module named 'h5py'"
+          }
+        ],
+        "resolved_sources": [
+          {
+            "kind": "pypi",
+            "package": "h5py",
+            "version": "2.10.0",
+            "uploaded": "2019-09-06",
+            "cpython_tags": [
+              "cp34",
+              "cp35",
+              "cp36",
+              "cp37",
+              "cp38"
+            ],
+            "url": "https://pypi.org/project/h5py/2.10.0/"
+          }
+        ],
+        "origin": "model",
+        "time_machine": null
+      },
+      {
+        "attempt_number": 3,
+        "diff_text": "",
+        "gate_decision": "PASS",
+        "gate_violations": [],
+        "exit_code": 1,
+        "stdout_tail": "relative captioning is called\n",
+        "stderr_tail": "Traceback (most recent call last):\n  File \"train_sl.py\", line 57, in <module>\n    user = sim_user.SynUser()\n  File \"/sim_user.py\", line 24, in __init__\n    self.captioner_relative = captioner.Captioner(is_relative= True, model_path= model_dir, image_feat_params= params)\n  File \"/captioner/captioner.py\", line 64, in __init__\n    with open(opt.infos_path, 'rb') as f:\nFileNotFoundError: [Errno 2] No such file or directory: 'caption_models/infos_best.pkl'\n",
+        "tavily_sources": [],
+        "env_delta": [
+          {
+            "command": null,
+            "op": "add",
+            "package": "scikit-image",
+            "version": "0.17.2",
+            "git_url": null,
+            "commit": null,
+            "justification": "The code imports skimage but the package is not installed.",
+            "evidence": "ModuleNotFoundError: No module named 'skimage'"
+          }
+        ],
+        "resolved_sources": [
+          {
+            "kind": "pypi",
+            "package": "scikit-image",
+            "version": "0.17.2",
+            "uploaded": "2020-05-13",
+            "cpython_tags": [
+              "cp36",
+              "cp37",
+              "cp38"
+            ],
+            "url": "https://pypi.org/project/scikit-image/0.17.2/"
+          }
+        ],
+        "origin": "model",
+        "time_machine": null
+      }
+    ],
+    "certificate_prose": "The execution failed with a FileNotFoundError for the required file 'caption_models/infos_best.pkl' after three repair attempts. The runner classified the failure as DATA_MISSING and issued a BLOCKED verdict. Verifies that the artifact executes. Does not verify the paper's numerical results."
+  },
+  "certificate": {
+    "repo_url": "https://github.com/XiaoxiaoGuo/fashion-retrieval",
+    "commit_sha": "9ac8b2ca44f7aa16510384047b635ba093568165",
+    "build_plan": {
+      "base_image": "python:3.6-slim",
+      "apt_install": [],
+      "install_commands": [
+        "true  # no declared dependency file found; nothing to install",
+        "pip install six==1.15.0",
+        "pip install h5py==2.10.0",
+        "pip install scikit-image==0.17.2"
+      ],
+      "execute_command": "python train_sl.py --log-interval=50 --lr=0.001  --batch-size=128 --model-folder=\"models/\"",
+      "notes": [
+        "execute command is the repository's documented command (corpus ground truth)",
+        "base image python:3.6-slim: declared by README (3.6); resolved to the first available minor that satisfies it",
+        "env delta: add six \u2014 The error indicates missing 'six' module, which is required by the code.",
+        "env delta: add h5py \u2014 The code imports h5py in dataloader.py but the environment lacks this package.",
+        "env delta: add scikit-image \u2014 The code imports skimage but the package is not installed."
+      ]
+    },
+    "full_log": "[intake] cloned https://github.com/XiaoxiaoGuo/fashion-retrieval@9ac8b2ca44f7aa16510384047b635ba093568165\n[recon] calling Nemotron Nano\n[recon] entrypoint=captioner/neuraltalk2/train.py confidence=0.90\n[python] python:3.6-slim (README): declared by README (3.6); resolved to the first available minor that satisfies it\n[planner] build plan: {'base_image': 'python:3.6-slim', 'apt_install': [], 'install_commands': ['true  # no declared dependency file found; nothing to install'], 'execute_command': 'python train_sl.py --log-interval=50 --lr=0.001  --batch-size=128 --model-folder=\"models/\"', 'notes': [\"execute command is the repository's documented command (corpus ground truth)\", 'base image python:3.6-slim: declared by README (3.6); resolved to the first available minor that satisfies it']}\n[integrity] verified 76 file(s) against tree 2d967e06d1326a8f5458c0771d9f5c33c49c93a0\n[sandbox] starting build+execute (wall_clock_seconds=600)\n[runner] torch: repo imports torch, torchvision without declaring it; runner provides the newest matched CPU wheels\n[cost_guard] recorded $0.1672 sandbox spend, $1.8316 remaining today\n[sandbox] id=0a4c5475-0fb7-4861-a74f-d60e69d8a8a1 exit_code=1\n[baseline] as-is run: FAILS (exit code 1)\n[classifier] DEP_MISSING: ModuleNotFoundError: No module named 'six'\n[era] 2020-10-03 from pinned-commit {'note': 'no dependency files in the repository'}\n[import-map] skimage -> scikit-image (pigar+rank, confidence low)\n[time-machine] could not lock the era environment: fiable.\n\nhint: `pycocoevalcap` was filtered by `exclude-newer` to only include packages uploaded before 2020-10-04T00:00:00Z. The latest version satisfying the requirement is v1.2, published at 2020-11-18T11:56:23.026Z. Consider using `exclude-newer-package` to override the cutoff for this package.\n\n[resolver] six: 0 verified git source(s), PyPI found (6 release(s) shown), era 2020-10-03; query: 'six python package version compatible 2020 release history'\n[tavily] 5 result(s) for 'six python package version compatible 2020 release history'\n[repair 1] tamper gate PASS (env) \u2014 applying and re-executing\n[repair 1] env delta applied; build plan now: {'base_image': 'python:3.6-slim', 'apt_install': [], 'install_commands': ['true  # no declared dependency file found; nothing to install', 'pip install six==1.15.0'], 'execute_command': 'python train_sl.py --log-interval=50 --lr=0.001  --batch-size=128 --model-folder=\"models/\"', 'notes': [\"execute command is the repository's documented command (corpus ground truth)\", 'base image python:3.6-slim: declared by README (3.6); resolved to the first available minor that satisfies it', \"env delta: add six \u2014 The error indicates missing 'six' module, which is required by the code.\"]}\n[citations] not cited (not used in a decision): https://en.wikipedia.org/wiki/Python_(programming_language)\n[citations] not cited (not used in a decision): https://doc.qt.io/qtforpython-6/overviews/qtdoc-qt-releases.html\n[citations] not cited (not used in a decision): https://www.chainguard.dev/unchained/this-shit-is-hard-the-complexities-of-fixing-python-library-security-issues-at-scale\n[citations] not cited (not used in a decision): https://root-forum.cern.ch/t/segmentation-fault-in-pyroot-with-python-minor-version-mismatch/37516\n[citations] not cited (not used in a decision): https://finance.yahoo.com/news/sigmaxl-inc-announces-release-version-131000018.html\n[citations] not cited (offered, not used): https://pypi.org/project/six/1.14.0/\n[citations] not cited (offered, not used): https://pypi.org/project/six/1.13.0/\n[citations] not cited (offered, not used): https://pypi.org/project/six/1.12.0/\n[citations] not cited (offered, not used): https://pypi.org/project/six/1.11.0/\n[citations] not cited (offered, not used): https://pypi.org/project/six/1.17.0/\n[integrity] verified 76 file(s) against tree 2d967e06d1326a8f5458c0771d9f5c33c49c93a0\n[sandbox] starting build+execute (wall_clock_seconds=600)\n[runner] torch: repo imports torch, torchvision without declaring it; runner provides the newest matched CPU wheels\n[cost_guard] recorded $0.1788 sandbox spend, $1.6509 remaining today\n[repair 1] re-execution id=bbf65ec4-59ee-4e26-9768-f79d277a9a43 exit_code=1\n[classifier] DEP_MISSING: ModuleNotFoundError: No module named 'h5py'\n[resolver] h5py: 0 verified git source(s), PyPI found (6 release(s) shown), era 2020-10-03; query: 'h5py python package version compatible 2020 release history'\n[tavily] 5 result(s) for 'h5py python package version compatible 2020 release history'\n[repair 2] tamper gate PASS (env) \u2014 applying and re-executing\n[repair 2] env delta applied; build plan now: {'base_image': 'python:3.6-slim', 'apt_install': [], 'install_commands': ['true  # no declared dependency file found; nothing to install', 'pip install six==1.15.0', 'pip install h5py==2.10.0'], 'execute_command': 'python train_sl.py --log-interval=50 --lr=0.001  --batch-size=128 --model-folder=\"models/\"', 'notes': [\"execute command is the repository's documented command (corpus ground truth)\", 'base image python:3.6-slim: declared by README (3.6); resolved to the first available minor that satisfies it', \"env delta: add six \u2014 The error indicates missing 'six' module, which is required by the code.\", 'env delta: add h5py \u2014 The code imports h5py in dataloader.py but the environment lacks this package.']}\n[citations] not cited (not used in a decision): https://www.sidefx.com/forum/topic/60599\n[citations] not cited (not used in a decision): https://docs.h5py.org/en/stable/whatsnew/index.html\n[citations] not cited (not used in a decision): https://docs.h5py.org/en/latest/build.html\n[citations] not cited (not used in a decision): https://www.python.org/downloads\n[citations] not cited (not used in a decision): https://en.wikipedia.org/wiki/Python_(programming_language)\n[citations] not cited (offered, not used): https://pypi.org/project/h5py/2.9.0/\n[citations] not cited (offered, not used): https://pypi.org/project/h5py/2.8.0/\n[citations] not cited (offered, not used): https://pypi.org/project/h5py/2.7.1/\n[citations] not cited (offered, not used): https://pypi.org/project/h5py/2.7.0/\n[citations] not cited (offered, not used): https://pypi.org/project/h5py/3.16.0/\n[integrity] verified 76 file(s) against tree 2d967e06d1326a8f5458c0771d9f5c33c49c93a0\n[sandbox] starting build+execute (wall_clock_seconds=600)\n[runner] torch: repo imports torch, torchvision without declaring it; runner provides the newest matched CPU wheels\n[cost_guard] recorded $0.1797 sandbox spend, $1.4691 remaining today\n[repair 2] re-execution id=789d8239-c233-4de0-ba49-9b9e45d08977 exit_code=1\n[classifier] DEP_MISSING: ModuleNotFoundError: No module named 'skimage'\n[import-map] skimage -> scikit-image (pigar+rank, confidence low) for the resolver\n[resolver] scikit-image: 0 verified git source(s), PyPI found (6 release(s) shown), era 2020-10-03; query: 'scikit-image python package version compatible 2020 release history'\n[tavily] 5 result(s) for 'scikit-image python package version compatible 2020 release history'\n[repair 3] tamper gate PASS (env) \u2014 applying and re-executing\n[repair 3] env delta applied; build plan now: {'base_image': 'python:3.6-slim', 'apt_install': [], 'install_commands': ['true  # no declared dependency file found; nothing to install', 'pip install six==1.15.0', 'pip install h5py==2.10.0', 'pip install scikit-image==0.17.2'], 'execute_command': 'python train_sl.py --log-interval=50 --lr=0.001  --batch-size=128 --model-folder=\"models/\"', 'notes': [\"execute command is the repository's documented command (corpus ground truth)\", 'base image python:3.6-slim: declared by README (3.6); resolved to the first available minor that satisfies it', \"env delta: add six \u2014 The error indicates missing 'six' module, which is required by the code.\", 'env delta: add h5py \u2014 The code imports h5py in dataloader.py but the environment lacks this package.', 'env delta: add scikit-image \u2014 The code imports skimage but the package is not installed.']}\n[citations] not cited (not used in a decision): https://scikit-image.org\n[citations] not cited (not used in a decision): https://scikit-image.org/docs/0.25.x/release_notes/release_0.18.html\n[citations] not cited (not used in a decision): https://scikit-image.org/docs/stable/user_guide/install.html\n[citations] not cited (not used in a decision): https://discuss.scientific-python.org/t/which-skimage-version-is-compatible-with-numpy-1-19-5/639\n[citations] not cited (not used in a decision): https://discuss.python.org/t/problem-installing-scikit-image-on-python-3-14-windows-10/104255\n[citations] not cited (offered, not used): https://pypi.org/project/scikit-image/0.17.1/\n[citations] not cited (offered, not used): https://pypi.org/project/scikit-image/0.16.2/\n[citations] not cited (offered, not used): https://pypi.org/project/scikit-image/0.16.1/\n[citations] not cited (offered, not used): https://pypi.org/project/scikit-image/0.14.5/\n[citations] not cited (offered, not used): https://pypi.org/project/scikit-image/0.26.0/\n[integrity] verified 76 file(s) against tree 2d967e06d1326a8f5458c0771d9f5c33c49c93a0\n[sandbox] starting build+execute (wall_clock_seconds=600)\n[runner] torch: repo imports torch, torchvision without declaring it; runner provides the newest matched CPU wheels\n[cost_guard] recorded $0.2572 sandbox spend, $1.2090 remaining today\n[repair 3] re-execution id=2911a083-3906-4030-b4cf-a94631988ee7 exit_code=1\n[classifier] DATA_MISSING: FileNotFoundError: [Errno 2] No such file or directory: 'caption_models/infos_best.pkl'\n[verdict] BLOCKED after 3 repair attempt(s): DATA_MISSING",
+    "diffs": [
+      {
+        "attempt_number": 0,
+        "diff_text": "",
+        "gate_decision": "DECLINED",
+        "gate_violations": [],
+        "exit_code": null,
+        "stdout_tail": "",
+        "stderr_tail": "error: No solution found when resolving dependencies\n  cause: Because there are no versions of pycocoevalcap and you require pycocoevalcap, we can conclude that your requirements are unsatisfiable.\n\nhint: `pycocoevalcap` was filtered by `exclude-newer` to only include packages uploaded before 2020-10-04T00:00:00Z. The latest version satisfying the requirement is v1.2, published at 2020-11-18T11:56:23.026Z. Consider using `exclude-newer-package` to override the cutoff for this package.\n",
+        "tavily_sources": [],
+        "env_delta": [],
+        "resolved_sources": [],
+        "origin": "time_machine",
+        "time_machine": {
+          "era": {
+            "date": "2020-10-03",
+            "source": "pinned-commit",
+            "detail": {
+              "note": "no dependency files in the repository"
+            }
+          },
+          "python": {
+            "version": "3.8",
+            "reason": "newest CPython first released \u2265180 days before the era date 2020-10-03 (https://devguide.python.org/versions/ (first release dates, retrieved 2026-09-24))",
+            "source": "https://devguide.python.org/versions/ (first release dates, retrieved 2026-09-24)"
+          },
+          "undeclared_imports": [
+            "h5py",
+            "numpy",
+            "pycocoevalcap",
+            "pycocotools",
+            "scipy",
+            "six",
+            "scikit-image",
+            "tensorflow",
+            "torch",
+            "torchvision"
+          ],
+          "import_mappings": [
+            {
+              "import": "skimage",
+              "distribution": "scikit-image",
+              "source": "pigar+rank",
+              "confidence": "low"
+            }
+          ],
+          "apt_added": [],
+          "apt_reason": "",
+          "lock": {
+            "ok": false,
+            "lock": [],
+            "inputs": [
+              "h5py",
+              "numpy",
+              "pycocoevalcap",
+              "pycocotools",
+              "scipy",
+              "six",
+              "scikit-image",
+              "tensorflow",
+              "torch",
+              "torchvision"
+            ],
+            "not_on_index": [],
+            "command": "pip compile - --no-header --no-annotate --quiet --exclude-newer 2020-10-04T00:00:00Z --python-version 3.8 --python-platform x86_64-unknown-linux-gnu --python C:\\Users\\E16\\AppData\\Roaming\\uv\\python\\cpython-3.8.20-windows-x86_64-none\\python.exe",
+            "error": "error: No solution found when resolving dependencies\n  cause: Because there are no versions of pycocoevalcap and you require pycocoevalcap, we can conclude that your requirements are unsatisfiable.\n\nhint: `pycocoevalcap` was filtered by `exclude-newer` to only include packages uploaded before 2020-10-04T00:00:00Z. The latest version satisfying the requirement is v1.2, published at 2020-11-18T11:56:23.026Z. Consider using `exclude-newer-package` to override the cutoff for this package.\n"
+          }
+        }
+      },
+      {
+        "attempt_number": 1,
+        "diff_text": "",
+        "gate_decision": "PASS",
+        "gate_violations": [],
+        "exit_code": 1,
+        "stdout_tail": "relative captioning is called\n",
+        "stderr_tail": "Traceback (most recent call last):\n  File \"train_sl.py\", line 7, in <module>\n    import sim_user\n  File \"/sim_user.py\", line 10, in <module>\n    from captioner import captioner\n  File \"/captioner/captioner.py\", line 16, in <module>\n    from dataloader import *\n  File \"captioner/neuraltalk2/dataloader.py\", line 6, in <module>\n    import h5py\nModuleNotFoundError: No module named 'h5py'\n",
+        "tavily_sources": [],
+        "env_delta": [
+          {
+            "command": null,
+            "op": "add",
+            "package": "six",
+            "version": "1.15.0",
+            "git_url": null,
+            "commit": null,
+            "justification": "The error indicates missing 'six' module, which is required by the code.",
+            "evidence": "ModuleNotFoundError: No module named 'six'"
+          }
+        ],
+        "resolved_sources": [
+          {
+            "kind": "pypi",
+            "package": "six",
+            "version": "1.15.0",
+            "uploaded": "2020-05-21",
+            "cpython_tags": [],
+            "url": "https://pypi.org/project/six/1.15.0/"
+          }
+        ],
+        "origin": "model",
+        "time_machine": null
+      },
+      {
+        "attempt_number": 2,
+        "diff_text": "",
+        "gate_decision": "PASS",
+        "gate_violations": [],
+        "exit_code": 1,
+        "stdout_tail": "relative captioning is called\n",
+        "stderr_tail": "Traceback (most recent call last):\n  File \"train_sl.py\", line 7, in <module>\n    import sim_user\n  File \"/sim_user.py\", line 10, in <module>\n    from captioner import captioner\n  File \"/captioner/captioner.py\", line 17, in <module>\n    from dataloaderraw import *\n  File \"captioner/neuraltalk2/dataloaderraw.py\", line 12, in <module>\n    import skimage\nModuleNotFoundError: No module named 'skimage'\n",
+        "tavily_sources": [],
+        "env_delta": [
+          {
+            "command": null,
+            "op": "add",
+            "package": "h5py",
+            "version": "2.10.0",
+            "git_url": null,
+            "commit": null,
+            "justification": "The code imports h5py in dataloader.py but the environment lacks this package.",
+            "evidence": "ModuleNotFoundError: No module named 'h5py'"
+          }
+        ],
+        "resolved_sources": [
+          {
+            "kind": "pypi",
+            "package": "h5py",
+            "version": "2.10.0",
+            "uploaded": "2019-09-06",
+            "cpython_tags": [
+              "cp34",
+              "cp35",
+              "cp36",
+              "cp37",
+              "cp38"
+            ],
+            "url": "https://pypi.org/project/h5py/2.10.0/"
+          }
+        ],
+        "origin": "model",
+        "time_machine": null
+      },
+      {
+        "attempt_number": 3,
+        "diff_text": "",
+        "gate_decision": "PASS",
+        "gate_violations": [],
+        "exit_code": 1,
+        "stdout_tail": "relative captioning is called\n",
+        "stderr_tail": "Traceback (most recent call last):\n  File \"train_sl.py\", line 57, in <module>\n    user = sim_user.SynUser()\n  File \"/sim_user.py\", line 24, in __init__\n    self.captioner_relative = captioner.Captioner(is_relative= True, model_path= model_dir, image_feat_params= params)\n  File \"/captioner/captioner.py\", line 64, in __init__\n    with open(opt.infos_path, 'rb') as f:\nFileNotFoundError: [Errno 2] No such file or directory: 'caption_models/infos_best.pkl'\n",
+        "tavily_sources": [],
+        "env_delta": [
+          {
+            "command": null,
+            "op": "add",
+            "package": "scikit-image",
+            "version": "0.17.2",
+            "git_url": null,
+            "commit": null,
+            "justification": "The code imports skimage but the package is not installed.",
+            "evidence": "ModuleNotFoundError: No module named 'skimage'"
+          }
+        ],
+        "resolved_sources": [
+          {
+            "kind": "pypi",
+            "package": "scikit-image",
+            "version": "0.17.2",
+            "uploaded": "2020-05-13",
+            "cpython_tags": [
+              "cp36",
+              "cp37",
+              "cp38"
+            ],
+            "url": "https://pypi.org/project/scikit-image/0.17.2/"
+          }
+        ],
+        "origin": "model",
+        "time_machine": null
+      }
+    ],
+    "verdict": "BLOCKED",
+    "timestamp": "2026-09-30T15:06:43.977291+00:00",
+    "bundle_version": 4,
+    "baseline": {
+      "result": "FAILS",
+      "exit_code": 1,
+      "base_image": "python:3.6-slim",
+      "install_commands": [
+        "true  # no declared dependency file found; nothing to install"
+      ],
+      "execute_command": "python train_sl.py --log-interval=50 --lr=0.001  --batch-size=128 --model-folder=\"models/\"",
+      "sandbox_id": "0a4c5475-0fb7-4861-a74f-d60e69d8a8a1",
+      "taxonomy_code": "DEP_MISSING",
+      "evidence": "ModuleNotFoundError: No module named 'six'"
+    },
+    "recovery": false,
+    "tree_integrity": {
+      "status": "verified",
+      "tree_sha": "2d967e06d1326a8f5458c0771d9f5c33c49c93a0",
+      "files_checked": 76,
+      "excluded_patched": []
+    },
+    "corpus_hash": "7df090bea7013974f9f10fb8959ab0162734b51c83a80f744f9c310ce694fbdc",
+    "taxonomy_code": "DATA_MISSING",
+    "indeterminate_reason": "",
+    "error_chain": [
+      {
+        "error": "ModuleNotFoundError: No module named 'six'",
+        "class": "DEP_MISSING",
+        "attribution": "REPO",
+        "phase": "repo_run",
+        "cleared_by": 1
+      },
+      {
+        "error": "ModuleNotFoundError: No module named 'h5py'",
+        "class": "DEP_MISSING",
+        "attribution": "REPO",
+        "phase": "repo_run",
+        "cleared_by": 2
+      },
+      {
+        "error": "ModuleNotFoundError: No module named 'skimage'",
+        "class": "DEP_MISSING",
+        "attribution": "REPO",
+        "phase": "repo_run",
+        "cleared_by": 3
+      },
+      {
+        "error": "FileNotFoundError: [Errno 2] No such file or directory: 'caption_models/infos_best.pkl'",
+        "class": "DATA_MISSING",
+        "attribution": "REPO",
+        "phase": "repo_run",
+        "cleared_by": null
+      }
+    ],
+    "first_repo_error": "ModuleNotFoundError: No module named 'six'",
+    "last_error": "FileNotFoundError: [Errno 2] No such file or directory: 'caption_models/infos_best.pkl'",
+    "reproduction_passport_hash": "6ee87baeca2aaff5f2b88bb4121e1b33cf9164f469a0ac366c4a0135aee05ac2"
+  },
+  "finished_at": "2026-09-30T15:06:44.063688+00:00",
+  "events": [
+    {
+      "t_s": 0.0,
+      "at": "2026-09-30T15:01:37.970543+00:00",
+      "line": "[intake] cloned https://github.com/XiaoxiaoGuo/fashion-retrieval@9ac8b2ca44f7aa16510384047b635ba093568165"
+    },
+    {
+      "t_s": 0.01,
+      "at": "2026-09-30T15:01:37.979279+00:00",
+      "line": "[recon] calling Nemotron Nano"
+    },
+    {
+      "t_s": 9.97,
+      "at": "2026-09-30T15:01:47.942314+00:00",
+      "line": "[recon] entrypoint=captioner/neuraltalk2/train.py confidence=0.90"
+    },
+    {
+      "t_s": 9.98,
+      "at": "2026-09-30T15:01:47.955514+00:00",
+      "line": "[python] python:3.6-slim (README): declared by README (3.6); resolved to the first available minor that satisfies it"
+    },
+    {
+      "t_s": 10.98,
+      "at": "2026-09-30T15:01:48.950129+00:00",
+      "line": "[planner] build plan: {'base_image': 'python:3.6-slim', 'apt_install': [], 'install_commands': ['true  # no declared dependency file found; nothing to install'], 'execute_command': 'python train_sl.py --log-interval=50 --lr=0.001  --batch-size=128 --model-folder=\"models/\"', 'notes': [\"execute command is the repository's documented command (corpus ground truth)\", 'base image python:3.6-slim: declared by README (3.6); resolved to the first available minor that satisfies it']}"
+    },
+    {
+      "t_s": 11.27,
+      "at": "2026-09-30T15:01:49.243551+00:00",
+      "line": "[integrity] verified 76 file(s) against tree 2d967e06d1326a8f5458c0771d9f5c33c49c93a0"
+    },
+    {
+      "t_s": 11.27,
+      "at": "2026-09-30T15:01:49.243591+00:00",
+      "line": "[sandbox] starting build+execute (wall_clock_seconds=600)"
+    },
+    {
+      "t_s": 11.3,
+      "at": "2026-09-30T15:01:49.265805+00:00",
+      "line": "[runner] torch: repo imports torch, torchvision without declaring it; runner provides the newest matched CPU wheels"
+    },
+    {
+      "t_s": 59.94,
+      "at": "2026-09-30T15:02:37.911458+00:00",
+      "line": "[cost_guard] recorded $0.1672 sandbox spend, $1.8316 remaining today"
+    },
+    {
+      "t_s": 59.94,
+      "at": "2026-09-30T15:02:37.911551+00:00",
+      "line": "[sandbox] id=0a4c5475-0fb7-4861-a74f-d60e69d8a8a1 exit_code=1"
+    },
+    {
+      "t_s": 59.94,
+      "at": "2026-09-30T15:02:37.911574+00:00",
+      "line": "[baseline] as-is run: FAILS (exit code 1)"
+    },
+    {
+      "t_s": 59.94,
+      "at": "2026-09-30T15:02:37.915298+00:00",
+      "line": "[classifier] DEP_MISSING: ModuleNotFoundError: No module named 'six'"
+    },
+    {
+      "t_s": 60.02,
+      "at": "2026-09-30T15:02:37.988810+00:00",
+      "line": "[era] 2020-10-03 from pinned-commit {'note': 'no dependency files in the repository'}"
+    },
+    {
+      "t_s": 60.18,
+      "at": "2026-09-30T15:02:38.145658+00:00",
+      "line": "[import-map] skimage -> scikit-image (pigar+rank, confidence low)"
+    },
+    {
+      "t_s": 84.49,
+      "at": "2026-09-30T15:03:02.464844+00:00",
+      "line": "[time-machine] could not lock the era environment: fiable.\n\nhint: `pycocoevalcap` was filtered by `exclude-newer` to only include packages uploaded before 2020-10-04T00:00:00Z. The latest version satisfying the requirement is v1.2, published at 2020-11-18T11:56:23.026Z. Consider using `exclude-newer-package` to override the cutoff for this package.\n"
+    },
+    {
+      "t_s": 89.8,
+      "at": "2026-09-30T15:03:07.766151+00:00",
+      "line": "[resolver] six: 0 verified git source(s), PyPI found (6 release(s) shown), era 2020-10-03; query: 'six python package version compatible 2020 release history'"
+    },
+    {
+      "t_s": 89.8,
+      "at": "2026-09-30T15:03:07.766200+00:00",
+      "line": "[tavily] 5 result(s) for 'six python package version compatible 2020 release history'"
+    },
+    {
+      "t_s": 93.43,
+      "at": "2026-09-30T15:03:11.396376+00:00",
+      "line": "[repair 1] tamper gate PASS (env) \u2014 applying and re-executing"
+    },
+    {
+      "t_s": 93.43,
+      "at": "2026-09-30T15:03:11.396460+00:00",
+      "line": "[repair 1] env delta applied; build plan now: {'base_image': 'python:3.6-slim', 'apt_install': [], 'install_commands': ['true  # no declared dependency file found; nothing to install', 'pip install six==1.15.0'], 'execute_command': 'python train_sl.py --log-interval=50 --lr=0.001  --batch-size=128 --model-folder=\"models/\"', 'notes': [\"execute command is the repository's documented command (corpus ground truth)\", 'base image python:3.6-slim: declared by README (3.6); resolved to the first available minor that satisfies it', \"env delta: add six \u2014 The error indicates missing 'six' module, which is required by the code.\"]}"
+    },
+    {
+      "t_s": 93.43,
+      "at": "2026-09-30T15:03:11.396498+00:00",
+      "line": "[citations] not cited (not used in a decision): https://en.wikipedia.org/wiki/Python_(programming_language)"
+    },
+    {
+      "t_s": 93.43,
+      "at": "2026-09-30T15:03:11.396508+00:00",
+      "line": "[citations] not cited (not used in a decision): https://doc.qt.io/qtforpython-6/overviews/qtdoc-qt-releases.html"
+    },
+    {
+      "t_s": 93.43,
+      "at": "2026-09-30T15:03:11.396515+00:00",
+      "line": "[citations] not cited (not used in a decision): https://www.chainguard.dev/unchained/this-shit-is-hard-the-complexities-of-fixing-python-library-security-issues-at-scale"
+    },
+    {
+      "t_s": 93.43,
+      "at": "2026-09-30T15:03:11.396522+00:00",
+      "line": "[citations] not cited (not used in a decision): https://root-forum.cern.ch/t/segmentation-fault-in-pyroot-with-python-minor-version-mismatch/37516"
+    },
+    {
+      "t_s": 93.43,
+      "at": "2026-09-30T15:03:11.396529+00:00",
+      "line": "[citations] not cited (not used in a decision): https://finance.yahoo.com/news/sigmaxl-inc-announces-release-version-131000018.html"
+    },
+    {
+      "t_s": 93.43,
+      "at": "2026-09-30T15:03:11.396537+00:00",
+      "line": "[citations] not cited (offered, not used): https://pypi.org/project/six/1.14.0/"
+    },
+    {
+      "t_s": 93.43,
+      "at": "2026-09-30T15:03:11.396545+00:00",
+      "line": "[citations] not cited (offered, not used): https://pypi.org/project/six/1.13.0/"
+    },
+    {
+      "t_s": 93.43,
+      "at": "2026-09-30T15:03:11.396551+00:00",
+      "line": "[citations] not cited (offered, not used): https://pypi.org/project/six/1.12.0/"
+    },
+    {
+      "t_s": 93.43,
+      "at": "2026-09-30T15:03:11.396557+00:00",
+      "line": "[citations] not cited (offered, not used): https://pypi.org/project/six/1.11.0/"
+    },
+    {
+      "t_s": 93.43,
+      "at": "2026-09-30T15:03:11.396562+00:00",
+      "line": "[citations] not cited (offered, not used): https://pypi.org/project/six/1.17.0/"
+    },
+    {
+      "t_s": 93.56,
+      "at": "2026-09-30T15:03:11.533771+00:00",
+      "line": "[integrity] verified 76 file(s) against tree 2d967e06d1326a8f5458c0771d9f5c33c49c93a0"
+    },
+    {
+      "t_s": 93.56,
+      "at": "2026-09-30T15:03:11.533819+00:00",
+      "line": "[sandbox] starting build+execute (wall_clock_seconds=600)"
+    },
+    {
+      "t_s": 93.59,
+      "at": "2026-09-30T15:03:11.556053+00:00",
+      "line": "[runner] torch: repo imports torch, torchvision without declaring it; runner provides the newest matched CPU wheels"
+    },
+    {
+      "t_s": 147.53,
+      "at": "2026-09-30T15:04:05.505351+00:00",
+      "line": "[cost_guard] recorded $0.1788 sandbox spend, $1.6509 remaining today"
+    },
+    {
+      "t_s": 147.53,
+      "at": "2026-09-30T15:04:05.505510+00:00",
+      "line": "[repair 1] re-execution id=bbf65ec4-59ee-4e26-9768-f79d277a9a43 exit_code=1"
+    },
+    {
+      "t_s": 147.54,
+      "at": "2026-09-30T15:04:05.505888+00:00",
+      "line": "[classifier] DEP_MISSING: ModuleNotFoundError: No module named 'h5py'"
+    },
+    {
+      "t_s": 150.02,
+      "at": "2026-09-30T15:04:07.991146+00:00",
+      "line": "[resolver] h5py: 0 verified git source(s), PyPI found (6 release(s) shown), era 2020-10-03; query: 'h5py python package version compatible 2020 release history'"
+    },
+    {
+      "t_s": 150.02,
+      "at": "2026-09-30T15:04:07.991212+00:00",
+      "line": "[tavily] 5 result(s) for 'h5py python package version compatible 2020 release history'"
+    },
+    {
+      "t_s": 153.62,
+      "at": "2026-09-30T15:04:11.593772+00:00",
+      "line": "[repair 2] tamper gate PASS (env) \u2014 applying and re-executing"
+    },
+    {
+      "t_s": 153.62,
+      "at": "2026-09-30T15:04:11.593884+00:00",
+      "line": "[repair 2] env delta applied; build plan now: {'base_image': 'python:3.6-slim', 'apt_install': [], 'install_commands': ['true  # no declared dependency file found; nothing to install', 'pip install six==1.15.0', 'pip install h5py==2.10.0'], 'execute_command': 'python train_sl.py --log-interval=50 --lr=0.001  --batch-size=128 --model-folder=\"models/\"', 'notes': [\"execute command is the repository's documented command (corpus ground truth)\", 'base image python:3.6-slim: declared by README (3.6); resolved to the first available minor that satisfies it', \"env delta: add six \u2014 The error indicates missing 'six' module, which is required by the code.\", 'env delta: add h5py \u2014 The code imports h5py in dataloader.py but the environment lacks this package.']}"
+    },
+    {
+      "t_s": 153.62,
+      "at": "2026-09-30T15:04:11.593924+00:00",
+      "line": "[citations] not cited (not used in a decision): https://www.sidefx.com/forum/topic/60599"
+    },
+    {
+      "t_s": 153.62,
+      "at": "2026-09-30T15:04:11.593935+00:00",
+      "line": "[citations] not cited (not used in a decision): https://docs.h5py.org/en/stable/whatsnew/index.html"
+    },
+    {
+      "t_s": 153.62,
+      "at": "2026-09-30T15:04:11.593943+00:00",
+      "line": "[citations] not cited (not used in a decision): https://docs.h5py.org/en/latest/build.html"
+    },
+    {
+      "t_s": 153.62,
+      "at": "2026-09-30T15:04:11.593963+00:00",
+      "line": "[citations] not cited (not used in a decision): https://www.python.org/downloads"
+    },
+    {
+      "t_s": 153.62,
+      "at": "2026-09-30T15:04:11.593971+00:00",
+      "line": "[citations] not cited (not used in a decision): https://en.wikipedia.org/wiki/Python_(programming_language)"
+    },
+    {
+      "t_s": 153.62,
+      "at": "2026-09-30T15:04:11.593982+00:00",
+      "line": "[citations] not cited (offered, not used): https://pypi.org/project/h5py/2.9.0/"
+    },
+    {
+      "t_s": 153.62,
+      "at": "2026-09-30T15:04:11.593990+00:00",
+      "line": "[citations] not cited (offered, not used): https://pypi.org/project/h5py/2.8.0/"
+    },
+    {
+      "t_s": 153.62,
+      "at": "2026-09-30T15:04:11.593997+00:00",
+      "line": "[citations] not cited (offered, not used): https://pypi.org/project/h5py/2.7.1/"
+    },
+    {
+      "t_s": 153.62,
+      "at": "2026-09-30T15:04:11.594003+00:00",
+      "line": "[citations] not cited (offered, not used): https://pypi.org/project/h5py/2.7.0/"
+    },
+    {
+      "t_s": 153.62,
+      "at": "2026-09-30T15:04:11.594010+00:00",
+      "line": "[citations] not cited (offered, not used): https://pypi.org/project/h5py/3.16.0/"
+    },
+    {
+      "t_s": 153.78,
+      "at": "2026-09-30T15:04:11.747563+00:00",
+      "line": "[integrity] verified 76 file(s) against tree 2d967e06d1326a8f5458c0771d9f5c33c49c93a0"
+    },
+    {
+      "t_s": 153.78,
+      "at": "2026-09-30T15:04:11.747614+00:00",
+      "line": "[sandbox] starting build+execute (wall_clock_seconds=600)"
+    },
+    {
+      "t_s": 153.8,
+      "at": "2026-09-30T15:04:11.770779+00:00",
+      "line": "[runner] torch: repo imports torch, torchvision without declaring it; runner provides the newest matched CPU wheels"
+    },
+    {
+      "t_s": 212.54,
+      "at": "2026-09-30T15:05:10.507986+00:00",
+      "line": "[cost_guard] recorded $0.1797 sandbox spend, $1.4691 remaining today"
+    },
+    {
+      "t_s": 212.54,
+      "at": "2026-09-30T15:05:10.508102+00:00",
+      "line": "[repair 2] re-execution id=789d8239-c233-4de0-ba49-9b9e45d08977 exit_code=1"
+    },
+    {
+      "t_s": 212.54,
+      "at": "2026-09-30T15:05:10.508376+00:00",
+      "line": "[classifier] DEP_MISSING: ModuleNotFoundError: No module named 'skimage'"
+    },
+    {
+      "t_s": 214.37,
+      "at": "2026-09-30T15:05:12.341655+00:00",
+      "line": "[import-map] skimage -> scikit-image (pigar+rank, confidence low) for the resolver"
+    },
+    {
+      "t_s": 214.37,
+      "at": "2026-09-30T15:05:12.341755+00:00",
+      "line": "[resolver] scikit-image: 0 verified git source(s), PyPI found (6 release(s) shown), era 2020-10-03; query: 'scikit-image python package version compatible 2020 release history'"
+    },
+    {
+      "t_s": 214.37,
+      "at": "2026-09-30T15:05:12.341783+00:00",
+      "line": "[tavily] 5 result(s) for 'scikit-image python package version compatible 2020 release history'"
+    },
+    {
+      "t_s": 220.71,
+      "at": "2026-09-30T15:05:18.684099+00:00",
+      "line": "[repair 3] tamper gate PASS (env) \u2014 applying and re-executing"
+    },
+    {
+      "t_s": 220.71,
+      "at": "2026-09-30T15:05:18.684210+00:00",
+      "line": "[repair 3] env delta applied; build plan now: {'base_image': 'python:3.6-slim', 'apt_install': [], 'install_commands': ['true  # no declared dependency file found; nothing to install', 'pip install six==1.15.0', 'pip install h5py==2.10.0', 'pip install scikit-image==0.17.2'], 'execute_command': 'python train_sl.py --log-interval=50 --lr=0.001  --batch-size=128 --model-folder=\"models/\"', 'notes': [\"execute command is the repository's documented command (corpus ground truth)\", 'base image python:3.6-slim: declared by README (3.6); resolved to the first available minor that satisfies it', \"env delta: add six \u2014 The error indicates missing 'six' module, which is required by the code.\", 'env delta: add h5py \u2014 The code imports h5py in dataloader.py but the environment lacks this package.', 'env delta: add scikit-image \u2014 The code imports skimage but the package is not installed.']}"
+    },
+    {
+      "t_s": 220.71,
+      "at": "2026-09-30T15:05:18.684247+00:00",
+      "line": "[citations] not cited (not used in a decision): https://scikit-image.org"
+    },
+    {
+      "t_s": 220.71,
+      "at": "2026-09-30T15:05:18.684257+00:00",
+      "line": "[citations] not cited (not used in a decision): https://scikit-image.org/docs/0.25.x/release_notes/release_0.18.html"
+    },
+    {
+      "t_s": 220.71,
+      "at": "2026-09-30T15:05:18.684265+00:00",
+      "line": "[citations] not cited (not used in a decision): https://scikit-image.org/docs/stable/user_guide/install.html"
+    },
+    {
+      "t_s": 220.71,
+      "at": "2026-09-30T15:05:18.684272+00:00",
+      "line": "[citations] not cited (not used in a decision): https://discuss.scientific-python.org/t/which-skimage-version-is-compatible-with-numpy-1-19-5/639"
+    },
+    {
+      "t_s": 220.71,
+      "at": "2026-09-30T15:05:18.684279+00:00",
+      "line": "[citations] not cited (not used in a decision): https://discuss.python.org/t/problem-installing-scikit-image-on-python-3-14-windows-10/104255"
+    },
+    {
+      "t_s": 220.71,
+      "at": "2026-09-30T15:05:18.684286+00:00",
+      "line": "[citations] not cited (offered, not used): https://pypi.org/project/scikit-image/0.17.1/"
+    },
+    {
+      "t_s": 220.71,
+      "at": "2026-09-30T15:05:18.684307+00:00",
+      "line": "[citations] not cited (offered, not used): https://pypi.org/project/scikit-image/0.16.2/"
+    },
+    {
+      "t_s": 220.71,
+      "at": "2026-09-30T15:05:18.684317+00:00",
+      "line": "[citations] not cited (offered, not used): https://pypi.org/project/scikit-image/0.16.1/"
+    },
+    {
+      "t_s": 220.71,
+      "at": "2026-09-30T15:05:18.684323+00:00",
+      "line": "[citations] not cited (offered, not used): https://pypi.org/project/scikit-image/0.14.5/"
+    },
+    {
+      "t_s": 220.71,
+      "at": "2026-09-30T15:05:18.684329+00:00",
+      "line": "[citations] not cited (offered, not used): https://pypi.org/project/scikit-image/0.26.0/"
+    },
+    {
+      "t_s": 220.84,
+      "at": "2026-09-30T15:05:18.813530+00:00",
+      "line": "[integrity] verified 76 file(s) against tree 2d967e06d1326a8f5458c0771d9f5c33c49c93a0"
+    },
+    {
+      "t_s": 220.84,
+      "at": "2026-09-30T15:05:18.813569+00:00",
+      "line": "[sandbox] starting build+execute (wall_clock_seconds=600)"
+    },
+    {
+      "t_s": 220.86,
+      "at": "2026-09-30T15:05:18.834951+00:00",
+      "line": "[runner] torch: repo imports torch, torchvision without declaring it; runner provides the newest matched CPU wheels"
+    },
+    {
+      "t_s": 298.96,
+      "at": "2026-09-30T15:06:36.932365+00:00",
+      "line": "[cost_guard] recorded $0.2572 sandbox spend, $1.2090 remaining today"
+    },
+    {
+      "t_s": 298.96,
+      "at": "2026-09-30T15:06:36.932485+00:00",
+      "line": "[repair 3] re-execution id=2911a083-3906-4030-b4cf-a94631988ee7 exit_code=1"
+    },
+    {
+      "t_s": 298.96,
+      "at": "2026-09-30T15:06:36.932949+00:00",
+      "line": "[classifier] DATA_MISSING: FileNotFoundError: [Errno 2] No such file or directory: 'caption_models/infos_best.pkl'"
+    },
+    {
+      "t_s": 298.96,
+      "at": "2026-09-30T15:06:36.932994+00:00",
+      "line": "[verdict] BLOCKED after 3 repair attempt(s): DATA_MISSING"
+    }
+  ],
+  "model_calls": [
+    {
+      "model": "nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B",
+      "started_at": "2026-09-30T15:01:38.196460+00:00",
+      "latency_s": 9.74,
+      "finish_reason": "stop",
+      "content_is_none": false,
+      "has_reasoning": true,
+      "usage": {
+        "completion_tokens": 2886,
+        "prompt_tokens": 6702,
+        "total_tokens": 9588,
+        "completion_tokens_details": null,
+        "prompt_tokens_details": null
+      }
+    },
+    {
+      "model": "nvidia/nemotron-3-super-120b-a12b",
+      "started_at": "2026-09-30T15:01:47.956855+00:00",
+      "latency_s": 0.99,
+      "finish_reason": "stop",
+      "content_is_none": false,
+      "has_reasoning": true,
+      "usage": {
+        "completion_tokens": 40,
+        "prompt_tokens": 272,
+        "total_tokens": 312,
+        "completion_tokens_details": {
+          "accepted_prediction_tokens": null,
+          "audio_tokens": null,
+          "reasoning_tokens": 30,
+          "rejected_prediction_tokens": null,
+          "text_tokens": null
+        },
+        "prompt_tokens_details": {
+          "audio_tokens": null,
+          "cache_write_tokens": null,
+          "cached_tokens": 0,
+          "image_tokens": null,
+          "text_tokens": null,
+          "created_cache_tokens": 0,
+          "multimodal_tokens": null
+        },
+        "prompt_cache_hit_tokens": 0,
+        "prompt_cache_miss_tokens": 272
+      }
+    },
+    {
+      "model": "nvidia/nemotron-3-super-120b-a12b",
+      "started_at": "2026-09-30T15:03:07.769353+00:00",
+      "latency_s": 3.63,
+      "finish_reason": "stop",
+      "content_is_none": false,
+      "has_reasoning": true,
+      "usage": {
+        "completion_tokens": 457,
+        "prompt_tokens": 4932,
+        "total_tokens": 5389,
+        "completion_tokens_details": {
+          "accepted_prediction_tokens": null,
+          "audio_tokens": null,
+          "reasoning_tokens": 339,
+          "rejected_prediction_tokens": null,
+          "text_tokens": null
+        },
+        "prompt_tokens_details": {
+          "audio_tokens": null,
+          "cache_write_tokens": null,
+          "cached_tokens": 0,
+          "image_tokens": null,
+          "text_tokens": null,
+          "created_cache_tokens": 0,
+          "multimodal_tokens": null
+        },
+        "prompt_cache_hit_tokens": 0,
+        "prompt_cache_miss_tokens": 4932
+      }
+    },
+    {
+      "model": "nvidia/nemotron-3-super-120b-a12b",
+      "started_at": "2026-09-30T15:04:07.994423+00:00",
+      "latency_s": 3.6,
+      "finish_reason": "stop",
+      "content_is_none": false,
+      "has_reasoning": true,
+      "usage": {
+        "completion_tokens": 631,
+        "prompt_tokens": 5233,
+        "total_tokens": 5864,
+        "completion_tokens_details": {
+          "accepted_prediction_tokens": null,
+          "audio_tokens": null,
+          "reasoning_tokens": 508,
+          "rejected_prediction_tokens": null,
+          "text_tokens": null
+        },
+        "prompt_tokens_details": {
+          "audio_tokens": null,
+          "cache_write_tokens": null,
+          "cached_tokens": 0,
+          "image_tokens": null,
+          "text_tokens": null,
+          "created_cache_tokens": 0,
+          "multimodal_tokens": null
+        },
+        "prompt_cache_hit_tokens": 0,
+        "prompt_cache_miss_tokens": 5233
+      }
+    },
+    {
+      "model": "nvidia/nemotron-3-super-120b-a12b",
+      "started_at": "2026-09-30T15:05:12.345345+00:00",
+      "latency_s": 6.34,
+      "finish_reason": "stop",
+      "content_is_none": false,
+      "has_reasoning": true,
+      "usage": {
+        "completion_tokens": 1414,
+        "prompt_tokens": 5334,
+        "total_tokens": 6748,
+        "completion_tokens_details": {
+          "accepted_prediction_tokens": null,
+          "audio_tokens": null,
+          "reasoning_tokens": 1298,
+          "rejected_prediction_tokens": null,
+          "text_tokens": null
+        },
+        "prompt_tokens_details": {
+          "audio_tokens": null,
+          "cache_write_tokens": null,
+          "cached_tokens": 0,
+          "image_tokens": null,
+          "text_tokens": null,
+          "created_cache_tokens": 0,
+          "multimodal_tokens": null
+        },
+        "prompt_cache_hit_tokens": 0,
+        "prompt_cache_miss_tokens": 5334
+      }
+    },
+    {
+      "model": "nvidia/Nemotron-3-Ultra-550b-a55b",
+      "started_at": "2026-09-30T15:06:36.934417+00:00",
+      "latency_s": 7.04,
+      "finish_reason": "stop",
+      "content_is_none": false,
+      "has_reasoning": true,
+      "usage": {
+        "completion_tokens": 380,
+        "prompt_tokens": 687,
+        "total_tokens": 1067,
+        "completion_tokens_details": {
+          "accepted_prediction_tokens": null,
+          "audio_tokens": null,
+          "reasoning_tokens": 289,
+          "rejected_prediction_tokens": null,
+          "text_tokens": null
+        },
+        "prompt_tokens_details": {
+          "audio_tokens": null,
+          "cache_write_tokens": null,
+          "cached_tokens": 0,
+          "image_tokens": null,
+          "text_tokens": null,
+          "multimodal_tokens": null
+        },
+        "prompt_cache_hit_tokens": 0,
+        "prompt_cache_miss_tokens": 687
+      }
+    }
+  ],
+  "cost_guard": {
+    "spent_usd": 0.79280891,
+    "model_spent_usd": 0.009940860000000001,
+    "sandbox_spent_usd": 0.78286805,
+    "remaining_usd": 1.20719109,
+    "model_usage": [
+      {
+        "model": "nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B",
+        "prompt_tokens": 6702,
+        "completion_tokens": 2886,
+        "cost_usd": 0.00109476
+      },
+      {
+        "model": "nvidia/nemotron-3-super-120b-a12b",
+        "prompt_tokens": 272,
+        "completion_tokens": 40,
+        "cost_usd": 0.0001176
+      },
+      {
+        "model": "nvidia/nemotron-3-super-120b-a12b",
+        "prompt_tokens": 4932,
+        "completion_tokens": 457,
+        "cost_usd": 0.0018908999999999998
+      },
+      {
+        "model": "nvidia/nemotron-3-super-120b-a12b",
+        "prompt_tokens": 5233,
+        "completion_tokens": 631,
+        "cost_usd": 0.0021377999999999996
+      },
+      {
+        "model": "nvidia/nemotron-3-super-120b-a12b",
+        "prompt_tokens": 5334,
+        "completion_tokens": 1414,
+        "cost_usd": 0.0028728
+      },
+      {
+        "model": "nvidia/Nemotron-3-Ultra-550b-a55b",
+        "prompt_tokens": 687,
+        "completion_tokens": 380,
+        "cost_usd": 0.001827
+      }
+    ],
+    "prices_usd_per_1m": {
+      "nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B": [
+        0.06,
+        0.24
+      ],
+      "nvidia/nemotron-3-super-120b-a12b": [
+        0.3,
+        0.9
+      ],
+      "nvidia/Nemotron-3-Ultra-550b-a55b": [
+        1.0,
+        3.0
+      ]
+    },
+    "prices_source": "https://api.tokenfactory.nebius.com/v1/models?verbose=true (pricing field)",
+    "prices_retrieved": "2026-09-24"
+  }
+}

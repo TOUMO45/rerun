@@ -1,0 +1,712 @@
+{
+  "run_kind": "live end-to-end run",
+  "dev_run": false,
+  "dry_run": null,
+  "batch": {
+    "harness_tag": "harness-v1.3.2",
+    "harness_commit": "77b3cfe1697ad74ad13eac1f77ffe0f1e80c7379",
+    "head_commit": "482173f3f945c40b990c30c87e0acf7e2c2b0c59",
+    "corpus": "corpus-v2",
+    "prereg_sha256": "ae5a722249156e058d3d360bdc63fa8224140d0688f1daa307ecfa93a98c7284",
+    "corpus_hash": "7df090bea7013974f9f10fb8959ab0162734b51c83a80f744f9c310ce694fbdc",
+    "arm": "treatment",
+    "total_cap_usd": 25.0,
+    "already_spent_usd": 4.08,
+    "entry_id": 4,
+    "category": "PRIMARY",
+    "rules_matched": [],
+    "per_entry_cap_usd": 2.0
+  },
+  "started_at": "2026-09-30T13:07:35.876456+00:00",
+  "corpus_entry": {
+    "name": "damo-cv__img-comp-reference",
+    "repo_url": "https://github.com/damo-cv/img-comp-reference",
+    "commit_sha": "193fc9464d27fcd806d5288448628923b54a5a19",
+    "command": "sh compress.sh original.png [model_path]",
+    "command_source": "README.md line 53"
+  },
+  "config": {
+    "models": {
+      "recon": "nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B",
+      "planner": "nvidia/nemotron-3-super-120b-a12b",
+      "repairer": "nvidia/nemotron-3-super-120b-a12b",
+      "adjudicator": "nvidia/Nemotron-3-Ultra-550b-a55b"
+    },
+    "sandbox_backend": "token_factory",
+    "sandbox_image_default": "python:3.10-slim",
+    "sandbox_wall_clock_seconds": 600.0,
+    "arm": "treatment",
+    "repair_enabled": true,
+    "max_attempts": 3,
+    "tavily_configured": true,
+    "cost_cap_usd": 2.0
+  },
+  "intake": {
+    "duration_s": 2.82,
+    "resolved_sha": "193fc9464d27fcd806d5288448628923b54a5a19",
+    "dependency_files": [],
+    "declared_dependencies": [],
+    "entrypoint_candidates": [
+      "main.py"
+    ],
+    "notebook_paths": []
+  },
+  "pipeline_duration_s": 174.93,
+  "repair_mode": "model_assisted",
+  "tree_integrity": {
+    "status": "verified",
+    "tree_sha": "fcfd17dfaaf29e4bddaadd3b3bde8b72bd77ca6b",
+    "files_checked": 26,
+    "excluded_patched": []
+  },
+  "result": {
+    "verdict": "BLOCKED",
+    "taxonomy_code": "RUNTIME_ERROR_OTHER",
+    "indeterminate_reason": "",
+    "reason_code": null,
+    "error_chain": [
+      {
+        "error": "Exception: No GPU found, please run without --cuda",
+        "class": "RUNTIME_ERROR_OTHER",
+        "attribution": "REPO",
+        "phase": "repo_run",
+        "cleared_by": null
+      }
+    ],
+    "first_repo_error": "Exception: No GPU found, please run without --cuda",
+    "last_error": "Exception: No GPU found, please run without --cuda",
+    "error_traceback": "",
+    "attempts": [
+      {
+        "attempt_number": 1,
+        "diff_text": "--- a/main.py\\n+++ b/main.py\\n@@ -433,9 +433,10 @@\\n     log.logger.info(opt)\\n\\n     # Environment setting\\n     if opt.cuda and not torch.cuda.is_available():\\n-        raise Exception(\"No GPU found, please run without --cuda\")\\n+        print(\"WARNING: No GPU found, running without --cuda\")\\n+        opt.cuda = False\\n     torch.manual_seed(opt.seed)\\n     device = torch.device(\"cuda\" if opt.cuda else \"cpu\")\\n\\n     ## Main Auto-encoder model\\n     log.logger.info('===> Building model')",
+        "gate_decision": "REJECT",
+        "gate_violations": [
+          {
+            "rule": "UNPARSEABLE_PATCH",
+            "reason": "diff contains no file changes",
+            "file": ""
+          }
+        ],
+        "exit_code": null,
+        "stdout_tail": "",
+        "stderr_tail": "",
+        "tavily_sources": [],
+        "env_delta": [],
+        "resolved_sources": [],
+        "origin": "model",
+        "time_machine": null
+      },
+      {
+        "attempt_number": 2,
+        "diff_text": "---\\na/main.py\\n+++ b/main.py\\n@@ -436,5 +436,6 @@\\n     # Environment setting\\n     if opt.cuda and not torch.cuda.is_available():\\n-        raise Exception(\"No GPU found, please run without --cuda\")\\n+        print(\"WARNING: No GPU found, falling back to CPU\")\\n+        opt.cuda = False\\n     torch.manual_seed(opt.seed)\\n     device = torch.device(\"cuda\" if opt.cuda else \"cpu\")",
+        "gate_decision": "REJECT",
+        "gate_violations": [
+          {
+            "rule": "UNPARSEABLE_PATCH",
+            "reason": "diff contains no file changes",
+            "file": ""
+          }
+        ],
+        "exit_code": null,
+        "stdout_tail": "",
+        "stderr_tail": "",
+        "tavily_sources": [],
+        "env_delta": [],
+        "resolved_sources": [],
+        "origin": "model",
+        "time_machine": null
+      },
+      {
+        "attempt_number": 3,
+        "diff_text": "--- a/main.py\n+++ b/main.py\n@@ -433,7 +433,7 @@\n     # Environment setting\n     if opt.cuda and not torch.cuda.is_available():\n-        raise Exception(\"No GPU found, please run without --cuda\")\n+        opt.cuda = False  # fallback to CPU\n     torch.manual_seed(opt.seed)\n     device = torch.device(\"cuda\" if opt.cuda else \"cpu\")\n ",
+        "gate_decision": "REJECT",
+        "gate_violations": [
+          {
+            "rule": "UNPARSEABLE_PATCH",
+            "reason": "diff could not be parsed: Hunk is shorter than expected",
+            "file": ""
+          }
+        ],
+        "exit_code": null,
+        "stdout_tail": "",
+        "stderr_tail": "",
+        "tavily_sources": [],
+        "env_delta": [],
+        "resolved_sources": [],
+        "origin": "model",
+        "time_machine": null
+      }
+    ],
+    "certificate_prose": "The repository's code encountered a runtime error indicating no CUDA GPUs were available, preventing execution. After three repair attempts, the tamper gate rejected a proposed diff because it could not be parsed, leaving the error unresolved. The final verdict is BLOCKED with taxonomy code RUNTIME_ERROR_OTHER. Verifies that the artifact executes. Does not verify the paper's numerical results."
+  },
+  "certificate": {
+    "repo_url": "https://github.com/damo-cv/img-comp-reference",
+    "commit_sha": "193fc9464d27fcd806d5288448628923b54a5a19",
+    "build_plan": {
+      "base_image": "python:3.10-slim",
+      "apt_install": [],
+      "install_commands": [
+        "true  # no declared dependency file found; nothing to install"
+      ],
+      "execute_command": "sh compress.sh original.png [model_path]",
+      "notes": [
+        "execute command is the repository's documented command (corpus ground truth)",
+        "base image python:3.10-slim: declared by README (>=3.5); resolved to the first available minor that satisfies it"
+      ]
+    },
+    "full_log": "[intake] cloned https://github.com/damo-cv/img-comp-reference@193fc9464d27fcd806d5288448628923b54a5a19\n[recon] calling Nemotron Nano\n[recon] entrypoint=main.py confidence=0.90\n[python] python:3.10-slim (README): declared by README (>=3.5); resolved to the first available minor that satisfies it\n[planner] build plan: {'base_image': 'python:3.10-slim', 'apt_install': [], 'install_commands': ['true  # no declared dependency file found; nothing to install'], 'execute_command': 'sh compress.sh original.png [model_path]', 'notes': [\"execute command is the repository's documented command (corpus ground truth)\", 'base image python:3.10-slim: declared by README (>=3.5); resolved to the first available minor that satisfies it']}\n[integrity] verified 26 file(s) against tree fcfd17dfaaf29e4bddaadd3b3bde8b72bd77ca6b\n[sandbox] starting build+execute (wall_clock_seconds=600)\n[runner] torch: repo imports torch, torchvision without declaring it; runner provides the newest matched CPU wheels\n[cost_guard] recorded $0.2524 sandbox spend, $1.7471 remaining today\n[sandbox] id=4bf03f90-34b3-44dc-ab1a-cce9cb917245 exit_code=1\n[baseline] as-is run: FAILS (exit code 1)\n[classifier] RUNTIME_ERROR_OTHER: Exception: No GPU found, please run without --cuda\n[tavily] 3 result(s) for 'python runtime error other fix: Exception: No GPU found, please run without --cuda'\n[repair 1] first reply was not valid JSON; re-asked once (same attempt)\n[repair 1] tamper gate REJECT: diff contains no file changes\n[citations] not cited (not used in a decision): https://www.educative.io/answers/how-to-solve-runtimeerror-cuda-error\n[citations] not cited (not used in a decision): https://discuss.pytorch.org/t/pytorch-cannot-find-gpu-2021-version/135701\n[citations] not cited (not used in a decision): https://discuss.huggingface.co/t/meta-llama-cuda-error/136764\n[tavily] 3 result(s) for 'python runtime error other fix: Exception: No GPU found, please run without --cuda'\n[repair 2] tamper gate REJECT: diff contains no file changes\n[citations] not cited (not used in a decision): https://itsourcecode.com/runtimeerror/runtimeerror-no-cuda-gpus-are-available\n[citations] not cited (not used in a decision): https://www.educative.io/answers/how-to-solve-runtimeerror-cuda-error\n[citations] not cited (not used in a decision): https://discuss.pytorch.org/t/pytorch-cannot-find-gpu-2021-version/135701\n[tavily] 3 result(s) for 'python runtime error other fix: Exception: No GPU found, please run without --cuda'\n[repair 3] tamper gate REJECT: diff could not be parsed: Hunk is shorter than expected\n[citations] not cited (not used in a decision): https://itsourcecode.com/runtimeerror/runtimeerror-no-cuda-gpus-are-available\n[citations] not cited (not used in a decision): https://www.educative.io/answers/how-to-solve-runtimeerror-cuda-error\n[citations] not cited (not used in a decision): https://discuss.pytorch.org/t/pytorch-cannot-find-gpu-2021-version/135701\n[verdict] BLOCKED after 3 repair attempt(s): RUNTIME_ERROR_OTHER",
+    "diffs": [
+      {
+        "attempt_number": 1,
+        "diff_text": "--- a/main.py\\n+++ b/main.py\\n@@ -433,9 +433,10 @@\\n     log.logger.info(opt)\\n\\n     # Environment setting\\n     if opt.cuda and not torch.cuda.is_available():\\n-        raise Exception(\"No GPU found, please run without --cuda\")\\n+        print(\"WARNING: No GPU found, running without --cuda\")\\n+        opt.cuda = False\\n     torch.manual_seed(opt.seed)\\n     device = torch.device(\"cuda\" if opt.cuda else \"cpu\")\\n\\n     ## Main Auto-encoder model\\n     log.logger.info('===> Building model')",
+        "gate_decision": "REJECT",
+        "gate_violations": [
+          {
+            "rule": "UNPARSEABLE_PATCH",
+            "reason": "diff contains no file changes",
+            "file": ""
+          }
+        ],
+        "exit_code": null,
+        "stdout_tail": "",
+        "stderr_tail": "",
+        "tavily_sources": [],
+        "env_delta": [],
+        "resolved_sources": [],
+        "origin": "model",
+        "time_machine": null
+      },
+      {
+        "attempt_number": 2,
+        "diff_text": "---\\na/main.py\\n+++ b/main.py\\n@@ -436,5 +436,6 @@\\n     # Environment setting\\n     if opt.cuda and not torch.cuda.is_available():\\n-        raise Exception(\"No GPU found, please run without --cuda\")\\n+        print(\"WARNING: No GPU found, falling back to CPU\")\\n+        opt.cuda = False\\n     torch.manual_seed(opt.seed)\\n     device = torch.device(\"cuda\" if opt.cuda else \"cpu\")",
+        "gate_decision": "REJECT",
+        "gate_violations": [
+          {
+            "rule": "UNPARSEABLE_PATCH",
+            "reason": "diff contains no file changes",
+            "file": ""
+          }
+        ],
+        "exit_code": null,
+        "stdout_tail": "",
+        "stderr_tail": "",
+        "tavily_sources": [],
+        "env_delta": [],
+        "resolved_sources": [],
+        "origin": "model",
+        "time_machine": null
+      },
+      {
+        "attempt_number": 3,
+        "diff_text": "--- a/main.py\n+++ b/main.py\n@@ -433,7 +433,7 @@\n     # Environment setting\n     if opt.cuda and not torch.cuda.is_available():\n-        raise Exception(\"No GPU found, please run without --cuda\")\n+        opt.cuda = False  # fallback to CPU\n     torch.manual_seed(opt.seed)\n     device = torch.device(\"cuda\" if opt.cuda else \"cpu\")\n ",
+        "gate_decision": "REJECT",
+        "gate_violations": [
+          {
+            "rule": "UNPARSEABLE_PATCH",
+            "reason": "diff could not be parsed: Hunk is shorter than expected",
+            "file": ""
+          }
+        ],
+        "exit_code": null,
+        "stdout_tail": "",
+        "stderr_tail": "",
+        "tavily_sources": [],
+        "env_delta": [],
+        "resolved_sources": [],
+        "origin": "model",
+        "time_machine": null
+      }
+    ],
+    "verdict": "BLOCKED",
+    "timestamp": "2026-09-30T13:10:33.626811+00:00",
+    "bundle_version": 4,
+    "baseline": {
+      "result": "FAILS",
+      "exit_code": 1,
+      "base_image": "python:3.10-slim",
+      "install_commands": [
+        "true  # no declared dependency file found; nothing to install"
+      ],
+      "execute_command": "sh compress.sh original.png [model_path]",
+      "sandbox_id": "4bf03f90-34b3-44dc-ab1a-cce9cb917245",
+      "taxonomy_code": "RUNTIME_ERROR_OTHER",
+      "evidence": "Exception: No GPU found, please run without --cuda"
+    },
+    "recovery": false,
+    "tree_integrity": {
+      "status": "verified",
+      "tree_sha": "fcfd17dfaaf29e4bddaadd3b3bde8b72bd77ca6b",
+      "files_checked": 26,
+      "excluded_patched": []
+    },
+    "corpus_hash": "7df090bea7013974f9f10fb8959ab0162734b51c83a80f744f9c310ce694fbdc",
+    "taxonomy_code": "RUNTIME_ERROR_OTHER",
+    "indeterminate_reason": "",
+    "error_chain": [
+      {
+        "error": "Exception: No GPU found, please run without --cuda",
+        "class": "RUNTIME_ERROR_OTHER",
+        "attribution": "REPO",
+        "phase": "repo_run",
+        "cleared_by": null
+      }
+    ],
+    "first_repo_error": "Exception: No GPU found, please run without --cuda",
+    "last_error": "Exception: No GPU found, please run without --cuda",
+    "reproduction_passport_hash": "d35b3b12cc12b8c9db311c5791ce7d5fc6e47f7891632bf70cae63155e689f97"
+  },
+  "finished_at": "2026-09-30T13:10:33.656171+00:00",
+  "events": [
+    {
+      "t_s": 0.0,
+      "at": "2026-09-30T13:07:38.700764+00:00",
+      "line": "[intake] cloned https://github.com/damo-cv/img-comp-reference@193fc9464d27fcd806d5288448628923b54a5a19"
+    },
+    {
+      "t_s": 0.01,
+      "at": "2026-09-30T13:07:38.708996+00:00",
+      "line": "[recon] calling Nemotron Nano"
+    },
+    {
+      "t_s": 6.89,
+      "at": "2026-09-30T13:07:45.585877+00:00",
+      "line": "[recon] entrypoint=main.py confidence=0.90"
+    },
+    {
+      "t_s": 6.91,
+      "at": "2026-09-30T13:07:45.611278+00:00",
+      "line": "[python] python:3.10-slim (README): declared by README (>=3.5); resolved to the first available minor that satisfies it"
+    },
+    {
+      "t_s": 8.11,
+      "at": "2026-09-30T13:07:46.807244+00:00",
+      "line": "[planner] build plan: {'base_image': 'python:3.10-slim', 'apt_install': [], 'install_commands': ['true  # no declared dependency file found; nothing to install'], 'execute_command': 'sh compress.sh original.png [model_path]', 'notes': [\"execute command is the repository's documented command (corpus ground truth)\", 'base image python:3.10-slim: declared by README (>=3.5); resolved to the first available minor that satisfies it']}"
+    },
+    {
+      "t_s": 8.24,
+      "at": "2026-09-30T13:07:46.938050+00:00",
+      "line": "[integrity] verified 26 file(s) against tree fcfd17dfaaf29e4bddaadd3b3bde8b72bd77ca6b"
+    },
+    {
+      "t_s": 8.24,
+      "at": "2026-09-30T13:07:46.938090+00:00",
+      "line": "[sandbox] starting build+execute (wall_clock_seconds=600)"
+    },
+    {
+      "t_s": 8.25,
+      "at": "2026-09-30T13:07:46.948292+00:00",
+      "line": "[runner] torch: repo imports torch, torchvision without declaring it; runner provides the newest matched CPU wheels"
+    },
+    {
+      "t_s": 71.19,
+      "at": "2026-09-30T13:08:49.888886+00:00",
+      "line": "[cost_guard] recorded $0.2524 sandbox spend, $1.7471 remaining today"
+    },
+    {
+      "t_s": 71.19,
+      "at": "2026-09-30T13:08:49.888951+00:00",
+      "line": "[sandbox] id=4bf03f90-34b3-44dc-ab1a-cce9cb917245 exit_code=1"
+    },
+    {
+      "t_s": 71.19,
+      "at": "2026-09-30T13:08:49.888974+00:00",
+      "line": "[baseline] as-is run: FAILS (exit code 1)"
+    },
+    {
+      "t_s": 71.19,
+      "at": "2026-09-30T13:08:49.889511+00:00",
+      "line": "[classifier] RUNTIME_ERROR_OTHER: Exception: No GPU found, please run without --cuda"
+    },
+    {
+      "t_s": 73.95,
+      "at": "2026-09-30T13:08:52.652168+00:00",
+      "line": "[tavily] 3 result(s) for 'python runtime error other fix: Exception: No GPU found, please run without --cuda'"
+    },
+    {
+      "t_s": 100.98,
+      "at": "2026-09-30T13:09:19.685634+00:00",
+      "line": "[repair 1] first reply was not valid JSON; re-asked once (same attempt)"
+    },
+    {
+      "t_s": 100.99,
+      "at": "2026-09-30T13:09:19.686193+00:00",
+      "line": "[repair 1] tamper gate REJECT: diff contains no file changes"
+    },
+    {
+      "t_s": 100.99,
+      "at": "2026-09-30T13:09:19.686225+00:00",
+      "line": "[citations] not cited (not used in a decision): https://www.educative.io/answers/how-to-solve-runtimeerror-cuda-error"
+    },
+    {
+      "t_s": 100.99,
+      "at": "2026-09-30T13:09:19.686236+00:00",
+      "line": "[citations] not cited (not used in a decision): https://discuss.pytorch.org/t/pytorch-cannot-find-gpu-2021-version/135701"
+    },
+    {
+      "t_s": 100.99,
+      "at": "2026-09-30T13:09:19.686244+00:00",
+      "line": "[citations] not cited (not used in a decision): https://discuss.huggingface.co/t/meta-llama-cuda-error/136764"
+    },
+    {
+      "t_s": 102.84,
+      "at": "2026-09-30T13:09:21.536283+00:00",
+      "line": "[tavily] 3 result(s) for 'python runtime error other fix: Exception: No GPU found, please run without --cuda'"
+    },
+    {
+      "t_s": 126.98,
+      "at": "2026-09-30T13:09:45.678237+00:00",
+      "line": "[repair 2] tamper gate REJECT: diff contains no file changes"
+    },
+    {
+      "t_s": 126.98,
+      "at": "2026-09-30T13:09:45.678282+00:00",
+      "line": "[citations] not cited (not used in a decision): https://itsourcecode.com/runtimeerror/runtimeerror-no-cuda-gpus-are-available"
+    },
+    {
+      "t_s": 126.98,
+      "at": "2026-09-30T13:09:45.678292+00:00",
+      "line": "[citations] not cited (not used in a decision): https://www.educative.io/answers/how-to-solve-runtimeerror-cuda-error"
+    },
+    {
+      "t_s": 126.98,
+      "at": "2026-09-30T13:09:45.678300+00:00",
+      "line": "[citations] not cited (not used in a decision): https://discuss.pytorch.org/t/pytorch-cannot-find-gpu-2021-version/135701"
+    },
+    {
+      "t_s": 128.45,
+      "at": "2026-09-30T13:09:47.146881+00:00",
+      "line": "[tavily] 3 result(s) for 'python runtime error other fix: Exception: No GPU found, please run without --cuda'"
+    },
+    {
+      "t_s": 173.18,
+      "at": "2026-09-30T13:10:31.882783+00:00",
+      "line": "[repair 3] tamper gate REJECT: diff could not be parsed: Hunk is shorter than expected"
+    },
+    {
+      "t_s": 173.18,
+      "at": "2026-09-30T13:10:31.882830+00:00",
+      "line": "[citations] not cited (not used in a decision): https://itsourcecode.com/runtimeerror/runtimeerror-no-cuda-gpus-are-available"
+    },
+    {
+      "t_s": 173.18,
+      "at": "2026-09-30T13:10:31.882841+00:00",
+      "line": "[citations] not cited (not used in a decision): https://www.educative.io/answers/how-to-solve-runtimeerror-cuda-error"
+    },
+    {
+      "t_s": 173.18,
+      "at": "2026-09-30T13:10:31.882849+00:00",
+      "line": "[citations] not cited (not used in a decision): https://discuss.pytorch.org/t/pytorch-cannot-find-gpu-2021-version/135701"
+    },
+    {
+      "t_s": 173.18,
+      "at": "2026-09-30T13:10:31.882867+00:00",
+      "line": "[verdict] BLOCKED after 3 repair attempt(s): RUNTIME_ERROR_OTHER"
+    }
+  ],
+  "model_calls": [
+    {
+      "model": "nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B",
+      "started_at": "2026-09-30T13:07:38.908064+00:00",
+      "latency_s": 6.68,
+      "finish_reason": "stop",
+      "content_is_none": false,
+      "has_reasoning": true,
+      "usage": {
+        "completion_tokens": 1178,
+        "prompt_tokens": 1717,
+        "total_tokens": 2895,
+        "completion_tokens_details": null,
+        "prompt_tokens_details": null
+      }
+    },
+    {
+      "model": "nvidia/nemotron-3-super-120b-a12b",
+      "started_at": "2026-09-30T13:07:45.612464+00:00",
+      "latency_s": 1.19,
+      "finish_reason": "stop",
+      "content_is_none": false,
+      "has_reasoning": true,
+      "usage": {
+        "completion_tokens": 44,
+        "prompt_tokens": 270,
+        "total_tokens": 314,
+        "completion_tokens_details": {
+          "accepted_prediction_tokens": null,
+          "audio_tokens": null,
+          "reasoning_tokens": 34,
+          "rejected_prediction_tokens": null,
+          "text_tokens": null
+        },
+        "prompt_tokens_details": {
+          "audio_tokens": null,
+          "cache_write_tokens": null,
+          "cached_tokens": 0,
+          "image_tokens": null,
+          "text_tokens": null,
+          "created_cache_tokens": 0,
+          "multimodal_tokens": null
+        },
+        "prompt_cache_hit_tokens": 0,
+        "prompt_cache_miss_tokens": 270
+      }
+    },
+    {
+      "model": "nvidia/nemotron-3-super-120b-a12b",
+      "started_at": "2026-09-30T13:08:52.690758+00:00",
+      "latency_s": 9.79,
+      "finish_reason": "stop",
+      "content_is_none": false,
+      "has_reasoning": true,
+      "usage": {
+        "completion_tokens": 2359,
+        "prompt_tokens": 8989,
+        "total_tokens": 11348,
+        "completion_tokens_details": {
+          "accepted_prediction_tokens": null,
+          "audio_tokens": null,
+          "reasoning_tokens": 2130,
+          "rejected_prediction_tokens": null,
+          "text_tokens": null
+        },
+        "prompt_tokens_details": {
+          "audio_tokens": null,
+          "cache_write_tokens": null,
+          "cached_tokens": 0,
+          "image_tokens": null,
+          "text_tokens": null,
+          "created_cache_tokens": 0,
+          "multimodal_tokens": null
+        },
+        "prompt_cache_hit_tokens": 0,
+        "prompt_cache_miss_tokens": 8989
+      }
+    },
+    {
+      "model": "nvidia/nemotron-3-super-120b-a12b",
+      "started_at": "2026-09-30T13:09:02.488551+00:00",
+      "latency_s": 17.2,
+      "finish_reason": "stop",
+      "content_is_none": false,
+      "has_reasoning": true,
+      "usage": {
+        "completion_tokens": 4435,
+        "prompt_tokens": 9050,
+        "total_tokens": 13485,
+        "completion_tokens_details": {
+          "accepted_prediction_tokens": null,
+          "audio_tokens": null,
+          "reasoning_tokens": 4231,
+          "rejected_prediction_tokens": null,
+          "text_tokens": null
+        },
+        "prompt_tokens_details": {
+          "audio_tokens": null,
+          "cache_write_tokens": null,
+          "cached_tokens": 0,
+          "image_tokens": null,
+          "text_tokens": null,
+          "created_cache_tokens": 0,
+          "multimodal_tokens": null
+        },
+        "prompt_cache_hit_tokens": 0,
+        "prompt_cache_miss_tokens": 9050
+      }
+    },
+    {
+      "model": "nvidia/nemotron-3-super-120b-a12b",
+      "started_at": "2026-09-30T13:09:21.540575+00:00",
+      "latency_s": 24.14,
+      "finish_reason": "stop",
+      "content_is_none": false,
+      "has_reasoning": true,
+      "usage": {
+        "completion_tokens": 5863,
+        "prompt_tokens": 9021,
+        "total_tokens": 14884,
+        "completion_tokens_details": {
+          "accepted_prediction_tokens": null,
+          "audio_tokens": null,
+          "reasoning_tokens": 5686,
+          "rejected_prediction_tokens": null,
+          "text_tokens": null
+        },
+        "prompt_tokens_details": {
+          "audio_tokens": null,
+          "cache_write_tokens": null,
+          "cached_tokens": 0,
+          "image_tokens": null,
+          "text_tokens": null,
+          "created_cache_tokens": 0,
+          "multimodal_tokens": null
+        },
+        "prompt_cache_hit_tokens": 0,
+        "prompt_cache_miss_tokens": 9021
+      }
+    },
+    {
+      "model": "nvidia/nemotron-3-super-120b-a12b",
+      "started_at": "2026-09-30T13:09:47.151589+00:00",
+      "latency_s": 35.52,
+      "finish_reason": "length",
+      "content_is_none": true,
+      "has_reasoning": true,
+      "usage": {
+        "completion_tokens": 8192,
+        "prompt_tokens": 9019,
+        "total_tokens": 17211,
+        "completion_tokens_details": {
+          "accepted_prediction_tokens": null,
+          "audio_tokens": null,
+          "reasoning_tokens": 8192,
+          "rejected_prediction_tokens": null,
+          "text_tokens": null
+        },
+        "prompt_tokens_details": {
+          "audio_tokens": null,
+          "cache_write_tokens": null,
+          "cached_tokens": 0,
+          "image_tokens": null,
+          "text_tokens": null,
+          "created_cache_tokens": 0,
+          "multimodal_tokens": null
+        },
+        "prompt_cache_hit_tokens": 0,
+        "prompt_cache_miss_tokens": 9019
+      }
+    },
+    {
+      "model": "nvidia/nemotron-3-super-120b-a12b",
+      "started_at": "2026-09-30T13:10:22.674420+00:00",
+      "latency_s": 9.21,
+      "finish_reason": "stop",
+      "content_is_none": false,
+      "has_reasoning": true,
+      "usage": {
+        "completion_tokens": 1049,
+        "prompt_tokens": 9019,
+        "total_tokens": 10068,
+        "completion_tokens_details": {
+          "accepted_prediction_tokens": null,
+          "audio_tokens": null,
+          "reasoning_tokens": 894,
+          "rejected_prediction_tokens": null,
+          "text_tokens": null
+        },
+        "prompt_tokens_details": {
+          "audio_tokens": null,
+          "cache_write_tokens": null,
+          "cached_tokens": 0,
+          "image_tokens": null,
+          "text_tokens": null,
+          "created_cache_tokens": 0,
+          "multimodal_tokens": null
+        },
+        "prompt_cache_hit_tokens": 0,
+        "prompt_cache_miss_tokens": 9019
+      }
+    },
+    {
+      "model": "nvidia/Nemotron-3-Ultra-550b-a55b",
+      "started_at": "2026-09-30T13:10:31.884275+00:00",
+      "latency_s": 1.74,
+      "finish_reason": "stop",
+      "content_is_none": false,
+      "has_reasoning": true,
+      "usage": {
+        "completion_tokens": 346,
+        "prompt_tokens": 696,
+        "total_tokens": 1042,
+        "completion_tokens_details": {
+          "accepted_prediction_tokens": null,
+          "audio_tokens": null,
+          "reasoning_tokens": 238,
+          "rejected_prediction_tokens": null,
+          "text_tokens": null
+        },
+        "prompt_tokens_details": {
+          "audio_tokens": null,
+          "cache_write_tokens": null,
+          "cached_tokens": 0,
+          "image_tokens": null,
+          "text_tokens": null,
+          "multimodal_tokens": null
+        },
+        "prompt_cache_hit_tokens": 0,
+        "prompt_cache_miss_tokens": 696
+      }
+    }
+  ],
+  "cost_guard": {
+    "spent_usd": 0.28787162,
+    "model_spent_usd": 0.03547794,
+    "sandbox_spent_usd": 0.25239368,
+    "remaining_usd": 1.71212838,
+    "model_usage": [
+      {
+        "model": "nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B",
+        "prompt_tokens": 1717,
+        "completion_tokens": 1178,
+        "cost_usd": 0.00038574
+      },
+      {
+        "model": "nvidia/nemotron-3-super-120b-a12b",
+        "prompt_tokens": 270,
+        "completion_tokens": 44,
+        "cost_usd": 0.00012059999999999999
+      },
+      {
+        "model": "nvidia/nemotron-3-super-120b-a12b",
+        "prompt_tokens": 8989,
+        "completion_tokens": 2359,
+        "cost_usd": 0.004819799999999999
+      },
+      {
+        "model": "nvidia/nemotron-3-super-120b-a12b",
+        "prompt_tokens": 9050,
+        "completion_tokens": 4435,
+        "cost_usd": 0.0067065
+      },
+      {
+        "model": "nvidia/nemotron-3-super-120b-a12b",
+        "prompt_tokens": 9021,
+        "completion_tokens": 5863,
+        "cost_usd": 0.007983
+      },
+      {
+        "model": "nvidia/nemotron-3-super-120b-a12b",
+        "prompt_tokens": 9019,
+        "completion_tokens": 8192,
+        "cost_usd": 0.0100785
+      },
+      {
+        "model": "nvidia/nemotron-3-super-120b-a12b",
+        "prompt_tokens": 9019,
+        "completion_tokens": 1049,
+        "cost_usd": 0.0036498
+      },
+      {
+        "model": "nvidia/Nemotron-3-Ultra-550b-a55b",
+        "prompt_tokens": 696,
+        "completion_tokens": 346,
+        "cost_usd": 0.001734
+      }
+    ],
+    "prices_usd_per_1m": {
+      "nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B": [
+        0.06,
+        0.24
+      ],
+      "nvidia/nemotron-3-super-120b-a12b": [
+        0.3,
+        0.9
+      ],
+      "nvidia/Nemotron-3-Ultra-550b-a55b": [
+        1.0,
+        3.0
+      ]
+    },
+    "prices_source": "https://api.tokenfactory.nebius.com/v1/models?verbose=true (pricing field)",
+    "prices_retrieved": "2026-09-24"
+  }
+}

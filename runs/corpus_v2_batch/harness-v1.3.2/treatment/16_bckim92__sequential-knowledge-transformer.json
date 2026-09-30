@@ -1,0 +1,1370 @@
+{
+  "run_kind": "live end-to-end run",
+  "dev_run": false,
+  "dry_run": null,
+  "batch": {
+    "harness_tag": "harness-v1.3.2",
+    "harness_commit": "77b3cfe1697ad74ad13eac1f77ffe0f1e80c7379",
+    "head_commit": "482173f3f945c40b990c30c87e0acf7e2c2b0c59",
+    "corpus": "corpus-v2",
+    "prereg_sha256": "ae5a722249156e058d3d360bdc63fa8224140d0688f1daa307ecfa93a98c7284",
+    "corpus_hash": "7df090bea7013974f9f10fb8959ab0162734b51c83a80f744f9c310ce694fbdc",
+    "arm": "treatment",
+    "total_cap_usd": 25.0,
+    "already_spent_usd": 4.08,
+    "entry_id": 16,
+    "category": "PRIMARY",
+    "rules_matched": [],
+    "per_entry_cap_usd": 2.0
+  },
+  "started_at": "2026-09-30T14:32:25.507115+00:00",
+  "corpus_entry": {
+    "name": "bckim92__sequential-knowledge-transformer",
+    "repo_url": "https://github.com/bckim92/sequential-knowledge-transformer",
+    "commit_sha": "1e9c47bb61291a0b15e5b1e6901eafebc73db8db",
+    "command": "python train.py --cfg ymls/default.yml --gpus 0,1 SequentialKnowledgeTransformer",
+    "command_source": "README.md line 39"
+  },
+  "config": {
+    "models": {
+      "recon": "nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B",
+      "planner": "nvidia/nemotron-3-super-120b-a12b",
+      "repairer": "nvidia/nemotron-3-super-120b-a12b",
+      "adjudicator": "nvidia/Nemotron-3-Ultra-550b-a55b"
+    },
+    "sandbox_backend": "token_factory",
+    "sandbox_image_default": "python:3.10-slim",
+    "sandbox_wall_clock_seconds": 600.0,
+    "arm": "treatment",
+    "repair_enabled": true,
+    "max_attempts": 3,
+    "tavily_configured": true,
+    "cost_cap_usd": 2.0
+  },
+  "intake": {
+    "duration_s": 3.28,
+    "resolved_sha": "1e9c47bb61291a0b15e5b1e6901eafebc73db8db",
+    "dependency_files": [],
+    "declared_dependencies": [],
+    "entrypoint_candidates": [
+      "inference.py",
+      "interactive.py",
+      "modules/checkpoint_tracker.py",
+      "modules/from_parlai.py",
+      "official/bert/benchmark/bert_benchmark.py",
+      "official/bert/benchmark/bert_squad_benchmark.py",
+      "official/bert/create_finetuning_data.py",
+      "official/bert/run_classifier.py",
+      "official/bert/run_pretraining.py",
+      "official/bert/run_squad.py",
+      "official/bert/tokenization_test.py",
+      "official/utils/accelerator/tpu_test.py",
+      "official/utils/data/file_io_test.py",
+      "official/utils/export/export_test.py",
+      "official/utils/flags/flags_test.py",
+      "official/utils/logs/cloud_lib_test.py",
+      "official/utils/logs/hooks_helper_test.py",
+      "official/utils/logs/hooks_test.py",
+      "official/utils/logs/logger_test.py",
+      "official/utils/logs/metric_hook_test.py",
+      "official/utils/logs/mlperf_helper.py",
+      "official/utils/misc/distribution_utils_test.py",
+      "official/utils/misc/model_helpers_test.py",
+      "train.py"
+    ],
+    "notebook_paths": []
+  },
+  "pipeline_duration_s": 907.8,
+  "repair_mode": "model_assisted",
+  "tree_integrity": {
+    "status": "verified",
+    "tree_sha": "4026487b034c2d3c34bd535b329d88ef8234afba",
+    "files_checked": 109,
+    "excluded_patched": []
+  },
+  "result": {
+    "verdict": "BLOCKED",
+    "taxonomy_code": "DEP_MISSING",
+    "indeterminate_reason": "",
+    "reason_code": null,
+    "error_chain": [
+      {
+        "error": "ModuleNotFoundError: No module named 'sklearn'",
+        "class": "DEP_MISSING",
+        "attribution": "REPO",
+        "phase": "repo_run",
+        "cleared_by": 0
+      },
+      {
+        "error": "unable to execute 'gcc': No such file or directory",
+        "class": "SYS_LIB_MISSING",
+        "attribution": "REPO",
+        "phase": "repo_install",
+        "cleared_by": 1
+      },
+      {
+        "error": "ModuleNotFoundError: No module named 'ruamel.yaml'",
+        "class": "DEP_MISSING",
+        "attribution": "REPO",
+        "phase": "repo_run",
+        "cleared_by": 2
+      },
+      {
+        "error": "ModuleNotFoundError: No module named 'language_evaluation'",
+        "class": "DEP_MISSING",
+        "attribution": "REPO",
+        "phase": "repo_run",
+        "cleared_by": null
+      }
+    ],
+    "first_repo_error": "ModuleNotFoundError: No module named 'sklearn'",
+    "last_error": "ModuleNotFoundError: No module named 'language_evaluation'",
+    "error_traceback": "",
+    "attempts": [
+      {
+        "attempt_number": 0,
+        "diff_text": "",
+        "gate_decision": "PASS",
+        "gate_violations": [],
+        "exit_code": 1,
+        "stdout_tail": "464849b1f5472828d168ec25da33df0b\n  Stored in directory: /root/.cache/pip/wheels/5f/fd/9e/b6cf5890494cb8ef0b5eaff72e5d55a70fb56316007d6dfe73\nSuccessfully built absl-py docformatter emoji nltk pudb py-cpuinfo pyyaml termcolor untokenize urwid websocket-server wrapt\nFailed to build psutil regex\nInstalling collected packages: wrapt, websocket-server, wcwidth, wasabi, urwid, untokenize, typing-extensions, tokenizers, termcolor, tensorflow-estimator, tensorboard-plugin-wit, srsly, snowballstemmer, sh, ruamel-base, regex, pytz, pyasn1, py-rouge, py-cpuinfo, ptyprocess, plac, pickleshare, murmurhash, mlperf-compliance, mccabe, markdown, joblib, ipython-genutils, emoji, docutils, cymem, commonmark, colorlog, colorful, chardet, certifi, better-exceptions, backcall, alabaster, wheel, werkzeug, urllib3, unidecode, typeguard, tqdm, threadpoolctl, sphinxcontrib-serializinghtml, sphinxcontrib-qthelp, sphinxcontrib-jsmath, sphinxcontrib-htmlhelp, sphinxcontrib-devhelp, sphinxcontrib-applehelp, smmap, six, setuptools, rsa, pyzmq, pyyaml, pyparsing, pygments, pyflakes, pycodestyle, pyasn1-modules, py, psutil, prompt-toolkit, preshed, pluggy, pillow, pexpect, parso, oauthlib, numpy, more-itertools, mock, markupsafe, jmespath, imagesize, idna, gast, entrypoints, docformatter, decorator, cloudpickle, catalogue, cachetools, babel, attrs, websocket-client, traitlets, tensorflow-probability, tensorflow-addons, smmap2, scipy, requests, python-dateutil, py-gfm, pudb, protobuf, packaging, opt-einsum, nltk, keras-preprocessing, jinja2, jedi, h5py, grpcio, google-pasta, google-auth, flake8, blis, astunparse, absl-py, thinc, sphinx, scikit-learn, requests-oauthlib, requests-mock, pytest, pandas, ipython, gitdb2, flake8-bugbear, botocore, sphinx-rtd-theme, sphinx-autodoc-typehints, spacy, s3transfer, recommonmark, google-auth-oauthlib, gitpython, tensorboard, boto3, tensorflow, parlai\n  Running setup.py install for regex: started\n  Running setup.py install for regex: finished with status 'error'\n",
+        "stderr_tail": "bprocess, and is likely not a problem with pip.\n  ERROR: Failed building wheel for regex\n  error: subprocess-exited-with-error\n  \n  \u00d7 Running setup.py install for regex did not run successfully.\n  \u2502 exit code: 1\n  \u2570\u2500> [22 lines of output]\n      BASE_DIR is /tmp/pip-install-xxm7vv1a/regex_c7b7a05b8f4444a8b567856dc361ebaa\n      /usr/local/lib/python3.8/site-packages/setuptools/dist.py:484: UserWarning: Normalizing '2019.08.19' to '2019.8.19'\n        warnings.warn(tmpl.format(**locals()))\n      running install\n      running build\n      running build_py\n      creating build\n      creating build/lib.linux-x86_64-3.8\n      creating build/lib.linux-x86_64-3.8/regex\n      copying regex_3/regex/__init__.py -> build/lib.linux-x86_64-3.8/regex\n      copying regex_3/regex/regex.py -> build/lib.linux-x86_64-3.8/regex\n      copying regex_3/regex/_regex_core.py -> build/lib.linux-x86_64-3.8/regex\n      creating build/lib.linux-x86_64-3.8/regex/test\n      copying regex_3/regex/test/__init__.py -> build/lib.linux-x86_64-3.8/regex/test\n      copying regex_3/regex/test/test_regex.py -> build/lib.linux-x86_64-3.8/regex/test\n      running build_ext\n      building 'regex._regex' extension\n      creating build/temp.linux-x86_64-3.8\n      creating build/temp.linux-x86_64-3.8/regex_3\n      gcc -Wno-unused-result -Wsign-compare -DNDEBUG -g -fwrapv -O3 -Wall -fPIC -I/usr/local/include/python3.8 -c regex_3/_regex.c -o build/temp.linux-x86_64-3.8/regex_3/_regex.o\n      unable to execute 'gcc': No such file or directory\n      error: command 'gcc' failed with exit status 1\n      [end of output]\n  \n  note: This error originates from a subprocess, and is likely not a problem with pip.\nerror: legacy-install-failure\n\n\u00d7 Encountered error while trying to install package.\n\u2570\u2500> regex\n\nnote: This is an issue with the package mentioned above, not pip.\nhint: See above for output from the failure.\n\n[notice] A new release of pip is available: 23.0.1 -> 25.0.1\n[notice] To update, run: pip install --upgrade pip\n",
+        "tavily_sources": [],
+        "env_delta": [],
+        "resolved_sources": [],
+        "origin": "time_machine",
+        "time_machine": {
+          "era": {
+            "date": "2020-06-16",
+            "source": "pinned-commit",
+            "detail": {
+              "note": "no dependency files in the repository"
+            }
+          },
+          "python": {
+            "version": "3.8",
+            "reason": "newest CPython first released \u2265180 days before the era date 2020-06-16 (https://devguide.python.org/versions/ (first release dates, retrieved 2026-09-24))",
+            "source": "https://devguide.python.org/versions/ (first release dates, retrieved 2026-09-24)"
+          },
+          "undeclared_imports": [
+            "IPython",
+            "absl-py",
+            "better_exceptions",
+            "colorful",
+            "colorlog",
+            "py-cpuinfo",
+            "protobuf",
+            "language_evaluation",
+            "mlperf_compliance",
+            "mock",
+            "more_itertools",
+            "nltk",
+            "numpy",
+            "pandas",
+            "parlai",
+            "pkg_resources",
+            "psutil",
+            "pudb",
+            "requests",
+            "ruamel-base",
+            "six",
+            "scikit-learn",
+            "spacy",
+            "tensorflow",
+            "tensorflow_addons",
+            "tensorflow_probability",
+            "torch",
+            "tqdm"
+          ],
+          "import_mappings": [
+            {
+              "import": "absl",
+              "distribution": "absl-py",
+              "source": "pigar+rank",
+              "confidence": "normal"
+            },
+            {
+              "import": "cpuinfo",
+              "distribution": "py-cpuinfo",
+              "source": "pigar+rank",
+              "confidence": "normal"
+            },
+            {
+              "import": "google",
+              "distribution": "protobuf",
+              "source": "pipreqs",
+              "confidence": "normal"
+            },
+            {
+              "import": "ruamel",
+              "distribution": "ruamel-base",
+              "source": "pipreqs",
+              "confidence": "normal"
+            },
+            {
+              "import": "sklearn",
+              "distribution": "scikit-learn",
+              "source": "pipreqs",
+              "confidence": "normal"
+            }
+          ],
+          "apt_added": [],
+          "apt_reason": "",
+          "lock": {
+            "ok": true,
+            "lock": [
+              "absl-py==0.9.0",
+              "alabaster==0.7.12",
+              "astunparse==1.6.3",
+              "attrs==19.3.0",
+              "babel==2.8.0",
+              "backcall==0.2.0",
+              "better-exceptions==0.2.2",
+              "blis==0.4.1",
+              "boto3==1.9.246",
+              "botocore==1.12.246",
+              "cachetools==4.1.0",
+              "catalogue==1.0.0",
+              "certifi==2020.4.5.2",
+              "chardet==3.0.4",
+              "cloudpickle==1.4.1",
+              "colorful==0.5.4",
+              "colorlog==4.1.0",
+              "commonmark==0.9.1",
+              "cymem==2.0.3",
+              "decorator==4.4.2",
+              "docformatter==1.3",
+              "docutils==0.14",
+              "emoji==0.5.4",
+              "entrypoints==0.3",
+              "flake8==3.7.8",
+              "flake8-bugbear==19.8.0",
+              "gast==0.3.3",
+              "gitdb2==2.0.5",
+              "gitpython==3.0.3",
+              "google-auth==1.17.2",
+              "google-auth-oauthlib==0.4.1",
+              "google-pasta==0.2.0",
+              "grpcio==1.29.0",
+              "h5py==2.10.0",
+              "idna==2.8",
+              "imagesize==1.2.0",
+              "ipython==7.15.0",
+              "ipython-genutils==0.2.0",
+              "jedi==0.17.0",
+              "jinja2==2.11.2",
+              "jmespath==0.10.0",
+              "joblib==0.14.1",
+              "keras-preprocessing==1.1.2",
+              "markdown==2.6.11",
+              "markupsafe==1.1.1",
+              "mccabe==0.6.1",
+              "mlperf-compliance==0.0.10",
+              "mock==4.0.2",
+              "more-itertools==8.4.0",
+              "murmurhash==1.0.2",
+              "nltk==3.4.5",
+              "numpy==1.18.5",
+              "oauthlib==3.1.0",
+              "opt-einsum==3.2.1",
+              "packaging==20.4",
+              "pandas==1.0.4",
+              "parlai==0.1.20200610",
+              "parso==0.7.0",
+              "pexpect==4.7.0",
+              "pickleshare==0.7.5",
+              "pillow==7.1.2",
+              "plac==1.1.3",
+              "pluggy==0.13.1",
+              "preshed==3.0.2",
+              "prompt-toolkit==3.0.5",
+              "protobuf==3.12.2",
+              "psutil==5.7.0",
+              "ptyprocess==0.6.0",
+              "pudb==2019.2",
+              "py==1.8.2",
+              "py-cpuinfo==6.0.0",
+              "py-gfm==0.1.4",
+              "py-rouge==1.1",
+              "pyasn1==0.4.8",
+              "pyasn1-modules==0.2.8",
+              "pycodestyle==2.5.0",
+              "pyflakes==2.1.1",
+              "pygments==2.6.1",
+              "pyparsing==2.4.7",
+              "pytest==5.3.2",
+              "python-dateutil==2.8.1",
+              "pytz==2020.1",
+              "pyyaml==5.1",
+              "pyzmq==18.1.0",
+              "recommonmark==0.6.0",
+              "regex==2019.8.19",
+              "requests==2.22.0",
+              "requests-mock==1.7.0",
+              "requests-oauthlib==1.3.0",
+              "rsa==4.6",
+              "ruamel-base==1.0.0",
+              "s3transfer==0.2.1",
+              "scikit-learn==0.23.1",
+              "scipy==1.4.1",
+              "setuptools==47.3.1",
+              "sh==1.12.14",
+              "six==1.15.0",
+              "smmap==3.0.4",
+              "smmap2==3.0.1",
+              "snowballstemmer==2.0.0",
+              "spacy==2.2.3",
+              "sphinx==2.2.0",
+              "sphinx-autodoc-typehints==1.10.3",
+              "sphinx-rtd-theme==0.4.3",
+              "sphinxcontrib-applehelp==1.0.2",
+              "sphinxcontrib-devhelp==1.0.2",
+              "sphinxcontrib-htmlhelp==1.0.3",
+              "sphinxcontrib-jsmath==1.0.1",
+              "sphinxcontrib-qthelp==1.0.3",
+              "sphinxcontrib-serializinghtml==1.1.4",
+              "srsly==1.0.2",
+              "tensorboard==2.2.2",
+              "tensorboard-plugin-wit==1.6.0.post3",
+              "tensorflow==2.2.0",
+              "tensorflow-addons==0.10.0",
+              "tensorflow-estimator==2.2.0",
+              "tensorflow-probability==0.10.0",
+              "termcolor==1.1.0",
+              "thinc==7.3.1",
+              "threadpoolctl==2.1.0",
+              "tokenizers==0.4.2",
+              "torch==1.4.0",
+              "tqdm==4.36.1",
+              "traitlets==4.3.3",
+              "typeguard==2.9.1",
+              "typing-extensions==3.7.4.1",
+              "unidecode==1.1.1",
+              "untokenize==0.1.1",
+              "urllib3==1.25.9",
+              "urwid==2.1.0",
+              "wasabi==0.6.0",
+              "wcwidth==0.2.4",
+              "websocket-client==0.56.0",
+              "websocket-server==0.4",
+              "werkzeug==1.0.1",
+              "wheel==0.34.2",
+              "wrapt==1.12.1"
+            ],
+            "inputs": [
+              "IPython",
+              "absl-py",
+              "better_exceptions",
+              "colorful",
+              "colorlog",
+              "py-cpuinfo",
+              "protobuf",
+              "language_evaluation",
+              "mlperf_compliance",
+              "mock",
+              "more_itertools",
+              "nltk",
+              "numpy",
+              "pandas",
+              "parlai",
+              "pkg_resources",
+              "psutil",
+              "pudb",
+              "requests",
+              "ruamel-base",
+              "six",
+              "scikit-learn",
+              "spacy",
+              "tensorflow",
+              "tensorflow_addons",
+              "tensorflow_probability",
+              "torch",
+              "tqdm"
+            ],
+            "not_on_index": [
+              "language-evaluation",
+              "pkg-resources"
+            ],
+            "command": "pip compile - --no-header --no-annotate --quiet --exclude-newer 2020-06-17T00:00:00Z --python-version 3.8 --python-platform x86_64-unknown-linux-gnu --python C:\\Users\\E16\\AppData\\Roaming\\uv\\python\\cpython-3.8.20-windows-x86_64-none\\python.exe",
+            "error": ""
+          }
+        }
+      },
+      {
+        "attempt_number": 1,
+        "diff_text": "",
+        "gate_decision": "PASS",
+        "gate_violations": [],
+        "exit_code": 1,
+        "stdout_tail": "",
+        "stderr_tail": "Traceback (most recent call last):\n  File \"train.py\", line 16, in <module>\n    from utils import config_utils, custom_argparsers\n  File \"/utils/config_utils.py\", line 10, in <module>\n    from ruamel.yaml import YAML\nModuleNotFoundError: No module named 'ruamel.yaml'\n",
+        "tavily_sources": [],
+        "env_delta": [
+          {
+            "command": null,
+            "op": "apt",
+            "package": "build-essential",
+            "version": null,
+            "git_url": null,
+            "commit": null,
+            "justification": "The error indicates missing gcc compiler required to build Python packages from source; build-essential provides gcc and necessary build tools.",
+            "evidence": "unable to execute 'gcc': No such file or directory"
+          }
+        ],
+        "resolved_sources": [],
+        "origin": "model",
+        "time_machine": null
+      },
+      {
+        "attempt_number": 2,
+        "diff_text": "",
+        "gate_decision": "PASS",
+        "gate_violations": [],
+        "exit_code": 1,
+        "stdout_tail": "",
+        "stderr_tail": "Traceback (most recent call last):\n  File \"train.py\", line 19, in <module>\n    from modules.trainer import run_wow_evaluation, Trainer\n  File \"/modules/trainer.py\", line 8, in <module>\n    import language_evaluation\nModuleNotFoundError: No module named 'language_evaluation'\n",
+        "tavily_sources": [],
+        "env_delta": [
+          {
+            "command": null,
+            "op": "add",
+            "package": "ruamel.yaml",
+            "version": "0.15.80",
+            "git_url": null,
+            "commit": null,
+            "justification": "ModuleNotFoundError: No module named 'ruamel.yaml' indicates missing dependency.",
+            "evidence": "ModuleNotFoundError: No module named 'ruamel.yaml'"
+          }
+        ],
+        "resolved_sources": [],
+        "origin": "model",
+        "time_machine": null
+      },
+      {
+        "attempt_number": 3,
+        "diff_text": "",
+        "gate_decision": "DECLINED",
+        "gate_violations": [],
+        "exit_code": null,
+        "stdout_tail": "",
+        "stderr_tail": "",
+        "tavily_sources": [],
+        "env_delta": [],
+        "resolved_sources": [],
+        "origin": "model",
+        "time_machine": null
+      }
+    ],
+    "certificate_prose": "The repository's command did not run to completion after 3 repair attempt(s), classified as DEP_MISSING. Verifies that the artifact executes. Does not verify the paper's numerical results."
+  },
+  "certificate": {
+    "repo_url": "https://github.com/bckim92/sequential-knowledge-transformer",
+    "commit_sha": "1e9c47bb61291a0b15e5b1e6901eafebc73db8db",
+    "build_plan": {
+      "base_image": "python:3.8-slim",
+      "apt_install": [
+        "build-essential"
+      ],
+      "install_commands": [
+        "printf '%s\\n' absl-py==0.9.0 alabaster==0.7.12 astunparse==1.6.3 attrs==19.3.0 babel==2.8.0 backcall==0.2.0 better-exceptions==0.2.2 blis==0.4.1 boto3==1.9.246 botocore==1.12.246 cachetools==4.1.0 catalogue==1.0.0 certifi==2020.4.5.2 chardet==3.0.4 cloudpickle==1.4.1 colorful==0.5.4 colorlog==4.1.0 commonmark==0.9.1 cymem==2.0.3 decorator==4.4.2 docformatter==1.3 docutils==0.14 emoji==0.5.4 entrypoints==0.3 flake8==3.7.8 flake8-bugbear==19.8.0 gast==0.3.3 gitdb2==2.0.5 gitpython==3.0.3 google-auth==1.17.2 google-auth-oauthlib==0.4.1 google-pasta==0.2.0 grpcio==1.29.0 h5py==2.10.0 idna==2.8 imagesize==1.2.0 ipython==7.15.0 ipython-genutils==0.2.0 jedi==0.17.0 jinja2==2.11.2 jmespath==0.10.0 joblib==0.14.1 keras-preprocessing==1.1.2 markdown==2.6.11 markupsafe==1.1.1 mccabe==0.6.1 mlperf-compliance==0.0.10 mock==4.0.2 more-itertools==8.4.0 murmurhash==1.0.2 nltk==3.4.5 numpy==1.18.5 oauthlib==3.1.0 opt-einsum==3.2.1 packaging==20.4 pandas==1.0.4 parlai==0.1.20200610 parso==0.7.0 pexpect==4.7.0 pickleshare==0.7.5 pillow==7.1.2 plac==1.1.3 pluggy==0.13.1 preshed==3.0.2 prompt-toolkit==3.0.5 protobuf==3.12.2 psutil==5.7.0 ptyprocess==0.6.0 pudb==2019.2 py==1.8.2 py-cpuinfo==6.0.0 py-gfm==0.1.4 py-rouge==1.1 pyasn1==0.4.8 pyasn1-modules==0.2.8 pycodestyle==2.5.0 pyflakes==2.1.1 pygments==2.6.1 pyparsing==2.4.7 pytest==5.3.2 python-dateutil==2.8.1 pytz==2020.1 pyyaml==5.1 pyzmq==18.1.0 recommonmark==0.6.0 regex==2019.8.19 requests==2.22.0 requests-mock==1.7.0 requests-oauthlib==1.3.0 rsa==4.6 ruamel-base==1.0.0 s3transfer==0.2.1 scikit-learn==0.23.1 scipy==1.4.1 setuptools==47.3.1 sh==1.12.14 six==1.15.0 smmap==3.0.4 smmap2==3.0.1 snowballstemmer==2.0.0 spacy==2.2.3 sphinx==2.2.0 sphinx-autodoc-typehints==1.10.3 sphinx-rtd-theme==0.4.3 sphinxcontrib-applehelp==1.0.2 sphinxcontrib-devhelp==1.0.2 sphinxcontrib-htmlhelp==1.0.3 sphinxcontrib-jsmath==1.0.1 sphinxcontrib-qthelp==1.0.3 sphinxcontrib-serializinghtml==1.1.4 srsly==1.0.2 tensorboard==2.2.2 tensorboard-plugin-wit==1.6.0.post3 tensorflow==2.2.0 tensorflow-addons==0.10.0 tensorflow-estimator==2.2.0 tensorflow-probability==0.10.0 termcolor==1.1.0 thinc==7.3.1 threadpoolctl==2.1.0 tokenizers==0.4.2 torch==1.4.0 tqdm==4.36.1 traitlets==4.3.3 typeguard==2.9.1 typing-extensions==3.7.4.1 unidecode==1.1.1 untokenize==0.1.1 urllib3==1.25.9 urwid==2.1.0 wasabi==0.6.0 wcwidth==0.2.4 websocket-client==0.56.0 websocket-server==0.4 werkzeug==1.0.1 wheel==0.34.2 wrapt==1.12.1 ruamel.yaml==0.15.80 > .rerun-requirements.txt && pip install -r .rerun-requirements.txt"
+      ],
+      "execute_command": "python train.py --cfg ymls/default.yml --gpus 0,1 SequentialKnowledgeTransformer",
+      "notes": [
+        "execute command is the repository's documented command (corpus ground truth)",
+        "base image python:3.6-slim: declared by README (3.6); resolved to the first available minor that satisfies it",
+        "time machine: python 3.8, 137 locked package(s)",
+        "env delta: apt build-essential \u2014 The error indicates missing gcc compiler required to build Python packages from source; build-essential provides gcc and necessary build tools.",
+        "env delta: add ruamel.yaml \u2014 ModuleNotFoundError: No module named 'ruamel.yaml' indicates missing dependency."
+      ]
+    },
+    "full_log": "[intake] cloned https://github.com/bckim92/sequential-knowledge-transformer@1e9c47bb61291a0b15e5b1e6901eafebc73db8db\n[recon] calling Nemotron Nano\n[recon] RECON_MODEL_ERROR: recon model call failed: prompt estimated at 22108 tokens exceeds the per-attempt ceiling: requested 22108 tokens exceeds the 20000-token per-attempt ceiling \u2014 proceeding with the documented command: python train.py --cfg ymls/default.yml --gpus 0,1 SequentialKnowledgeTransformer\n[python] python:3.6-slim (README): declared by README (3.6); resolved to the first available minor that satisfies it\n[planner] build plan: {'base_image': 'python:3.6-slim', 'apt_install': [], 'install_commands': ['true  # no declared dependency file found; nothing to install'], 'execute_command': 'python train.py --cfg ymls/default.yml --gpus 0,1 SequentialKnowledgeTransformer', 'notes': [\"execute command is the repository's documented command (corpus ground truth)\", 'base image python:3.6-slim: declared by README (3.6); resolved to the first available minor that satisfies it']}\n[integrity] verified 109 file(s) against tree 4026487b034c2d3c34bd535b329d88ef8234afba\n[sandbox] starting build+execute (wall_clock_seconds=600)\n[runner] torch: repo imports torch without declaring it; runner provides the newest matched CPU wheels\n[cost_guard] recorded $0.1676 sandbox spend, $1.8323 remaining today\n[sandbox] id=76af915d-3bc2-4b33-b4bf-b7c15dfe6500 exit_code=1\n[baseline] as-is run: FAILS (exit code 1)\n[classifier] DEP_MISSING: ModuleNotFoundError: No module named 'sklearn'\n[era] 2020-06-16 from pinned-commit {'note': 'no dependency files in the repository'}\n[import-map] absl -> absl-py (pigar+rank, confidence normal)\n[import-map] cpuinfo -> py-cpuinfo (pigar+rank, confidence normal)\n[import-map] google -> protobuf (pipreqs, confidence normal)\n[import-map] ruamel -> ruamel-base (pipreqs, confidence normal)\n[import-map] sklearn -> scikit-learn (pipreqs, confidence normal)\n[time-machine] era 2020-06-16 (pinned-commit) -> python 3.8; locked 137 package(s) with uv --exclude-newer; not on the index: ['language-evaluation', 'pkg-resources']\n[integrity] verified 109 file(s) against tree 4026487b034c2d3c34bd535b329d88ef8234afba\n[sandbox] starting build+execute (wall_clock_seconds=600)\n[runner] torch: repo pins torch; installed the CPU wheels as a matched set with the same pins\n[cost_guard] recorded $0.4407 sandbox spend, $1.3916 remaining today\n[time-machine] re-execution id=a107f60f-a9d0-497f-aaee-6afcb6ce29f0 exit_code=1\n[classifier] SYS_LIB_MISSING: unable to execute 'gcc': No such file or directory\n[tavily] 3 result(s) for 'python sys lib missing fix: unable to execute 'gcc': No such file or directory'\n[repair 1] tamper gate PASS (env) \u2014 applying and re-executing\n[repair 1] env delta applied; build plan now: {'base_image': 'python:3.8-slim', 'apt_install': ['build-essential'], 'install_commands': [\"printf '%s\\\\n' absl-py==0.9.0 alabaster==0.7.12 astunparse==1.6.3 attrs==19.3.0 babel==2.8.0 backcall==0.2.0 better-exceptions==0.2.2 blis==0.4.1 boto3==1.9.246 botocore==1.12.246 cachetools==4.1.0 catalogue==1.0.0 certifi==2020.4.5.2 chardet==3.0.4 cloudpickle==1.4.1 colorful==0.5.4 colorlog==4.1.0 commonmark==0.9.1 cymem==2.0.3 decorator==4.4.2 docformatter==1.3 docutils==0.14 emoji==0.5.4 entrypoints==0.3 flake8==3.7.8 flake8-bugbear==19.8.0 gast==0.3.3 gitdb2==2.0.5 gitpython==3.0.3 google-auth==1.17.2 google-auth-oauthlib==0.4.1 google-pasta==0.2.0 grpcio==1.29.0 h5py==2.10.0 idna==2.8 imagesize==1.2.0 ipython==7.15.0 ipython-genutils==0.2.0 jedi==0.17.0 jinja2==2.11.2 jmespath==0.10.0 joblib==0.14.1 keras-preprocessing==1.1.2 markdown==2.6.11 markupsafe==1.1.1 mccabe==0.6.1 mlperf-compliance==0.0.10 mock==4.0.2 more-itertools==8.4.0 murmurhash==1.0.2 nltk==3.4.5 numpy==1.18.5 oauthlib==3.1.0 opt-einsum==3.2.1 packaging==20.4 pandas==1.0.4 parlai==0.1.20200610 parso==0.7.0 pexpect==4.7.0 pickleshare==0.7.5 pillow==7.1.2 plac==1.1.3 pluggy==0.13.1 preshed==3.0.2 prompt-toolkit==3.0.5 protobuf==3.12.2 psutil==5.7.0 ptyprocess==0.6.0 pudb==2019.2 py==1.8.2 py-cpuinfo==6.0.0 py-gfm==0.1.4 py-rouge==1.1 pyasn1==0.4.8 pyasn1-modules==0.2.8 pycodestyle==2.5.0 pyflakes==2.1.1 pygments==2.6.1 pyparsing==2.4.7 pytest==5.3.2 python-dateutil==2.8.1 pytz==2020.1 pyyaml==5.1 pyzmq==18.1.0 recommonmark==0.6.0 regex==2019.8.19 requests==2.22.0 requests-mock==1.7.0 requests-oauthlib==1.3.0 rsa==4.6 ruamel-base==1.0.0 s3transfer==0.2.1 scikit-learn==0.23.1 scipy==1.4.1 setuptools==47.3.1 sh==1.12.14 six==1.15.0 smmap==3.0.4 smmap2==3.0.1 snowballstemmer==2.0.0 spacy==2.2.3 sphinx==2.2.0 sphinx-autodoc-typehints==1.10.3 sphinx-rtd-theme==0.4.3 sphinxcontrib-applehelp==1.0.2 sphinxcontrib-devhelp==1.0.2 sphinxcontrib-htmlhelp==1.0.3 sphinxcontrib-jsmath==1.0.1 sphinxcontrib-qthelp==1.0.3 sphinxcontrib-serializinghtml==1.1.4 srsly==1.0.2 tensorboard==2.2.2 tensorboard-plugin-wit==1.6.0.post3 tensorflow==2.2.0 tensorflow-addons==0.10.0 tensorflow-estimator==2.2.0 tensorflow-probability==0.10.0 termcolor==1.1.0 thinc==7.3.1 threadpoolctl==2.1.0 tokenizers==0.4.2 torch==1.4.0 tqdm==4.36.1 traitlets==4.3.3 typeguard==2.9.1 typing-extensions==3.7.4.1 unidecode==1.1.1 untokenize==0.1.1 urllib3==1.25.9 urwid==2.1.0 wasabi==0.6.0 wcwidth==0.2.4 websocket-client==0.56.0 websocket-server==0.4 werkzeug==1.0.1 wheel==0.34.2 wrapt==1.12.1 > .rerun-requirements.txt && pip install -r .rerun-requirements.txt\"], 'execute_command': 'python train.py --cfg ymls/default.yml --gpus 0,1 SequentialKnowledgeTransformer', 'notes': [\"execute command is the repository's documented command (corpus ground truth)\", 'base image python:3.6-slim: declared by README (3.6); resolved to the first available minor that satisfies it', 'time machine: python 3.8, 137 locked package(s)', 'env delta: apt build-essential \u2014 The error indicates missing gcc compiler required to build Python packages from source; build-essential provides gcc and necessary build tools.']}\n[citations] not cited (not used in a decision): https://github.com/watson-developer-cloud/python-sdk/issues/418\n[citations] not cited (not used in a decision): https://www.geeksforgeeks.org/python/how-to-fix-fatal-error-python-h-no-such-file-or-directory\n[citations] not cited (not used in a decision): https://www.digitalocean.com/community/tutorials/how-to-fix-python-no-such-file-or-directory-compiler-errors-when-installing-packages\n[integrity] verified 109 file(s) against tree 4026487b034c2d3c34bd535b329d88ef8234afba\n[sandbox] starting build+execute (wall_clock_seconds=600)\n[runner] torch: repo pins torch; installed the CPU wheels as a matched set with the same pins\n[cost_guard] recorded $0.9016 sandbox spend, $0.4860 remaining today\n[repair 1] re-execution id=803d48f8-3bb4-43f9-9193-72bc76b0e337 exit_code=1\n[classifier] DEP_MISSING: ModuleNotFoundError: No module named 'ruamel.yaml'\n[import-map] ruamel -> ruamel-base (pipreqs, confidence normal) for the resolver\n[resolver] ruamel-base: 0 verified git source(s), PyPI found (4 release(s) shown), era 2020-06-16; query: 'ruamel-base python package version compatible 2020 release history'\n[tavily] 5 result(s) for 'ruamel-base python package version compatible 2020 release history'\n[repair 2] tamper gate PASS (env) \u2014 applying and re-executing\n[repair 2] env delta applied; build plan now: {'base_image': 'python:3.8-slim', 'apt_install': ['build-essential'], 'install_commands': [\"printf '%s\\\\n' absl-py==0.9.0 alabaster==0.7.12 astunparse==1.6.3 attrs==19.3.0 babel==2.8.0 backcall==0.2.0 better-exceptions==0.2.2 blis==0.4.1 boto3==1.9.246 botocore==1.12.246 cachetools==4.1.0 catalogue==1.0.0 certifi==2020.4.5.2 chardet==3.0.4 cloudpickle==1.4.1 colorful==0.5.4 colorlog==4.1.0 commonmark==0.9.1 cymem==2.0.3 decorator==4.4.2 docformatter==1.3 docutils==0.14 emoji==0.5.4 entrypoints==0.3 flake8==3.7.8 flake8-bugbear==19.8.0 gast==0.3.3 gitdb2==2.0.5 gitpython==3.0.3 google-auth==1.17.2 google-auth-oauthlib==0.4.1 google-pasta==0.2.0 grpcio==1.29.0 h5py==2.10.0 idna==2.8 imagesize==1.2.0 ipython==7.15.0 ipython-genutils==0.2.0 jedi==0.17.0 jinja2==2.11.2 jmespath==0.10.0 joblib==0.14.1 keras-preprocessing==1.1.2 markdown==2.6.11 markupsafe==1.1.1 mccabe==0.6.1 mlperf-compliance==0.0.10 mock==4.0.2 more-itertools==8.4.0 murmurhash==1.0.2 nltk==3.4.5 numpy==1.18.5 oauthlib==3.1.0 opt-einsum==3.2.1 packaging==20.4 pandas==1.0.4 parlai==0.1.20200610 parso==0.7.0 pexpect==4.7.0 pickleshare==0.7.5 pillow==7.1.2 plac==1.1.3 pluggy==0.13.1 preshed==3.0.2 prompt-toolkit==3.0.5 protobuf==3.12.2 psutil==5.7.0 ptyprocess==0.6.0 pudb==2019.2 py==1.8.2 py-cpuinfo==6.0.0 py-gfm==0.1.4 py-rouge==1.1 pyasn1==0.4.8 pyasn1-modules==0.2.8 pycodestyle==2.5.0 pyflakes==2.1.1 pygments==2.6.1 pyparsing==2.4.7 pytest==5.3.2 python-dateutil==2.8.1 pytz==2020.1 pyyaml==5.1 pyzmq==18.1.0 recommonmark==0.6.0 regex==2019.8.19 requests==2.22.0 requests-mock==1.7.0 requests-oauthlib==1.3.0 rsa==4.6 ruamel-base==1.0.0 s3transfer==0.2.1 scikit-learn==0.23.1 scipy==1.4.1 setuptools==47.3.1 sh==1.12.14 six==1.15.0 smmap==3.0.4 smmap2==3.0.1 snowballstemmer==2.0.0 spacy==2.2.3 sphinx==2.2.0 sphinx-autodoc-typehints==1.10.3 sphinx-rtd-theme==0.4.3 sphinxcontrib-applehelp==1.0.2 sphinxcontrib-devhelp==1.0.2 sphinxcontrib-htmlhelp==1.0.3 sphinxcontrib-jsmath==1.0.1 sphinxcontrib-qthelp==1.0.3 sphinxcontrib-serializinghtml==1.1.4 srsly==1.0.2 tensorboard==2.2.2 tensorboard-plugin-wit==1.6.0.post3 tensorflow==2.2.0 tensorflow-addons==0.10.0 tensorflow-estimator==2.2.0 tensorflow-probability==0.10.0 termcolor==1.1.0 thinc==7.3.1 threadpoolctl==2.1.0 tokenizers==0.4.2 torch==1.4.0 tqdm==4.36.1 traitlets==4.3.3 typeguard==2.9.1 typing-extensions==3.7.4.1 unidecode==1.1.1 untokenize==0.1.1 urllib3==1.25.9 urwid==2.1.0 wasabi==0.6.0 wcwidth==0.2.4 websocket-client==0.56.0 websocket-server==0.4 werkzeug==1.0.1 wheel==0.34.2 wrapt==1.12.1 ruamel.yaml==0.15.80 > .rerun-requirements.txt && pip install -r .rerun-requirements.txt\"], 'execute_command': 'python train.py --cfg ymls/default.yml --gpus 0,1 SequentialKnowledgeTransformer', 'notes': [\"execute command is the repository's documented command (corpus ground truth)\", 'base image python:3.6-slim: declared by README (3.6); resolved to the first available minor that satisfies it', 'time machine: python 3.8, 137 locked package(s)', 'env delta: apt build-essential \u2014 The error indicates missing gcc compiler required to build Python packages from source; build-essential provides gcc and necessary build tools.', \"env delta: add ruamel.yaml \u2014 ModuleNotFoundError: No module named 'ruamel.yaml' indicates missing dependency.\"]}\n[citations] not cited (not used in a decision): https://packages.fedoraproject.org/pkgs/python-ruamel-yaml-clib/python3-ruamel-yaml-clib/epel-8.html\n[citations] not cited (not used in a decision): https://itsourcecode.com/modulenotfounderror/modulenotfounderror-no-module-named-ruamel-solved\n[citations] not cited (not used in a decision): https://www.python.org/downloads\n[citations] not cited (not used in a decision): https://en.wikipedia.org/wiki/Python_(programming_language)\n[citations] not cited (not used in a decision): https://www.chainguard.dev/unchained/this-shit-is-hard-the-complexities-of-fixing-python-library-security-issues-at-scale\n[citations] not cited (offered, not used): https://pypi.org/project/ruamel-base/1.0.0/\n[citations] not cited (offered, not used): https://pypi.org/project/ruamel-base/0.2/\n[citations] not cited (offered, not used): https://pypi.org/project/ruamel-base/0.3/\n[citations] not cited (offered, not used): https://pypi.org/project/ruamel-base/0.1/\n[integrity] verified 109 file(s) against tree 4026487b034c2d3c34bd535b329d88ef8234afba\n[sandbox] starting build+execute (wall_clock_seconds=600)\n[runner] torch: repo pins torch; installed the CPU wheels as a matched set with the same pins\n[cost_guard] recorded $0.9870 sandbox spend, $0.0000 remaining today\n[repair 2] re-execution id=857cfce5-661a-4bc4-98c1-9500863b13da exit_code=1\n[classifier] DEP_MISSING: ModuleNotFoundError: No module named 'language_evaluation'\n[resolver] language_evaluation: 0 verified git source(s), PyPI not on PyPI (0 release(s) shown), era 2020-06-16; query: 'language_evaluation python package source code github repository pip install | language_evaluation github repository (github.com only)'\n[tavily] 10 result(s) for 'language_evaluation python package source code github repository pip install | language_evaluation github repository (github.com only)'\n[repair 3] declined: repair model call failed: daily cost ceiling reached before a model call: daily cost ceiling would be exceeded: $2.5045 spent + $0.0000 requested > $2.0000 ceiling\n[citations] not cited (not used in a decision): https://labex.io/tutorials/python-how-to-install-python-package-from-github-437144\n[citations] not cited (not used in a decision): https://github.com/pypa/pip\n[citations] not cited (not used in a decision): https://discuss.streamlit.io/t/pip-installing-from-github/21484\n[citations] not cited (not used in a decision): https://github.com/mvitousek/reticulated\n[citations] not cited (not used in a decision): https://quantum.cloud.ibm.com/docs/guides/install-qiskit\n[citations] not cited (not used in a decision): https://github.com/j-min/CLIP-Caption-Reward/issues/7\n[citations] not cited (not used in a decision): https://github.com/bckim92/language-evaluation\n[citations] not cited (not used in a decision): https://github.com/nuprl/MultiPL-E\n[citations] not cited (not used in a decision): https://github.com/bckim92/language-evaluation/blob/master/language_evaluation_test.py\n[citations] not cited (not used in a decision): https://github.com/topics/clinical-quality-language\n[verdict] BLOCKED after 3 repair attempt(s): DEP_MISSING",
+    "diffs": [
+      {
+        "attempt_number": 0,
+        "diff_text": "",
+        "gate_decision": "PASS",
+        "gate_violations": [],
+        "exit_code": 1,
+        "stdout_tail": "464849b1f5472828d168ec25da33df0b\n  Stored in directory: /root/.cache/pip/wheels/5f/fd/9e/b6cf5890494cb8ef0b5eaff72e5d55a70fb56316007d6dfe73\nSuccessfully built absl-py docformatter emoji nltk pudb py-cpuinfo pyyaml termcolor untokenize urwid websocket-server wrapt\nFailed to build psutil regex\nInstalling collected packages: wrapt, websocket-server, wcwidth, wasabi, urwid, untokenize, typing-extensions, tokenizers, termcolor, tensorflow-estimator, tensorboard-plugin-wit, srsly, snowballstemmer, sh, ruamel-base, regex, pytz, pyasn1, py-rouge, py-cpuinfo, ptyprocess, plac, pickleshare, murmurhash, mlperf-compliance, mccabe, markdown, joblib, ipython-genutils, emoji, docutils, cymem, commonmark, colorlog, colorful, chardet, certifi, better-exceptions, backcall, alabaster, wheel, werkzeug, urllib3, unidecode, typeguard, tqdm, threadpoolctl, sphinxcontrib-serializinghtml, sphinxcontrib-qthelp, sphinxcontrib-jsmath, sphinxcontrib-htmlhelp, sphinxcontrib-devhelp, sphinxcontrib-applehelp, smmap, six, setuptools, rsa, pyzmq, pyyaml, pyparsing, pygments, pyflakes, pycodestyle, pyasn1-modules, py, psutil, prompt-toolkit, preshed, pluggy, pillow, pexpect, parso, oauthlib, numpy, more-itertools, mock, markupsafe, jmespath, imagesize, idna, gast, entrypoints, docformatter, decorator, cloudpickle, catalogue, cachetools, babel, attrs, websocket-client, traitlets, tensorflow-probability, tensorflow-addons, smmap2, scipy, requests, python-dateutil, py-gfm, pudb, protobuf, packaging, opt-einsum, nltk, keras-preprocessing, jinja2, jedi, h5py, grpcio, google-pasta, google-auth, flake8, blis, astunparse, absl-py, thinc, sphinx, scikit-learn, requests-oauthlib, requests-mock, pytest, pandas, ipython, gitdb2, flake8-bugbear, botocore, sphinx-rtd-theme, sphinx-autodoc-typehints, spacy, s3transfer, recommonmark, google-auth-oauthlib, gitpython, tensorboard, boto3, tensorflow, parlai\n  Running setup.py install for regex: started\n  Running setup.py install for regex: finished with status 'error'\n",
+        "stderr_tail": "bprocess, and is likely not a problem with pip.\n  ERROR: Failed building wheel for regex\n  error: subprocess-exited-with-error\n  \n  \u00d7 Running setup.py install for regex did not run successfully.\n  \u2502 exit code: 1\n  \u2570\u2500> [22 lines of output]\n      BASE_DIR is /tmp/pip-install-xxm7vv1a/regex_c7b7a05b8f4444a8b567856dc361ebaa\n      /usr/local/lib/python3.8/site-packages/setuptools/dist.py:484: UserWarning: Normalizing '2019.08.19' to '2019.8.19'\n        warnings.warn(tmpl.format(**locals()))\n      running install\n      running build\n      running build_py\n      creating build\n      creating build/lib.linux-x86_64-3.8\n      creating build/lib.linux-x86_64-3.8/regex\n      copying regex_3/regex/__init__.py -> build/lib.linux-x86_64-3.8/regex\n      copying regex_3/regex/regex.py -> build/lib.linux-x86_64-3.8/regex\n      copying regex_3/regex/_regex_core.py -> build/lib.linux-x86_64-3.8/regex\n      creating build/lib.linux-x86_64-3.8/regex/test\n      copying regex_3/regex/test/__init__.py -> build/lib.linux-x86_64-3.8/regex/test\n      copying regex_3/regex/test/test_regex.py -> build/lib.linux-x86_64-3.8/regex/test\n      running build_ext\n      building 'regex._regex' extension\n      creating build/temp.linux-x86_64-3.8\n      creating build/temp.linux-x86_64-3.8/regex_3\n      gcc -Wno-unused-result -Wsign-compare -DNDEBUG -g -fwrapv -O3 -Wall -fPIC -I/usr/local/include/python3.8 -c regex_3/_regex.c -o build/temp.linux-x86_64-3.8/regex_3/_regex.o\n      unable to execute 'gcc': No such file or directory\n      error: command 'gcc' failed with exit status 1\n      [end of output]\n  \n  note: This error originates from a subprocess, and is likely not a problem with pip.\nerror: legacy-install-failure\n\n\u00d7 Encountered error while trying to install package.\n\u2570\u2500> regex\n\nnote: This is an issue with the package mentioned above, not pip.\nhint: See above for output from the failure.\n\n[notice] A new release of pip is available: 23.0.1 -> 25.0.1\n[notice] To update, run: pip install --upgrade pip\n",
+        "tavily_sources": [],
+        "env_delta": [],
+        "resolved_sources": [],
+        "origin": "time_machine",
+        "time_machine": {
+          "era": {
+            "date": "2020-06-16",
+            "source": "pinned-commit",
+            "detail": {
+              "note": "no dependency files in the repository"
+            }
+          },
+          "python": {
+            "version": "3.8",
+            "reason": "newest CPython first released \u2265180 days before the era date 2020-06-16 (https://devguide.python.org/versions/ (first release dates, retrieved 2026-09-24))",
+            "source": "https://devguide.python.org/versions/ (first release dates, retrieved 2026-09-24)"
+          },
+          "undeclared_imports": [
+            "IPython",
+            "absl-py",
+            "better_exceptions",
+            "colorful",
+            "colorlog",
+            "py-cpuinfo",
+            "protobuf",
+            "language_evaluation",
+            "mlperf_compliance",
+            "mock",
+            "more_itertools",
+            "nltk",
+            "numpy",
+            "pandas",
+            "parlai",
+            "pkg_resources",
+            "psutil",
+            "pudb",
+            "requests",
+            "ruamel-base",
+            "six",
+            "scikit-learn",
+            "spacy",
+            "tensorflow",
+            "tensorflow_addons",
+            "tensorflow_probability",
+            "torch",
+            "tqdm"
+          ],
+          "import_mappings": [
+            {
+              "import": "absl",
+              "distribution": "absl-py",
+              "source": "pigar+rank",
+              "confidence": "normal"
+            },
+            {
+              "import": "cpuinfo",
+              "distribution": "py-cpuinfo",
+              "source": "pigar+rank",
+              "confidence": "normal"
+            },
+            {
+              "import": "google",
+              "distribution": "protobuf",
+              "source": "pipreqs",
+              "confidence": "normal"
+            },
+            {
+              "import": "ruamel",
+              "distribution": "ruamel-base",
+              "source": "pipreqs",
+              "confidence": "normal"
+            },
+            {
+              "import": "sklearn",
+              "distribution": "scikit-learn",
+              "source": "pipreqs",
+              "confidence": "normal"
+            }
+          ],
+          "apt_added": [],
+          "apt_reason": "",
+          "lock": {
+            "ok": true,
+            "lock": [
+              "absl-py==0.9.0",
+              "alabaster==0.7.12",
+              "astunparse==1.6.3",
+              "attrs==19.3.0",
+              "babel==2.8.0",
+              "backcall==0.2.0",
+              "better-exceptions==0.2.2",
+              "blis==0.4.1",
+              "boto3==1.9.246",
+              "botocore==1.12.246",
+              "cachetools==4.1.0",
+              "catalogue==1.0.0",
+              "certifi==2020.4.5.2",
+              "chardet==3.0.4",
+              "cloudpickle==1.4.1",
+              "colorful==0.5.4",
+              "colorlog==4.1.0",
+              "commonmark==0.9.1",
+              "cymem==2.0.3",
+              "decorator==4.4.2",
+              "docformatter==1.3",
+              "docutils==0.14",
+              "emoji==0.5.4",
+              "entrypoints==0.3",
+              "flake8==3.7.8",
+              "flake8-bugbear==19.8.0",
+              "gast==0.3.3",
+              "gitdb2==2.0.5",
+              "gitpython==3.0.3",
+              "google-auth==1.17.2",
+              "google-auth-oauthlib==0.4.1",
+              "google-pasta==0.2.0",
+              "grpcio==1.29.0",
+              "h5py==2.10.0",
+              "idna==2.8",
+              "imagesize==1.2.0",
+              "ipython==7.15.0",
+              "ipython-genutils==0.2.0",
+              "jedi==0.17.0",
+              "jinja2==2.11.2",
+              "jmespath==0.10.0",
+              "joblib==0.14.1",
+              "keras-preprocessing==1.1.2",
+              "markdown==2.6.11",
+              "markupsafe==1.1.1",
+              "mccabe==0.6.1",
+              "mlperf-compliance==0.0.10",
+              "mock==4.0.2",
+              "more-itertools==8.4.0",
+              "murmurhash==1.0.2",
+              "nltk==3.4.5",
+              "numpy==1.18.5",
+              "oauthlib==3.1.0",
+              "opt-einsum==3.2.1",
+              "packaging==20.4",
+              "pandas==1.0.4",
+              "parlai==0.1.20200610",
+              "parso==0.7.0",
+              "pexpect==4.7.0",
+              "pickleshare==0.7.5",
+              "pillow==7.1.2",
+              "plac==1.1.3",
+              "pluggy==0.13.1",
+              "preshed==3.0.2",
+              "prompt-toolkit==3.0.5",
+              "protobuf==3.12.2",
+              "psutil==5.7.0",
+              "ptyprocess==0.6.0",
+              "pudb==2019.2",
+              "py==1.8.2",
+              "py-cpuinfo==6.0.0",
+              "py-gfm==0.1.4",
+              "py-rouge==1.1",
+              "pyasn1==0.4.8",
+              "pyasn1-modules==0.2.8",
+              "pycodestyle==2.5.0",
+              "pyflakes==2.1.1",
+              "pygments==2.6.1",
+              "pyparsing==2.4.7",
+              "pytest==5.3.2",
+              "python-dateutil==2.8.1",
+              "pytz==2020.1",
+              "pyyaml==5.1",
+              "pyzmq==18.1.0",
+              "recommonmark==0.6.0",
+              "regex==2019.8.19",
+              "requests==2.22.0",
+              "requests-mock==1.7.0",
+              "requests-oauthlib==1.3.0",
+              "rsa==4.6",
+              "ruamel-base==1.0.0",
+              "s3transfer==0.2.1",
+              "scikit-learn==0.23.1",
+              "scipy==1.4.1",
+              "setuptools==47.3.1",
+              "sh==1.12.14",
+              "six==1.15.0",
+              "smmap==3.0.4",
+              "smmap2==3.0.1",
+              "snowballstemmer==2.0.0",
+              "spacy==2.2.3",
+              "sphinx==2.2.0",
+              "sphinx-autodoc-typehints==1.10.3",
+              "sphinx-rtd-theme==0.4.3",
+              "sphinxcontrib-applehelp==1.0.2",
+              "sphinxcontrib-devhelp==1.0.2",
+              "sphinxcontrib-htmlhelp==1.0.3",
+              "sphinxcontrib-jsmath==1.0.1",
+              "sphinxcontrib-qthelp==1.0.3",
+              "sphinxcontrib-serializinghtml==1.1.4",
+              "srsly==1.0.2",
+              "tensorboard==2.2.2",
+              "tensorboard-plugin-wit==1.6.0.post3",
+              "tensorflow==2.2.0",
+              "tensorflow-addons==0.10.0",
+              "tensorflow-estimator==2.2.0",
+              "tensorflow-probability==0.10.0",
+              "termcolor==1.1.0",
+              "thinc==7.3.1",
+              "threadpoolctl==2.1.0",
+              "tokenizers==0.4.2",
+              "torch==1.4.0",
+              "tqdm==4.36.1",
+              "traitlets==4.3.3",
+              "typeguard==2.9.1",
+              "typing-extensions==3.7.4.1",
+              "unidecode==1.1.1",
+              "untokenize==0.1.1",
+              "urllib3==1.25.9",
+              "urwid==2.1.0",
+              "wasabi==0.6.0",
+              "wcwidth==0.2.4",
+              "websocket-client==0.56.0",
+              "websocket-server==0.4",
+              "werkzeug==1.0.1",
+              "wheel==0.34.2",
+              "wrapt==1.12.1"
+            ],
+            "inputs": [
+              "IPython",
+              "absl-py",
+              "better_exceptions",
+              "colorful",
+              "colorlog",
+              "py-cpuinfo",
+              "protobuf",
+              "language_evaluation",
+              "mlperf_compliance",
+              "mock",
+              "more_itertools",
+              "nltk",
+              "numpy",
+              "pandas",
+              "parlai",
+              "pkg_resources",
+              "psutil",
+              "pudb",
+              "requests",
+              "ruamel-base",
+              "six",
+              "scikit-learn",
+              "spacy",
+              "tensorflow",
+              "tensorflow_addons",
+              "tensorflow_probability",
+              "torch",
+              "tqdm"
+            ],
+            "not_on_index": [
+              "language-evaluation",
+              "pkg-resources"
+            ],
+            "command": "pip compile - --no-header --no-annotate --quiet --exclude-newer 2020-06-17T00:00:00Z --python-version 3.8 --python-platform x86_64-unknown-linux-gnu --python C:\\Users\\E16\\AppData\\Roaming\\uv\\python\\cpython-3.8.20-windows-x86_64-none\\python.exe",
+            "error": ""
+          }
+        }
+      },
+      {
+        "attempt_number": 1,
+        "diff_text": "",
+        "gate_decision": "PASS",
+        "gate_violations": [],
+        "exit_code": 1,
+        "stdout_tail": "",
+        "stderr_tail": "Traceback (most recent call last):\n  File \"train.py\", line 16, in <module>\n    from utils import config_utils, custom_argparsers\n  File \"/utils/config_utils.py\", line 10, in <module>\n    from ruamel.yaml import YAML\nModuleNotFoundError: No module named 'ruamel.yaml'\n",
+        "tavily_sources": [],
+        "env_delta": [
+          {
+            "command": null,
+            "op": "apt",
+            "package": "build-essential",
+            "version": null,
+            "git_url": null,
+            "commit": null,
+            "justification": "The error indicates missing gcc compiler required to build Python packages from source; build-essential provides gcc and necessary build tools.",
+            "evidence": "unable to execute 'gcc': No such file or directory"
+          }
+        ],
+        "resolved_sources": [],
+        "origin": "model",
+        "time_machine": null
+      },
+      {
+        "attempt_number": 2,
+        "diff_text": "",
+        "gate_decision": "PASS",
+        "gate_violations": [],
+        "exit_code": 1,
+        "stdout_tail": "",
+        "stderr_tail": "Traceback (most recent call last):\n  File \"train.py\", line 19, in <module>\n    from modules.trainer import run_wow_evaluation, Trainer\n  File \"/modules/trainer.py\", line 8, in <module>\n    import language_evaluation\nModuleNotFoundError: No module named 'language_evaluation'\n",
+        "tavily_sources": [],
+        "env_delta": [
+          {
+            "command": null,
+            "op": "add",
+            "package": "ruamel.yaml",
+            "version": "0.15.80",
+            "git_url": null,
+            "commit": null,
+            "justification": "ModuleNotFoundError: No module named 'ruamel.yaml' indicates missing dependency.",
+            "evidence": "ModuleNotFoundError: No module named 'ruamel.yaml'"
+          }
+        ],
+        "resolved_sources": [],
+        "origin": "model",
+        "time_machine": null
+      },
+      {
+        "attempt_number": 3,
+        "diff_text": "",
+        "gate_decision": "DECLINED",
+        "gate_violations": [],
+        "exit_code": null,
+        "stdout_tail": "",
+        "stderr_tail": "",
+        "tavily_sources": [],
+        "env_delta": [],
+        "resolved_sources": [],
+        "origin": "model",
+        "time_machine": null
+      }
+    ],
+    "verdict": "BLOCKED",
+    "timestamp": "2026-09-30T14:47:36.588645+00:00",
+    "bundle_version": 4,
+    "baseline": {
+      "result": "FAILS",
+      "exit_code": 1,
+      "base_image": "python:3.6-slim",
+      "install_commands": [
+        "true  # no declared dependency file found; nothing to install"
+      ],
+      "execute_command": "python train.py --cfg ymls/default.yml --gpus 0,1 SequentialKnowledgeTransformer",
+      "sandbox_id": "76af915d-3bc2-4b33-b4bf-b7c15dfe6500",
+      "taxonomy_code": "DEP_MISSING",
+      "evidence": "ModuleNotFoundError: No module named 'sklearn'"
+    },
+    "recovery": false,
+    "tree_integrity": {
+      "status": "verified",
+      "tree_sha": "4026487b034c2d3c34bd535b329d88ef8234afba",
+      "files_checked": 109,
+      "excluded_patched": []
+    },
+    "corpus_hash": "7df090bea7013974f9f10fb8959ab0162734b51c83a80f744f9c310ce694fbdc",
+    "taxonomy_code": "DEP_MISSING",
+    "indeterminate_reason": "",
+    "error_chain": [
+      {
+        "error": "ModuleNotFoundError: No module named 'sklearn'",
+        "class": "DEP_MISSING",
+        "attribution": "REPO",
+        "phase": "repo_run",
+        "cleared_by": 0
+      },
+      {
+        "error": "unable to execute 'gcc': No such file or directory",
+        "class": "SYS_LIB_MISSING",
+        "attribution": "REPO",
+        "phase": "repo_install",
+        "cleared_by": 1
+      },
+      {
+        "error": "ModuleNotFoundError: No module named 'ruamel.yaml'",
+        "class": "DEP_MISSING",
+        "attribution": "REPO",
+        "phase": "repo_run",
+        "cleared_by": 2
+      },
+      {
+        "error": "ModuleNotFoundError: No module named 'language_evaluation'",
+        "class": "DEP_MISSING",
+        "attribution": "REPO",
+        "phase": "repo_run",
+        "cleared_by": null
+      }
+    ],
+    "first_repo_error": "ModuleNotFoundError: No module named 'sklearn'",
+    "last_error": "ModuleNotFoundError: No module named 'language_evaluation'",
+    "reproduction_passport_hash": "23dfa1d763c7d5ac5208902b7c947421f574868f507d1b63803c4a2817d5a5f5"
+  },
+  "finished_at": "2026-09-30T14:47:36.619074+00:00",
+  "events": [
+    {
+      "t_s": 0.0,
+      "at": "2026-09-30T14:32:28.790324+00:00",
+      "line": "[intake] cloned https://github.com/bckim92/sequential-knowledge-transformer@1e9c47bb61291a0b15e5b1e6901eafebc73db8db"
+    },
+    {
+      "t_s": 0.01,
+      "at": "2026-09-30T14:32:28.796496+00:00",
+      "line": "[recon] calling Nemotron Nano"
+    },
+    {
+      "t_s": 0.13,
+      "at": "2026-09-30T14:32:28.924131+00:00",
+      "line": "[recon] RECON_MODEL_ERROR: recon model call failed: prompt estimated at 22108 tokens exceeds the per-attempt ceiling: requested 22108 tokens exceeds the 20000-token per-attempt ceiling \u2014 proceeding with the documented command: python train.py --cfg ymls/default.yml --gpus 0,1 SequentialKnowledgeTransformer"
+    },
+    {
+      "t_s": 0.15,
+      "at": "2026-09-30T14:32:28.939715+00:00",
+      "line": "[python] python:3.6-slim (README): declared by README (3.6); resolved to the first available minor that satisfies it"
+    },
+    {
+      "t_s": 1.41,
+      "at": "2026-09-30T14:32:30.195316+00:00",
+      "line": "[planner] build plan: {'base_image': 'python:3.6-slim', 'apt_install': [], 'install_commands': ['true  # no declared dependency file found; nothing to install'], 'execute_command': 'python train.py --cfg ymls/default.yml --gpus 0,1 SequentialKnowledgeTransformer', 'notes': [\"execute command is the repository's documented command (corpus ground truth)\", 'base image python:3.6-slim: declared by README (3.6); resolved to the first available minor that satisfies it']}"
+    },
+    {
+      "t_s": 1.62,
+      "at": "2026-09-30T14:32:30.413972+00:00",
+      "line": "[integrity] verified 109 file(s) against tree 4026487b034c2d3c34bd535b329d88ef8234afba"
+    },
+    {
+      "t_s": 1.62,
+      "at": "2026-09-30T14:32:30.414021+00:00",
+      "line": "[sandbox] starting build+execute (wall_clock_seconds=600)"
+    },
+    {
+      "t_s": 1.65,
+      "at": "2026-09-30T14:32:30.445022+00:00",
+      "line": "[runner] torch: repo imports torch without declaring it; runner provides the newest matched CPU wheels"
+    },
+    {
+      "t_s": 49.33,
+      "at": "2026-09-30T14:33:18.116505+00:00",
+      "line": "[cost_guard] recorded $0.1676 sandbox spend, $1.8323 remaining today"
+    },
+    {
+      "t_s": 49.33,
+      "at": "2026-09-30T14:33:18.116643+00:00",
+      "line": "[sandbox] id=76af915d-3bc2-4b33-b4bf-b7c15dfe6500 exit_code=1"
+    },
+    {
+      "t_s": 49.33,
+      "at": "2026-09-30T14:33:18.116694+00:00",
+      "line": "[baseline] as-is run: FAILS (exit code 1)"
+    },
+    {
+      "t_s": 49.34,
+      "at": "2026-09-30T14:33:18.128514+00:00",
+      "line": "[classifier] DEP_MISSING: ModuleNotFoundError: No module named 'sklearn'"
+    },
+    {
+      "t_s": 49.4,
+      "at": "2026-09-30T14:33:18.190614+00:00",
+      "line": "[era] 2020-06-16 from pinned-commit {'note': 'no dependency files in the repository'}"
+    },
+    {
+      "t_s": 50.46,
+      "at": "2026-09-30T14:33:19.251492+00:00",
+      "line": "[import-map] absl -> absl-py (pigar+rank, confidence normal)"
+    },
+    {
+      "t_s": 50.46,
+      "at": "2026-09-30T14:33:19.251526+00:00",
+      "line": "[import-map] cpuinfo -> py-cpuinfo (pigar+rank, confidence normal)"
+    },
+    {
+      "t_s": 50.46,
+      "at": "2026-09-30T14:33:19.251535+00:00",
+      "line": "[import-map] google -> protobuf (pipreqs, confidence normal)"
+    },
+    {
+      "t_s": 50.46,
+      "at": "2026-09-30T14:33:19.251542+00:00",
+      "line": "[import-map] ruamel -> ruamel-base (pipreqs, confidence normal)"
+    },
+    {
+      "t_s": 50.46,
+      "at": "2026-09-30T14:33:19.251547+00:00",
+      "line": "[import-map] sklearn -> scikit-learn (pipreqs, confidence normal)"
+    },
+    {
+      "t_s": 69.39,
+      "at": "2026-09-30T14:33:38.184284+00:00",
+      "line": "[time-machine] era 2020-06-16 (pinned-commit) -> python 3.8; locked 137 package(s) with uv --exclude-newer; not on the index: ['language-evaluation', 'pkg-resources']"
+    },
+    {
+      "t_s": 69.62,
+      "at": "2026-09-30T14:33:38.405385+00:00",
+      "line": "[integrity] verified 109 file(s) against tree 4026487b034c2d3c34bd535b329d88ef8234afba"
+    },
+    {
+      "t_s": 69.62,
+      "at": "2026-09-30T14:33:38.405424+00:00",
+      "line": "[sandbox] starting build+execute (wall_clock_seconds=600)"
+    },
+    {
+      "t_s": 69.64,
+      "at": "2026-09-30T14:33:38.431052+00:00",
+      "line": "[runner] torch: repo pins torch; installed the CPU wheels as a matched set with the same pins"
+    },
+    {
+      "t_s": 290.18,
+      "at": "2026-09-30T14:37:18.971613+00:00",
+      "line": "[cost_guard] recorded $0.4407 sandbox spend, $1.3916 remaining today"
+    },
+    {
+      "t_s": 290.18,
+      "at": "2026-09-30T14:37:18.971788+00:00",
+      "line": "[time-machine] re-execution id=a107f60f-a9d0-497f-aaee-6afcb6ce29f0 exit_code=1"
+    },
+    {
+      "t_s": 290.27,
+      "at": "2026-09-30T14:37:19.056806+00:00",
+      "line": "[classifier] SYS_LIB_MISSING: unable to execute 'gcc': No such file or directory"
+    },
+    {
+      "t_s": 292.63,
+      "at": "2026-09-30T14:37:21.425144+00:00",
+      "line": "[tavily] 3 result(s) for 'python sys lib missing fix: unable to execute 'gcc': No such file or directory'"
+    },
+    {
+      "t_s": 299.2,
+      "at": "2026-09-30T14:37:27.986169+00:00",
+      "line": "[repair 1] tamper gate PASS (env) \u2014 applying and re-executing"
+    },
+    {
+      "t_s": 299.2,
+      "at": "2026-09-30T14:37:27.986268+00:00",
+      "line": "[repair 1] env delta applied; build plan now: {'base_image': 'python:3.8-slim', 'apt_install': ['build-essential'], 'install_commands': [\"printf '%s\\\\n' absl-py==0.9.0 alabaster==0.7.12 astunparse==1.6.3 attrs==19.3.0 babel==2.8.0 backcall==0.2.0 better-exceptions==0.2.2 blis==0.4.1 boto3==1.9.246 botocore==1.12.246 cachetools==4.1.0 catalogue==1.0.0 certifi==2020.4.5.2 chardet==3.0.4 cloudpickle==1.4.1 colorful==0.5.4 colorlog==4.1.0 commonmark==0.9.1 cymem==2.0.3 decorator==4.4.2 docformatter==1.3 docutils==0.14 emoji==0.5.4 entrypoints==0.3 flake8==3.7.8 flake8-bugbear==19.8.0 gast==0.3.3 gitdb2==2.0.5 gitpython==3.0.3 google-auth==1.17.2 google-auth-oauthlib==0.4.1 google-pasta==0.2.0 grpcio==1.29.0 h5py==2.10.0 idna==2.8 imagesize==1.2.0 ipython==7.15.0 ipython-genutils==0.2.0 jedi==0.17.0 jinja2==2.11.2 jmespath==0.10.0 joblib==0.14.1 keras-preprocessing==1.1.2 markdown==2.6.11 markupsafe==1.1.1 mccabe==0.6.1 mlperf-compliance==0.0.10 mock==4.0.2 more-itertools==8.4.0 murmurhash==1.0.2 nltk==3.4.5 numpy==1.18.5 oauthlib==3.1.0 opt-einsum==3.2.1 packaging==20.4 pandas==1.0.4 parlai==0.1.20200610 parso==0.7.0 pexpect==4.7.0 pickleshare==0.7.5 pillow==7.1.2 plac==1.1.3 pluggy==0.13.1 preshed==3.0.2 prompt-toolkit==3.0.5 protobuf==3.12.2 psutil==5.7.0 ptyprocess==0.6.0 pudb==2019.2 py==1.8.2 py-cpuinfo==6.0.0 py-gfm==0.1.4 py-rouge==1.1 pyasn1==0.4.8 pyasn1-modules==0.2.8 pycodestyle==2.5.0 pyflakes==2.1.1 pygments==2.6.1 pyparsing==2.4.7 pytest==5.3.2 python-dateutil==2.8.1 pytz==2020.1 pyyaml==5.1 pyzmq==18.1.0 recommonmark==0.6.0 regex==2019.8.19 requests==2.22.0 requests-mock==1.7.0 requests-oauthlib==1.3.0 rsa==4.6 ruamel-base==1.0.0 s3transfer==0.2.1 scikit-learn==0.23.1 scipy==1.4.1 setuptools==47.3.1 sh==1.12.14 six==1.15.0 smmap==3.0.4 smmap2==3.0.1 snowballstemmer==2.0.0 spacy==2.2.3 sphinx==2.2.0 sphinx-autodoc-typehints==1.10.3 sphinx-rtd-theme==0.4.3 sphinxcontrib-applehelp==1.0.2 sphinxcontrib-devhelp==1.0.2 sphinxcontrib-htmlhelp==1.0.3 sphinxcontrib-jsmath==1.0.1 sphinxcontrib-qthelp==1.0.3 sphinxcontrib-serializinghtml==1.1.4 srsly==1.0.2 tensorboard==2.2.2 tensorboard-plugin-wit==1.6.0.post3 tensorflow==2.2.0 tensorflow-addons==0.10.0 tensorflow-estimator==2.2.0 tensorflow-probability==0.10.0 termcolor==1.1.0 thinc==7.3.1 threadpoolctl==2.1.0 tokenizers==0.4.2 torch==1.4.0 tqdm==4.36.1 traitlets==4.3.3 typeguard==2.9.1 typing-extensions==3.7.4.1 unidecode==1.1.1 untokenize==0.1.1 urllib3==1.25.9 urwid==2.1.0 wasabi==0.6.0 wcwidth==0.2.4 websocket-client==0.56.0 websocket-server==0.4 werkzeug==1.0.1 wheel==0.34.2 wrapt==1.12.1 > .rerun-requirements.txt && pip install -r .rerun-requirements.txt\"], 'execute_command': 'python train.py --cfg ymls/default.yml --gpus 0,1 SequentialKnowledgeTransformer', 'notes': [\"execute command is the repository's documented command (corpus ground truth)\", 'base image python:3.6-slim: declared by README (3.6); resolved to the first available minor that satisfies it', 'time machine: python 3.8, 137 locked package(s)', 'env delta: apt build-essential \u2014 The error indicates missing gcc compiler required to build Python packages from source; build-essential provides gcc and necessary build tools.']}"
+    },
+    {
+      "t_s": 299.2,
+      "at": "2026-09-30T14:37:27.986289+00:00",
+      "line": "[citations] not cited (not used in a decision): https://github.com/watson-developer-cloud/python-sdk/issues/418"
+    },
+    {
+      "t_s": 299.2,
+      "at": "2026-09-30T14:37:27.986298+00:00",
+      "line": "[citations] not cited (not used in a decision): https://www.geeksforgeeks.org/python/how-to-fix-fatal-error-python-h-no-such-file-or-directory"
+    },
+    {
+      "t_s": 299.2,
+      "at": "2026-09-30T14:37:27.986306+00:00",
+      "line": "[citations] not cited (not used in a decision): https://www.digitalocean.com/community/tutorials/how-to-fix-python-no-such-file-or-directory-compiler-errors-when-installing-packages"
+    },
+    {
+      "t_s": 299.32,
+      "at": "2026-09-30T14:37:28.107474+00:00",
+      "line": "[integrity] verified 109 file(s) against tree 4026487b034c2d3c34bd535b329d88ef8234afba"
+    },
+    {
+      "t_s": 299.32,
+      "at": "2026-09-30T14:37:28.107512+00:00",
+      "line": "[sandbox] starting build+execute (wall_clock_seconds=600)"
+    },
+    {
+      "t_s": 299.34,
+      "at": "2026-09-30T14:37:28.132394+00:00",
+      "line": "[runner] torch: repo pins torch; installed the CPU wheels as a matched set with the same pins"
+    },
+    {
+      "t_s": 615.62,
+      "at": "2026-09-30T14:42:44.407939+00:00",
+      "line": "[cost_guard] recorded $0.9016 sandbox spend, $0.4860 remaining today"
+    },
+    {
+      "t_s": 615.62,
+      "at": "2026-09-30T14:42:44.408104+00:00",
+      "line": "[repair 1] re-execution id=803d48f8-3bb4-43f9-9193-72bc76b0e337 exit_code=1"
+    },
+    {
+      "t_s": 615.62,
+      "at": "2026-09-30T14:42:44.408989+00:00",
+      "line": "[classifier] DEP_MISSING: ModuleNotFoundError: No module named 'ruamel.yaml'"
+    },
+    {
+      "t_s": 620.24,
+      "at": "2026-09-30T14:42:49.034591+00:00",
+      "line": "[import-map] ruamel -> ruamel-base (pipreqs, confidence normal) for the resolver"
+    },
+    {
+      "t_s": 620.24,
+      "at": "2026-09-30T14:42:49.034713+00:00",
+      "line": "[resolver] ruamel-base: 0 verified git source(s), PyPI found (4 release(s) shown), era 2020-06-16; query: 'ruamel-base python package version compatible 2020 release history'"
+    },
+    {
+      "t_s": 620.24,
+      "at": "2026-09-30T14:42:49.034744+00:00",
+      "line": "[tavily] 5 result(s) for 'ruamel-base python package version compatible 2020 release history'"
+    },
+    {
+      "t_s": 624.86,
+      "at": "2026-09-30T14:42:53.647146+00:00",
+      "line": "[repair 2] tamper gate PASS (env) \u2014 applying and re-executing"
+    },
+    {
+      "t_s": 624.86,
+      "at": "2026-09-30T14:42:53.647669+00:00",
+      "line": "[repair 2] env delta applied; build plan now: {'base_image': 'python:3.8-slim', 'apt_install': ['build-essential'], 'install_commands': [\"printf '%s\\\\n' absl-py==0.9.0 alabaster==0.7.12 astunparse==1.6.3 attrs==19.3.0 babel==2.8.0 backcall==0.2.0 better-exceptions==0.2.2 blis==0.4.1 boto3==1.9.246 botocore==1.12.246 cachetools==4.1.0 catalogue==1.0.0 certifi==2020.4.5.2 chardet==3.0.4 cloudpickle==1.4.1 colorful==0.5.4 colorlog==4.1.0 commonmark==0.9.1 cymem==2.0.3 decorator==4.4.2 docformatter==1.3 docutils==0.14 emoji==0.5.4 entrypoints==0.3 flake8==3.7.8 flake8-bugbear==19.8.0 gast==0.3.3 gitdb2==2.0.5 gitpython==3.0.3 google-auth==1.17.2 google-auth-oauthlib==0.4.1 google-pasta==0.2.0 grpcio==1.29.0 h5py==2.10.0 idna==2.8 imagesize==1.2.0 ipython==7.15.0 ipython-genutils==0.2.0 jedi==0.17.0 jinja2==2.11.2 jmespath==0.10.0 joblib==0.14.1 keras-preprocessing==1.1.2 markdown==2.6.11 markupsafe==1.1.1 mccabe==0.6.1 mlperf-compliance==0.0.10 mock==4.0.2 more-itertools==8.4.0 murmurhash==1.0.2 nltk==3.4.5 numpy==1.18.5 oauthlib==3.1.0 opt-einsum==3.2.1 packaging==20.4 pandas==1.0.4 parlai==0.1.20200610 parso==0.7.0 pexpect==4.7.0 pickleshare==0.7.5 pillow==7.1.2 plac==1.1.3 pluggy==0.13.1 preshed==3.0.2 prompt-toolkit==3.0.5 protobuf==3.12.2 psutil==5.7.0 ptyprocess==0.6.0 pudb==2019.2 py==1.8.2 py-cpuinfo==6.0.0 py-gfm==0.1.4 py-rouge==1.1 pyasn1==0.4.8 pyasn1-modules==0.2.8 pycodestyle==2.5.0 pyflakes==2.1.1 pygments==2.6.1 pyparsing==2.4.7 pytest==5.3.2 python-dateutil==2.8.1 pytz==2020.1 pyyaml==5.1 pyzmq==18.1.0 recommonmark==0.6.0 regex==2019.8.19 requests==2.22.0 requests-mock==1.7.0 requests-oauthlib==1.3.0 rsa==4.6 ruamel-base==1.0.0 s3transfer==0.2.1 scikit-learn==0.23.1 scipy==1.4.1 setuptools==47.3.1 sh==1.12.14 six==1.15.0 smmap==3.0.4 smmap2==3.0.1 snowballstemmer==2.0.0 spacy==2.2.3 sphinx==2.2.0 sphinx-autodoc-typehints==1.10.3 sphinx-rtd-theme==0.4.3 sphinxcontrib-applehelp==1.0.2 sphinxcontrib-devhelp==1.0.2 sphinxcontrib-htmlhelp==1.0.3 sphinxcontrib-jsmath==1.0.1 sphinxcontrib-qthelp==1.0.3 sphinxcontrib-serializinghtml==1.1.4 srsly==1.0.2 tensorboard==2.2.2 tensorboard-plugin-wit==1.6.0.post3 tensorflow==2.2.0 tensorflow-addons==0.10.0 tensorflow-estimator==2.2.0 tensorflow-probability==0.10.0 termcolor==1.1.0 thinc==7.3.1 threadpoolctl==2.1.0 tokenizers==0.4.2 torch==1.4.0 tqdm==4.36.1 traitlets==4.3.3 typeguard==2.9.1 typing-extensions==3.7.4.1 unidecode==1.1.1 untokenize==0.1.1 urllib3==1.25.9 urwid==2.1.0 wasabi==0.6.0 wcwidth==0.2.4 websocket-client==0.56.0 websocket-server==0.4 werkzeug==1.0.1 wheel==0.34.2 wrapt==1.12.1 ruamel.yaml==0.15.80 > .rerun-requirements.txt && pip install -r .rerun-requirements.txt\"], 'execute_command': 'python train.py --cfg ymls/default.yml --gpus 0,1 SequentialKnowledgeTransformer', 'notes': [\"execute command is the repository's documented command (corpus ground truth)\", 'base image python:3.6-slim: declared by README (3.6); resolved to the first available minor that satisfies it', 'time machine: python 3.8, 137 locked package(s)', 'env delta: apt build-essential \u2014 The error indicates missing gcc compiler required to build Python packages from source; build-essential provides gcc and necessary build tools.', \"env delta: add ruamel.yaml \u2014 ModuleNotFoundError: No module named 'ruamel.yaml' indicates missing dependency.\"]}"
+    },
+    {
+      "t_s": 624.86,
+      "at": "2026-09-30T14:42:53.647718+00:00",
+      "line": "[citations] not cited (not used in a decision): https://packages.fedoraproject.org/pkgs/python-ruamel-yaml-clib/python3-ruamel-yaml-clib/epel-8.html"
+    },
+    {
+      "t_s": 624.86,
+      "at": "2026-09-30T14:42:53.647730+00:00",
+      "line": "[citations] not cited (not used in a decision): https://itsourcecode.com/modulenotfounderror/modulenotfounderror-no-module-named-ruamel-solved"
+    },
+    {
+      "t_s": 624.86,
+      "at": "2026-09-30T14:42:53.647737+00:00",
+      "line": "[citations] not cited (not used in a decision): https://www.python.org/downloads"
+    },
+    {
+      "t_s": 624.86,
+      "at": "2026-09-30T14:42:53.647745+00:00",
+      "line": "[citations] not cited (not used in a decision): https://en.wikipedia.org/wiki/Python_(programming_language)"
+    },
+    {
+      "t_s": 624.86,
+      "at": "2026-09-30T14:42:53.647751+00:00",
+      "line": "[citations] not cited (not used in a decision): https://www.chainguard.dev/unchained/this-shit-is-hard-the-complexities-of-fixing-python-library-security-issues-at-scale"
+    },
+    {
+      "t_s": 624.86,
+      "at": "2026-09-30T14:42:53.647759+00:00",
+      "line": "[citations] not cited (offered, not used): https://pypi.org/project/ruamel-base/1.0.0/"
+    },
+    {
+      "t_s": 624.86,
+      "at": "2026-09-30T14:42:53.647766+00:00",
+      "line": "[citations] not cited (offered, not used): https://pypi.org/project/ruamel-base/0.2/"
+    },
+    {
+      "t_s": 624.86,
+      "at": "2026-09-30T14:42:53.647773+00:00",
+      "line": "[citations] not cited (offered, not used): https://pypi.org/project/ruamel-base/0.3/"
+    },
+    {
+      "t_s": 624.86,
+      "at": "2026-09-30T14:42:53.647781+00:00",
+      "line": "[citations] not cited (offered, not used): https://pypi.org/project/ruamel-base/0.1/"
+    },
+    {
+      "t_s": 624.98,
+      "at": "2026-09-30T14:42:53.765542+00:00",
+      "line": "[integrity] verified 109 file(s) against tree 4026487b034c2d3c34bd535b329d88ef8234afba"
+    },
+    {
+      "t_s": 624.98,
+      "at": "2026-09-30T14:42:53.765581+00:00",
+      "line": "[sandbox] starting build+execute (wall_clock_seconds=600)"
+    },
+    {
+      "t_s": 625.0,
+      "at": "2026-09-30T14:42:53.790648+00:00",
+      "line": "[runner] torch: repo pins torch; installed the CPU wheels as a matched set with the same pins"
+    },
+    {
+      "t_s": 901.11,
+      "at": "2026-09-30T14:47:29.900121+00:00",
+      "line": "[cost_guard] recorded $0.9870 sandbox spend, $0.0000 remaining today"
+    },
+    {
+      "t_s": 901.11,
+      "at": "2026-09-30T14:47:29.900297+00:00",
+      "line": "[repair 2] re-execution id=857cfce5-661a-4bc4-98c1-9500863b13da exit_code=1"
+    },
+    {
+      "t_s": 901.11,
+      "at": "2026-09-30T14:47:29.901155+00:00",
+      "line": "[classifier] DEP_MISSING: ModuleNotFoundError: No module named 'language_evaluation'"
+    },
+    {
+      "t_s": 907.79,
+      "at": "2026-09-30T14:47:36.584161+00:00",
+      "line": "[resolver] language_evaluation: 0 verified git source(s), PyPI not on PyPI (0 release(s) shown), era 2020-06-16; query: 'language_evaluation python package source code github repository pip install | language_evaluation github repository (github.com only)'"
+    },
+    {
+      "t_s": 907.79,
+      "at": "2026-09-30T14:47:36.584216+00:00",
+      "line": "[tavily] 10 result(s) for 'language_evaluation python package source code github repository pip install | language_evaluation github repository (github.com only)'"
+    },
+    {
+      "t_s": 907.8,
+      "at": "2026-09-30T14:47:36.588234+00:00",
+      "line": "[repair 3] declined: repair model call failed: daily cost ceiling reached before a model call: daily cost ceiling would be exceeded: $2.5045 spent + $0.0000 requested > $2.0000 ceiling"
+    },
+    {
+      "t_s": 907.8,
+      "at": "2026-09-30T14:47:36.588267+00:00",
+      "line": "[citations] not cited (not used in a decision): https://labex.io/tutorials/python-how-to-install-python-package-from-github-437144"
+    },
+    {
+      "t_s": 907.8,
+      "at": "2026-09-30T14:47:36.588278+00:00",
+      "line": "[citations] not cited (not used in a decision): https://github.com/pypa/pip"
+    },
+    {
+      "t_s": 907.8,
+      "at": "2026-09-30T14:47:36.588286+00:00",
+      "line": "[citations] not cited (not used in a decision): https://discuss.streamlit.io/t/pip-installing-from-github/21484"
+    },
+    {
+      "t_s": 907.8,
+      "at": "2026-09-30T14:47:36.588293+00:00",
+      "line": "[citations] not cited (not used in a decision): https://github.com/mvitousek/reticulated"
+    },
+    {
+      "t_s": 907.8,
+      "at": "2026-09-30T14:47:36.588300+00:00",
+      "line": "[citations] not cited (not used in a decision): https://quantum.cloud.ibm.com/docs/guides/install-qiskit"
+    },
+    {
+      "t_s": 907.8,
+      "at": "2026-09-30T14:47:36.588306+00:00",
+      "line": "[citations] not cited (not used in a decision): https://github.com/j-min/CLIP-Caption-Reward/issues/7"
+    },
+    {
+      "t_s": 907.8,
+      "at": "2026-09-30T14:47:36.588312+00:00",
+      "line": "[citations] not cited (not used in a decision): https://github.com/bckim92/language-evaluation"
+    },
+    {
+      "t_s": 907.8,
+      "at": "2026-09-30T14:47:36.588318+00:00",
+      "line": "[citations] not cited (not used in a decision): https://github.com/nuprl/MultiPL-E"
+    },
+    {
+      "t_s": 907.8,
+      "at": "2026-09-30T14:47:36.588325+00:00",
+      "line": "[citations] not cited (not used in a decision): https://github.com/bckim92/language-evaluation/blob/master/language_evaluation_test.py"
+    },
+    {
+      "t_s": 907.8,
+      "at": "2026-09-30T14:47:36.588331+00:00",
+      "line": "[citations] not cited (not used in a decision): https://github.com/topics/clinical-quality-language"
+    },
+    {
+      "t_s": 907.8,
+      "at": "2026-09-30T14:47:36.588351+00:00",
+      "line": "[verdict] BLOCKED after 3 repair attempt(s): DEP_MISSING"
+    }
+  ],
+  "model_calls": [
+    {
+      "model": "nvidia/nemotron-3-super-120b-a12b",
+      "started_at": "2026-09-30T14:32:29.041823+00:00",
+      "latency_s": 1.15,
+      "finish_reason": "stop",
+      "content_is_none": false,
+      "has_reasoning": true,
+      "usage": {
+        "completion_tokens": 37,
+        "prompt_tokens": 274,
+        "total_tokens": 311,
+        "completion_tokens_details": {
+          "accepted_prediction_tokens": null,
+          "audio_tokens": null,
+          "reasoning_tokens": 27,
+          "rejected_prediction_tokens": null,
+          "text_tokens": null
+        },
+        "prompt_tokens_details": {
+          "audio_tokens": null,
+          "cache_write_tokens": null,
+          "cached_tokens": 0,
+          "image_tokens": null,
+          "text_tokens": null,
+          "created_cache_tokens": 0,
+          "multimodal_tokens": null
+        },
+        "prompt_cache_hit_tokens": 0,
+        "prompt_cache_miss_tokens": 274
+      }
+    },
+    {
+      "model": "nvidia/nemotron-3-super-120b-a12b",
+      "started_at": "2026-09-30T14:37:21.430105+00:00",
+      "latency_s": 6.56,
+      "finish_reason": "stop",
+      "content_is_none": false,
+      "has_reasoning": true,
+      "usage": {
+        "completion_tokens": 1176,
+        "prompt_tokens": 10071,
+        "total_tokens": 11247,
+        "completion_tokens_details": {
+          "accepted_prediction_tokens": null,
+          "audio_tokens": null,
+          "reasoning_tokens": 1058,
+          "rejected_prediction_tokens": null,
+          "text_tokens": null
+        },
+        "prompt_tokens_details": {
+          "audio_tokens": null,
+          "cache_write_tokens": null,
+          "cached_tokens": 0,
+          "image_tokens": null,
+          "text_tokens": null,
+          "created_cache_tokens": 0,
+          "multimodal_tokens": null
+        },
+        "prompt_cache_hit_tokens": 0,
+        "prompt_cache_miss_tokens": 10071
+      }
+    },
+    {
+      "model": "nvidia/nemotron-3-super-120b-a12b",
+      "started_at": "2026-09-30T14:42:49.039376+00:00",
+      "latency_s": 4.61,
+      "finish_reason": "stop",
+      "content_is_none": false,
+      "has_reasoning": true,
+      "usage": {
+        "completion_tokens": 732,
+        "prompt_tokens": 9248,
+        "total_tokens": 9980,
+        "completion_tokens_details": {
+          "accepted_prediction_tokens": null,
+          "audio_tokens": null,
+          "reasoning_tokens": 609,
+          "rejected_prediction_tokens": null,
+          "text_tokens": null
+        },
+        "prompt_tokens_details": {
+          "audio_tokens": null,
+          "cache_write_tokens": null,
+          "cached_tokens": 0,
+          "image_tokens": null,
+          "text_tokens": null,
+          "created_cache_tokens": 0,
+          "multimodal_tokens": null
+        },
+        "prompt_cache_hit_tokens": 0,
+        "prompt_cache_miss_tokens": 9248
+      }
+    }
+  ],
+  "cost_guard": {
+    "spent_usd": 2.50449801,
+    "model_spent_usd": 0.0076284000000000005,
+    "sandbox_spent_usd": 2.49686961,
+    "remaining_usd": 0.0,
+    "model_usage": [
+      {
+        "model": "nvidia/nemotron-3-super-120b-a12b",
+        "prompt_tokens": 274,
+        "completion_tokens": 37,
+        "cost_usd": 0.0001155
+      },
+      {
+        "model": "nvidia/nemotron-3-super-120b-a12b",
+        "prompt_tokens": 10071,
+        "completion_tokens": 1176,
+        "cost_usd": 0.0040796999999999995
+      },
+      {
+        "model": "nvidia/nemotron-3-super-120b-a12b",
+        "prompt_tokens": 9248,
+        "completion_tokens": 732,
+        "cost_usd": 0.0034332000000000004
+      }
+    ],
+    "prices_usd_per_1m": {
+      "nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B": [
+        0.06,
+        0.24
+      ],
+      "nvidia/nemotron-3-super-120b-a12b": [
+        0.3,
+        0.9
+      ],
+      "nvidia/Nemotron-3-Ultra-550b-a55b": [
+        1.0,
+        3.0
+      ]
+    },
+    "prices_source": "https://api.tokenfactory.nebius.com/v1/models?verbose=true (pricing field)",
+    "prices_retrieved": "2026-09-24"
+  }
+}

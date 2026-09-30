@@ -1,0 +1,813 @@
+{
+  "run_kind": "live end-to-end run",
+  "dev_run": false,
+  "dry_run": null,
+  "batch": {
+    "harness_tag": "harness-v1.3.2",
+    "harness_commit": "77b3cfe1697ad74ad13eac1f77ffe0f1e80c7379",
+    "head_commit": "482173f3f945c40b990c30c87e0acf7e2c2b0c59",
+    "corpus": "corpus-v2",
+    "prereg_sha256": "ae5a722249156e058d3d360bdc63fa8224140d0688f1daa307ecfa93a98c7284",
+    "corpus_hash": "7df090bea7013974f9f10fb8959ab0162734b51c83a80f744f9c310ce694fbdc",
+    "arm": "treatment",
+    "total_cap_usd": 25.0,
+    "already_spent_usd": 4.08,
+    "entry_id": 15,
+    "category": "PRIMARY",
+    "rules_matched": [],
+    "per_entry_cap_usd": 2.0
+  },
+  "started_at": "2026-09-30T14:17:29.677099+00:00",
+  "corpus_entry": {
+    "name": "YuliaRubanova__latent_ode",
+    "repo_url": "https://github.com/YuliaRubanova/latent_ode",
+    "commit_sha": "c0682d4f52b806fb88d965755892eadd9783f936",
+    "command": "python3 run_models.py --niters 500 -n 1000 -s 50 -l 10 --dataset periodic  --latent-ode --noise-weight 0.01",
+    "command_source": "README.md line 29"
+  },
+  "config": {
+    "models": {
+      "recon": "nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B",
+      "planner": "nvidia/nemotron-3-super-120b-a12b",
+      "repairer": "nvidia/nemotron-3-super-120b-a12b",
+      "adjudicator": "nvidia/Nemotron-3-Ultra-550b-a55b"
+    },
+    "sandbox_backend": "token_factory",
+    "sandbox_image_default": "python:3.10-slim",
+    "sandbox_wall_clock_seconds": 600.0,
+    "arm": "treatment",
+    "repair_enabled": true,
+    "max_attempts": 3,
+    "tavily_configured": true,
+    "cost_cap_usd": 2.0
+  },
+  "intake": {
+    "duration_s": 19.06,
+    "resolved_sha": "c0682d4f52b806fb88d965755892eadd9783f936",
+    "dependency_files": [],
+    "declared_dependencies": [],
+    "entrypoint_candidates": [
+      "person_activity.py",
+      "physionet.py",
+      "run_models.py"
+    ],
+    "notebook_paths": []
+  },
+  "pipeline_duration_s": 873.4,
+  "repair_mode": "deterministic",
+  "tree_integrity": {
+    "status": "verified",
+    "tree_sha": "7c900a9d4f351c722de733a2e8e4072c8d6eab35",
+    "files_checked": 21,
+    "excluded_patched": []
+  },
+  "result": {
+    "verdict": "INDETERMINATE",
+    "taxonomy_code": null,
+    "indeterminate_reason": "PIPELINE_ERROR:sandbox:SandboxError: RERUN's own pipeline failed during 'sandbox' (sandbox execution exceeded 600.0s wall clock: Operation 01a0f2b3-2d49-74c5-bb8b-d9085320ded6 has timed out) \u2014 this is not a verdict on the repository.",
+    "reason_code": "PIPELINE_ERROR:sandbox:SandboxError",
+    "error_chain": [
+      {
+        "error": "ModuleNotFoundError: No module named 'matplotlib'",
+        "class": "DEP_MISSING",
+        "attribution": "REPO",
+        "phase": "repo_run",
+        "cleared_by": 0
+      },
+      {
+        "error": "ERROR: Could not find a version that satisfies the requirement dataclasses==0.8 (from versions: 0.1, 0.2, 0.3, 0.4, 0.5, 0.6)",
+        "class": "DEP_YANKED",
+        "attribution": "REPO",
+        "phase": "repo_install",
+        "cleared_by": null
+      }
+    ],
+    "first_repo_error": "ModuleNotFoundError: No module named 'matplotlib'",
+    "last_error": "ERROR: Could not find a version that satisfies the requirement dataclasses==0.8 (from versions: 0.1, 0.2, 0.3, 0.4, 0.5, 0.6)",
+    "error_traceback": "Traceback (most recent call last):\n  File \"B:\\Desktop\\RERUN_Nvidia\\backend\\app\\services\\sandbox.py\", line 540, in _run_once\n    ).wait()\n      ~~~~^^\n  File \"B:\\Desktop\\RERUN_Nvidia\\backend\\.venv\\Lib\\site-packages\\contree_sdk\\sdk\\objects\\image_like\\_sync.py\", line 27, in wait\n    return coro_sync(self._await())\n  File \"B:\\Desktop\\RERUN_Nvidia\\backend\\.venv\\Lib\\site-packages\\contree_sdk\\_internals\\utils\\wrapper.py\", line 118, in coro_sync\n    return wrapper.wrap(coro)\n           ~~~~~~~~~~~~^^^^^^\n  File \"B:\\Desktop\\RERUN_Nvidia\\backend\\.venv\\Lib\\site-packages\\contree_sdk\\_internals\\utils\\wrapper.py\", line 97, in wrap\n    return future.result()\n           ~~~~~~~~~~~~~^^\n  File \"C:\\Users\\E16\\AppData\\Local\\Python\\pythoncore-3.14-64\\Lib\\concurrent\\futures\\_base.py\", line 450, in result\n    return self.__get_result()\n           ~~~~~~~~~~~~~~~~~^^\n  File \"C:\\Users\\E16\\AppData\\Local\\Python\\pythoncore-3.14-64\\Lib\\concurrent\\futures\\_base.py\", line 395, in __get_result\n    raise self._exception\n  File \"B:\\Desktop\\RERUN_Nvidia\\backend\\.venv\\Lib\\site-packages\\contree_sdk\\_internals\\utils\\wrapper.py\", line 23, in _await\n    return await x\n           ^^^^^^^\n  File \"B:\\Desktop\\RERUN_Nvidia\\backend\\.venv\\Lib\\site-packages\\contree_sdk\\sdk\\objects\\image_like\\_base.py\", line 327, in _await\n    image_metadata, result = await self._client._wait_operation(\n                             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n        operation_uuid, InstanceOperationMetadata, timeout=timeout\n        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n    )\n    ^\n  File \"B:\\Desktop\\RERUN_Nvidia\\backend\\.venv\\Lib\\site-packages\\contree_sdk\\sdk\\client\\_base.py\", line 168, in _wait_operation\n    raise OperationTimedOutError(operation_uuid=operation_uuid)\ncontree_sdk.sdk.exceptions.operation.OperationTimedOutError: Operation 01a0f2b3-2d49-74c5-bb8b-d9085320ded6 has timed out\n\nThe above exception was the direct cause of the following exception:\n\nTraceback (most recent call last):\n  File \"B:\\Desktop\\RERUN_Nvidia\\backend\\app\\services\\orchestrator.py\", line 512, in run_pipeline\n    return _run_stages(\n        repo_url=repo_url,\n    ...<8 lines>...\n        documented_command=documented_command,\n    )\n  File \"B:\\Desktop\\RERUN_Nvidia\\backend\\app\\services\\orchestrator.py\", line 1253, in _run_stages\n    rerun_result = _execute(workdir)\n  File \"B:\\Desktop\\RERUN_Nvidia\\backend\\app\\services\\orchestrator.py\", line 683, in _execute\n    result = deps.sandbox_runner(\n        **runner_kwargs,\n    ...<9 lines>...\n        file_modes=dict(getattr(record, \"modes\", None) or {}),\n    )\n  File \"B:\\Desktop\\RERUN_Nvidia\\backend\\app\\services\\sandbox.py\", line 438, in run_build_and_execute\n    return retry_call(\n        lambda: _run_once(\n    ...<12 lines>...\n        sleep=_sleep,\n    )\n  File \"B:\\Desktop\\RERUN_Nvidia\\backend\\app\\services\\infra.py\", line 73, in retry_call\n    return fn()\n  File \"B:\\Desktop\\RERUN_Nvidia\\backend\\app\\services\\sandbox.py\", line 439, in <lambda>\n    lambda: _run_once(\n            ~~~~~~~~~^\n        api_key=api_key,\n        ^^^^^^^^^^^^^^^^\n    ...<6 lines>...\n        extract_command=extract_command,\n        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n    ),\n    ^\n  File \"B:\\Desktop\\RERUN_Nvidia\\backend\\app\\services\\sandbox.py\", line 570, in _run_once\n    raise SandboxError(f\"sandbox execution exceeded {wall_clock_seconds}s wall clock: {exc}\") from exc\napp.services.sandbox.SandboxError: sandbox execution exceeded 600.0s wall clock: Operation 01a0f2b3-2d49-74c5-bb8b-d9085320ded6 has timed out\n",
+    "attempts": [
+      {
+        "attempt_number": 0,
+        "diff_text": "",
+        "gate_decision": "PASS",
+        "gate_violations": [],
+        "exit_code": 1,
+        "stdout_tail": "Collecting absl-py==0.11.0\n  Downloading absl_py-0.11.0-py3-none-any.whl (127 kB)\n     \u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501 127.8/127.8 kB 6.3 MB/s eta 0:00:00\nCollecting certifi==2020.11.8\n  Downloading certifi-2020.11.8-py2.py3-none-any.whl (155 kB)\n     \u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501 155.4/155.4 kB 15.2 MB/s eta 0:00:00\nCollecting chardet==3.0.4\n  Downloading chardet-3.0.4-py2.py3-none-any.whl (133 kB)\n     \u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501 133.4/133.4 kB 19.9 MB/s eta 0:00:00\nCollecting cycler==0.10.0\n  Downloading cycler-0.10.0-py2.py3-none-any.whl (6.5 kB)\n",
+        "stderr_tail": "ERROR: Ignored the following versions that require a different python version: 0.7 Requires-Python >=3.6, <3.7; 0.8 Requires-Python >=3.6, <3.7; 2.4.0 Requires-Python >=3.10; 2.5.0 Requires-Python >=3.10; 6.0.0 Requires-Python >=3.10; 6.0.0.post1 Requires-Python >=3.10; 7.0.0 Requires-Python >=3.10; 7.0.0rc4 Requires-Python >=3.10; 7.0.1 Requires-Python >=3.10; 7.1.0 Requires-Python >=3.10; 7.2.0 Requires-Python >=3.10; 7.3.0 Requires-Python >=3.10; 7.4.0.post1 Requires-Python >=3.10; 7.4.0.post2 Requires-Python >=3.10; 7.4.1 Requires-Python >=3.10; 7.4.2 Requires-Python >=3.10; 7.4.3 Requires-Python >=3.10; 7.5.0 Requires-Python >=3.10; 7.5.1 Requires-Python >=3.10; 7.6.0 Requires-Python >=3.10\nERROR: Could not find a version that satisfies the requirement dataclasses==0.8 (from versions: 0.1, 0.2, 0.3, 0.4, 0.5, 0.6)\nERROR: No matching distribution found for dataclasses==0.8\n\n[notice] A new release of pip is available: 23.0.1 -> 25.0.1\n[notice] To update, run: pip install --upgrade pip\n",
+        "tavily_sources": [],
+        "env_delta": [],
+        "resolved_sources": [],
+        "origin": "time_machine",
+        "time_machine": {
+          "era": {
+            "date": "2020-12-03",
+            "source": "pinned-commit",
+            "detail": {
+              "note": "no dependency files in the repository"
+            }
+          },
+          "python": {
+            "version": "3.8",
+            "reason": "newest CPython first released \u2265180 days before the era date 2020-12-03 (https://devguide.python.org/versions/ (first release dates, retrieved 2026-09-24))",
+            "source": "https://devguide.python.org/versions/ (first release dates, retrieved 2026-09-24)"
+          },
+          "undeclared_imports": [
+            "pillow",
+            "dm_control",
+            "matplotlib",
+            "numpy",
+            "pandas",
+            "scipy",
+            "scikit-learn",
+            "torch",
+            "torchdiffeq",
+            "torchvision",
+            "umap-learn"
+          ],
+          "import_mappings": [
+            {
+              "import": "PIL",
+              "distribution": "pillow",
+              "source": "pipreqs",
+              "confidence": "normal"
+            },
+            {
+              "import": "sklearn",
+              "distribution": "scikit-learn",
+              "source": "pipreqs",
+              "confidence": "normal"
+            },
+            {
+              "import": "umap",
+              "distribution": "umap-learn",
+              "source": "pigar+rank",
+              "confidence": "low"
+            }
+          ],
+          "apt_added": [],
+          "apt_reason": "",
+          "lock": {
+            "ok": true,
+            "lock": [
+              "absl-py==0.11.0",
+              "certifi==2020.11.8",
+              "chardet==3.0.4",
+              "cycler==0.10.0",
+              "dataclasses==0.8",
+              "dm-control==0.0.322773188",
+              "dm-env==1.3",
+              "dm-tree==0.1.5",
+              "future==0.18.2",
+              "glfw==2.0.0",
+              "h5py==3.1.0",
+              "idna==2.10",
+              "joblib==0.17.0",
+              "kiwisolver==1.3.1",
+              "labmaze==1.0.3",
+              "llvmlite==0.35.0",
+              "lxml==4.6.2",
+              "matplotlib==3.3.3",
+              "numba==0.52.0",
+              "numpy==1.19.4",
+              "pandas==1.1.4",
+              "pillow==8.0.1",
+              "protobuf==3.14.0",
+              "pyopengl==3.1.5",
+              "pyparsing==2.4.7",
+              "python-dateutil==2.8.1",
+              "pytz==2020.4",
+              "requests==2.25.0",
+              "scikit-learn==0.23.2",
+              "scipy==1.5.4",
+              "setuptools==50.3.2",
+              "six==1.15.0",
+              "threadpoolctl==2.1.0",
+              "torch==1.7.0",
+              "torchdiffeq==0.1.1",
+              "torchvision==0.8.1",
+              "tqdm==4.54.0",
+              "typing-extensions==3.7.4.3",
+              "umap-learn==0.4.6",
+              "urllib3==1.26.2"
+            ],
+            "inputs": [
+              "pillow",
+              "dm_control",
+              "matplotlib",
+              "numpy",
+              "pandas",
+              "scipy",
+              "scikit-learn",
+              "torch",
+              "torchdiffeq",
+              "torchvision",
+              "umap-learn"
+            ],
+            "not_on_index": [],
+            "command": "pip compile - --no-header --no-annotate --quiet --exclude-newer 2020-12-04T00:00:00Z --python-version 3.8 --python-platform x86_64-unknown-linux-gnu --python C:\\Users\\E16\\AppData\\Roaming\\uv\\python\\cpython-3.8.20-windows-x86_64-none\\python.exe",
+            "error": ""
+          }
+        }
+      }
+    ],
+    "certificate_prose": "The run log shows that RERUN's pipeline failed during the sandbox step because the sandbox execution exceeded the 600-second wall-clock limit, resulting in a timeout. This timeout is a pipeline-level issue, not a verdict on the repository's code. Therefore the outcome remains INDETERMINATE. Verifies that the artifact executes. Does not verify the paper's numerical results."
+  },
+  "certificate": {
+    "repo_url": "https://github.com/YuliaRubanova/latent_ode",
+    "commit_sha": "c0682d4f52b806fb88d965755892eadd9783f936",
+    "build_plan": {
+      "base_image": "python:3.10-slim",
+      "apt_install": [],
+      "install_commands": [
+        "true  # no declared dependency file found; nothing to install"
+      ],
+      "execute_command": "python3 run_models.py --niters 500 -n 1000 -s 50 -l 10 --dataset periodic  --latent-ode --noise-weight 0.01",
+      "notes": [
+        "execute command is the repository's documented command (corpus ground truth)",
+        "base image python:3.10-slim: no usable Python declaration; RERUN default 3.10"
+      ]
+    },
+    "full_log": "[intake] cloned https://github.com/YuliaRubanova/latent_ode@c0682d4f52b806fb88d965755892eadd9783f936\n[recon] calling Nemotron Nano\n[recon] entrypoint=run_models.py confidence=0.78\n[python] python:3.10-slim (default): no usable Python declaration; RERUN default 3.10\n[planner] build plan: {'base_image': 'python:3.10-slim', 'apt_install': [], 'install_commands': ['true  # no declared dependency file found; nothing to install'], 'execute_command': 'python3 run_models.py --niters 500 -n 1000 -s 50 -l 10 --dataset periodic  --latent-ode --noise-weight 0.01', 'notes': [\"execute command is the repository's documented command (corpus ground truth)\", 'base image python:3.10-slim: no usable Python declaration; RERUN default 3.10']}\n[integrity] verified 21 file(s) against tree 7c900a9d4f351c722de733a2e8e4072c8d6eab35\n[sandbox] starting build+execute (wall_clock_seconds=600)\n[runner] torch: repo imports torch, torchvision without declaring it; runner provides the newest matched CPU wheels\n[cost_guard] recorded $0.2221 sandbox spend, $1.7772 remaining today\n[sandbox] id=cd326088-7ad5-4f98-ac83-ed6c9f5dd705 exit_code=1\n[baseline] as-is run: FAILS (exit code 1)\n[classifier] DEP_MISSING: ModuleNotFoundError: No module named 'matplotlib'\n[era] 2020-12-03 from pinned-commit {'note': 'no dependency files in the repository'}\n[import-map] PIL -> pillow (pipreqs, confidence normal)\n[import-map] sklearn -> scikit-learn (pipreqs, confidence normal)\n[import-map] umap -> umap-learn (pigar+rank, confidence low)\n[time-machine] era 2020-12-03 (pinned-commit) -> python 3.8; locked 40 package(s) with uv --exclude-newer; not on the index: none\n[integrity] verified 21 file(s) against tree 7c900a9d4f351c722de733a2e8e4072c8d6eab35\n[sandbox] starting build+execute (wall_clock_seconds=600)\n[runner] torch: repo pins torch, torchvision; installed the CPU wheels as a matched set with the same pins\n[cost_guard] recorded $0.1307 sandbox spend, $1.6465 remaining today\n[time-machine] re-execution id=63b0241f-e7d2-400f-bba1-9b1406c8d05e exit_code=1\n[classifier] DEP_YANKED: ERROR: Could not find a version that satisfies the requirement dataclasses==0.8 (from versions: 0.1, 0.2, 0.3, 0.4, 0.5, 0.6)\n[resolver] dataclasses: 0 verified git source(s), PyPI found (5 release(s) shown), era 2020-12-03; query: 'dataclasses python package version compatible 2020 release history'\n[tavily] 5 result(s) for 'dataclasses python package version compatible 2020 release history'\n[repair 1] env change lacked justification/evidence; re-asked once (same attempt)\n[repair 1] tamper gate PASS (env) \u2014 applying and re-executing\n[repair 1] env delta applied; build plan now: {'base_image': 'python:3.8-slim', 'apt_install': [], 'install_commands': [\"printf '%s\\\\n' absl-py==0.11.0 certifi==2020.11.8 chardet==3.0.4 cycler==0.10.0 dm-control==0.0.322773188 dm-env==1.3 dm-tree==0.1.5 future==0.18.2 glfw==2.0.0 h5py==3.1.0 idna==2.10 joblib==0.17.0 kiwisolver==1.3.1 labmaze==1.0.3 llvmlite==0.35.0 lxml==4.6.2 matplotlib==3.3.3 numba==0.52.0 numpy==1.19.4 pandas==1.1.4 pillow==8.0.1 protobuf==3.14.0 pyopengl==3.1.5 pyparsing==2.4.7 python-dateutil==2.8.1 pytz==2020.4 requests==2.25.0 scikit-learn==0.23.2 scipy==1.5.4 setuptools==50.3.2 six==1.15.0 threadpoolctl==2.1.0 torch==1.7.0 torchdiffeq==0.1.1 torchvision==0.8.1 tqdm==4.54.0 typing-extensions==3.7.4.3 umap-learn==0.4.6 urllib3==1.26.2 > .rerun-requirements.txt && pip install -r .rerun-requirements.txt\"], 'execute_command': 'python3 run_models.py --niters 500 -n 1000 -s 50 -l 10 --dataset periodic  --latent-ode --noise-weight 0.01', 'notes': [\"execute command is the repository's documented command (corpus ground truth)\", 'base image python:3.10-slim: no usable Python declaration; RERUN default 3.10', 'time machine: python 3.8, 40 locked package(s)', 'env delta: remove dataclasses \u2014 dataclasses==0.8 requires Python <3.7, incompatible with Python 3.8 causing install failure']}\n[citations] not cited (not used in a decision): https://bugzilla.redhat.com/show_bug.cgi?id=1912143\n[citations] not cited (not used in a decision): https://dcw.ritviknag.com/en/latest/python_compatibility.html\n[citations] not cited (not used in a decision): https://docs.python.org/3/library/dataclasses.html\n[citations] not cited (not used in a decision): https://www.python.org/downloads\n[citations] not cited (not used in a decision): https://news.ycombinator.com/item?id=17448804\n[citations] not cited (offered, not used): https://pypi.org/project/dataclasses/0.8/\n[citations] not cited (offered, not used): https://pypi.org/project/dataclasses/0.7/\n[citations] not cited (offered, not used): https://pypi.org/project/dataclasses/0.6/\n[citations] not cited (offered, not used): https://pypi.org/project/dataclasses/0.5/\n[citations] not cited (offered, not used): https://pypi.org/project/dataclasses/0.4/\n[integrity] verified 21 file(s) against tree 7c900a9d4f351c722de733a2e8e4072c8d6eab35\n[sandbox] starting build+execute (wall_clock_seconds=600)\n[runner] torch: repo pins torch, torchvision; installed the CPU wheels as a matched set with the same pins\n[pipeline] INDETERMINATE: PIPELINE_ERROR:sandbox:SandboxError: RERUN's own pipeline failed during 'sandbox' (sandbox execution exceeded 600.0s wall clock: Operation 01a0f2b3-2d49-74c5-bb8b-d9085320ded6 has timed out) \u2014 this is not a verdict on the repository.\n[pipeline] traceback:\nTraceback (most recent call last):\n  File \"B:\\Desktop\\RERUN_Nvidia\\backend\\app\\services\\sandbox.py\", line 540, in _run_once\n    ).wait()\n      ~~~~^^\n  File \"B:\\Desktop\\RERUN_Nvidia\\backend\\.venv\\Lib\\site-packages\\contree_sdk\\sdk\\objects\\image_like\\_sync.py\", line 27, in wait\n    return coro_sync(self._await())\n  File \"B:\\Desktop\\RERUN_Nvidia\\backend\\.venv\\Lib\\site-packages\\contree_sdk\\_internals\\utils\\wrapper.py\", line 118, in coro_sync\n    return wrapper.wrap(coro)\n           ~~~~~~~~~~~~^^^^^^\n  File \"B:\\Desktop\\RERUN_Nvidia\\backend\\.venv\\Lib\\site-packages\\contree_sdk\\_internals\\utils\\wrapper.py\", line 97, in wrap\n    return future.result()\n           ~~~~~~~~~~~~~^^\n  File \"C:\\Users\\E16\\AppData\\Local\\Python\\pythoncore-3.14-64\\Lib\\concurrent\\futures\\_base.py\", line 450, in result\n    return self.__get_result()\n           ~~~~~~~~~~~~~~~~~^^\n  File \"C:\\Users\\E16\\AppData\\Local\\Python\\pythoncore-3.14-64\\Lib\\concurrent\\futures\\_base.py\", line 395, in __get_result\n    raise self._exception\n  File \"B:\\Desktop\\RERUN_Nvidia\\backend\\.venv\\Lib\\site-packages\\contree_sdk\\_internals\\utils\\wrapper.py\", line 23, in _await\n    return await x\n           ^^^^^^^\n  File \"B:\\Desktop\\RERUN_Nvidia\\backend\\.venv\\Lib\\site-packages\\contree_sdk\\sdk\\objects\\image_like\\_base.py\", line 327, in _await\n    image_metadata, result = await self._client._wait_operation(\n                             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n        operation_uuid, InstanceOperationMetadata, timeout=timeout\n        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n    )\n    ^\n  File \"B:\\Desktop\\RERUN_Nvidia\\backend\\.venv\\Lib\\site-packages\\contree_sdk\\sdk\\client\\_base.py\", line 168, in _wait_operation\n    raise OperationTimedOutError(operation_uuid=operation_uuid)\ncontree_sdk.sdk.exceptions.operation.OperationTimedOutError: Operation 01a0f2b3-2d49-74c5-bb8b-d9085320ded6 has timed out\n\nThe above exception was the direct cause of the following exception:\n\nTraceback (most recent call last):\n  File \"B:\\Desktop\\RERUN_Nvidia\\backend\\app\\services\\orchestrator.py\", line 512, in run_pipeline\n    return _run_stages(\n        repo_url=repo_url,\n    ...<8 lines>...\n        documented_command=documented_command,\n    )\n  File \"B:\\Desktop\\RERUN_Nvidia\\backend\\app\\services\\orchestrator.py\", line 1253, in _run_stages\n    rerun_result = _execute(workdir)\n  File \"B:\\Desktop\\RERUN_Nvidia\\backend\\app\\services\\orchestrator.py\", line 683, in _execute\n    result = deps.sandbox_runner(\n        **runner_kwargs,\n    ...<9 lines>...\n        file_modes=dict(getattr(record, \"modes\", None) or {}),\n    )\n  File \"B:\\Desktop\\RERUN_Nvidia\\backend\\app\\services\\sandbox.py\", line 438, in run_build_and_execute\n    return retry_call(\n        lambda: _run_once(\n    ...<12 lines>...\n        sleep=_sleep,\n    )\n  File \"B:\\Desktop\\RERUN_Nvidia\\backend\\app\\services\\infra.py\", line 73, in retry_call\n    return fn()\n  File \"B:\\Desktop\\RERUN_Nvidia\\backend\\app\\services\\sandbox.py\", line 439, in <lambda>\n    lambda: _run_once(\n            ~~~~~~~~~^\n        api_key=api_key,\n        ^^^^^^^^^^^^^^^^\n    ...<6 lines>...\n        extract_command=extract_command,\n        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n    ),\n    ^\n  File \"B:\\Desktop\\RERUN_Nvidia\\backend\\app\\services\\sandbox.py\", line 570, in _run_once\n    raise SandboxError(f\"sandbox execution exceeded {wall_clock_seconds}s wall clock: {exc}\") from exc\napp.services.sandbox.SandboxError: sandbox execution exceeded 600.0s wall clock: Operation 01a0f2b3-2d49-74c5-bb8b-d9085320ded6 has timed out",
+    "diffs": [
+      {
+        "attempt_number": 0,
+        "diff_text": "",
+        "gate_decision": "PASS",
+        "gate_violations": [],
+        "exit_code": 1,
+        "stdout_tail": "Collecting absl-py==0.11.0\n  Downloading absl_py-0.11.0-py3-none-any.whl (127 kB)\n     \u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501 127.8/127.8 kB 6.3 MB/s eta 0:00:00\nCollecting certifi==2020.11.8\n  Downloading certifi-2020.11.8-py2.py3-none-any.whl (155 kB)\n     \u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501 155.4/155.4 kB 15.2 MB/s eta 0:00:00\nCollecting chardet==3.0.4\n  Downloading chardet-3.0.4-py2.py3-none-any.whl (133 kB)\n     \u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501 133.4/133.4 kB 19.9 MB/s eta 0:00:00\nCollecting cycler==0.10.0\n  Downloading cycler-0.10.0-py2.py3-none-any.whl (6.5 kB)\n",
+        "stderr_tail": "ERROR: Ignored the following versions that require a different python version: 0.7 Requires-Python >=3.6, <3.7; 0.8 Requires-Python >=3.6, <3.7; 2.4.0 Requires-Python >=3.10; 2.5.0 Requires-Python >=3.10; 6.0.0 Requires-Python >=3.10; 6.0.0.post1 Requires-Python >=3.10; 7.0.0 Requires-Python >=3.10; 7.0.0rc4 Requires-Python >=3.10; 7.0.1 Requires-Python >=3.10; 7.1.0 Requires-Python >=3.10; 7.2.0 Requires-Python >=3.10; 7.3.0 Requires-Python >=3.10; 7.4.0.post1 Requires-Python >=3.10; 7.4.0.post2 Requires-Python >=3.10; 7.4.1 Requires-Python >=3.10; 7.4.2 Requires-Python >=3.10; 7.4.3 Requires-Python >=3.10; 7.5.0 Requires-Python >=3.10; 7.5.1 Requires-Python >=3.10; 7.6.0 Requires-Python >=3.10\nERROR: Could not find a version that satisfies the requirement dataclasses==0.8 (from versions: 0.1, 0.2, 0.3, 0.4, 0.5, 0.6)\nERROR: No matching distribution found for dataclasses==0.8\n\n[notice] A new release of pip is available: 23.0.1 -> 25.0.1\n[notice] To update, run: pip install --upgrade pip\n",
+        "tavily_sources": [],
+        "env_delta": [],
+        "resolved_sources": [],
+        "origin": "time_machine",
+        "time_machine": {
+          "era": {
+            "date": "2020-12-03",
+            "source": "pinned-commit",
+            "detail": {
+              "note": "no dependency files in the repository"
+            }
+          },
+          "python": {
+            "version": "3.8",
+            "reason": "newest CPython first released \u2265180 days before the era date 2020-12-03 (https://devguide.python.org/versions/ (first release dates, retrieved 2026-09-24))",
+            "source": "https://devguide.python.org/versions/ (first release dates, retrieved 2026-09-24)"
+          },
+          "undeclared_imports": [
+            "pillow",
+            "dm_control",
+            "matplotlib",
+            "numpy",
+            "pandas",
+            "scipy",
+            "scikit-learn",
+            "torch",
+            "torchdiffeq",
+            "torchvision",
+            "umap-learn"
+          ],
+          "import_mappings": [
+            {
+              "import": "PIL",
+              "distribution": "pillow",
+              "source": "pipreqs",
+              "confidence": "normal"
+            },
+            {
+              "import": "sklearn",
+              "distribution": "scikit-learn",
+              "source": "pipreqs",
+              "confidence": "normal"
+            },
+            {
+              "import": "umap",
+              "distribution": "umap-learn",
+              "source": "pigar+rank",
+              "confidence": "low"
+            }
+          ],
+          "apt_added": [],
+          "apt_reason": "",
+          "lock": {
+            "ok": true,
+            "lock": [
+              "absl-py==0.11.0",
+              "certifi==2020.11.8",
+              "chardet==3.0.4",
+              "cycler==0.10.0",
+              "dataclasses==0.8",
+              "dm-control==0.0.322773188",
+              "dm-env==1.3",
+              "dm-tree==0.1.5",
+              "future==0.18.2",
+              "glfw==2.0.0",
+              "h5py==3.1.0",
+              "idna==2.10",
+              "joblib==0.17.0",
+              "kiwisolver==1.3.1",
+              "labmaze==1.0.3",
+              "llvmlite==0.35.0",
+              "lxml==4.6.2",
+              "matplotlib==3.3.3",
+              "numba==0.52.0",
+              "numpy==1.19.4",
+              "pandas==1.1.4",
+              "pillow==8.0.1",
+              "protobuf==3.14.0",
+              "pyopengl==3.1.5",
+              "pyparsing==2.4.7",
+              "python-dateutil==2.8.1",
+              "pytz==2020.4",
+              "requests==2.25.0",
+              "scikit-learn==0.23.2",
+              "scipy==1.5.4",
+              "setuptools==50.3.2",
+              "six==1.15.0",
+              "threadpoolctl==2.1.0",
+              "torch==1.7.0",
+              "torchdiffeq==0.1.1",
+              "torchvision==0.8.1",
+              "tqdm==4.54.0",
+              "typing-extensions==3.7.4.3",
+              "umap-learn==0.4.6",
+              "urllib3==1.26.2"
+            ],
+            "inputs": [
+              "pillow",
+              "dm_control",
+              "matplotlib",
+              "numpy",
+              "pandas",
+              "scipy",
+              "scikit-learn",
+              "torch",
+              "torchdiffeq",
+              "torchvision",
+              "umap-learn"
+            ],
+            "not_on_index": [],
+            "command": "pip compile - --no-header --no-annotate --quiet --exclude-newer 2020-12-04T00:00:00Z --python-version 3.8 --python-platform x86_64-unknown-linux-gnu --python C:\\Users\\E16\\AppData\\Roaming\\uv\\python\\cpython-3.8.20-windows-x86_64-none\\python.exe",
+            "error": ""
+          }
+        }
+      }
+    ],
+    "verdict": "INDETERMINATE",
+    "timestamp": "2026-09-30T14:32:22.135265+00:00",
+    "bundle_version": 4,
+    "baseline": {
+      "result": "FAILS",
+      "exit_code": 1,
+      "base_image": "python:3.10-slim",
+      "install_commands": [
+        "true  # no declared dependency file found; nothing to install"
+      ],
+      "execute_command": "python3 run_models.py --niters 500 -n 1000 -s 50 -l 10 --dataset periodic  --latent-ode --noise-weight 0.01",
+      "sandbox_id": "cd326088-7ad5-4f98-ac83-ed6c9f5dd705",
+      "taxonomy_code": "DEP_MISSING",
+      "evidence": "ModuleNotFoundError: No module named 'matplotlib'"
+    },
+    "recovery": false,
+    "tree_integrity": {
+      "status": "verified",
+      "tree_sha": "7c900a9d4f351c722de733a2e8e4072c8d6eab35",
+      "files_checked": 21,
+      "excluded_patched": []
+    },
+    "corpus_hash": "7df090bea7013974f9f10fb8959ab0162734b51c83a80f744f9c310ce694fbdc",
+    "taxonomy_code": null,
+    "indeterminate_reason": "PIPELINE_ERROR:sandbox:SandboxError: RERUN's own pipeline failed during 'sandbox' (sandbox execution exceeded 600.0s wall clock: Operation 01a0f2b3-2d49-74c5-bb8b-d9085320ded6 has timed out) \u2014 this is not a verdict on the repository.",
+    "error_chain": [
+      {
+        "error": "ModuleNotFoundError: No module named 'matplotlib'",
+        "class": "DEP_MISSING",
+        "attribution": "REPO",
+        "phase": "repo_run",
+        "cleared_by": 0
+      },
+      {
+        "error": "ERROR: Could not find a version that satisfies the requirement dataclasses==0.8 (from versions: 0.1, 0.2, 0.3, 0.4, 0.5, 0.6)",
+        "class": "DEP_YANKED",
+        "attribution": "REPO",
+        "phase": "repo_install",
+        "cleared_by": null
+      }
+    ],
+    "first_repo_error": "ModuleNotFoundError: No module named 'matplotlib'",
+    "last_error": "ERROR: Could not find a version that satisfies the requirement dataclasses==0.8 (from versions: 0.1, 0.2, 0.3, 0.4, 0.5, 0.6)",
+    "reproduction_passport_hash": "d9ff9840b3081a0d5dbe67f9066afc5a7f28a0efcf04f74da78816003d7e4dd7"
+  },
+  "finished_at": "2026-09-30T14:32:22.174306+00:00",
+  "events": [
+    {
+      "t_s": 0.0,
+      "at": "2026-09-30T14:17:48.734957+00:00",
+      "line": "[intake] cloned https://github.com/YuliaRubanova/latent_ode@c0682d4f52b806fb88d965755892eadd9783f936"
+    },
+    {
+      "t_s": 0.0,
+      "at": "2026-09-30T14:17:48.735892+00:00",
+      "line": "[recon] calling Nemotron Nano"
+    },
+    {
+      "t_s": 15.0,
+      "at": "2026-09-30T14:18:03.733104+00:00",
+      "line": "[recon] entrypoint=run_models.py confidence=0.78"
+    },
+    {
+      "t_s": 15.0,
+      "at": "2026-09-30T14:18:03.736299+00:00",
+      "line": "[python] python:3.10-slim (default): no usable Python declaration; RERUN default 3.10"
+    },
+    {
+      "t_s": 16.26,
+      "at": "2026-09-30T14:18:04.990537+00:00",
+      "line": "[planner] build plan: {'base_image': 'python:3.10-slim', 'apt_install': [], 'install_commands': ['true  # no declared dependency file found; nothing to install'], 'execute_command': 'python3 run_models.py --niters 500 -n 1000 -s 50 -l 10 --dataset periodic  --latent-ode --noise-weight 0.01', 'notes': [\"execute command is the repository's documented command (corpus ground truth)\", 'base image python:3.10-slim: no usable Python declaration; RERUN default 3.10']}"
+    },
+    {
+      "t_s": 16.39,
+      "at": "2026-09-30T14:18:05.122463+00:00",
+      "line": "[integrity] verified 21 file(s) against tree 7c900a9d4f351c722de733a2e8e4072c8d6eab35"
+    },
+    {
+      "t_s": 16.39,
+      "at": "2026-09-30T14:18:05.122504+00:00",
+      "line": "[sandbox] starting build+execute (wall_clock_seconds=600)"
+    },
+    {
+      "t_s": 16.4,
+      "at": "2026-09-30T14:18:05.132631+00:00",
+      "line": "[runner] torch: repo imports torch, torchvision without declaring it; runner provides the newest matched CPU wheels"
+    },
+    {
+      "t_s": 99.13,
+      "at": "2026-09-30T14:19:27.868785+00:00",
+      "line": "[cost_guard] recorded $0.2221 sandbox spend, $1.7772 remaining today"
+    },
+    {
+      "t_s": 99.13,
+      "at": "2026-09-30T14:19:27.868874+00:00",
+      "line": "[sandbox] id=cd326088-7ad5-4f98-ac83-ed6c9f5dd705 exit_code=1"
+    },
+    {
+      "t_s": 99.13,
+      "at": "2026-09-30T14:19:27.868901+00:00",
+      "line": "[baseline] as-is run: FAILS (exit code 1)"
+    },
+    {
+      "t_s": 99.14,
+      "at": "2026-09-30T14:19:27.872936+00:00",
+      "line": "[classifier] DEP_MISSING: ModuleNotFoundError: No module named 'matplotlib'"
+    },
+    {
+      "t_s": 99.19,
+      "at": "2026-09-30T14:19:27.929212+00:00",
+      "line": "[era] 2020-12-03 from pinned-commit {'note': 'no dependency files in the repository'}"
+    },
+    {
+      "t_s": 99.3,
+      "at": "2026-09-30T14:19:28.029991+00:00",
+      "line": "[import-map] PIL -> pillow (pipreqs, confidence normal)"
+    },
+    {
+      "t_s": 99.3,
+      "at": "2026-09-30T14:19:28.030026+00:00",
+      "line": "[import-map] sklearn -> scikit-learn (pipreqs, confidence normal)"
+    },
+    {
+      "t_s": 99.3,
+      "at": "2026-09-30T14:19:28.030036+00:00",
+      "line": "[import-map] umap -> umap-learn (pigar+rank, confidence low)"
+    },
+    {
+      "t_s": 104.71,
+      "at": "2026-09-30T14:19:33.446203+00:00",
+      "line": "[time-machine] era 2020-12-03 (pinned-commit) -> python 3.8; locked 40 package(s) with uv --exclude-newer; not on the index: none"
+    },
+    {
+      "t_s": 104.82,
+      "at": "2026-09-30T14:19:33.555364+00:00",
+      "line": "[integrity] verified 21 file(s) against tree 7c900a9d4f351c722de733a2e8e4072c8d6eab35"
+    },
+    {
+      "t_s": 104.82,
+      "at": "2026-09-30T14:19:33.555404+00:00",
+      "line": "[sandbox] starting build+execute (wall_clock_seconds=600)"
+    },
+    {
+      "t_s": 104.83,
+      "at": "2026-09-30T14:19:33.564847+00:00",
+      "line": "[runner] torch: repo pins torch, torchvision; installed the CPU wheels as a matched set with the same pins"
+    },
+    {
+      "t_s": 204.94,
+      "at": "2026-09-30T14:21:13.678298+00:00",
+      "line": "[cost_guard] recorded $0.1307 sandbox spend, $1.6465 remaining today"
+    },
+    {
+      "t_s": 204.94,
+      "at": "2026-09-30T14:21:13.678373+00:00",
+      "line": "[time-machine] re-execution id=63b0241f-e7d2-400f-bba1-9b1406c8d05e exit_code=1"
+    },
+    {
+      "t_s": 204.95,
+      "at": "2026-09-30T14:21:13.680635+00:00",
+      "line": "[classifier] DEP_YANKED: ERROR: Could not find a version that satisfies the requirement dataclasses==0.8 (from versions: 0.1, 0.2, 0.3, 0.4, 0.5, 0.6)"
+    },
+    {
+      "t_s": 207.77,
+      "at": "2026-09-30T14:21:16.505302+00:00",
+      "line": "[resolver] dataclasses: 0 verified git source(s), PyPI found (5 release(s) shown), era 2020-12-03; query: 'dataclasses python package version compatible 2020 release history'"
+    },
+    {
+      "t_s": 207.77,
+      "at": "2026-09-30T14:21:16.505367+00:00",
+      "line": "[tavily] 5 result(s) for 'dataclasses python package version compatible 2020 release history'"
+    },
+    {
+      "t_s": 224.27,
+      "at": "2026-09-30T14:21:33.009422+00:00",
+      "line": "[repair 1] env change lacked justification/evidence; re-asked once (same attempt)"
+    },
+    {
+      "t_s": 231.54,
+      "at": "2026-09-30T14:21:40.275023+00:00",
+      "line": "[repair 1] tamper gate PASS (env) \u2014 applying and re-executing"
+    },
+    {
+      "t_s": 231.54,
+      "at": "2026-09-30T14:21:40.275229+00:00",
+      "line": "[repair 1] env delta applied; build plan now: {'base_image': 'python:3.8-slim', 'apt_install': [], 'install_commands': [\"printf '%s\\\\n' absl-py==0.11.0 certifi==2020.11.8 chardet==3.0.4 cycler==0.10.0 dm-control==0.0.322773188 dm-env==1.3 dm-tree==0.1.5 future==0.18.2 glfw==2.0.0 h5py==3.1.0 idna==2.10 joblib==0.17.0 kiwisolver==1.3.1 labmaze==1.0.3 llvmlite==0.35.0 lxml==4.6.2 matplotlib==3.3.3 numba==0.52.0 numpy==1.19.4 pandas==1.1.4 pillow==8.0.1 protobuf==3.14.0 pyopengl==3.1.5 pyparsing==2.4.7 python-dateutil==2.8.1 pytz==2020.4 requests==2.25.0 scikit-learn==0.23.2 scipy==1.5.4 setuptools==50.3.2 six==1.15.0 threadpoolctl==2.1.0 torch==1.7.0 torchdiffeq==0.1.1 torchvision==0.8.1 tqdm==4.54.0 typing-extensions==3.7.4.3 umap-learn==0.4.6 urllib3==1.26.2 > .rerun-requirements.txt && pip install -r .rerun-requirements.txt\"], 'execute_command': 'python3 run_models.py --niters 500 -n 1000 -s 50 -l 10 --dataset periodic  --latent-ode --noise-weight 0.01', 'notes': [\"execute command is the repository's documented command (corpus ground truth)\", 'base image python:3.10-slim: no usable Python declaration; RERUN default 3.10', 'time machine: python 3.8, 40 locked package(s)', 'env delta: remove dataclasses \u2014 dataclasses==0.8 requires Python <3.7, incompatible with Python 3.8 causing install failure']}"
+    },
+    {
+      "t_s": 231.54,
+      "at": "2026-09-30T14:21:40.275287+00:00",
+      "line": "[citations] not cited (not used in a decision): https://bugzilla.redhat.com/show_bug.cgi?id=1912143"
+    },
+    {
+      "t_s": 231.54,
+      "at": "2026-09-30T14:21:40.275312+00:00",
+      "line": "[citations] not cited (not used in a decision): https://dcw.ritviknag.com/en/latest/python_compatibility.html"
+    },
+    {
+      "t_s": 231.54,
+      "at": "2026-09-30T14:21:40.275321+00:00",
+      "line": "[citations] not cited (not used in a decision): https://docs.python.org/3/library/dataclasses.html"
+    },
+    {
+      "t_s": 231.54,
+      "at": "2026-09-30T14:21:40.275328+00:00",
+      "line": "[citations] not cited (not used in a decision): https://www.python.org/downloads"
+    },
+    {
+      "t_s": 231.54,
+      "at": "2026-09-30T14:21:40.275335+00:00",
+      "line": "[citations] not cited (not used in a decision): https://news.ycombinator.com/item?id=17448804"
+    },
+    {
+      "t_s": 231.54,
+      "at": "2026-09-30T14:21:40.275343+00:00",
+      "line": "[citations] not cited (offered, not used): https://pypi.org/project/dataclasses/0.8/"
+    },
+    {
+      "t_s": 231.54,
+      "at": "2026-09-30T14:21:40.275350+00:00",
+      "line": "[citations] not cited (offered, not used): https://pypi.org/project/dataclasses/0.7/"
+    },
+    {
+      "t_s": 231.54,
+      "at": "2026-09-30T14:21:40.275356+00:00",
+      "line": "[citations] not cited (offered, not used): https://pypi.org/project/dataclasses/0.6/"
+    },
+    {
+      "t_s": 231.54,
+      "at": "2026-09-30T14:21:40.275362+00:00",
+      "line": "[citations] not cited (offered, not used): https://pypi.org/project/dataclasses/0.5/"
+    },
+    {
+      "t_s": 231.54,
+      "at": "2026-09-30T14:21:40.275368+00:00",
+      "line": "[citations] not cited (offered, not used): https://pypi.org/project/dataclasses/0.4/"
+    },
+    {
+      "t_s": 231.65,
+      "at": "2026-09-30T14:21:40.385821+00:00",
+      "line": "[integrity] verified 21 file(s) against tree 7c900a9d4f351c722de733a2e8e4072c8d6eab35"
+    },
+    {
+      "t_s": 231.65,
+      "at": "2026-09-30T14:21:40.385870+00:00",
+      "line": "[sandbox] starting build+execute (wall_clock_seconds=600)"
+    },
+    {
+      "t_s": 231.66,
+      "at": "2026-09-30T14:21:40.395337+00:00",
+      "line": "[runner] torch: repo pins torch, torchvision; installed the CPU wheels as a matched set with the same pins"
+    },
+    {
+      "t_s": 871.73,
+      "at": "2026-09-30T14:32:20.464616+00:00",
+      "line": "[pipeline] INDETERMINATE: PIPELINE_ERROR:sandbox:SandboxError: RERUN's own pipeline failed during 'sandbox' (sandbox execution exceeded 600.0s wall clock: Operation 01a0f2b3-2d49-74c5-bb8b-d9085320ded6 has timed out) \u2014 this is not a verdict on the repository."
+    },
+    {
+      "t_s": 871.73,
+      "at": "2026-09-30T14:32:20.464660+00:00",
+      "line": "[pipeline] traceback:\nTraceback (most recent call last):\n  File \"B:\\Desktop\\RERUN_Nvidia\\backend\\app\\services\\sandbox.py\", line 540, in _run_once\n    ).wait()\n      ~~~~^^\n  File \"B:\\Desktop\\RERUN_Nvidia\\backend\\.venv\\Lib\\site-packages\\contree_sdk\\sdk\\objects\\image_like\\_sync.py\", line 27, in wait\n    return coro_sync(self._await())\n  File \"B:\\Desktop\\RERUN_Nvidia\\backend\\.venv\\Lib\\site-packages\\contree_sdk\\_internals\\utils\\wrapper.py\", line 118, in coro_sync\n    return wrapper.wrap(coro)\n           ~~~~~~~~~~~~^^^^^^\n  File \"B:\\Desktop\\RERUN_Nvidia\\backend\\.venv\\Lib\\site-packages\\contree_sdk\\_internals\\utils\\wrapper.py\", line 97, in wrap\n    return future.result()\n           ~~~~~~~~~~~~~^^\n  File \"C:\\Users\\E16\\AppData\\Local\\Python\\pythoncore-3.14-64\\Lib\\concurrent\\futures\\_base.py\", line 450, in result\n    return self.__get_result()\n           ~~~~~~~~~~~~~~~~~^^\n  File \"C:\\Users\\E16\\AppData\\Local\\Python\\pythoncore-3.14-64\\Lib\\concurrent\\futures\\_base.py\", line 395, in __get_result\n    raise self._exception\n  File \"B:\\Desktop\\RERUN_Nvidia\\backend\\.venv\\Lib\\site-packages\\contree_sdk\\_internals\\utils\\wrapper.py\", line 23, in _await\n    return await x\n           ^^^^^^^\n  File \"B:\\Desktop\\RERUN_Nvidia\\backend\\.venv\\Lib\\site-packages\\contree_sdk\\sdk\\objects\\image_like\\_base.py\", line 327, in _await\n    image_metadata, result = await self._client._wait_operation(\n                             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n        operation_uuid, InstanceOperationMetadata, timeout=timeout\n        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n    )\n    ^\n  File \"B:\\Desktop\\RERUN_Nvidia\\backend\\.venv\\Lib\\site-packages\\contree_sdk\\sdk\\client\\_base.py\", line 168, in _wait_operation\n    raise OperationTimedOutError(operation_uuid=operation_uuid)\ncontree_sdk.sdk.exceptions.operation.OperationTimedOutError: Operation 01a0f2b3-2d49-74c5-bb8b-d9085320ded6 has timed out\n\nThe above exception was the direct cause of the following exception:\n\nTraceback (most recent call last):\n  File \"B:\\Desktop\\RERUN_Nvidia\\backend\\app\\services\\orchestrator.py\", line 512, in run_pipeline\n    return _run_stages(\n        repo_url=repo_url,\n    ...<8 lines>...\n        documented_command=documented_command,\n    )\n  File \"B:\\Desktop\\RERUN_Nvidia\\backend\\app\\services\\orchestrator.py\", line 1253, in _run_stages\n    rerun_result = _execute(workdir)\n  File \"B:\\Desktop\\RERUN_Nvidia\\backend\\app\\services\\orchestrator.py\", line 683, in _execute\n    result = deps.sandbox_runner(\n        **runner_kwargs,\n    ...<9 lines>...\n        file_modes=dict(getattr(record, \"modes\", None) or {}),\n    )\n  File \"B:\\Desktop\\RERUN_Nvidia\\backend\\app\\services\\sandbox.py\", line 438, in run_build_and_execute\n    return retry_call(\n        lambda: _run_once(\n    ...<12 lines>...\n        sleep=_sleep,\n    )\n  File \"B:\\Desktop\\RERUN_Nvidia\\backend\\app\\services\\infra.py\", line 73, in retry_call\n    return fn()\n  File \"B:\\Desktop\\RERUN_Nvidia\\backend\\app\\services\\sandbox.py\", line 439, in <lambda>\n    lambda: _run_once(\n            ~~~~~~~~~^\n        api_key=api_key,\n        ^^^^^^^^^^^^^^^^\n    ...<6 lines>...\n        extract_command=extract_command,\n        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n    ),\n    ^\n  File \"B:\\Desktop\\RERUN_Nvidia\\backend\\app\\services\\sandbox.py\", line 570, in _run_once\n    raise SandboxError(f\"sandbox execution exceeded {wall_clock_seconds}s wall clock: {exc}\") from exc\napp.services.sandbox.SandboxError: sandbox execution exceeded 600.0s wall clock: Operation 01a0f2b3-2d49-74c5-bb8b-d9085320ded6 has timed out"
+    }
+  ],
+  "model_calls": [
+    {
+      "model": "nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B",
+      "started_at": "2026-09-30T14:17:48.985173+00:00",
+      "latency_s": 14.75,
+      "finish_reason": "stop",
+      "content_is_none": false,
+      "has_reasoning": true,
+      "usage": {
+        "completion_tokens": 1342,
+        "prompt_tokens": 4252,
+        "total_tokens": 5594,
+        "completion_tokens_details": null,
+        "prompt_tokens_details": null
+      }
+    },
+    {
+      "model": "nvidia/nemotron-3-super-120b-a12b",
+      "started_at": "2026-09-30T14:18:03.737637+00:00",
+      "latency_s": 1.25,
+      "finish_reason": "stop",
+      "content_is_none": false,
+      "has_reasoning": true,
+      "usage": {
+        "completion_tokens": 59,
+        "prompt_tokens": 274,
+        "total_tokens": 333,
+        "completion_tokens_details": {
+          "accepted_prediction_tokens": null,
+          "audio_tokens": null,
+          "reasoning_tokens": 49,
+          "rejected_prediction_tokens": null,
+          "text_tokens": null
+        },
+        "prompt_tokens_details": {
+          "audio_tokens": null,
+          "cache_write_tokens": null,
+          "cached_tokens": 0,
+          "image_tokens": null,
+          "text_tokens": null,
+          "created_cache_tokens": 0,
+          "multimodal_tokens": null
+        },
+        "prompt_cache_hit_tokens": 0,
+        "prompt_cache_miss_tokens": 274
+      }
+    },
+    {
+      "model": "nvidia/nemotron-3-super-120b-a12b",
+      "started_at": "2026-09-30T14:21:16.510035+00:00",
+      "latency_s": 16.5,
+      "finish_reason": "stop",
+      "content_is_none": false,
+      "has_reasoning": true,
+      "usage": {
+        "completion_tokens": 3393,
+        "prompt_tokens": 8811,
+        "total_tokens": 12204,
+        "completion_tokens_details": {
+          "accepted_prediction_tokens": null,
+          "audio_tokens": null,
+          "reasoning_tokens": 3323,
+          "rejected_prediction_tokens": null,
+          "text_tokens": null
+        },
+        "prompt_tokens_details": {
+          "audio_tokens": null,
+          "cache_write_tokens": null,
+          "cached_tokens": 0,
+          "image_tokens": null,
+          "text_tokens": null,
+          "created_cache_tokens": 0,
+          "multimodal_tokens": null
+        },
+        "prompt_cache_hit_tokens": 0,
+        "prompt_cache_miss_tokens": 8811
+      }
+    },
+    {
+      "model": "nvidia/nemotron-3-super-120b-a12b",
+      "started_at": "2026-09-30T14:21:33.013717+00:00",
+      "latency_s": 7.26,
+      "finish_reason": "stop",
+      "content_is_none": false,
+      "has_reasoning": true,
+      "usage": {
+        "completion_tokens": 951,
+        "prompt_tokens": 8915,
+        "total_tokens": 9866,
+        "completion_tokens_details": {
+          "accepted_prediction_tokens": null,
+          "audio_tokens": null,
+          "reasoning_tokens": 794,
+          "rejected_prediction_tokens": null,
+          "text_tokens": null
+        },
+        "prompt_tokens_details": {
+          "audio_tokens": null,
+          "cache_write_tokens": null,
+          "cached_tokens": 0,
+          "image_tokens": null,
+          "text_tokens": null,
+          "created_cache_tokens": 0,
+          "multimodal_tokens": null
+        },
+        "prompt_cache_hit_tokens": 0,
+        "prompt_cache_miss_tokens": 8915
+      }
+    },
+    {
+      "model": "nvidia/Nemotron-3-Ultra-550b-a55b",
+      "started_at": "2026-09-30T14:32:20.465947+00:00",
+      "latency_s": 1.67,
+      "finish_reason": "stop",
+      "content_is_none": false,
+      "has_reasoning": true,
+      "usage": {
+        "completion_tokens": 356,
+        "prompt_tokens": 633,
+        "total_tokens": 989,
+        "completion_tokens_details": {
+          "accepted_prediction_tokens": null,
+          "audio_tokens": null,
+          "reasoning_tokens": 247,
+          "rejected_prediction_tokens": null,
+          "text_tokens": null
+        },
+        "prompt_tokens_details": {
+          "audio_tokens": null,
+          "cache_write_tokens": null,
+          "cached_tokens": 0,
+          "image_tokens": null,
+          "text_tokens": null,
+          "multimodal_tokens": null
+        },
+        "prompt_cache_hit_tokens": 0,
+        "prompt_cache_miss_tokens": 633
+      }
+    }
+  ],
+  "cost_guard": {
+    "spent_usd": 0.36442668,
+    "model_spent_usd": 0.0116409,
+    "sandbox_spent_usd": 0.35278578,
+    "remaining_usd": 1.63557332,
+    "model_usage": [
+      {
+        "model": "nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B",
+        "prompt_tokens": 4252,
+        "completion_tokens": 1342,
+        "cost_usd": 0.0005772
+      },
+      {
+        "model": "nvidia/nemotron-3-super-120b-a12b",
+        "prompt_tokens": 274,
+        "completion_tokens": 59,
+        "cost_usd": 0.0001353
+      },
+      {
+        "model": "nvidia/nemotron-3-super-120b-a12b",
+        "prompt_tokens": 8811,
+        "completion_tokens": 3393,
+        "cost_usd": 0.005697
+      },
+      {
+        "model": "nvidia/nemotron-3-super-120b-a12b",
+        "prompt_tokens": 8915,
+        "completion_tokens": 951,
+        "cost_usd": 0.0035304
+      },
+      {
+        "model": "nvidia/Nemotron-3-Ultra-550b-a55b",
+        "prompt_tokens": 633,
+        "completion_tokens": 356,
+        "cost_usd": 0.001701
+      }
+    ],
+    "prices_usd_per_1m": {
+      "nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B": [
+        0.06,
+        0.24
+      ],
+      "nvidia/nemotron-3-super-120b-a12b": [
+        0.3,
+        0.9
+      ],
+      "nvidia/Nemotron-3-Ultra-550b-a55b": [
+        1.0,
+        3.0
+      ]
+    },
+    "prices_source": "https://api.tokenfactory.nebius.com/v1/models?verbose=true (pricing field)",
+    "prices_retrieved": "2026-09-24"
+  }
+}

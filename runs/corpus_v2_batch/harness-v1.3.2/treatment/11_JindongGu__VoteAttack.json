@@ -1,0 +1,539 @@
+{
+  "run_kind": "live end-to-end run",
+  "dev_run": false,
+  "dry_run": null,
+  "batch": {
+    "harness_tag": "harness-v1.3.2",
+    "harness_commit": "77b3cfe1697ad74ad13eac1f77ffe0f1e80c7379",
+    "head_commit": "482173f3f945c40b990c30c87e0acf7e2c2b0c59",
+    "corpus": "corpus-v2",
+    "prereg_sha256": "ae5a722249156e058d3d360bdc63fa8224140d0688f1daa307ecfa93a98c7284",
+    "corpus_hash": "7df090bea7013974f9f10fb8959ab0162734b51c83a80f744f9c310ce694fbdc",
+    "arm": "treatment",
+    "total_cap_usd": 25.0,
+    "already_spent_usd": 4.08,
+    "entry_id": 11,
+    "category": "PRIMARY",
+    "rules_matched": [],
+    "per_entry_cap_usd": 2.0
+  },
+  "started_at": "2026-09-30T13:41:07.634443+00:00",
+  "corpus_entry": {
+    "name": "JindongGu__VoteAttack",
+    "repo_url": "https://github.com/JindongGu/VoteAttack",
+    "commit_sha": "bdf8b46bc7b3ce772a6f2c0a6e48514423fd6051",
+    "command": "python main.py  --evaluate --dataset cifar10  --eps 0.031  --model capsnet  --attack vote_attack_FGSM",
+    "command_source": "README.md line 9"
+  },
+  "config": {
+    "models": {
+      "recon": "nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B",
+      "planner": "nvidia/nemotron-3-super-120b-a12b",
+      "repairer": "nvidia/nemotron-3-super-120b-a12b",
+      "adjudicator": "nvidia/Nemotron-3-Ultra-550b-a55b"
+    },
+    "sandbox_backend": "token_factory",
+    "sandbox_image_default": "python:3.10-slim",
+    "sandbox_wall_clock_seconds": 600.0,
+    "arm": "treatment",
+    "repair_enabled": true,
+    "max_attempts": 3,
+    "tavily_configured": true,
+    "cost_cap_usd": 2.0
+  },
+  "intake": {
+    "duration_s": 149.05,
+    "resolved_sha": "bdf8b46bc7b3ce772a6f2c0a6e48514423fd6051",
+    "dependency_files": [],
+    "declared_dependencies": [],
+    "entrypoint_candidates": [
+      "main.py"
+    ],
+    "notebook_paths": []
+  },
+  "pipeline_duration_s": 205.9,
+  "repair_mode": "deterministic",
+  "tree_integrity": {
+    "status": "verified",
+    "tree_sha": "8470057f65dd5e16273f985f73cacb3fc669eee3",
+    "files_checked": 13,
+    "excluded_patched": []
+  },
+  "result": {
+    "verdict": "INDETERMINATE",
+    "taxonomy_code": "RUNTIME_ERROR_OTHER",
+    "indeterminate_reason": "RUNNER_SETUP_FAILED: subprocess.CalledProcessError: Command '['/usr/local/bin/python', '-c', \"import torch; print('RERUN_TORCH_OK', torch.__version__)\"]' returned non-zero exit status 1. \u2014 RERUN's own setup step failed before the repository's first command ran; not a verdict on the repository.",
+    "reason_code": "RUNNER_SETUP_FAILED",
+    "error_chain": [
+      {
+        "error": "ModuleNotFoundError: No module named 'tqdm'",
+        "class": "DEP_MISSING",
+        "attribution": "REPO",
+        "phase": "repo_run",
+        "cleared_by": 0
+      },
+      {
+        "error": "subprocess.CalledProcessError: Command '['/usr/local/bin/python', '-c', \"import torch; print('RERUN_TORCH_OK', torch.__version__)\"]' returned non-zero exit status 1.",
+        "class": "RUNTIME_ERROR_OTHER",
+        "attribution": "ENV",
+        "phase": "runner_setup",
+        "cleared_by": null
+      }
+    ],
+    "first_repo_error": "ModuleNotFoundError: No module named 'tqdm'",
+    "last_error": "subprocess.CalledProcessError: Command '['/usr/local/bin/python', '-c', \"import torch; print('RERUN_TORCH_OK', torch.__version__)\"]' returned non-zero exit status 1.",
+    "error_traceback": "",
+    "attempts": [
+      {
+        "attempt_number": 0,
+        "diff_text": "",
+        "gate_decision": "PASS",
+        "gate_violations": [],
+        "exit_code": 1,
+        "stdout_tail": "",
+        "stderr_tail": "\nA module that was compiled using NumPy 1.x cannot be run in\nNumPy 2.0.2 as it may crash. To support both 1.x and 2.x\nversions of NumPy, modules must be compiled with NumPy 2.0.\nSome module may need to rebuild instead e.g. with 'pybind11>=2.12'.\n\nIf you are a user of the module, the easiest solution will be to\ndowngrade to 'numpy<2' or try to upgrade the affected module.\nWe expect that some modules will need time to support NumPy 2.\n\nTraceback (most recent call last):  File \"<string>\", line 1, in <module>\n  File \"/usr/local/lib/python3.9/site-packages/torch/__init__.py\", line 196, in <module>\n    from torch._C import *\nTraceback (most recent call last):\n  File \"<string>\", line 1, in <module>\n  File \"/usr/local/lib/python3.9/site-packages/torch/__init__.py\", line 196, in <module>\n    from torch._C import *\nAttributeError: _ARRAY_API not found\nTraceback (most recent call last):\n  File \"<string>\", line 34, in <module>\n  File \"/usr/local/lib/python3.9/subprocess.py\", line 373, in check_call\n    raise CalledProcessError(retcode, cmd)\nsubprocess.CalledProcessError: Command '['/usr/local/bin/python', '-c', \"import torch; print('RERUN_TORCH_OK', torch.__version__)\"]' returned non-zero exit status 1.\n",
+        "tavily_sources": [],
+        "env_delta": [],
+        "resolved_sources": [],
+        "origin": "time_machine",
+        "time_machine": {
+          "era": {
+            "date": "2021-05-01",
+            "source": "pinned-commit",
+            "detail": {
+              "note": "no dependency files in the repository"
+            }
+          },
+          "python": {
+            "version": "3.9",
+            "reason": "newest CPython first released \u2265180 days before the era date 2021-05-01 (https://devguide.python.org/versions/ (first release dates, retrieved 2026-09-24))",
+            "source": "https://devguide.python.org/versions/ (first release dates, retrieved 2026-09-24)"
+          },
+          "undeclared_imports": [
+            "foolbox",
+            "torch",
+            "torchvision",
+            "tqdm"
+          ],
+          "import_mappings": [],
+          "apt_added": [],
+          "apt_reason": "",
+          "lock": {
+            "ok": true,
+            "lock": [
+              "certifi==2020.12.5",
+              "chardet==4.0.0",
+              "eagerpy==0.29.0",
+              "foolbox==3.3.1",
+              "gitdb==4.0.7",
+              "gitpython==3.1.14",
+              "idna==2.10",
+              "numpy==1.20.2",
+              "pillow==8.2.0",
+              "requests==2.25.1",
+              "scipy==1.6.3",
+              "setuptools==56.0.0",
+              "smmap==4.0.0",
+              "torch==1.8.1",
+              "torchvision==0.9.1",
+              "tqdm==4.60.0",
+              "typing-extensions==3.10.0.0",
+              "urllib3==1.26.4"
+            ],
+            "inputs": [
+              "foolbox",
+              "torch",
+              "torchvision",
+              "tqdm"
+            ],
+            "not_on_index": [],
+            "command": "pip compile - --no-header --no-annotate --quiet --exclude-newer 2021-05-02T00:00:00Z --python-version 3.9 --python-platform x86_64-unknown-linux-gnu --python C:\\Users\\E16\\AppData\\Roaming\\uv\\python\\cpython-3.8.20-windows-x86_64-none\\python.exe",
+            "error": ""
+          }
+        }
+      }
+    ],
+    "certificate_prose": "The run log shows that RERUN's own setup step failed before the repository's first command executed, with a subprocess.CalledProcessError when attempting to import torch and print its version (exit status 1). The taxonomy code is RUNTIME_ERROR_OTHER and zero repair attempts were used. This indicates a runner setup failure, not a failure of the repository's code. Verifies that the artifact executes. Does not verify the paper's numerical results."
+  },
+  "certificate": {
+    "repo_url": "https://github.com/JindongGu/VoteAttack",
+    "commit_sha": "bdf8b46bc7b3ce772a6f2c0a6e48514423fd6051",
+    "build_plan": {
+      "base_image": "python:3.9-slim",
+      "apt_install": [],
+      "install_commands": [
+        "printf '%s\\n' certifi==2020.12.5 chardet==4.0.0 eagerpy==0.29.0 foolbox==3.3.1 gitdb==4.0.7 gitpython==3.1.14 idna==2.10 numpy==1.20.2 pillow==8.2.0 requests==2.25.1 scipy==1.6.3 setuptools==56.0.0 smmap==4.0.0 torch==1.8.1 torchvision==0.9.1 tqdm==4.60.0 typing-extensions==3.10.0.0 urllib3==1.26.4 > .rerun-requirements.txt && pip install -r .rerun-requirements.txt"
+      ],
+      "execute_command": "python main.py  --evaluate --dataset cifar10  --eps 0.031  --model capsnet  --attack vote_attack_FGSM",
+      "notes": [
+        "execute command is the repository's documented command (corpus ground truth)",
+        "base image python:3.10-slim: no usable Python declaration; RERUN default 3.10",
+        "time machine: python 3.9, 18 locked package(s)"
+      ]
+    },
+    "full_log": "[intake] cloned https://github.com/JindongGu/VoteAttack@bdf8b46bc7b3ce772a6f2c0a6e48514423fd6051\n[recon] calling Nemotron Nano\n[recon] entrypoint=main.py confidence=0.85\n[python] python:3.10-slim (default): no usable Python declaration; RERUN default 3.10\n[planner] build plan: {'base_image': 'python:3.10-slim', 'apt_install': [], 'install_commands': ['true  # no declared dependency file found; nothing to install'], 'execute_command': 'python main.py  --evaluate --dataset cifar10  --eps 0.031  --model capsnet  --attack vote_attack_FGSM', 'notes': [\"execute command is the repository's documented command (corpus ground truth)\", 'base image python:3.10-slim: no usable Python declaration; RERUN default 3.10']}\n[integrity] verified 13 file(s) against tree 8470057f65dd5e16273f985f73cacb3fc669eee3\n[sandbox] starting build+execute (wall_clock_seconds=600)\n[runner] torch: repo imports torch, torchvision without declaring it; runner provides the newest matched CPU wheels\n[cost_guard] recorded $0.3227 sandbox spend, $1.6757 remaining today\n[sandbox] id=3c4f823c-769e-465d-babd-79aff4d39db5 exit_code=1\n[baseline] as-is run: FAILS (exit code 1)\n[classifier] DEP_MISSING: ModuleNotFoundError: No module named 'tqdm'\n[era] 2021-05-01 from pinned-commit {'note': 'no dependency files in the repository'}\n[time-machine] era 2021-05-01 (pinned-commit) -> python 3.9; locked 18 package(s) with uv --exclude-newer; not on the index: none\n[integrity] verified 13 file(s) against tree 8470057f65dd5e16273f985f73cacb3fc669eee3\n[sandbox] starting build+execute (wall_clock_seconds=600)\n[runner] torch: repo pins torch, torchvision; installed the CPU wheels as a matched set with the same pins\n[cost_guard] recorded $0.2177 sandbox spend, $1.4580 remaining today\n[time-machine] re-execution id=2da6979c-356e-47db-8139-19976aa99fee exit_code=1\n[classifier] RUNTIME_ERROR_OTHER: subprocess.CalledProcessError: Command '['/usr/local/bin/python', '-c', \"import torch; print('RERUN_TORCH_OK', torch.__version__)\"]' returned non-zero exit status 1.\n[verdict] INDETERMINATE: RUNNER_SETUP_FAILED: subprocess.CalledProcessError: Command '['/usr/local/bin/python', '-c', \"import torch; print('RERUN_TORCH_OK', torch.__version__)\"]' returned non-zero exit status 1. \u2014 RERUN's own setup step failed before the repository's first command ran; not a verdict on the repository.",
+    "diffs": [
+      {
+        "attempt_number": 0,
+        "diff_text": "",
+        "gate_decision": "PASS",
+        "gate_violations": [],
+        "exit_code": 1,
+        "stdout_tail": "",
+        "stderr_tail": "\nA module that was compiled using NumPy 1.x cannot be run in\nNumPy 2.0.2 as it may crash. To support both 1.x and 2.x\nversions of NumPy, modules must be compiled with NumPy 2.0.\nSome module may need to rebuild instead e.g. with 'pybind11>=2.12'.\n\nIf you are a user of the module, the easiest solution will be to\ndowngrade to 'numpy<2' or try to upgrade the affected module.\nWe expect that some modules will need time to support NumPy 2.\n\nTraceback (most recent call last):  File \"<string>\", line 1, in <module>\n  File \"/usr/local/lib/python3.9/site-packages/torch/__init__.py\", line 196, in <module>\n    from torch._C import *\nTraceback (most recent call last):\n  File \"<string>\", line 1, in <module>\n  File \"/usr/local/lib/python3.9/site-packages/torch/__init__.py\", line 196, in <module>\n    from torch._C import *\nAttributeError: _ARRAY_API not found\nTraceback (most recent call last):\n  File \"<string>\", line 34, in <module>\n  File \"/usr/local/lib/python3.9/subprocess.py\", line 373, in check_call\n    raise CalledProcessError(retcode, cmd)\nsubprocess.CalledProcessError: Command '['/usr/local/bin/python', '-c', \"import torch; print('RERUN_TORCH_OK', torch.__version__)\"]' returned non-zero exit status 1.\n",
+        "tavily_sources": [],
+        "env_delta": [],
+        "resolved_sources": [],
+        "origin": "time_machine",
+        "time_machine": {
+          "era": {
+            "date": "2021-05-01",
+            "source": "pinned-commit",
+            "detail": {
+              "note": "no dependency files in the repository"
+            }
+          },
+          "python": {
+            "version": "3.9",
+            "reason": "newest CPython first released \u2265180 days before the era date 2021-05-01 (https://devguide.python.org/versions/ (first release dates, retrieved 2026-09-24))",
+            "source": "https://devguide.python.org/versions/ (first release dates, retrieved 2026-09-24)"
+          },
+          "undeclared_imports": [
+            "foolbox",
+            "torch",
+            "torchvision",
+            "tqdm"
+          ],
+          "import_mappings": [],
+          "apt_added": [],
+          "apt_reason": "",
+          "lock": {
+            "ok": true,
+            "lock": [
+              "certifi==2020.12.5",
+              "chardet==4.0.0",
+              "eagerpy==0.29.0",
+              "foolbox==3.3.1",
+              "gitdb==4.0.7",
+              "gitpython==3.1.14",
+              "idna==2.10",
+              "numpy==1.20.2",
+              "pillow==8.2.0",
+              "requests==2.25.1",
+              "scipy==1.6.3",
+              "setuptools==56.0.0",
+              "smmap==4.0.0",
+              "torch==1.8.1",
+              "torchvision==0.9.1",
+              "tqdm==4.60.0",
+              "typing-extensions==3.10.0.0",
+              "urllib3==1.26.4"
+            ],
+            "inputs": [
+              "foolbox",
+              "torch",
+              "torchvision",
+              "tqdm"
+            ],
+            "not_on_index": [],
+            "command": "pip compile - --no-header --no-annotate --quiet --exclude-newer 2021-05-02T00:00:00Z --python-version 3.9 --python-platform x86_64-unknown-linux-gnu --python C:\\Users\\E16\\AppData\\Roaming\\uv\\python\\cpython-3.8.20-windows-x86_64-none\\python.exe",
+            "error": ""
+          }
+        }
+      }
+    ],
+    "verdict": "INDETERMINATE",
+    "timestamp": "2026-09-30T13:47:02.586942+00:00",
+    "bundle_version": 4,
+    "baseline": {
+      "result": "FAILS",
+      "exit_code": 1,
+      "base_image": "python:3.10-slim",
+      "install_commands": [
+        "true  # no declared dependency file found; nothing to install"
+      ],
+      "execute_command": "python main.py  --evaluate --dataset cifar10  --eps 0.031  --model capsnet  --attack vote_attack_FGSM",
+      "sandbox_id": "3c4f823c-769e-465d-babd-79aff4d39db5",
+      "taxonomy_code": "DEP_MISSING",
+      "evidence": "ModuleNotFoundError: No module named 'tqdm'"
+    },
+    "recovery": false,
+    "tree_integrity": {
+      "status": "verified",
+      "tree_sha": "8470057f65dd5e16273f985f73cacb3fc669eee3",
+      "files_checked": 13,
+      "excluded_patched": []
+    },
+    "corpus_hash": "7df090bea7013974f9f10fb8959ab0162734b51c83a80f744f9c310ce694fbdc",
+    "taxonomy_code": "RUNTIME_ERROR_OTHER",
+    "indeterminate_reason": "RUNNER_SETUP_FAILED: subprocess.CalledProcessError: Command '['/usr/local/bin/python', '-c', \"import torch; print('RERUN_TORCH_OK', torch.__version__)\"]' returned non-zero exit status 1. \u2014 RERUN's own setup step failed before the repository's first command ran; not a verdict on the repository.",
+    "error_chain": [
+      {
+        "error": "ModuleNotFoundError: No module named 'tqdm'",
+        "class": "DEP_MISSING",
+        "attribution": "REPO",
+        "phase": "repo_run",
+        "cleared_by": 0
+      },
+      {
+        "error": "subprocess.CalledProcessError: Command '['/usr/local/bin/python', '-c', \"import torch; print('RERUN_TORCH_OK', torch.__version__)\"]' returned non-zero exit status 1.",
+        "class": "RUNTIME_ERROR_OTHER",
+        "attribution": "ENV",
+        "phase": "runner_setup",
+        "cleared_by": null
+      }
+    ],
+    "first_repo_error": "ModuleNotFoundError: No module named 'tqdm'",
+    "last_error": "subprocess.CalledProcessError: Command '['/usr/local/bin/python', '-c', \"import torch; print('RERUN_TORCH_OK', torch.__version__)\"]' returned non-zero exit status 1.",
+    "reproduction_passport_hash": "84f1c2aed5b8e0de80cff38ccbf14568cce7184fb2228bf902a44efa38ffdcb4"
+  },
+  "finished_at": "2026-09-30T13:47:02.637046+00:00",
+  "events": [
+    {
+      "t_s": 0.0,
+      "at": "2026-09-30T13:43:36.684699+00:00",
+      "line": "[intake] cloned https://github.com/JindongGu/VoteAttack@bdf8b46bc7b3ce772a6f2c0a6e48514423fd6051"
+    },
+    {
+      "t_s": 0.01,
+      "at": "2026-09-30T13:43:36.695979+00:00",
+      "line": "[recon] calling Nemotron Nano"
+    },
+    {
+      "t_s": 35.5,
+      "at": "2026-09-30T13:44:12.188254+00:00",
+      "line": "[recon] entrypoint=main.py confidence=0.85"
+    },
+    {
+      "t_s": 35.51,
+      "at": "2026-09-30T13:44:12.198604+00:00",
+      "line": "[python] python:3.10-slim (default): no usable Python declaration; RERUN default 3.10"
+    },
+    {
+      "t_s": 36.74,
+      "at": "2026-09-30T13:44:13.419853+00:00",
+      "line": "[planner] build plan: {'base_image': 'python:3.10-slim', 'apt_install': [], 'install_commands': ['true  # no declared dependency file found; nothing to install'], 'execute_command': 'python main.py  --evaluate --dataset cifar10  --eps 0.031  --model capsnet  --attack vote_attack_FGSM', 'notes': [\"execute command is the repository's documented command (corpus ground truth)\", 'base image python:3.10-slim: no usable Python declaration; RERUN default 3.10']}"
+    },
+    {
+      "t_s": 37.12,
+      "at": "2026-09-30T13:44:13.801650+00:00",
+      "line": "[integrity] verified 13 file(s) against tree 8470057f65dd5e16273f985f73cacb3fc669eee3"
+    },
+    {
+      "t_s": 37.12,
+      "at": "2026-09-30T13:44:13.801692+00:00",
+      "line": "[sandbox] starting build+execute (wall_clock_seconds=600)"
+    },
+    {
+      "t_s": 37.12,
+      "at": "2026-09-30T13:44:13.808653+00:00",
+      "line": "[runner] torch: repo imports torch, torchvision without declaring it; runner provides the newest matched CPU wheels"
+    },
+    {
+      "t_s": 118.76,
+      "at": "2026-09-30T13:45:35.442887+00:00",
+      "line": "[cost_guard] recorded $0.3227 sandbox spend, $1.6757 remaining today"
+    },
+    {
+      "t_s": 118.76,
+      "at": "2026-09-30T13:45:35.442946+00:00",
+      "line": "[sandbox] id=3c4f823c-769e-465d-babd-79aff4d39db5 exit_code=1"
+    },
+    {
+      "t_s": 118.76,
+      "at": "2026-09-30T13:45:35.442968+00:00",
+      "line": "[baseline] as-is run: FAILS (exit code 1)"
+    },
+    {
+      "t_s": 118.76,
+      "at": "2026-09-30T13:45:35.447010+00:00",
+      "line": "[classifier] DEP_MISSING: ModuleNotFoundError: No module named 'tqdm'"
+    },
+    {
+      "t_s": 118.81,
+      "at": "2026-09-30T13:45:35.499473+00:00",
+      "line": "[era] 2021-05-01 from pinned-commit {'note': 'no dependency files in the repository'}"
+    },
+    {
+      "t_s": 121.47,
+      "at": "2026-09-30T13:45:38.151578+00:00",
+      "line": "[time-machine] era 2021-05-01 (pinned-commit) -> python 3.9; locked 18 package(s) with uv --exclude-newer; not on the index: none"
+    },
+    {
+      "t_s": 121.75,
+      "at": "2026-09-30T13:45:38.433002+00:00",
+      "line": "[integrity] verified 13 file(s) against tree 8470057f65dd5e16273f985f73cacb3fc669eee3"
+    },
+    {
+      "t_s": 121.75,
+      "at": "2026-09-30T13:45:38.433052+00:00",
+      "line": "[sandbox] starting build+execute (wall_clock_seconds=600)"
+    },
+    {
+      "t_s": 121.76,
+      "at": "2026-09-30T13:45:38.439775+00:00",
+      "line": "[runner] torch: repo pins torch, torchvision; installed the CPU wheels as a matched set with the same pins"
+    },
+    {
+      "t_s": 204.13,
+      "at": "2026-09-30T13:47:00.810121+00:00",
+      "line": "[cost_guard] recorded $0.2177 sandbox spend, $1.4580 remaining today"
+    },
+    {
+      "t_s": 204.13,
+      "at": "2026-09-30T13:47:00.810209+00:00",
+      "line": "[time-machine] re-execution id=2da6979c-356e-47db-8139-19976aa99fee exit_code=1"
+    },
+    {
+      "t_s": 204.13,
+      "at": "2026-09-30T13:47:00.811532+00:00",
+      "line": "[classifier] RUNTIME_ERROR_OTHER: subprocess.CalledProcessError: Command '['/usr/local/bin/python', '-c', \"import torch; print('RERUN_TORCH_OK', torch.__version__)\"]' returned non-zero exit status 1."
+    },
+    {
+      "t_s": 204.13,
+      "at": "2026-09-30T13:47:00.811589+00:00",
+      "line": "[verdict] INDETERMINATE: RUNNER_SETUP_FAILED: subprocess.CalledProcessError: Command '['/usr/local/bin/python', '-c', \"import torch; print('RERUN_TORCH_OK', torch.__version__)\"]' returned non-zero exit status 1. \u2014 RERUN's own setup step failed before the repository's first command ran; not a verdict on the repository."
+    }
+  ],
+  "model_calls": [
+    {
+      "model": "nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B",
+      "started_at": "2026-09-30T13:43:36.910552+00:00",
+      "latency_s": 27.09,
+      "finish_reason": "length",
+      "content_is_none": true,
+      "has_reasoning": true,
+      "usage": {
+        "completion_tokens": 4096,
+        "prompt_tokens": 1686,
+        "total_tokens": 5782,
+        "completion_tokens_details": null,
+        "prompt_tokens_details": null
+      }
+    },
+    {
+      "model": "nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B",
+      "started_at": "2026-09-30T13:44:04.003552+00:00",
+      "latency_s": 8.18,
+      "finish_reason": "stop",
+      "content_is_none": false,
+      "has_reasoning": true,
+      "usage": {
+        "completion_tokens": 1227,
+        "prompt_tokens": 1686,
+        "total_tokens": 2913,
+        "completion_tokens_details": null,
+        "prompt_tokens_details": null
+      }
+    },
+    {
+      "model": "nvidia/nemotron-3-super-120b-a12b",
+      "started_at": "2026-09-30T13:44:12.200017+00:00",
+      "latency_s": 1.22,
+      "finish_reason": "stop",
+      "content_is_none": false,
+      "has_reasoning": true,
+      "usage": {
+        "completion_tokens": 49,
+        "prompt_tokens": 270,
+        "total_tokens": 319,
+        "completion_tokens_details": {
+          "accepted_prediction_tokens": null,
+          "audio_tokens": null,
+          "reasoning_tokens": 39,
+          "rejected_prediction_tokens": null,
+          "text_tokens": null
+        },
+        "prompt_tokens_details": {
+          "audio_tokens": null,
+          "cache_write_tokens": null,
+          "cached_tokens": 0,
+          "image_tokens": null,
+          "text_tokens": null,
+          "created_cache_tokens": 0,
+          "multimodal_tokens": null
+        },
+        "prompt_cache_hit_tokens": 0,
+        "prompt_cache_miss_tokens": 270
+      }
+    },
+    {
+      "model": "nvidia/Nemotron-3-Ultra-550b-a55b",
+      "started_at": "2026-09-30T13:47:00.813050+00:00",
+      "latency_s": 1.77,
+      "finish_reason": "stop",
+      "content_is_none": false,
+      "has_reasoning": true,
+      "usage": {
+        "completion_tokens": 290,
+        "prompt_tokens": 782,
+        "total_tokens": 1072,
+        "completion_tokens_details": {
+          "accepted_prediction_tokens": null,
+          "audio_tokens": null,
+          "reasoning_tokens": 167,
+          "rejected_prediction_tokens": null,
+          "text_tokens": null
+        },
+        "prompt_tokens_details": {
+          "audio_tokens": null,
+          "cache_write_tokens": null,
+          "cached_tokens": 0,
+          "image_tokens": null,
+          "text_tokens": null,
+          "multimodal_tokens": null
+        },
+        "prompt_cache_hit_tokens": 0,
+        "prompt_cache_miss_tokens": 782
+      }
+    }
+  ],
+  "cost_guard": {
+    "spent_usd": 0.54361767,
+    "model_spent_usd": 0.00325694,
+    "sandbox_spent_usd": 0.5403607300000001,
+    "remaining_usd": 1.4563823299999998,
+    "model_usage": [
+      {
+        "model": "nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B",
+        "prompt_tokens": 1686,
+        "completion_tokens": 4096,
+        "cost_usd": 0.0010842
+      },
+      {
+        "model": "nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B",
+        "prompt_tokens": 1686,
+        "completion_tokens": 1227,
+        "cost_usd": 0.00039564
+      },
+      {
+        "model": "nvidia/nemotron-3-super-120b-a12b",
+        "prompt_tokens": 270,
+        "completion_tokens": 49,
+        "cost_usd": 0.0001251
+      },
+      {
+        "model": "nvidia/Nemotron-3-Ultra-550b-a55b",
+        "prompt_tokens": 782,
+        "completion_tokens": 290,
+        "cost_usd": 0.001652
+      }
+    ],
+    "prices_usd_per_1m": {
+      "nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B": [
+        0.06,
+        0.24
+      ],
+      "nvidia/nemotron-3-super-120b-a12b": [
+        0.3,
+        0.9
+      ],
+      "nvidia/Nemotron-3-Ultra-550b-a55b": [
+        1.0,
+        3.0
+      ]
+    },
+    "prices_source": "https://api.tokenfactory.nebius.com/v1/models?verbose=true (pricing field)",
+    "prices_retrieved": "2026-09-24"
+  }
+}

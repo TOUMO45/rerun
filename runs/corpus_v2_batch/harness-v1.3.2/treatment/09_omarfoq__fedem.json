@@ -1,0 +1,385 @@
+{
+  "run_kind": "live end-to-end run",
+  "dev_run": false,
+  "dry_run": null,
+  "batch": {
+    "harness_tag": "harness-v1.3.2",
+    "harness_commit": "77b3cfe1697ad74ad13eac1f77ffe0f1e80c7379",
+    "head_commit": "482173f3f945c40b990c30c87e0acf7e2c2b0c59",
+    "corpus": "corpus-v2",
+    "prereg_sha256": "ae5a722249156e058d3d360bdc63fa8224140d0688f1daa307ecfa93a98c7284",
+    "corpus_hash": "7df090bea7013974f9f10fb8959ab0162734b51c83a80f744f9c310ce694fbdc",
+    "arm": "treatment",
+    "total_cap_usd": 25.0,
+    "already_spent_usd": 4.08,
+    "entry_id": 9,
+    "category": "PRIMARY",
+    "rules_matched": [],
+    "per_entry_cap_usd": 2.0
+  },
+  "started_at": "2026-09-30T13:32:22.130654+00:00",
+  "corpus_entry": {
+    "name": "omarfoq__fedem",
+    "repo_url": "https://github.com/omarfoq/fedem",
+    "commit_sha": "996faddf865fd03c6852b7ffe64410e31b339e94",
+    "command": "python run_experiment.py cifar10 FedAvg --n_learners 1 --n_rounds 200 --bz 128 --lr 0.01 --lr_scheduler multi_step --log_freq 5 --device cuda --optimizer sgd --seed 1234 --verbose 1",
+    "command_source": "README.md line 127"
+  },
+  "config": {
+    "models": {
+      "recon": "nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B",
+      "planner": "nvidia/nemotron-3-super-120b-a12b",
+      "repairer": "nvidia/nemotron-3-super-120b-a12b",
+      "adjudicator": "nvidia/Nemotron-3-Ultra-550b-a55b"
+    },
+    "sandbox_backend": "token_factory",
+    "sandbox_image_default": "python:3.10-slim",
+    "sandbox_wall_clock_seconds": 600.0,
+    "arm": "treatment",
+    "repair_enabled": true,
+    "max_attempts": 3,
+    "tavily_configured": true,
+    "cost_cap_usd": 2.0
+  },
+  "intake": {
+    "duration_s": 2.32,
+    "resolved_sha": "996faddf865fd03c6852b7ffe64410e31b339e94",
+    "dependency_files": [
+      "requirements.txt"
+    ],
+    "declared_dependencies": [
+      "cvxpy",
+      "matplotlib",
+      "networkx",
+      "numpy",
+      "pillow",
+      "scikit-learn",
+      "tensorboard",
+      "torch",
+      "torchvision",
+      "tqdm"
+    ],
+    "entrypoint_candidates": [
+      "data/cifar10/generate_data.py",
+      "data/cifar100/generate_data.py",
+      "data/emnist/generate_data.py",
+      "data/femnist/data_to_tensor.py",
+      "data/femnist/generate_data.py",
+      "data/shakespeare/generate_data.py",
+      "data/shakespeare/preprocess_shakespeare.py",
+      "data/synthetic/generate_data.py",
+      "run_experiment.py"
+    ],
+    "notebook_paths": []
+  },
+  "pipeline_duration_s": 134.26,
+  "repair_mode": "deterministic",
+  "tree_integrity": {
+    "status": "verified",
+    "tree_sha": "958ee2a3a90800a967246177d0fcfa0554572dd2",
+    "files_checked": 79,
+    "excluded_patched": []
+  },
+  "result": {
+    "verdict": "INDETERMINATE",
+    "taxonomy_code": "DEP_YANKED",
+    "indeterminate_reason": "RUNNER_SETUP_FAILED: ERROR: Could not find a version that satisfies the requirement torch==1.2.0 (from versions: 1.11.0, 1.11.0+cpu, 1.12.0, 1.12.0+cpu, 1.12.1, 1.12.1+cpu, 1.13.0, 1.13.0+cpu, 1.13.1, 1.13.1+cpu, 2.0.0, 2.0.0+cpu, 2.0.1, 2.0.1+cpu, 2.1.0, 2.1.0+cpu, 2.1.1, 2.1.1+cpu, 2.1.2, 2.1.2+cpu, 2.2.0, 2.2.0+cpu, 2.2.1, 2.2.1+cpu, 2.2.2, 2.2.2+cpu, 2.3.0, 2.3.0+cpu, 2.3.1, 2.3.1+cpu, 2.4.0, 2.4.0+cpu, 2.4.1, 2.4.1+cpu, 2.5.0, 2.5.0+cpu, 2.5.1, 2.5.1+cpu, 2.6.0, 2.6.0+cpu, 2.7.0, 2.7.0+cpu, 2.7.1, 2.7.1+cpu, 2. \u2014 RERUN's own setup step failed before the repository's first command ran; not a verdict on the repository.",
+    "reason_code": "RUNNER_SETUP_FAILED",
+    "error_chain": [
+      {
+        "error": "ERROR: Could not find a version that satisfies the requirement torch==1.2.0 (from versions: 1.11.0, 1.11.0+cpu, 1.12.0, 1.12.0+cpu, 1.12.1, 1.12.1+cpu, 1.13.0, 1.13.0+cpu, 1.13.1, 1.13.1+cpu, 2.0.0, 2.0.0+cpu, 2.0.1, 2.0.1+cpu, 2.1.0, 2.1.0+cpu, 2.1.1, 2.1.1+cpu, 2.1.2, 2.1.2+cpu, 2.2.0, 2.2.0+cpu, 2.2.1, 2.2.1+cpu, 2.2.2, 2.2.2+cpu, 2.3.0, 2.3.0+cpu, 2.3.1, 2.3.1+cpu, 2.4.0, 2.4.0+cpu, 2.4.1, 2.4.1+cpu, 2.5.0, 2.5.0+cpu, 2.5.1, 2.5.1+cpu, 2.6.0, 2.6.0+cpu, 2.7.0, 2.7.0+cpu, 2.7.1, 2.7.1+cpu, 2.",
+        "class": "DEP_YANKED",
+        "attribution": "ENV",
+        "phase": "runner_setup",
+        "cleared_by": null
+      }
+    ],
+    "first_repo_error": null,
+    "last_error": "ERROR: Could not find a version that satisfies the requirement torch==1.2.0 (from versions: 1.11.0, 1.11.0+cpu, 1.12.0, 1.12.0+cpu, 1.12.1, 1.12.1+cpu, 1.13.0, 1.13.0+cpu, 1.13.1, 1.13.1+cpu, 2.0.0, 2.0.0+cpu, 2.0.1, 2.0.1+cpu, 2.1.0, 2.1.0+cpu, 2.1.1, 2.1.1+cpu, 2.1.2, 2.1.2+cpu, 2.2.0, 2.2.0+cpu, 2.2.1, 2.2.1+cpu, 2.2.2, 2.2.2+cpu, 2.3.0, 2.3.0+cpu, 2.3.1, 2.3.1+cpu, 2.4.0, 2.4.0+cpu, 2.4.1, 2.4.1+cpu, 2.5.0, 2.5.0+cpu, 2.5.1, 2.5.1+cpu, 2.6.0, 2.6.0+cpu, 2.7.0, 2.7.0+cpu, 2.7.1, 2.7.1+cpu, 2.",
+    "error_traceback": "",
+    "attempts": [],
+    "certificate_prose": "The RERUN setup step failed with a DEP_YANKED error because the required dependency torch==1.2.0 could not be found among available versions (which start at 1.11.0). This failure occurred before the repository's first command ran, so the repository's code was not executed. Verifies that the artifact executes. Does not verify the paper's numerical results."
+  },
+  "certificate": {
+    "repo_url": "https://github.com/omarfoq/fedem",
+    "commit_sha": "996faddf865fd03c6852b7ffe64410e31b339e94",
+    "build_plan": {
+      "base_image": "python:3.10-slim",
+      "apt_install": [
+        "libfreetype6-dev",
+        "libfribidi-dev",
+        "libharfbuzz-dev",
+        "libjpeg-dev",
+        "liblcms2-dev",
+        "libwebp-dev",
+        "tcl8.6-dev",
+        "tk8.6-dev",
+        "zlib1g-dev"
+      ],
+      "install_commands": [
+        "pip install -r requirements.txt"
+      ],
+      "execute_command": "python run_experiment.py cifar10 FedAvg --n_learners 1 --n_rounds 200 --bz 128 --lr 0.01 --lr_scheduler multi_step --log_freq 5 --device cuda --optimizer sgd --seed 1234 --verbose 1",
+      "notes": [
+        "execute command is the repository's documented command (corpus ground truth)",
+        "base image python:3.10-slim: no usable Python declaration; RERUN default 3.10",
+        "apt package list enriched by Nemotron Super"
+      ]
+    },
+    "full_log": "[intake] cloned https://github.com/omarfoq/fedem@996faddf865fd03c6852b7ffe64410e31b339e94\n[recon] calling Nemotron Nano\n[recon] entrypoint=run_experiment.py confidence=0.60\n[python] python:3.10-slim (default): no usable Python declaration; RERUN default 3.10\n[planner] build plan: {'base_image': 'python:3.10-slim', 'apt_install': ['libfreetype6-dev', 'libfribidi-dev', 'libharfbuzz-dev', 'libjpeg-dev', 'liblcms2-dev', 'libwebp-dev', 'tcl8.6-dev', 'tk8.6-dev', 'zlib1g-dev'], 'install_commands': ['pip install -r requirements.txt'], 'execute_command': 'python run_experiment.py cifar10 FedAvg --n_learners 1 --n_rounds 200 --bz 128 --lr 0.01 --lr_scheduler multi_step --log_freq 5 --device cuda --optimizer sgd --seed 1234 --verbose 1', 'notes': [\"execute command is the repository's documented command (corpus ground truth)\", 'base image python:3.10-slim: no usable Python declaration; RERUN default 3.10', 'apt package list enriched by Nemotron Super']}\n[integrity] verified 79 file(s) against tree 958ee2a3a90800a967246177d0fcfa0554572dd2\n[sandbox] starting build+execute (wall_clock_seconds=600)\n[runner] torch: repo pins torch, torchvision; installed the CPU wheels as a matched set with the same pins\n[cost_guard] recorded $0.1803 sandbox spend, $1.8158 remaining today\n[sandbox] id=d3c151bb-79ec-46e1-b36d-8fbc19e458e7 exit_code=1\n[baseline] as-is run: FAILS (exit code 1)\n[classifier] DEP_YANKED: ERROR: Could not find a version that satisfies the requirement torch==1.2.0 (from versions: 1.11.0, 1.11.0+cpu, 1.12.0, 1.12.0+cpu, 1.12.1, 1.12.1+cpu, 1.13.0, 1.13.0+cpu, 1.13.1, 1.13.1+cpu, 2.0.0, 2.0.0+cpu, 2.0.1, 2.0.1+cpu, 2.1.0, 2.1.0+cpu, 2.1.1, 2.1.1+cpu, 2.1.2, 2.1.2+cpu, 2.2.0, 2.2.0+cpu, 2.2.1, 2.2.1+cpu, 2.2.2, 2.2.2+cpu, 2.3.0, 2.3.0+cpu, 2.3.1, 2.3.1+cpu, 2.4.0, 2.4.0+cpu, 2.4.1, 2.4.1+cpu, 2.5.0, 2.5.0+cpu, 2.5.1, 2.5.1+cpu, 2.6.0, 2.6.0+cpu, 2.7.0, 2.7.0+cpu, 2.7.1, 2.7.1+cpu, 2.\n[verdict] INDETERMINATE: RUNNER_SETUP_FAILED: ERROR: Could not find a version that satisfies the requirement torch==1.2.0 (from versions: 1.11.0, 1.11.0+cpu, 1.12.0, 1.12.0+cpu, 1.12.1, 1.12.1+cpu, 1.13.0, 1.13.0+cpu, 1.13.1, 1.13.1+cpu, 2.0.0, 2.0.0+cpu, 2.0.1, 2.0.1+cpu, 2.1.0, 2.1.0+cpu, 2.1.1, 2.1.1+cpu, 2.1.2, 2.1.2+cpu, 2.2.0, 2.2.0+cpu, 2.2.1, 2.2.1+cpu, 2.2.2, 2.2.2+cpu, 2.3.0, 2.3.0+cpu, 2.3.1, 2.3.1+cpu, 2.4.0, 2.4.0+cpu, 2.4.1, 2.4.1+cpu, 2.5.0, 2.5.0+cpu, 2.5.1, 2.5.1+cpu, 2.6.0, 2.6.0+cpu, 2.7.0, 2.7.0+cpu, 2.7.1, 2.7.1+cpu, 2. \u2014 RERUN's own setup step failed before the repository's first command ran; not a verdict on the repository.",
+    "diffs": [],
+    "verdict": "INDETERMINATE",
+    "timestamp": "2026-09-30T13:34:38.708104+00:00",
+    "bundle_version": 4,
+    "baseline": {
+      "result": "FAILS",
+      "exit_code": 1,
+      "base_image": "python:3.10-slim",
+      "install_commands": [
+        "apt-get update && apt-get install -y libfreetype6-dev libfribidi-dev libharfbuzz-dev libjpeg-dev liblcms2-dev libwebp-dev tcl8.6-dev tk8.6-dev zlib1g-dev",
+        "pip install -r requirements.txt"
+      ],
+      "execute_command": "python run_experiment.py cifar10 FedAvg --n_learners 1 --n_rounds 200 --bz 128 --lr 0.01 --lr_scheduler multi_step --log_freq 5 --device cuda --optimizer sgd --seed 1234 --verbose 1",
+      "sandbox_id": "d3c151bb-79ec-46e1-b36d-8fbc19e458e7",
+      "taxonomy_code": "DEP_YANKED",
+      "evidence": "ERROR: Could not find a version that satisfies the requirement torch==1.2.0 (from versions: 1.11.0, 1.11.0+cpu, 1.12.0, 1.12.0+cpu, 1.12.1, 1.12.1+cpu, 1.13.0, 1.13.0+cpu, 1.13.1, 1.13.1+cpu, 2.0.0, 2.0.0+cpu, 2.0.1, 2.0.1+cpu, 2.1.0, 2.1.0+cpu, 2.1.1, 2.1.1+cpu, 2.1.2, 2.1.2+cpu, 2.2.0, 2.2.0+cpu, 2.2.1, 2.2.1+cpu, 2.2.2, 2.2.2+cpu, 2.3.0, 2.3.0+cpu, 2.3.1, 2.3.1+cpu, 2.4.0, 2.4.0+cpu, 2.4.1, 2.4.1+cpu, 2.5.0, 2.5.0+cpu, 2.5.1, 2.5.1+cpu, 2.6.0, 2.6.0+cpu, 2.7.0, 2.7.0+cpu, 2.7.1, 2.7.1+cpu, 2."
+    },
+    "recovery": false,
+    "tree_integrity": {
+      "status": "verified",
+      "tree_sha": "958ee2a3a90800a967246177d0fcfa0554572dd2",
+      "files_checked": 79,
+      "excluded_patched": []
+    },
+    "corpus_hash": "7df090bea7013974f9f10fb8959ab0162734b51c83a80f744f9c310ce694fbdc",
+    "taxonomy_code": "DEP_YANKED",
+    "indeterminate_reason": "RUNNER_SETUP_FAILED: ERROR: Could not find a version that satisfies the requirement torch==1.2.0 (from versions: 1.11.0, 1.11.0+cpu, 1.12.0, 1.12.0+cpu, 1.12.1, 1.12.1+cpu, 1.13.0, 1.13.0+cpu, 1.13.1, 1.13.1+cpu, 2.0.0, 2.0.0+cpu, 2.0.1, 2.0.1+cpu, 2.1.0, 2.1.0+cpu, 2.1.1, 2.1.1+cpu, 2.1.2, 2.1.2+cpu, 2.2.0, 2.2.0+cpu, 2.2.1, 2.2.1+cpu, 2.2.2, 2.2.2+cpu, 2.3.0, 2.3.0+cpu, 2.3.1, 2.3.1+cpu, 2.4.0, 2.4.0+cpu, 2.4.1, 2.4.1+cpu, 2.5.0, 2.5.0+cpu, 2.5.1, 2.5.1+cpu, 2.6.0, 2.6.0+cpu, 2.7.0, 2.7.0+cpu, 2.7.1, 2.7.1+cpu, 2. \u2014 RERUN's own setup step failed before the repository's first command ran; not a verdict on the repository.",
+    "error_chain": [
+      {
+        "error": "ERROR: Could not find a version that satisfies the requirement torch==1.2.0 (from versions: 1.11.0, 1.11.0+cpu, 1.12.0, 1.12.0+cpu, 1.12.1, 1.12.1+cpu, 1.13.0, 1.13.0+cpu, 1.13.1, 1.13.1+cpu, 2.0.0, 2.0.0+cpu, 2.0.1, 2.0.1+cpu, 2.1.0, 2.1.0+cpu, 2.1.1, 2.1.1+cpu, 2.1.2, 2.1.2+cpu, 2.2.0, 2.2.0+cpu, 2.2.1, 2.2.1+cpu, 2.2.2, 2.2.2+cpu, 2.3.0, 2.3.0+cpu, 2.3.1, 2.3.1+cpu, 2.4.0, 2.4.0+cpu, 2.4.1, 2.4.1+cpu, 2.5.0, 2.5.0+cpu, 2.5.1, 2.5.1+cpu, 2.6.0, 2.6.0+cpu, 2.7.0, 2.7.0+cpu, 2.7.1, 2.7.1+cpu, 2.",
+        "class": "DEP_YANKED",
+        "attribution": "ENV",
+        "phase": "runner_setup",
+        "cleared_by": null
+      }
+    ],
+    "first_repo_error": null,
+    "last_error": "ERROR: Could not find a version that satisfies the requirement torch==1.2.0 (from versions: 1.11.0, 1.11.0+cpu, 1.12.0, 1.12.0+cpu, 1.12.1, 1.12.1+cpu, 1.13.0, 1.13.0+cpu, 1.13.1, 1.13.1+cpu, 2.0.0, 2.0.0+cpu, 2.0.1, 2.0.1+cpu, 2.1.0, 2.1.0+cpu, 2.1.1, 2.1.1+cpu, 2.1.2, 2.1.2+cpu, 2.2.0, 2.2.0+cpu, 2.2.1, 2.2.1+cpu, 2.2.2, 2.2.2+cpu, 2.3.0, 2.3.0+cpu, 2.3.1, 2.3.1+cpu, 2.4.0, 2.4.0+cpu, 2.4.1, 2.4.1+cpu, 2.5.0, 2.5.0+cpu, 2.5.1, 2.5.1+cpu, 2.6.0, 2.6.0+cpu, 2.7.0, 2.7.0+cpu, 2.7.1, 2.7.1+cpu, 2.",
+    "reproduction_passport_hash": "3593db423fe4776a4ea081ce427625f8ab91a59cd803543d0856b52848bee4b4"
+  },
+  "finished_at": "2026-09-30T13:34:38.779118+00:00",
+  "events": [
+    {
+      "t_s": 0.0,
+      "at": "2026-09-30T13:32:24.452745+00:00",
+      "line": "[intake] cloned https://github.com/omarfoq/fedem@996faddf865fd03c6852b7ffe64410e31b339e94"
+    },
+    {
+      "t_s": 0.01,
+      "at": "2026-09-30T13:32:24.462387+00:00",
+      "line": "[recon] calling Nemotron Nano"
+    },
+    {
+      "t_s": 68.55,
+      "at": "2026-09-30T13:33:33.005171+00:00",
+      "line": "[recon] entrypoint=run_experiment.py confidence=0.60"
+    },
+    {
+      "t_s": 68.57,
+      "at": "2026-09-30T13:33:33.020610+00:00",
+      "line": "[python] python:3.10-slim (default): no usable Python declaration; RERUN default 3.10"
+    },
+    {
+      "t_s": 74.79,
+      "at": "2026-09-30T13:33:39.241412+00:00",
+      "line": "[planner] build plan: {'base_image': 'python:3.10-slim', 'apt_install': ['libfreetype6-dev', 'libfribidi-dev', 'libharfbuzz-dev', 'libjpeg-dev', 'liblcms2-dev', 'libwebp-dev', 'tcl8.6-dev', 'tk8.6-dev', 'zlib1g-dev'], 'install_commands': ['pip install -r requirements.txt'], 'execute_command': 'python run_experiment.py cifar10 FedAvg --n_learners 1 --n_rounds 200 --bz 128 --lr 0.01 --lr_scheduler multi_step --log_freq 5 --device cuda --optimizer sgd --seed 1234 --verbose 1', 'notes': [\"execute command is the repository's documented command (corpus ground truth)\", 'base image python:3.10-slim: no usable Python declaration; RERUN default 3.10', 'apt package list enriched by Nemotron Super']}"
+    },
+    {
+      "t_s": 75.09,
+      "at": "2026-09-30T13:33:39.538747+00:00",
+      "line": "[integrity] verified 79 file(s) against tree 958ee2a3a90800a967246177d0fcfa0554572dd2"
+    },
+    {
+      "t_s": 75.09,
+      "at": "2026-09-30T13:33:39.538787+00:00",
+      "line": "[sandbox] starting build+execute (wall_clock_seconds=600)"
+    },
+    {
+      "t_s": 75.11,
+      "at": "2026-09-30T13:33:39.560638+00:00",
+      "line": "[runner] torch: repo pins torch, torchvision; installed the CPU wheels as a matched set with the same pins"
+    },
+    {
+      "t_s": 132.34,
+      "at": "2026-09-30T13:34:36.794596+00:00",
+      "line": "[cost_guard] recorded $0.1803 sandbox spend, $1.8158 remaining today"
+    },
+    {
+      "t_s": 132.34,
+      "at": "2026-09-30T13:34:36.794686+00:00",
+      "line": "[sandbox] id=d3c151bb-79ec-46e1-b36d-8fbc19e458e7 exit_code=1"
+    },
+    {
+      "t_s": 132.34,
+      "at": "2026-09-30T13:34:36.794710+00:00",
+      "line": "[baseline] as-is run: FAILS (exit code 1)"
+    },
+    {
+      "t_s": 132.34,
+      "at": "2026-09-30T13:34:36.795546+00:00",
+      "line": "[classifier] DEP_YANKED: ERROR: Could not find a version that satisfies the requirement torch==1.2.0 (from versions: 1.11.0, 1.11.0+cpu, 1.12.0, 1.12.0+cpu, 1.12.1, 1.12.1+cpu, 1.13.0, 1.13.0+cpu, 1.13.1, 1.13.1+cpu, 2.0.0, 2.0.0+cpu, 2.0.1, 2.0.1+cpu, 2.1.0, 2.1.0+cpu, 2.1.1, 2.1.1+cpu, 2.1.2, 2.1.2+cpu, 2.2.0, 2.2.0+cpu, 2.2.1, 2.2.1+cpu, 2.2.2, 2.2.2+cpu, 2.3.0, 2.3.0+cpu, 2.3.1, 2.3.1+cpu, 2.4.0, 2.4.0+cpu, 2.4.1, 2.4.1+cpu, 2.5.0, 2.5.0+cpu, 2.5.1, 2.5.1+cpu, 2.6.0, 2.6.0+cpu, 2.7.0, 2.7.0+cpu, 2.7.1, 2.7.1+cpu, 2."
+    },
+    {
+      "t_s": 132.34,
+      "at": "2026-09-30T13:34:36.795586+00:00",
+      "line": "[verdict] INDETERMINATE: RUNNER_SETUP_FAILED: ERROR: Could not find a version that satisfies the requirement torch==1.2.0 (from versions: 1.11.0, 1.11.0+cpu, 1.12.0, 1.12.0+cpu, 1.12.1, 1.12.1+cpu, 1.13.0, 1.13.0+cpu, 1.13.1, 1.13.1+cpu, 2.0.0, 2.0.0+cpu, 2.0.1, 2.0.1+cpu, 2.1.0, 2.1.0+cpu, 2.1.1, 2.1.1+cpu, 2.1.2, 2.1.2+cpu, 2.2.0, 2.2.0+cpu, 2.2.1, 2.2.1+cpu, 2.2.2, 2.2.2+cpu, 2.3.0, 2.3.0+cpu, 2.3.1, 2.3.1+cpu, 2.4.0, 2.4.0+cpu, 2.4.1, 2.4.1+cpu, 2.5.0, 2.5.0+cpu, 2.5.1, 2.5.1+cpu, 2.6.0, 2.6.0+cpu, 2.7.0, 2.7.0+cpu, 2.7.1, 2.7.1+cpu, 2. \u2014 RERUN's own setup step failed before the repository's first command ran; not a verdict on the repository."
+    }
+  ],
+  "model_calls": [
+    {
+      "model": "nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B",
+      "started_at": "2026-09-30T13:32:24.671525+00:00",
+      "latency_s": 47.75,
+      "finish_reason": "length",
+      "content_is_none": true,
+      "has_reasoning": true,
+      "usage": {
+        "completion_tokens": 4096,
+        "prompt_tokens": 9993,
+        "total_tokens": 14089,
+        "completion_tokens_details": null,
+        "prompt_tokens_details": null
+      }
+    },
+    {
+      "model": "nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B",
+      "started_at": "2026-09-30T13:33:12.424962+00:00",
+      "latency_s": 20.58,
+      "finish_reason": "stop",
+      "content_is_none": false,
+      "has_reasoning": true,
+      "usage": {
+        "completion_tokens": 2402,
+        "prompt_tokens": 9993,
+        "total_tokens": 12395,
+        "completion_tokens_details": null,
+        "prompt_tokens_details": {
+          "audio_tokens": null,
+          "cache_write_tokens": null,
+          "cached_tokens": 8448,
+          "image_tokens": null,
+          "text_tokens": null
+        }
+      }
+    },
+    {
+      "model": "nvidia/nemotron-3-super-120b-a12b",
+      "started_at": "2026-09-30T13:33:33.022074+00:00",
+      "latency_s": 6.22,
+      "finish_reason": "stop",
+      "content_is_none": false,
+      "has_reasoning": true,
+      "usage": {
+        "completion_tokens": 1173,
+        "prompt_tokens": 310,
+        "total_tokens": 1483,
+        "completion_tokens_details": {
+          "accepted_prediction_tokens": null,
+          "audio_tokens": null,
+          "reasoning_tokens": 1109,
+          "rejected_prediction_tokens": null,
+          "text_tokens": null
+        },
+        "prompt_tokens_details": {
+          "audio_tokens": null,
+          "cache_write_tokens": null,
+          "cached_tokens": 0,
+          "image_tokens": null,
+          "text_tokens": null,
+          "created_cache_tokens": 0,
+          "multimodal_tokens": null
+        },
+        "prompt_cache_hit_tokens": 0,
+        "prompt_cache_miss_tokens": 310
+      }
+    },
+    {
+      "model": "nvidia/Nemotron-3-Ultra-550b-a55b",
+      "started_at": "2026-09-30T13:34:36.797319+00:00",
+      "latency_s": 1.91,
+      "finish_reason": "stop",
+      "content_is_none": false,
+      "has_reasoning": true,
+      "usage": {
+        "completion_tokens": 272,
+        "prompt_tokens": 1445,
+        "total_tokens": 1717,
+        "completion_tokens_details": {
+          "accepted_prediction_tokens": null,
+          "audio_tokens": null,
+          "reasoning_tokens": 160,
+          "rejected_prediction_tokens": null,
+          "text_tokens": null
+        },
+        "prompt_tokens_details": {
+          "audio_tokens": null,
+          "cache_write_tokens": null,
+          "cached_tokens": 0,
+          "image_tokens": null,
+          "text_tokens": null,
+          "multimodal_tokens": null
+        },
+        "prompt_cache_hit_tokens": 0,
+        "prompt_cache_miss_tokens": 1445
+      }
+    }
+  ],
+  "cost_guard": {
+    "spent_usd": 0.18647953,
+    "model_spent_usd": 0.00616838,
+    "sandbox_spent_usd": 0.18031115,
+    "remaining_usd": 1.81352047,
+    "model_usage": [
+      {
+        "model": "nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B",
+        "prompt_tokens": 9993,
+        "completion_tokens": 4096,
+        "cost_usd": 0.0015826199999999999
+      },
+      {
+        "model": "nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B",
+        "prompt_tokens": 9993,
+        "completion_tokens": 2402,
+        "cost_usd": 0.00117606
+      },
+      {
+        "model": "nvidia/nemotron-3-super-120b-a12b",
+        "prompt_tokens": 310,
+        "completion_tokens": 1173,
+        "cost_usd": 0.0011487000000000001
+      },
+      {
+        "model": "nvidia/Nemotron-3-Ultra-550b-a55b",
+        "prompt_tokens": 1445,
+        "completion_tokens": 272,
+        "cost_usd": 0.002261
+      }
+    ],
+    "prices_usd_per_1m": {
+      "nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B": [
+        0.06,
+        0.24
+      ],
+      "nvidia/nemotron-3-super-120b-a12b": [
+        0.3,
+        0.9
+      ],
+      "nvidia/Nemotron-3-Ultra-550b-a55b": [
+        1.0,
+        3.0
+      ]
+    },
+    "prices_source": "https://api.tokenfactory.nebius.com/v1/models?verbose=true (pricing field)",
+    "prices_retrieved": "2026-09-24"
+  }
+}

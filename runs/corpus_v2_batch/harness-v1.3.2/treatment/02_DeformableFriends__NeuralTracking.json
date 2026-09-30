@@ -1,0 +1,677 @@
+{
+  "run_kind": "live end-to-end run",
+  "dev_run": false,
+  "dry_run": null,
+  "batch": {
+    "harness_tag": "harness-v1.3.2",
+    "harness_commit": "77b3cfe1697ad74ad13eac1f77ffe0f1e80c7379",
+    "head_commit": "482173f3f945c40b990c30c87e0acf7e2c2b0c59",
+    "corpus": "corpus-v2",
+    "prereg_sha256": "ae5a722249156e058d3d360bdc63fa8224140d0688f1daa307ecfa93a98c7284",
+    "corpus_hash": "7df090bea7013974f9f10fb8959ab0162734b51c83a80f744f9c310ce694fbdc",
+    "arm": "treatment",
+    "total_cap_usd": 25.0,
+    "already_spent_usd": 4.08,
+    "entry_id": 2,
+    "category": "PRIMARY",
+    "rules_matched": [],
+    "per_entry_cap_usd": 2.0
+  },
+  "started_at": "2026-09-30T12:54:06.471722+00:00",
+  "corpus_entry": {
+    "name": "DeformableFriends__NeuralTracking",
+    "repo_url": "https://github.com/DeformableFriends/NeuralTracking",
+    "commit_sha": "015256369a94a56b0e478fd100326b9aa97ec9a7",
+    "command": "sh start_nnrt.sh",
+    "command_source": "README.md line 58"
+  },
+  "config": {
+    "models": {
+      "recon": "nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B",
+      "planner": "nvidia/nemotron-3-super-120b-a12b",
+      "repairer": "nvidia/nemotron-3-super-120b-a12b",
+      "adjudicator": "nvidia/Nemotron-3-Ultra-550b-a55b"
+    },
+    "sandbox_backend": "token_factory",
+    "sandbox_image_default": "python:3.10-slim",
+    "sandbox_wall_clock_seconds": 600.0,
+    "arm": "treatment",
+    "repair_enabled": true,
+    "max_attempts": 3,
+    "tavily_configured": true,
+    "cost_cap_usd": 2.0
+  },
+  "intake": {
+    "duration_s": 154.73,
+    "resolved_sha": "015256369a94a56b0e478fd100326b9aa97ec9a7",
+    "dependency_files": [],
+    "declared_dependencies": [],
+    "entrypoint_candidates": [
+      "create_graph_data.py",
+      "evaluate.py",
+      "example_viz.py",
+      "generate.py",
+      "model/evaluate.py",
+      "train.py",
+      "utils/snapshot_manager.py"
+    ],
+    "notebook_paths": []
+  },
+  "pipeline_duration_s": 282.28,
+  "repair_mode": "model_assisted",
+  "tree_integrity": {
+    "status": "verified",
+    "tree_sha": "f7b41297c60b54f204f854bd80aac9b796a1b80c",
+    "files_checked": 374,
+    "excluded_patched": []
+  },
+  "result": {
+    "verdict": "BLOCKED",
+    "taxonomy_code": "RUNTIME_ERROR_OTHER",
+    "indeterminate_reason": "",
+    "reason_code": null,
+    "error_chain": [
+      {
+        "error": "start_nnrt.sh: 27: docker: not found",
+        "class": "RUNTIME_ERROR_OTHER",
+        "attribution": "REPO",
+        "phase": "repo_run",
+        "cleared_by": 1
+      },
+      {
+        "error": "docker: Cannot connect to the Docker daemon at unix:///var/run/docker.sock. Is the docker daemon running?.",
+        "class": "RUNTIME_ERROR_OTHER",
+        "attribution": "REPO",
+        "phase": "repo_run",
+        "cleared_by": null
+      }
+    ],
+    "first_repo_error": "start_nnrt.sh: 27: docker: not found",
+    "last_error": "docker: Cannot connect to the Docker daemon at unix:///var/run/docker.sock. Is the docker daemon running?.",
+    "error_traceback": "",
+    "attempts": [
+      {
+        "attempt_number": 1,
+        "diff_text": "",
+        "gate_decision": "PASS",
+        "gate_violations": [],
+        "exit_code": 125,
+        "stdout_tail": "",
+        "stderr_tail": "start_nnrt.sh: 6: xhost: not found\nCannot connect to the Docker daemon at unix:///var/run/docker.sock. Is the docker daemon running?\nCannot connect to the Docker daemon at unix:///var/run/docker.sock. Is the docker daemon running?\nCannot connect to the Docker daemon at unix:///var/run/docker.sock. Is the docker daemon running?\nCannot connect to the Docker daemon at unix:///var/run/docker.sock. Is the docker daemon running?\nERROR: Cannot connect to the Docker daemon at unix:///var/run/docker.sock. Is the docker daemon running?\nCannot connect to the Docker daemon at unix:///var/run/docker.sock. Is the docker daemon running?\nCannot connect to the Docker daemon at unix:///var/run/docker.sock. Is the docker daemon running?\nCannot connect to the Docker daemon at unix:///var/run/docker.sock. Is the docker daemon running?\nCannot connect to the Docker daemon at unix:///var/run/docker.sock. Is the docker daemon running?\ndocker: Cannot connect to the Docker daemon at unix:///var/run/docker.sock. Is the docker daemon running?.\nSee 'docker run --help'.\ndocker: unknown server OS: .\nSee 'docker run --help'.\n",
+        "tavily_sources": [],
+        "env_delta": [
+          {
+            "command": null,
+            "op": "apt",
+            "package": "docker.io",
+            "version": null,
+            "git_url": null,
+            "commit": null,
+            "justification": "Install docker.io to resolve 'docker: not found' error in start_nnrt.sh",
+            "evidence": "start_nnrt.sh: 27: docker: not found"
+          }
+        ],
+        "resolved_sources": [],
+        "origin": "model",
+        "time_machine": null
+      },
+      {
+        "attempt_number": 2,
+        "diff_text": "",
+        "gate_decision": "DECLINED",
+        "gate_violations": [],
+        "exit_code": null,
+        "stdout_tail": "",
+        "stderr_tail": "",
+        "tavily_sources": [],
+        "env_delta": [],
+        "resolved_sources": [],
+        "origin": "model",
+        "time_machine": null
+      },
+      {
+        "attempt_number": 3,
+        "diff_text": "",
+        "gate_decision": "DECLINED",
+        "gate_violations": [],
+        "exit_code": null,
+        "stdout_tail": "",
+        "stderr_tail": "",
+        "tavily_sources": [],
+        "env_delta": [],
+        "resolved_sources": [],
+        "origin": "model",
+        "time_machine": null
+      }
+    ],
+    "certificate_prose": "The execution was blocked after three repair attempts due to a runtime error (RUNTIME_ERROR_OTHER) indicating the Docker daemon is not accessible. The repair was declined because the target file evaluate.py does not contain Docker-related code, and without access to start_nnrt.sh (which likely contains the Docker commands) no safe code-level fix could be proposed. The artifact could not execute because the required Docker environment was unavailable. Verifies that the artifact executes. Does not verify the paper's numerical results."
+  },
+  "certificate": {
+    "repo_url": "https://github.com/DeformableFriends/NeuralTracking",
+    "commit_sha": "015256369a94a56b0e478fd100326b9aa97ec9a7",
+    "build_plan": {
+      "base_image": "python:3.10-slim",
+      "apt_install": [
+        "docker.io"
+      ],
+      "install_commands": [
+        "true  # no declared dependency file found; nothing to install"
+      ],
+      "execute_command": "sh start_nnrt.sh",
+      "notes": [
+        "execute command is the repository's documented command (corpus ground truth)",
+        "base image python:3.10-slim: no usable Python declaration; RERUN default 3.10",
+        "env delta: apt docker.io \u2014 Install docker.io to resolve 'docker: not found' error in start_nnrt.sh"
+      ]
+    },
+    "full_log": "[intake] cloned https://github.com/DeformableFriends/NeuralTracking@015256369a94a56b0e478fd100326b9aa97ec9a7\n[recon] calling Nemotron Nano\n[recon] entrypoint=evaluate.py confidence=0.78\n[python] python:3.10-slim (default): no usable Python declaration; RERUN default 3.10\n[planner] build plan: {'base_image': 'python:3.10-slim', 'apt_install': [], 'install_commands': ['true  # no declared dependency file found; nothing to install'], 'execute_command': 'sh start_nnrt.sh', 'notes': [\"execute command is the repository's documented command (corpus ground truth)\", 'base image python:3.10-slim: no usable Python declaration; RERUN default 3.10']}\n[integrity] verified 374 file(s) against tree f7b41297c60b54f204f854bd80aac9b796a1b80c\n[sandbox] starting build+execute (wall_clock_seconds=600)\n[runner] torch: repo imports torch, torchvision without declaring it; runner provides the newest matched CPU wheels\n[cost_guard] recorded $0.3043 sandbox spend, $1.6945 remaining today\n[sandbox] id=bd5d8de9-181e-4e18-9043-70beb36dfba0 exit_code=127\n[baseline] as-is run: FAILS (exit code 127)\n[classifier] RUNTIME_ERROR_OTHER: start_nnrt.sh: 27: docker: not found\n[tavily] 3 result(s) for 'python runtime error other fix: start_nnrt.sh: 27: docker: not found'\n[repair 1] tamper gate PASS (env) \u2014 applying and re-executing\n[repair 1] env delta applied; build plan now: {'base_image': 'python:3.10-slim', 'apt_install': ['docker.io'], 'install_commands': ['true  # no declared dependency file found; nothing to install'], 'execute_command': 'sh start_nnrt.sh', 'notes': [\"execute command is the repository's documented command (corpus ground truth)\", 'base image python:3.10-slim: no usable Python declaration; RERUN default 3.10', \"env delta: apt docker.io \u2014 Install docker.io to resolve 'docker: not found' error in start_nnrt.sh\"]}\n[citations] not cited (not used in a decision): https://discuss.circleci.com/t/python-command-not-found-on-custom-docker-image/35187\n[citations] not cited (not used in a decision): https://www.cherryservers.com/blog/fix-docker-command-not-found\n[citations] not cited (not used in a decision): https://www.repoflow.io/errors/docker/exec-not-found\n[integrity] verified 374 file(s) against tree f7b41297c60b54f204f854bd80aac9b796a1b80c\n[sandbox] starting build+execute (wall_clock_seconds=600)\n[runner] torch: repo imports torch, torchvision without declaring it; runner provides the newest matched CPU wheels\n[cost_guard] recorded $0.4215 sandbox spend, $1.2681 remaining today\n[repair 1] re-execution id=514fb02f-70f8-44a2-a5d6-3f6cf451968d exit_code=125\n[classifier] RUNTIME_ERROR_OTHER: docker: Cannot connect to the Docker daemon at unix:///var/run/docker.sock. Is the docker daemon running?.\n[tavily] 3 result(s) for 'python runtime error other fix: docker: Cannot connect to the Docker daemon at unix:///var/run/docker.sock. Is the docker daemon running?.'\n[repair 2] declined: The Docker daemon error occurs in the execution environment (likely start_nnrt.sh) and cannot be resolved by modifying evaluate.py, which contains no Docker-related code.\n[citations] not cited (not used in a decision): https://forums.docker.com/t/docker-desktop-error-cannot-connect-to-the-docker-daemon-at-unix-var-run-docker-sock-is-the-docker-daemon-running/138438\n[citations] not cited (not used in a decision): https://www.xurrent.com/blog/cannot-connect-to-the-docker-daemon\n[citations] not cited (not used in a decision): https://github.com/docker/for-win/issues/14759\n[tavily] 3 result(s) for 'python runtime error other fix: docker: Cannot connect to the Docker daemon at unix:///var/run/docker.sock. Is the docker daemon running?.'\n[repair 3] declined: The error indicates Docker daemon is not accessible, but the target file evaluate.py does not contain Docker-related code. Without access to start_nnrt.sh (which likely contains the Docker commands) or further context, no safe code-level fix can be proposed for evaluate.py.\n[citations] not cited (not used in a decision): https://forums.docker.com/t/docker-desktop-error-cannot-connect-to-the-docker-daemon-at-unix-var-run-docker-sock-is-the-docker-daemon-running/138438\n[citations] not cited (not used in a decision): https://www.xurrent.com/blog/cannot-connect-to-the-docker-daemon\n[citations] not cited (not used in a decision): https://www.geeksforgeeks.org/linux-unix/how-to-fix-cannot-connect-to-the-docker-daemon-error\n[verdict] BLOCKED after 3 repair attempt(s): RUNTIME_ERROR_OTHER",
+    "diffs": [
+      {
+        "attempt_number": 1,
+        "diff_text": "",
+        "gate_decision": "PASS",
+        "gate_violations": [],
+        "exit_code": 125,
+        "stdout_tail": "",
+        "stderr_tail": "start_nnrt.sh: 6: xhost: not found\nCannot connect to the Docker daemon at unix:///var/run/docker.sock. Is the docker daemon running?\nCannot connect to the Docker daemon at unix:///var/run/docker.sock. Is the docker daemon running?\nCannot connect to the Docker daemon at unix:///var/run/docker.sock. Is the docker daemon running?\nCannot connect to the Docker daemon at unix:///var/run/docker.sock. Is the docker daemon running?\nERROR: Cannot connect to the Docker daemon at unix:///var/run/docker.sock. Is the docker daemon running?\nCannot connect to the Docker daemon at unix:///var/run/docker.sock. Is the docker daemon running?\nCannot connect to the Docker daemon at unix:///var/run/docker.sock. Is the docker daemon running?\nCannot connect to the Docker daemon at unix:///var/run/docker.sock. Is the docker daemon running?\nCannot connect to the Docker daemon at unix:///var/run/docker.sock. Is the docker daemon running?\ndocker: Cannot connect to the Docker daemon at unix:///var/run/docker.sock. Is the docker daemon running?.\nSee 'docker run --help'.\ndocker: unknown server OS: .\nSee 'docker run --help'.\n",
+        "tavily_sources": [],
+        "env_delta": [
+          {
+            "command": null,
+            "op": "apt",
+            "package": "docker.io",
+            "version": null,
+            "git_url": null,
+            "commit": null,
+            "justification": "Install docker.io to resolve 'docker: not found' error in start_nnrt.sh",
+            "evidence": "start_nnrt.sh: 27: docker: not found"
+          }
+        ],
+        "resolved_sources": [],
+        "origin": "model",
+        "time_machine": null
+      },
+      {
+        "attempt_number": 2,
+        "diff_text": "",
+        "gate_decision": "DECLINED",
+        "gate_violations": [],
+        "exit_code": null,
+        "stdout_tail": "",
+        "stderr_tail": "",
+        "tavily_sources": [],
+        "env_delta": [],
+        "resolved_sources": [],
+        "origin": "model",
+        "time_machine": null
+      },
+      {
+        "attempt_number": 3,
+        "diff_text": "",
+        "gate_decision": "DECLINED",
+        "gate_violations": [],
+        "exit_code": null,
+        "stdout_tail": "",
+        "stderr_tail": "",
+        "tavily_sources": [],
+        "env_delta": [],
+        "resolved_sources": [],
+        "origin": "model",
+        "time_machine": null
+      }
+    ],
+    "verdict": "BLOCKED",
+    "timestamp": "2026-09-30T13:01:23.484240+00:00",
+    "bundle_version": 4,
+    "baseline": {
+      "result": "FAILS",
+      "exit_code": 127,
+      "base_image": "python:3.10-slim",
+      "install_commands": [
+        "true  # no declared dependency file found; nothing to install"
+      ],
+      "execute_command": "sh start_nnrt.sh",
+      "sandbox_id": "bd5d8de9-181e-4e18-9043-70beb36dfba0",
+      "taxonomy_code": "RUNTIME_ERROR_OTHER",
+      "evidence": "start_nnrt.sh: 27: docker: not found"
+    },
+    "recovery": false,
+    "tree_integrity": {
+      "status": "verified",
+      "tree_sha": "f7b41297c60b54f204f854bd80aac9b796a1b80c",
+      "files_checked": 374,
+      "excluded_patched": []
+    },
+    "corpus_hash": "7df090bea7013974f9f10fb8959ab0162734b51c83a80f744f9c310ce694fbdc",
+    "taxonomy_code": "RUNTIME_ERROR_OTHER",
+    "indeterminate_reason": "",
+    "error_chain": [
+      {
+        "error": "start_nnrt.sh: 27: docker: not found",
+        "class": "RUNTIME_ERROR_OTHER",
+        "attribution": "REPO",
+        "phase": "repo_run",
+        "cleared_by": 1
+      },
+      {
+        "error": "docker: Cannot connect to the Docker daemon at unix:///var/run/docker.sock. Is the docker daemon running?.",
+        "class": "RUNTIME_ERROR_OTHER",
+        "attribution": "REPO",
+        "phase": "repo_run",
+        "cleared_by": null
+      }
+    ],
+    "first_repo_error": "start_nnrt.sh: 27: docker: not found",
+    "last_error": "docker: Cannot connect to the Docker daemon at unix:///var/run/docker.sock. Is the docker daemon running?.",
+    "reproduction_passport_hash": "5884df3914767d0350b5aff9e666b52128774daaaaa2e8d041d7901b67399be7"
+  },
+  "finished_at": "2026-09-30T13:01:23.595633+00:00",
+  "events": [
+    {
+      "t_s": 0.0,
+      "at": "2026-09-30T12:56:41.199852+00:00",
+      "line": "[intake] cloned https://github.com/DeformableFriends/NeuralTracking@015256369a94a56b0e478fd100326b9aa97ec9a7"
+    },
+    {
+      "t_s": 0.01,
+      "at": "2026-09-30T12:56:41.211805+00:00",
+      "line": "[recon] calling Nemotron Nano"
+    },
+    {
+      "t_s": 21.0,
+      "at": "2026-09-30T12:57:02.200571+00:00",
+      "line": "[recon] entrypoint=evaluate.py confidence=0.78"
+    },
+    {
+      "t_s": 21.01,
+      "at": "2026-09-30T12:57:02.214620+00:00",
+      "line": "[python] python:3.10-slim (default): no usable Python declaration; RERUN default 3.10"
+    },
+    {
+      "t_s": 22.2,
+      "at": "2026-09-30T12:57:03.400136+00:00",
+      "line": "[planner] build plan: {'base_image': 'python:3.10-slim', 'apt_install': [], 'install_commands': ['true  # no declared dependency file found; nothing to install'], 'execute_command': 'sh start_nnrt.sh', 'notes': [\"execute command is the repository's documented command (corpus ground truth)\", 'base image python:3.10-slim: no usable Python declaration; RERUN default 3.10']}"
+    },
+    {
+      "t_s": 24.4,
+      "at": "2026-09-30T12:57:05.598901+00:00",
+      "line": "[integrity] verified 374 file(s) against tree f7b41297c60b54f204f854bd80aac9b796a1b80c"
+    },
+    {
+      "t_s": 24.4,
+      "at": "2026-09-30T12:57:05.598944+00:00",
+      "line": "[sandbox] starting build+execute (wall_clock_seconds=600)"
+    },
+    {
+      "t_s": 24.42,
+      "at": "2026-09-30T12:57:05.619221+00:00",
+      "line": "[runner] torch: repo imports torch, torchvision without declaring it; runner provides the newest matched CPU wheels"
+    },
+    {
+      "t_s": 108.13,
+      "at": "2026-09-30T12:58:29.332273+00:00",
+      "line": "[cost_guard] recorded $0.3043 sandbox spend, $1.6945 remaining today"
+    },
+    {
+      "t_s": 108.13,
+      "at": "2026-09-30T12:58:29.332495+00:00",
+      "line": "[sandbox] id=bd5d8de9-181e-4e18-9043-70beb36dfba0 exit_code=127"
+    },
+    {
+      "t_s": 108.13,
+      "at": "2026-09-30T12:58:29.332525+00:00",
+      "line": "[baseline] as-is run: FAILS (exit code 127)"
+    },
+    {
+      "t_s": 108.13,
+      "at": "2026-09-30T12:58:29.333008+00:00",
+      "line": "[classifier] RUNTIME_ERROR_OTHER: start_nnrt.sh: 27: docker: not found"
+    },
+    {
+      "t_s": 110.24,
+      "at": "2026-09-30T12:58:31.438826+00:00",
+      "line": "[tavily] 3 result(s) for 'python runtime error other fix: start_nnrt.sh: 27: docker: not found'"
+    },
+    {
+      "t_s": 129.84,
+      "at": "2026-09-30T12:58:51.034951+00:00",
+      "line": "[repair 1] tamper gate PASS (env) \u2014 applying and re-executing"
+    },
+    {
+      "t_s": 129.84,
+      "at": "2026-09-30T12:58:51.035033+00:00",
+      "line": "[repair 1] env delta applied; build plan now: {'base_image': 'python:3.10-slim', 'apt_install': ['docker.io'], 'install_commands': ['true  # no declared dependency file found; nothing to install'], 'execute_command': 'sh start_nnrt.sh', 'notes': [\"execute command is the repository's documented command (corpus ground truth)\", 'base image python:3.10-slim: no usable Python declaration; RERUN default 3.10', \"env delta: apt docker.io \u2014 Install docker.io to resolve 'docker: not found' error in start_nnrt.sh\"]}"
+    },
+    {
+      "t_s": 129.84,
+      "at": "2026-09-30T12:58:51.035055+00:00",
+      "line": "[citations] not cited (not used in a decision): https://discuss.circleci.com/t/python-command-not-found-on-custom-docker-image/35187"
+    },
+    {
+      "t_s": 129.84,
+      "at": "2026-09-30T12:58:51.035066+00:00",
+      "line": "[citations] not cited (not used in a decision): https://www.cherryservers.com/blog/fix-docker-command-not-found"
+    },
+    {
+      "t_s": 129.84,
+      "at": "2026-09-30T12:58:51.035080+00:00",
+      "line": "[citations] not cited (not used in a decision): https://www.repoflow.io/errors/docker/exec-not-found"
+    },
+    {
+      "t_s": 130.2,
+      "at": "2026-09-30T12:58:51.404187+00:00",
+      "line": "[integrity] verified 374 file(s) against tree f7b41297c60b54f204f854bd80aac9b796a1b80c"
+    },
+    {
+      "t_s": 130.2,
+      "at": "2026-09-30T12:58:51.404229+00:00",
+      "line": "[sandbox] starting build+execute (wall_clock_seconds=600)"
+    },
+    {
+      "t_s": 130.24,
+      "at": "2026-09-30T12:58:51.435689+00:00",
+      "line": "[runner] torch: repo imports torch, torchvision without declaring it; runner provides the newest matched CPU wheels"
+    },
+    {
+      "t_s": 235.52,
+      "at": "2026-09-30T13:00:36.718727+00:00",
+      "line": "[cost_guard] recorded $0.4215 sandbox spend, $1.2681 remaining today"
+    },
+    {
+      "t_s": 235.52,
+      "at": "2026-09-30T13:00:36.719119+00:00",
+      "line": "[repair 1] re-execution id=514fb02f-70f8-44a2-a5d6-3f6cf451968d exit_code=125"
+    },
+    {
+      "t_s": 235.52,
+      "at": "2026-09-30T13:00:36.719905+00:00",
+      "line": "[classifier] RUNTIME_ERROR_OTHER: docker: Cannot connect to the Docker daemon at unix:///var/run/docker.sock. Is the docker daemon running?."
+    },
+    {
+      "t_s": 237.87,
+      "at": "2026-09-30T13:00:39.071287+00:00",
+      "line": "[tavily] 3 result(s) for 'python runtime error other fix: docker: Cannot connect to the Docker daemon at unix:///var/run/docker.sock. Is the docker daemon running?.'"
+    },
+    {
+      "t_s": 254.82,
+      "at": "2026-09-30T13:00:56.017675+00:00",
+      "line": "[repair 2] declined: The Docker daemon error occurs in the execution environment (likely start_nnrt.sh) and cannot be resolved by modifying evaluate.py, which contains no Docker-related code."
+    },
+    {
+      "t_s": 254.82,
+      "at": "2026-09-30T13:00:56.017720+00:00",
+      "line": "[citations] not cited (not used in a decision): https://forums.docker.com/t/docker-desktop-error-cannot-connect-to-the-docker-daemon-at-unix-var-run-docker-sock-is-the-docker-daemon-running/138438"
+    },
+    {
+      "t_s": 254.82,
+      "at": "2026-09-30T13:00:56.017731+00:00",
+      "line": "[citations] not cited (not used in a decision): https://www.xurrent.com/blog/cannot-connect-to-the-docker-daemon"
+    },
+    {
+      "t_s": 254.82,
+      "at": "2026-09-30T13:00:56.017739+00:00",
+      "line": "[citations] not cited (not used in a decision): https://github.com/docker/for-win/issues/14759"
+    },
+    {
+      "t_s": 257.53,
+      "at": "2026-09-30T13:00:58.734796+00:00",
+      "line": "[tavily] 3 result(s) for 'python runtime error other fix: docker: Cannot connect to the Docker daemon at unix:///var/run/docker.sock. Is the docker daemon running?.'"
+    },
+    {
+      "t_s": 280.18,
+      "at": "2026-09-30T13:01:21.381027+00:00",
+      "line": "[repair 3] declined: The error indicates Docker daemon is not accessible, but the target file evaluate.py does not contain Docker-related code. Without access to start_nnrt.sh (which likely contains the Docker commands) or further context, no safe code-level fix can be proposed for evaluate.py."
+    },
+    {
+      "t_s": 280.18,
+      "at": "2026-09-30T13:01:21.381074+00:00",
+      "line": "[citations] not cited (not used in a decision): https://forums.docker.com/t/docker-desktop-error-cannot-connect-to-the-docker-daemon-at-unix-var-run-docker-sock-is-the-docker-daemon-running/138438"
+    },
+    {
+      "t_s": 280.18,
+      "at": "2026-09-30T13:01:21.381091+00:00",
+      "line": "[citations] not cited (not used in a decision): https://www.xurrent.com/blog/cannot-connect-to-the-docker-daemon"
+    },
+    {
+      "t_s": 280.18,
+      "at": "2026-09-30T13:01:21.381099+00:00",
+      "line": "[citations] not cited (not used in a decision): https://www.geeksforgeeks.org/linux-unix/how-to-fix-cannot-connect-to-the-docker-daemon-error"
+    },
+    {
+      "t_s": 280.18,
+      "at": "2026-09-30T13:01:21.381118+00:00",
+      "line": "[verdict] BLOCKED after 3 repair attempt(s): RUNTIME_ERROR_OTHER"
+    }
+  ],
+  "model_calls": [
+    {
+      "model": "nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B",
+      "started_at": "2026-09-30T12:56:41.454820+00:00",
+      "latency_s": 20.74,
+      "finish_reason": "stop",
+      "content_is_none": false,
+      "has_reasoning": true,
+      "usage": {
+        "completion_tokens": 2645,
+        "prompt_tokens": 7010,
+        "total_tokens": 9655,
+        "completion_tokens_details": null,
+        "prompt_tokens_details": null
+      }
+    },
+    {
+      "model": "nvidia/nemotron-3-super-120b-a12b",
+      "started_at": "2026-09-30T12:57:02.215835+00:00",
+      "latency_s": 1.18,
+      "finish_reason": "stop",
+      "content_is_none": false,
+      "has_reasoning": true,
+      "usage": {
+        "completion_tokens": 46,
+        "prompt_tokens": 268,
+        "total_tokens": 314,
+        "completion_tokens_details": {
+          "accepted_prediction_tokens": null,
+          "audio_tokens": null,
+          "reasoning_tokens": 36,
+          "rejected_prediction_tokens": null,
+          "text_tokens": null
+        },
+        "prompt_tokens_details": {
+          "audio_tokens": null,
+          "cache_write_tokens": null,
+          "cached_tokens": 0,
+          "image_tokens": null,
+          "text_tokens": null,
+          "created_cache_tokens": 0,
+          "multimodal_tokens": null
+        },
+        "prompt_cache_hit_tokens": 0,
+        "prompt_cache_miss_tokens": 268
+      }
+    },
+    {
+      "model": "nvidia/nemotron-3-super-120b-a12b",
+      "started_at": "2026-09-30T12:58:31.531679+00:00",
+      "latency_s": 19.5,
+      "finish_reason": "stop",
+      "content_is_none": false,
+      "has_reasoning": true,
+      "usage": {
+        "completion_tokens": 4041,
+        "prompt_tokens": 4364,
+        "total_tokens": 8405,
+        "completion_tokens_details": {
+          "accepted_prediction_tokens": null,
+          "audio_tokens": null,
+          "reasoning_tokens": 3933,
+          "rejected_prediction_tokens": null,
+          "text_tokens": null
+        },
+        "prompt_tokens_details": {
+          "audio_tokens": null,
+          "cache_write_tokens": null,
+          "cached_tokens": 0,
+          "image_tokens": null,
+          "text_tokens": null,
+          "created_cache_tokens": 0,
+          "multimodal_tokens": null
+        },
+        "prompt_cache_hit_tokens": 0,
+        "prompt_cache_miss_tokens": 4364
+      }
+    },
+    {
+      "model": "nvidia/nemotron-3-super-120b-a12b",
+      "started_at": "2026-09-30T13:00:39.074429+00:00",
+      "latency_s": 16.94,
+      "finish_reason": "stop",
+      "content_is_none": false,
+      "has_reasoning": true,
+      "usage": {
+        "completion_tokens": 2791,
+        "prompt_tokens": 4589,
+        "total_tokens": 7380,
+        "completion_tokens_details": {
+          "accepted_prediction_tokens": null,
+          "audio_tokens": null,
+          "reasoning_tokens": 2734,
+          "rejected_prediction_tokens": null,
+          "text_tokens": null
+        },
+        "prompt_tokens_details": {
+          "audio_tokens": null,
+          "cache_write_tokens": null,
+          "cached_tokens": 0,
+          "image_tokens": null,
+          "text_tokens": null,
+          "created_cache_tokens": 0,
+          "multimodal_tokens": null
+        },
+        "prompt_cache_hit_tokens": 0,
+        "prompt_cache_miss_tokens": 4589
+      }
+    },
+    {
+      "model": "nvidia/nemotron-3-super-120b-a12b",
+      "started_at": "2026-09-30T13:00:58.738099+00:00",
+      "latency_s": 22.64,
+      "finish_reason": "stop",
+      "content_is_none": false,
+      "has_reasoning": true,
+      "usage": {
+        "completion_tokens": 4053,
+        "prompt_tokens": 4553,
+        "total_tokens": 8606,
+        "completion_tokens_details": {
+          "accepted_prediction_tokens": null,
+          "audio_tokens": null,
+          "reasoning_tokens": 3975,
+          "rejected_prediction_tokens": null,
+          "text_tokens": null
+        },
+        "prompt_tokens_details": {
+          "audio_tokens": null,
+          "cache_write_tokens": null,
+          "cached_tokens": 0,
+          "image_tokens": null,
+          "text_tokens": null,
+          "created_cache_tokens": 0,
+          "multimodal_tokens": null
+        },
+        "prompt_cache_hit_tokens": 0,
+        "prompt_cache_miss_tokens": 4553
+      }
+    },
+    {
+      "model": "nvidia/Nemotron-3-Ultra-550b-a55b",
+      "started_at": "2026-09-30T13:01:21.382556+00:00",
+      "latency_s": 2.1,
+      "finish_reason": "stop",
+      "content_is_none": false,
+      "has_reasoning": true,
+      "usage": {
+        "completion_tokens": 466,
+        "prompt_tokens": 755,
+        "total_tokens": 1221,
+        "completion_tokens_details": {
+          "accepted_prediction_tokens": null,
+          "audio_tokens": null,
+          "reasoning_tokens": 335,
+          "rejected_prediction_tokens": null,
+          "text_tokens": null
+        },
+        "prompt_tokens_details": {
+          "audio_tokens": null,
+          "cache_write_tokens": null,
+          "cached_tokens": 0,
+          "image_tokens": null,
+          "text_tokens": null,
+          "multimodal_tokens": null
+        },
+        "prompt_cache_hit_tokens": 0,
+        "prompt_cache_miss_tokens": 755
+      }
+    }
+  ],
+  "cost_guard": {
+    "spent_usd": 0.7429819599999999,
+    "model_spent_usd": 0.0171785,
+    "sandbox_spent_usd": 0.7258034600000001,
+    "remaining_usd": 1.2570180400000002,
+    "model_usage": [
+      {
+        "model": "nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B",
+        "prompt_tokens": 7010,
+        "completion_tokens": 2645,
+        "cost_usd": 0.0010554
+      },
+      {
+        "model": "nvidia/nemotron-3-super-120b-a12b",
+        "prompt_tokens": 268,
+        "completion_tokens": 46,
+        "cost_usd": 0.00012179999999999998
+      },
+      {
+        "model": "nvidia/nemotron-3-super-120b-a12b",
+        "prompt_tokens": 4364,
+        "completion_tokens": 4041,
+        "cost_usd": 0.0049461
+      },
+      {
+        "model": "nvidia/nemotron-3-super-120b-a12b",
+        "prompt_tokens": 4589,
+        "completion_tokens": 2791,
+        "cost_usd": 0.0038886000000000003
+      },
+      {
+        "model": "nvidia/nemotron-3-super-120b-a12b",
+        "prompt_tokens": 4553,
+        "completion_tokens": 4053,
+        "cost_usd": 0.0050136
+      },
+      {
+        "model": "nvidia/Nemotron-3-Ultra-550b-a55b",
+        "prompt_tokens": 755,
+        "completion_tokens": 466,
+        "cost_usd": 0.002153
+      }
+    ],
+    "prices_usd_per_1m": {
+      "nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B": [
+        0.06,
+        0.24
+      ],
+      "nvidia/nemotron-3-super-120b-a12b": [
+        0.3,
+        0.9
+      ],
+      "nvidia/Nemotron-3-Ultra-550b-a55b": [
+        1.0,
+        3.0
+      ]
+    },
+    "prices_source": "https://api.tokenfactory.nebius.com/v1/models?verbose=true (pricing field)",
+    "prices_retrieved": "2026-09-24"
+  }
+}
