@@ -54,8 +54,9 @@ def extra_checks(pid: str, rec: dict) -> None:
         match = re.search(r"IMPORT_OK\s+\S+\s+(\S+)\s+(\S+)", rec.get("stdout", "") or json.dumps(rec))
         if not match or not match.group(2).startswith("1."):
             raise SystemExit(f"{pid}: numpy version in the sandbox is not 1.x ({match.groups() if match else 'no IMPORT_OK line'})")
-    if pid == "kill_at_operation_limit" and not (10 < rec.get("killed_seconds", 0) < 60 and rec.get("run_id")):
-        raise SystemExit(f"{pid}: killed_seconds / operation id not as expected: {rec.get('killed_seconds')}, {rec.get('run_id')}")
+    if pid == "kill_at_operation_limit" and not (rec.get("via") in ("server_result_timed_out", "client_wait_timeout") and rec.get("run_id")
+                                                 and 15 < rec.get("elapsed_seconds", 0) < 120):
+        raise SystemExit(f"{pid}: stop path / id / duration not as expected: {rec.get('via')}, {rec.get('run_id')}, {rec.get('elapsed_seconds')}")
 
 
 

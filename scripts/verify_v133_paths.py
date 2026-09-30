@@ -4,9 +4,12 @@ sandbox.run_build_and_execute in a real Nebius sandbox. A WSL dry run is a smoke
   backend/.venv/Scripts/python.exe scripts/verify_v133_paths.py kill  <image> <out.json>
   backend/.venv/Scripts/python.exe scripts/verify_v133_paths.py smoke <alive|exits_ok|fails|silent> <image> <out.json>
 
-kill   a step that would run 300 s is given a 25 s operation limit: the sandbox must stop it, the call must raise
-       SandboxTimeoutError carrying the killed step's duration and the completed steps' cost (the record's `run_id` is the
-       Nebius operation id of the killed step), and it must return in well under the step's own length.
+kill   a step that would run 300 s is given a 25 s operation limit: the sandbox must stop it and the call must raise SandboxTimeoutError
+       (whichever way the API reports the stop: the server returning the step's result with state.timed_out, measured cost included, or
+       the client's wait expiring first, in which case the killed step's duration is reported instead), in well under the step's own length.
+       The record's `run_id` is the sandbox image id or the Nebius operation id, and `via` says which path it was.
+       (Attempt 1, 2026-09-30, found the first path: the call returned a normal result after ~28 s and the script, which only knew the
+       second path, failed.)
 smoke  the smoke launcher (smoke_exec.wrap, 10 s limit) on this image:
          alive     prints, then sleeps 120 s        -> exit 0, RERUN_SMOKE_ALIVE in stdout, stopped by the launcher
          exits_ok  prints and exits by itself       -> exit 0, no ALIVE marker, output unchanged
@@ -49,21 +52,23 @@ def verify_kill(image: str, out: Path) -> int:
             api_key=s.nebius_api_key, project_id=s.nebius_project_id, base_image=image,
             install_commands=[], execute_command="sleep 300", wall_clock_seconds=25,
         )
-        rec.update(ok=False, error="the 300 s step returned without being stopped")
+        rec.update(ok=False, error="the 300 s step returned a result instead of raising SandboxTimeoutError",
+                   elapsed_seconds=round(time.monotonic() - started, 1))
     except sandbox.SandboxTimeoutError as exc:
         rec["elapsed_seconds"] = round(time.monotonic() - started, 1)
         cause = exc.__cause__
+        run_id = str(getattr(cause, "operation_uuid", "") or exc.sandbox_id or "")
         rec.update(
-            message=str(exc), command=exc.command, killed_seconds=round(exc.killed_seconds, 1),
-            completed_cost_usd=exc.completed_cost_usd, run_id=str(getattr(cause, "operation_uuid", "") or ""),
-            ok="wall clock" in str(exc) and rec["elapsed_seconds"] < 120 and 10 < exc.killed_seconds < 60
-            and bool(getattr(cause, "operation_uuid", None)),
+            message=str(exc), command=exc.command, via=exc.via, killed_seconds=round(exc.killed_seconds, 1),
+            completed_cost_usd=exc.completed_cost_usd, run_id=run_id,
+            ok="wall clock" in str(exc) and exc.command == "sleep 300" and 15 < rec["elapsed_seconds"] < 120 and bool(run_id)
+            and ((exc.via == "server_result_timed_out" and exc.completed_cost_usd > 0) or (exc.via == "client_wait_timeout" and 10 < exc.killed_seconds < 60)),
         )
     except Exception as exc:  # recorded, never hidden
         rec.update(ok=False, error=f"{type(exc).__name__}: {exc}")
     out.parent.mkdir(parents=True, exist_ok=True)
     out.write_text(json.dumps(rec, indent=2), encoding="utf-8")
-    print(json.dumps({k: rec.get(k) for k in ("ok", "run_id", "elapsed_seconds", "killed_seconds", "message")}, indent=1))
+    print(json.dumps({k: rec.get(k) for k in ("ok", "run_id", "via", "elapsed_seconds", "killed_seconds", "completed_cost_usd", "message", "error")}, indent=1))
     return 0 if rec.get("ok") else 1
 
 

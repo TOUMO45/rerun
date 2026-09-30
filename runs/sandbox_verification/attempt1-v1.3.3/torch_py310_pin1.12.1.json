@@ -1,0 +1,42 @@
+{
+  "image": "python:3.10-slim",
+  "mode": "pin",
+  "items": [
+    "torch==1.12.1"
+  ],
+  "expect": "ok",
+  "install_command": "pip install torch==1.12.1 torchvision torchaudio 'numpy<2' --index-url https://download.pytorch.org/whl/cpu --extra-index-url https://pypi.org/simple || pip install torch==1.12.1 'numpy<2' --index-url https://download.pytorch.org/whl/cpu --extra-index-url https://pypi.org/simple",
+  "reason": "repo pins torch; installed the CPU wheels as a matched set with the same pins",
+  "started_at": "2026-09-30T19:57:03.911643+00:00",
+  "run_id": "fdde2a88-6cb2-4a49-8d44-e28e965bedfe",
+  "cost_usd": 0.17380072000000002,
+  "succeeded": true,
+  "final_phase": "repo_run",
+  "steps": [
+    {
+      "cmd": "pip install torch==1.12.1 torchvision torchaudio 'numpy<2' --index-url https://download.pytorch.org/whl/cpu --extra-index-url https://pypi.o",
+      "phase": "runner_setup",
+      "exit": 0,
+      "stdout": ", pillow, numpy, idna, charset_normalizer, certifi, torch, requests, torchvision\nSuccessfully installed certifi-2026.7.22 charset_normalizer-3.5.2 idna-3.20 numpy-1.26.4 pillow-12.3.0 requests-2.34.2 torch-1.12.1+cpu torchaudio-2.11.0+cpu torchvision-0.13.1+cpu typing-extensions-4.16.0 urllib3-2.8.0",
+      "stderr": "WARNING: Running pip as the 'root' user can result in broken permissions and conflicting behaviour with the system package manager. It is recommended to use a virtual environment instead: https://pip.pypa.io/warnings/venv\n\n[notice] A new release of pip is available: 23.0.1 -> 26.2.1\n[notice] To update, run: pip install --upgrade pip",
+      "seconds": 14.5
+    },
+    {
+      "cmd": "python -c '\nimport glob, importlib.util, os, struct, subprocess, sys\nspec = importlib.util.find_spec(\"torch\")\nroot = os.path.join(os.path.di",
+      "phase": "runner_setup",
+      "exit": 0,
+      "stdout": "RERUN_TORCH_OK 1.12.1+cpu\nRERUN_EXECSTACK_CLEARED 1 patchelf 0.19.1",
+      "stderr": "WARNING: Running pip as the 'root' user can result in broken permissions and conflicting behaviour with the system package manager. It is recommended to use a virtual environment instead: https://pip.pypa.io/warnings/venv\n\n[notice] A new release of pip is available: 23.0.1 -> 26.2.1\n[notice] To update, run: pip install --upgrade pip",
+      "seconds": 1.5
+    },
+    {
+      "cmd": "python -c 'import sys, torch; print(\"IMPORT_OK\", sys.version.split()[0], torch.__version__)'",
+      "phase": "repo_run",
+      "exit": 0,
+      "stdout": "IMPORT_OK 3.10.20 1.12.1+cpu",
+      "stderr": "",
+      "seconds": 0.8
+    }
+  ],
+  "ok": true
+}

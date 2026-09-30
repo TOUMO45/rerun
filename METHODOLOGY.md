@@ -833,3 +833,8 @@ marked `requires_network` and skipped offline.
 - **D-6, the repository's own build step is not planned or run.** A module the repository builds itself (a native extension with a documented build command) is no longer mistaken for a
   PyPI package, but nothing builds it. Affects **entry 19** (`operators._ext`); it stays a REPO failure in the denominator.
 - Also open: apt package names that do not exist on the image (D-12, second half) are not validated before a sandbox run (seen in entries 8 and 12 of v1.3.2).
+
+**Live findings at the seal verification (2026-09-30).** The first live run of the kill path showed that a step stopped by the sandbox comes back as a normal result with
+`state.timed_out`, not as an exception (D-17 in `reports/corpus-v2.1/v1.3.3/DEFECT_FIX_MAP.md`); the harness now reads the flag and records the killed step's measured cost.
+It also means the v1.3.3 "estimate" for a killed step applies only when the client's wait expires before the server answers. Seal verification attempt 1 was stopped on its first
+failure, as instructed; its 10 passing records were made against a `sandbox.py` that this fix changes, so the seal rule requires them to be repeated.

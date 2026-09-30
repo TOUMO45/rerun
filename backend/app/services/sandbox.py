@@ -75,12 +75,16 @@ class SandboxTimeoutError(SandboxError):
     killed step ran. The message always contains "wall clock" (the orchestrator's TIMEOUT mapping keys on it)."""
 
     def __init__(self, message: str, *, command: str = "", completed_cost_usd: float = 0.0, killed_seconds: float = 0.0,
-                 completed_steps: tuple = ()):
+                 completed_steps: tuple = (), via: str = "client_wait_timeout", sandbox_id: str | None = None):
         super().__init__(message)
         self.command = command
+        # Everything the API reported for completed steps; when the SERVER stopped the step and returned its result
+        # (via="server_result_timed_out"), the killed step's own measured cost is included and `killed_seconds` is 0 (nothing to estimate).
         self.completed_cost_usd = completed_cost_usd
         self.killed_seconds = killed_seconds
         self.completed_steps = completed_steps
+        self.via = via
+        self.sandbox_id = sandbox_id
 
 
 class SandboxInfraError(InfraError):
@@ -333,6 +337,9 @@ class StepResult:
     # and the exec-stack fix), `repo_install` = the repo's install commands, `repo_run` = the repo's command. A failure
     # in `runner_setup` is never the repository's fault (error_chain.attribute keys on this first).
     phase: str = "repo_run"
+    # harness-v1.3.3: the sandbox itself stopped this step at its time limit (`state.timed_out` of the API result, which the SDK does not
+    # surface). Found live 2026-09-30: a 300 s step given a 25 s limit came back in ~28 s as a NORMAL result, not as an exception.
+    timed_out: bool = False
 
 
 @dataclass(frozen=True)
@@ -382,7 +389,14 @@ def step_result_from_image(image, command: str, phase: str = "repo_run") -> Step
         elapsed_seconds=result.elapsed_time.total_seconds(),
         cost_usd=result.cost,
         phase=phase,
+        timed_out=_server_timed_out(result),
     )
+
+
+def _server_timed_out(result) -> bool:
+    """`state.timed_out` of the raw API result behind a ContreeResult (False for duck-typed fakes that have none)."""
+    state = getattr(getattr(getattr(result, "_raw", None), "result", None), "state", None)
+    return getattr(state, "timed_out", False) is True
 
 
 def run_build_and_execute(
@@ -564,6 +578,16 @@ def _run_once(
             step = step_result_from_image(executed, cmd, phase)
             current = executed
             last_image_uuid = getattr(executed, "uuid", None) or last_image_uuid
+            if step.timed_out:
+                # The server stopped the step at the limit we gave it and returned its result WITH its real cost. It must never be read
+                # as the repository's own failure (an exit code 124/137 classified as a runtime error).
+                raise SandboxTimeoutError(
+                    f"sandbox execution exceeded {wall_clock_seconds}s wall clock: the sandbox stopped '{cmd[:80]}' at its time limit "
+                    f"(server-reported timed_out, exit code {step.exit_code}, cost measured ${step.cost_usd:.4f})",
+                    command=cmd, completed_cost_usd=extract_cost + sum(st.cost_usd for st in steps) + step.cost_usd,
+                    killed_seconds=0.0, completed_steps=(*steps, step), via="server_result_timed_out",
+                    sandbox_id=str(last_image_uuid) if last_image_uuid is not None else None,
+                )
             if not is_last:
                 retained_images.append(executed)
             if cmd == extract_command:

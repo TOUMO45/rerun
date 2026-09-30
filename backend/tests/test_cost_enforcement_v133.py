@@ -305,3 +305,102 @@ def test_a_timeout_in_a_repair_reexecution_is_TIMEOUT_not_PIPELINE_ERROR(tmp_pat
     last = result.attempts[-1]
     assert last.env_delta and last.env_delta[0]["package"] == "pyyaml"  # the delta that was being run is kept
     assert last.exit_code is None and "wall clock" in last.stderr_tail
+
+
+# --- the SERVER stops the step and returns a normal result (found live 2026-09-30, seal verification attempt 1) ----------------------
+
+
+class _State:
+    def __init__(self, timed_out):
+        self.timed_out = timed_out
+
+
+class _RawInner:
+    def __init__(self, timed_out):
+        self.state = _State(timed_out)
+
+
+class _Raw:
+    def __init__(self, timed_out):
+        self.result = _RawInner(timed_out)
+
+
+class _ServerKilledResult(_Result):
+    """What the API returned for `sleep 300` with a 25 s limit: exit code 137, real cost, state.timed_out = True (no exception)."""
+
+    def __init__(self, cost, exit_code=137, timed_out=True):
+        super().__init__(cost)
+        self.exit_code = exit_code
+        self._raw = _Raw(timed_out)
+
+
+class _ServerTimeoutImage(_LongOpImage):
+    def __init__(self, clock, durations, timeouts_seen, killed_cmd):
+        super().__init__(clock, durations, timeouts_seen)
+        self._killed_cmd = killed_cmd
+
+    def run(self, *, shell, timeout, disposable, preserve_env=None):
+        self._timeouts.append((shell, timeout))
+        if shell == self._killed_cmd:
+            self._clock[0] += timeout
+            self.result = _ServerKilledResult(cost=0.08)
+            self.exit_code = 137
+            return self  # a RESULT, not an exception
+        self._clock[0] += self._durations.get(shell, 10.0)
+        self.result = _Result(0.05)
+        self.exit_code = 0
+        return self
+
+
+def _install_server_timeout_sandbox(monkeypatch, killed_cmd):
+    clock, seen = [0.0], []
+
+    class _Images:
+        def docker(self, ref):
+            return _ServerTimeoutImage(clock, {}, seen, killed_cmd)
+
+    class _Sync:
+        def __init__(self, config):
+            self.images = _Images()
+
+    monkeypatch.setattr(sandbox_module, "ContreeSync", _Sync)
+    monkeypatch.setattr(sandbox_module.time, "monotonic", lambda: clock[0])
+    return seen
+
+
+def test_a_step_the_server_stopped_is_a_timeout_with_its_measured_cost_not_a_repo_failure(monkeypatch):
+    _install_server_timeout_sandbox(monkeypatch, killed_cmd="sleep 300")
+    with pytest.raises(SandboxTimeoutError) as info:
+        run_build_and_execute(api_key="k", base_image="python:3.10-slim", install_commands=["pip install numpy"],
+                              execute_command="sleep 300", wall_clock_seconds=25)
+    exc = info.value
+    assert exc.via == "server_result_timed_out" and "wall clock" in str(exc) and exc.command == "sleep 300"
+    assert exc.completed_cost_usd == pytest.approx(0.05 + 0.08)  # the install step + the killed step's own measured cost
+    assert exc.killed_seconds == 0.0  # nothing to estimate: the API reported the cost
+    assert [s.command for s in exc.completed_steps] == ["pip install numpy", "sleep 300"] and exc.completed_steps[-1].timed_out
+
+
+def test_a_normal_nonzero_exit_is_not_mistaken_for_a_timeout(monkeypatch):
+    class _Plain(_ServerTimeoutImage):
+        def run(self, *, shell, timeout, disposable, preserve_env=None):
+            self.result = _ServerKilledResult(0.05, exit_code=1, timed_out=False)
+            self.exit_code = 1
+            return self
+
+    monkeypatch.setattr(sandbox_module, "ContreeSync", type("S", (), {
+        "__init__": lambda self, config: setattr(self, "images", type("I", (), {"docker": lambda _s, ref: _Plain([0.0], {}, [], "")})())}))
+    result = run_build_and_execute(api_key="k", base_image="python:3.10-slim", install_commands=[], execute_command="python x.py",
+                                   wall_clock_seconds=25)
+    assert result.final.exit_code == 1 and not result.final.timed_out
+
+
+def test_the_orchestrator_turns_a_server_reported_timeout_into_timeout_or_cost_cap(tmp_path):
+    """Baseline overrun -> TIMEOUT (as in v1.2); a repair operation stopped at its funded limit -> INDETERMINATE COST_CAP. The killed step's
+    measured cost is what is recorded (no estimate)."""
+    def runner(**kw):
+        raise SandboxTimeoutError("sandbox execution exceeded 600s wall clock: stopped (server-reported timed_out)", command="python train.py",
+                                  completed_cost_usd=0.4, killed_seconds=0.0, via="server_result_timed_out")
+
+    guard = CostGuard(daily_cost_ceiling_usd=2.0)
+    result = _run(tmp_path, runner, guard)
+    assert result.verdict == "TIMEOUT" and guard.spent_today_usd == pytest.approx(0.4) and guard.estimated_spent_usd == 0.0
