@@ -62,3 +62,7 @@ runner-owned pinned patchelf with a pre-check (SANDBOX_INCOMPAT if the flag is a
 exec-bit-only mode check, matched torch family, UTF-8 driver, and the enforced seal rule (`seal_verification.json`, preflight). Live
 verification records: `runs/sandbox_verification/final/` (9 real Nebius runs; pre-seal spend $1.97). Suite: 974 passed, 9 skipped.
 
+## Phase 4 — CONTROL result and attribution audit (2026-09-30)
+CONTROL on harness-v1.3.2: 20/20 records, $4.07 (commit `4b99d3b`). Read-only audit in `reports/corpus-v2.1/audit/`: gate (a) 16, (b) 12; no DECLARED_NOT_PARSED.
+Pre-registered before TREATMENT (METHODOLOGY): the INFRA_ERROR retry policy and the fix-difficulty strata (`reports/corpus-v2.1/strata.json`, sha256 `ade8083fcda9bda5...`).
+

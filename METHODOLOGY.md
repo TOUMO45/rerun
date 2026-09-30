@@ -715,3 +715,38 @@ changed after its verification), or if any of `sandbox.py`, `sandbox_limits.py`,
 v1.3.2: download route (git), download route (tarball fallback), the archive upload with the exec-bit check, runner torch + patchelf on
 Python 3.6/3.8/3.10 with old pins, the matched torch family, the phase tag on a failing runner op, and the flag-absent SANDBOX_INCOMPAT branch.
 
+## CONTROL result, attribution audit, and TREATMENT pre-registration (written 2026-09-30, after CONTROL, before any TREATMENT run)
+
+**CONTROL (harness-v1.3.2, repair off), 20/20 records, $4.07:** 1 RUNS_CLEAN (entry 18), 16 BLOCKED with a REPO link in the error chain,
+2 INDETERMINATE `RUNNER_SETUP_FAILED` (entries 5 and 9: the runner's torch install could not resolve the repo's historical pins; ENV, excluded),
+1 INFRA_ERROR (entry 7: Nebius `ContreeTransportError`, server disconnected; NOT_MEASURED). 0 INVALID_HARNESS. No driver error.
+
+**Read-only attribution audit** (`reports/corpus-v2.1/audit/audit_attribution.py`; modifies nothing under `runs/` or the sealed tag; output
+`audit_attribution.json` sha256 `c8df688411d5d20cccc050dbec6475f5a9b9fc93bbcc08e503bb7085f77de0d4`). For every non-PASS record it searches the repository at the pinned commit for the failing module in
+requirements*.txt (any directory), setup.py/cfg, pyproject, environment/conda files, Pipfile, Dockerfile*, scripts, and pip/conda install lines
+in README/docs, with import->distribution aliases (sklearn -> scikit-learn, ...); README *prose* mentions are recorded separately and do not count as a
+declaration. Independent check (plain `git ls-tree`, no audit code) on 6 of the repos: **none has any dependency manifest at all**, only a README
+(the harness saw no dependency file for any of the 16 audited entries).
+- Labels: REPO_UNDECLARED 12, PLATFORM_REQUIRED 3 (entries 2, 4, 14: Docker / `--cuda` / CUDA), ENV_ROT 3 (5, 9, 17), INFRA 1 (7), PASS 1 (18).
+- **DECLARED_NOT_PARSED: none** (no harness gap of that kind).
+- **Gate (>= 8 REPO-attributed non-PASS): (a) under the pre-registered rule = 16; (b) under the audit (REPO_UNDECLARED only) = 12** (11 if entry 19 is
+  excluded: `operators._ext` is the repo's OWN compiled module and its README documents a build step, so it is a candidate *planning* gap, reported to the operator,
+  not a dependency). Both clear 8; TREATMENT is not blocked by the gate.
+- Judgment calls, disclosed: entry 17 (`zero_gradients` removed from newer torch; the repo pins no torch, the runner installs the newest) is labelled ENV_ROT by
+  a rule, but the registered attribution is REPO (undeclared pin); entry 6 (README states chainer 4.0.0/5.2.0) and 12 (README: TensorFlow 1.1.0) are
+  undeclared in any manifest but versioned in prose.
+
+**INFRA_ERROR retry policy (pre-registered).** Only a verdict of `INFRA_ERROR` (an external service failed, not a measurement) is ever retried; no other
+verdict is retried, ever (no retry-until-pass). After an arm's run completes, each INFRA_ERROR entry is re-run **once**, on the same sealed tag, arm and
+per-entry cap, in corpus order. The first record is kept in `<arm>/infra_retries/NN_name.attempt1.json` (outside the `NN_*.json` glob the analysis reads) and the
+retry's record replaces it as the entry's record. A second INFRA_ERROR stays NOT_MEASURED. The retry is applied to each arm independently; a pair is excluded
+from every rate only if either arm is still NOT_MEASURED after its retry. Retry spend counts against the $25 cap. Registered after CONTROL's one INFRA_ERROR (entry 7)
+was observed, but before any TREATMENT result exists; the policy does not depend on TREATMENT, so it cannot favour it.
+
+**Fix-difficulty strata (pre-registered, frozen).** Each entry is assigned a stratum by `reports/corpus-v2.1/audit/assign_strata.py` from CONTROL and the audit only,
+so the assignment is blind to TREATMENT (`reports/corpus-v2.1/strata.json`, sha256 `ade8083fcda9bda5f71d8e55f0994076a99b267749a16ec619bc12ac9a385333`). D1 name-only (a missing PyPI package, no version stated anywhere): 8 entries;
+D2 version/API drift or a torch-coupled binary package (ENV_ROT, a README-stated version, torch-sparse): 6; D3 platform (GPU/Docker; expected not fixable): 3;
+D4 build step / the repo's own module: 1; not stratified (PASS, INFRA): 2. **Reporting of TREATMENT:** (1) the primary Reproducibility Recovery Rate is exactly the
+pre-registered one (`compare_batches.py`, denominator printed, Wilson 95 %); (2) a **per-stratum table** (n, recovered, Wilson interval), never pooled across strata without the
+per-stratum rows beside it; (3) a sensitivity RRR whose denominator is the audit's REPO_UNDECLARED entries only, labelled as such. n <= 20, so every interval is wide
+and that is the honest size of the claim. Recoveries in D1 are the expected easy wins and are not to be described as evidence for the hard strata.
