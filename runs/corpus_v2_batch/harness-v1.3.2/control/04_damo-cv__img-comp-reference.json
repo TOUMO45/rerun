@@ -1,0 +1,325 @@
+{
+  "run_kind": "live end-to-end run",
+  "dev_run": false,
+  "dry_run": null,
+  "batch": {
+    "harness_tag": "harness-v1.3.2",
+    "harness_commit": "77b3cfe1697ad74ad13eac1f77ffe0f1e80c7379",
+    "head_commit": "77b3cfe1697ad74ad13eac1f77ffe0f1e80c7379",
+    "corpus": "corpus-v2",
+    "prereg_sha256": "ae5a722249156e058d3d360bdc63fa8224140d0688f1daa307ecfa93a98c7284",
+    "corpus_hash": "7df090bea7013974f9f10fb8959ab0162734b51c83a80f744f9c310ce694fbdc",
+    "arm": "control",
+    "total_cap_usd": 25.0,
+    "already_spent_usd": 0.0,
+    "entry_id": 4,
+    "category": "PRIMARY",
+    "rules_matched": [],
+    "per_entry_cap_usd": 2.0
+  },
+  "started_at": "2026-09-30T11:41:59.499371+00:00",
+  "corpus_entry": {
+    "name": "damo-cv__img-comp-reference",
+    "repo_url": "https://github.com/damo-cv/img-comp-reference",
+    "commit_sha": "193fc9464d27fcd806d5288448628923b54a5a19",
+    "command": "sh compress.sh original.png [model_path]",
+    "command_source": "README.md line 53"
+  },
+  "config": {
+    "models": {
+      "recon": "nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B",
+      "planner": "nvidia/nemotron-3-super-120b-a12b",
+      "repairer": "nvidia/nemotron-3-super-120b-a12b",
+      "adjudicator": "nvidia/Nemotron-3-Ultra-550b-a55b"
+    },
+    "sandbox_backend": "token_factory",
+    "sandbox_image_default": "python:3.10-slim",
+    "sandbox_wall_clock_seconds": 600.0,
+    "arm": "control",
+    "repair_enabled": false,
+    "max_attempts": 0,
+    "tavily_configured": false,
+    "cost_cap_usd": 2.0
+  },
+  "intake": {
+    "duration_s": 2.99,
+    "resolved_sha": "193fc9464d27fcd806d5288448628923b54a5a19",
+    "dependency_files": [],
+    "declared_dependencies": [],
+    "entrypoint_candidates": [
+      "main.py"
+    ],
+    "notebook_paths": []
+  },
+  "pipeline_duration_s": 84.16,
+  "repair_mode": "deterministic",
+  "tree_integrity": {
+    "status": "verified",
+    "tree_sha": "fcfd17dfaaf29e4bddaadd3b3bde8b72bd77ca6b",
+    "files_checked": 26,
+    "excluded_patched": []
+  },
+  "result": {
+    "verdict": "BLOCKED",
+    "taxonomy_code": "RUNTIME_ERROR_OTHER",
+    "indeterminate_reason": "",
+    "reason_code": null,
+    "error_chain": [
+      {
+        "error": "Exception: No GPU found, please run without --cuda",
+        "class": "RUNTIME_ERROR_OTHER",
+        "attribution": "REPO",
+        "phase": "repo_run",
+        "cleared_by": null
+      }
+    ],
+    "first_repo_error": "Exception: No GPU found, please run without --cuda",
+    "last_error": "Exception: No GPU found, please run without --cuda",
+    "error_traceback": "",
+    "attempts": [],
+    "certificate_prose": "The repository's code failed to execute because it requires a GPU and the runtime environment had none available. The run log shows exit code 1 with the error message 'No GPU found, please run without --cuda', indicating a hard dependency on CUDA hardware that was not satisfied. Verifies that the artifact executes. Does not verify the paper's numerical results."
+  },
+  "certificate": {
+    "repo_url": "https://github.com/damo-cv/img-comp-reference",
+    "commit_sha": "193fc9464d27fcd806d5288448628923b54a5a19",
+    "build_plan": {
+      "base_image": "python:3.10-slim",
+      "apt_install": [],
+      "install_commands": [
+        "true  # no declared dependency file found; nothing to install"
+      ],
+      "execute_command": "sh compress.sh original.png [model_path]",
+      "notes": [
+        "execute command is the repository's documented command (corpus ground truth)",
+        "base image python:3.10-slim: declared by README (>=3.5); resolved to the first available minor that satisfies it"
+      ]
+    },
+    "full_log": "[intake] cloned https://github.com/damo-cv/img-comp-reference@193fc9464d27fcd806d5288448628923b54a5a19\n[recon] calling Nemotron Nano\n[recon] entrypoint=main.py confidence=0.80\n[python] python:3.10-slim (README): declared by README (>=3.5); resolved to the first available minor that satisfies it\n[planner] build plan: {'base_image': 'python:3.10-slim', 'apt_install': [], 'install_commands': ['true  # no declared dependency file found; nothing to install'], 'execute_command': 'sh compress.sh original.png [model_path]', 'notes': [\"execute command is the repository's documented command (corpus ground truth)\", 'base image python:3.10-slim: declared by README (>=3.5); resolved to the first available minor that satisfies it']}\n[integrity] verified 26 file(s) against tree fcfd17dfaaf29e4bddaadd3b3bde8b72bd77ca6b\n[sandbox] starting build+execute (wall_clock_seconds=600)\n[runner] torch: repo imports torch, torchvision without declaring it; runner provides the newest matched CPU wheels\n[cost_guard] recorded $0.2513 sandbox spend, $1.7481 remaining today\n[sandbox] id=25ebe5cc-e7a2-4fe6-aef5-c87081ede52e exit_code=1\n[baseline] as-is run: FAILS (exit code 1)\n[classifier] RUNTIME_ERROR_OTHER: Exception: No GPU found, please run without --cuda\n[verdict] BLOCKED after 0 repair attempt(s): RUNTIME_ERROR_OTHER",
+    "diffs": [],
+    "verdict": "BLOCKED",
+    "timestamp": "2026-09-30T11:43:26.655935+00:00",
+    "bundle_version": 4,
+    "baseline": {
+      "result": "FAILS",
+      "exit_code": 1,
+      "base_image": "python:3.10-slim",
+      "install_commands": [
+        "true  # no declared dependency file found; nothing to install"
+      ],
+      "execute_command": "sh compress.sh original.png [model_path]",
+      "sandbox_id": "25ebe5cc-e7a2-4fe6-aef5-c87081ede52e",
+      "taxonomy_code": "RUNTIME_ERROR_OTHER",
+      "evidence": "Exception: No GPU found, please run without --cuda"
+    },
+    "recovery": false,
+    "tree_integrity": {
+      "status": "verified",
+      "tree_sha": "fcfd17dfaaf29e4bddaadd3b3bde8b72bd77ca6b",
+      "files_checked": 26,
+      "excluded_patched": []
+    },
+    "corpus_hash": "7df090bea7013974f9f10fb8959ab0162734b51c83a80f744f9c310ce694fbdc",
+    "taxonomy_code": "RUNTIME_ERROR_OTHER",
+    "indeterminate_reason": "",
+    "error_chain": [
+      {
+        "error": "Exception: No GPU found, please run without --cuda",
+        "class": "RUNTIME_ERROR_OTHER",
+        "attribution": "REPO",
+        "phase": "repo_run",
+        "cleared_by": null
+      }
+    ],
+    "first_repo_error": "Exception: No GPU found, please run without --cuda",
+    "last_error": "Exception: No GPU found, please run without --cuda",
+    "reproduction_passport_hash": "1168dca34ef090cf5e3accf42d0413c0bcc68aa9e402672c2e8e3e4734999444"
+  },
+  "finished_at": "2026-09-30T11:43:26.686241+00:00",
+  "events": [
+    {
+      "t_s": 0.0,
+      "at": "2026-09-30T11:42:02.495092+00:00",
+      "line": "[intake] cloned https://github.com/damo-cv/img-comp-reference@193fc9464d27fcd806d5288448628923b54a5a19"
+    },
+    {
+      "t_s": 0.01,
+      "at": "2026-09-30T11:42:02.503077+00:00",
+      "line": "[recon] calling Nemotron Nano"
+    },
+    {
+      "t_s": 13.11,
+      "at": "2026-09-30T11:42:15.605842+00:00",
+      "line": "[recon] entrypoint=main.py confidence=0.80"
+    },
+    {
+      "t_s": 13.14,
+      "at": "2026-09-30T11:42:15.633259+00:00",
+      "line": "[python] python:3.10-slim (README): declared by README (>=3.5); resolved to the first available minor that satisfies it"
+    },
+    {
+      "t_s": 14.33,
+      "at": "2026-09-30T11:42:16.829264+00:00",
+      "line": "[planner] build plan: {'base_image': 'python:3.10-slim', 'apt_install': [], 'install_commands': ['true  # no declared dependency file found; nothing to install'], 'execute_command': 'sh compress.sh original.png [model_path]', 'notes': [\"execute command is the repository's documented command (corpus ground truth)\", 'base image python:3.10-slim: declared by README (>=3.5); resolved to the first available minor that satisfies it']}"
+    },
+    {
+      "t_s": 14.48,
+      "at": "2026-09-30T11:42:16.973993+00:00",
+      "line": "[integrity] verified 26 file(s) against tree fcfd17dfaaf29e4bddaadd3b3bde8b72bd77ca6b"
+    },
+    {
+      "t_s": 14.48,
+      "at": "2026-09-30T11:42:16.974039+00:00",
+      "line": "[sandbox] starting build+execute (wall_clock_seconds=600)"
+    },
+    {
+      "t_s": 14.49,
+      "at": "2026-09-30T11:42:16.984130+00:00",
+      "line": "[runner] torch: repo imports torch, torchvision without declaring it; runner provides the newest matched CPU wheels"
+    },
+    {
+      "t_s": 82.45,
+      "at": "2026-09-30T11:43:24.943463+00:00",
+      "line": "[cost_guard] recorded $0.2513 sandbox spend, $1.7481 remaining today"
+    },
+    {
+      "t_s": 82.45,
+      "at": "2026-09-30T11:43:24.943530+00:00",
+      "line": "[sandbox] id=25ebe5cc-e7a2-4fe6-aef5-c87081ede52e exit_code=1"
+    },
+    {
+      "t_s": 82.45,
+      "at": "2026-09-30T11:43:24.943560+00:00",
+      "line": "[baseline] as-is run: FAILS (exit code 1)"
+    },
+    {
+      "t_s": 82.45,
+      "at": "2026-09-30T11:43:24.944101+00:00",
+      "line": "[classifier] RUNTIME_ERROR_OTHER: Exception: No GPU found, please run without --cuda"
+    },
+    {
+      "t_s": 82.45,
+      "at": "2026-09-30T11:43:24.944148+00:00",
+      "line": "[verdict] BLOCKED after 0 repair attempt(s): RUNTIME_ERROR_OTHER"
+    }
+  ],
+  "model_calls": [
+    {
+      "model": "nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B",
+      "started_at": "2026-09-30T11:42:02.732972+00:00",
+      "latency_s": 12.87,
+      "finish_reason": "stop",
+      "content_is_none": false,
+      "has_reasoning": true,
+      "usage": {
+        "completion_tokens": 1232,
+        "prompt_tokens": 1723,
+        "total_tokens": 2955,
+        "completion_tokens_details": null,
+        "prompt_tokens_details": null
+      }
+    },
+    {
+      "model": "nvidia/nemotron-3-super-120b-a12b",
+      "started_at": "2026-09-30T11:42:15.634380+00:00",
+      "latency_s": 1.19,
+      "finish_reason": "stop",
+      "content_is_none": false,
+      "has_reasoning": true,
+      "usage": {
+        "completion_tokens": 41,
+        "prompt_tokens": 272,
+        "total_tokens": 313,
+        "completion_tokens_details": {
+          "accepted_prediction_tokens": null,
+          "audio_tokens": null,
+          "reasoning_tokens": 31,
+          "rejected_prediction_tokens": null,
+          "text_tokens": null
+        },
+        "prompt_tokens_details": {
+          "audio_tokens": null,
+          "cache_write_tokens": null,
+          "cached_tokens": 0,
+          "image_tokens": null,
+          "text_tokens": null,
+          "created_cache_tokens": 0,
+          "multimodal_tokens": null
+        },
+        "prompt_cache_hit_tokens": 0,
+        "prompt_cache_miss_tokens": 272
+      }
+    },
+    {
+      "model": "nvidia/Nemotron-3-Ultra-550b-a55b",
+      "started_at": "2026-09-30T11:43:24.945552+00:00",
+      "latency_s": 1.71,
+      "finish_reason": "stop",
+      "content_is_none": false,
+      "has_reasoning": true,
+      "usage": {
+        "completion_tokens": 322,
+        "prompt_tokens": 667,
+        "total_tokens": 989,
+        "completion_tokens_details": {
+          "accepted_prediction_tokens": null,
+          "audio_tokens": null,
+          "reasoning_tokens": 220,
+          "rejected_prediction_tokens": null,
+          "text_tokens": null
+        },
+        "prompt_tokens_details": {
+          "audio_tokens": null,
+          "cache_write_tokens": null,
+          "cached_tokens": 0,
+          "image_tokens": null,
+          "text_tokens": null,
+          "multimodal_tokens": null
+        },
+        "prompt_cache_hit_tokens": 0,
+        "prompt_cache_miss_tokens": 667
+      }
+    }
+  ],
+  "cost_guard": {
+    "spent_usd": 0.25348801,
+    "model_spent_usd": 0.00215056,
+    "sandbox_spent_usd": 0.25133745,
+    "remaining_usd": 1.7465119900000001,
+    "model_usage": [
+      {
+        "model": "nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B",
+        "prompt_tokens": 1723,
+        "completion_tokens": 1232,
+        "cost_usd": 0.00039906
+      },
+      {
+        "model": "nvidia/nemotron-3-super-120b-a12b",
+        "prompt_tokens": 272,
+        "completion_tokens": 41,
+        "cost_usd": 0.0001185
+      },
+      {
+        "model": "nvidia/Nemotron-3-Ultra-550b-a55b",
+        "prompt_tokens": 667,
+        "completion_tokens": 322,
+        "cost_usd": 0.001633
+      }
+    ],
+    "prices_usd_per_1m": {
+      "nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B": [
+        0.06,
+        0.24
+      ],
+      "nvidia/nemotron-3-super-120b-a12b": [
+        0.3,
+        0.9
+      ],
+      "nvidia/Nemotron-3-Ultra-550b-a55b": [
+        1.0,
+        3.0
+      ]
+    },
+    "prices_source": "https://api.tokenfactory.nebius.com/v1/models?verbose=true (pricing field)",
+    "prices_retrieved": "2026-09-24"
+  }
+}

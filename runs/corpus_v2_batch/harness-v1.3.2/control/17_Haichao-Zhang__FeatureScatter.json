@@ -1,0 +1,309 @@
+{
+  "run_kind": "live end-to-end run",
+  "dev_run": false,
+  "dry_run": null,
+  "batch": {
+    "harness_tag": "harness-v1.3.2",
+    "harness_commit": "77b3cfe1697ad74ad13eac1f77ffe0f1e80c7379",
+    "head_commit": "77b3cfe1697ad74ad13eac1f77ffe0f1e80c7379",
+    "corpus": "corpus-v2",
+    "prereg_sha256": "ae5a722249156e058d3d360bdc63fa8224140d0688f1daa307ecfa93a98c7284",
+    "corpus_hash": "7df090bea7013974f9f10fb8959ab0162734b51c83a80f744f9c310ce694fbdc",
+    "arm": "control",
+    "total_cap_usd": 25.0,
+    "already_spent_usd": 0.0,
+    "entry_id": 17,
+    "category": "PRIMARY",
+    "rules_matched": [],
+    "per_entry_cap_usd": 2.0
+  },
+  "started_at": "2026-09-30T12:28:34.838957+00:00",
+  "corpus_entry": {
+    "name": "Haichao-Zhang__FeatureScatter",
+    "repo_url": "https://github.com/Haichao-Zhang/FeatureScatter",
+    "commit_sha": "77e9140d5112ace5ba60301c224868257434b3e6",
+    "command": "sh ./fs_train.sh",
+    "command_source": "README.md line 27"
+  },
+  "config": {
+    "models": {
+      "recon": "nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B",
+      "planner": "nvidia/nemotron-3-super-120b-a12b",
+      "repairer": "nvidia/nemotron-3-super-120b-a12b",
+      "adjudicator": "nvidia/Nemotron-3-Ultra-550b-a55b"
+    },
+    "sandbox_backend": "token_factory",
+    "sandbox_image_default": "python:3.10-slim",
+    "sandbox_wall_clock_seconds": 600.0,
+    "arm": "control",
+    "repair_enabled": false,
+    "max_attempts": 0,
+    "tavily_configured": false,
+    "cost_cap_usd": 2.0
+  },
+  "intake": {
+    "duration_s": 3.02,
+    "resolved_sha": "77e9140d5112ace5ba60301c224868257434b3e6",
+    "dependency_files": [
+      "setup.py"
+    ],
+    "declared_dependencies": [
+      "scipy",
+      "torch",
+      "torchvision",
+      "tqdm"
+    ],
+    "entrypoint_candidates": [],
+    "notebook_paths": []
+  },
+  "pipeline_duration_s": 76.51,
+  "repair_mode": "deterministic",
+  "tree_integrity": {
+    "status": "verified",
+    "tree_sha": "609e1335f27715f9ab89fe1963e949d38986d1f9",
+    "files_checked": 11,
+    "excluded_patched": []
+  },
+  "result": {
+    "verdict": "BLOCKED",
+    "taxonomy_code": "RUNTIME_ERROR_OTHER",
+    "indeterminate_reason": "",
+    "reason_code": null,
+    "error_chain": [
+      {
+        "error": "ImportError: cannot import name 'zero_gradients' from 'torch.autograd.gradcheck' (/usr/local/lib/python3.10/site-packages/torch/autograd/gradcheck.py)",
+        "class": "RUNTIME_ERROR_OTHER",
+        "attribution": "REPO",
+        "phase": "repo_run",
+        "cleared_by": null
+      }
+    ],
+    "first_repo_error": "ImportError: cannot import name 'zero_gradients' from 'torch.autograd.gradcheck' (/usr/local/lib/python3.10/site-packages/torch/autograd/gradcheck.py)",
+    "last_error": "ImportError: cannot import name 'zero_gradients' from 'torch.autograd.gradcheck' (/usr/local/lib/python3.10/site-packages/torch/autograd/gradcheck.py)",
+    "error_traceback": "",
+    "attempts": [],
+    "certificate_prose": "The repository's code failed to execute due to an ImportError: it could not import 'zero_gradients' from 'torch.autograd.gradcheck'. The run log shows exit code 1 and the classifier identified this as RUNTIME_ERROR_OTHER. No repair attempts were made. Verifies that the artifact executes. Does not verify the paper's numerical results."
+  },
+  "certificate": {
+    "repo_url": "https://github.com/Haichao-Zhang/FeatureScatter",
+    "commit_sha": "77e9140d5112ace5ba60301c224868257434b3e6",
+    "build_plan": {
+      "base_image": "python:3.10-slim",
+      "apt_install": [],
+      "install_commands": [
+        "pip install ."
+      ],
+      "execute_command": "sh ./fs_train.sh",
+      "notes": [
+        "execute command is the repository's documented command (corpus ground truth)",
+        "base image python:3.10-slim: no usable Python declaration; RERUN default 3.10 (declared but not satisfiable by an available image: README '3.5')"
+      ]
+    },
+    "full_log": "[intake] cloned https://github.com/Haichao-Zhang/FeatureScatter@77e9140d5112ace5ba60301c224868257434b3e6\n[recon] calling Nemotron Nano\n[recon] ENTRYPOINT_UNCLEAR: no runnable entrypoint discoverable in recon: no candidate scripts found (no train.py/main.py/run.py-style file, and no file with a __main__ guard) \u2014 proceeding with the documented command: sh ./fs_train.sh\n[python] python:3.10-slim (default): no usable Python declaration; RERUN default 3.10 (declared but not satisfiable by an available image: README '3.5')\n[planner] build plan: {'base_image': 'python:3.10-slim', 'apt_install': [], 'install_commands': ['pip install .'], 'execute_command': 'sh ./fs_train.sh', 'notes': [\"execute command is the repository's documented command (corpus ground truth)\", \"base image python:3.10-slim: no usable Python declaration; RERUN default 3.10 (declared but not satisfiable by an available image: README '3.5')\"]}\n[integrity] verified 11 file(s) against tree 609e1335f27715f9ab89fe1963e949d38986d1f9\n[sandbox] starting build+execute (wall_clock_seconds=600)\n[runner] torch: repo pins torch, torchvision; installed the CPU wheels as a matched set with the same pins\n[cost_guard] recorded $0.2901 sandbox spend, $1.7097 remaining today\n[sandbox] id=f49e0e57-0732-4de9-a7b2-d65b953be825 exit_code=1\n[baseline] as-is run: FAILS (exit code 1)\n[classifier] RUNTIME_ERROR_OTHER: ImportError: cannot import name 'zero_gradients' from 'torch.autograd.gradcheck' (/usr/local/lib/python3.10/site-packages/torch/autograd/gradcheck.py)\n[verdict] BLOCKED after 0 repair attempt(s): RUNTIME_ERROR_OTHER",
+    "diffs": [],
+    "verdict": "BLOCKED",
+    "timestamp": "2026-09-30T12:29:54.373890+00:00",
+    "bundle_version": 4,
+    "baseline": {
+      "result": "FAILS",
+      "exit_code": 1,
+      "base_image": "python:3.10-slim",
+      "install_commands": [
+        "pip install ."
+      ],
+      "execute_command": "sh ./fs_train.sh",
+      "sandbox_id": "f49e0e57-0732-4de9-a7b2-d65b953be825",
+      "taxonomy_code": "RUNTIME_ERROR_OTHER",
+      "evidence": "ImportError: cannot import name 'zero_gradients' from 'torch.autograd.gradcheck' (/usr/local/lib/python3.10/site-packages/torch/autograd/gradcheck.py)"
+    },
+    "recovery": false,
+    "tree_integrity": {
+      "status": "verified",
+      "tree_sha": "609e1335f27715f9ab89fe1963e949d38986d1f9",
+      "files_checked": 11,
+      "excluded_patched": []
+    },
+    "corpus_hash": "7df090bea7013974f9f10fb8959ab0162734b51c83a80f744f9c310ce694fbdc",
+    "taxonomy_code": "RUNTIME_ERROR_OTHER",
+    "indeterminate_reason": "",
+    "error_chain": [
+      {
+        "error": "ImportError: cannot import name 'zero_gradients' from 'torch.autograd.gradcheck' (/usr/local/lib/python3.10/site-packages/torch/autograd/gradcheck.py)",
+        "class": "RUNTIME_ERROR_OTHER",
+        "attribution": "REPO",
+        "phase": "repo_run",
+        "cleared_by": null
+      }
+    ],
+    "first_repo_error": "ImportError: cannot import name 'zero_gradients' from 'torch.autograd.gradcheck' (/usr/local/lib/python3.10/site-packages/torch/autograd/gradcheck.py)",
+    "last_error": "ImportError: cannot import name 'zero_gradients' from 'torch.autograd.gradcheck' (/usr/local/lib/python3.10/site-packages/torch/autograd/gradcheck.py)",
+    "reproduction_passport_hash": "212776c157e0b450340d4e8b66babf69cc1a08cce08e9a8aea707553020d50d0"
+  },
+  "finished_at": "2026-09-30T12:29:54.393103+00:00",
+  "events": [
+    {
+      "t_s": 0.0,
+      "at": "2026-09-30T12:28:37.864383+00:00",
+      "line": "[intake] cloned https://github.com/Haichao-Zhang/FeatureScatter@77e9140d5112ace5ba60301c224868257434b3e6"
+    },
+    {
+      "t_s": 0.0,
+      "at": "2026-09-30T12:28:37.864426+00:00",
+      "line": "[recon] calling Nemotron Nano"
+    },
+    {
+      "t_s": 0.0,
+      "at": "2026-09-30T12:28:37.864455+00:00",
+      "line": "[recon] ENTRYPOINT_UNCLEAR: no runnable entrypoint discoverable in recon: no candidate scripts found (no train.py/main.py/run.py-style file, and no file with a __main__ guard) \u2014 proceeding with the documented command: sh ./fs_train.sh"
+    },
+    {
+      "t_s": 0.01,
+      "at": "2026-09-30T12:28:37.873817+00:00",
+      "line": "[python] python:3.10-slim (default): no usable Python declaration; RERUN default 3.10 (declared but not satisfiable by an available image: README '3.5')"
+    },
+    {
+      "t_s": 2.36,
+      "at": "2026-09-30T12:28:40.222800+00:00",
+      "line": "[planner] build plan: {'base_image': 'python:3.10-slim', 'apt_install': [], 'install_commands': ['pip install .'], 'execute_command': 'sh ./fs_train.sh', 'notes': [\"execute command is the repository's documented command (corpus ground truth)\", \"base image python:3.10-slim: no usable Python declaration; RERUN default 3.10 (declared but not satisfiable by an available image: README '3.5')\"]}"
+    },
+    {
+      "t_s": 2.47,
+      "at": "2026-09-30T12:28:40.333612+00:00",
+      "line": "[integrity] verified 11 file(s) against tree 609e1335f27715f9ab89fe1963e949d38986d1f9"
+    },
+    {
+      "t_s": 2.47,
+      "at": "2026-09-30T12:28:40.333652+00:00",
+      "line": "[sandbox] starting build+execute (wall_clock_seconds=600)"
+    },
+    {
+      "t_s": 2.48,
+      "at": "2026-09-30T12:28:40.339487+00:00",
+      "line": "[runner] torch: repo pins torch, torchvision; installed the CPU wheels as a matched set with the same pins"
+    },
+    {
+      "t_s": 74.58,
+      "at": "2026-09-30T12:29:52.443277+00:00",
+      "line": "[cost_guard] recorded $0.2901 sandbox spend, $1.7097 remaining today"
+    },
+    {
+      "t_s": 74.58,
+      "at": "2026-09-30T12:29:52.443375+00:00",
+      "line": "[sandbox] id=f49e0e57-0732-4de9-a7b2-d65b953be825 exit_code=1"
+    },
+    {
+      "t_s": 74.58,
+      "at": "2026-09-30T12:29:52.443403+00:00",
+      "line": "[baseline] as-is run: FAILS (exit code 1)"
+    },
+    {
+      "t_s": 74.58,
+      "at": "2026-09-30T12:29:52.443646+00:00",
+      "line": "[classifier] RUNTIME_ERROR_OTHER: ImportError: cannot import name 'zero_gradients' from 'torch.autograd.gradcheck' (/usr/local/lib/python3.10/site-packages/torch/autograd/gradcheck.py)"
+    },
+    {
+      "t_s": 74.58,
+      "at": "2026-09-30T12:29:52.443694+00:00",
+      "line": "[verdict] BLOCKED after 0 repair attempt(s): RUNTIME_ERROR_OTHER"
+    }
+  ],
+  "model_calls": [
+    {
+      "model": "nvidia/nemotron-3-super-120b-a12b",
+      "started_at": "2026-09-30T12:28:38.075780+00:00",
+      "latency_s": 2.15,
+      "finish_reason": "stop",
+      "content_is_none": false,
+      "has_reasoning": true,
+      "usage": {
+        "completion_tokens": 169,
+        "prompt_tokens": 282,
+        "total_tokens": 451,
+        "completion_tokens_details": {
+          "accepted_prediction_tokens": null,
+          "audio_tokens": null,
+          "reasoning_tokens": 159,
+          "rejected_prediction_tokens": null,
+          "text_tokens": null
+        },
+        "prompt_tokens_details": {
+          "audio_tokens": null,
+          "cache_write_tokens": null,
+          "cached_tokens": 0,
+          "image_tokens": null,
+          "text_tokens": null,
+          "created_cache_tokens": 0,
+          "multimodal_tokens": null
+        },
+        "prompt_cache_hit_tokens": 0,
+        "prompt_cache_miss_tokens": 282
+      }
+    },
+    {
+      "model": "nvidia/Nemotron-3-Ultra-550b-a55b",
+      "started_at": "2026-09-30T12:29:52.445404+00:00",
+      "latency_s": 1.93,
+      "finish_reason": "stop",
+      "content_is_none": false,
+      "has_reasoning": true,
+      "usage": {
+        "completion_tokens": 312,
+        "prompt_tokens": 699,
+        "total_tokens": 1011,
+        "completion_tokens_details": {
+          "accepted_prediction_tokens": null,
+          "audio_tokens": null,
+          "reasoning_tokens": 208,
+          "rejected_prediction_tokens": null,
+          "text_tokens": null
+        },
+        "prompt_tokens_details": {
+          "audio_tokens": null,
+          "cache_write_tokens": null,
+          "cached_tokens": 0,
+          "image_tokens": null,
+          "text_tokens": null,
+          "multimodal_tokens": null
+        },
+        "prompt_cache_hit_tokens": 0,
+        "prompt_cache_miss_tokens": 699
+      }
+    }
+  ],
+  "cost_guard": {
+    "spent_usd": 0.29195583999999997,
+    "model_spent_usd": 0.0018717,
+    "sandbox_spent_usd": 0.29008414,
+    "remaining_usd": 1.70804416,
+    "model_usage": [
+      {
+        "model": "nvidia/nemotron-3-super-120b-a12b",
+        "prompt_tokens": 282,
+        "completion_tokens": 169,
+        "cost_usd": 0.00023669999999999998
+      },
+      {
+        "model": "nvidia/Nemotron-3-Ultra-550b-a55b",
+        "prompt_tokens": 699,
+        "completion_tokens": 312,
+        "cost_usd": 0.001635
+      }
+    ],
+    "prices_usd_per_1m": {
+      "nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B": [
+        0.06,
+        0.24
+      ],
+      "nvidia/nemotron-3-super-120b-a12b": [
+        0.3,
+        0.9
+      ],
+      "nvidia/Nemotron-3-Ultra-550b-a55b": [
+        1.0,
+        3.0
+      ]
+    },
+    "prices_source": "https://api.tokenfactory.nebius.com/v1/models?verbose=true (pricing field)",
+    "prices_retrieved": "2026-09-24"
+  }
+}

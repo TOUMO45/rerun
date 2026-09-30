@@ -1,0 +1,327 @@
+{
+  "run_kind": "live end-to-end run",
+  "dev_run": false,
+  "dry_run": null,
+  "batch": {
+    "harness_tag": "harness-v1.3.2",
+    "harness_commit": "77b3cfe1697ad74ad13eac1f77ffe0f1e80c7379",
+    "head_commit": "77b3cfe1697ad74ad13eac1f77ffe0f1e80c7379",
+    "corpus": "corpus-v2",
+    "prereg_sha256": "ae5a722249156e058d3d360bdc63fa8224140d0688f1daa307ecfa93a98c7284",
+    "corpus_hash": "7df090bea7013974f9f10fb8959ab0162734b51c83a80f744f9c310ce694fbdc",
+    "arm": "control",
+    "total_cap_usd": 25.0,
+    "already_spent_usd": 0.0,
+    "entry_id": 15,
+    "category": "PRIMARY",
+    "rules_matched": [],
+    "per_entry_cap_usd": 2.0
+  },
+  "started_at": "2026-09-30T12:25:24.393893+00:00",
+  "corpus_entry": {
+    "name": "YuliaRubanova__latent_ode",
+    "repo_url": "https://github.com/YuliaRubanova/latent_ode",
+    "commit_sha": "c0682d4f52b806fb88d965755892eadd9783f936",
+    "command": "python3 run_models.py --niters 500 -n 1000 -s 50 -l 10 --dataset periodic  --latent-ode --noise-weight 0.01",
+    "command_source": "README.md line 29"
+  },
+  "config": {
+    "models": {
+      "recon": "nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B",
+      "planner": "nvidia/nemotron-3-super-120b-a12b",
+      "repairer": "nvidia/nemotron-3-super-120b-a12b",
+      "adjudicator": "nvidia/Nemotron-3-Ultra-550b-a55b"
+    },
+    "sandbox_backend": "token_factory",
+    "sandbox_image_default": "python:3.10-slim",
+    "sandbox_wall_clock_seconds": 600.0,
+    "arm": "control",
+    "repair_enabled": false,
+    "max_attempts": 0,
+    "tavily_configured": false,
+    "cost_cap_usd": 2.0
+  },
+  "intake": {
+    "duration_s": 29.43,
+    "resolved_sha": "c0682d4f52b806fb88d965755892eadd9783f936",
+    "dependency_files": [],
+    "declared_dependencies": [],
+    "entrypoint_candidates": [
+      "person_activity.py",
+      "physionet.py",
+      "run_models.py"
+    ],
+    "notebook_paths": []
+  },
+  "pipeline_duration_s": 100.68,
+  "repair_mode": "deterministic",
+  "tree_integrity": {
+    "status": "verified",
+    "tree_sha": "7c900a9d4f351c722de733a2e8e4072c8d6eab35",
+    "files_checked": 21,
+    "excluded_patched": []
+  },
+  "result": {
+    "verdict": "BLOCKED",
+    "taxonomy_code": "DEP_MISSING",
+    "indeterminate_reason": "",
+    "reason_code": null,
+    "error_chain": [
+      {
+        "error": "ModuleNotFoundError: No module named 'matplotlib'",
+        "class": "DEP_MISSING",
+        "attribution": "REPO",
+        "phase": "repo_run",
+        "cleared_by": null
+      }
+    ],
+    "first_repo_error": "ModuleNotFoundError: No module named 'matplotlib'",
+    "last_error": "ModuleNotFoundError: No module named 'matplotlib'",
+    "error_traceback": "",
+    "attempts": [],
+    "certificate_prose": "The execution was blocked because the required Python module 'matplotlib' was not found in the environment, as indicated by the ModuleNotFoundError in the run log. The baseline run failed with exit code 1, and the classifier identified the issue as DEP_MISSING. No repair attempts were made. Verifies that the artifact executes. Does not verify the paper's numerical results."
+  },
+  "certificate": {
+    "repo_url": "https://github.com/YuliaRubanova/latent_ode",
+    "commit_sha": "c0682d4f52b806fb88d965755892eadd9783f936",
+    "build_plan": {
+      "base_image": "python:3.10-slim",
+      "apt_install": [],
+      "install_commands": [
+        "true  # no declared dependency file found; nothing to install"
+      ],
+      "execute_command": "python3 run_models.py --niters 500 -n 1000 -s 50 -l 10 --dataset periodic  --latent-ode --noise-weight 0.01",
+      "notes": [
+        "execute command is the repository's documented command (corpus ground truth)",
+        "base image python:3.10-slim: no usable Python declaration; RERUN default 3.10"
+      ]
+    },
+    "full_log": "[intake] cloned https://github.com/YuliaRubanova/latent_ode@c0682d4f52b806fb88d965755892eadd9783f936\n[recon] calling Nemotron Nano\n[recon] entrypoint=run_models.py confidence=0.80\n[python] python:3.10-slim (default): no usable Python declaration; RERUN default 3.10\n[planner] build plan: {'base_image': 'python:3.10-slim', 'apt_install': [], 'install_commands': ['true  # no declared dependency file found; nothing to install'], 'execute_command': 'python3 run_models.py --niters 500 -n 1000 -s 50 -l 10 --dataset periodic  --latent-ode --noise-weight 0.01', 'notes': [\"execute command is the repository's documented command (corpus ground truth)\", 'base image python:3.10-slim: no usable Python declaration; RERUN default 3.10']}\n[integrity] verified 21 file(s) against tree 7c900a9d4f351c722de733a2e8e4072c8d6eab35\n[sandbox] starting build+execute (wall_clock_seconds=600)\n[runner] torch: repo imports torch, torchvision without declaring it; runner provides the newest matched CPU wheels\n[cost_guard] recorded $0.2236 sandbox spend, $1.7756 remaining today\n[sandbox] id=8b7690d5-1b5b-484b-bc9d-aacc5dbd2b2c exit_code=1\n[baseline] as-is run: FAILS (exit code 1)\n[classifier] DEP_MISSING: ModuleNotFoundError: No module named 'matplotlib'\n[verdict] BLOCKED after 0 repair attempt(s): DEP_MISSING",
+    "diffs": [],
+    "verdict": "BLOCKED",
+    "timestamp": "2026-09-30T12:27:34.504629+00:00",
+    "bundle_version": 4,
+    "baseline": {
+      "result": "FAILS",
+      "exit_code": 1,
+      "base_image": "python:3.10-slim",
+      "install_commands": [
+        "true  # no declared dependency file found; nothing to install"
+      ],
+      "execute_command": "python3 run_models.py --niters 500 -n 1000 -s 50 -l 10 --dataset periodic  --latent-ode --noise-weight 0.01",
+      "sandbox_id": "8b7690d5-1b5b-484b-bc9d-aacc5dbd2b2c",
+      "taxonomy_code": "DEP_MISSING",
+      "evidence": "ModuleNotFoundError: No module named 'matplotlib'"
+    },
+    "recovery": false,
+    "tree_integrity": {
+      "status": "verified",
+      "tree_sha": "7c900a9d4f351c722de733a2e8e4072c8d6eab35",
+      "files_checked": 21,
+      "excluded_patched": []
+    },
+    "corpus_hash": "7df090bea7013974f9f10fb8959ab0162734b51c83a80f744f9c310ce694fbdc",
+    "taxonomy_code": "DEP_MISSING",
+    "indeterminate_reason": "",
+    "error_chain": [
+      {
+        "error": "ModuleNotFoundError: No module named 'matplotlib'",
+        "class": "DEP_MISSING",
+        "attribution": "REPO",
+        "phase": "repo_run",
+        "cleared_by": null
+      }
+    ],
+    "first_repo_error": "ModuleNotFoundError: No module named 'matplotlib'",
+    "last_error": "ModuleNotFoundError: No module named 'matplotlib'",
+    "reproduction_passport_hash": "96f9658b8f4eb806b15667dd0000aa2bcafb191cd3046fbe2455c3058a5b00fd"
+  },
+  "finished_at": "2026-09-30T12:27:34.533382+00:00",
+  "events": [
+    {
+      "t_s": 0.0,
+      "at": "2026-09-30T12:25:53.825394+00:00",
+      "line": "[intake] cloned https://github.com/YuliaRubanova/latent_ode@c0682d4f52b806fb88d965755892eadd9783f936"
+    },
+    {
+      "t_s": 0.0,
+      "at": "2026-09-30T12:25:53.826191+00:00",
+      "line": "[recon] calling Nemotron Nano"
+    },
+    {
+      "t_s": 14.78,
+      "at": "2026-09-30T12:26:08.600829+00:00",
+      "line": "[recon] entrypoint=run_models.py confidence=0.80"
+    },
+    {
+      "t_s": 14.79,
+      "at": "2026-09-30T12:26:08.610790+00:00",
+      "line": "[python] python:3.10-slim (default): no usable Python declaration; RERUN default 3.10"
+    },
+    {
+      "t_s": 16.4,
+      "at": "2026-09-30T12:26:10.227182+00:00",
+      "line": "[planner] build plan: {'base_image': 'python:3.10-slim', 'apt_install': [], 'install_commands': ['true  # no declared dependency file found; nothing to install'], 'execute_command': 'python3 run_models.py --niters 500 -n 1000 -s 50 -l 10 --dataset periodic  --latent-ode --noise-weight 0.01', 'notes': [\"execute command is the repository's documented command (corpus ground truth)\", 'base image python:3.10-slim: no usable Python declaration; RERUN default 3.10']}"
+    },
+    {
+      "t_s": 16.56,
+      "at": "2026-09-30T12:26:10.387566+00:00",
+      "line": "[integrity] verified 21 file(s) against tree 7c900a9d4f351c722de733a2e8e4072c8d6eab35"
+    },
+    {
+      "t_s": 16.56,
+      "at": "2026-09-30T12:26:10.387620+00:00",
+      "line": "[sandbox] starting build+execute (wall_clock_seconds=600)"
+    },
+    {
+      "t_s": 16.57,
+      "at": "2026-09-30T12:26:10.398515+00:00",
+      "line": "[runner] torch: repo imports torch, torchvision without declaring it; runner provides the newest matched CPU wheels"
+    },
+    {
+      "t_s": 98.84,
+      "at": "2026-09-30T12:27:32.664555+00:00",
+      "line": "[cost_guard] recorded $0.2236 sandbox spend, $1.7756 remaining today"
+    },
+    {
+      "t_s": 98.84,
+      "at": "2026-09-30T12:27:32.664643+00:00",
+      "line": "[sandbox] id=8b7690d5-1b5b-484b-bc9d-aacc5dbd2b2c exit_code=1"
+    },
+    {
+      "t_s": 98.84,
+      "at": "2026-09-30T12:27:32.664665+00:00",
+      "line": "[baseline] as-is run: FAILS (exit code 1)"
+    },
+    {
+      "t_s": 98.84,
+      "at": "2026-09-30T12:27:32.668569+00:00",
+      "line": "[classifier] DEP_MISSING: ModuleNotFoundError: No module named 'matplotlib'"
+    },
+    {
+      "t_s": 98.84,
+      "at": "2026-09-30T12:27:32.668640+00:00",
+      "line": "[verdict] BLOCKED after 0 repair attempt(s): DEP_MISSING"
+    }
+  ],
+  "model_calls": [
+    {
+      "model": "nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B",
+      "started_at": "2026-09-30T12:25:54.025297+00:00",
+      "latency_s": 14.57,
+      "finish_reason": "stop",
+      "content_is_none": false,
+      "has_reasoning": true,
+      "usage": {
+        "completion_tokens": 1617,
+        "prompt_tokens": 4240,
+        "total_tokens": 5857,
+        "completion_tokens_details": null,
+        "prompt_tokens_details": null
+      }
+    },
+    {
+      "model": "nvidia/nemotron-3-super-120b-a12b",
+      "started_at": "2026-09-30T12:26:08.611990+00:00",
+      "latency_s": 1.62,
+      "finish_reason": "stop",
+      "content_is_none": false,
+      "has_reasoning": true,
+      "usage": {
+        "completion_tokens": 50,
+        "prompt_tokens": 268,
+        "total_tokens": 318,
+        "completion_tokens_details": {
+          "accepted_prediction_tokens": null,
+          "audio_tokens": null,
+          "reasoning_tokens": 40,
+          "rejected_prediction_tokens": null,
+          "text_tokens": null
+        },
+        "prompt_tokens_details": {
+          "audio_tokens": null,
+          "cache_write_tokens": null,
+          "cached_tokens": 0,
+          "image_tokens": null,
+          "text_tokens": null,
+          "created_cache_tokens": 0,
+          "multimodal_tokens": null
+        },
+        "prompt_cache_hit_tokens": 0,
+        "prompt_cache_miss_tokens": 268
+      }
+    },
+    {
+      "model": "nvidia/Nemotron-3-Ultra-550b-a55b",
+      "started_at": "2026-09-30T12:27:32.670055+00:00",
+      "latency_s": 1.83,
+      "finish_reason": "stop",
+      "content_is_none": false,
+      "has_reasoning": true,
+      "usage": {
+        "completion_tokens": 383,
+        "prompt_tokens": 663,
+        "total_tokens": 1046,
+        "completion_tokens_details": {
+          "accepted_prediction_tokens": null,
+          "audio_tokens": null,
+          "reasoning_tokens": 275,
+          "rejected_prediction_tokens": null,
+          "text_tokens": null
+        },
+        "prompt_tokens_details": {
+          "audio_tokens": null,
+          "cache_write_tokens": null,
+          "cached_tokens": 0,
+          "image_tokens": null,
+          "text_tokens": null,
+          "multimodal_tokens": null
+        },
+        "prompt_cache_hit_tokens": 0,
+        "prompt_cache_miss_tokens": 663
+      }
+    }
+  ],
+  "cost_guard": {
+    "spent_usd": 0.22616508000000005,
+    "model_spent_usd": 0.00257988,
+    "sandbox_spent_usd": 0.22358520000000004,
+    "remaining_usd": 1.7738349199999999,
+    "model_usage": [
+      {
+        "model": "nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B",
+        "prompt_tokens": 4240,
+        "completion_tokens": 1617,
+        "cost_usd": 0.0006424800000000001
+      },
+      {
+        "model": "nvidia/nemotron-3-super-120b-a12b",
+        "prompt_tokens": 268,
+        "completion_tokens": 50,
+        "cost_usd": 0.00012539999999999999
+      },
+      {
+        "model": "nvidia/Nemotron-3-Ultra-550b-a55b",
+        "prompt_tokens": 663,
+        "completion_tokens": 383,
+        "cost_usd": 0.001812
+      }
+    ],
+    "prices_usd_per_1m": {
+      "nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B": [
+        0.06,
+        0.24
+      ],
+      "nvidia/nemotron-3-super-120b-a12b": [
+        0.3,
+        0.9
+      ],
+      "nvidia/Nemotron-3-Ultra-550b-a55b": [
+        1.0,
+        3.0
+      ]
+    },
+    "prices_source": "https://api.tokenfactory.nebius.com/v1/models?verbose=true (pricing field)",
+    "prices_retrieved": "2026-09-24"
+  }
+}

@@ -1,0 +1,356 @@
+{
+  "run_kind": "live end-to-end run",
+  "dev_run": false,
+  "dry_run": null,
+  "batch": {
+    "harness_tag": "harness-v1.3.2",
+    "harness_commit": "77b3cfe1697ad74ad13eac1f77ffe0f1e80c7379",
+    "head_commit": "77b3cfe1697ad74ad13eac1f77ffe0f1e80c7379",
+    "corpus": "corpus-v2",
+    "prereg_sha256": "ae5a722249156e058d3d360bdc63fa8224140d0688f1daa307ecfa93a98c7284",
+    "corpus_hash": "7df090bea7013974f9f10fb8959ab0162734b51c83a80f744f9c310ce694fbdc",
+    "arm": "control",
+    "total_cap_usd": 25.0,
+    "already_spent_usd": 0.0,
+    "entry_id": 20,
+    "category": "PRIMARY",
+    "rules_matched": [],
+    "per_entry_cap_usd": 2.0
+  },
+  "started_at": "2026-09-30T12:33:41.768641+00:00",
+  "corpus_entry": {
+    "name": "XiaoxiaoGuo__fashion-retrieval",
+    "repo_url": "https://github.com/XiaoxiaoGuo/fashion-retrieval",
+    "commit_sha": "9ac8b2ca44f7aa16510384047b635ba093568165",
+    "command": "python train_sl.py --log-interval=50 --lr=0.001  --batch-size=128 --model-folder=\"models/\"",
+    "command_source": "README.md line 39"
+  },
+  "config": {
+    "models": {
+      "recon": "nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B",
+      "planner": "nvidia/nemotron-3-super-120b-a12b",
+      "repairer": "nvidia/nemotron-3-super-120b-a12b",
+      "adjudicator": "nvidia/Nemotron-3-Ultra-550b-a55b"
+    },
+    "sandbox_backend": "token_factory",
+    "sandbox_image_default": "python:3.10-slim",
+    "sandbox_wall_clock_seconds": 600.0,
+    "arm": "control",
+    "repair_enabled": false,
+    "max_attempts": 0,
+    "tavily_configured": false,
+    "cost_cap_usd": 2.0
+  },
+  "intake": {
+    "duration_s": 3.78,
+    "resolved_sha": "9ac8b2ca44f7aa16510384047b635ba093568165",
+    "dependency_files": [],
+    "declared_dependencies": [],
+    "entrypoint_candidates": [
+      "captioner/neuraltalk2/scripts/prepro_feats.py",
+      "captioner/neuraltalk2/scripts/prepro_labels.py",
+      "captioner/neuraltalk2/train.py",
+      "captioner/prepro_shoe_features.py",
+      "captioner/prepro_shoe_labels.py"
+    ],
+    "notebook_paths": []
+  },
+  "pipeline_duration_s": 97.01,
+  "repair_mode": "deterministic",
+  "tree_integrity": {
+    "status": "verified",
+    "tree_sha": "2d967e06d1326a8f5458c0771d9f5c33c49c93a0",
+    "files_checked": 76,
+    "excluded_patched": []
+  },
+  "result": {
+    "verdict": "BLOCKED",
+    "taxonomy_code": "DEP_MISSING",
+    "indeterminate_reason": "",
+    "reason_code": null,
+    "error_chain": [
+      {
+        "error": "ModuleNotFoundError: No module named 'six'",
+        "class": "DEP_MISSING",
+        "attribution": "REPO",
+        "phase": "repo_run",
+        "cleared_by": null
+      }
+    ],
+    "first_repo_error": "ModuleNotFoundError: No module named 'six'",
+    "last_error": "ModuleNotFoundError: No module named 'six'",
+    "error_traceback": "",
+    "attempts": [],
+    "certificate_prose": "The run log shows a ModuleNotFoundError for the 'six' module, causing the baseline run to fail with exit code 1. The classifier identified this as DEP_MISSING, resulting in a BLOCKED verdict after zero repair attempts. Verifies that the artifact executes. Does not verify the paper's numerical results."
+  },
+  "certificate": {
+    "repo_url": "https://github.com/XiaoxiaoGuo/fashion-retrieval",
+    "commit_sha": "9ac8b2ca44f7aa16510384047b635ba093568165",
+    "build_plan": {
+      "base_image": "python:3.6-slim",
+      "apt_install": [],
+      "install_commands": [
+        "true  # no declared dependency file found; nothing to install"
+      ],
+      "execute_command": "python train_sl.py --log-interval=50 --lr=0.001  --batch-size=128 --model-folder=\"models/\"",
+      "notes": [
+        "execute command is the repository's documented command (corpus ground truth)",
+        "base image python:3.6-slim: declared by README (3.6); resolved to the first available minor that satisfies it"
+      ]
+    },
+    "full_log": "[intake] cloned https://github.com/XiaoxiaoGuo/fashion-retrieval@9ac8b2ca44f7aa16510384047b635ba093568165\n[recon] calling Nemotron Nano\n[recon] entrypoint=captioner/neuraltalk2/train.py confidence=0.80\n[python] python:3.6-slim (README): declared by README (3.6); resolved to the first available minor that satisfies it\n[planner] build plan: {'base_image': 'python:3.6-slim', 'apt_install': [], 'install_commands': ['true  # no declared dependency file found; nothing to install'], 'execute_command': 'python train_sl.py --log-interval=50 --lr=0.001  --batch-size=128 --model-folder=\"models/\"', 'notes': [\"execute command is the repository's documented command (corpus ground truth)\", 'base image python:3.6-slim: declared by README (3.6); resolved to the first available minor that satisfies it']}\n[integrity] verified 76 file(s) against tree 2d967e06d1326a8f5458c0771d9f5c33c49c93a0\n[sandbox] starting build+execute (wall_clock_seconds=600)\n[runner] torch: repo imports torch, torchvision without declaring it; runner provides the newest matched CPU wheels\n[cost_guard] recorded $0.1671 sandbox spend, $1.8305 remaining today\n[sandbox] id=8a3a3bb5-250c-471d-a616-671fad7a6765 exit_code=1\n[baseline] as-is run: FAILS (exit code 1)\n[classifier] DEP_MISSING: ModuleNotFoundError: No module named 'six'\n[verdict] BLOCKED after 0 repair attempt(s): DEP_MISSING",
+    "diffs": [],
+    "verdict": "BLOCKED",
+    "timestamp": "2026-09-30T12:35:22.565286+00:00",
+    "bundle_version": 4,
+    "baseline": {
+      "result": "FAILS",
+      "exit_code": 1,
+      "base_image": "python:3.6-slim",
+      "install_commands": [
+        "true  # no declared dependency file found; nothing to install"
+      ],
+      "execute_command": "python train_sl.py --log-interval=50 --lr=0.001  --batch-size=128 --model-folder=\"models/\"",
+      "sandbox_id": "8a3a3bb5-250c-471d-a616-671fad7a6765",
+      "taxonomy_code": "DEP_MISSING",
+      "evidence": "ModuleNotFoundError: No module named 'six'"
+    },
+    "recovery": false,
+    "tree_integrity": {
+      "status": "verified",
+      "tree_sha": "2d967e06d1326a8f5458c0771d9f5c33c49c93a0",
+      "files_checked": 76,
+      "excluded_patched": []
+    },
+    "corpus_hash": "7df090bea7013974f9f10fb8959ab0162734b51c83a80f744f9c310ce694fbdc",
+    "taxonomy_code": "DEP_MISSING",
+    "indeterminate_reason": "",
+    "error_chain": [
+      {
+        "error": "ModuleNotFoundError: No module named 'six'",
+        "class": "DEP_MISSING",
+        "attribution": "REPO",
+        "phase": "repo_run",
+        "cleared_by": null
+      }
+    ],
+    "first_repo_error": "ModuleNotFoundError: No module named 'six'",
+    "last_error": "ModuleNotFoundError: No module named 'six'",
+    "reproduction_passport_hash": "bd8201a7e8a10c74f67950147a46a90289f0d4ea9ce0481f128ba1d17fa7f6b5"
+  },
+  "finished_at": "2026-09-30T12:35:22.644378+00:00",
+  "events": [
+    {
+      "t_s": 0.0,
+      "at": "2026-09-30T12:33:45.555212+00:00",
+      "line": "[intake] cloned https://github.com/XiaoxiaoGuo/fashion-retrieval@9ac8b2ca44f7aa16510384047b635ba093568165"
+    },
+    {
+      "t_s": 0.01,
+      "at": "2026-09-30T12:33:45.565337+00:00",
+      "line": "[recon] calling Nemotron Nano"
+    },
+    {
+      "t_s": 44.27,
+      "at": "2026-09-30T12:34:29.820947+00:00",
+      "line": "[recon] entrypoint=captioner/neuraltalk2/train.py confidence=0.80"
+    },
+    {
+      "t_s": 44.28,
+      "at": "2026-09-30T12:34:29.834253+00:00",
+      "line": "[python] python:3.6-slim (README): declared by README (3.6); resolved to the first available minor that satisfies it"
+    },
+    {
+      "t_s": 45.83,
+      "at": "2026-09-30T12:34:31.386310+00:00",
+      "line": "[planner] build plan: {'base_image': 'python:3.6-slim', 'apt_install': [], 'install_commands': ['true  # no declared dependency file found; nothing to install'], 'execute_command': 'python train_sl.py --log-interval=50 --lr=0.001  --batch-size=128 --model-folder=\"models/\"', 'notes': [\"execute command is the repository's documented command (corpus ground truth)\", 'base image python:3.6-slim: declared by README (3.6); resolved to the first available minor that satisfies it']}"
+    },
+    {
+      "t_s": 46.1,
+      "at": "2026-09-30T12:34:31.650440+00:00",
+      "line": "[integrity] verified 76 file(s) against tree 2d967e06d1326a8f5458c0771d9f5c33c49c93a0"
+    },
+    {
+      "t_s": 46.1,
+      "at": "2026-09-30T12:34:31.650480+00:00",
+      "line": "[sandbox] starting build+execute (wall_clock_seconds=600)"
+    },
+    {
+      "t_s": 46.12,
+      "at": "2026-09-30T12:34:31.672503+00:00",
+      "line": "[runner] torch: repo imports torch, torchvision without declaring it; runner provides the newest matched CPU wheels"
+    },
+    {
+      "t_s": 95.1,
+      "at": "2026-09-30T12:35:20.657743+00:00",
+      "line": "[cost_guard] recorded $0.1671 sandbox spend, $1.8305 remaining today"
+    },
+    {
+      "t_s": 95.1,
+      "at": "2026-09-30T12:35:20.657869+00:00",
+      "line": "[sandbox] id=8a3a3bb5-250c-471d-a616-671fad7a6765 exit_code=1"
+    },
+    {
+      "t_s": 95.1,
+      "at": "2026-09-30T12:35:20.657898+00:00",
+      "line": "[baseline] as-is run: FAILS (exit code 1)"
+    },
+    {
+      "t_s": 95.11,
+      "at": "2026-09-30T12:35:20.661732+00:00",
+      "line": "[classifier] DEP_MISSING: ModuleNotFoundError: No module named 'six'"
+    },
+    {
+      "t_s": 95.11,
+      "at": "2026-09-30T12:35:20.661826+00:00",
+      "line": "[verdict] BLOCKED after 0 repair attempt(s): DEP_MISSING"
+    }
+  ],
+  "model_calls": [
+    {
+      "model": "nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B",
+      "started_at": "2026-09-30T12:33:45.780623+00:00",
+      "latency_s": 29.34,
+      "finish_reason": "length",
+      "content_is_none": true,
+      "has_reasoning": true,
+      "usage": {
+        "completion_tokens": 4096,
+        "prompt_tokens": 6706,
+        "total_tokens": 10802,
+        "completion_tokens_details": null,
+        "prompt_tokens_details": null
+      }
+    },
+    {
+      "model": "nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B",
+      "started_at": "2026-09-30T12:34:15.121099+00:00",
+      "latency_s": 14.7,
+      "finish_reason": "stop",
+      "content_is_none": false,
+      "has_reasoning": true,
+      "usage": {
+        "completion_tokens": 2049,
+        "prompt_tokens": 6706,
+        "total_tokens": 8755,
+        "completion_tokens_details": null,
+        "prompt_tokens_details": {
+          "audio_tokens": null,
+          "cache_write_tokens": null,
+          "cached_tokens": 4224,
+          "image_tokens": null,
+          "text_tokens": null
+        }
+      }
+    },
+    {
+      "model": "nvidia/nemotron-3-super-120b-a12b",
+      "started_at": "2026-09-30T12:34:29.836014+00:00",
+      "latency_s": 1.55,
+      "finish_reason": "stop",
+      "content_is_none": false,
+      "has_reasoning": true,
+      "usage": {
+        "completion_tokens": 40,
+        "prompt_tokens": 272,
+        "total_tokens": 312,
+        "completion_tokens_details": {
+          "accepted_prediction_tokens": null,
+          "audio_tokens": null,
+          "reasoning_tokens": 30,
+          "rejected_prediction_tokens": null,
+          "text_tokens": null
+        },
+        "prompt_tokens_details": {
+          "audio_tokens": null,
+          "cache_write_tokens": null,
+          "cached_tokens": 0,
+          "image_tokens": null,
+          "text_tokens": null,
+          "created_cache_tokens": 0,
+          "multimodal_tokens": null
+        },
+        "prompt_cache_hit_tokens": 0,
+        "prompt_cache_miss_tokens": 272
+      }
+    },
+    {
+      "model": "nvidia/Nemotron-3-Ultra-550b-a55b",
+      "started_at": "2026-09-30T12:35:20.663298+00:00",
+      "latency_s": 1.9,
+      "finish_reason": "stop",
+      "content_is_none": false,
+      "has_reasoning": true,
+      "usage": {
+        "completion_tokens": 332,
+        "prompt_tokens": 668,
+        "total_tokens": 1000,
+        "completion_tokens_details": {
+          "accepted_prediction_tokens": null,
+          "audio_tokens": null,
+          "reasoning_tokens": 235,
+          "rejected_prediction_tokens": null,
+          "text_tokens": null
+        },
+        "prompt_tokens_details": {
+          "audio_tokens": null,
+          "cache_write_tokens": null,
+          "cached_tokens": 0,
+          "image_tokens": null,
+          "text_tokens": null,
+          "multimodal_tokens": null
+        },
+        "prompt_cache_hit_tokens": 0,
+        "prompt_cache_miss_tokens": 668
+      }
+    }
+  ],
+  "cost_guard": {
+    "spent_usd": 0.17113113000000002,
+    "model_spent_usd": 0.00406112,
+    "sandbox_spent_usd": 0.16707001000000002,
+    "remaining_usd": 1.82886887,
+    "model_usage": [
+      {
+        "model": "nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B",
+        "prompt_tokens": 6706,
+        "completion_tokens": 4096,
+        "cost_usd": 0.0013854
+      },
+      {
+        "model": "nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B",
+        "prompt_tokens": 6706,
+        "completion_tokens": 2049,
+        "cost_usd": 0.0008941199999999999
+      },
+      {
+        "model": "nvidia/nemotron-3-super-120b-a12b",
+        "prompt_tokens": 272,
+        "completion_tokens": 40,
+        "cost_usd": 0.0001176
+      },
+      {
+        "model": "nvidia/Nemotron-3-Ultra-550b-a55b",
+        "prompt_tokens": 668,
+        "completion_tokens": 332,
+        "cost_usd": 0.001664
+      }
+    ],
+    "prices_usd_per_1m": {
+      "nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B": [
+        0.06,
+        0.24
+      ],
+      "nvidia/nemotron-3-super-120b-a12b": [
+        0.3,
+        0.9
+      ],
+      "nvidia/Nemotron-3-Ultra-550b-a55b": [
+        1.0,
+        3.0
+      ]
+    },
+    "prices_source": "https://api.tokenfactory.nebius.com/v1/models?verbose=true (pricing field)",
+    "prices_retrieved": "2026-09-24"
+  }
+}

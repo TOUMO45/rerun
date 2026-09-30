@@ -1,0 +1,358 @@
+{
+  "run_kind": "live end-to-end run",
+  "dev_run": false,
+  "dry_run": null,
+  "batch": {
+    "harness_tag": "harness-v1.3.2",
+    "harness_commit": "77b3cfe1697ad74ad13eac1f77ffe0f1e80c7379",
+    "head_commit": "77b3cfe1697ad74ad13eac1f77ffe0f1e80c7379",
+    "corpus": "corpus-v2",
+    "prereg_sha256": "ae5a722249156e058d3d360bdc63fa8224140d0688f1daa307ecfa93a98c7284",
+    "corpus_hash": "7df090bea7013974f9f10fb8959ab0162734b51c83a80f744f9c310ce694fbdc",
+    "arm": "control",
+    "total_cap_usd": 25.0,
+    "already_spent_usd": 0.0,
+    "entry_id": 2,
+    "category": "PRIMARY",
+    "rules_matched": [],
+    "per_entry_cap_usd": 2.0
+  },
+  "started_at": "2026-09-30T11:26:39.468918+00:00",
+  "corpus_entry": {
+    "name": "DeformableFriends__NeuralTracking",
+    "repo_url": "https://github.com/DeformableFriends/NeuralTracking",
+    "commit_sha": "015256369a94a56b0e478fd100326b9aa97ec9a7",
+    "command": "sh start_nnrt.sh",
+    "command_source": "README.md line 58"
+  },
+  "config": {
+    "models": {
+      "recon": "nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B",
+      "planner": "nvidia/nemotron-3-super-120b-a12b",
+      "repairer": "nvidia/nemotron-3-super-120b-a12b",
+      "adjudicator": "nvidia/Nemotron-3-Ultra-550b-a55b"
+    },
+    "sandbox_backend": "token_factory",
+    "sandbox_image_default": "python:3.10-slim",
+    "sandbox_wall_clock_seconds": 600.0,
+    "arm": "control",
+    "repair_enabled": false,
+    "max_attempts": 0,
+    "tavily_configured": false,
+    "cost_cap_usd": 2.0
+  },
+  "intake": {
+    "duration_s": 187.76,
+    "resolved_sha": "015256369a94a56b0e478fd100326b9aa97ec9a7",
+    "dependency_files": [],
+    "declared_dependencies": [],
+    "entrypoint_candidates": [
+      "create_graph_data.py",
+      "evaluate.py",
+      "example_viz.py",
+      "generate.py",
+      "model/evaluate.py",
+      "train.py",
+      "utils/snapshot_manager.py"
+    ],
+    "notebook_paths": []
+  },
+  "pipeline_duration_s": 148.1,
+  "repair_mode": "deterministic",
+  "tree_integrity": {
+    "status": "verified",
+    "tree_sha": "f7b41297c60b54f204f854bd80aac9b796a1b80c",
+    "files_checked": 374,
+    "excluded_patched": []
+  },
+  "result": {
+    "verdict": "BLOCKED",
+    "taxonomy_code": "RUNTIME_ERROR_OTHER",
+    "indeterminate_reason": "",
+    "reason_code": null,
+    "error_chain": [
+      {
+        "error": "start_nnrt.sh: 27: docker: not found",
+        "class": "RUNTIME_ERROR_OTHER",
+        "attribution": "REPO",
+        "phase": "repo_run",
+        "cleared_by": null
+      }
+    ],
+    "first_repo_error": "start_nnrt.sh: 27: docker: not found",
+    "last_error": "start_nnrt.sh: 27: docker: not found",
+    "error_traceback": "",
+    "attempts": [],
+    "certificate_prose": "The execution failed with exit code 127 because the script start_nnrt.sh at line 27 attempted to invoke docker, which was not found in the environment. The sandbox recorded a spend of $0.3063 and the baseline as-is run was classified as RUNTIME_ERROR_OTHER due to the missing docker dependency. Verifies that the artifact executes. Does not verify the paper's numerical results."
+  },
+  "certificate": {
+    "repo_url": "https://github.com/DeformableFriends/NeuralTracking",
+    "commit_sha": "015256369a94a56b0e478fd100326b9aa97ec9a7",
+    "build_plan": {
+      "base_image": "python:3.10-slim",
+      "apt_install": [],
+      "install_commands": [
+        "true  # no declared dependency file found; nothing to install"
+      ],
+      "execute_command": "sh start_nnrt.sh",
+      "notes": [
+        "execute command is the repository's documented command (corpus ground truth)",
+        "base image python:3.10-slim: no usable Python declaration; RERUN default 3.10"
+      ]
+    },
+    "full_log": "[intake] cloned https://github.com/DeformableFriends/NeuralTracking@015256369a94a56b0e478fd100326b9aa97ec9a7\n[recon] calling Nemotron Nano\n[recon] entrypoint=evaluate.py confidence=0.78\n[python] python:3.10-slim (default): no usable Python declaration; RERUN default 3.10\n[planner] build plan: {'base_image': 'python:3.10-slim', 'apt_install': [], 'install_commands': ['true  # no declared dependency file found; nothing to install'], 'execute_command': 'sh start_nnrt.sh', 'notes': [\"execute command is the repository's documented command (corpus ground truth)\", 'base image python:3.10-slim: no usable Python declaration; RERUN default 3.10']}\n[integrity] verified 374 file(s) against tree f7b41297c60b54f204f854bd80aac9b796a1b80c\n[sandbox] starting build+execute (wall_clock_seconds=600)\n[runner] torch: repo imports torch, torchvision without declaring it; runner provides the newest matched CPU wheels\n[cost_guard] recorded $0.3063 sandbox spend, $1.6913 remaining today\n[sandbox] id=51914d20-f5eb-41aa-b19c-7fb6a3e0601f exit_code=127\n[baseline] as-is run: FAILS (exit code 127)\n[classifier] RUNTIME_ERROR_OTHER: start_nnrt.sh: 27: docker: not found\n[verdict] BLOCKED after 0 repair attempt(s): RUNTIME_ERROR_OTHER",
+    "diffs": [],
+    "verdict": "BLOCKED",
+    "timestamp": "2026-09-30T11:32:15.331685+00:00",
+    "bundle_version": 4,
+    "baseline": {
+      "result": "FAILS",
+      "exit_code": 127,
+      "base_image": "python:3.10-slim",
+      "install_commands": [
+        "true  # no declared dependency file found; nothing to install"
+      ],
+      "execute_command": "sh start_nnrt.sh",
+      "sandbox_id": "51914d20-f5eb-41aa-b19c-7fb6a3e0601f",
+      "taxonomy_code": "RUNTIME_ERROR_OTHER",
+      "evidence": "start_nnrt.sh: 27: docker: not found"
+    },
+    "recovery": false,
+    "tree_integrity": {
+      "status": "verified",
+      "tree_sha": "f7b41297c60b54f204f854bd80aac9b796a1b80c",
+      "files_checked": 374,
+      "excluded_patched": []
+    },
+    "corpus_hash": "7df090bea7013974f9f10fb8959ab0162734b51c83a80f744f9c310ce694fbdc",
+    "taxonomy_code": "RUNTIME_ERROR_OTHER",
+    "indeterminate_reason": "",
+    "error_chain": [
+      {
+        "error": "start_nnrt.sh: 27: docker: not found",
+        "class": "RUNTIME_ERROR_OTHER",
+        "attribution": "REPO",
+        "phase": "repo_run",
+        "cleared_by": null
+      }
+    ],
+    "first_repo_error": "start_nnrt.sh: 27: docker: not found",
+    "last_error": "start_nnrt.sh: 27: docker: not found",
+    "reproduction_passport_hash": "e46232ee05d50b4d5d2b3c28ccd0cd9ad475e0fc284fc255eee952bf7c8be9da"
+  },
+  "finished_at": "2026-09-30T11:32:15.457136+00:00",
+  "events": [
+    {
+      "t_s": 0.0,
+      "at": "2026-09-30T11:29:47.232452+00:00",
+      "line": "[intake] cloned https://github.com/DeformableFriends/NeuralTracking@015256369a94a56b0e478fd100326b9aa97ec9a7"
+    },
+    {
+      "t_s": 0.01,
+      "at": "2026-09-30T11:29:47.242271+00:00",
+      "line": "[recon] calling Nemotron Nano"
+    },
+    {
+      "t_s": 57.58,
+      "at": "2026-09-30T11:30:44.808885+00:00",
+      "line": "[recon] entrypoint=evaluate.py confidence=0.78"
+    },
+    {
+      "t_s": 57.59,
+      "at": "2026-09-30T11:30:44.822487+00:00",
+      "line": "[python] python:3.10-slim (default): no usable Python declaration; RERUN default 3.10"
+    },
+    {
+      "t_s": 58.92,
+      "at": "2026-09-30T11:30:46.151490+00:00",
+      "line": "[planner] build plan: {'base_image': 'python:3.10-slim', 'apt_install': [], 'install_commands': ['true  # no declared dependency file found; nothing to install'], 'execute_command': 'sh start_nnrt.sh', 'notes': [\"execute command is the repository's documented command (corpus ground truth)\", 'base image python:3.10-slim: no usable Python declaration; RERUN default 3.10']}"
+    },
+    {
+      "t_s": 61.74,
+      "at": "2026-09-30T11:30:48.977089+00:00",
+      "line": "[integrity] verified 374 file(s) against tree f7b41297c60b54f204f854bd80aac9b796a1b80c"
+    },
+    {
+      "t_s": 61.74,
+      "at": "2026-09-30T11:30:48.977127+00:00",
+      "line": "[sandbox] starting build+execute (wall_clock_seconds=600)"
+    },
+    {
+      "t_s": 61.76,
+      "at": "2026-09-30T11:30:48.996918+00:00",
+      "line": "[runner] torch: repo imports torch, torchvision without declaring it; runner provides the newest matched CPU wheels"
+    },
+    {
+      "t_s": 146.2,
+      "at": "2026-09-30T11:32:13.434069+00:00",
+      "line": "[cost_guard] recorded $0.3063 sandbox spend, $1.6913 remaining today"
+    },
+    {
+      "t_s": 146.2,
+      "at": "2026-09-30T11:32:13.434272+00:00",
+      "line": "[sandbox] id=51914d20-f5eb-41aa-b19c-7fb6a3e0601f exit_code=127"
+    },
+    {
+      "t_s": 146.2,
+      "at": "2026-09-30T11:32:13.434297+00:00",
+      "line": "[baseline] as-is run: FAILS (exit code 127)"
+    },
+    {
+      "t_s": 146.2,
+      "at": "2026-09-30T11:32:13.434638+00:00",
+      "line": "[classifier] RUNTIME_ERROR_OTHER: start_nnrt.sh: 27: docker: not found"
+    },
+    {
+      "t_s": 146.2,
+      "at": "2026-09-30T11:32:13.434679+00:00",
+      "line": "[verdict] BLOCKED after 0 repair attempt(s): RUNTIME_ERROR_OTHER"
+    }
+  ],
+  "model_calls": [
+    {
+      "model": "nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B",
+      "started_at": "2026-09-30T11:29:47.478503+00:00",
+      "latency_s": 39.84,
+      "finish_reason": "length",
+      "content_is_none": true,
+      "has_reasoning": true,
+      "usage": {
+        "completion_tokens": 4096,
+        "prompt_tokens": 7022,
+        "total_tokens": 11118,
+        "completion_tokens_details": null,
+        "prompt_tokens_details": null
+      }
+    },
+    {
+      "model": "nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B",
+      "started_at": "2026-09-30T11:30:27.320681+00:00",
+      "latency_s": 17.49,
+      "finish_reason": "stop",
+      "content_is_none": false,
+      "has_reasoning": true,
+      "usage": {
+        "completion_tokens": 1767,
+        "prompt_tokens": 7022,
+        "total_tokens": 8789,
+        "completion_tokens_details": null,
+        "prompt_tokens_details": {
+          "audio_tokens": null,
+          "cache_write_tokens": null,
+          "cached_tokens": 4224,
+          "image_tokens": null,
+          "text_tokens": null
+        }
+      }
+    },
+    {
+      "model": "nvidia/nemotron-3-super-120b-a12b",
+      "started_at": "2026-09-30T11:30:44.823701+00:00",
+      "latency_s": 1.33,
+      "finish_reason": "stop",
+      "content_is_none": false,
+      "has_reasoning": true,
+      "usage": {
+        "completion_tokens": 37,
+        "prompt_tokens": 268,
+        "total_tokens": 305,
+        "completion_tokens_details": {
+          "accepted_prediction_tokens": null,
+          "audio_tokens": null,
+          "reasoning_tokens": 27,
+          "rejected_prediction_tokens": null,
+          "text_tokens": null
+        },
+        "prompt_tokens_details": {
+          "audio_tokens": null,
+          "cache_write_tokens": null,
+          "cached_tokens": 0,
+          "image_tokens": null,
+          "text_tokens": null,
+          "created_cache_tokens": 0,
+          "multimodal_tokens": null
+        },
+        "prompt_cache_hit_tokens": 0,
+        "prompt_cache_miss_tokens": 268
+      }
+    },
+    {
+      "model": "nvidia/Nemotron-3-Ultra-550b-a55b",
+      "started_at": "2026-09-30T11:32:13.436115+00:00",
+      "latency_s": 1.9,
+      "finish_reason": "stop",
+      "content_is_none": false,
+      "has_reasoning": true,
+      "usage": {
+        "completion_tokens": 369,
+        "prompt_tokens": 677,
+        "total_tokens": 1046,
+        "completion_tokens_details": {
+          "accepted_prediction_tokens": null,
+          "audio_tokens": null,
+          "reasoning_tokens": 252,
+          "rejected_prediction_tokens": null,
+          "text_tokens": null
+        },
+        "prompt_tokens_details": {
+          "audio_tokens": null,
+          "cache_write_tokens": null,
+          "cached_tokens": 0,
+          "image_tokens": null,
+          "text_tokens": null,
+          "multimodal_tokens": null
+        },
+        "prompt_cache_hit_tokens": 0,
+        "prompt_cache_miss_tokens": 677
+      }
+    }
+  ],
+  "cost_guard": {
+    "spent_usd": 0.3104611,
+    "model_spent_usd": 0.00414746,
+    "sandbox_spent_usd": 0.30631364,
+    "remaining_usd": 1.6895389,
+    "model_usage": [
+      {
+        "model": "nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B",
+        "prompt_tokens": 7022,
+        "completion_tokens": 4096,
+        "cost_usd": 0.00140436
+      },
+      {
+        "model": "nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B",
+        "prompt_tokens": 7022,
+        "completion_tokens": 1767,
+        "cost_usd": 0.0008454
+      },
+      {
+        "model": "nvidia/nemotron-3-super-120b-a12b",
+        "prompt_tokens": 268,
+        "completion_tokens": 37,
+        "cost_usd": 0.00011369999999999999
+      },
+      {
+        "model": "nvidia/Nemotron-3-Ultra-550b-a55b",
+        "prompt_tokens": 677,
+        "completion_tokens": 369,
+        "cost_usd": 0.001784
+      }
+    ],
+    "prices_usd_per_1m": {
+      "nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B": [
+        0.06,
+        0.24
+      ],
+      "nvidia/nemotron-3-super-120b-a12b": [
+        0.3,
+        0.9
+      ],
+      "nvidia/Nemotron-3-Ultra-550b-a55b": [
+        1.0,
+        3.0
+      ]
+    },
+    "prices_source": "https://api.tokenfactory.nebius.com/v1/models?verbose=true (pricing field)",
+    "prices_retrieved": "2026-09-24"
+  }
+}

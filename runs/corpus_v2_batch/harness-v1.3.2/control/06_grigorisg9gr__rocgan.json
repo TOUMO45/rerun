@@ -1,0 +1,324 @@
+{
+  "run_kind": "live end-to-end run",
+  "dev_run": false,
+  "dry_run": null,
+  "batch": {
+    "harness_tag": "harness-v1.3.2",
+    "harness_commit": "77b3cfe1697ad74ad13eac1f77ffe0f1e80c7379",
+    "head_commit": "77b3cfe1697ad74ad13eac1f77ffe0f1e80c7379",
+    "corpus": "corpus-v2",
+    "prereg_sha256": "ae5a722249156e058d3d360bdc63fa8224140d0688f1daa307ecfa93a98c7284",
+    "corpus_hash": "7df090bea7013974f9f10fb8959ab0162734b51c83a80f744f9c310ce694fbdc",
+    "arm": "control",
+    "total_cap_usd": 25.0,
+    "already_spent_usd": 0.0,
+    "entry_id": 6,
+    "category": "PRIMARY",
+    "rules_matched": [],
+    "per_entry_cap_usd": 2.0
+  },
+  "started_at": "2026-09-30T11:48:15.287274+00:00",
+  "corpus_entry": {
+    "name": "grigorisg9gr__rocgan",
+    "repo_url": "https://github.com/grigorisg9gr/rocgan",
+    "commit_sha": "0878690e700ae5615131db746616e51e635eb15d",
+    "command": "python jobs/rocgan/train_mn.py '--config jobs/rocgan/iclr_5layer_rocgan_super.yml'",
+    "command_source": "README.rst line 28"
+  },
+  "config": {
+    "models": {
+      "recon": "nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B",
+      "planner": "nvidia/nemotron-3-super-120b-a12b",
+      "repairer": "nvidia/nemotron-3-super-120b-a12b",
+      "adjudicator": "nvidia/Nemotron-3-Ultra-550b-a55b"
+    },
+    "sandbox_backend": "token_factory",
+    "sandbox_image_default": "python:3.10-slim",
+    "sandbox_wall_clock_seconds": 600.0,
+    "arm": "control",
+    "repair_enabled": false,
+    "max_attempts": 0,
+    "tavily_configured": false,
+    "cost_cap_usd": 2.0
+  },
+  "intake": {
+    "duration_s": 2.53,
+    "resolved_sha": "0878690e700ae5615131db746616e51e635eb15d",
+    "dependency_files": [],
+    "declared_dependencies": [],
+    "entrypoint_candidates": [
+      "jobs/rocgan/train_mn.py",
+      "jobs/rocgan/train_mn_rocgan.py",
+      "source/functions/msssim.py"
+    ],
+    "notebook_paths": [
+      "demo.ipynb"
+    ]
+  },
+  "pipeline_duration_s": 37.2,
+  "repair_mode": "deterministic",
+  "tree_integrity": {
+    "status": "verified",
+    "tree_sha": "8a5c2b0008dda683930fffa8e8182a6cd5a92b2d",
+    "files_checked": 72,
+    "excluded_patched": []
+  },
+  "result": {
+    "verdict": "BLOCKED",
+    "taxonomy_code": "DEP_MISSING",
+    "indeterminate_reason": "",
+    "reason_code": null,
+    "error_chain": [
+      {
+        "error": "ModuleNotFoundError: No module named 'chainer'",
+        "class": "DEP_MISSING",
+        "attribution": "REPO",
+        "phase": "repo_run",
+        "cleared_by": null
+      }
+    ],
+    "first_repo_error": "ModuleNotFoundError: No module named 'chainer'",
+    "last_error": "ModuleNotFoundError: No module named 'chainer'",
+    "error_traceback": "",
+    "attempts": [],
+    "certificate_prose": "The run log shows a ModuleNotFoundError for 'chainer', indicating a missing dependency. The baseline as-is run failed with exit code 1. The classifier assigned DEP_MISSING and the verdict is BLOCKED after 0 repair attempts. Verifies that the artifact executes. Does not verify the paper's numerical results."
+  },
+  "certificate": {
+    "repo_url": "https://github.com/grigorisg9gr/rocgan",
+    "commit_sha": "0878690e700ae5615131db746616e51e635eb15d",
+    "build_plan": {
+      "base_image": "python:3.10-slim",
+      "apt_install": [],
+      "install_commands": [
+        "true  # no declared dependency file found; nothing to install"
+      ],
+      "execute_command": "python jobs/rocgan/train_mn.py '--config jobs/rocgan/iclr_5layer_rocgan_super.yml'",
+      "notes": [
+        "execute command is the repository's documented command (corpus ground truth)",
+        "base image python:3.10-slim: no usable Python declaration; RERUN default 3.10"
+      ]
+    },
+    "full_log": "[intake] cloned https://github.com/grigorisg9gr/rocgan@0878690e700ae5615131db746616e51e635eb15d\n[recon] calling Nemotron Nano\n[recon] entrypoint=jobs/rocgan/train_mn_rocgan.py confidence=0.78\n[python] python:3.10-slim (default): no usable Python declaration; RERUN default 3.10\n[planner] build plan: {'base_image': 'python:3.10-slim', 'apt_install': [], 'install_commands': ['true  # no declared dependency file found; nothing to install'], 'execute_command': \"python jobs/rocgan/train_mn.py '--config jobs/rocgan/iclr_5layer_rocgan_super.yml'\", 'notes': [\"execute command is the repository's documented command (corpus ground truth)\", 'base image python:3.10-slim: no usable Python declaration; RERUN default 3.10']}\n[integrity] verified 72 file(s) against tree 8a5c2b0008dda683930fffa8e8182a6cd5a92b2d\n[sandbox] starting build+execute (wall_clock_seconds=600)\n[cost_guard] recorded $0.0014 sandbox spend, $1.9977 remaining today\n[sandbox] id=30d0ddff-efae-495e-b678-9bb1c3143879 exit_code=1\n[baseline] as-is run: FAILS (exit code 1)\n[classifier] DEP_MISSING: ModuleNotFoundError: No module named 'chainer'\n[verdict] BLOCKED after 0 repair attempt(s): DEP_MISSING",
+    "diffs": [],
+    "verdict": "BLOCKED",
+    "timestamp": "2026-09-30T11:48:55.017544+00:00",
+    "bundle_version": 4,
+    "baseline": {
+      "result": "FAILS",
+      "exit_code": 1,
+      "base_image": "python:3.10-slim",
+      "install_commands": [
+        "true  # no declared dependency file found; nothing to install"
+      ],
+      "execute_command": "python jobs/rocgan/train_mn.py '--config jobs/rocgan/iclr_5layer_rocgan_super.yml'",
+      "sandbox_id": "30d0ddff-efae-495e-b678-9bb1c3143879",
+      "taxonomy_code": "DEP_MISSING",
+      "evidence": "ModuleNotFoundError: No module named 'chainer'"
+    },
+    "recovery": false,
+    "tree_integrity": {
+      "status": "verified",
+      "tree_sha": "8a5c2b0008dda683930fffa8e8182a6cd5a92b2d",
+      "files_checked": 72,
+      "excluded_patched": []
+    },
+    "corpus_hash": "7df090bea7013974f9f10fb8959ab0162734b51c83a80f744f9c310ce694fbdc",
+    "taxonomy_code": "DEP_MISSING",
+    "indeterminate_reason": "",
+    "error_chain": [
+      {
+        "error": "ModuleNotFoundError: No module named 'chainer'",
+        "class": "DEP_MISSING",
+        "attribution": "REPO",
+        "phase": "repo_run",
+        "cleared_by": null
+      }
+    ],
+    "first_repo_error": "ModuleNotFoundError: No module named 'chainer'",
+    "last_error": "ModuleNotFoundError: No module named 'chainer'",
+    "reproduction_passport_hash": "681e2e4f7684870418c4620dc93121ce52dd64da5e6ecc4b8e5385ac5fc38e5d"
+  },
+  "finished_at": "2026-09-30T11:48:55.079623+00:00",
+  "events": [
+    {
+      "t_s": 0.0,
+      "at": "2026-09-30T11:48:17.818683+00:00",
+      "line": "[intake] cloned https://github.com/grigorisg9gr/rocgan@0878690e700ae5615131db746616e51e635eb15d"
+    },
+    {
+      "t_s": 0.0,
+      "at": "2026-09-30T11:48:17.819357+00:00",
+      "line": "[recon] calling Nemotron Nano"
+    },
+    {
+      "t_s": 22.91,
+      "at": "2026-09-30T11:48:40.725782+00:00",
+      "line": "[recon] entrypoint=jobs/rocgan/train_mn_rocgan.py confidence=0.78"
+    },
+    {
+      "t_s": 22.92,
+      "at": "2026-09-30T11:48:40.736490+00:00",
+      "line": "[python] python:3.10-slim (default): no usable Python declaration; RERUN default 3.10"
+    },
+    {
+      "t_s": 24.87,
+      "at": "2026-09-30T11:48:42.685560+00:00",
+      "line": "[planner] build plan: {'base_image': 'python:3.10-slim', 'apt_install': [], 'install_commands': ['true  # no declared dependency file found; nothing to install'], 'execute_command': \"python jobs/rocgan/train_mn.py '--config jobs/rocgan/iclr_5layer_rocgan_super.yml'\", 'notes': [\"execute command is the repository's documented command (corpus ground truth)\", 'base image python:3.10-slim: no usable Python declaration; RERUN default 3.10']}"
+    },
+    {
+      "t_s": 25.21,
+      "at": "2026-09-30T11:48:43.024864+00:00",
+      "line": "[integrity] verified 72 file(s) against tree 8a5c2b0008dda683930fffa8e8182a6cd5a92b2d"
+    },
+    {
+      "t_s": 25.21,
+      "at": "2026-09-30T11:48:43.024904+00:00",
+      "line": "[sandbox] starting build+execute (wall_clock_seconds=600)"
+    },
+    {
+      "t_s": 35.42,
+      "at": "2026-09-30T11:48:53.242055+00:00",
+      "line": "[cost_guard] recorded $0.0014 sandbox spend, $1.9977 remaining today"
+    },
+    {
+      "t_s": 35.42,
+      "at": "2026-09-30T11:48:53.242149+00:00",
+      "line": "[sandbox] id=30d0ddff-efae-495e-b678-9bb1c3143879 exit_code=1"
+    },
+    {
+      "t_s": 35.42,
+      "at": "2026-09-30T11:48:53.242172+00:00",
+      "line": "[baseline] as-is run: FAILS (exit code 1)"
+    },
+    {
+      "t_s": 35.43,
+      "at": "2026-09-30T11:48:53.246033+00:00",
+      "line": "[classifier] DEP_MISSING: ModuleNotFoundError: No module named 'chainer'"
+    },
+    {
+      "t_s": 35.43,
+      "at": "2026-09-30T11:48:53.246106+00:00",
+      "line": "[verdict] BLOCKED after 0 repair attempt(s): DEP_MISSING"
+    }
+  ],
+  "model_calls": [
+    {
+      "model": "nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B",
+      "started_at": "2026-09-30T11:48:18.093630+00:00",
+      "latency_s": 22.63,
+      "finish_reason": "stop",
+      "content_is_none": false,
+      "has_reasoning": true,
+      "usage": {
+        "completion_tokens": 2178,
+        "prompt_tokens": 4276,
+        "total_tokens": 6454,
+        "completion_tokens_details": null,
+        "prompt_tokens_details": null
+      }
+    },
+    {
+      "model": "nvidia/nemotron-3-super-120b-a12b",
+      "started_at": "2026-09-30T11:48:40.737875+00:00",
+      "latency_s": 1.95,
+      "finish_reason": "stop",
+      "content_is_none": false,
+      "has_reasoning": true,
+      "usage": {
+        "completion_tokens": 41,
+        "prompt_tokens": 274,
+        "total_tokens": 315,
+        "completion_tokens_details": {
+          "accepted_prediction_tokens": null,
+          "audio_tokens": null,
+          "reasoning_tokens": 31,
+          "rejected_prediction_tokens": null,
+          "text_tokens": null
+        },
+        "prompt_tokens_details": {
+          "audio_tokens": null,
+          "cache_write_tokens": null,
+          "cached_tokens": 0,
+          "image_tokens": null,
+          "text_tokens": null,
+          "created_cache_tokens": 0,
+          "multimodal_tokens": null
+        },
+        "prompt_cache_hit_tokens": 0,
+        "prompt_cache_miss_tokens": 274
+      }
+    },
+    {
+      "model": "nvidia/Nemotron-3-Ultra-550b-a55b",
+      "started_at": "2026-09-30T11:48:53.247526+00:00",
+      "latency_s": 1.77,
+      "finish_reason": "stop",
+      "content_is_none": false,
+      "has_reasoning": true,
+      "usage": {
+        "completion_tokens": 315,
+        "prompt_tokens": 662,
+        "total_tokens": 977,
+        "completion_tokens_details": {
+          "accepted_prediction_tokens": null,
+          "audio_tokens": null,
+          "reasoning_tokens": 217,
+          "rejected_prediction_tokens": null,
+          "text_tokens": null
+        },
+        "prompt_tokens_details": {
+          "audio_tokens": null,
+          "cache_write_tokens": null,
+          "cached_tokens": 0,
+          "image_tokens": null,
+          "text_tokens": null,
+          "multimodal_tokens": null
+        },
+        "prompt_cache_hit_tokens": 0,
+        "prompt_cache_miss_tokens": 662
+      }
+    }
+  ],
+  "cost_guard": {
+    "spent_usd": 0.00392159,
+    "model_spent_usd": 0.0025053799999999998,
+    "sandbox_spent_usd": 0.0014162100000000002,
+    "remaining_usd": 1.99607841,
+    "model_usage": [
+      {
+        "model": "nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B",
+        "prompt_tokens": 4276,
+        "completion_tokens": 2178,
+        "cost_usd": 0.0007792799999999999
+      },
+      {
+        "model": "nvidia/nemotron-3-super-120b-a12b",
+        "prompt_tokens": 274,
+        "completion_tokens": 41,
+        "cost_usd": 0.0001191
+      },
+      {
+        "model": "nvidia/Nemotron-3-Ultra-550b-a55b",
+        "prompt_tokens": 662,
+        "completion_tokens": 315,
+        "cost_usd": 0.001607
+      }
+    ],
+    "prices_usd_per_1m": {
+      "nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B": [
+        0.06,
+        0.24
+      ],
+      "nvidia/nemotron-3-super-120b-a12b": [
+        0.3,
+        0.9
+      ],
+      "nvidia/Nemotron-3-Ultra-550b-a55b": [
+        1.0,
+        3.0
+      ]
+    },
+    "prices_source": "https://api.tokenfactory.nebius.com/v1/models?verbose=true (pricing field)",
+    "prices_retrieved": "2026-09-24"
+  }
+}

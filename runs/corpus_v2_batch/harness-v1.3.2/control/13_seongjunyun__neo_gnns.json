@@ -1,0 +1,328 @@
+{
+  "run_kind": "live end-to-end run",
+  "dev_run": false,
+  "dry_run": null,
+  "batch": {
+    "harness_tag": "harness-v1.3.2",
+    "harness_commit": "77b3cfe1697ad74ad13eac1f77ffe0f1e80c7379",
+    "head_commit": "77b3cfe1697ad74ad13eac1f77ffe0f1e80c7379",
+    "corpus": "corpus-v2",
+    "prereg_sha256": "ae5a722249156e058d3d360bdc63fa8224140d0688f1daa307ecfa93a98c7284",
+    "corpus_hash": "7df090bea7013974f9f10fb8959ab0162734b51c83a80f744f9c310ce694fbdc",
+    "arm": "control",
+    "total_cap_usd": 25.0,
+    "already_spent_usd": 0.0,
+    "entry_id": 13,
+    "category": "PRIMARY",
+    "rules_matched": [],
+    "per_entry_cap_usd": 2.0
+  },
+  "started_at": "2026-09-30T12:15:33.728454+00:00",
+  "corpus_entry": {
+    "name": "seongjunyun__neo_gnns",
+    "repo_url": "https://github.com/seongjunyun/neo_gnns",
+    "commit_sha": "a27fe3023bf0a0f65793041ab12dcf91d89439b4",
+    "command": "python main_collab.py",
+    "command_source": "README.md line 33"
+  },
+  "config": {
+    "models": {
+      "recon": "nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B",
+      "planner": "nvidia/nemotron-3-super-120b-a12b",
+      "repairer": "nvidia/nemotron-3-super-120b-a12b",
+      "adjudicator": "nvidia/Nemotron-3-Ultra-550b-a55b"
+    },
+    "sandbox_backend": "token_factory",
+    "sandbox_image_default": "python:3.10-slim",
+    "sandbox_wall_clock_seconds": 600.0,
+    "arm": "control",
+    "repair_enabled": false,
+    "max_attempts": 0,
+    "tavily_configured": false,
+    "cost_cap_usd": 2.0
+  },
+  "intake": {
+    "duration_s": 7.15,
+    "resolved_sha": "a27fe3023bf0a0f65793041ab12dcf91d89439b4",
+    "dependency_files": [],
+    "declared_dependencies": [],
+    "entrypoint_candidates": [
+      "main_collab.py",
+      "main_ddi.py",
+      "main_ddi_gcn.py",
+      "main_ppa.py"
+    ],
+    "notebook_paths": []
+  },
+  "pipeline_duration_s": 96.54,
+  "repair_mode": "deterministic",
+  "tree_integrity": {
+    "status": "verified",
+    "tree_sha": "2e59cf127d25d2da6310dabb15012bddd1a91b73",
+    "files_checked": 44,
+    "excluded_patched": []
+  },
+  "result": {
+    "verdict": "BLOCKED",
+    "taxonomy_code": "DEP_MISSING",
+    "indeterminate_reason": "",
+    "reason_code": null,
+    "error_chain": [
+      {
+        "error": "ModuleNotFoundError: No module named 'torch_sparse'",
+        "class": "DEP_MISSING",
+        "attribution": "REPO",
+        "phase": "repo_run",
+        "cleared_by": null
+      }
+    ],
+    "first_repo_error": "ModuleNotFoundError: No module named 'torch_sparse'",
+    "last_error": "ModuleNotFoundError: No module named 'torch_sparse'",
+    "error_traceback": "",
+    "attempts": [],
+    "certificate_prose": "The execution was blocked because the required module 'torch_sparse' was not found, resulting in a ModuleNotFoundError. The run log indicates a DEP_MISSING classification with exit code 1 after zero repair attempts. Verifies that the artifact executes. Does not verify the paper's numerical results."
+  },
+  "certificate": {
+    "repo_url": "https://github.com/seongjunyun/neo_gnns",
+    "commit_sha": "a27fe3023bf0a0f65793041ab12dcf91d89439b4",
+    "build_plan": {
+      "base_image": "python:3.8-slim",
+      "apt_install": [],
+      "install_commands": [
+        "true  # no declared dependency file found; nothing to install"
+      ],
+      "execute_command": "python main_collab.py",
+      "notes": [
+        "execute command is the repository's documented command (corpus ground truth)",
+        "base image python:3.8-slim: declared by README (3.8); resolved to the first available minor that satisfies it"
+      ]
+    },
+    "full_log": "[intake] cloned https://github.com/seongjunyun/neo_gnns@a27fe3023bf0a0f65793041ab12dcf91d89439b4\n[recon] calling Nemotron Nano\n[recon] entrypoint=main_ddi_gcn.py confidence=0.75\n[python] python:3.8-slim (README): declared by README (3.8); resolved to the first available minor that satisfies it\n[planner] build plan: {'base_image': 'python:3.8-slim', 'apt_install': [], 'install_commands': ['true  # no declared dependency file found; nothing to install'], 'execute_command': 'python main_collab.py', 'notes': [\"execute command is the repository's documented command (corpus ground truth)\", 'base image python:3.8-slim: declared by README (3.8); resolved to the first available minor that satisfies it']}\n[integrity] verified 44 file(s) against tree 2e59cf127d25d2da6310dabb15012bddd1a91b73\n[sandbox] starting build+execute (wall_clock_seconds=600)\n[runner] torch: repo imports torch without declaring it; runner provides the newest matched CPU wheels\n[cost_guard] recorded $0.2249 sandbox spend, $1.7738 remaining today\n[sandbox] id=6e42e75b-eff2-4db3-bfbb-ba9e37a3562a exit_code=1\n[baseline] as-is run: FAILS (exit code 1)\n[classifier] DEP_MISSING: ModuleNotFoundError: No module named 'torch_sparse'\n[verdict] BLOCKED after 0 repair attempt(s): DEP_MISSING",
+    "diffs": [],
+    "verdict": "BLOCKED",
+    "timestamp": "2026-09-30T12:17:17.421419+00:00",
+    "bundle_version": 4,
+    "baseline": {
+      "result": "FAILS",
+      "exit_code": 1,
+      "base_image": "python:3.8-slim",
+      "install_commands": [
+        "true  # no declared dependency file found; nothing to install"
+      ],
+      "execute_command": "python main_collab.py",
+      "sandbox_id": "6e42e75b-eff2-4db3-bfbb-ba9e37a3562a",
+      "taxonomy_code": "DEP_MISSING",
+      "evidence": "ModuleNotFoundError: No module named 'torch_sparse'"
+    },
+    "recovery": false,
+    "tree_integrity": {
+      "status": "verified",
+      "tree_sha": "2e59cf127d25d2da6310dabb15012bddd1a91b73",
+      "files_checked": 44,
+      "excluded_patched": []
+    },
+    "corpus_hash": "7df090bea7013974f9f10fb8959ab0162734b51c83a80f744f9c310ce694fbdc",
+    "taxonomy_code": "DEP_MISSING",
+    "indeterminate_reason": "",
+    "error_chain": [
+      {
+        "error": "ModuleNotFoundError: No module named 'torch_sparse'",
+        "class": "DEP_MISSING",
+        "attribution": "REPO",
+        "phase": "repo_run",
+        "cleared_by": null
+      }
+    ],
+    "first_repo_error": "ModuleNotFoundError: No module named 'torch_sparse'",
+    "last_error": "ModuleNotFoundError: No module named 'torch_sparse'",
+    "reproduction_passport_hash": "a3012c2a578ad256b8ba2f56162c1c80c6d1fcd3cb926b73c4cd2e829d5a2024"
+  },
+  "finished_at": "2026-09-30T12:17:17.467964+00:00",
+  "events": [
+    {
+      "t_s": 0.0,
+      "at": "2026-09-30T12:15:40.879727+00:00",
+      "line": "[intake] cloned https://github.com/seongjunyun/neo_gnns@a27fe3023bf0a0f65793041ab12dcf91d89439b4"
+    },
+    {
+      "t_s": 0.0,
+      "at": "2026-09-30T12:15:40.880566+00:00",
+      "line": "[recon] calling Nemotron Nano"
+    },
+    {
+      "t_s": 31.32,
+      "at": "2026-09-30T12:16:12.204352+00:00",
+      "line": "[recon] entrypoint=main_ddi_gcn.py confidence=0.75"
+    },
+    {
+      "t_s": 31.34,
+      "at": "2026-09-30T12:16:12.219814+00:00",
+      "line": "[python] python:3.8-slim (README): declared by README (3.8); resolved to the first available minor that satisfies it"
+    },
+    {
+      "t_s": 32.54,
+      "at": "2026-09-30T12:16:13.420395+00:00",
+      "line": "[planner] build plan: {'base_image': 'python:3.8-slim', 'apt_install': [], 'install_commands': ['true  # no declared dependency file found; nothing to install'], 'execute_command': 'python main_collab.py', 'notes': [\"execute command is the repository's documented command (corpus ground truth)\", 'base image python:3.8-slim: declared by README (3.8); resolved to the first available minor that satisfies it']}"
+    },
+    {
+      "t_s": 32.69,
+      "at": "2026-09-30T12:16:13.567164+00:00",
+      "line": "[integrity] verified 44 file(s) against tree 2e59cf127d25d2da6310dabb15012bddd1a91b73"
+    },
+    {
+      "t_s": 32.69,
+      "at": "2026-09-30T12:16:13.567203+00:00",
+      "line": "[sandbox] starting build+execute (wall_clock_seconds=600)"
+    },
+    {
+      "t_s": 32.7,
+      "at": "2026-09-30T12:16:13.579410+00:00",
+      "line": "[runner] torch: repo imports torch without declaring it; runner provides the newest matched CPU wheels"
+    },
+    {
+      "t_s": 94.8,
+      "at": "2026-09-30T12:17:15.681856+00:00",
+      "line": "[cost_guard] recorded $0.2249 sandbox spend, $1.7738 remaining today"
+    },
+    {
+      "t_s": 94.8,
+      "at": "2026-09-30T12:17:15.681941+00:00",
+      "line": "[sandbox] id=6e42e75b-eff2-4db3-bfbb-ba9e37a3562a exit_code=1"
+    },
+    {
+      "t_s": 94.8,
+      "at": "2026-09-30T12:17:15.681970+00:00",
+      "line": "[baseline] as-is run: FAILS (exit code 1)"
+    },
+    {
+      "t_s": 94.81,
+      "at": "2026-09-30T12:17:15.685851+00:00",
+      "line": "[classifier] DEP_MISSING: ModuleNotFoundError: No module named 'torch_sparse'"
+    },
+    {
+      "t_s": 94.81,
+      "at": "2026-09-30T12:17:15.685920+00:00",
+      "line": "[verdict] BLOCKED after 0 repair attempt(s): DEP_MISSING"
+    }
+  ],
+  "model_calls": [
+    {
+      "model": "nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B",
+      "started_at": "2026-09-30T12:15:41.085848+00:00",
+      "latency_s": 31.12,
+      "finish_reason": "stop",
+      "content_is_none": false,
+      "has_reasoning": true,
+      "usage": {
+        "completion_tokens": 3555,
+        "prompt_tokens": 5228,
+        "total_tokens": 8783,
+        "completion_tokens_details": null,
+        "prompt_tokens_details": null
+      }
+    },
+    {
+      "model": "nvidia/nemotron-3-super-120b-a12b",
+      "started_at": "2026-09-30T12:16:12.221014+00:00",
+      "latency_s": 1.2,
+      "finish_reason": "stop",
+      "content_is_none": false,
+      "has_reasoning": true,
+      "usage": {
+        "completion_tokens": 41,
+        "prompt_tokens": 272,
+        "total_tokens": 313,
+        "completion_tokens_details": {
+          "accepted_prediction_tokens": null,
+          "audio_tokens": null,
+          "reasoning_tokens": 31,
+          "rejected_prediction_tokens": null,
+          "text_tokens": null
+        },
+        "prompt_tokens_details": {
+          "audio_tokens": null,
+          "cache_write_tokens": null,
+          "cached_tokens": 0,
+          "image_tokens": null,
+          "text_tokens": null,
+          "created_cache_tokens": 0,
+          "multimodal_tokens": null
+        },
+        "prompt_cache_hit_tokens": 0,
+        "prompt_cache_miss_tokens": 272
+      }
+    },
+    {
+      "model": "nvidia/Nemotron-3-Ultra-550b-a55b",
+      "started_at": "2026-09-30T12:17:15.687470+00:00",
+      "latency_s": 1.73,
+      "finish_reason": "stop",
+      "content_is_none": false,
+      "has_reasoning": true,
+      "usage": {
+        "completion_tokens": 352,
+        "prompt_tokens": 667,
+        "total_tokens": 1019,
+        "completion_tokens_details": {
+          "accepted_prediction_tokens": null,
+          "audio_tokens": null,
+          "reasoning_tokens": 260,
+          "rejected_prediction_tokens": null,
+          "text_tokens": null
+        },
+        "prompt_tokens_details": {
+          "audio_tokens": null,
+          "cache_write_tokens": null,
+          "cached_tokens": 0,
+          "image_tokens": null,
+          "text_tokens": null,
+          "multimodal_tokens": null
+        },
+        "prompt_cache_hit_tokens": 0,
+        "prompt_cache_miss_tokens": 667
+      }
+    }
+  ],
+  "cost_guard": {
+    "spent_usd": 0.22788235,
+    "model_spent_usd": 0.0030083799999999997,
+    "sandbox_spent_usd": 0.22487397,
+    "remaining_usd": 1.77211765,
+    "model_usage": [
+      {
+        "model": "nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B",
+        "prompt_tokens": 5228,
+        "completion_tokens": 3555,
+        "cost_usd": 0.00116688
+      },
+      {
+        "model": "nvidia/nemotron-3-super-120b-a12b",
+        "prompt_tokens": 272,
+        "completion_tokens": 41,
+        "cost_usd": 0.0001185
+      },
+      {
+        "model": "nvidia/Nemotron-3-Ultra-550b-a55b",
+        "prompt_tokens": 667,
+        "completion_tokens": 352,
+        "cost_usd": 0.001723
+      }
+    ],
+    "prices_usd_per_1m": {
+      "nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B": [
+        0.06,
+        0.24
+      ],
+      "nvidia/nemotron-3-super-120b-a12b": [
+        0.3,
+        0.9
+      ],
+      "nvidia/Nemotron-3-Ultra-550b-a55b": [
+        1.0,
+        3.0
+      ]
+    },
+    "prices_source": "https://api.tokenfactory.nebius.com/v1/models?verbose=true (pricing field)",
+    "prices_retrieved": "2026-09-24"
+  }
+}

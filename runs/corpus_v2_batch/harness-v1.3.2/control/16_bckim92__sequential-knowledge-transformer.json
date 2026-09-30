@@ -1,0 +1,327 @@
+{
+  "run_kind": "live end-to-end run",
+  "dev_run": false,
+  "dry_run": null,
+  "batch": {
+    "harness_tag": "harness-v1.3.2",
+    "harness_commit": "77b3cfe1697ad74ad13eac1f77ffe0f1e80c7379",
+    "head_commit": "77b3cfe1697ad74ad13eac1f77ffe0f1e80c7379",
+    "corpus": "corpus-v2",
+    "prereg_sha256": "ae5a722249156e058d3d360bdc63fa8224140d0688f1daa307ecfa93a98c7284",
+    "corpus_hash": "7df090bea7013974f9f10fb8959ab0162734b51c83a80f744f9c310ce694fbdc",
+    "arm": "control",
+    "total_cap_usd": 25.0,
+    "already_spent_usd": 0.0,
+    "entry_id": 16,
+    "category": "PRIMARY",
+    "rules_matched": [],
+    "per_entry_cap_usd": 2.0
+  },
+  "started_at": "2026-09-30T12:27:37.810614+00:00",
+  "corpus_entry": {
+    "name": "bckim92__sequential-knowledge-transformer",
+    "repo_url": "https://github.com/bckim92/sequential-knowledge-transformer",
+    "commit_sha": "1e9c47bb61291a0b15e5b1e6901eafebc73db8db",
+    "command": "python train.py --cfg ymls/default.yml --gpus 0,1 SequentialKnowledgeTransformer",
+    "command_source": "README.md line 39"
+  },
+  "config": {
+    "models": {
+      "recon": "nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B",
+      "planner": "nvidia/nemotron-3-super-120b-a12b",
+      "repairer": "nvidia/nemotron-3-super-120b-a12b",
+      "adjudicator": "nvidia/Nemotron-3-Ultra-550b-a55b"
+    },
+    "sandbox_backend": "token_factory",
+    "sandbox_image_default": "python:3.10-slim",
+    "sandbox_wall_clock_seconds": 600.0,
+    "arm": "control",
+    "repair_enabled": false,
+    "max_attempts": 0,
+    "tavily_configured": false,
+    "cost_cap_usd": 2.0
+  },
+  "intake": {
+    "duration_s": 3.69,
+    "resolved_sha": "1e9c47bb61291a0b15e5b1e6901eafebc73db8db",
+    "dependency_files": [],
+    "declared_dependencies": [],
+    "entrypoint_candidates": [
+      "inference.py",
+      "interactive.py",
+      "modules/checkpoint_tracker.py",
+      "modules/from_parlai.py",
+      "official/bert/benchmark/bert_benchmark.py",
+      "official/bert/benchmark/bert_squad_benchmark.py",
+      "official/bert/create_finetuning_data.py",
+      "official/bert/run_classifier.py",
+      "official/bert/run_pretraining.py",
+      "official/bert/run_squad.py",
+      "official/bert/tokenization_test.py",
+      "official/utils/accelerator/tpu_test.py",
+      "official/utils/data/file_io_test.py",
+      "official/utils/export/export_test.py",
+      "official/utils/flags/flags_test.py",
+      "official/utils/logs/cloud_lib_test.py",
+      "official/utils/logs/hooks_helper_test.py",
+      "official/utils/logs/hooks_test.py",
+      "official/utils/logs/logger_test.py",
+      "official/utils/logs/metric_hook_test.py",
+      "official/utils/logs/mlperf_helper.py",
+      "official/utils/misc/distribution_utils_test.py",
+      "official/utils/misc/model_helpers_test.py",
+      "train.py"
+    ],
+    "notebook_paths": []
+  },
+  "pipeline_duration_s": 50.11,
+  "repair_mode": "deterministic",
+  "tree_integrity": {
+    "status": "verified",
+    "tree_sha": "4026487b034c2d3c34bd535b329d88ef8234afba",
+    "files_checked": 109,
+    "excluded_patched": []
+  },
+  "result": {
+    "verdict": "BLOCKED",
+    "taxonomy_code": "DEP_MISSING",
+    "indeterminate_reason": "",
+    "reason_code": null,
+    "error_chain": [
+      {
+        "error": "ModuleNotFoundError: No module named 'sklearn'",
+        "class": "DEP_MISSING",
+        "attribution": "REPO",
+        "phase": "repo_run",
+        "cleared_by": null
+      }
+    ],
+    "first_repo_error": "ModuleNotFoundError: No module named 'sklearn'",
+    "last_error": "ModuleNotFoundError: No module named 'sklearn'",
+    "error_traceback": "",
+    "attempts": [],
+    "certificate_prose": "The baseline run failed with exit code 1 due to a ModuleNotFoundError for 'sklearn', as recorded in the run log. The classifier identified the failure as DEP_MISSING, and the verdict was set to BLOCKED after zero repair attempts. Verifies that the artifact executes. Does not verify the paper's numerical results."
+  },
+  "certificate": {
+    "repo_url": "https://github.com/bckim92/sequential-knowledge-transformer",
+    "commit_sha": "1e9c47bb61291a0b15e5b1e6901eafebc73db8db",
+    "build_plan": {
+      "base_image": "python:3.6-slim",
+      "apt_install": [],
+      "install_commands": [
+        "true  # no declared dependency file found; nothing to install"
+      ],
+      "execute_command": "python train.py --cfg ymls/default.yml --gpus 0,1 SequentialKnowledgeTransformer",
+      "notes": [
+        "execute command is the repository's documented command (corpus ground truth)",
+        "base image python:3.6-slim: declared by README (3.6); resolved to the first available minor that satisfies it"
+      ]
+    },
+    "full_log": "[intake] cloned https://github.com/bckim92/sequential-knowledge-transformer@1e9c47bb61291a0b15e5b1e6901eafebc73db8db\n[recon] calling Nemotron Nano\n[recon] RECON_MODEL_ERROR: recon model call failed: prompt estimated at 22126 tokens exceeds the per-attempt ceiling: requested 22126 tokens exceeds the 20000-token per-attempt ceiling \u2014 proceeding with the documented command: python train.py --cfg ymls/default.yml --gpus 0,1 SequentialKnowledgeTransformer\n[python] python:3.6-slim (README): declared by README (3.6); resolved to the first available minor that satisfies it\n[planner] build plan: {'base_image': 'python:3.6-slim', 'apt_install': [], 'install_commands': ['true  # no declared dependency file found; nothing to install'], 'execute_command': 'python train.py --cfg ymls/default.yml --gpus 0,1 SequentialKnowledgeTransformer', 'notes': [\"execute command is the repository's documented command (corpus ground truth)\", 'base image python:3.6-slim: declared by README (3.6); resolved to the first available minor that satisfies it']}\n[integrity] verified 109 file(s) against tree 4026487b034c2d3c34bd535b329d88ef8234afba\n[sandbox] starting build+execute (wall_clock_seconds=600)\n[runner] torch: repo imports torch without declaring it; runner provides the newest matched CPU wheels\n[cost_guard] recorded $0.1676 sandbox spend, $1.8323 remaining today\n[sandbox] id=298be51c-2cff-466b-9df6-181301cbe3e8 exit_code=1\n[baseline] as-is run: FAILS (exit code 1)\n[classifier] DEP_MISSING: ModuleNotFoundError: No module named 'sklearn'\n[verdict] BLOCKED after 0 repair attempt(s): DEP_MISSING",
+    "diffs": [],
+    "verdict": "BLOCKED",
+    "timestamp": "2026-09-30T12:28:31.613509+00:00",
+    "bundle_version": 4,
+    "baseline": {
+      "result": "FAILS",
+      "exit_code": 1,
+      "base_image": "python:3.6-slim",
+      "install_commands": [
+        "true  # no declared dependency file found; nothing to install"
+      ],
+      "execute_command": "python train.py --cfg ymls/default.yml --gpus 0,1 SequentialKnowledgeTransformer",
+      "sandbox_id": "298be51c-2cff-466b-9df6-181301cbe3e8",
+      "taxonomy_code": "DEP_MISSING",
+      "evidence": "ModuleNotFoundError: No module named 'sklearn'"
+    },
+    "recovery": false,
+    "tree_integrity": {
+      "status": "verified",
+      "tree_sha": "4026487b034c2d3c34bd535b329d88ef8234afba",
+      "files_checked": 109,
+      "excluded_patched": []
+    },
+    "corpus_hash": "7df090bea7013974f9f10fb8959ab0162734b51c83a80f744f9c310ce694fbdc",
+    "taxonomy_code": "DEP_MISSING",
+    "indeterminate_reason": "",
+    "error_chain": [
+      {
+        "error": "ModuleNotFoundError: No module named 'sklearn'",
+        "class": "DEP_MISSING",
+        "attribution": "REPO",
+        "phase": "repo_run",
+        "cleared_by": null
+      }
+    ],
+    "first_repo_error": "ModuleNotFoundError: No module named 'sklearn'",
+    "last_error": "ModuleNotFoundError: No module named 'sklearn'",
+    "reproduction_passport_hash": "a3baf02265c2b255c563f8f611fb1d66b017fe9d78b05f1a3087eeb1ada6b8ed"
+  },
+  "finished_at": "2026-09-30T12:28:31.643212+00:00",
+  "events": [
+    {
+      "t_s": 0.0,
+      "at": "2026-09-30T12:27:41.501648+00:00",
+      "line": "[intake] cloned https://github.com/bckim92/sequential-knowledge-transformer@1e9c47bb61291a0b15e5b1e6901eafebc73db8db"
+    },
+    {
+      "t_s": 0.02,
+      "at": "2026-09-30T12:27:41.516678+00:00",
+      "line": "[recon] calling Nemotron Nano"
+    },
+    {
+      "t_s": 0.14,
+      "at": "2026-09-30T12:27:41.643627+00:00",
+      "line": "[recon] RECON_MODEL_ERROR: recon model call failed: prompt estimated at 22126 tokens exceeds the per-attempt ceiling: requested 22126 tokens exceeds the 20000-token per-attempt ceiling \u2014 proceeding with the documented command: python train.py --cfg ymls/default.yml --gpus 0,1 SequentialKnowledgeTransformer"
+    },
+    {
+      "t_s": 0.16,
+      "at": "2026-09-30T12:27:41.661685+00:00",
+      "line": "[python] python:3.6-slim (README): declared by README (3.6); resolved to the first available minor that satisfies it"
+    },
+    {
+      "t_s": 1.4,
+      "at": "2026-09-30T12:27:42.904465+00:00",
+      "line": "[planner] build plan: {'base_image': 'python:3.6-slim', 'apt_install': [], 'install_commands': ['true  # no declared dependency file found; nothing to install'], 'execute_command': 'python train.py --cfg ymls/default.yml --gpus 0,1 SequentialKnowledgeTransformer', 'notes': [\"execute command is the repository's documented command (corpus ground truth)\", 'base image python:3.6-slim: declared by README (3.6); resolved to the first available minor that satisfies it']}"
+    },
+    {
+      "t_s": 1.6,
+      "at": "2026-09-30T12:27:43.103139+00:00",
+      "line": "[integrity] verified 109 file(s) against tree 4026487b034c2d3c34bd535b329d88ef8234afba"
+    },
+    {
+      "t_s": 1.6,
+      "at": "2026-09-30T12:27:43.103178+00:00",
+      "line": "[sandbox] starting build+execute (wall_clock_seconds=600)"
+    },
+    {
+      "t_s": 1.63,
+      "at": "2026-09-30T12:27:43.128753+00:00",
+      "line": "[runner] torch: repo imports torch without declaring it; runner provides the newest matched CPU wheels"
+    },
+    {
+      "t_s": 48.35,
+      "at": "2026-09-30T12:28:29.851245+00:00",
+      "line": "[cost_guard] recorded $0.1676 sandbox spend, $1.8323 remaining today"
+    },
+    {
+      "t_s": 48.35,
+      "at": "2026-09-30T12:28:29.851353+00:00",
+      "line": "[sandbox] id=298be51c-2cff-466b-9df6-181301cbe3e8 exit_code=1"
+    },
+    {
+      "t_s": 48.35,
+      "at": "2026-09-30T12:28:29.851376+00:00",
+      "line": "[baseline] as-is run: FAILS (exit code 1)"
+    },
+    {
+      "t_s": 48.35,
+      "at": "2026-09-30T12:28:29.855375+00:00",
+      "line": "[classifier] DEP_MISSING: ModuleNotFoundError: No module named 'sklearn'"
+    },
+    {
+      "t_s": 48.35,
+      "at": "2026-09-30T12:28:29.855457+00:00",
+      "line": "[verdict] BLOCKED after 0 repair attempt(s): DEP_MISSING"
+    }
+  ],
+  "model_calls": [
+    {
+      "model": "nvidia/nemotron-3-super-120b-a12b",
+      "started_at": "2026-09-30T12:27:41.771707+00:00",
+      "latency_s": 1.13,
+      "finish_reason": "stop",
+      "content_is_none": false,
+      "has_reasoning": true,
+      "usage": {
+        "completion_tokens": 37,
+        "prompt_tokens": 270,
+        "total_tokens": 307,
+        "completion_tokens_details": {
+          "accepted_prediction_tokens": null,
+          "audio_tokens": null,
+          "reasoning_tokens": 27,
+          "rejected_prediction_tokens": null,
+          "text_tokens": null
+        },
+        "prompt_tokens_details": {
+          "audio_tokens": null,
+          "cache_write_tokens": null,
+          "cached_tokens": 0,
+          "image_tokens": null,
+          "text_tokens": null,
+          "created_cache_tokens": 0,
+          "multimodal_tokens": null
+        },
+        "prompt_cache_hit_tokens": 0,
+        "prompt_cache_miss_tokens": 270
+      }
+    },
+    {
+      "model": "nvidia/Nemotron-3-Ultra-550b-a55b",
+      "started_at": "2026-09-30T12:28:29.857005+00:00",
+      "latency_s": 1.76,
+      "finish_reason": "stop",
+      "content_is_none": false,
+      "has_reasoning": true,
+      "usage": {
+        "completion_tokens": 322,
+        "prompt_tokens": 668,
+        "total_tokens": 990,
+        "completion_tokens_details": {
+          "accepted_prediction_tokens": null,
+          "audio_tokens": null,
+          "reasoning_tokens": 222,
+          "rejected_prediction_tokens": null,
+          "text_tokens": null
+        },
+        "prompt_tokens_details": {
+          "audio_tokens": null,
+          "cache_write_tokens": null,
+          "cached_tokens": 0,
+          "image_tokens": null,
+          "text_tokens": null,
+          "multimodal_tokens": null
+        },
+        "prompt_cache_hit_tokens": 0,
+        "prompt_cache_miss_tokens": 668
+      }
+    }
+  ],
+  "cost_guard": {
+    "spent_usd": 0.16932709,
+    "model_spent_usd": 0.0017483,
+    "sandbox_spent_usd": 0.16757879,
+    "remaining_usd": 1.83067291,
+    "model_usage": [
+      {
+        "model": "nvidia/nemotron-3-super-120b-a12b",
+        "prompt_tokens": 270,
+        "completion_tokens": 37,
+        "cost_usd": 0.00011430000000000001
+      },
+      {
+        "model": "nvidia/Nemotron-3-Ultra-550b-a55b",
+        "prompt_tokens": 668,
+        "completion_tokens": 322,
+        "cost_usd": 0.001634
+      }
+    ],
+    "prices_usd_per_1m": {
+      "nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B": [
+        0.06,
+        0.24
+      ],
+      "nvidia/nemotron-3-super-120b-a12b": [
+        0.3,
+        0.9
+      ],
+      "nvidia/Nemotron-3-Ultra-550b-a55b": [
+        1.0,
+        3.0
+      ]
+    },
+    "prices_source": "https://api.tokenfactory.nebius.com/v1/models?verbose=true (pricing field)",
+    "prices_retrieved": "2026-09-24"
+  }
+}

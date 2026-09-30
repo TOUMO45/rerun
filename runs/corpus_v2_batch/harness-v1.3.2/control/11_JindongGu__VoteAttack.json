@@ -1,0 +1,325 @@
+{
+  "run_kind": "live end-to-end run",
+  "dev_run": false,
+  "dry_run": null,
+  "batch": {
+    "harness_tag": "harness-v1.3.2",
+    "harness_commit": "77b3cfe1697ad74ad13eac1f77ffe0f1e80c7379",
+    "head_commit": "77b3cfe1697ad74ad13eac1f77ffe0f1e80c7379",
+    "corpus": "corpus-v2",
+    "prereg_sha256": "ae5a722249156e058d3d360bdc63fa8224140d0688f1daa307ecfa93a98c7284",
+    "corpus_hash": "7df090bea7013974f9f10fb8959ab0162734b51c83a80f744f9c310ce694fbdc",
+    "arm": "control",
+    "total_cap_usd": 25.0,
+    "already_spent_usd": 0.0,
+    "entry_id": 11,
+    "category": "PRIMARY",
+    "rules_matched": [],
+    "per_entry_cap_usd": 2.0
+  },
+  "started_at": "2026-09-30T12:09:13.646332+00:00",
+  "corpus_entry": {
+    "name": "JindongGu__VoteAttack",
+    "repo_url": "https://github.com/JindongGu/VoteAttack",
+    "commit_sha": "bdf8b46bc7b3ce772a6f2c0a6e48514423fd6051",
+    "command": "python main.py  --evaluate --dataset cifar10  --eps 0.031  --model capsnet  --attack vote_attack_FGSM",
+    "command_source": "README.md line 9"
+  },
+  "config": {
+    "models": {
+      "recon": "nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B",
+      "planner": "nvidia/nemotron-3-super-120b-a12b",
+      "repairer": "nvidia/nemotron-3-super-120b-a12b",
+      "adjudicator": "nvidia/Nemotron-3-Ultra-550b-a55b"
+    },
+    "sandbox_backend": "token_factory",
+    "sandbox_image_default": "python:3.10-slim",
+    "sandbox_wall_clock_seconds": 600.0,
+    "arm": "control",
+    "repair_enabled": false,
+    "max_attempts": 0,
+    "tavily_configured": false,
+    "cost_cap_usd": 2.0
+  },
+  "intake": {
+    "duration_s": 189.61,
+    "resolved_sha": "bdf8b46bc7b3ce772a6f2c0a6e48514423fd6051",
+    "dependency_files": [],
+    "declared_dependencies": [],
+    "entrypoint_candidates": [
+      "main.py"
+    ],
+    "notebook_paths": []
+  },
+  "pipeline_duration_s": 99.64,
+  "repair_mode": "deterministic",
+  "tree_integrity": {
+    "status": "verified",
+    "tree_sha": "8470057f65dd5e16273f985f73cacb3fc669eee3",
+    "files_checked": 13,
+    "excluded_patched": []
+  },
+  "result": {
+    "verdict": "BLOCKED",
+    "taxonomy_code": "DEP_MISSING",
+    "indeterminate_reason": "",
+    "reason_code": null,
+    "error_chain": [
+      {
+        "error": "ModuleNotFoundError: No module named 'tqdm'",
+        "class": "DEP_MISSING",
+        "attribution": "REPO",
+        "phase": "repo_run",
+        "cleared_by": null
+      }
+    ],
+    "first_repo_error": "ModuleNotFoundError: No module named 'tqdm'",
+    "last_error": "ModuleNotFoundError: No module named 'tqdm'",
+    "error_traceback": "",
+    "attempts": [],
+    "certificate_prose": "The run log shows a ModuleNotFoundError for the 'tqdm' module, indicating a missing dependency. The baseline as-is run fails with exit code 1, and the classifier reports DEP_MISSING. The verdict is BLOCKED after 0 repair attempts. Verifies that the artifact executes. Does not verify the paper's numerical results."
+  },
+  "certificate": {
+    "repo_url": "https://github.com/JindongGu/VoteAttack",
+    "commit_sha": "bdf8b46bc7b3ce772a6f2c0a6e48514423fd6051",
+    "build_plan": {
+      "base_image": "python:3.10-slim",
+      "apt_install": [],
+      "install_commands": [
+        "true  # no declared dependency file found; nothing to install"
+      ],
+      "execute_command": "python main.py  --evaluate --dataset cifar10  --eps 0.031  --model capsnet  --attack vote_attack_FGSM",
+      "notes": [
+        "execute command is the repository's documented command (corpus ground truth)",
+        "base image python:3.10-slim: no usable Python declaration; RERUN default 3.10"
+      ]
+    },
+    "full_log": "[intake] cloned https://github.com/JindongGu/VoteAttack@bdf8b46bc7b3ce772a6f2c0a6e48514423fd6051\n[recon] calling Nemotron Nano\n[recon] entrypoint=main.py confidence=0.85\n[python] python:3.10-slim (default): no usable Python declaration; RERUN default 3.10\n[planner] build plan: {'base_image': 'python:3.10-slim', 'apt_install': [], 'install_commands': ['true  # no declared dependency file found; nothing to install'], 'execute_command': 'python main.py  --evaluate --dataset cifar10  --eps 0.031  --model capsnet  --attack vote_attack_FGSM', 'notes': [\"execute command is the repository's documented command (corpus ground truth)\", 'base image python:3.10-slim: no usable Python declaration; RERUN default 3.10']}\n[integrity] verified 13 file(s) against tree 8470057f65dd5e16273f985f73cacb3fc669eee3\n[sandbox] starting build+execute (wall_clock_seconds=600)\n[runner] torch: repo imports torch, torchvision without declaring it; runner provides the newest matched CPU wheels\n[cost_guard] recorded $0.3203 sandbox spend, $1.6792 remaining today\n[sandbox] id=43bf6b9c-ddce-4fd9-a7e2-751d09a8ecb6 exit_code=1\n[baseline] as-is run: FAILS (exit code 1)\n[classifier] DEP_MISSING: ModuleNotFoundError: No module named 'tqdm'\n[verdict] BLOCKED after 0 repair attempt(s): DEP_MISSING",
+    "diffs": [],
+    "verdict": "BLOCKED",
+    "timestamp": "2026-09-30T12:14:02.899171+00:00",
+    "bundle_version": 4,
+    "baseline": {
+      "result": "FAILS",
+      "exit_code": 1,
+      "base_image": "python:3.10-slim",
+      "install_commands": [
+        "true  # no declared dependency file found; nothing to install"
+      ],
+      "execute_command": "python main.py  --evaluate --dataset cifar10  --eps 0.031  --model capsnet  --attack vote_attack_FGSM",
+      "sandbox_id": "43bf6b9c-ddce-4fd9-a7e2-751d09a8ecb6",
+      "taxonomy_code": "DEP_MISSING",
+      "evidence": "ModuleNotFoundError: No module named 'tqdm'"
+    },
+    "recovery": false,
+    "tree_integrity": {
+      "status": "verified",
+      "tree_sha": "8470057f65dd5e16273f985f73cacb3fc669eee3",
+      "files_checked": 13,
+      "excluded_patched": []
+    },
+    "corpus_hash": "7df090bea7013974f9f10fb8959ab0162734b51c83a80f744f9c310ce694fbdc",
+    "taxonomy_code": "DEP_MISSING",
+    "indeterminate_reason": "",
+    "error_chain": [
+      {
+        "error": "ModuleNotFoundError: No module named 'tqdm'",
+        "class": "DEP_MISSING",
+        "attribution": "REPO",
+        "phase": "repo_run",
+        "cleared_by": null
+      }
+    ],
+    "first_repo_error": "ModuleNotFoundError: No module named 'tqdm'",
+    "last_error": "ModuleNotFoundError: No module named 'tqdm'",
+    "reproduction_passport_hash": "573a4d9653cbcf0a21632e65917e0d729a88ec87eca5bf0461949ae8fad3742a"
+  },
+  "finished_at": "2026-09-30T12:14:02.948384+00:00",
+  "events": [
+    {
+      "t_s": 0.0,
+      "at": "2026-09-30T12:12:23.256536+00:00",
+      "line": "[intake] cloned https://github.com/JindongGu/VoteAttack@bdf8b46bc7b3ce772a6f2c0a6e48514423fd6051"
+    },
+    {
+      "t_s": 0.01,
+      "at": "2026-09-30T12:12:23.265898+00:00",
+      "line": "[recon] calling Nemotron Nano"
+    },
+    {
+      "t_s": 10.65,
+      "at": "2026-09-30T12:12:33.911070+00:00",
+      "line": "[recon] entrypoint=main.py confidence=0.85"
+    },
+    {
+      "t_s": 10.66,
+      "at": "2026-09-30T12:12:33.919393+00:00",
+      "line": "[python] python:3.10-slim (default): no usable Python declaration; RERUN default 3.10"
+    },
+    {
+      "t_s": 12.22,
+      "at": "2026-09-30T12:12:35.479228+00:00",
+      "line": "[planner] build plan: {'base_image': 'python:3.10-slim', 'apt_install': [], 'install_commands': ['true  # no declared dependency file found; nothing to install'], 'execute_command': 'python main.py  --evaluate --dataset cifar10  --eps 0.031  --model capsnet  --attack vote_attack_FGSM', 'notes': [\"execute command is the repository's documented command (corpus ground truth)\", 'base image python:3.10-slim: no usable Python declaration; RERUN default 3.10']}"
+    },
+    {
+      "t_s": 12.55,
+      "at": "2026-09-30T12:12:35.804897+00:00",
+      "line": "[integrity] verified 13 file(s) against tree 8470057f65dd5e16273f985f73cacb3fc669eee3"
+    },
+    {
+      "t_s": 12.55,
+      "at": "2026-09-30T12:12:35.804937+00:00",
+      "line": "[sandbox] starting build+execute (wall_clock_seconds=600)"
+    },
+    {
+      "t_s": 12.56,
+      "at": "2026-09-30T12:12:35.812320+00:00",
+      "line": "[runner] torch: repo imports torch, torchvision without declaring it; runner provides the newest matched CPU wheels"
+    },
+    {
+      "t_s": 97.77,
+      "at": "2026-09-30T12:14:01.025047+00:00",
+      "line": "[cost_guard] recorded $0.3203 sandbox spend, $1.6792 remaining today"
+    },
+    {
+      "t_s": 97.77,
+      "at": "2026-09-30T12:14:01.025105+00:00",
+      "line": "[sandbox] id=43bf6b9c-ddce-4fd9-a7e2-751d09a8ecb6 exit_code=1"
+    },
+    {
+      "t_s": 97.77,
+      "at": "2026-09-30T12:14:01.025129+00:00",
+      "line": "[baseline] as-is run: FAILS (exit code 1)"
+    },
+    {
+      "t_s": 97.77,
+      "at": "2026-09-30T12:14:01.029025+00:00",
+      "line": "[classifier] DEP_MISSING: ModuleNotFoundError: No module named 'tqdm'"
+    },
+    {
+      "t_s": 97.77,
+      "at": "2026-09-30T12:14:01.029089+00:00",
+      "line": "[verdict] BLOCKED after 0 repair attempt(s): DEP_MISSING"
+    }
+  ],
+  "model_calls": [
+    {
+      "model": "nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B",
+      "started_at": "2026-09-30T12:12:23.467970+00:00",
+      "latency_s": 10.44,
+      "finish_reason": "stop",
+      "content_is_none": false,
+      "has_reasoning": true,
+      "usage": {
+        "completion_tokens": 1153,
+        "prompt_tokens": 1686,
+        "total_tokens": 2839,
+        "completion_tokens_details": null,
+        "prompt_tokens_details": null
+      }
+    },
+    {
+      "model": "nvidia/nemotron-3-super-120b-a12b",
+      "started_at": "2026-09-30T12:12:33.920601+00:00",
+      "latency_s": 1.56,
+      "finish_reason": "stop",
+      "content_is_none": false,
+      "has_reasoning": true,
+      "usage": {
+        "completion_tokens": 48,
+        "prompt_tokens": 270,
+        "total_tokens": 318,
+        "completion_tokens_details": {
+          "accepted_prediction_tokens": null,
+          "audio_tokens": null,
+          "reasoning_tokens": 38,
+          "rejected_prediction_tokens": null,
+          "text_tokens": null
+        },
+        "prompt_tokens_details": {
+          "audio_tokens": null,
+          "cache_write_tokens": null,
+          "cached_tokens": 0,
+          "image_tokens": null,
+          "text_tokens": null,
+          "created_cache_tokens": 0,
+          "multimodal_tokens": null
+        },
+        "prompt_cache_hit_tokens": 0,
+        "prompt_cache_miss_tokens": 270
+      }
+    },
+    {
+      "model": "nvidia/Nemotron-3-Ultra-550b-a55b",
+      "started_at": "2026-09-30T12:14:01.030540+00:00",
+      "latency_s": 1.87,
+      "finish_reason": "stop",
+      "content_is_none": false,
+      "has_reasoning": true,
+      "usage": {
+        "completion_tokens": 374,
+        "prompt_tokens": 665,
+        "total_tokens": 1039,
+        "completion_tokens_details": {
+          "accepted_prediction_tokens": null,
+          "audio_tokens": null,
+          "reasoning_tokens": 272,
+          "rejected_prediction_tokens": null,
+          "text_tokens": null
+        },
+        "prompt_tokens_details": {
+          "audio_tokens": null,
+          "cache_write_tokens": null,
+          "cached_tokens": 0,
+          "image_tokens": null,
+          "text_tokens": null,
+          "multimodal_tokens": null
+        },
+        "prompt_cache_hit_tokens": 0,
+        "prompt_cache_miss_tokens": 665
+      }
+    }
+  ],
+  "cost_guard": {
+    "spent_usd": 0.32254868999999997,
+    "model_spent_usd": 0.0022890799999999998,
+    "sandbox_spent_usd": 0.32025961,
+    "remaining_usd": 1.67745131,
+    "model_usage": [
+      {
+        "model": "nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B",
+        "prompt_tokens": 1686,
+        "completion_tokens": 1153,
+        "cost_usd": 0.00037788
+      },
+      {
+        "model": "nvidia/nemotron-3-super-120b-a12b",
+        "prompt_tokens": 270,
+        "completion_tokens": 48,
+        "cost_usd": 0.0001242
+      },
+      {
+        "model": "nvidia/Nemotron-3-Ultra-550b-a55b",
+        "prompt_tokens": 665,
+        "completion_tokens": 374,
+        "cost_usd": 0.001787
+      }
+    ],
+    "prices_usd_per_1m": {
+      "nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B": [
+        0.06,
+        0.24
+      ],
+      "nvidia/nemotron-3-super-120b-a12b": [
+        0.3,
+        0.9
+      ],
+      "nvidia/Nemotron-3-Ultra-550b-a55b": [
+        1.0,
+        3.0
+      ]
+    },
+    "prices_source": "https://api.tokenfactory.nebius.com/v1/models?verbose=true (pricing field)",
+    "prices_retrieved": "2026-09-24"
+  }
+}
