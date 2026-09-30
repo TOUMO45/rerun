@@ -1,4 +1,4 @@
-"""Step 2 of the v1.3.3 plan: the paid SMOKE GATE. TREATMENT only, entries 11, 10, 3, 8, cap $6 (METHODOLOGY.md, harness-v1.3.3 amendments).
+"""Step 2 of the v1.3.3 plan: the paid SMOKE GATE. TREATMENT only, entries 11, 7, 3, 8, cap $6 (METHODOLOGY.md, harness-v1.3.3 amendments).
 
     backend/.venv/Scripts/python.exe reports/corpus-v2.1/v1.3.3/smoke_gate/run_smoke_gate.py            # DRY RUN: preflight + plan, no spend
     backend/.venv/Scripts/python.exe reports/corpus-v2.1/v1.3.3/smoke_gate/run_smoke_gate.py --go       # spends money (needs operator approval)
@@ -31,7 +31,7 @@ ROOT = Path(__file__).resolve().parents[4]
 sys.path.insert(0, str(ROOT / "scripts"))
 sys.path.insert(0, str(ROOT / "backend"))
 
-ENTRIES = (11, 10, 3, 8)  # METHODOLOGY amendment, 2026-09-30
+ENTRIES = (11, 7, 3, 8)  # METHODOLOGY amendment, 2026-09-30 (entry 10 replaced by 7 before any run)
 GATE_CAP_USD = 6.0
 ENTRY_CAP_USD = 2.0
 PASS = ("RUNS_CLEAN", "RUNS_AFTER_REPAIR")
@@ -79,14 +79,14 @@ def _selftest() -> int:
     patch_applied = {"attempt_number": 1, "diff_text": "--- a\n+++ b\n", "exit_code": 1, "tavily_sources": [{"url": "https://x"}]}
     patch_failed = {"attempt_number": 2, "diff_text": "--- a\n+++ b\n", "exit_code": None, "tavily_sources": []}
     env_only = {"attempt_number": 1, "diff_text": "", "exit_code": 0, "tavily_sources": []}
-    good = evaluate_gate([rec(11, "RUNS_AFTER_REPAIR", [patch_applied]), rec(10, "BLOCKED"), rec(3, "RUNS_CLEAN"), rec(8, "BLOCKED")])
+    good = evaluate_gate([rec(11, "RUNS_AFTER_REPAIR", [patch_applied]), rec(7, "BLOCKED"), rec(3, "RUNS_CLEAN"), rec(8, "BLOCKED")])
     assert good["passed"] and good["b"]["detail"] == "1 applied of 1 proposed" and good["c"]["ok"]
-    assert not evaluate_gate([rec(11, "RUNS_AFTER_REPAIR", [patch_applied]), rec(10, "BLOCKED"), rec(3, "BLOCKED"), rec(8, "BLOCKED")])["passed"]  # (a) 1 of 4
-    assert not evaluate_gate([rec(11, "RUNS_CLEAN"), rec(10, "RUNS_CLEAN", [patch_failed]), rec(3, "BLOCKED"), rec(8, "BLOCKED")])["b"]["ok"]  # proposed, none applied
-    na = evaluate_gate([rec(11, "RUNS_AFTER_REPAIR", [dict(env_only, tavily_sources=[{"url": "https://y"}])]), rec(10, "RUNS_CLEAN"), rec(3, "BLOCKED"), rec(8, "BLOCKED")])
+    assert not evaluate_gate([rec(11, "RUNS_AFTER_REPAIR", [patch_applied]), rec(7, "BLOCKED"), rec(3, "BLOCKED"), rec(8, "BLOCKED")])["passed"]  # (a) 1 of 4
+    assert not evaluate_gate([rec(11, "RUNS_CLEAN"), rec(7, "RUNS_CLEAN", [patch_failed]), rec(3, "BLOCKED"), rec(8, "BLOCKED")])["b"]["ok"]  # proposed, none applied
+    na = evaluate_gate([rec(11, "RUNS_AFTER_REPAIR", [dict(env_only, tavily_sources=[{"url": "https://y"}])]), rec(7, "RUNS_CLEAN"), rec(3, "BLOCKED"), rec(8, "BLOCKED")])
     assert na["b"]["ok"] and na["b"]["detail"].startswith("N/A") and na["passed"]  # (b) N/A when no patch was ever proposed
-    assert not evaluate_gate([rec(11, "RUNS_CLEAN", [env_only]), rec(10, "RUNS_CLEAN", [env_only]), rec(3, "BLOCKED"), rec(8, "BLOCKED")])["c"]["ok"]  # no citation
-    assert not evaluate_gate([rec(11, "RUNS_CLEAN", [patch_applied], spent=2.4), rec(10, "RUNS_CLEAN"), rec(3, "BLOCKED"), rec(8, "BLOCKED")])["d"]["ok"]  # over $2
+    assert not evaluate_gate([rec(11, "RUNS_CLEAN", [env_only]), rec(7, "RUNS_CLEAN", [env_only]), rec(3, "BLOCKED"), rec(8, "BLOCKED")])["c"]["ok"]  # no citation
+    assert not evaluate_gate([rec(11, "RUNS_CLEAN", [patch_applied], spent=2.4), rec(7, "RUNS_CLEAN"), rec(3, "BLOCKED"), rec(8, "BLOCKED")])["d"]["ok"]  # over $2
     print("selftest ok: the gate arithmetic behaves as specified")
     return 0
 

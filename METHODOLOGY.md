@@ -844,3 +844,17 @@ wait in one run (`client_wait_timeout`, 27.9 s, `OperationTimedOutError`) and re
 measured cost $0.00006), so both branches of the stop handling were seen live; the race between them is real and is the subject of the drafted sponsor issue
 (`reports/corpus-v2.1/sponsor-issues/nebius-sandbox-state-timed_out.md`, not filed). Spend: attempt 1 $1.236 + repeat $1.260 = $2.496 on the new ledger.
 
+### Amendment (2026-09-30, operator review, after the seal and before any smoke-gate run)
+
+**1. Smoke set: entry 10 replaced by entry 7 (final set 11, 7, 3, 8).** Entry 10's v1.3.2 terminal error was GPU_REQUIRED (`Torch not compiled with CUDA enabled`), a platform requirement
+the sandbox cannot provide, so it could not satisfy criterion (a) however well the loop works. The replacement follows the same outcome-blind rule as before: the D1 entry with the next-smallest
+dependency batch (`reports/corpus-v2.1/v1.3.3/dep_scan_d1.json`: 11 -> 4, 10 -> 5, 3 -> 6, then 7 -> 8 and 15 -> 8 tied, 8 -> 11 already chosen) whose known chain does not end in a platform
+requirement. Entries 7 and 15 both qualify (7: v1.3.2 terminal a package build failure at install, `Encountered error while generating package metadata`; 15: `dataclasses==0.8` not installable, then a
+wall-clock overrun); the tie goes to the lower entry number, **entry 7**. Entry 7's build failure (system libraries for a native package) may still be hard; it is not a platform requirement in the sense above, and it
+is chosen by the rule, not by expected success. Gate criteria unchanged: (a) at least 2 of 4 reach RUNS_CLEAN / RUNS_AFTER_REPAIR, (b) at least 1 source patch applied via `git apply` (N/A if none was ever
+proposed, then mandatory for the full run's reporting), (c) at least 1 repair with a real Tavily citation in a record, (d) no entry over $2. The launcher is `reports/corpus-v2.1/v1.3.3/smoke_gate/run_smoke_gate.py`.
+
+**2. A sealed tag is never moved again.** Any change after a tag has been pushed is a new version (a new tag), never a re-pointed one. Disclosure: `harness-v1.3.3` was moved exactly once, about a minute after its first
+push and before anything had fetched or used it, to include a one-line fix to a structure test that still named the v1.3.2 tag (tests are outside the batch preflight's data allowlist, so the fix could not follow the tag);
+the tag now points at `8af1717` and will not move again.
+
