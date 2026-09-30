@@ -32,7 +32,7 @@ sys.path.insert(0, str(ROOT / "scripts"))
 sys.path.insert(0, str(ROOT / "backend"))
 
 ENTRIES = (11, 7, 3, 8)  # METHODOLOGY amendment, 2026-09-30 (entry 10 replaced by 7 before any run)
-GATE_CAP_USD = 6.0
+GATE_CAP_USD = 3.5  # v1.3.3 gate: $6.00 (spent $2.93); v1.3.4 re-gate: $3.50 (operator decision 2026-09-30)
 ENTRY_CAP_USD = 2.0
 PASS = ("RUNS_CLEAN", "RUNS_AFTER_REPAIR")
 
