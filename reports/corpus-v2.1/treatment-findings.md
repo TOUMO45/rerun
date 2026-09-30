@@ -1,3 +1,5 @@
+> **Superseded where it differs:** [RESULTS.md](RESULTS.md) (commit `8d47dfc`, hash-backed) is authoritative. Known differences: D1 denominator is 8 there (entry 15 is NOT_MEASURED), and entries 5 and 9 are INDETERMINATE in TREATMENT (D2). See `results_tables.json`.
+
 # corpus-v2.1: TREATMENT findings that the pre-registered analysis does not show by itself
 
 Sealed harness `harness-v1.3.2`, corpus hash `7df090be…`. CONTROL 20/20 ($4.08), TREATMENT 20/20 ($17.68), total **$21.76 of the $25 cap**.
