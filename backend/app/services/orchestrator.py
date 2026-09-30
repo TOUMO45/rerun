@@ -88,6 +88,8 @@ OUR_FAULT_CODES: tuple[str, ...] = (
     # Phase 2: infrastructure limits and platform refusals say nothing about the paper's code.
     "SANDBOX_QUOTA",
     "SANDBOX_INCOMPAT",
+    # harness-v1.3.2: RERUN's own runner setup op failed before the repo's first command ran.
+    "RUNNER_SETUP_FAILED",
 )
 
 _REASON_CODE_RE = re.compile(r"^([A-Z][A-Z_]*(?::[A-Za-z0-9_.-]+)*): ")
@@ -751,7 +753,7 @@ def _run_stages(
     taxonomy_code: str | None = None
     indeterminate_reason = ""
 
-    def _note_failure(attempt_number: int, classification) -> str | None:
+    def _note_failure(attempt_number: int, classification, phase: str = "repo_run") -> str | None:
         """Record a classified failure in the run's error chain. Returns an
         INDETERMINATE reason if the failure is sandbox-side (a limit or a platform
         refusal): no repair can fix it and it is not evidence about the code."""
@@ -765,10 +767,15 @@ def _run_stages(
                 declared_deps=intake_result.declared_dependencies,
                 python_claim=intake_result.python_version_hint,
                 base_image=plan.base_image,
+                phase=phase,
             ),
+            phase,
         )
         if classification.code in classifier.TaxonomyCode.SANDBOX_CODES:
             return f"{classification.code}: {classification.evidence} — a sandbox-side failure, not a verdict on the repository."
+        if phase == error_chain.PHASE_RUNNER_SETUP:
+            return (f"RUNNER_SETUP_FAILED: {classification.evidence} — RERUN's own setup step failed before the "
+                    "repository's first command ran; not a verdict on the repository.")
         return None
 
     if not sandbox_result.succeeded:
@@ -783,7 +790,7 @@ def _run_stages(
         state.baseline["taxonomy_code"] = classification.code
         state.baseline["evidence"] = classification.evidence
         _log(f"[classifier] {classification.code}: {classification.evidence}")
-        sandbox_reason = _note_failure(0, classification)
+        sandbox_reason = _note_failure(0, classification, sandbox_result.final.phase)
         if sandbox_reason:
             _log(f"[verdict] INDETERMINATE: {sandbox_reason}")
             return _finalize(
@@ -956,7 +963,7 @@ def _run_stages(
                             )
                             taxonomy_code = classification.code
                             _log(f"[classifier] {classification.code}: {classification.evidence}")
-                            sandbox_reason = _note_failure(0, classification)
+                            sandbox_reason = _note_failure(0, classification, tm_result.final.phase)
                             if sandbox_reason:
                                 verdict, indeterminate_reason = "INDETERMINATE", sandbox_reason
                                 _log(f"[verdict] INDETERMINATE: {sandbox_reason}")
@@ -1288,7 +1295,7 @@ def _run_stages(
             taxonomy_code = classification.code
             sandbox_result = rerun_result
             _log(f"[classifier] {classification.code}: {classification.evidence}")
-            sandbox_reason = _note_failure(attempt_number, classification)
+            sandbox_reason = _note_failure(attempt_number, classification, rerun_result.final.phase)
             if sandbox_reason:
                 verdict, indeterminate_reason = "INDETERMINATE", sandbox_reason
                 _log(f"[verdict] INDETERMINATE: {sandbox_reason}")

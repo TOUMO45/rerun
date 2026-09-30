@@ -51,10 +51,20 @@ def test_download_source_requires_a_full_commit_sha():
         lim.DownloadSource("o;x", "r", SHA)
 
 
-def test_fetch_command_has_no_git_dependency_and_quotes_the_url():
-    cmd = SOURCE.fetch_command()
-    assert "git " not in cmd and "https://codeload.github.com/owner/repo/tar.gz/" + SHA in cmd
-    assert "--strip-components=1" in cmd and "rm -f /tmp/rerun_source.tar.gz" in cmd
+def test_fetch_step_is_git_first_with_a_verified_tarball_fallback():
+    """harness-v1.3.2: clone + pinned checkout + HEAD/status checks inside the sandbox; the tarball only when git
+    cannot be had (python:3.6-slim's archived apt repos)."""
+    script = sandbox._FETCH_SCRIPT
+    assert "--filter=blob:none" in script and '"checkout", "-q", "--detach", sha' in script
+    assert 'rev-parse", "HEAD"' in script and '"status", "--porcelain"' in script and ".gitmodules" in script
+    assert script.index("    via_git()") < script.index("    via_tarball()")
+    assert "codeload.github.com" in script and "--strip-components=1" in script
+    compile(script, "fetch.py", "exec")  # syntactically valid
+
+
+def test_verify_compares_only_the_executable_bit():
+    """Attempt 1, entry 2: GitHub's tarball gives 0664 for git's 100644; content was equal, the full-mode check failed all 374 files."""
+    assert "& 0o111" in sandbox._VERIFY_SCRIPT and "st != int(mode, 8)" not in sandbox._VERIFY_SCRIPT
 
 
 # --- op splitting -------------------------------------------------------------------
@@ -168,7 +178,9 @@ def test_over_the_limit_only_the_manifest_is_uploaded_and_the_sandbox_downloads(
     manifest = members[f"{sandbox.UPLOAD_DIR}/manifest.json"].decode()
     assert "big.bin" in manifest
     cmd = seen["extract_command"]
-    assert cmd.index("tar -xpf") < cmd.index("codeload.github.com") < cmd.index("verify.py")
+    assert cmd.index("tar -xpf") < cmd.index("fetch.py") < cmd.index("verify.py")
+    assert members[f"{sandbox.UPLOAD_DIR}/source.json"] == b'{"owner": "owner", "repo": "repo", "sha": "%s"}' % SHA.encode()
+    assert f"{sandbox.UPLOAD_DIR}/fetch.py" in members
     assert len(seen["archive"]) < 20_000
 
 

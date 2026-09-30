@@ -35,6 +35,12 @@ PLATFORM = "PLATFORM"
 
 RUNNER_PROVIDED_PACKAGES = frozenset({"torch", "torchvision", "torchaudio"})
 
+# Where in the run a failure happened (harness-v1.3.2). Attribution keys on this FIRST.
+PHASE_RUNNER_SETUP = "runner_setup"  # RERUN's own ops, before the repo's first command
+PHASE_REPO_INSTALL = "repo_install"  # the repo's install commands
+PHASE_REPO_RUN = "repo_run"          # the repo's command
+PHASES = (PHASE_RUNNER_SETUP, PHASE_REPO_INSTALL, PHASE_REPO_RUN)
+
 _MISSING_MODULE = re.compile(r"No module named ['\"]?([\w.\-]+)['\"]?")
 
 # Python-3.x incompatibilities that are properties of the interpreter, not of the
@@ -103,8 +109,15 @@ def attribute(
     declared_deps: frozenset[str] | None,
     python_claim: str | None,
     base_image: str | None,
+    phase: str = PHASE_REPO_RUN,
 ) -> str:
-    """The attribution of one classified failure (see the module docstring)."""
+    """The attribution of one classified failure (see the module docstring).
+
+    INVARIANT (harness-v1.3.2): a failure raised while a RUNNER SETUP op was executing is ENV, PLATFORM or SANDBOX_QUOTA,
+    never REPO, whatever the error text says. Attempt 1, entry 3: RERUN's own `patchelf --clear-execstack` failed on
+    python:3.6-slim and the text ("getting info about ...: No such file or directory") was read as DATA_MISSING/REPO."""
+    if phase == PHASE_RUNNER_SETUP:
+        return SANDBOX_QUOTA if code == "SANDBOX_QUOTA" else PLATFORM if code == "SANDBOX_INCOMPAT" else ENV
     if code == "SANDBOX_QUOTA":
         return SANDBOX_QUOTA
     if code == "SANDBOX_INCOMPAT":
@@ -133,7 +146,7 @@ class ErrorChain:
 
     links: list[dict] = field(default_factory=list)
 
-    def record(self, attempt_number: int, code: str, error: str, attribution: str) -> None:
+    def record(self, attempt_number: int, code: str, error: str, attribution: str, phase: str = PHASE_REPO_RUN) -> None:
         if self.links and self.links[-1]["error"] == error and self.links[-1]["class"] == code:
             return
         # Whatever fails after a platform refusal / exhausted quota is a consequence of it (the
@@ -143,7 +156,7 @@ class ErrorChain:
             attribution = upstream
         if self.links and self.links[-1]["cleared_by"] is None:
             self.links[-1]["cleared_by"] = attempt_number
-        self.links.append({"error": error, "class": code, "attribution": attribution, "cleared_by": None})
+        self.links.append({"error": error, "class": code, "attribution": attribution, "phase": phase, "cleared_by": None})
 
     def as_list(self) -> list[dict]:
         return [dict(link) for link in self.links]

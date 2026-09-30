@@ -11,11 +11,16 @@ platform instead of the paper:
   * `patchelf --clear-execstack` on the offending libraries fixes it (verified: `import torch` -> 1.12.1+cpu).
 
 Policy:
-  1. torch is installed from the CPU wheels (`--index-url https://download.pytorch.org/whl/cpu`, with PyPI as
-     an extra index because the CPU index alone cannot supply torch's own dependencies), as its own sandbox
-     operation, pinned exactly as the repo pins it (a `+cuXXX` local suffix is dropped);
-  2. a second operation clears the exec-stack flag on any torch shared object that has it and verifies
-     `import torch`; a refusal that survives this is SANDBOX_INCOMPAT (INDETERMINATE), never the repo's fault;
+  1. torch, torchvision and torchaudio are installed TOGETHER as one matched set when ANY of them is imported or
+     declared (harness-v1.3.2; attempt 1's entry 4 imported torchvision and got torch alone), from the CPU wheels
+     (`--index-url https://download.pytorch.org/whl/cpu`, with PyPI as an extra index because the CPU index alone
+     cannot supply torch's own dependencies), as its own sandbox operation, pinned exactly as the repo pins them
+     (a `+cuXXX` local suffix is dropped). If the whole set cannot be resolved for this Python, only the members the
+     repo uses are installed;
+  2. a second operation clears the exec-stack flag on any torch shared object that has it, with a patchelf that
+     the runner installs into its OWN prefix (/opt/rerun_tools, pinned 0.19.1.0, flag verified from `--help` first),
+     and verifies `import torch`; a refusal that survives this, or a patchelf without the flag, is SANDBOX_INCOMPAT
+     (INDETERMINATE), never the repo's fault. Any failure of these ops is phase `runner_setup` (error_chain);
   3. CUDA wheels only if the repo pins a CUDA build AND the sandbox exposes a GPU. It does not
      (SANDBOX_HAS_GPU = False), so CPU always.
 
@@ -62,8 +67,9 @@ def torch_specs(texts: Iterable[str]) -> dict[str, str]:
     return found
 
 
-def imports_torch(workdir: Path) -> bool:
-    """Does any (size-capped) .py file in the repo import torch/torchvision/torchaudio?"""
+def imported_torch_names(workdir: Path) -> set[str]:
+    """Which of torch/torchvision/torchaudio any (size-capped) .py file in the repo imports."""
+    names: set[str] = set()
     seen = 0
     for path in workdir.rglob("*.py"):
         if ".git" in path.parts:
@@ -74,46 +80,75 @@ def imports_torch(workdir: Path) -> bool:
         try:
             if path.stat().st_size > _MAX_PY_BYTES:
                 continue
-            if _IMPORT.search(path.read_text(encoding="utf-8", errors="ignore")):
-                return True
+            for m in _IMPORT.finditer(path.read_text(encoding="utf-8", errors="ignore")):
+                names.add(re.sub(r"[^a-z]", "", m.group(0).split()[-1].split(".")[0]))
         except OSError:
             continue
-    return False
+    return names & set(TORCH_FAMILY)
+
+
+def imports_torch(workdir: Path) -> bool:
+    return bool(imported_torch_names(workdir))
 
 
 @dataclass(frozen=True)
 class TorchSetup:
-    specs: tuple[str, ...]  # pip requirement strings, e.g. ("torch==1.12.1", "torchvision==0.13.1")
+    specs: tuple[str, ...]  # pip requirement strings, the whole family: ("torch==1.12.1", "torchvision", "torchaudio")
     reason: str
+    # Names that are actually imported/declared. If the full matched set cannot be resolved for this Python
+    # (an old torch pin with no matching torchaudio wheel), the install falls back to these alone.
+    needed: tuple[str, ...] = ()
+
+    @staticmethod
+    def _pip(specs: tuple[str, ...]) -> str:
+        quoted = " ".join(shlex.quote(s) for s in specs)
+        return f"pip install {quoted} --index-url {CPU_INDEX} --extra-index-url {PYPI_INDEX}"
 
     @property
     def install_command(self) -> str:
-        quoted = " ".join(shlex.quote(s) for s in self.specs)
-        return f"pip install {quoted} --index-url {CPU_INDEX} --extra-index-url {PYPI_INDEX}"
+        full = self._pip(self.specs)
+        needed = tuple(s for s in self.specs if _spec_base(s) in self.needed)
+        if not needed or set(needed) == set(self.specs):
+            return full
+        return f"{full} || {self._pip(needed)}"
 
     @property
     def fix_command(self) -> str:
         return f"python -c {shlex.quote(FIX_AND_VERIFY)}"
 
 
+def _spec_base(spec: str) -> str:
+    return re.split(r"[<>=!~ ]", spec, maxsplit=1)[0]
+
+
 def plan_torch_setup(texts: Iterable[str], workdir: Path | None) -> TorchSetup | None:
     """None if the repo does not use torch. `texts` = the plan's install commands + the repo's requirement
-    files (current copy)."""
+    files (current copy). If ANY of torch/torchvision/torchaudio is imported or declared, the whole family is
+    installed as one matched set (attempt 1, entry 4: the repo imported torchvision, the runner installed only
+    torch, and torchvision was missing). Pins the repo declares are kept; the rest is left to the resolver, which
+    picks the companion versions that match the torch in the set."""
     texts = list(texts)
     pins = torch_specs(texts)
+    imported = imported_torch_names(workdir) if workdir is not None else set()
+    used = set(pins) | imported
+    if not used:
+        return None
+    specs = tuple(f"{name}{pins.get(name, '')}" for name in TORCH_FAMILY)
+    needed = tuple(name for name in TORCH_FAMILY if name in used or name == "torch")
     if pins:
-        # A torchvision/torchaudio pin without a torch pin: leave torch to the resolver (it will take the
-        # torch that matches the pinned companion).
-        companion_pinned = any(spec for name, spec in pins.items() if name != "torch")
-        specs = tuple(f"{name}{spec}" for name, spec in pins.items() if not (name == "torch" and not spec and companion_pinned))
-        return TorchSetup(specs, f"repo pins {', '.join(pins)}; installed CPU wheels with the same pins")
-    if workdir is not None and imports_torch(workdir):
-        return TorchSetup(("torch",), "repo imports torch without declaring it; runner provides the newest CPU wheel")
-    return None
+        reason = f"repo pins {', '.join(pins)}; installed the CPU wheels as a matched set with the same pins"
+    else:
+        reason = f"repo imports {', '.join(sorted(imported))} without declaring it; runner provides the newest matched CPU wheels"
+    return TorchSetup(specs, reason, needed)
 
 
 # One python program: find torch shared objects whose PT_GNU_STACK is executable (parsed from the ELF program
 # headers, no binutils in a slim image), clear the flag with patchelf, then verify `import torch`.
+# patchelf comes from a RUNNER-OWNED prefix (`pip install --target`, never the repo's site-packages) pinned to a
+# release that has --clear-execstack (>= 0.18). pip on python:3.6-slim resolves an unpinned `patchelf` to 0.17.2, which
+# lacks the flag: attempt 1, entry 3 ("patchelf: getting info about '--clear-execstack'"). The flag is verified from
+# `--help` BEFORE use; if it is absent the platform cannot host this torch build: exit 98 with
+# RERUN_SANDBOX_INCOMPAT (classified SANDBOX_INCOMPAT, INDETERMINATE), never the repository's fault.
 FIX_AND_VERIFY = r"""
 import glob, importlib.util, os, struct, subprocess, sys
 spec = importlib.util.find_spec("torch")
@@ -134,9 +169,18 @@ for path in sorted(glob.glob(os.path.join(root, "*.so*"))):
             if p_type == PT_GNU_STACK and p_flags & 1:
                 bad.append(path)
 if bad:
-    subprocess.check_call([sys.executable, "-m", "pip", "install", "-q", "patchelf"])
+    tools = "/opt/rerun_tools"
+    subprocess.check_call([sys.executable, "-m", "pip", "install", "-q", "--target", tools,
+                           "--ignore-requires-python", "patchelf==0.19.1.0"])
+    patchelf = tools + "/bin/patchelf"
+    out = subprocess.run([patchelf, "--help"], stdout=subprocess.PIPE, stderr=subprocess.STDOUT, universal_newlines=True)
+    version = subprocess.run([patchelf, "--version"], stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+                             universal_newlines=True).stdout.strip()
+    if "clear-execstack" not in out.stdout:
+        sys.stderr.write("RERUN_SANDBOX_INCOMPAT: %s has no --clear-execstack; cannot make this torch build loadable here\n" % version)
+        sys.exit(98)
     for path in bad:
-        subprocess.check_call(["patchelf", "--clear-execstack", path])
-    print("RERUN_EXECSTACK_CLEARED", len(bad))
+        subprocess.check_call([patchelf, "--clear-execstack", path])
+    print("RERUN_EXECSTACK_CLEARED", len(bad), version)
 subprocess.check_call([sys.executable, "-c", "import torch; print('RERUN_TORCH_OK', torch.__version__)"])
 """

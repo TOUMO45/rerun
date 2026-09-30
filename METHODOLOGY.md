@@ -566,7 +566,8 @@ filesystem changes per single operation**. The email gives no unit. Code: `backe
   never a Nebius number: the top step of RERUN's own probe ladder.) The archive size is measured exactly, so the margin covers only the
   server's accounting.
 - **Over the limit → in-sandbox download, never a local upload.** Only the manifest and verifier are uploaded;
-  the sandbox fetches the pinned commit (`codeload.github.com` tarball; no git needed in the image) and checks every
+  the sandbox fetches the pinned commit (harness-v1.3.2: `git clone --filter=blob:none` + `git checkout`, tarball only as a
+  fallback: see "Attempt 1" below; v1.3 used the tarball alone) and checks every
   file against the same git-blob manifest as the upload route (`RERUN_UPLOAD_VERIFIED`, else exit 97 →
   INVALID_HARNESS). Only GitHub repos at a full 40-hex SHA qualify; otherwise `UPLOAD_TOO_LARGE`. Dry-run on real
   Linux (WSL): `octocat/Hello-World@7fd1a60` verified; a tampered manifest failed with exit 97.
@@ -676,3 +677,41 @@ spend over the operator's cap. `SANDBOX_INCOMPAT` and `SANDBOX_QUOTA` are *predi
 below one arm's expected cost). Per-entry ceiling stays $2. Cumulative spend is logged per entry and reported by the watcher.
 *Gate before TREATMENT:* if CONTROL has fewer than 8 entries with a REPO-attributed non-PASS, TREATMENT is not run (the RRR denominator
 would be too small); the corpus draw is extended instead (same rules, new seed, documented).
+
+
+## Attempt 1: two runner defects found by the attribution audit (harness-v1.3.1 → harness-v1.3.2)
+
+CONTROL was launched on `harness-v1.3.1` on 2026-09-30 (10:34Z) and **stopped by the operator's stop rule after 4 of 20 entries**
+($0.47). The 4 records are kept, unchanged and unused in any number, in `runs/corpus_v2_batch/attempt1_harness-v1.3.1_aborted_4of20/`.
+Reading them entry by entry (the attribution audit) found two defects in which RERUN's own machinery was charged to the paper's
+repository or void, plus one runner gap and one driver crash:
+
+| # | Entry | What the record said | Root cause (one line) | Fix in v1.3.2 | Live verification |
+|---|---|---|---|---|---|
+| 3 | vmtl | BLOCKED, `DATA_MISSING`, attribution **REPO**: `patchelf: getting info about '--clear-execstack'` | `pip install patchelf` on `python:3.6-slim` resolves 0.17.2, which has no `--clear-execstack` (added in 0.18); the classifier read the error text and charged the runner's own failed step to the repo | attribution keys on the **phase** first: any failure inside a runner-setup op is ENV/PLATFORM, never REPO; patchelf comes from a runner-owned prefix (`/opt/rerun_tools`, `patchelf==0.19.1.0`) and the flag is verified from `--help` before use, else SANDBOX_INCOMPAT (exit 98) | `torch_py36/38/310_*`, `phase_runner_setup_failure_py310`, `patchelf_flag_absent_incompat_py310` |
+| 2 | NeuralTracking | INVALID_HARNESS, exit 97 on the in-sandbox download route (374 files) | the run's own stderr says `mode 664 != 0644` for **every** file and the content check runs first, so contents matched: GitHub tarballs (and any umask 002 extraction) give 0664 for git's 100644, and `verify.py` compared the full mode although git tracks only the executable bit. Fixing that exposed a second bug, found live: the sandbox cwd is `/`, and `shutil.move` of the repo's `media/` nested it into the existing `/media` (3 files "missing"); it is now a merging `cp -a` | verify compares the exec bit only; the route is `git clone --filter=blob:none --no-checkout` + `git checkout --detach <sha>`, then `HEAD == sha`, an empty `git status --porcelain`, `git submodule update --init` if `.gitmodules` exists, then the manifest check as well; the tarball (same manifest check) is the fallback only where git cannot be installed (`python:3.6-slim`'s Debian bullseye apt repos are archived: 404) | `download_git_entry2_py310`, `download_tarball_fallback_py36` |
+| 4 | img-comp-reference | BLOCKED, `No module named 'torchvision'`, ENV | the repo imported torchvision; the runner planned `("torch",)` for an import-only repo | torch, torchvision and torchaudio are installed **as one matched set** when any of them is imported or declared (pins kept); if the whole set cannot be resolved, only the members the repo uses | `torch_py310_imports_torchvision` |
+| - | driver | crash on entry 2 (`UnicodeEncodeError`, U+FFFD echoed from a child to a cp1252 stdout) | Windows Python uses cp1252 for a redirected stdout | driver sets `PYTHONUTF8=1`, reconfigures its own streams to UTF-8 `errors="replace"`, passes the env to children, and its tee cannot raise on encoding | `tests/test_driver_v13.py` (child printing U+FFFD) |
+
+**Common root cause: sandbox-touching code was verified only in the WSL dry run**, which has a different Debian, a different umask, a real
+`git`, and a `/` that is not a container root. The fix is the pattern, not the two symptoms: see the seal rule below.
+
+**The phase.** Every step of a sandbox run is tagged `runner_setup` (RERUN's own ops: the torch install and the exec-stack fix),
+`repo_install` (the repo's install commands) or `repo_run`; every error-chain link carries its `phase`. **Invariant (tested): a failure
+raised while a runner-setup op is executing is attributed ENV, PLATFORM or SANDBOX_QUOTA, never REPO, whatever the error text says.** The run
+ends `INDETERMINATE` with reason `RUNNER_SETUP_FAILED` (an our-fault code, excluded from the RRR; `compare_batches` files it under ENV_ONLY).
+Regression test on the real entry-3 record of attempt 1: `test_attempt1_entry3_regression_is_env_and_indeterminate`.
+
+**Pre-seal spend:** $1.97 recorded sandbox spend for the probes, the live matrix and the final verification runs (ceiling $4).
+
+## Seal rule (harness-v1.3.2)
+
+*No seal without one real Nebius execution per new sandbox-touching code path. A WSL dry run is a smoke test, not verification.*
+Enforced, not promised: `seal_verification.json` (written by `scripts/write_seal_verification.py`, sealed with the harness) lists each
+sandbox-touching path, the **git blob of every code file it verified**, and the live run ids with their records
+(`runs/sandbox_verification/final/`). The batch driver's preflight refuses to start if the file is missing, if an entry is not marked
+live, if a run id is not the `run_id` of a passing listed record, if a code file's blob at HEAD differs from the verified one (the code
+changed after its verification), or if any of `sandbox.py`, `sandbox_limits.py`, `runner_env.py` is not covered. Paths verified for
+v1.3.2: download route (git), download route (tarball fallback), the archive upload with the exec-bit check, runner torch + patchelf on
+Python 3.6/3.8/3.10 with old pins, the matched torch family, the phase tag on a failing runner op, and the flag-absent SANDBOX_INCOMPAT branch.
+

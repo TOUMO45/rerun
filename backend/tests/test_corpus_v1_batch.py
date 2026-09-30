@@ -33,6 +33,14 @@ def _commit(repo: Path, message: str) -> str:
 
 
 @pytest.fixture(autouse=True)
+def _seal_verification_is_tested_in_test_seal_verification(monkeypatch, request):
+    """These temp repos have no seal_verification.json; the rule itself is covered by test_seal_verification.py
+    (and one test below shows preflight calls it)."""
+    if "seal_rule" not in request.keywords:
+        monkeypatch.setattr(batch, "check_seal_verification", lambda root, blob_of: None)
+
+
+@pytest.fixture(autouse=True)
 def _sealed_image_setting(monkeypatch):
     """Preflight reads NEBIUS_SANDBOX_IMAGE from settings; a machine's untracked .env must not decide these tests."""
     from app.config import get_settings
@@ -254,3 +262,9 @@ def test_batch_refuses_to_start_when_the_upload_smoke_test_fails(repo, monkeypat
     assert batch.main(["--corpus", "corpus-v1", "--harness-tag", TAG]) == 3
     assert ran == []
     assert list(batch.out_dir("corpus-v1", TAG).glob("smoke_*.json"))  # the failed smoke test is recorded
+
+
+@pytest.mark.seal_rule
+def test_preflight_refuses_a_harness_without_a_seal_verification_file(repo):
+    with pytest.raises(batch.PreflightError, match="seal_verification.json is missing"):
+        batch.preflight("corpus-v1", "harness-test")

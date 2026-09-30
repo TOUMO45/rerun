@@ -1,0 +1,21 @@
+{
+  "image": "python:3.8-slim",
+  "started_at": "2026-09-30T10:55:26.593774+00:00",
+  "steps": [
+    {
+      "cmd": "cat /etc/os-release | head -2; python --version; pip --version; which git; uname -m",
+      "exit": 0,
+      "stdout": "PRETTY_NAME=\"Debian GNU/Linux 12 (bookworm)\"\nNAME=\"Debian GNU/Linux\"\nPython 3.8.20\npip 23.0.1 from /usr/local/lib/python3.8/site-packages/pip (python 3.8)\nx86_64\n",
+      "stderr": "",
+      "seconds": 2.6
+    },
+    {
+      "cmd": "pip install -q patchelf 2>&1 | tail -2; pip list 2>/dev/null | grep -i patchelf; patchelf --version; patchelf --help 2>&1 | grep -c clear-execstack",
+      "exit": 0,
+      "stdout": "[notice] A new release of pip is available: 23.0.1 -> 25.0.1\n[notice] To update, run: pip install --upgrade pip\npatchelf   0.19.1.0\npatchelf 0.19.1\n1\n",
+      "stderr": "",
+      "seconds": 2.6
+    }
+  ],
+  "cost_usd": 0.0
+}

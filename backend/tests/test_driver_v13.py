@@ -242,3 +242,41 @@ def test_total_cap_is_a_parameter_that_counts_the_other_arms_spend(monkeypatch, 
     except (FileNotFoundError, KeyError):
         pass  # the fake runner wrote no record; only "did it start" matters here
     assert len(runs) == 1
+
+
+# --- harness-v1.3.2: a child printing U+FFFD must not kill the driver ------------------------------------------
+
+def test_a_cp1252_terminal_cannot_kill_the_driver_tee(tmp_path):
+    import io
+
+    b = _load("run_corpus_v1_batch")
+    raw = io.BytesIO()
+    stream = io.TextIOWrapper(raw, encoding="cp1252", errors="strict")
+    with open(tmp_path / "d.log", "w", encoding="utf-8") as log:
+        tee = b._Tee(stream, log)
+        tee.write("[integrity] FAILED \ufffd post-extraction check\n")  # the exact character of attempt 1
+        tee.flush()
+    assert "post-extraction check" in (tmp_path / "d.log").read_text(encoding="utf-8")
+    assert b"post-extraction check" in raw.getvalue()
+
+
+def test_driver_streams_and_child_env_are_utf8(monkeypatch):
+    import io
+
+    b = _load("run_corpus_v1_batch")
+    monkeypatch.setattr(sys, "stdout", io.TextIOWrapper(io.BytesIO(), encoding="cp1252"))
+    monkeypatch.delenv("PYTHONUTF8", raising=False)
+    b._utf8_everywhere()
+    print("\ufffd", flush=True)  # would raise UnicodeEncodeError before the reconfigure
+    assert os.environ["PYTHONUTF8"] == "1" and b._child_env()["PYTHONIOENCODING"].startswith("utf-8")
+
+
+def test_a_real_child_process_printing_ufffd_is_read_by_the_driver_loop(tmp_path):
+    b = _load("run_corpus_v1_batch")
+    script = tmp_path / "child.py"
+    script.write_text("import sys\nprint('a \\ufffd b', flush=True)\n", encoding="utf-8")
+    proc = subprocess.Popen([sys.executable, str(script)], stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True,
+                            encoding="utf-8", errors="replace", env=b._child_env())
+    out = proc.stdout.read()
+    proc.wait()
+    assert proc.returncode == 0 and "\ufffd" in out

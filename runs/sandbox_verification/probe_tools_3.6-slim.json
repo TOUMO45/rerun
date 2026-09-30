@@ -1,0 +1,21 @@
+{
+  "image": "python:3.6-slim",
+  "started_at": "2026-09-30T10:55:26.593777+00:00",
+  "steps": [
+    {
+      "cmd": "cat /etc/os-release | head -2; python --version; pip --version; which git; uname -m",
+      "exit": 0,
+      "stdout": "PRETTY_NAME=\"Debian GNU/Linux 11 (bullseye)\"\nNAME=\"Debian GNU/Linux\"\nPython 3.6.15\npip 21.2.4 from /usr/local/lib/python3.6/site-packages/pip (python 3.6)\nx86_64\n",
+      "stderr": "",
+      "seconds": 2.3
+    },
+    {
+      "cmd": "pip install -q patchelf 2>&1 | tail -2; pip list 2>/dev/null | grep -i patchelf; patchelf --version; patchelf --help 2>&1 | grep -c clear-execstack",
+      "exit": 1,
+      "stdout": "WARNING: You are using pip version 21.2.4; however, version 21.3.1 is available.\nYou should consider upgrading via the '/usr/local/bin/python -m pip install --upgrade pip' command.\npatchelf   0.17.2.1\npatchelf 0.17.2\n0\n",
+      "stderr": "",
+      "seconds": 2.3
+    }
+  ],
+  "cost_usd": 0.0
+}

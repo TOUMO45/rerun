@@ -1,0 +1,36 @@
+{
+  "image": "python:3.6-slim",
+  "mode": "pin",
+  "items": [
+    "torch==1.10.2"
+  ],
+  "install_command": "pip install torch==1.10.2 torchvision torchaudio --index-url https://download.pytorch.org/whl/cpu --extra-index-url https://pypi.org/simple || pip install torch==1.10.2 --index-url https://download.pytorch.org/whl/cpu --extra-index-url https://pypi.org/simple",
+  "reason": "repo pins torch; installed the CPU wheels as a matched set with the same pins",
+  "started_at": "2026-09-30T11:07:54.414365+00:00",
+  "ok": true,
+  "run_id": "695ca289-d0ec-45b3-8848-e9b6ec5ffef7",
+  "cost_usd": 0.16837916999999997,
+  "steps": [
+    {
+      "cmd": "pip install torch==1.10.2 torchvision torchaudio --index-url https://download.pytorch.org/whl/cpu --extra-index-url https://pypi.org/simple ",
+      "exit": 0,
+      "stdout": "x86_64.manylinux2014_x86_64.whl (3.1 MB)\nInstalling collected packages: typing-extensions, dataclasses, torch, pillow, numpy, torchvision, torchaudio\nSuccessfully installed dataclasses-0.8 numpy-1.19.5 pillow-8.4.0 torch-1.10.2+cpu torchaudio-0.10.2+cpu torchvision-0.11.3+cpu typing-extensions-4.1.1",
+      "stderr": "WARNING: Running pip as the 'root' user can result in broken permissions and conflicting behaviour with the system package manager. It is recommended to use a virtual environment instead: https://pip.pypa.io/warnings/venv\nWARNING: You are using pip version 21.2.4; however, version 21.3.1 is available.\nYou should consider upgrading via the '/usr/local/bin/python -m pip install --upgrade pip' command.",
+      "seconds": 13.9
+    },
+    {
+      "cmd": "python -c '\nimport glob, importlib.util, os, struct, subprocess, sys\nspec = importlib.util.find_spec(\"torch\")\nroot = os.path.join(os.path.di",
+      "exit": 0,
+      "stdout": "RERUN_TORCH_OK 1.10.2+cpu\nRERUN_EXECSTACK_CLEARED 1 patchelf 0.19.1",
+      "stderr": "WARNING: Running pip as the 'root' user can result in broken permissions and conflicting behaviour with the system package manager. It is recommended to use a virtual environment instead: https://pip.pypa.io/warnings/venv\nWARNING: You are using pip version 21.2.4; however, version 21.3.1 is available.\nYou should consider upgrading via the '/usr/local/bin/python -m pip install --upgrade pip' command.",
+      "seconds": 1.5
+    },
+    {
+      "cmd": "python -c 'import sys, torch; print(\"IMPORT_OK\", sys.version.split()[0], torch.__version__)'",
+      "exit": 0,
+      "stdout": "IMPORT_OK 3.6.15 1.10.2+cpu",
+      "stderr": "",
+      "seconds": 0.8
+    }
+  ]
+}

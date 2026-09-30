@@ -152,6 +152,7 @@ _RULES: tuple[_Rule, ...] = (
         TaxonomyCode.SANDBOX_INCOMPAT,
         _p(
             r"cannot enable executable stack as shared object requires",
+            r"RERUN_SANDBOX_INCOMPAT",
             r"\bBad system call\b",
             r"\bseccomp\b.*(denied|blocked|violation|not permitted)",
             r"Operation not permitted:? .*\bseccomp\b",

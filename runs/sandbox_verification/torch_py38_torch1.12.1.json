@@ -1,0 +1,36 @@
+{
+  "image": "python:3.8-slim",
+  "mode": "pin",
+  "items": [
+    "torch==1.12.1"
+  ],
+  "install_command": "pip install torch==1.12.1 torchvision torchaudio --index-url https://download.pytorch.org/whl/cpu --extra-index-url https://pypi.org/simple || pip install torch==1.12.1 --index-url https://download.pytorch.org/whl/cpu --extra-index-url https://pypi.org/simple",
+  "reason": "repo pins torch; installed the CPU wheels as a matched set with the same pins",
+  "started_at": "2026-09-30T11:07:54.396817+00:00",
+  "ok": true,
+  "run_id": "42e5b8d7-1d2a-4406-a886-e8caceb41fc4",
+  "cost_usd": 0.19649525,
+  "steps": [
+    {
+      "cmd": "pip install torch==1.12.1 torchvision torchaudio --index-url https://download.pytorch.org/whl/cpu --extra-index-url https://pypi.org/simple ",
+      "exit": 0,
+      "stdout": "mpy, idna, charset_normalizer, certifi, torch, requests, torchvision, torchaudio\nSuccessfully installed certifi-2026.7.22 charset_normalizer-3.5.2 idna-3.15 numpy-1.24.4 pillow-10.4.0 requests-2.32.4 torch-1.12.1+cpu torchaudio-0.12.1+cpu torchvision-0.13.1+cpu typing-extensions-4.13.2 urllib3-2.2.3",
+      "stderr": "WARNING: Running pip as the 'root' user can result in broken permissions and conflicting behaviour with the system package manager. It is recommended to use a virtual environment instead: https://pip.pypa.io/warnings/venv\n\n[notice] A new release of pip is available: 23.0.1 -> 25.0.1\n[notice] To update, run: pip install --upgrade pip",
+      "seconds": 16.7
+    },
+    {
+      "cmd": "python -c '\nimport glob, importlib.util, os, struct, subprocess, sys\nspec = importlib.util.find_spec(\"torch\")\nroot = os.path.join(os.path.di",
+      "exit": 0,
+      "stdout": "RERUN_TORCH_OK 1.12.1+cpu\nRERUN_EXECSTACK_CLEARED 1 patchelf 0.19.1",
+      "stderr": "WARNING: Running pip as the 'root' user can result in broken permissions and conflicting behaviour with the system package manager. It is recommended to use a virtual environment instead: https://pip.pypa.io/warnings/venv\n\n[notice] A new release of pip is available: 23.0.1 -> 25.0.1\n[notice] To update, run: pip install --upgrade pip",
+      "seconds": 1.5
+    },
+    {
+      "cmd": "python -c 'import sys, torch; print(\"IMPORT_OK\", sys.version.split()[0], torch.__version__)'",
+      "exit": 0,
+      "stdout": "IMPORT_OK 3.8.20 1.12.1+cpu",
+      "stderr": "",
+      "seconds": 0.8
+    }
+  ]
+}

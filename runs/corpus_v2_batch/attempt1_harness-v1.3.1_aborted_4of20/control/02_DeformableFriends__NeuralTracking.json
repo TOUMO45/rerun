@@ -1,0 +1,257 @@
+{
+  "run_kind": "live end-to-end run",
+  "dev_run": false,
+  "dry_run": null,
+  "batch": {
+    "harness_tag": "harness-v1.3.1",
+    "harness_commit": "0b8fd6dcd9daff19215b7f9caa704f35e5c0c2e3",
+    "head_commit": "0b8fd6dcd9daff19215b7f9caa704f35e5c0c2e3",
+    "corpus": "corpus-v2",
+    "prereg_sha256": "ae5a722249156e058d3d360bdc63fa8224140d0688f1daa307ecfa93a98c7284",
+    "corpus_hash": "7df090bea7013974f9f10fb8959ab0162734b51c83a80f744f9c310ce694fbdc",
+    "arm": "control",
+    "total_cap_usd": 25.0,
+    "already_spent_usd": 0.0,
+    "entry_id": 2,
+    "category": "PRIMARY",
+    "rules_matched": [],
+    "per_entry_cap_usd": 2.0
+  },
+  "started_at": "2026-09-30T10:36:32.615847+00:00",
+  "corpus_entry": {
+    "name": "DeformableFriends__NeuralTracking",
+    "repo_url": "https://github.com/DeformableFriends/NeuralTracking",
+    "commit_sha": "015256369a94a56b0e478fd100326b9aa97ec9a7",
+    "command": "sh start_nnrt.sh",
+    "command_source": "README.md line 58"
+  },
+  "config": {
+    "models": {
+      "recon": "nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B",
+      "planner": "nvidia/nemotron-3-super-120b-a12b",
+      "repairer": "nvidia/nemotron-3-super-120b-a12b",
+      "adjudicator": "nvidia/Nemotron-3-Ultra-550b-a55b"
+    },
+    "sandbox_backend": "token_factory",
+    "sandbox_image_default": "python:3.10-slim",
+    "sandbox_wall_clock_seconds": 600.0,
+    "arm": "control",
+    "repair_enabled": false,
+    "max_attempts": 0,
+    "tavily_configured": false,
+    "cost_cap_usd": 2.0
+  },
+  "intake": {
+    "duration_s": 129.85,
+    "resolved_sha": "015256369a94a56b0e478fd100326b9aa97ec9a7",
+    "dependency_files": [],
+    "declared_dependencies": [],
+    "entrypoint_candidates": [
+      "create_graph_data.py",
+      "evaluate.py",
+      "example_viz.py",
+      "generate.py",
+      "model/evaluate.py",
+      "train.py",
+      "utils/snapshot_manager.py"
+    ],
+    "notebook_paths": []
+  },
+  "pipeline_duration_s": 50.95,
+  "repair_mode": "deterministic",
+  "tree_integrity": {
+    "status": "post_extraction_mismatch",
+    "tree_sha": "f7b41297c60b54f204f854bd80aac9b796a1b80c",
+    "files_checked": 374,
+    "excluded_patched": [],
+    "sandbox_stderr": "RERUN_UPLOAD_MISMATCH 374 file(s): .dockerignore (mode 664 != 0644) .gitignore (mode 664 != 0644) Dockerfile (mode 664 != 0644) LICENSE (mode 664 != 0644) README.md (mode 664 != 0644) __init__.py (mode 664 != 0644) create_graph_data.py (mode 664 != 0644) csrc/cpu/graph_proc.cpp (mode 664 != 0644) csrc/cpu/graph_proc.h (mode 664 != 0644) csrc/cpu/image_proc.cpp (mode 664 != 0644) csrc/cpu/image_proc.h (mode 664 != 0644) csrc/main.cpp (mode 664 != 0644) csrc/setup.py (mode 664 != 0644) docker_req/req.txt (mode 664 != 0644) evaluate.py (mode 664 != 0644) example_data/test/seq017/color/000300.jpg (mode 664 != 0644) example_data/test/seq017/color/000600.jpg (mode 664 != 0644) example_data/test/seq017/depth/000300.png (mode 664 != 0644) example_data/test/seq017/depth/000600.png (mode 664 != 0644) example_data/test/seq017/graph_clusters/5dbd7c9104df0300f329f294_shirt_000300_000600_geodesic_0.05.bin (mode 664 != 0644)\n"
+  },
+  "result": {
+    "verdict": "INVALID_HARNESS",
+    "taxonomy_code": null,
+    "indeterminate_reason": "INVALID_HARNESS: post-extraction check failed in the sandbox: post-extraction check failed (exit code 97)",
+    "reason_code": "INVALID_HARNESS",
+    "error_chain": [],
+    "first_repo_error": null,
+    "last_error": null,
+    "error_traceback": "",
+    "attempts": [],
+    "certificate_prose": "RERUN's harness could not prove the uploaded files were the committed ones, so nothing is claimed about the repository. Verifies that the artifact executes. Does not verify the paper's numerical results."
+  },
+  "certificate": {
+    "repo_url": "https://github.com/DeformableFriends/NeuralTracking",
+    "commit_sha": "015256369a94a56b0e478fd100326b9aa97ec9a7",
+    "build_plan": {
+      "base_image": "python:3.10-slim",
+      "apt_install": [],
+      "install_commands": [
+        "true  # no declared dependency file found; nothing to install"
+      ],
+      "execute_command": "sh start_nnrt.sh",
+      "notes": [
+        "execute command is the repository's documented command (corpus ground truth)",
+        "base image python:3.10-slim: no usable Python declaration; RERUN default 3.10"
+      ]
+    },
+    "full_log": "[intake] cloned https://github.com/DeformableFriends/NeuralTracking@015256369a94a56b0e478fd100326b9aa97ec9a7\n[recon] calling Nemotron Nano\n[recon] entrypoint=evaluate.py confidence=0.85\n[python] python:3.10-slim (default): no usable Python declaration; RERUN default 3.10\n[planner] build plan: {'base_image': 'python:3.10-slim', 'apt_install': [], 'install_commands': ['true  # no declared dependency file found; nothing to install'], 'execute_command': 'sh start_nnrt.sh', 'notes': [\"execute command is the repository's documented command (corpus ground truth)\", 'base image python:3.10-slim: no usable Python declaration; RERUN default 3.10']}\n[integrity] verified 374 file(s) against tree f7b41297c60b54f204f854bd80aac9b796a1b80c\n[sandbox] starting build+execute (wall_clock_seconds=600)\n[runner] torch: repo imports torch without declaring it; runner provides the newest CPU wheel\n[integrity] FAILED \u2014 post-extraction check failed in the sandbox: post-extraction check failed (exit code 97)\n[verdict] INVALID_HARNESS \u2014 the run is void; this is RERUN's fault, not the repository's",
+    "diffs": [],
+    "verdict": "INVALID_HARNESS",
+    "timestamp": "2026-09-30T10:39:33.423639+00:00",
+    "bundle_version": 4,
+    "baseline": {
+      "result": "NOT_RUN"
+    },
+    "recovery": false,
+    "tree_integrity": {
+      "status": "post_extraction_mismatch",
+      "tree_sha": "f7b41297c60b54f204f854bd80aac9b796a1b80c",
+      "files_checked": 374,
+      "excluded_patched": [],
+      "sandbox_stderr": "RERUN_UPLOAD_MISMATCH 374 file(s): .dockerignore (mode 664 != 0644) .gitignore (mode 664 != 0644) Dockerfile (mode 664 != 0644) LICENSE (mode 664 != 0644) README.md (mode 664 != 0644) __init__.py (mode 664 != 0644) create_graph_data.py (mode 664 != 0644) csrc/cpu/graph_proc.cpp (mode 664 != 0644) csrc/cpu/graph_proc.h (mode 664 != 0644) csrc/cpu/image_proc.cpp (mode 664 != 0644) csrc/cpu/image_proc.h (mode 664 != 0644) csrc/main.cpp (mode 664 != 0644) csrc/setup.py (mode 664 != 0644) docker_req/req.txt (mode 664 != 0644) evaluate.py (mode 664 != 0644) example_data/test/seq017/color/000300.jpg (mode 664 != 0644) example_data/test/seq017/color/000600.jpg (mode 664 != 0644) example_data/test/seq017/depth/000300.png (mode 664 != 0644) example_data/test/seq017/depth/000600.png (mode 664 != 0644) example_data/test/seq017/graph_clusters/5dbd7c9104df0300f329f294_shirt_000300_000600_geodesic_0.05.bin (mode 664 != 0644)\n"
+    },
+    "corpus_hash": "7df090bea7013974f9f10fb8959ab0162734b51c83a80f744f9c310ce694fbdc",
+    "taxonomy_code": null,
+    "indeterminate_reason": "INVALID_HARNESS: post-extraction check failed in the sandbox: post-extraction check failed (exit code 97)",
+    "error_chain": [],
+    "first_repo_error": null,
+    "last_error": null,
+    "reproduction_passport_hash": "cb7df53a2c14be52f08da308457ca240a8abe6db3e697970414d646622ef430b"
+  },
+  "finished_at": "2026-09-30T10:39:33.542886+00:00",
+  "events": [
+    {
+      "t_s": 0.0,
+      "at": "2026-09-30T10:38:42.470328+00:00",
+      "line": "[intake] cloned https://github.com/DeformableFriends/NeuralTracking@015256369a94a56b0e478fd100326b9aa97ec9a7"
+    },
+    {
+      "t_s": 0.01,
+      "at": "2026-09-30T10:38:42.481055+00:00",
+      "line": "[recon] calling Nemotron Nano"
+    },
+    {
+      "t_s": 23.21,
+      "at": "2026-09-30T10:39:05.680125+00:00",
+      "line": "[recon] entrypoint=evaluate.py confidence=0.85"
+    },
+    {
+      "t_s": 23.22,
+      "at": "2026-09-30T10:39:05.693456+00:00",
+      "line": "[python] python:3.10-slim (default): no usable Python declaration; RERUN default 3.10"
+    },
+    {
+      "t_s": 24.44,
+      "at": "2026-09-30T10:39:06.913959+00:00",
+      "line": "[planner] build plan: {'base_image': 'python:3.10-slim', 'apt_install': [], 'install_commands': ['true  # no declared dependency file found; nothing to install'], 'execute_command': 'sh start_nnrt.sh', 'notes': [\"execute command is the repository's documented command (corpus ground truth)\", 'base image python:3.10-slim: no usable Python declaration; RERUN default 3.10']}"
+    },
+    {
+      "t_s": 27.16,
+      "at": "2026-09-30T10:39:09.628098+00:00",
+      "line": "[integrity] verified 374 file(s) against tree f7b41297c60b54f204f854bd80aac9b796a1b80c"
+    },
+    {
+      "t_s": 27.16,
+      "at": "2026-09-30T10:39:09.628142+00:00",
+      "line": "[sandbox] starting build+execute (wall_clock_seconds=600)"
+    },
+    {
+      "t_s": 27.16,
+      "at": "2026-09-30T10:39:09.629329+00:00",
+      "line": "[runner] torch: repo imports torch without declaring it; runner provides the newest CPU wheel"
+    },
+    {
+      "t_s": 50.95,
+      "at": "2026-09-30T10:39:33.423557+00:00",
+      "line": "[integrity] FAILED \u2014 post-extraction check failed in the sandbox: post-extraction check failed (exit code 97)"
+    },
+    {
+      "t_s": 50.95,
+      "at": "2026-09-30T10:39:33.423622+00:00",
+      "line": "[verdict] INVALID_HARNESS \u2014 the run is void; this is RERUN's fault, not the repository's"
+    }
+  ],
+  "model_calls": [
+    {
+      "model": "nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B",
+      "started_at": "2026-09-30T10:38:42.697611+00:00",
+      "latency_s": 22.98,
+      "finish_reason": "stop",
+      "content_is_none": false,
+      "has_reasoning": true,
+      "usage": {
+        "completion_tokens": 2302,
+        "prompt_tokens": 7012,
+        "total_tokens": 9314,
+        "completion_tokens_details": null,
+        "prompt_tokens_details": null
+      }
+    },
+    {
+      "model": "nvidia/nemotron-3-super-120b-a12b",
+      "started_at": "2026-09-30T10:39:05.695582+00:00",
+      "latency_s": 1.22,
+      "finish_reason": "stop",
+      "content_is_none": false,
+      "has_reasoning": true,
+      "usage": {
+        "completion_tokens": 40,
+        "prompt_tokens": 272,
+        "total_tokens": 312,
+        "completion_tokens_details": {
+          "accepted_prediction_tokens": null,
+          "audio_tokens": null,
+          "reasoning_tokens": 30,
+          "rejected_prediction_tokens": null,
+          "text_tokens": null
+        },
+        "prompt_tokens_details": {
+          "audio_tokens": null,
+          "cache_write_tokens": null,
+          "cached_tokens": 0,
+          "image_tokens": null,
+          "text_tokens": null,
+          "created_cache_tokens": 0,
+          "multimodal_tokens": null
+        },
+        "prompt_cache_hit_tokens": 0,
+        "prompt_cache_miss_tokens": 272
+      }
+    }
+  ],
+  "cost_guard": {
+    "spent_usd": 0.0010908,
+    "model_spent_usd": 0.0010908,
+    "sandbox_spent_usd": 0.0,
+    "remaining_usd": 1.9989092,
+    "model_usage": [
+      {
+        "model": "nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B",
+        "prompt_tokens": 7012,
+        "completion_tokens": 2302,
+        "cost_usd": 0.0009732
+      },
+      {
+        "model": "nvidia/nemotron-3-super-120b-a12b",
+        "prompt_tokens": 272,
+        "completion_tokens": 40,
+        "cost_usd": 0.0001176
+      }
+    ],
+    "prices_usd_per_1m": {
+      "nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B": [
+        0.06,
+        0.24
+      ],
+      "nvidia/nemotron-3-super-120b-a12b": [
+        0.3,
+        0.9
+      ],
+      "nvidia/Nemotron-3-Ultra-550b-a55b": [
+        1.0,
+        3.0
+      ]
+    },
+    "prices_source": "https://api.tokenfactory.nebius.com/v1/models?verbose=true (pricing field)",
+    "prices_retrieved": "2026-09-24"
+  }
+}

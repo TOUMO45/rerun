@@ -69,23 +69,36 @@ def test_pins_are_read_from_requirements_and_printf_lists_and_local_suffix_is_dr
     assert re_.torch_specs(["pytorch-lightning==1.0 torchmetrics==0.5 my-torch==1"]) == {}
 
 
-def test_setup_for_a_pinned_repo_keeps_the_pins_on_the_cpu_index():
+def test_setup_for_a_pinned_repo_keeps_the_pins_and_installs_the_whole_family():
     s = re_.plan_torch_setup(["pip install -r x.txt; printf 'torch==1.12.1 torchvision==0.13.1'"], None)
-    assert s.specs == ("torch==1.12.1", "torchvision==0.13.1")
-    assert s.install_command == ("pip install torch==1.12.1 torchvision==0.13.1 "
-                                 "--index-url https://download.pytorch.org/whl/cpu --extra-index-url https://pypi.org/simple")
+    assert s.specs == ("torch==1.12.1", "torchvision==0.13.1", "torchaudio")
+    tail = "--index-url https://download.pytorch.org/whl/cpu --extra-index-url https://pypi.org/simple"
+    # the matched set first; if torchaudio has no wheel for this Python/torch, only what the repo uses
+    assert s.install_command == (f"pip install torch==1.12.1 torchvision==0.13.1 torchaudio {tail} "
+                                 f"|| pip install torch==1.12.1 torchvision==0.13.1 {tail}")
     assert "RERUN_TORCH_OK" in s.fix_command and "clear-execstack" in s.fix_command
 
 
-def test_companion_pin_without_a_torch_pin_leaves_torch_to_the_resolver():
+def test_companion_pin_without_a_torch_pin_installs_torch_unpinned_beside_it():
     s = re_.plan_torch_setup(["pip install torchvision==0.13.1 torch"], None)
-    assert s.specs == ("torchvision==0.13.1",)
+    assert s.specs == ("torch", "torchvision==0.13.1", "torchaudio")
 
 
-def test_repo_that_imports_torch_without_declaring_it_gets_the_newest_cpu_wheel(tmp_path):
+def test_repo_that_imports_torch_without_declaring_it_gets_the_newest_matched_cpu_wheels(tmp_path):
     (tmp_path / "train.py").write_text("import torch\nprint(torch.zeros(1))\n", encoding="utf-8")
     s = re_.plan_torch_setup(["true"], tmp_path)
-    assert s.specs == ("torch",) and "without declaring" in s.reason
+    assert s.specs == ("torch", "torchvision", "torchaudio") and s.needed == ("torch",) and "without declaring" in s.reason
+
+
+def test_importing_only_torchvision_installs_torch_and_torchvision_together(tmp_path):
+    """Attempt 1, entry 4: the repo imported torchvision, the runner installed torch alone, torchvision was missing."""
+    (tmp_path / "a.py").write_text("import numpy\nfrom torchvision import transforms\n", encoding="utf-8")
+    s = re_.plan_torch_setup(["true"], tmp_path)
+    assert s.specs == ("torch", "torchvision", "torchaudio") and s.needed == ("torch", "torchvision")
+    assert s.install_command.startswith("pip install torch torchvision torchaudio ")
+    for module in ("torch", "torchvision", "torchaudio"):
+        (tmp_path / "a.py").write_text(f"import {module}.nn\n", encoding="utf-8")
+        assert re_.plan_torch_setup(["true"], tmp_path).specs == ("torch", "torchvision", "torchaudio")
 
 
 def test_a_torch_free_repo_pays_nothing(tmp_path):
@@ -133,3 +146,12 @@ def test_batch_preflight_refuses_a_non_sealed_default_image():
     batch.check_sandbox_image("python:3.10-slim")
     with pytest.raises(batch.PreflightError, match="3.11"):
         batch.check_sandbox_image("python:3.11-slim")
+
+
+def test_fix_script_uses_a_runner_owned_prefix_and_verifies_the_flag_before_use():
+    """Attempt 1, entry 3: pip on python:3.6-slim resolved an unpinned patchelf to 0.17.2, which lacks --clear-execstack."""
+    fix = re_.FIX_AND_VERIFY
+    assert "--target" in fix and "/opt/rerun_tools" in fix and "patchelf==0.19.1.0" in fix
+    assert fix.index('"--help"') < fix.index('"--clear-execstack"')
+    assert "RERUN_SANDBOX_INCOMPAT" in fix and "sys.exit(98)" in fix
+    assert '"-q", "patchelf"' not in fix  # no unpinned install into the repo's environment

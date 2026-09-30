@@ -34,7 +34,8 @@ before they run, and an actual quota failure is classified after the fact
 Routing rule (never a local upload of an over-limit repo): a repository whose
 upload archive exceeds MAX_UPLOAD_BYTES is not sent. Only the small integrity
 manifest is uploaded, and the sandbox downloads the pinned commit itself
-(codeload.github.com tarball, no git needed in the image) and verifies every file
+(harness-v1.3.2: `git clone --filter=blob:none` + `git checkout <sha>`, HEAD and `git status` checked; the GitHub tarball
+only where git cannot be installed, e.g. python:3.6-slim's archived apt repos) and verifies every file
 against the same git-blob manifest. If the source is not a GitHub repo at a full
 commit SHA there is no download route and the run ends UPLOAD_TOO_LARGE.
 
@@ -88,16 +89,6 @@ class DownloadSource:
     @property
     def tarball_url(self) -> str:
         return f"https://codeload.github.com/{self.owner}/{self.repo}/tar.gz/{self.sha}"
-
-    def fetch_command(self) -> str:
-        """Shell text for the sandbox. Every interpolated value was validated against
-        a strict pattern in __post_init__ and is quoted regardless."""
-        tmp = "/tmp/rerun_source.tar.gz"
-        return (
-            "python3 -c 'import sys, urllib.request; urllib.request.urlretrieve(sys.argv[1], sys.argv[2])' "
-            f"{shlex.quote(self.tarball_url)} {tmp} "
-            f"&& tar -xzf {tmp} --strip-components=1 --no-same-owner && rm -f {tmp}"
-        )
 
 
 @dataclass(frozen=True)

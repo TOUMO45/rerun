@@ -121,6 +121,9 @@ _GIT_MODE_TO_FILE_MODE = {"100755": 0o755, "100644": 0o644}
 _DEFAULT_FILE_MODE = 0o644
 
 # Python 3.6-compatible (the oldest supported sandbox image): no walrus.
+# Mode check = the executable bit only, which is all git tracks (harness-v1.3.2): GitHub tarballs and any
+# umask-affected extraction give 0664/0775 for git's 100644/100755, and comparing the full mode failed every
+# file of the first download-route run (attempt 1, entry 2: "374 file(s) ... mode 664 != 0644", content equal).
 _VERIFY_SCRIPT = f"""import hashlib, json, os, sys
 m = json.load(open("{UPLOAD_DIR}/manifest.json"))
 bad = []
@@ -134,12 +137,74 @@ for p in sorted(m):
         continue
     if hashlib.sha1(b"blob " + str(len(d)).encode() + b"\\0" + d).hexdigest() != sha:
         bad.append(p + " (content)")
-    elif st != int(mode, 8):
+    elif bool(st & 0o111) != bool(int(mode, 8) & 0o111):
         bad.append(p + " (mode %o != %s)" % (st, mode))
 if bad:
     sys.stderr.write("RERUN_UPLOAD_MISMATCH %d file(s): %s\\n" % (len(bad), " ".join(bad[:20])))
     sys.exit({UPLOAD_MISMATCH_EXIT})
 print("RERUN_UPLOAD_VERIFIED %d file(s)" % len(m))
+"""
+
+# The download route's fetch step (harness-v1.3.2). Primary: `git clone --filter=blob:none` + `git checkout <sha>`
+# inside the sandbox, then `git rev-parse HEAD == sha`, an empty `git status --porcelain`, and
+# `git submodule update --init` if .gitmodules exists; git is installed with apt if the image lacks it.
+# Fallback (git unobtainable, e.g. the archived Debian bullseye repos of python:3.6-slim, or any git failure):
+# the GitHub tarball. Either way verify.py then checks every file against the git-blob manifest. Python 3.6 code.
+_FETCH_SCRIPT = f"""import json, os, shutil, subprocess, sys
+D = "{UPLOAD_DIR}"
+src = json.load(open(D + "/source.json"))
+sha = src["sha"]
+url = "https://github.com/%s/%s.git" % (src["owner"], src["repo"])
+work = D + "/src"
+
+
+def sh(args, cwd=None):
+    p = subprocess.run(args, cwd=cwd, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, universal_newlines=True,
+                       env=dict(os.environ, DEBIAN_FRONTEND="noninteractive", GIT_TERMINAL_PROMPT="0"))
+    if p.returncode != 0:
+        raise RuntimeError("%s -> exit %d: %s" % (" ".join(args[:4]), p.returncode, p.stdout[-400:]))
+    return p.stdout.strip()
+
+
+def via_git():
+    if not shutil.which("git"):
+        sh(["apt-get", "update", "-qq"])
+        sh(["apt-get", "install", "-y", "-qq", "--no-install-recommends", "git", "ca-certificates"])
+    sh(["git", "clone", "-q", "--filter=blob:none", "--no-checkout", url, work])
+    sh(["git", "checkout", "-q", "--detach", sha], cwd=work)
+    head = sh(["git", "rev-parse", "HEAD"], cwd=work)
+    if head != sha:
+        raise RuntimeError("HEAD %s != pinned %s" % (head, sha))
+    if os.path.exists(work + "/.gitmodules"):
+        sh(["git", "submodule", "update", "--init", "--recursive"], cwd=work)
+    dirty = sh(["git", "status", "--porcelain"], cwd=work)
+    if dirty:
+        raise RuntimeError("git status not clean: " + dirty[:400])
+    shutil.rmtree(work + "/.git")
+    # cp -a MERGES into directories that already exist (the sandbox cwd is "/", which has /media, /opt, ...);
+    # shutil.move would nest media/ inside /media (found live 2026-09-30: media/teaser.gif "missing").
+    sh(["cp", "-a", work + "/.", "."])
+    shutil.rmtree(work)
+
+
+def via_tarball():
+    sh(["python3", "-c", "import sys, urllib.request; urllib.request.urlretrieve(sys.argv[1], sys.argv[2])",
+        "https://codeload.github.com/%s/%s/tar.gz/%s" % (src["owner"], src["repo"], sha), "/tmp/rerun_source.tar.gz"])
+    sh(["tar", "-xzf", "/tmp/rerun_source.tar.gz", "--strip-components=1", "--no-same-owner"])
+    os.remove("/tmp/rerun_source.tar.gz")
+
+
+try:
+    via_git()
+    route = "git"
+except Exception as exc:
+    sys.stderr.write("RERUN_FETCH_GIT_FAILED: %s\\n" % str(exc)[:600])
+    shutil.rmtree(work, ignore_errors=True)
+    via_tarball()
+    route = "tarball (git failed: %s)" % str(exc)[:200].replace("\\n", " ")
+# Outside the repo tree: for the live verification and debugging, invisible to the repo.
+open("/tmp/rerun_fetch_route", "w").write("%s %s" % (route, sha))
+print("RERUN_FETCH %s %s" % (route, sha))
 """
 
 # The archive is deleted right after extraction, BEFORE the manifest check
@@ -153,12 +218,12 @@ EXTRACT_COMMAND = (
 
 def extract_command_for(source: "sandbox_limits.DownloadSource | None") -> str:
     """The RERUN-owned first step: unpack the tar (and, on the download route, fetch
-    the pinned source), verify against the manifest, then remove RERUN's files."""
+    the pinned source with fetch.py), verify against the manifest, then remove RERUN's files."""
     if source is None:
         return EXTRACT_COMMAND
     return (
         f"tar -xpf {UPLOAD_ARCHIVE} --no-same-owner && rm -f {UPLOAD_ARCHIVE} "
-        f"&& {source.fetch_command()} && python3 {UPLOAD_DIR}/verify.py && rm -rf {UPLOAD_DIR}"
+        f"&& python3 {UPLOAD_DIR}/fetch.py && python3 {UPLOAD_DIR}/verify.py && rm -rf {UPLOAD_DIR}"
     )
 
 
@@ -175,6 +240,7 @@ def build_upload_archive(
     modes: dict[str, str] | None = None,
     mtime: float | None = None,
     manifest_only: bool = False,
+    download_source: "sandbox_limits.DownloadSource | None" = None,
 ) -> tuple[bytes, dict[str, list[str]]]:
     """(tar bytes, manifest path -> [git blob SHA-1 of the bytes put in the
     tar, octal file mode]). `modes` maps path -> git mode ("100755"/"100644").
@@ -204,6 +270,12 @@ def build_upload_archive(
             manifest[name] = [_blob_sha1(data), f"{mode:04o}"]
         _add(f"{UPLOAD_DIR}/manifest.json", json.dumps(manifest, sort_keys=True).encode("utf-8"))
         _add(f"{UPLOAD_DIR}/verify.py", _VERIFY_SCRIPT.encode("utf-8"))
+        if manifest_only:
+            if download_source is None:
+                raise UploadIntegrityError("a manifest-only archive needs its download source")
+            _add(f"{UPLOAD_DIR}/fetch.py", _FETCH_SCRIPT.encode("utf-8"))
+            _add(f"{UPLOAD_DIR}/source.json", json.dumps(
+                {"owner": download_source.owner, "repo": download_source.repo, "sha": download_source.sha}, sort_keys=True).encode("utf-8"))
     return buffer.getvalue(), manifest
 
 
@@ -242,6 +314,10 @@ class StepResult:
     stderr: str
     elapsed_seconds: float
     cost_usd: float
+    # harness-v1.3.2: which kind of step this was. `runner_setup` = RERUN's own environment ops (the torch install
+    # and the exec-stack fix), `repo_install` = the repo's install commands, `repo_run` = the repo's command. A failure
+    # in `runner_setup` is never the repository's fault (error_chain.attribute keys on this first).
+    phase: str = "repo_run"
 
 
 @dataclass(frozen=True)
@@ -274,7 +350,7 @@ class SandboxRunResult:
         return self.final.exit_code == 0
 
 
-def step_result_from_image(image, command: str) -> StepResult:
+def step_result_from_image(image, command: str, phase: str = "repo_run") -> StepResult:
     """Map a completed contree_sdk image's `.result` onto our own
     dataclass, so the rest of the codebase never touches the SDK's types
     directly. `image.result` matches `ContreeResult` (see module
@@ -290,6 +366,7 @@ def step_result_from_image(image, command: str) -> StepResult:
         stderr=result.stderr or "",
         elapsed_seconds=result.elapsed_time.total_seconds(),
         cost_usd=result.cost,
+        phase=phase,
     )
 
 
@@ -350,7 +427,7 @@ def run_build_and_execute(
             raise UploadTooLargeError(len(archive), limit)
         if decision.mode == "download":
             # Never a local upload of an over-limit repo: send the manifest only.
-            archive = build_upload_archive(upload_files, file_modes, manifest_only=True)[0]
+            archive = build_upload_archive(upload_files, file_modes, manifest_only=True, download_source=download_source)[0]
             extract_command = extract_command_for(download_source)
 
     # harness-v1.1: transient API failures (timeouts, transport errors, 429,
@@ -364,6 +441,7 @@ def run_build_and_execute(
                 project_id=project_id,
                 base_image=base_image,
                 commands=commands,
+                runner_commands=frozenset(runner_torch),
                 wall_clock_seconds=wall_clock_seconds,
                 archive=archive,
                 extract_command=extract_command,
@@ -390,6 +468,7 @@ def _run_once(
     commands: list[str],
     wall_clock_seconds: float,
     archive: bytes | None,
+    runner_commands: frozenset[str] = frozenset(),
     extract_command: str = EXTRACT_COMMAND,
 ) -> SandboxRunResult:
     """One attempt of the whole chain. Raises the SDK's own errors (the
@@ -459,7 +538,8 @@ def _run_once(
                 disposable=is_last,
                 preserve_env=not is_last,
             ).wait()
-            step = step_result_from_image(executed, cmd)
+            phase = "runner_setup" if cmd in runner_commands else ("repo_run" if is_last else "repo_install")
+            step = step_result_from_image(executed, cmd, phase)
             current = executed
             last_image_uuid = getattr(executed, "uuid", None) or last_image_uuid
             if not is_last:
@@ -480,7 +560,7 @@ def _run_once(
         if extract_cost and steps:
             first = steps[0]
             steps[0] = StepResult(first.command, first.exit_code, first.stdout, first.stderr,
-                                  first.elapsed_seconds, first.cost_usd + extract_cost)
+                                  first.elapsed_seconds, first.cost_usd + extract_cost, first.phase)
         sandbox_id = str(last_image_uuid) if last_image_uuid is not None else None
         return SandboxRunResult(
             steps=tuple(steps), sandbox_id=sandbox_id, upload_seconds=upload_seconds, extract_seconds=extract_seconds

@@ -1,0 +1,323 @@
+{
+  "run_kind": "live end-to-end run",
+  "dev_run": false,
+  "dry_run": null,
+  "batch": {
+    "harness_tag": "harness-v1.3.1",
+    "harness_commit": "0b8fd6dcd9daff19215b7f9caa704f35e5c0c2e3",
+    "head_commit": "0b8fd6dcd9daff19215b7f9caa704f35e5c0c2e3",
+    "corpus": "corpus-v2",
+    "prereg_sha256": "ae5a722249156e058d3d360bdc63fa8224140d0688f1daa307ecfa93a98c7284",
+    "corpus_hash": "7df090bea7013974f9f10fb8959ab0162734b51c83a80f744f9c310ce694fbdc",
+    "arm": "control",
+    "total_cap_usd": 25.0,
+    "already_spent_usd": 0.0,
+    "entry_id": 1,
+    "category": "PRIMARY",
+    "rules_matched": [],
+    "per_entry_cap_usd": 2.0
+  },
+  "started_at": "2026-09-30T10:35:23.211377+00:00",
+  "corpus_entry": {
+    "name": "nadiinchi__power_laws_deep_ensembles",
+    "repo_url": "https://github.com/nadiinchi/power_laws_deep_ensembles",
+    "commit_sha": "d0aaf2f309a833199cdca58b6459fd56b194c50c",
+    "command": "python3 train.py --dir=logs/oct --data_path=./data/ --dataset=CIFAR100 --use_test --transform=VGG --model=VGG16 --save_freq=200 --print_freq=5 --epochs=200 --wd=0.001 --lr=0.05 --dropout 0.5 --comment width64 --seed 25477 --width 64 --num-nets 8 --num-exps=5 --not-save-weights",
+    "command_source": "README.md line 10"
+  },
+  "config": {
+    "models": {
+      "recon": "nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B",
+      "planner": "nvidia/nemotron-3-super-120b-a12b",
+      "repairer": "nvidia/nemotron-3-super-120b-a12b",
+      "adjudicator": "nvidia/Nemotron-3-Ultra-550b-a55b"
+    },
+    "sandbox_backend": "token_factory",
+    "sandbox_image_default": "python:3.10-slim",
+    "sandbox_wall_clock_seconds": 600.0,
+    "arm": "control",
+    "repair_enabled": false,
+    "max_attempts": 0,
+    "tavily_configured": false,
+    "cost_cap_usd": 2.0
+  },
+  "intake": {
+    "duration_s": 2.29,
+    "resolved_sha": "d0aaf2f309a833199cdca58b6459fd56b194c50c",
+    "dependency_files": [],
+    "declared_dependencies": [],
+    "entrypoint_candidates": [
+      "train.py"
+    ],
+    "notebook_paths": []
+  },
+  "pipeline_duration_s": 63.39,
+  "repair_mode": "deterministic",
+  "tree_integrity": {
+    "status": "verified",
+    "tree_sha": "8816889b0fab7d8f3770ab268822f2051826849e",
+    "files_checked": 14,
+    "excluded_patched": []
+  },
+  "result": {
+    "verdict": "BLOCKED",
+    "taxonomy_code": "DEP_MISSING",
+    "indeterminate_reason": "",
+    "reason_code": null,
+    "error_chain": [
+      {
+        "error": "ModuleNotFoundError: No module named 'tabulate'",
+        "class": "DEP_MISSING",
+        "attribution": "REPO",
+        "cleared_by": null
+      }
+    ],
+    "first_repo_error": "ModuleNotFoundError: No module named 'tabulate'",
+    "last_error": "ModuleNotFoundError: No module named 'tabulate'",
+    "error_traceback": "",
+    "attempts": [],
+    "certificate_prose": "The baseline as-is run failed with exit code 1 due to a ModuleNotFoundError for the 'tabulate' module. The classifier identified the failure as DEP_MISSING, and the verdict was recorded as BLOCKED after zero repair attempts. Verifies that the artifact executes. Does not verify the paper's numerical results."
+  },
+  "certificate": {
+    "repo_url": "https://github.com/nadiinchi/power_laws_deep_ensembles",
+    "commit_sha": "d0aaf2f309a833199cdca58b6459fd56b194c50c",
+    "build_plan": {
+      "base_image": "python:3.10-slim",
+      "apt_install": [],
+      "install_commands": [
+        "true  # no declared dependency file found; nothing to install"
+      ],
+      "execute_command": "python3 train.py --dir=logs/oct --data_path=./data/ --dataset=CIFAR100 --use_test --transform=VGG --model=VGG16 --save_freq=200 --print_freq=5 --epochs=200 --wd=0.001 --lr=0.05 --dropout 0.5 --comment width64 --seed 25477 --width 64 --num-nets 8 --num-exps=5 --not-save-weights",
+      "notes": [
+        "execute command is the repository's documented command (corpus ground truth)",
+        "base image python:3.10-slim: no usable Python declaration; RERUN default 3.10"
+      ]
+    },
+    "full_log": "[intake] cloned https://github.com/nadiinchi/power_laws_deep_ensembles@d0aaf2f309a833199cdca58b6459fd56b194c50c\n[recon] calling Nemotron Nano\n[recon] entrypoint=train.py confidence=0.90\n[python] python:3.10-slim (default): no usable Python declaration; RERUN default 3.10\n[planner] build plan: {'base_image': 'python:3.10-slim', 'apt_install': [], 'install_commands': ['true  # no declared dependency file found; nothing to install'], 'execute_command': 'python3 train.py --dir=logs/oct --data_path=./data/ --dataset=CIFAR100 --use_test --transform=VGG --model=VGG16 --save_freq=200 --print_freq=5 --epochs=200 --wd=0.001 --lr=0.05 --dropout 0.5 --comment width64 --seed 25477 --width 64 --num-nets 8 --num-exps=5 --not-save-weights', 'notes': [\"execute command is the repository's documented command (corpus ground truth)\", 'base image python:3.10-slim: no usable Python declaration; RERUN default 3.10']}\n[integrity] verified 14 file(s) against tree 8816889b0fab7d8f3770ab268822f2051826849e\n[sandbox] starting build+execute (wall_clock_seconds=600)\n[runner] torch: repo imports torch without declaring it; runner provides the newest CPU wheel\n[cost_guard] recorded $0.1807 sandbox spend, $1.8189 remaining today\n[sandbox] id=61cbd426-ca17-4d0c-b126-0a1c8979c1f8 exit_code=1\n[baseline] as-is run: FAILS (exit code 1)\n[classifier] DEP_MISSING: ModuleNotFoundError: No module named 'tabulate'\n[verdict] BLOCKED after 0 repair attempt(s): DEP_MISSING",
+    "diffs": [],
+    "verdict": "BLOCKED",
+    "timestamp": "2026-09-30T10:36:28.893658+00:00",
+    "bundle_version": 4,
+    "baseline": {
+      "result": "FAILS",
+      "exit_code": 1,
+      "base_image": "python:3.10-slim",
+      "install_commands": [
+        "true  # no declared dependency file found; nothing to install"
+      ],
+      "execute_command": "python3 train.py --dir=logs/oct --data_path=./data/ --dataset=CIFAR100 --use_test --transform=VGG --model=VGG16 --save_freq=200 --print_freq=5 --epochs=200 --wd=0.001 --lr=0.05 --dropout 0.5 --comment width64 --seed 25477 --width 64 --num-nets 8 --num-exps=5 --not-save-weights",
+      "sandbox_id": "61cbd426-ca17-4d0c-b126-0a1c8979c1f8",
+      "taxonomy_code": "DEP_MISSING",
+      "evidence": "ModuleNotFoundError: No module named 'tabulate'"
+    },
+    "recovery": false,
+    "tree_integrity": {
+      "status": "verified",
+      "tree_sha": "8816889b0fab7d8f3770ab268822f2051826849e",
+      "files_checked": 14,
+      "excluded_patched": []
+    },
+    "corpus_hash": "7df090bea7013974f9f10fb8959ab0162734b51c83a80f744f9c310ce694fbdc",
+    "taxonomy_code": "DEP_MISSING",
+    "indeterminate_reason": "",
+    "error_chain": [
+      {
+        "error": "ModuleNotFoundError: No module named 'tabulate'",
+        "class": "DEP_MISSING",
+        "attribution": "REPO",
+        "cleared_by": null
+      }
+    ],
+    "first_repo_error": "ModuleNotFoundError: No module named 'tabulate'",
+    "last_error": "ModuleNotFoundError: No module named 'tabulate'",
+    "reproduction_passport_hash": "517094fe6fb859803a16743b6031e82a2ed7af33731e961db7c7f0865b161489"
+  },
+  "finished_at": "2026-09-30T10:36:28.915706+00:00",
+  "events": [
+    {
+      "t_s": 0.0,
+      "at": "2026-09-30T10:35:25.506412+00:00",
+      "line": "[intake] cloned https://github.com/nadiinchi/power_laws_deep_ensembles@d0aaf2f309a833199cdca58b6459fd56b194c50c"
+    },
+    {
+      "t_s": 0.01,
+      "at": "2026-09-30T10:35:25.516053+00:00",
+      "line": "[recon] calling Nemotron Nano"
+    },
+    {
+      "t_s": 5.95,
+      "at": "2026-09-30T10:35:31.454369+00:00",
+      "line": "[recon] entrypoint=train.py confidence=0.90"
+    },
+    {
+      "t_s": 5.97,
+      "at": "2026-09-30T10:35:31.474730+00:00",
+      "line": "[python] python:3.10-slim (default): no usable Python declaration; RERUN default 3.10"
+    },
+    {
+      "t_s": 7.07,
+      "at": "2026-09-30T10:35:32.579303+00:00",
+      "line": "[planner] build plan: {'base_image': 'python:3.10-slim', 'apt_install': [], 'install_commands': ['true  # no declared dependency file found; nothing to install'], 'execute_command': 'python3 train.py --dir=logs/oct --data_path=./data/ --dataset=CIFAR100 --use_test --transform=VGG --model=VGG16 --save_freq=200 --print_freq=5 --epochs=200 --wd=0.001 --lr=0.05 --dropout 0.5 --comment width64 --seed 25477 --width 64 --num-nets 8 --num-exps=5 --not-save-weights', 'notes': [\"execute command is the repository's documented command (corpus ground truth)\", 'base image python:3.10-slim: no usable Python declaration; RERUN default 3.10']}"
+    },
+    {
+      "t_s": 7.18,
+      "at": "2026-09-30T10:35:32.690002+00:00",
+      "line": "[integrity] verified 14 file(s) against tree 8816889b0fab7d8f3770ab268822f2051826849e"
+    },
+    {
+      "t_s": 7.18,
+      "at": "2026-09-30T10:35:32.690046+00:00",
+      "line": "[sandbox] starting build+execute (wall_clock_seconds=600)"
+    },
+    {
+      "t_s": 7.18,
+      "at": "2026-09-30T10:35:32.691153+00:00",
+      "line": "[runner] torch: repo imports torch without declaring it; runner provides the newest CPU wheel"
+    },
+    {
+      "t_s": 61.14,
+      "at": "2026-09-30T10:36:26.641648+00:00",
+      "line": "[cost_guard] recorded $0.1807 sandbox spend, $1.8189 remaining today"
+    },
+    {
+      "t_s": 61.14,
+      "at": "2026-09-30T10:36:26.641721+00:00",
+      "line": "[sandbox] id=61cbd426-ca17-4d0c-b126-0a1c8979c1f8 exit_code=1"
+    },
+    {
+      "t_s": 61.14,
+      "at": "2026-09-30T10:36:26.641744+00:00",
+      "line": "[baseline] as-is run: FAILS (exit code 1)"
+    },
+    {
+      "t_s": 61.14,
+      "at": "2026-09-30T10:36:26.646047+00:00",
+      "line": "[classifier] DEP_MISSING: ModuleNotFoundError: No module named 'tabulate'"
+    },
+    {
+      "t_s": 61.14,
+      "at": "2026-09-30T10:36:26.646114+00:00",
+      "line": "[verdict] BLOCKED after 0 repair attempt(s): DEP_MISSING"
+    }
+  ],
+  "model_calls": [
+    {
+      "model": "nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B",
+      "started_at": "2026-09-30T10:35:25.753173+00:00",
+      "latency_s": 5.7,
+      "finish_reason": "stop",
+      "content_is_none": false,
+      "has_reasoning": true,
+      "usage": {
+        "completion_tokens": 1003,
+        "prompt_tokens": 1622,
+        "total_tokens": 2625,
+        "completion_tokens_details": null,
+        "prompt_tokens_details": null
+      }
+    },
+    {
+      "model": "nvidia/nemotron-3-super-120b-a12b",
+      "started_at": "2026-09-30T10:35:31.475958+00:00",
+      "latency_s": 1.1,
+      "finish_reason": "stop",
+      "content_is_none": false,
+      "has_reasoning": true,
+      "usage": {
+        "completion_tokens": 41,
+        "prompt_tokens": 270,
+        "total_tokens": 311,
+        "completion_tokens_details": {
+          "accepted_prediction_tokens": null,
+          "audio_tokens": null,
+          "reasoning_tokens": 31,
+          "rejected_prediction_tokens": null,
+          "text_tokens": null
+        },
+        "prompt_tokens_details": {
+          "audio_tokens": null,
+          "cache_write_tokens": null,
+          "cached_tokens": 0,
+          "image_tokens": null,
+          "text_tokens": null,
+          "created_cache_tokens": 0,
+          "multimodal_tokens": null
+        },
+        "prompt_cache_hit_tokens": 0,
+        "prompt_cache_miss_tokens": 270
+      }
+    },
+    {
+      "model": "nvidia/Nemotron-3-Ultra-550b-a55b",
+      "started_at": "2026-09-30T10:36:26.647549+00:00",
+      "latency_s": 2.25,
+      "finish_reason": "stop",
+      "content_is_none": false,
+      "has_reasoning": true,
+      "usage": {
+        "completion_tokens": 375,
+        "prompt_tokens": 665,
+        "total_tokens": 1040,
+        "completion_tokens_details": {
+          "accepted_prediction_tokens": null,
+          "audio_tokens": null,
+          "reasoning_tokens": 277,
+          "rejected_prediction_tokens": null,
+          "text_tokens": null
+        },
+        "prompt_tokens_details": {
+          "audio_tokens": null,
+          "cache_write_tokens": null,
+          "cached_tokens": 0,
+          "image_tokens": null,
+          "text_tokens": null,
+          "multimodal_tokens": null
+        },
+        "prompt_cache_hit_tokens": 0,
+        "prompt_cache_miss_tokens": 665
+      }
+    }
+  ],
+  "cost_guard": {
+    "spent_usd": 0.18291427999999998,
+    "model_spent_usd": 0.00224594,
+    "sandbox_spent_usd": 0.18066833999999998,
+    "remaining_usd": 1.8170857200000001,
+    "model_usage": [
+      {
+        "model": "nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B",
+        "prompt_tokens": 1622,
+        "completion_tokens": 1003,
+        "cost_usd": 0.00033803999999999996
+      },
+      {
+        "model": "nvidia/nemotron-3-super-120b-a12b",
+        "prompt_tokens": 270,
+        "completion_tokens": 41,
+        "cost_usd": 0.0001179
+      },
+      {
+        "model": "nvidia/Nemotron-3-Ultra-550b-a55b",
+        "prompt_tokens": 665,
+        "completion_tokens": 375,
+        "cost_usd": 0.00179
+      }
+    ],
+    "prices_usd_per_1m": {
+      "nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B": [
+        0.06,
+        0.24
+      ],
+      "nvidia/nemotron-3-super-120b-a12b": [
+        0.3,
+        0.9
+      ],
+      "nvidia/Nemotron-3-Ultra-550b-a55b": [
+        1.0,
+        3.0
+      ]
+    },
+    "prices_source": "https://api.tokenfactory.nebius.com/v1/models?verbose=true (pricing field)",
+    "prices_retrieved": "2026-09-24"
+  }
+}

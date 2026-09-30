@@ -52,3 +52,13 @@ total spend cap $25 across both arms (`--total-cap-usd 25`), per-entry $2 unchan
 
 **Operator environment (not in git; `.env` is untracked):** `NEBIUS_SANDBOX_IMAGE` changed `python:3.11-slim` -> `python:3.10-slim`
 (the sealed driver requires it).
+
+## Phase 3d — attempt 1 aborted; harness-v1.3.2 (2026-09-30)
+CONTROL on harness-v1.3.1 stopped at 4/20 ($0.47): entry 3 charged RERUN's failed `patchelf --clear-execstack` (py3.6 resolves patchelf 0.17.2)
+to the repo, entry 2 failed the download route's exit-97 check (mode 664 vs 0644 on all 374 files, then a `shutil.move` into `/media` bug),
+entry 4 lacked torchvision (runner installed torch only), and the driver crashed once on U+FFFD (cp1252). Records kept in
+`runs/corpus_v2_batch/attempt1_harness-v1.3.1_aborted_4of20/`. v1.3.2: phase-first attribution (`runner_setup` never REPO; `RUNNER_SETUP_FAILED`),
+runner-owned pinned patchelf with a pre-check (SANDBOX_INCOMPAT if the flag is absent), git-first download route with a tarball fallback and an
+exec-bit-only mode check, matched torch family, UTF-8 driver, and the enforced seal rule (`seal_verification.json`, preflight). Live
+verification records: `runs/sandbox_verification/final/` (9 real Nebius runs; pre-seal spend $1.97). Suite: 974 passed, 9 skipped.
+

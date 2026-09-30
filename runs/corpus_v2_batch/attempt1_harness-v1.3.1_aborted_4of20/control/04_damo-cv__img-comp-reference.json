@@ -1,0 +1,323 @@
+{
+  "run_kind": "live end-to-end run",
+  "dev_run": false,
+  "dry_run": null,
+  "batch": {
+    "harness_tag": "harness-v1.3.1",
+    "harness_commit": "0b8fd6dcd9daff19215b7f9caa704f35e5c0c2e3",
+    "head_commit": "0b8fd6dcd9daff19215b7f9caa704f35e5c0c2e3",
+    "corpus": "corpus-v2",
+    "prereg_sha256": "ae5a722249156e058d3d360bdc63fa8224140d0688f1daa307ecfa93a98c7284",
+    "corpus_hash": "7df090bea7013974f9f10fb8959ab0162734b51c83a80f744f9c310ce694fbdc",
+    "arm": "control",
+    "total_cap_usd": 25.0,
+    "already_spent_usd": 0.0,
+    "entry_id": 4,
+    "category": "PRIMARY",
+    "rules_matched": [],
+    "per_entry_cap_usd": 2.0
+  },
+  "started_at": "2026-09-30T10:43:06.800706+00:00",
+  "corpus_entry": {
+    "name": "damo-cv__img-comp-reference",
+    "repo_url": "https://github.com/damo-cv/img-comp-reference",
+    "commit_sha": "193fc9464d27fcd806d5288448628923b54a5a19",
+    "command": "sh compress.sh original.png [model_path]",
+    "command_source": "README.md line 53"
+  },
+  "config": {
+    "models": {
+      "recon": "nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B",
+      "planner": "nvidia/nemotron-3-super-120b-a12b",
+      "repairer": "nvidia/nemotron-3-super-120b-a12b",
+      "adjudicator": "nvidia/Nemotron-3-Ultra-550b-a55b"
+    },
+    "sandbox_backend": "token_factory",
+    "sandbox_image_default": "python:3.10-slim",
+    "sandbox_wall_clock_seconds": 600.0,
+    "arm": "control",
+    "repair_enabled": false,
+    "max_attempts": 0,
+    "tavily_configured": false,
+    "cost_cap_usd": 2.0
+  },
+  "intake": {
+    "duration_s": 3.49,
+    "resolved_sha": "193fc9464d27fcd806d5288448628923b54a5a19",
+    "dependency_files": [],
+    "declared_dependencies": [],
+    "entrypoint_candidates": [
+      "main.py"
+    ],
+    "notebook_paths": []
+  },
+  "pipeline_duration_s": 79.69,
+  "repair_mode": "deterministic",
+  "tree_integrity": {
+    "status": "verified",
+    "tree_sha": "fcfd17dfaaf29e4bddaadd3b3bde8b72bd77ca6b",
+    "files_checked": 26,
+    "excluded_patched": []
+  },
+  "result": {
+    "verdict": "BLOCKED",
+    "taxonomy_code": "DEP_MISSING",
+    "indeterminate_reason": "",
+    "reason_code": null,
+    "error_chain": [
+      {
+        "error": "ModuleNotFoundError: No module named 'torchvision'",
+        "class": "DEP_MISSING",
+        "attribution": "ENV",
+        "cleared_by": null
+      }
+    ],
+    "first_repo_error": null,
+    "last_error": "ModuleNotFoundError: No module named 'torchvision'",
+    "error_traceback": "",
+    "attempts": [],
+    "certificate_prose": "The run log shows a ModuleNotFoundError for 'torchvision', indicating a missing dependency. The baseline as-is run failed with exit code 1. The classifier identified DEP_MISSING as the reason. The verdict is BLOCKED after 0 repair attempts. Verifies that the artifact executes. Does not verify the paper's numerical results."
+  },
+  "certificate": {
+    "repo_url": "https://github.com/damo-cv/img-comp-reference",
+    "commit_sha": "193fc9464d27fcd806d5288448628923b54a5a19",
+    "build_plan": {
+      "base_image": "python:3.10-slim",
+      "apt_install": [],
+      "install_commands": [
+        "true  # no declared dependency file found; nothing to install"
+      ],
+      "execute_command": "sh compress.sh original.png [model_path]",
+      "notes": [
+        "execute command is the repository's documented command (corpus ground truth)",
+        "base image python:3.10-slim: declared by README (>=3.5); resolved to the first available minor that satisfies it"
+      ]
+    },
+    "full_log": "[intake] cloned https://github.com/damo-cv/img-comp-reference@193fc9464d27fcd806d5288448628923b54a5a19\n[recon] calling Nemotron Nano\n[recon] entrypoint=main.py confidence=0.75\n[python] python:3.10-slim (README): declared by README (>=3.5); resolved to the first available minor that satisfies it\n[planner] build plan: {'base_image': 'python:3.10-slim', 'apt_install': [], 'install_commands': ['true  # no declared dependency file found; nothing to install'], 'execute_command': 'sh compress.sh original.png [model_path]', 'notes': [\"execute command is the repository's documented command (corpus ground truth)\", 'base image python:3.10-slim: declared by README (>=3.5); resolved to the first available minor that satisfies it']}\n[integrity] verified 26 file(s) against tree fcfd17dfaaf29e4bddaadd3b3bde8b72bd77ca6b\n[sandbox] starting build+execute (wall_clock_seconds=600)\n[runner] torch: repo imports torch without declaring it; runner provides the newest CPU wheel\n[cost_guard] recorded $0.1914 sandbox spend, $1.8080 remaining today\n[sandbox] id=8e85fbc6-fb7c-4c5f-b07d-749feb6bc0ca exit_code=1\n[baseline] as-is run: FAILS (exit code 1)\n[classifier] DEP_MISSING: ModuleNotFoundError: No module named 'torchvision'\n[verdict] BLOCKED after 0 repair attempt(s): DEP_MISSING",
+    "diffs": [],
+    "verdict": "BLOCKED",
+    "timestamp": "2026-09-30T10:44:29.979157+00:00",
+    "bundle_version": 4,
+    "baseline": {
+      "result": "FAILS",
+      "exit_code": 1,
+      "base_image": "python:3.10-slim",
+      "install_commands": [
+        "true  # no declared dependency file found; nothing to install"
+      ],
+      "execute_command": "sh compress.sh original.png [model_path]",
+      "sandbox_id": "8e85fbc6-fb7c-4c5f-b07d-749feb6bc0ca",
+      "taxonomy_code": "DEP_MISSING",
+      "evidence": "ModuleNotFoundError: No module named 'torchvision'"
+    },
+    "recovery": false,
+    "tree_integrity": {
+      "status": "verified",
+      "tree_sha": "fcfd17dfaaf29e4bddaadd3b3bde8b72bd77ca6b",
+      "files_checked": 26,
+      "excluded_patched": []
+    },
+    "corpus_hash": "7df090bea7013974f9f10fb8959ab0162734b51c83a80f744f9c310ce694fbdc",
+    "taxonomy_code": "DEP_MISSING",
+    "indeterminate_reason": "",
+    "error_chain": [
+      {
+        "error": "ModuleNotFoundError: No module named 'torchvision'",
+        "class": "DEP_MISSING",
+        "attribution": "ENV",
+        "cleared_by": null
+      }
+    ],
+    "first_repo_error": null,
+    "last_error": "ModuleNotFoundError: No module named 'torchvision'",
+    "reproduction_passport_hash": "538d213f0f8c1828c3c5fd60c0dc4f97e019fc34caada22ed1f41abe91abb61c"
+  },
+  "finished_at": "2026-09-30T10:44:30.009527+00:00",
+  "events": [
+    {
+      "t_s": 0.0,
+      "at": "2026-09-30T10:43:10.294063+00:00",
+      "line": "[intake] cloned https://github.com/damo-cv/img-comp-reference@193fc9464d27fcd806d5288448628923b54a5a19"
+    },
+    {
+      "t_s": 0.01,
+      "at": "2026-09-30T10:43:10.301300+00:00",
+      "line": "[recon] calling Nemotron Nano"
+    },
+    {
+      "t_s": 21.53,
+      "at": "2026-09-30T10:43:31.827803+00:00",
+      "line": "[recon] entrypoint=main.py confidence=0.75"
+    },
+    {
+      "t_s": 21.56,
+      "at": "2026-09-30T10:43:31.857073+00:00",
+      "line": "[python] python:3.10-slim (README): declared by README (>=3.5); resolved to the first available minor that satisfies it"
+    },
+    {
+      "t_s": 22.73,
+      "at": "2026-09-30T10:43:33.023290+00:00",
+      "line": "[planner] build plan: {'base_image': 'python:3.10-slim', 'apt_install': [], 'install_commands': ['true  # no declared dependency file found; nothing to install'], 'execute_command': 'sh compress.sh original.png [model_path]', 'notes': [\"execute command is the repository's documented command (corpus ground truth)\", 'base image python:3.10-slim: declared by README (>=3.5); resolved to the first available minor that satisfies it']}"
+    },
+    {
+      "t_s": 22.92,
+      "at": "2026-09-30T10:43:33.215488+00:00",
+      "line": "[integrity] verified 26 file(s) against tree fcfd17dfaaf29e4bddaadd3b3bde8b72bd77ca6b"
+    },
+    {
+      "t_s": 22.92,
+      "at": "2026-09-30T10:43:33.215527+00:00",
+      "line": "[sandbox] starting build+execute (wall_clock_seconds=600)"
+    },
+    {
+      "t_s": 22.92,
+      "at": "2026-09-30T10:43:33.216412+00:00",
+      "line": "[runner] torch: repo imports torch without declaring it; runner provides the newest CPU wheel"
+    },
+    {
+      "t_s": 77.55,
+      "at": "2026-09-30T10:44:27.841195+00:00",
+      "line": "[cost_guard] recorded $0.1914 sandbox spend, $1.8080 remaining today"
+    },
+    {
+      "t_s": 77.55,
+      "at": "2026-09-30T10:44:27.841265+00:00",
+      "line": "[sandbox] id=8e85fbc6-fb7c-4c5f-b07d-749feb6bc0ca exit_code=1"
+    },
+    {
+      "t_s": 77.55,
+      "at": "2026-09-30T10:44:27.841299+00:00",
+      "line": "[baseline] as-is run: FAILS (exit code 1)"
+    },
+    {
+      "t_s": 77.55,
+      "at": "2026-09-30T10:44:27.845814+00:00",
+      "line": "[classifier] DEP_MISSING: ModuleNotFoundError: No module named 'torchvision'"
+    },
+    {
+      "t_s": 77.55,
+      "at": "2026-09-30T10:44:27.845875+00:00",
+      "line": "[verdict] BLOCKED after 0 repair attempt(s): DEP_MISSING"
+    }
+  ],
+  "model_calls": [
+    {
+      "model": "nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B",
+      "started_at": "2026-09-30T10:43:10.533068+00:00",
+      "latency_s": 21.29,
+      "finish_reason": "stop",
+      "content_is_none": false,
+      "has_reasoning": true,
+      "usage": {
+        "completion_tokens": 1624,
+        "prompt_tokens": 1725,
+        "total_tokens": 3349,
+        "completion_tokens_details": null,
+        "prompt_tokens_details": null
+      }
+    },
+    {
+      "model": "nvidia/nemotron-3-super-120b-a12b",
+      "started_at": "2026-09-30T10:43:31.858317+00:00",
+      "latency_s": 1.16,
+      "finish_reason": "stop",
+      "content_is_none": false,
+      "has_reasoning": true,
+      "usage": {
+        "completion_tokens": 41,
+        "prompt_tokens": 272,
+        "total_tokens": 313,
+        "completion_tokens_details": {
+          "accepted_prediction_tokens": null,
+          "audio_tokens": null,
+          "reasoning_tokens": 31,
+          "rejected_prediction_tokens": null,
+          "text_tokens": null
+        },
+        "prompt_tokens_details": {
+          "audio_tokens": null,
+          "cache_write_tokens": null,
+          "cached_tokens": 0,
+          "image_tokens": null,
+          "text_tokens": null,
+          "created_cache_tokens": 0,
+          "multimodal_tokens": null
+        },
+        "prompt_cache_hit_tokens": 0,
+        "prompt_cache_miss_tokens": 272
+      }
+    },
+    {
+      "model": "nvidia/Nemotron-3-Ultra-550b-a55b",
+      "started_at": "2026-09-30T10:44:27.847306+00:00",
+      "latency_s": 2.13,
+      "finish_reason": "stop",
+      "content_is_none": false,
+      "has_reasoning": true,
+      "usage": {
+        "completion_tokens": 314,
+        "prompt_tokens": 666,
+        "total_tokens": 980,
+        "completion_tokens_details": {
+          "accepted_prediction_tokens": null,
+          "audio_tokens": null,
+          "reasoning_tokens": 213,
+          "rejected_prediction_tokens": null,
+          "text_tokens": null
+        },
+        "prompt_tokens_details": {
+          "audio_tokens": null,
+          "cache_write_tokens": null,
+          "cached_tokens": 0,
+          "image_tokens": null,
+          "text_tokens": null,
+          "multimodal_tokens": null
+        },
+        "prompt_cache_hit_tokens": 0,
+        "prompt_cache_miss_tokens": 666
+      }
+    }
+  ],
+  "cost_guard": {
+    "spent_usd": 0.19361898999999996,
+    "model_spent_usd": 0.0022197600000000003,
+    "sandbox_spent_usd": 0.19139922999999998,
+    "remaining_usd": 1.80638101,
+    "model_usage": [
+      {
+        "model": "nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B",
+        "prompt_tokens": 1725,
+        "completion_tokens": 1624,
+        "cost_usd": 0.00049326
+      },
+      {
+        "model": "nvidia/nemotron-3-super-120b-a12b",
+        "prompt_tokens": 272,
+        "completion_tokens": 41,
+        "cost_usd": 0.0001185
+      },
+      {
+        "model": "nvidia/Nemotron-3-Ultra-550b-a55b",
+        "prompt_tokens": 666,
+        "completion_tokens": 314,
+        "cost_usd": 0.001608
+      }
+    ],
+    "prices_usd_per_1m": {
+      "nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B": [
+        0.06,
+        0.24
+      ],
+      "nvidia/nemotron-3-super-120b-a12b": [
+        0.3,
+        0.9
+      ],
+      "nvidia/Nemotron-3-Ultra-550b-a55b": [
+        1.0,
+        3.0
+      ]
+    },
+    "prices_source": "https://api.tokenfactory.nebius.com/v1/models?verbose=true (pricing field)",
+    "prices_retrieved": "2026-09-24"
+  }
+}

@@ -1,0 +1,116 @@
+{
+  "harness_tag": "harness-v1.3.2",
+  "written_at": "2026-09-30T11:19:30.868459+00:00",
+  "rule": "no seal without one real Nebius execution per new sandbox-touching path; a WSL dry run is a smoke test, not verification; a code file changed after its verification invalidates the entry",
+  "paths": [
+    {
+      "id": "download_route_git",
+      "description": "in-sandbox download: git clone --filter=blob:none + pinned checkout + HEAD/status checks, then manifest verify (entry 2, the attempt-1 exit-97 case)",
+      "live_nebius": true,
+      "code_files": {
+        "backend/app/services/sandbox.py": "55cafee2fdf70b58de3b2d64dc28464d8bba1074",
+        "backend/app/services/sandbox_limits.py": "bfb04105b708bb400c1174ad498fb64bb3c0661b"
+      },
+      "records": [
+        "runs/sandbox_verification/final/download_git_entry2_py310.json"
+      ],
+      "run_ids": [
+        "96a98103-5259-4fe4-a404-3e68049b345a"
+      ]
+    },
+    {
+      "id": "download_route_tarball_fallback",
+      "description": "in-sandbox download where git cannot be installed (python:3.6-slim, archived apt): GitHub tarball + manifest verify",
+      "live_nebius": true,
+      "code_files": {
+        "backend/app/services/sandbox.py": "55cafee2fdf70b58de3b2d64dc28464d8bba1074",
+        "backend/app/services/sandbox_limits.py": "bfb04105b708bb400c1174ad498fb64bb3c0661b"
+      },
+      "records": [
+        "runs/sandbox_verification/final/download_tarball_fallback_py36.json"
+      ],
+      "run_ids": [
+        "ca87fc86-70d7-4202-b0a9-46e9525f41e5"
+      ]
+    },
+    {
+      "id": "archive_upload_route_exec_bit_verify",
+      "description": "the normal one-tar upload + extraction + manifest verify (exec-bit comparison) + modes",
+      "live_nebius": true,
+      "code_files": {
+        "backend/app/services/sandbox.py": "55cafee2fdf70b58de3b2d64dc28464d8bba1074"
+      },
+      "records": [
+        "runs/sandbox_verification/final/upload_archive_exec_bit_py36.json"
+      ],
+      "run_ids": [
+        "4d218de4-b3e2-492b-ac93-e697438b72b2"
+      ]
+    },
+    {
+      "id": "runner_torch_execstack_fix",
+      "description": "runner torch install + patchelf (runner-owned prefix, flag verified) + import on python 3.6 / 3.8 / 3.10, old torch pins",
+      "live_nebius": true,
+      "code_files": {
+        "backend/app/services/sandbox.py": "55cafee2fdf70b58de3b2d64dc28464d8bba1074",
+        "backend/app/services/sandbox_limits.py": "bfb04105b708bb400c1174ad498fb64bb3c0661b",
+        "backend/app/services/runner_env.py": "d8f97fd657618bdc0f0866a81b34a5c4f655f959"
+      },
+      "records": [
+        "runs/sandbox_verification/final/torch_py36_pin1.10.2.json",
+        "runs/sandbox_verification/final/torch_py38_pin1.12.1.json",
+        "runs/sandbox_verification/final/torch_py310_pin1.12.1.json"
+      ],
+      "run_ids": [
+        "ac9a1584-7005-47bb-babc-839f1bf850db",
+        "2d6e4f50-1740-4187-ae34-2a0d216e0710",
+        "4ce426e2-1a61-4941-a2b6-45d19c831dc7"
+      ]
+    },
+    {
+      "id": "runner_torch_matched_family",
+      "description": "an undeclared `import torchvision` gets torch + torchvision (+ torchaudio) as a matched set (attempt-1 entry 4)",
+      "live_nebius": true,
+      "code_files": {
+        "backend/app/services/sandbox.py": "55cafee2fdf70b58de3b2d64dc28464d8bba1074",
+        "backend/app/services/runner_env.py": "d8f97fd657618bdc0f0866a81b34a5c4f655f959"
+      },
+      "records": [
+        "runs/sandbox_verification/final/torch_py310_imports_torchvision.json"
+      ],
+      "run_ids": [
+        "8bff6bbb-c0ed-4b9a-9b98-2c610650cb22"
+      ]
+    },
+    {
+      "id": "runner_setup_phase_tag_on_failure",
+      "description": "a failing runner op is tagged phase=runner_setup by the real runner and no repo command runs",
+      "live_nebius": true,
+      "code_files": {
+        "backend/app/services/sandbox.py": "55cafee2fdf70b58de3b2d64dc28464d8bba1074",
+        "backend/app/services/runner_env.py": "d8f97fd657618bdc0f0866a81b34a5c4f655f959"
+      },
+      "records": [
+        "runs/sandbox_verification/final/phase_runner_setup_failure_py310.json"
+      ],
+      "run_ids": [
+        "f697cddb-e498-4c17-af34-43a63310bc44"
+      ]
+    },
+    {
+      "id": "patchelf_flag_absent_is_incompat",
+      "description": "a patchelf without --clear-execstack: exit 98 + RERUN_SANDBOX_INCOMPAT, phase runner_setup (attempt-1 entry 3 cause)",
+      "live_nebius": true,
+      "code_files": {
+        "backend/app/services/sandbox.py": "55cafee2fdf70b58de3b2d64dc28464d8bba1074",
+        "backend/app/services/runner_env.py": "d8f97fd657618bdc0f0866a81b34a5c4f655f959"
+      },
+      "records": [
+        "runs/sandbox_verification/final/patchelf_flag_absent_incompat_py310.json"
+      ],
+      "run_ids": [
+        "9bf185d2-7659-48af-934c-f31398faa0df"
+      ]
+    }
+  ]
+}

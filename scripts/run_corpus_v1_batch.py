@@ -42,6 +42,7 @@ import argparse
 import hashlib
 import importlib.util
 import json
+import os
 import re
 import subprocess
 import sys
@@ -78,7 +79,15 @@ SEALED_FILES = (
     "backend/app/batch/corpus_v1/amendment-1.sha256",
     "backend/app/batch/corpus_v2/prereg.json",
     "backend/app/batch/corpus_v2/prereg.sha256",
+    "seal_verification.json",
 )
+# harness-v1.3.2 seal rule: every file that talks to the sandbox must be covered by a live verification entry.
+SANDBOX_TOUCHING_FILES = (
+    "backend/app/services/sandbox.py",
+    "backend/app/services/sandbox_limits.py",
+    "backend/app/services/runner_env.py",
+)
+SEAL_VERIFICATION = "seal_verification.json"
 DRAW_OUTPUTS = ("screening_log.jsonl", "corpus.yaml", "corpus_hash.txt")
 
 
@@ -98,6 +107,55 @@ def check_sandbox_image(configured: str) -> None:
             f"NEBIUS_SANDBOX_IMAGE is {configured!r}; the sealed harness requires {SEALED_SANDBOX_IMAGE!r} "
             "(fix or remove the value in .env)"
         )
+
+
+def check_seal_verification(root: Path, blob_of) -> None:
+    """The seal rule, enforced: seal_verification.json must list, for every sandbox-touching code file, a live Nebius
+    verification (run ids that appear in records that exist and passed) made against the SAME git blob the batch is about
+    to run. `blob_of(path)` gives the blob of a path at HEAD. Anything missing or stale refuses the batch."""
+    path = root / SEAL_VERIFICATION
+    if not path.is_file():
+        raise PreflightError(f"{SEAL_VERIFICATION} is missing: no seal without a live verification of every sandbox-touching path")
+    try:
+        doc = json.loads(path.read_text(encoding="utf-8"))
+        entries = doc["paths"]
+    except (ValueError, KeyError, TypeError) as exc:
+        raise PreflightError(f"{SEAL_VERIFICATION} is unreadable: {exc}") from exc
+    problems: list[str] = []
+    covered: set[str] = set()
+    for entry in entries:
+        eid = entry.get("id", "?")
+        if entry.get("live_nebius") is not True:
+            problems.append(f"{eid}: not marked live_nebius (a dry run is not verification)")
+        run_ids, records = entry.get("run_ids") or [], entry.get("records") or []
+        if not run_ids or not records:
+            problems.append(f"{eid}: no run id / record")
+        texts = []
+        for rec in records:
+            rp = root / rec
+            if not rp.is_file():
+                problems.append(f"{eid}: record {rec} is missing")
+                continue
+            try:
+                doc_rec = json.loads(rp.read_text(encoding="utf-8"))
+            except ValueError:
+                problems.append(f"{eid}: record {rec} is unreadable")
+                continue
+            if doc_rec.get("ok") is not True:
+                problems.append(f"{eid}: record {rec} did not pass")
+            texts.append(str(doc_rec.get("run_id")))
+        for rid in run_ids:
+            if rid not in texts:
+                problems.append(f"{eid}: run id {rid} is not the run_id of any listed record")
+        for code_file, recorded in (entry.get("code_files") or {}).items():
+            covered.add(code_file)
+            if blob_of(code_file) != recorded:
+                problems.append(f"{eid}: {code_file} changed after its live verification (blob {blob_of(code_file)[:10]} != {recorded[:10]})")
+    for required in SANDBOX_TOUCHING_FILES:
+        if required not in covered:
+            problems.append(f"{required}: no live verification covers this sandbox-touching file")
+    if problems:
+        raise PreflightError("seal verification failed: " + "; ".join(problems[:8]))
 
 
 def _git(*args: str) -> str:
@@ -197,6 +255,7 @@ def preflight(corpus: str, tag: str) -> dict:
             differing = sorted(p for p in set(at_tag) | set(at_head) if at_tag.get(p) != at_head.get(p))
             raise PreflightError(f"{what} differ from {tag}: {differing[:10]}")
 
+    check_seal_verification(ROOT, lambda p: _git("rev-parse", f"HEAD:{p}"))
     frozen = {"harness_tag": tag, "harness_commit": tag_commit, "head_commit": head, "corpus": corpus}
     if corpus == "corpus-v1":
         amendment_sha = _sha256(cdir / "amendment-1.json")
@@ -332,6 +391,24 @@ def own_children() -> None:
         print(f"WARNING: could not own children via a job object: {exc}", flush=True)
 
 
+def _utf8_everywhere() -> None:
+    """harness-v1.3.2. Attempt 1's driver died on `UnicodeEncodeError: 'charmap' codec can't encode character
+    '\\ufffd'` while echoing a child's output line: with stdout redirected, Windows Python uses cp1252. The driver's own
+    streams are reconfigured to UTF-8 with errors="replace", and PYTHONUTF8/PYTHONIOENCODING are set in the environment
+    every child inherits (see _child_env)."""
+    os.environ["PYTHONUTF8"] = "1"
+    os.environ["PYTHONIOENCODING"] = "utf-8:replace"
+    for stream in (sys.stdout, sys.stderr):
+        try:
+            stream.reconfigure(encoding="utf-8", errors="replace")
+        except (AttributeError, ValueError):
+            pass  # not a TextIOWrapper (e.g. a test's stand-in); _Tee.write still cannot raise on encoding
+
+
+def _child_env() -> dict:
+    return {**os.environ, "PYTHONUTF8": "1", "PYTHONIOENCODING": "utf-8:replace"}
+
+
 class _Tee:
     """stdout/stderr -> the terminal AND the driver log file (a crashed terminal must not eat the evidence)."""
 
@@ -339,7 +416,11 @@ class _Tee:
         self._stream, self._log = stream, log
 
     def write(self, text):
-        self._stream.write(text)
+        try:
+            self._stream.write(text)
+        except UnicodeEncodeError:  # a terminal that cannot show a character must not kill a batch
+            enc = getattr(self._stream, "encoding", None) or "ascii"
+            self._stream.write(text.encode(enc, "replace").decode(enc))
         self._log.write(text)
         self._log.flush()
         return len(text)
@@ -412,7 +493,7 @@ def _run_live(corpus: str, name: str, corpus_hash: str, meta: dict, path: Path) 
         cmd += ["--arm", meta["arm"]]
     kwargs = {"start_new_session": True} if sys.platform != "win32" else {}
     proc = subprocess.Popen(cmd, cwd=ROOT, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True,
-                            encoding="utf-8", errors="replace", **kwargs)
+                            encoding="utf-8", errors="replace", env=_child_env(), **kwargs)
     try:
         for line in proc.stdout:  # the child's events reach the driver log too
             print(line.rstrip("\n"), flush=True)
@@ -524,8 +605,7 @@ def summarize(records: list[dict]) -> dict:
 
 
 def main(argv: list[str] | None = None) -> int:
-    import os
-
+    _utf8_everywhere()
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument("--corpus", choices=("corpus-v1", "corpus-v2"), required=True)
     parser.add_argument("--harness-tag", default=DEFAULT_HARNESS_TAG)
