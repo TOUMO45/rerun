@@ -1,3 +1,5 @@
+> **Erratum pointer (2026-09-30):** see [ERRATA.md](ERRATA.md): one of the 16 patches (entry 14, attempt 2) was lost to a host defect in the apply step, not to the model. Numbers below are unchanged.
+
 # corpus-v2.1 results
 
 Sealed harness `harness-v1.3.2` (commit `77b3cfe`, tag `harness-v1.3.2`). Corpus `corpus-v2`, hash `7df090bea7013974f9f10fb8959ab0162734b51c83a80f744f9c310ce694fbdc`
@@ -107,5 +109,5 @@ Entries 5 and 9 cannot be installed in the runner at all, in either arm: entry 5
 - The corpus is 17/20 without any manifest; the dominant failure is undeclared dependencies, which the repair loop repeatedly cleared and repeatedly met again.
 - Recorded spend $21.76; a timed-out operation may be unrecorded (D-8). Entry 13 exceeded the per-entry cap ($5.68); entry 16 too ($2.50).
 - Hand labels in §7 are readings of the records by the analyst (this session); they are reproducible from the cited records but not independently reviewed.
-- Defects D-1 to D-14 (`candidate_v1.3.3_defects.md`) are recorded, not fixed; a fix requires a new seal and a re-run of both arms.
+- Defects D-1 to D-14 (`candidate_v1.3.3_defects.md`) are recorded, not fixed in this result; a fix requires a new seal. Two stay open even in the exploratory harness-v1.3.3 (`METHODOLOGY.md`, "Known limitations of harness-v1.3.3"): **D-13**, runner-setup failures never reach the time machine (affects **entries 5 and 9**, both arms), and **D-6**, the repository's own build step is neither planned nor run (affects **entry 19**).
 - The 3-repair limit, the source-patch format and the gate behaviour are design parameters of harness-v1.3.2; a different setting is a different experiment.

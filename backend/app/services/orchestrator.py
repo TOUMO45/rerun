@@ -24,6 +24,7 @@ persisting the `PipelineResult` it returns.
 
 from __future__ import annotations
 
+import json
 import os
 import re
 import subprocess
@@ -46,14 +47,33 @@ from app.services import (
     time_machine,
     tree_integrity,
 )
-from app.services import compute_sandbox, error_chain, import_names, infra, python_policy, runner_env, sandbox_limits, timeouts
-from app.services.cost_guard import CostGuard, CostLimitExceeded
+from app.services import (
+    compute_sandbox,
+    dep_scan,
+    error_chain,
+    import_names,
+    infra,
+    patch_pipeline,
+    python_policy,
+    runner_env,
+    sandbox_limits,
+    smoke_exec,
+    timeouts,
+)
+from app.services.cost_guard import (
+    MIN_OPERATION_SECONDS,
+    SANDBOX_COST_RATE_USD_PER_S,
+    CostGuard,
+    CostLimitExceeded,
+    OperationBudgetExhausted,
+)
 from app.services.intake import RepoIntake, read_text_capped
 from app.services.model_client import NebiusChatClient
 from app.services.sandbox import (
     SandboxCredentialsError,
     SandboxError,
     SandboxRunResult,
+    SandboxTimeoutError,
     UploadIntegrityError,
     UploadTooLargeError,
     run_build_and_execute,
@@ -63,6 +83,7 @@ from app.services.sandbox import (
 # a harness limitation, not a verdict about the repository.
 UPLOAD_TOO_LARGE = "UPLOAD_TOO_LARGE"
 from app.services.tamper_gate import (
+    GateRule,
     check_patch,
     heuristic_eval_call_names,
     heuristic_model_call_names,
@@ -90,6 +111,8 @@ OUR_FAULT_CODES: tuple[str, ...] = (
     "SANDBOX_INCOMPAT",
     # harness-v1.3.2: RERUN's own runner setup op failed before the repo's first command ran.
     "RUNNER_SETUP_FAILED",
+    # harness-v1.3.3: the per-entry / per-operation spend cap stopped the run (RERUN's budget, not the repository).
+    "COST_CAP",
 )
 
 _REASON_CODE_RE = re.compile(r"^([A-Z][A-Z_]*(?::[A-Za-z0-9_.-]+)*): ")
@@ -129,6 +152,12 @@ class _RunState:
     corpus_hash: str | None = None
     # Every classified failure of the run, in order, with attribution (error_chain.py).
     error_chain: "error_chain.ErrorChain" = field(default_factory=error_chain.ErrorChain)
+    # Set when the spend cap stopped a sandbox operation (harness-v1.3.3): the run ends INDETERMINATE COST_CAP.
+    cost_capped: str = ""
+
+
+def _cost_cap_reason(message: str) -> str:
+    return f"COST_CAP: {message} — RERUN's per-entry / per-operation spend cap stopped the run; not a verdict on the repository."
 
 
 def _verdict_record(state: "_RunState | None", taxonomy_code: str | None, indeterminate_reason: str) -> dict:
@@ -169,9 +198,16 @@ class AttemptRecord:
     # "time_machine" (RERUN's deterministic era environment, attempt 0).
     origin: str = "model"
     time_machine: dict | None = None
+    # harness-v1.3.3, each only serialized when set (older records and their passport hashes are unchanged):
+    # `execution` = how the re-execution ran ({"mode": "smoke", "seconds", "outcome"}: a pass means "ran for that long without
+    # failing", smoke_exec); `patch_notes` = how each hunk was located in the real file (patch_pipeline); `model_patch` = what the
+    # model actually sent when `diff_text` (the canonical, applied diff) differs from it.
+    execution: dict | None = None
+    patch_notes: tuple[str, ...] = ()
+    model_patch: str = ""
 
     def as_dict(self) -> dict:
-        return {
+        record = {
             "attempt_number": self.attempt_number,
             "diff_text": self.diff_text,
             "gate_decision": self.gate_decision,
@@ -185,6 +221,13 @@ class AttemptRecord:
             "origin": self.origin,
             "time_machine": self.time_machine,
         }
+        if self.execution is not None:
+            record["execution"] = self.execution
+        if self.patch_notes:
+            record["patch_notes"] = list(self.patch_notes)
+        if self.model_patch:
+            record["model_patch"] = self.model_patch
+        return record
 
 
 @dataclass(frozen=True)
@@ -253,16 +296,18 @@ def _apply_diff_with_git(workdir: Path, diff_text: str) -> None:
     (which should never happen for a gate-PASSed diff generated against
     this exact file content, but a corrupted/stale diff must not be
     silently ignored)."""
+    # harness-v1.3.3 (D-15): the patch goes in as BYTES. With text=True, Windows turns every LF into CR LF on stdin and
+    # `git apply` then finds no context line in an LF file: "patch failed: main_optim.py:138 ... patch does not apply"
+    # for a patch that applies cleanly (found by replaying corpus-v2 entry 14's gate-approved diff both ways).
     result = subprocess.run(
         ["git", "apply", "--whitespace=nowarn", "-"],
         cwd=workdir,
-        input=diff_text,
+        input=diff_text.encode("utf-8"),
         capture_output=True,
-        text=True,
         timeout=timeouts.GIT_LOCAL_S,
     )
     if result.returncode != 0:
-        raise OrchestratorError(f"gate-approved patch failed to apply: {result.stderr.strip()}")
+        raise OrchestratorError(f"gate-approved patch failed to apply: {result.stderr.decode('utf-8', 'replace').strip()}")
 
 
 def _script_in_command(command: str | None) -> str | None:
@@ -376,6 +421,9 @@ class PipelineDeps:
     # NEBIUS_SANDBOX_IMAGE — the base image planner.build_plan() falls back
     # to when recon can't pin an exact Python version from the repo.
     default_sandbox_image: str = python_policy.DEFAULT_IMAGE
+    # Repair re-executions (never the as-published baseline run) run the documented command under smoke_exec for this many
+    # seconds; 0 disables (the command then runs to completion or the wall clock).
+    smoke_seconds: int = smoke_exec.DEFAULT_SECONDS
 
 
 def _accepts_kwarg(fn: Callable, name: str) -> bool:
@@ -527,6 +575,11 @@ def run_pipeline(
         )
     except infra.InfraError as exc:
         return _finalize_infra_error(exc, state=state, repo_url=repo_url, commit_sha=commit_sha, on_event=on_event)
+    except SandboxTimeoutError as exc:
+        # A re-execution (time machine / repair) reached the wall clock: a TIMEOUT result about the run, recorded with the
+        # attempts so far, never a PIPELINE_ERROR (harness-v1.3.3, D-3).
+        return _finalize_timeout(exc, state=state, deps=deps, cost_guard=cost_guard, repo_url=repo_url,
+                                 commit_sha=commit_sha, on_event=on_event)
     except (UploadTooLargeError, sandbox_limits.FsDeltaExceeded) as exc:
         # Phase 2: an infrastructure limit, not evidence about the repository.
         return _finalize_not_measured(
@@ -640,7 +693,12 @@ def _run_stages(
     state.build_plan_dict = plan.as_dict()
     _log(f"[planner] build plan: {plan.as_dict()}")
 
-    def _execute(current_workdir: Path) -> SandboxRunResult:
+    def _execution_of(result: SandboxRunResult, smoke: bool) -> dict | None:
+        if not (smoke and deps.smoke_seconds):
+            return None
+        return smoke_exec.execution_record(deps.smoke_seconds, result.final.exit_code, result.final.stdout, result.final.stderr)
+
+    def _execute(current_workdir: Path, *, smoke: bool = False, baseline: bool = False) -> SandboxRunResult:
         # §9: the daily cost ceiling must actually stop spend, not just be
         # documented. There's no pre-flight cost quote from the sandbox
         # API, so this refuses to start a step at all once today's real
@@ -649,6 +707,24 @@ def _run_stages(
         # Nebius's own per-run ContreeResult.cost) immediately after.
         state.stage = "sandbox"
         cost_guard.check_daily_budget(0.0)
+        # harness-v1.3.3 (D-7): Nebius returns an operation's cost only when it completes, so the guard bounds the
+        # operation's DURATION: it may run for what the entry can still fund (capped per operation), and the sandbox
+        # kills it at that limit. The configured wall clock still applies when it is the smaller bound.
+        if baseline:
+            # The as-published run keeps the pre-registered wall clock, unshortened by the budget rule: CONTROL comparability, and a
+            # transient slow install (3 of 20 v1.3.2 CONTROL operations took 195-494 s at normal cost) must never turn the only passing
+            # entry into a false regression. Its spend is recorded, counts against the entry cap, and an entry whose baseline used the cap
+            # ends COST_CAP before any repair (the pre-check above). Observed baseline cost: at most $0.35 in 40 operations.
+            operation_seconds = deps.sandbox_wall_clock_seconds
+        else:
+            budget_seconds = cost_guard.operation_seconds_budget()
+            if budget_seconds < MIN_OPERATION_SECONDS:
+                state.cost_capped = (
+                    f"${cost_guard.remaining_today_usd:.2f} left funds only {budget_seconds:.0f}s of sandbox time "
+                    f"(minimum {MIN_OPERATION_SECONDS:.0f}s at ${SANDBOX_COST_RATE_USD_PER_S}/s)"
+                )
+                raise OperationBudgetExhausted(state.cost_capped)
+            operation_seconds = min(deps.sandbox_wall_clock_seconds, budget_seconds)
         # §8 S2: "Live sandbox badge (id, elapsed time, wall-clock
         # remaining)" — the wall-clock ceiling is logged here, before the
         # (blocking) sandbox call, specifically so a client watching the
@@ -656,6 +732,11 @@ def _run_stages(
         # line arrives, rather than only after the whole build+execute
         # step finishes.
         upload_files = _collect_upload_files(current_workdir)
+        execute_command = plan.execute_command
+        if smoke and deps.smoke_seconds:
+            # harness-v1.3.3: a repair re-execution asks "does it run", not "does it finish" (smoke_exec).
+            execute_command = smoke_exec.wrap(plan.execute_command, deps.smoke_seconds)
+            _log(f"[smoke] re-execution of the documented command under a {deps.smoke_seconds}s smoke limit")
         # Clone integrity gate: the uploaded bytes must be the committed bytes
         # (except files changed by gate-approved patches). Raises
         # HarnessIntegrityError -> INVALID_HARNESS, never a repo verdict.
@@ -666,7 +747,7 @@ def _run_stages(
             f"[integrity] verified {record.files_checked} file(s) against tree {record.tree_sha or '?'}"
             + (f"; excluded patched: {sorted(state.patched_paths)}" if state.patched_paths else "")
         )
-        _log(f"[sandbox] starting build+execute (wall_clock_seconds={deps.sandbox_wall_clock_seconds:.0f})")
+        _log(f"[sandbox] starting build+execute (wall_clock_seconds={operation_seconds:.0f})")
         # Over-limit repos are fetched inside the sandbox, never uploaded (sandbox_limits).
         runner_kwargs = {}
         if _accepts_kwarg(deps.sandbox_runner, "download_source"):
@@ -686,8 +767,8 @@ def _run_stages(
                 project_id=deps.sandbox_project_id,
                 base_image=plan.base_image,
                 install_commands=plan.as_shell_steps(),
-                execute_command=plan.execute_command,
-                wall_clock_seconds=deps.sandbox_wall_clock_seconds,
+                execute_command=execute_command,
+                wall_clock_seconds=operation_seconds,
                 upload_files=upload_files,
                 # Git modes from the pinned commit (harness-v1.1): an executable
                 # script stays executable in the sandbox.
@@ -701,6 +782,21 @@ def _run_stages(
             ) from exc
         except SandboxCredentialsError as exc:
             raise infra.InfraError("sandbox", f"credentials: {exc}", cause=exc) from exc
+        except SandboxTimeoutError as exc:
+            # The killed step has no cost from the API: completed steps at their measured cost, the killed step at the
+            # budget rate (an estimate, flagged in the record). Recorded BEFORE anything else can raise.
+            recorded = cost_guard.record_killed_operation(
+                exc.completed_cost_usd, exc.killed_seconds, note=f"killed after {exc.killed_seconds:.0f}s: {exc.command[:80]}"
+            )
+            _log(
+                f"[cost_guard] operation stopped at {operation_seconds:.0f}s; recorded ${recorded:.4f} "
+                f"({exc.completed_cost_usd:.4f} measured + estimate for the killed step), "
+                f"${cost_guard.remaining_today_usd:.4f} left"
+            )
+            if operation_seconds < deps.sandbox_wall_clock_seconds - 1e-6:
+                state.cost_capped = f"a sandbox operation reached its budget-derived limit of {operation_seconds:.0f}s"
+                raise OperationBudgetExhausted(state.cost_capped) from exc
+            raise
         cost_guard.record_spend(result.total_cost_usd)
         _log(
             f"[cost_guard] recorded ${result.total_cost_usd:.4f} sandbox spend, "
@@ -709,7 +805,7 @@ def _run_stages(
         return result
 
     try:
-        sandbox_result = _execute(workdir)
+        sandbox_result = _execute(workdir, baseline=True)
     except (SandboxError, CostLimitExceeded) as exc:
         # harness-v1.1 audit: the only sandbox outcome attributable to the
         # repository here is the wall-clock ceiling (TIMEOUT). External API
@@ -720,9 +816,9 @@ def _run_stages(
             raise
         _log(f"[sandbox] execution error: {exc}")
         return _finalize(
-            verdict="TIMEOUT" if isinstance(exc, SandboxError) else "NOT_ATTEMPTABLE",
+            verdict="INDETERMINATE" if state.cost_capped else ("TIMEOUT" if isinstance(exc, SandboxError) else "NOT_ATTEMPTABLE"),
             taxonomy_code=None,
-            indeterminate_reason="",
+            indeterminate_reason=_cost_cap_reason(state.cost_capped) if state.cost_capped else "",
             attempts=(),
             build_plan_dict=plan.as_dict(),
             log_lines=log_lines,
@@ -814,6 +910,14 @@ def _run_stages(
         # lazily, only if an env change needs checking.
         current_requirements = intake_result.dependency_files.get("requirements.txt")
         imported_modules: frozenset[str] | None = None
+        internal_modules_cache: list[frozenset[str]] = []
+
+        def _internal_modules() -> frozenset[str]:
+            """Names that resolve inside the repository (dep_scan): never installed from PyPI (D-1, D-12)."""
+            if not internal_modules_cache:
+                internal_modules_cache.append(dep_scan.internal_module_names(workdir))
+            return internal_modules_cache[0]
+
         resolved_lock: list[str] | None = None  # set by the time machine
         era_cache: list = []
 
@@ -868,16 +972,24 @@ def _run_stages(
             if new_requirements is not None:
                 current_requirements = new_requirements
             _log(f"[time-machine] deterministic step: pip_no_build_isolation {package} (evidence: {evidence})")
+            state.build_plan_dict = plan.as_dict()
             try:
-                result = _execute(workdir)
+                result = _execute(workdir, smoke=True)
             except CostLimitExceeded as exc:
                 _log(f"[time-machine] stopped: daily cost ceiling reached: {exc}")
                 return None
+            except SandboxTimeoutError as exc:
+                attempts.append(
+                    AttemptRecord(0, "", "PASS", (), None, "", str(exc)[-2000:], (), (change.as_dict(),), (),
+                                  origin="time_machine", time_machine=step)
+                )
+                raise
             _log(f"[time-machine] re-execution id={result.sandbox_id} exit_code={result.final.exit_code}")
             attempts.append(
                 AttemptRecord(
                     0, "", "PASS", (), result.final.exit_code, result.final.stdout[-2000:], result.final.stderr[-2000:],
                     (), (change.as_dict(),), (), origin="time_machine", time_machine=step,
+                    execution=_execution_of(result, True),
                 )
             )
             if not result.succeeded:
@@ -897,12 +1009,16 @@ def _run_stages(
             state.stage = "time_machine"
             era = _era()
             if era is not None:
-                py_version, py_reason = time_machine.python_for_era(era.date, intake_result.python_version_hint)
+                # harness-v1.3.3 (D-11): a Python version the repository declares (incl. its README) wins over the era
+                # inference; before, only dependency-file hints counted and README 3.6 became era 3.10.
+                declared_python = python_choice.version if python_choice.is_declared else intake_result.python_version_hint
+                py_version, py_reason = time_machine.python_for_era(era.date, declared_python)
+                if python_choice.is_declared and declared_python == python_choice.version and py_reason == "declared by the repository":
+                    py_reason = f"declared by {python_choice.source} ({python_choice.declared})"
                 if imported_modules is None:
                     imported_modules = env_repair.imported_top_level_modules(workdir)
-                undeclared_mapped = time_machine.undeclared_third_party_imports_with_mappings(
-                    workdir, intake_result.declared_dependencies
-                )
+                batch = time_machine.batch_for(workdir, intake_result.declared_dependencies)
+                undeclared_mapped = list(batch.distributions)
                 undeclared = [dist for dist, _ in undeclared_mapped]
                 import_mappings = [m.as_dict() for _, m in undeclared_mapped if m is not None]
                 for m in import_mappings:
@@ -920,33 +1036,64 @@ def _run_stages(
                     "era": era.as_dict(),
                     "python": {"version": py_version, "reason": py_reason, "source": time_machine.PYTHON_RELEASES_SOURCE},
                     "undeclared_imports": list(undeclared),
+                    # The whole-tree scan behind it (harness-v1.3.3): what is excluded as the repo's own, skipped as optional.
+                    "batch_scan": batch.as_dict(),
                     # Every import -> distribution mapping the era lock used (harness-v1.1).
                     "import_mappings": import_mappings,
                     "apt_added": list(apt_added),
                     "apt_reason": classification.evidence if apt_added else "",
                     "lock": lock.as_dict(),
                 }
-                if lock.ok:
-                    _log(
-                        f"[time-machine] era {era.date} ({era.source}) -> python {py_version}; "
-                        f"locked {len(lock.lock_lines)} package(s) with uv --exclude-newer; "
-                        f"not on the index: {list(lock.not_on_index) or 'none'}"
-                    )
-                    lock_lines = list(lock.lock_lines)
-                    resolved_lock = lock_lines
-                    plan = time_machine.apply_lock(plan, py_version, lock_lines, apt_added)
-                    current_requirements = "\n".join(lock_lines) + "\n"
+                # Fallback (D-5): if no era lock can be produced, the whole batch still goes in ONE unpinned pip step on the
+                # policy's interpreter, instead of dropping the era work and repairing one name per attempt. The torch
+                # family is the runner's (runner_env), never part of this step.
+                # Names the lock attempt found no era-appropriate release for (e.g. `curves`, whose only release is
+                # from 2025) are not installed unpinned either: they are almost certainly not the repo's dependency.
+                fallback_names = tuple(
+                    n for n in undeclared
+                    if n.lower() not in runner_env.TORCH_FAMILY and n not in set(lock.not_on_index)
+                ) if not lock.ok else ()
+                if lock.ok or fallback_names:
+                    if lock.ok:
+                        _log(
+                            f"[time-machine] era {era.date} ({era.source}) -> python {py_version}; "
+                            f"locked {len(lock.lock_lines)} package(s) with uv --exclude-newer; "
+                            f"not on the index: {list(lock.not_on_index) or 'none'}"
+                        )
+                        lock_lines = list(lock.lock_lines)
+                        resolved_lock = lock_lines
+                        plan = time_machine.apply_lock(plan, py_version, lock_lines, apt_added)
+                        current_requirements = "\n".join(lock_lines) + "\n"
+                    else:
+                        _log(
+                            f"[time-machine] era lock unavailable ({lock.error[-200:].strip()!r}); fallback: one pip step for "
+                            f"{len(fallback_names)} undeclared import(s), unpinned, on {plan.base_image}"
+                        )
+                        plan = time_machine.apply_batch_pip(plan, fallback_names, apt_added)
+                        tm_record["fallback"] = {"kind": "batch_pip_unpinned", "packages": list(fallback_names), "base_image": plan.base_image}
+                    state.build_plan_dict = plan.as_dict()
                     try:
-                        tm_result = _execute(workdir)
+                        tm_result = _execute(workdir, smoke=True)
                     except CostLimitExceeded as exc:
                         _log(f"[time-machine] stopped: daily cost ceiling reached: {exc}")
                         tm_result = None
+                        attempts.append(
+                            AttemptRecord(0, "", "PASS", (), None, "", f"stopped before completion: {exc}"[-2000:],
+                                          (), (), (), origin="time_machine", time_machine=tm_record)
+                        )
+                    except SandboxTimeoutError as exc:
+                        attempts.append(
+                            AttemptRecord(0, "", "PASS", (), None, "", str(exc)[-2000:], (), (), (),
+                                          origin="time_machine", time_machine=tm_record)
+                        )
+                        raise
                     if tm_result is not None:
                         _log(f"[time-machine] re-execution id={tm_result.sandbox_id} exit_code={tm_result.final.exit_code}")
                         attempts.append(
                             AttemptRecord(
                                 0, "", "PASS", (), tm_result.final.exit_code, tm_result.final.stdout[-2000:],
                                 tm_result.final.stderr[-2000:], (), (), (), origin="time_machine", time_machine=tm_record,
+                                execution=_execution_of(tm_result, True),
                             )
                         )
                         tm_result = _with_build_isolation(tm_result)
@@ -974,7 +1121,7 @@ def _run_stages(
                     )
 
         for attempt_number in range(1, (deps.max_attempts if deps.repair_enabled else 0) + 1):
-            if verdict is not None:
+            if verdict is not None or state.cost_capped:
                 break
             try:
                 cost_guard.check_attempt_budget(run_id)
@@ -995,6 +1142,15 @@ def _run_stages(
             failure_log = f"{sandbox_result.final.stderr}\n{sandbox_result.final.stdout}"
 
             state.stage = "tavily"
+            if imported_modules is None:
+                imported_modules = env_repair.imported_top_level_modules(workdir)
+            # harness-v1.3.3: the query carries the repository's framework and Python version next to the error, and what
+            # this run already tried (a repeated error must not repeat an identical search).
+            search_framework = tavily.detect_framework(imported_modules)
+            search_python = tavily.python_minor(plan.base_image)
+            search_tried = tuple(
+                sorted(f"{key[0]} {key[1] or key[5]}{('==' + key[2]) if key[2] else ''}".strip() for key in failed_moves)
+            )
             resolution = None
             if deps.tavily_client is not None and classification.code in dep_resolver.RESOLVER_CODES:
                 # Dependency failures: Tavily finds the real source / era
@@ -1006,6 +1162,8 @@ def _run_stages(
                     classification.evidence,
                     era.date if era else None,
                     http_get=deps.http_get,
+                    framework=search_framework,
+                    python_version=search_python,
                 )
             if resolution is not None:
                 missing = re.search(r"No module named ['\"]([\w.]+)['\"]", classification.evidence or "")
@@ -1025,7 +1183,10 @@ def _run_stages(
                     _log(f"[resolver] {note}")
             else:
                 try:
-                    tavily_context = tavily.fetch_context(deps.tavily_client, classification.code, classification.evidence)
+                    tavily_context = tavily.fetch_context(
+                        deps.tavily_client, classification.code, classification.evidence,
+                        framework=search_framework, python_version=search_python, tried=search_tried,
+                    )
                 except tavily.TavilyError as exc:
                     _log(f"[tavily] search failed, continuing without cited context: {exc}")
                     tavily_context = tavily.TavilyContext(query="", sources=())
@@ -1036,11 +1197,13 @@ def _run_stages(
             if tavily_context.has_sources:
                 _log(f"[tavily] {len(tavily_context.sources)} result(s) for '{tavily_context.query}'")
 
-            def _cite(env_changes_applied) -> tuple[tuple, tuple]:
+            def _cite(env_changes_applied, declared: tuple = ()) -> tuple[tuple, tuple]:
                 """Only sources actually used in a decision are cited: a
                 verified git source a pip_git change installed (plus the
                 Tavily result it was found in), a PyPI release a pin/add
-                chose. Everything else offered is logged, not cited."""
+                chose, and (harness-v1.3.3, D-3/Best Use of Tavily) every search result the model DECLARED it used
+                (`cited_sources`, 1-based as numbered in its prompt) for the change that was applied. A number outside
+                what was offered is ignored and logged. Everything else offered is logged, not cited."""
                 used_git = {
                     ((c.git_url or "").rstrip("/").removesuffix(".git").lower(), c.commit)
                     for c in env_changes_applied
@@ -1057,9 +1220,20 @@ def _run_stages(
                     or (s["kind"] == "pypi" and (re.sub(r"[-_.]+", "-", s["package"]).lower(), s["version"]) in used_pypi)
                 )
                 cited_urls = {s.get("cited_by") for s in cited_resolved if s["kind"] == "git"}
-                cited_tavily = tuple(t for t in offered_tavily if t["url"] in cited_urls)
+                cited_list = [dict(t, cited_via="git_source") for t in offered_tavily if t["url"] in cited_urls]
+                for number in dict.fromkeys(declared):
+                    if not 1 <= number <= len(offered_tavily):
+                        _log(f"[citations] ignored: the model cited source [{number}] but only {len(offered_tavily)} were offered")
+                        continue
+                    source = offered_tavily[number - 1]
+                    if source["url"] in {c["url"] for c in cited_list}:
+                        continue
+                    cited_list.append(dict(source, cited_via="model_declared"))
+                    _log(f"[citations] cited (model declared it used source [{number}]): {source['url']}")
+                cited_tavily = tuple(cited_list)
+                cited_url_set = {c["url"] for c in cited_tavily}
                 for t in offered_tavily:
-                    if t not in cited_tavily:
+                    if t["url"] not in cited_url_set:
                         _log(f"[citations] not cited (not used in a decision): {t['url']}")
                 for r in offered_sources:
                     if r not in cited_resolved:
@@ -1120,6 +1294,8 @@ def _run_stages(
                         locked_requirements=(
                             tuple((current_requirements or "").splitlines()) if resolved_lock is not None else None
                         ),
+                        repo_internal_modules=_internal_modules(),
+                        apt_packages=frozenset(p.lower() for p in plan.apt_install),
                     )
                 return changes, violations
 
@@ -1176,18 +1352,70 @@ def _run_stages(
             # --- Tamper gate on the code diff (every touched file) ------------
             checked_diff = ""
             code_violations: tuple = ()
-            if proposal.diff_text:
+            patch_notes: tuple[str, ...] = ()
+            model_patch = ""
+
+            def _resolve_code(prop) -> "patch_pipeline.PatchResolution":
+                return patch_pipeline.resolve_patch(
+                    workdir,
+                    diff_text=prop.diff_text,
+                    file_edits=list(prop.file_edits) or None,
+                    file_replacements=list(prop.file_replacements) or None,
+                )
+
+            def _raw_patch(prop) -> str:
+                if prop.diff_text:
+                    return prop.diff_text
+                return json.dumps({"file_edits": list(prop.file_edits), "file_replacements": list(prop.file_replacements)})[:6000]
+
+            candidate_diff: str | None = None
+            if proposal.has_code:
+                # harness-v1.3.3 (D-1/D-2): the model's intent is rebuilt into a canonical diff that passes `git apply --check`
+                # BEFORE the tamper gate; the gate then sees exactly what will be applied. One re-ask shows the model the error.
+                state.stage = "patch_pipeline"
+                try:
+                    resolution_ = _resolve_code(proposal)
+                except patch_pipeline.PatchProblem as exc:
+                    _log(f"[repair {attempt_number}] code change is not applicable: {str(exc).splitlines()[0][:200]}; re-asked once (same attempt)")
+                    first_raw = _raw_patch(proposal)
+                    proposal = _propose(
+                        "Your previous code change could not be applied: " + str(exc) + "\nReply again with the complete JSON "
+                        "object. Prefer file_edits (copy `old` exactly from the file shown above), or decline."
+                    )
+                    resolution_ = None
+                    if not proposal.has_change:
+                        _log(f"[repair {attempt_number}] declined after re-ask: {proposal.explanation}")
+                        _cite(())
+                        attempts.append(AttemptRecord(attempt_number, "", "DECLINED", (), None, "", "", model_patch=first_raw))
+                        continue
+                    env_changes, env_violations = _env_check(proposal)
+                    env_delta_dicts = tuple(c.as_dict() for c in env_changes)
+                    if proposal.has_code:
+                        try:
+                            resolution_ = _resolve_code(proposal)
+                        except patch_pipeline.PatchProblem as exc2:
+                            code_violations = (
+                                env_repair.Violation(rule=GateRule.UNAPPLICABLE_PATCH, reason=str(exc2)[:600]),
+                            )
+                            checked_diff = _raw_patch(proposal)[:4000]
+                if resolution_ is not None:
+                    candidate_diff = resolution_.diff
+                    patch_notes = resolution_.notes
+                    model_patch = _raw_patch(proposal) if resolution_.diff != (proposal.diff_text or "") else ""
+                    for note in patch_notes:
+                        _log(f"[patch] {note}")
+            if candidate_diff:
                 state.stage = "tamper_gate"
                 # The gate must see the original of EVERY file the diff touches,
                 # not just the file the repairer was shown (the hole found live on
                 # 2026-09-24). Paths come from the same normalizer the gate uses.
-                touched_originals = _load_touched_originals(workdir, prepare_patch(proposal.diff_text).paths)
+                touched_originals = _load_touched_originals(workdir, prepare_patch(candidate_diff).paths)
                 touched_sources = "\n".join(touched_originals.values())
                 # Recon's names come from a model that reads untrusted repo text;
                 # the AST-derived floor keeps rules 1-2 armed even if recon was
                 # prompt-injected into returning none.
                 gate_result = check_patch(
-                    proposal.diff_text,
+                    candidate_diff,
                     touched_originals,
                     eval_call_names=frozenset(recon_result.eval_call_names) | heuristic_eval_call_names(touched_sources),
                     model_call_names=frozenset(recon_result.model_call_names) | heuristic_model_call_names(touched_sources),
@@ -1195,7 +1423,7 @@ def _run_stages(
                 )
                 # From here on, the diff that is recorded and applied is exactly
                 # the canonical one the gate analyzed.
-                checked_diff = gate_result.canonical_diff or proposal.diff_text
+                checked_diff = gate_result.canonical_diff or candidate_diff
                 code_violations = gate_result.violations
 
             all_violations = tuple(env_violations) + tuple(code_violations)
@@ -1214,6 +1442,8 @@ def _run_stages(
                         "",
                         (),
                         env_delta_dicts,
+                        patch_notes=patch_notes,
+                        model_patch=model_patch,
                     )
                 )
                 continue
@@ -1248,15 +1478,22 @@ def _run_stages(
                 if new_requirements is not None:
                     current_requirements = new_requirements
                 _log(f"[repair {attempt_number}] env delta applied; build plan now: {plan.as_dict()}")
-            cited_tavily, cited_resolved = _cite(env_changes)
+            cited_tavily, cited_resolved = _cite(env_changes, proposal.cited_sources)
+            state.build_plan_dict = plan.as_dict()
             try:
-                rerun_result = _execute(workdir)
+                rerun_result = _execute(workdir, smoke=True)
             except CostLimitExceeded as exc:
                 _log(f"[repair {attempt_number}] stopped: daily cost ceiling reached: {exc}")
                 attempts.append(
                     AttemptRecord(attempt_number, checked_diff, "PASS", (), None, "", "", cited_tavily, env_delta_dicts, cited_resolved)
                 )
                 break
+            except SandboxTimeoutError as exc:
+                attempts.append(
+                    AttemptRecord(attempt_number, checked_diff, "PASS", (), None, "", str(exc)[-2000:], cited_tavily,
+                                  env_delta_dicts, cited_resolved)
+                )
+                raise
             _log(
                 f"[repair {attempt_number}] re-execution id={rerun_result.sandbox_id} "
                 f"exit_code={rerun_result.final.exit_code}"
@@ -1274,6 +1511,9 @@ def _run_stages(
                     cited_tavily,
                     env_delta_dicts,
                     cited_resolved,
+                    execution=_execution_of(rerun_result, True),
+                    patch_notes=patch_notes,
+                    model_patch=model_patch,
                 )
             )
             if not rerun_result.succeeded:
@@ -1301,7 +1541,10 @@ def _run_stages(
                 _log(f"[verdict] INDETERMINATE: {sandbox_reason}")
                 break
 
-        if verdict is None:
+        if verdict is None and state.cost_capped:
+            verdict, indeterminate_reason = "INDETERMINATE", _cost_cap_reason(state.cost_capped)
+            _log(f"[verdict] INDETERMINATE: {indeterminate_reason}")
+        elif verdict is None:
             verdict = "BLOCKED"
             model_attempts = sum(1 for a in attempts if a.origin == "model")
             _log(f"[verdict] BLOCKED after {model_attempts} repair attempt(s): {taxonomy_code}")
@@ -1568,6 +1811,41 @@ def _finalize_invalid_harness(
         tree_integrity=cert["tree_integrity"],
         corpus_hash=cert["corpus_hash"],
         **_chain_kwargs(state),
+    )
+
+
+def _finalize_timeout(
+    exc: SandboxTimeoutError,
+    *,
+    state: _RunState,
+    deps: PipelineDeps,
+    cost_guard: CostGuard,
+    repo_url: str,
+    commit_sha: str,
+    on_event: Callable[[str], None] | None,
+) -> PipelineResult:
+    log_lines = state.log_lines
+    line = f"[sandbox] re-execution hit the wall clock: {exc}"
+    log_lines.append(line)
+    if on_event is not None:
+        try:
+            on_event(line)
+        except Exception:  # noqa: BLE001
+            pass
+    return _finalize(
+        verdict="TIMEOUT",
+        taxonomy_code=None,
+        indeterminate_reason="",
+        attempts=tuple(state.attempts),
+        build_plan_dict=state.build_plan_dict,
+        log_lines=log_lines,
+        deps=deps,
+        cost_guard=cost_guard,
+        on_event=on_event,
+        attempts_used=sum(1 for a in state.attempts if a.origin == "model"),
+        repo_url=repo_url,
+        commit_sha=commit_sha,
+        state=state,
     )
 
 

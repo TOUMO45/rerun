@@ -45,6 +45,28 @@ class CostLimitExceeded(RuntimeError):
     """Raised when a spend request would exceed a configured ceiling."""
 
 
+class OperationBudgetExhausted(CostLimitExceeded):
+    """The budget left for this entry cannot fund another sandbox operation, or an operation was stopped
+    because it reached its budget-derived time limit (harness-v1.3.3, D-7)."""
+
+
+# harness-v1.3.3 sandbox cost model (D-7, D-8). Nebius returns an operation's cost only when it COMPLETES, so the guard
+# cannot watch spend while a step runs. It bounds the step's DURATION instead: a step may run at most
+# (budget left) / SANDBOX_COST_RATE_USD_PER_S seconds, the sandbox kills it at that limit, and the spend of a killed step
+# is recorded as an ESTIMATE at the same rate (an upper bound, flagged `estimated`). The rate is the highest observed
+# cost per second over 168 real sandbox operations in this repository's run records (median 0.0026, p95 0.0040,
+# maximum 0.00845 = entry 13 of harness-v1.3.2, $5.1174 in 605.5 s): 0.0085. It is an observed bound, not a guarantee.
+SANDBOX_COST_RATE_USD_PER_S = 0.0085
+# No single REPAIR operation (one build+execute chain) may be funded for more than this: the whole entry cap, i.e. all the budget the entry
+# has left. (Revised 2026-09-30 before any v1.3.3 run: $1.50 gave ~176 s, but 3 of the 20 v1.3.2 CONTROL operations took 195-494 s of wall
+# time at a normal cost of $0.17-$0.29 (slow installs / transient slowness; entry 3 took 494 s in CONTROL and 84 s in TREATMENT), so a
+# 176 s limit would have turned them into false COST_CAPs. The as-published baseline run is therefore NOT budget-limited at all: it keeps the
+# pre-registered 600 s wall clock, see orchestrator._execute.)
+PER_OPERATION_CAP_USD = 2.00
+# Below this many fundable seconds an operation is not started.
+MIN_OPERATION_SECONDS = 30.0
+
+
 @dataclass
 class CostGuard:
     daily_cost_ceiling_usd: float
@@ -60,6 +82,10 @@ class CostGuard:
     model_usage: list = field(default_factory=list, repr=False)
     model_spent_usd: float = field(default=0.0, repr=False)
     sandbox_spent_usd: float = field(default=0.0, repr=False)
+    # Part of sandbox_spent_usd that is an estimate (steps the sandbox killed at their budget/wall-clock limit;
+    # the API returns no cost for them) and the events that produced it, for the run record.
+    estimated_spent_usd: float = field(default=0.0, repr=False)
+    cost_events: list = field(default_factory=list, repr=False)
 
     def _roll_day_if_needed(self) -> None:
         current = date.today()
@@ -110,11 +136,32 @@ class CostGuard:
                 f"requested > ${self.daily_cost_ceiling_usd:.4f} ceiling"
             )
 
-    def record_spend(self, actual_cost_usd: float) -> None:
-        """Sandbox spend (the SDK's measured per-run cost)."""
+    def record_spend(self, actual_cost_usd: float, *, estimated: bool = False, note: str = "") -> None:
+        """Sandbox spend (the SDK's measured per-run cost; `estimated=True` for a killed step's upper bound)."""
         self._roll_day_if_needed()
         self._spent_today_usd += actual_cost_usd
         self.sandbox_spent_usd += actual_cost_usd
+        if estimated:
+            self.estimated_spent_usd += actual_cost_usd
+            self.cost_events.append({"kind": "estimated", "usd": round(actual_cost_usd, 6), "note": note})
+
+    def operation_seconds_budget(
+        self, rate_usd_per_s: float = SANDBOX_COST_RATE_USD_PER_S, per_operation_cap_usd: float = PER_OPERATION_CAP_USD
+    ) -> float:
+        """Seconds one sandbox operation may run: the smaller of what the entry has left and the per-operation cap,
+        divided by the cost rate. The caller passes this to the sandbox as the hard wall clock of the operation."""
+        self._roll_day_if_needed()
+        fundable = min(max(self.daily_cost_ceiling_usd - self._spent_today_usd, 0.0), per_operation_cap_usd)
+        return fundable / rate_usd_per_s
+
+    def record_killed_operation(self, completed_steps_usd: float, killed_seconds: float,
+                                rate_usd_per_s: float = SANDBOX_COST_RATE_USD_PER_S, note: str = "") -> float:
+        """Record an operation the sandbox stopped at its time limit: the steps that completed at their measured cost,
+        the step that was killed at `killed_seconds x rate` (estimate). Returns the total recorded."""
+        estimate = max(killed_seconds, 0.0) * rate_usd_per_s
+        self.record_spend(completed_steps_usd)
+        self.record_spend(estimate, estimated=True, note=note or f"killed step ran {killed_seconds:.0f}s at ${rate_usd_per_s}/s")
+        return completed_steps_usd + estimate
 
     def record_model_usage(self, model: str, prompt_tokens: int, completion_tokens: int) -> float | None:
         """Price one model call from the configured table and add it to the

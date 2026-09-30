@@ -1,0 +1,1 @@
+---\na/main.py\n+++ b/main.py\n@@ -436,5 +436,6 @@\n     # Environment setting\n     if opt.cuda and not torch.cuda.is_available():\n-        raise Exception("No GPU found, please run without --cuda")\n+        print("WARNING: No GPU found, falling back to CPU")\n+        opt.cuda = False\n     torch.manual_seed(opt.seed)\n     device = torch.device("cuda" if opt.cuda else "cpu")

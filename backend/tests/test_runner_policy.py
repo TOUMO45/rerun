@@ -74,8 +74,9 @@ def test_setup_for_a_pinned_repo_keeps_the_pins_and_installs_the_whole_family():
     assert s.specs == ("torch==1.12.1", "torchvision==0.13.1", "torchaudio")
     tail = "--index-url https://download.pytorch.org/whl/cpu --extra-index-url https://pypi.org/simple"
     # the matched set first; if torchaudio has no wheel for this Python/torch, only what the repo uses
-    assert s.install_command == (f"pip install torch==1.12.1 torchvision==0.13.1 torchaudio {tail} "
-                                 f"|| pip install torch==1.12.1 torchvision==0.13.1 {tail}")
+    # harness-v1.3.3: torch < 2.3 is built against NumPy 1.x, so the same command installs numpy<2 (entry 11 of corpus-v2)
+    assert s.install_command == (f"pip install torch==1.12.1 torchvision==0.13.1 torchaudio 'numpy<2' {tail} "
+                                 f"|| pip install torch==1.12.1 torchvision==0.13.1 'numpy<2' {tail}")
     assert "RERUN_TORCH_OK" in s.fix_command and "clear-execstack" in s.fix_command
 
 
@@ -155,3 +156,13 @@ def test_fix_script_uses_a_runner_owned_prefix_and_verifies_the_flag_before_use(
     assert fix.index('"--help"') < fix.index('"--clear-execstack"')
     assert "RERUN_SANDBOX_INCOMPAT" in fix and "sys.exit(98)" in fix
     assert '"-q", "patchelf"' not in fix  # no unpinned install into the repo's environment
+
+
+def test_numpy_is_capped_only_for_a_torch_older_than_2_3():
+    old = re_.plan_torch_setup(["printf 'torch==1.8.1'"], None)
+    assert old.cap_numpy and "'numpy<2'" in old.install_command
+    new = re_.plan_torch_setup(["printf 'torch==2.3.0'"], None)
+    assert not new.cap_numpy and "numpy" not in new.install_command
+    unpinned = re_.plan_torch_setup(["printf 'torchvision==0.13.1 torch'"], None)
+    assert not unpinned.cap_numpy  # no torch pin: the newest matched wheels, which are >= 2.3
+    assert re_.torch_older_than_2_3("<2.3") and re_.torch_older_than_2_3("~=1.12") and not re_.torch_older_than_2_3(">=1.0")

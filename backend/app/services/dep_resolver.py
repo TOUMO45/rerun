@@ -190,12 +190,14 @@ class Resolution:
         return "\n".join(parts)
 
 
-def build_query(code: str, package: str, repo_date: date | None) -> str:
-    """Deterministic, explainable query (shown next to its citations)."""
+def build_query(code: str, package: str, repo_date: date | None, framework: str = "", python_version: str = "") -> str:
+    """Deterministic, explainable query (shown next to its citations). harness-v1.3.3: carries the repository's Python
+    version and framework next to the package name (the package IS the error for a missing module)."""
     year = f" {repo_date.year}" if repo_date else ""
+    context = " ".join(part for part in (f"python {python_version}" if python_version else "python", framework) if part)
     if code == TaxonomyCode.DEP_NOT_ON_PYPI:
-        return f"{package} python package source code github repository pip install"
-    return f"{package} python package version compatible{year} release history"
+        return f"{package} {context} package source code github repository pip install"
+    return f"{package} {context} package version compatible{year} release history"
 
 
 def _verify_github(owner: str, repo: str, repo_date: date | None, cited_by: str, http_get: HttpGet) -> VerifiedGitSource | None:
@@ -282,6 +284,8 @@ def resolve(
     *,
     http_get: HttpGet | None = None,
     max_git_candidates: int = 3,
+    framework: str = "",
+    python_version: str = "",
 ) -> Resolution | None:
     """None if this failure isn't a dependency failure RERUN can name."""
     if code not in RESOLVER_CODES:
@@ -305,7 +309,7 @@ def resolve(
     except Exception as exc:
         pypi_status, releases = f"lookup failed ({type(exc).__name__})", ()
     source_mode = code == TaxonomyCode.DEP_NOT_ON_PYPI or pypi_status == "not on PyPI"
-    query = build_query(TaxonomyCode.DEP_NOT_ON_PYPI if source_mode else code, package, repo_date)
+    query = build_query(TaxonomyCode.DEP_NOT_ON_PYPI if source_mode else code, package, repo_date, framework, python_version)
 
     context = tavily.TavilyContext(query=query, sources=())
     if tavily_client is not None:

@@ -249,12 +249,49 @@ def test_time_machine_repairs_an_era_environment_as_attempt_zero(tmp_path):
     assert len(sandbox.calls) == 2  # baseline + era re-execution; no model repair needed
 
 
-def test_time_machine_failure_to_lock_falls_through_to_model_repair(tmp_path):
+def test_time_machine_failure_to_lock_falls_back_to_one_batch_pip_step_then_model_repair(tmp_path):
+    """harness-v1.3.3 (D-5): a failed era lock no longer discards the whole batch; every undeclared import goes in ONE
+    unpinned pip step on the policy's interpreter, recorded as a fallback, and the repair loop continues after it."""
     fail = lambda *a: LockResult(False, (), (), (), "uv pip compile", "error: Failed to build `fire`")
-    result, _ = _run_tm(tmp_path, fail, [{"code_diff": None, "env_delta": [], "explanation": "cannot fix"}])
-    assert result.attempts[0].origin == "time_machine" and result.attempts[0].gate_decision == "DECLINED"
-    assert "Failed to build" in result.attempts[0].time_machine["lock"]["error"]
+    result, sandbox = _run_tm(tmp_path, fail, [{"code_diff": None, "env_delta": [], "explanation": "cannot fix"}])
+    first = result.attempts[0]
+    assert first.origin == "time_machine" and first.gate_decision == "PASS"
+    assert "Failed to build" in first.time_machine["lock"]["error"]  # the failed lock stays in the record
+    assert first.time_machine["fallback"] == {"kind": "batch_pip_unpinned", "packages": ["tensorflow"], "base_image": "python:3.10-slim"}
+    assert any("pip install tensorflow" in c for c in sandbox.calls[1]["install_commands"])  # one step, unpinned
     assert result.verdict == "BLOCKED"
+
+
+def test_time_machine_lock_failure_with_nothing_to_batch_is_DECLINED(tmp_path):
+    repo = _git_repo(tmp_path, {"requirements.txt": REQS, "gen.py": "import regex\nimport os\n"})
+    intake = RepoIntake(repo, "a" * 40, {"requirements.txt": REQS}, frozenset({"fire", "regex"}), (), ("gen.py",), None)
+    deps = PipelineDeps(
+        recon_client=_Chat([json.dumps({"entrypoint": "gen.py", "confidence": 0.9})]), recon_model="r",
+        repair_client=_Chat([json.dumps({"code_diff": None, "env_delta": [], "explanation": "x"})]), repair_model="p",
+        adjudicator_client=None, adjudicator_model=None, sandbox_api_key="k", sandbox_wall_clock_seconds=60,
+        sandbox_runner=_Sandbox(), max_attempts=1,
+        http_get=FakeHttp({f"https://api.github.com/repos/openai/gpt-2/commits?path=requirements.txt": _commit("2019-03-04")}),
+        lock_compiler=lambda *a: LockResult(False, (), (), (), "uv pip compile", "error: Failed to build `fire`"),
+    )
+    result = run_pipeline(repo_url=REPO, commit_sha="a" * 40, workdir=repo, intake_result=intake, deps=deps,
+                          cost_guard=CostGuard(daily_cost_ceiling_usd=100), run_id="tm")
+    assert result.attempts[0].origin == "time_machine" and result.attempts[0].gate_decision == "DECLINED"
+
+
+def test_a_name_with_no_release_before_the_era_is_dropped_not_fatal():
+    """corpus-v2 entry 1: `curves` has only a 2025 release; uv says 'there are no versions of curves' under
+    --exclude-newer. That used to fail the whole lock."""
+    calls = []
+
+    def runner(argv, stdin):
+        calls.append(stdin)
+        if "curves" in stdin:
+            return 1, "", ("  x No solution found when resolving dependencies:\n  ╰─▶ Because there are no versions of curves and "
+                           "you require curves, we can conclude that your requirements are unsatisfiable.")
+        return 0, "tabulate==0.8.7\n", ""
+
+    lock = compile_lock([], ["tabulate", "curves"], date(2020, 10, 22), "3.8", runner=runner, uv="uv", build_python="3.8")
+    assert lock.ok and lock.lock_lines == ("tabulate==0.8.7",) and lock.not_on_index == ("curves",)
 
 
 # --- c) source search whenever PyPI says the package does not exist ---------------

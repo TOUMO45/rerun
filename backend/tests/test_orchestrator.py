@@ -373,66 +373,65 @@ def test_blocked_after_exactly_max_attempts_even_when_every_patch_passes_the_gat
     assert final_content.count("# repair attempt") == 3
 
 
-def test_gate_approved_patch_that_fails_real_git_apply_does_not_crash_the_pipeline(tmp_path):
-    """Found live during this session's audit: tamper_gate.py's own AST
-    reconstruction (_apply_patched_file) never cross-validates a diff's
-    claimed context/removed lines against the real file it was given —
-    it only trusts the diff's own structure. A diff built against a
-    slightly stale or misremembered view of the file (a realistic model
-    failure mode, not contrived) can therefore PASS the gate yet still
-    be refused by the real `git apply` orchestrator.py's
-    _apply_diff_with_git runs next. That raised OrchestratorError was
-    never caught anywhere in orchestrator.py, crashing the whole pipeline
-    with an unhandled exception instead of producing an honest verdict —
-    directly against §0's "never fake a result... the taxonomy/verdict
-    system exists precisely to say so honestly."
-    """
-    real_content = textwrap.dedent(
-        """\
-        def train():
-            model = build_model()
-            fit(model)
-            evaluate(model)
+def test_gate_approved_patch_that_fails_the_final_git_apply_does_not_crash_the_pipeline(tmp_path):
+    """Safety net, kept from the 2026-09 audit: if `git apply` refuses a gate-approved diff at the very end (the pre-gate
+    check in patch_pipeline makes this rare since harness-v1.3.3, so it is injected here), the pipeline records it and ends with an
+    honest verdict instead of crashing."""
+    from app.services.orchestrator import OrchestratorError
 
-        train()
-        """
-    )
+    real_content = "def train():\n    model = build_model()\n    fit(model)\n    evaluate(model)\n\ntrain()\n"
     _write_files(tmp_path, {"train.py": real_content})
     intake = _intake({"train.py": real_content})
+    good_diff = _unified_diff("train.py", real_content, real_content.replace("fit(model)", "fit(model, epochs=1)"))
 
-    # The diff's own claimed "before" text doesn't match the real file —
-    # git apply will refuse it on context mismatch, even though the gate,
-    # which never checks this, will pass it.
-    claimed_original = real_content.replace("build_model()", "SOME_STALE_HALLUCINATED_CALL()")
-    bad_diff = _unified_diff("train.py", claimed_original, real_content)
+    def refusing_apply(workdir, diff_text):
+        raise OrchestratorError("gate-approved patch failed to apply: error: patch does not apply")
 
     recon_client = _FakeChatClient([json.dumps({"entrypoint": "train.py", "confidence": 0.9})])
-    repair_client = _FakeChatClient(
-        [
-            json.dumps({"diff": bad_diff, "explanation": "fix"}),
-            json.dumps({"diff": None, "explanation": "giving up"}),
-            json.dumps({"diff": None, "explanation": "giving up"}),
-        ]
-    )
+    repair_client = _FakeChatClient([
+        json.dumps({"diff": good_diff, "explanation": "fix"}),
+        json.dumps({"diff": None, "explanation": "giving up"}),
+        json.dumps({"diff": None, "explanation": "giving up"}),
+    ])
     sandbox_runner = _FakeSandboxRunner([_sandbox_result(1, stderr="RuntimeError: boom")])
     deps = _base_deps(recon_client, repair_client, None, sandbox_runner)
-
+    deps.apply_diff = refusing_apply
     result = run_pipeline(
-        repo_url="https://example.com/repo",
-        commit_sha="a" * 40,
-        workdir=tmp_path,
-        intake_result=intake,
-        deps=deps,
-        cost_guard=CostGuard(daily_cost_ceiling_usd=100, max_attempts_per_run=3),
-        run_id="run-bad-apply",
+        repo_url="https://example.com/repo", commit_sha="a" * 40, workdir=tmp_path, intake_result=intake, deps=deps,
+        cost_guard=CostGuard(daily_cost_ceiling_usd=100, max_attempts_per_run=3), run_id="run-bad-apply",
     )
-
     assert result.verdict == "BLOCKED"
     assert len(result.attempts) == 3
-    assert result.attempts[0].gate_decision == "PASS"  # the gate really did PASS it
-    assert "failed to apply" in result.attempts[0].stderr_tail
-    # The failed apply must never have touched the file on disk.
-    assert (tmp_path / "train.py").read_text(encoding="utf-8") == real_content
+    assert result.attempts[0].gate_decision == "PASS" and "failed to apply" in result.attempts[0].stderr_tail
+    assert (tmp_path / "train.py").read_text(encoding="utf-8") == real_content  # never touched
+
+
+def test_a_diff_with_stale_context_is_caught_before_the_gate_and_the_model_is_shown_the_error(tmp_path):
+    """harness-v1.3.3 (D-1): a diff whose claimed lines are not in the file used to PASS the gate and fail at `git apply`,
+    spending the attempt. Now patch_pipeline refuses it first, the model is shown the file's own nearest lines once (same
+    attempt), and a corrected change applies and is re-executed."""
+    real_content = "def train():\n    model = build_model()\n    fit(model)\n    evaluate(model)\n\ntrain()\n"
+    _write_files(tmp_path, {"train.py": real_content})
+    intake = _intake({"train.py": real_content})
+    stale = _unified_diff("train.py", real_content.replace("build_model()", "SOME_STALE_HALLUCINATED_CALL()"), real_content)
+    fixed = {"file_edits": [{"path": "train.py", "old": "    fit(model)\n", "new": "    fit(model, epochs=1)\n"}],
+             "explanation": "fix"}
+    recon_client = _FakeChatClient([json.dumps({"entrypoint": "train.py", "confidence": 0.9})])
+    repair_client = _FakeChatClient([json.dumps({"code_diff": stale, "explanation": "fix"}), json.dumps(fixed)])
+    sandbox_runner = _FakeSandboxRunner([_sandbox_result(1, stderr="RuntimeError: boom"), _sandbox_result(0, stdout="ok")])
+    deps = _base_deps(recon_client, repair_client, None, sandbox_runner)
+    result = run_pipeline(
+        repo_url="https://example.com/repo", commit_sha="a" * 40, workdir=tmp_path, intake_result=intake, deps=deps,
+        cost_guard=CostGuard(daily_cost_ceiling_usd=100, max_attempts_per_run=3), run_id="run-stale",
+    )
+    assert result.verdict == "RUNS_AFTER_REPAIR", result.full_log
+    assert len(result.attempts) == 1  # the re-ask did not consume a second attempt
+    assert len(repair_client.calls) == 2
+    second_prompt = json.dumps(repair_client.calls[1])
+    assert "could not be applied" in second_prompt and "model = build_model()" in second_prompt  # the file's own line, shown
+    attempt = result.attempts[0]
+    assert attempt.gate_decision == "PASS" and "epochs=1" in attempt.diff_text
+    assert "fit(model, epochs=1)" in (tmp_path / "train.py").read_text(encoding="utf-8")
 
 
 # --- BLOCKED: repair keeps declining until attempts are exhausted -----------

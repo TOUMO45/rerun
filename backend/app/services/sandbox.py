@@ -68,6 +68,21 @@ class SandboxCredentialsError(SandboxError):
     pass
 
 
+class SandboxTimeoutError(SandboxError):
+    """A step reached the operation's time limit (the configured wall clock, or the budget-derived limit the
+    orchestrator passes as the wall clock) and the sandbox killed it (harness-v1.3.3, D-7/D-8). The API returns no
+    cost for a killed step, so this carries what IS known: the cost of the steps that completed, and how long the
+    killed step ran. The message always contains "wall clock" (the orchestrator's TIMEOUT mapping keys on it)."""
+
+    def __init__(self, message: str, *, command: str = "", completed_cost_usd: float = 0.0, killed_seconds: float = 0.0,
+                 completed_steps: tuple = ()):
+        super().__init__(message)
+        self.command = command
+        self.completed_cost_usd = completed_cost_usd
+        self.killed_seconds = killed_seconds
+        self.completed_steps = completed_steps
+
+
 class SandboxInfraError(InfraError):
     """The Nebius sandbox API failed (timeouts, transport, 5xx, 403, …)."""
 
@@ -499,6 +514,10 @@ def _run_once(
     last_image_uuid = getattr(current, "uuid", None)
 
     upload_seconds = None
+    # Bookkeeping for SandboxTimeoutError: the step being run and how long it has run.
+    extract_cost = 0.0
+    current_cmd = ""
+    step_started = time.monotonic()
     try:
         if archive is not None:
             upload_started = time.monotonic()
@@ -522,16 +541,19 @@ def _run_once(
         # allowance that scales with how many install commands a given
         # repo happens to need.
         deadline = time.monotonic() + wall_clock_seconds
-        extract_cost = 0.0
         extract_seconds = None
         for i, cmd in enumerate(commands):
             is_last = i == len(commands) - 1
             remaining = deadline - time.monotonic()
             if remaining <= 0:
-                raise SandboxError(
+                raise SandboxTimeoutError(
                     f"sandbox execution exceeded {wall_clock_seconds}s wall clock "
-                    f"for the whole attempt (stopped before running '{cmd}')"
+                    f"for the whole attempt (stopped before running '{cmd}')",
+                    command=cmd, completed_cost_usd=extract_cost + sum(st.cost_usd for st in steps),
+                    killed_seconds=0.0, completed_steps=tuple(steps),
                 )
+            step_started = time.monotonic()
+            current_cmd = cmd
             executed = current.run(
                 shell=cmd,
                 timeout=remaining,
@@ -567,7 +589,13 @@ def _run_once(
         )
 
     except OperationTimedOutError as exc:
-        raise SandboxError(f"sandbox execution exceeded {wall_clock_seconds}s wall clock: {exc}") from exc
+        raise SandboxTimeoutError(
+            f"sandbox execution exceeded {wall_clock_seconds}s wall clock: {exc}",
+            command=current_cmd,
+            completed_cost_usd=extract_cost + sum(st.cost_usd for st in steps),
+            killed_seconds=time.monotonic() - step_started,
+            completed_steps=tuple(steps),
+        ) from exc
     finally:
         for retained in retained_images:
             try:

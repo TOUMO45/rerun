@@ -1,0 +1,14 @@
+--- a/test.py
++++ b/test.py
+@@ -20,9 +20,9 @@
+     accuracy_list = []
+     iter_val = [iter(loader) for loader in loaders]
+     for i in range(len(iter_val)):
+         iter_ = iter_val[i]
+         start_test = True
+ 
+-        for j in range(len(loaders[i])):
+-            inputs, labels = iter_.next()
++        for j in range(len(loaders[i])):
++            inputs, labels = next(iter_)
+             inputs = inputs.cuda()

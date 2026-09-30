@@ -98,10 +98,13 @@ class TorchSetup:
     # Names that are actually imported/declared. If the full matched set cannot be resolved for this Python
     # (an old torch pin with no matching torchaudio wheel), the install falls back to these alone.
     needed: tuple[str, ...] = ()
+    # torch older than 2.3 is compiled against NumPy 1.x: with NumPy 2 installed `import torch` fails (`_ARRAY_API not found`,
+    # corpus-v2 entry 11: the runner's own setup check failed, INDETERMINATE RUNNER_SETUP_FAILED). The runner installs NumPy<2
+    # in the same pip command whenever the torch pin is older than 2.3 (harness-v1.3.3).
+    cap_numpy: bool = False
 
-    @staticmethod
-    def _pip(specs: tuple[str, ...]) -> str:
-        quoted = " ".join(shlex.quote(s) for s in specs)
+    def _pip(self, specs: tuple[str, ...]) -> str:
+        quoted = " ".join(shlex.quote(s) for s in (*specs, *(("numpy<2",) if self.cap_numpy else ())))
         return f"pip install {quoted} --index-url {CPU_INDEX} --extra-index-url {PYPI_INDEX}"
 
     @property
@@ -119,6 +122,17 @@ class TorchSetup:
 
 def _spec_base(spec: str) -> str:
     return re.split(r"[<>=!~ ]", spec, maxsplit=1)[0]
+
+
+def torch_older_than_2_3(spec: str) -> bool:
+    """True if a torch requirement spec pins or upper-bounds a release below 2.3 (`==1.8.1`, `<2`, `~=1.12`, `<=1.13.1`).
+    A bare name or a lower bound (`>=1.0`) selects the newest wheel, which is >= 2.3, so it is False."""
+    for op, version in re.findall(r"(==|<=|<|~=)\s*(\d+(?:\.\d+)*)", spec or ""):
+        parts = [int(p) for p in version.split(".")]
+        parts += [0] * (2 - len(parts))
+        if tuple(parts[:2]) < (2, 3) or (op == "<" and tuple(parts[:2]) <= (2, 3)):
+            return True
+    return False
 
 
 def plan_torch_setup(texts: Iterable[str], workdir: Path | None) -> TorchSetup | None:
@@ -139,7 +153,7 @@ def plan_torch_setup(texts: Iterable[str], workdir: Path | None) -> TorchSetup |
         reason = f"repo pins {', '.join(pins)}; installed the CPU wheels as a matched set with the same pins"
     else:
         reason = f"repo imports {', '.join(sorted(imported))} without declaring it; runner provides the newest matched CPU wheels"
-    return TorchSetup(specs, reason, needed)
+    return TorchSetup(specs, reason, needed, cap_numpy=torch_older_than_2_3(pins.get("torch", "")))
 
 
 # One python program: find torch shared objects whose PT_GNU_STACK is executable (parsed from the ELF program

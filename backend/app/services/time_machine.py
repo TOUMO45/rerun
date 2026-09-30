@@ -31,8 +31,7 @@ from datetime import date, timedelta
 from pathlib import Path
 from typing import Callable
 
-from app.services.env_repair import imported_top_level_modules
-from app.services import timeouts
+from app.services import dep_scan, timeouts
 from app.services.import_names import ImportMapping, mapping_for
 from app.services.infra import InfraError, checked_http_get, retry_call
 
@@ -160,15 +159,14 @@ def _norm(name: str) -> str:
 
 
 def local_module_names(workdir: Path) -> set[str]:
-    names = set()
-    for path in workdir.rglob("*.py"):
-        if ".git" in path.parts:
-            continue
-        names.add(path.stem)
-        for parent in path.relative_to(workdir).parents:
-            if parent.name:
-                names.add(parent.name)
-    return names
+    """Names that resolve inside the repository (kept for callers; the scan in dep_scan is the definition)."""
+    return set(dep_scan.internal_module_names(workdir))
+
+
+def batch_for(workdir: Path, declared: frozenset[str]) -> "dep_scan.BatchInstall":
+    """The ONE batch of packages the repository's code imports but never declares (harness-v1.3.3): whole-tree AST scan,
+    repo-internal modules (incl. compiled/_ext with a build step) excluded, optional try/except imports skipped."""
+    return dep_scan.batch_install_set(dep_scan.scan_repo(workdir), declared)
 
 
 def undeclared_third_party_imports(workdir: Path, declared: frozenset[str]) -> list[str]:
@@ -183,19 +181,7 @@ def undeclared_third_party_imports_with_mappings(
     """As undeclared_third_party_imports, with the import-map row used for
     each (None = the import name was used unchanged) — recorded in the
     certificate (harness-v1.1)."""
-    stdlib = set(getattr(sys, "stdlib_module_names", ())) | _STDLIB_EXTRA
-    local = local_module_names(workdir)
-    declared_norm = {_norm(d) for d in declared}
-    out = []
-    for module in sorted(imported_top_level_modules(workdir)):
-        if module in stdlib or module in local or module.startswith("_"):
-            continue
-        mapping = mapping_for(module)
-        dist = mapping.distribution if mapping else module
-        if _norm(dist) in declared_norm or _norm(module) in declared_norm:
-            continue
-        out.append((dist, mapping))
-    return out
+    return list(batch_for(workdir, declared).distributions)
 
 
 @dataclass(frozen=True)
@@ -206,6 +192,8 @@ class LockResult:
     not_on_index: tuple[str, ...] = ()
     command: str = ""
     error: str = ""
+    # Names whose era cutoff was relaxed (their first release is shortly AFTER the era estimate): name -> cutoff used.
+    relaxed: tuple[tuple[str, str], ...] = ()
 
     def as_dict(self) -> dict:
         return {
@@ -213,12 +201,21 @@ class LockResult:
             "lock": list(self.lock_lines),
             "inputs": list(self.inputs),
             "not_on_index": list(self.not_on_index),
+            "relaxed": [{"package": n, "cutoff": c} for n, c in self.relaxed],
             "command": self.command,
             "error": self.error[-2000:],
         }
 
 
 _NOT_FOUND_RE = re.compile(r"Because ([A-Za-z0-9][A-Za-z0-9._-]*) was not found in the package registry")
+# uv's message when NO release of a name exists on or before the era cutoff (`--exclude-newer`): corpus-v2 entry 1 asked
+# for `curves`, whose only release is from 2025; one such name failed the whole era lock (D-1/D-5). It is dropped and
+# reported like a name the index has never heard of; the rest of the lock proceeds.
+_NO_VERSIONS_RE = re.compile(r"Because there are no versions of ([A-Za-z0-9][A-Za-z0-9._-]*)")
+# The era is an ESTIMATE (the last change to a dependency file, or the pinned commit date). A package whose first release
+# comes shortly after it (corpus-v2 entry 20: pycocoevalcap, 6 weeks) is allowed one year past the era, per package
+# (`uv --exclude-newer-package`); one with nothing inside that window (entry 1: `curves`, 2025) is dropped.
+ERA_RELAX_DAYS = 365
 # uv's messages when the index itself is unreachable (not an answer about a package).
 _UV_NETWORK_RE = re.compile(
     r"Failed to fetch|error sending request|operation timed out|dns error|tcp connect error|"
@@ -269,6 +266,19 @@ def apply_lock(plan, python_version: str, lock_lines: list[str], apt_added: tupl
     )
 
 
+def apply_batch_pip(plan, packages: list[str] | tuple[str, ...], apt_added: tuple[str, ...] = ()):
+    """Fallback when the era lock cannot be produced at all: ONE `pip install` step for every undeclared import, unpinned,
+    on the plan's own interpreter (the policy's choice, incl. a README-declared version). Not era-pinned: the record says so."""
+    import shlex
+    from dataclasses import replace as _replace
+
+    commands = tuple(plan.install_commands)
+    if packages:
+        commands += ("pip install " + " ".join(shlex.quote(p) for p in packages),)
+    notes = tuple(plan.notes) + (f"time machine fallback (no era lock): one pip step for {len(packages)} undeclared import(s), unpinned",)
+    return _replace(plan, apt_install=tuple(sorted(set(plan.apt_install) | set(apt_added))), install_commands=commands, notes=notes)
+
+
 def managed_build_python(minor: str = "3.8") -> str:
     """Explicit path to a uv-managed CPython `minor` if one is installed,
     else the bare version (uv resolves it). Found on this Windows host: uv's
@@ -301,7 +311,7 @@ def compile_lock(
     runner: Runner | None = None,
     uv: str | None = None,
     build_python: str | None = None,
-    max_drops: int = 5,
+    max_drops: int = 8,
 ) -> LockResult:
     """`uv pip compile --exclude-newer <era+1d>` for Linux + `python_version`.
     Old sdists are built for metadata with a managed `build_python` (uv only
@@ -316,7 +326,8 @@ def compile_lock(
     ]
     inputs += [p for p in extra_packages if _norm(p) not in {_norm(re.split(r"[<>=!~ ;\[]", i)[0]) for i in inputs}]
     cutoff = (era + timedelta(days=1)).isoformat() + "T00:00:00Z"
-    argv = [
+    relax_cutoff = (era + timedelta(days=1 + ERA_RELAX_DAYS)).isoformat() + "T00:00:00Z"
+    base_argv = [
         uv, "pip", "compile", "-", "--no-header", "--no-annotate", "--quiet",
         "--exclude-newer", cutoff,
         "--python-version", python_version,
@@ -324,13 +335,17 @@ def compile_lock(
         "--python", build_python,
     ]
     dropped: list[str] = []
+    relaxed: dict[str, str] = {}
     current = list(inputs)
+
+    def _argv() -> list[str]:
+        return base_argv + [a for name in relaxed for a in ("--exclude-newer-package", f"{name}={relaxed[name]}")]
 
     def _run_uv(stdin_text: str):
         # harness-v1.1: uv could not reach the package index -> retried, then
         # InfraError('package-index') instead of a failed lock the repair
         # loop would then try to work around.
-        rc, out, err = runner(argv, stdin_text)
+        rc, out, err = runner(_argv(), stdin_text)
         if rc != 0 and _UV_NETWORK_RE.search(err or ""):
             raise _IndexUnreachable(err[-500:])
         return rc, out, err
@@ -346,18 +361,27 @@ def compile_lock(
         except InfraError:
             raise
         except Exception as exc:  # uv missing, blocked in tests
-            return LockResult(False, (), tuple(inputs), tuple(dropped), " ".join(argv[1:]), f"{type(exc).__name__}: {exc}")
+            return LockResult(False, (), tuple(inputs), tuple(dropped), " ".join(_argv()[1:]), f"{type(exc).__name__}: {exc}", tuple(relaxed.items()))
         if rc == 0:
             lock = tuple(
                 line.strip() for line in out.splitlines() if line.strip() and not line.strip().startswith("#")
             )
-            return LockResult(True, lock, tuple(inputs), tuple(dropped), " ".join(argv[1:]))
-        missing = _NOT_FOUND_RE.search(err)
+            return LockResult(True, lock, tuple(inputs), tuple(dropped), " ".join(_argv()[1:]), "", tuple(relaxed.items()))
+        missing = _NOT_FOUND_RE.search(err) or _NO_VERSIONS_RE.search(err)
         if not missing:
-            return LockResult(False, (), tuple(inputs), tuple(dropped), " ".join(argv[1:]), err)
+            return LockResult(False, (), tuple(inputs), tuple(dropped), " ".join(_argv()[1:]), err, tuple(relaxed.items()))
         name = missing.group(1)
+        if (
+            _NO_VERSIONS_RE.search(err)
+            and re.search(r"filtered by `exclude-newer", err)
+            and _norm(name) not in {_norm(r) for r in relaxed}
+        ):
+            # The era is an estimate: first allow this ONE package a year past it, then retry the whole lock.
+            relaxed[name] = relax_cutoff
+            continue
         dropped.append(name)
+        relaxed.pop(name, None)
         current = [line for line in current if _norm(re.split(r"[<>=!~ ;\[]", line)[0]) != _norm(name)]
         if not current:
             break
-    return LockResult(False, (), tuple(inputs), tuple(dropped), " ".join(argv[1:]), "no resolvable inputs left")
+    return LockResult(False, (), tuple(inputs), tuple(dropped), " ".join(_argv()[1:]), "no resolvable inputs left", tuple(relaxed.items()))

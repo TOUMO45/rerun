@@ -2,6 +2,14 @@
 
 One entry per phase of the post-corpus-v2 plan. Numbers are produced by scripts in `scripts/`.
 
+## harness-v1.3.3 — exploratory repair-loop fixes (2026-09-30; v1.3.2 stays the pre-registered result)
+Fixes for the defects the v1.3.2 records showed (`reports/corpus-v2.1/v1.3.3/DEFECT_FIX_MAP.md`): hard per-entry / per-operation spend enforcement during a sandbox operation
+with killed-operation spend recorded and TIMEOUT instead of PIPELINE_ERROR; one static whole-tree dependency batch with the repo's own modules excluded and a dependency-confusion
+guard; era-lock robustness (relax, drop, or one fallback pip step) and a README-declared Python that wins; a patch pipeline that rebuilds the model's diff and checks it with
+`git apply --check` before the gate (offline: 11 of the 16 stored v1.3.2 patches recovered, 68.75 %, target 80 % not met offline); Tavily citations carried into the record and the passport;
+classifier denoising; apt `remove`; smoke execution for re-executions; a Windows-host bug in the apply step (text-mode stdin turned LF into CRLF); NumPy<2 beside torch<2.3.
+Suite: see the commit. Nothing was run on Nebius before the seal verification.
+
 ## Phase 0 — pilot run summary (2026-09-29)
 corpus-v2 on harness-v1.2 was stopped by the operator after 3 of 20 entries (commit `56fc710`) because the
 Nebius sandbox refuses torch's executable-stack shared objects and the harness charged that to the repository

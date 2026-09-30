@@ -239,6 +239,8 @@ def main(argv: list[str] | None = None) -> int:
             "spent_usd": cost_guard.spent_today_usd,
             "model_spent_usd": cost_guard.model_spent_usd,
             "sandbox_spent_usd": cost_guard.sandbox_spent_usd,
+            "estimated_sandbox_spent_usd": cost_guard.estimated_spent_usd,
+            "cost_events": cost_guard.cost_events,
             "remaining_usd": cost_guard.remaining_today_usd,
             "model_usage": cost_guard.model_usage,
             "prices_usd_per_1m": {k: list(v) for k, v in settings.model_prices_usd_per_1m.items()},

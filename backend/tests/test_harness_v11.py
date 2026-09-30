@@ -647,4 +647,6 @@ def test_entry1_real_log_evidence_is_the_exception_not_the_pip_notice():
     ],
 )
 def test_fallback_evidence_rules(stderr, expected):
-    assert classifier.fallback_evidence(stderr, "", 3) == expected
+    got = classifier.fallback_evidence(stderr, "", 3)
+    # harness-v1.3.3: the "nothing but noise" case now says so after the exit code
+    assert got == expected or (expected == "exit code 3" and got.startswith("exit code 3 (the output held only"))

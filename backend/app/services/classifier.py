@@ -350,6 +350,11 @@ def classify(
     if exit_code == 0:
         raise ValueError("classify() must only be called on a non-zero exit code")
 
+    # harness-v1.3.3 (D-9): rules and evidence see the output WITHOUT progress bars and library log chatter. A benign
+    # TensorFlow `W ... Could not load dynamic library 'libnvinfer.so.6'` line used to be classified SYS_LIB_MISSING while the real
+    # failure (`AttributeError: module 'tensorflow' has no attribute 'get_variable'`) sat below it (corpus-v2 entry 12), and a
+    # progress fragment ("17.6") was recorded as the error (entry 3).
+    stderr, stdout = denoise(stderr), denoise(stdout)
     combined = f"{stderr}\n{stdout}"
 
     for rule in _RULES:
@@ -376,6 +381,31 @@ def classify(
         family=TaxonomyCode.FAMILY[TaxonomyCode.RUNTIME_ERROR_OTHER],
         evidence=fallback_evidence(stderr, stdout, exit_code)[:500],
     )
+
+
+# Lines that are never the failure (harness-v1.3.3): library log lines at WARNING/INFO level and progress bars.
+_LOG_NOISE_RE = re.compile(
+    r"^\d{4}-\d{2}-\d{2}[ T]\d{2}:\d{2}:\d{2}(?:[.,]\d+)?:? ?[WI] "  # TensorFlow: 2026-09-30 13:50:27.517460: W tensorflow/...
+    r"|^[WI]\d{4} \d{2}:\d{2}:\d{2}(?:\.\d+)?\s"  # absl / glog: W0930 13:50:27.517460 1234 file.cc:12]
+    r"|^\[?(?:INFO|DEBUG)\]?[: ]"  # python logging at INFO/DEBUG
+    r"|^\d{4}-\d{2}-\d{2} [\d:,.]+ - \S+ - (?:INFO|DEBUG|WARNING) - ",
+)
+_PROGRESS_RE = re.compile(r"\d+(?:\.\d+)?%.*\d+(?:\.\d+)?%|\d+%\|[^|]*\||^\s*\d+(?:\.\d+)?%\s*$")
+
+
+def denoise(text: str) -> str:
+    """`text` without carriage-return overwrites (keep the last frame), progress bars and INFO/WARNING library log lines.
+    Every kept line is a substring of the original, so evidence quoted from it still appears verbatim in the raw log."""
+    kept = []
+    for line in (text or "").split("\n"):
+        if "\r" in line:
+            frames = [f for f in line.split("\r") if f.strip()]
+            line = frames[-1] if frames else ""
+        stripped = line.strip()
+        if stripped and (_LOG_NOISE_RE.match(stripped) or _PROGRESS_RE.search(stripped)):
+            continue
+        kept.append(line)
+    return "\n".join(kept)
 
 
 # Lines that are never the failure (harness-v1.1): pip's upgrade notices,
@@ -410,4 +440,4 @@ def fallback_evidence(stderr: str, stdout: str = "", exit_code: int = 1) -> str:
     for lines in (err, out):
         if lines:
             return lines[-1]
-    return f"exit code {exit_code}"
+    return f"exit code {exit_code} (the output held only progress bars, warnings or nothing: no error text to show)"

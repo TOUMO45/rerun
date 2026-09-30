@@ -28,6 +28,7 @@ import shlex
 from dataclasses import dataclass, replace
 from pathlib import Path
 
+from app.services import dep_scan
 from app.services.planner import BuildPlan
 from app.services.tamper_gate import Violation
 
@@ -58,6 +59,8 @@ class EnvRule:
     ENV_BUILD_ISOLATION_UNJUSTIFIED = "ENV_BUILD_ISOLATION_UNJUSTIFIED"
     # Re-proposes a change this run already applied and saw fail.
     ENV_REPEATS_FAILED_CHANGE = "ENV_REPEATS_FAILED_CHANGE"
+    # Dependency-confusion guard (harness-v1.3.3, D-12): a package whose name matches a module inside the repository.
+    ENV_SHADOWS_REPO_MODULE = "ENV_SHADOWS_REPO_MODULE"
 
 
 def change_key(c: "EnvChange") -> tuple:
@@ -269,8 +272,14 @@ def check_env_delta(
     verified_git_sources: frozenset[tuple[str, str]] = frozenset(),
     current_command: str | None = None,
     locked_requirements: tuple[str, ...] | None = None,
+    repo_internal_modules: frozenset[str] = frozenset(),
+    apt_packages: frozenset[str] = frozenset(),
 ) -> tuple[Violation, ...]:
     """The deterministic env gate. Returns every violation (empty = PASS).
+
+    `repo_internal_modules` (lower-cased, dep_scan.internal_module_names): an add/pin/pip_git of a package whose name
+    matches one is refused — never install a PyPI package that shadows the repository's own module (D-12).
+    `apt_packages`: the apt packages the plan already installs; `remove` of one of those edits the apt list.
 
     `verified_git_sources` holds (lowercased https URL, commit) pairs that
     dep_resolver resolved to a real commit this attempt. A pip_git change
@@ -375,6 +384,20 @@ def check_env_delta(
                     f"{c.git_url}@{c.commit} was not verified by RERUN's dependency resolver this attempt",
                     i,
                 )
+
+        if c.op in ("pin", "add", "pip_git"):
+            shadowed = dep_scan.shadows_repo_module(c.package, repo_internal_modules)
+            if shadowed:
+                _v(
+                    EnvRule.ENV_SHADOWS_REPO_MODULE,
+                    f"'{c.package}' matches the repository's own module '{shadowed}'; installing an unrelated PyPI package "
+                    "under that name would shadow or be confused with it (missing repo-internal modules need the repo's "
+                    "own build step, not pip)",
+                    i,
+                )
+
+        if c.op == "remove" and c.package.lower() in apt_packages:
+            continue  # an apt package this plan installs: handled by apply_env_delta (edits the apt list)
 
         if c.op in ("unpin", "remove") and not has_requirements_txt:
             _v(EnvRule.ENV_UNSUPPORTED, f"'{c.op}' needs a requirements.txt to edit", i)
@@ -520,6 +543,14 @@ def apply_env_delta(
             base_image = f"python:{c.version}-slim"
         elif c.op == "apt":
             apt.add(c.package)
+        elif (
+            c.op == "remove"
+            and c.package.lower() in apt
+            and not (lines is not None and any(_requirement_name(line) == _norm(c.package) for line in lines))
+        ):
+            # harness-v1.3.3 (D-10): `remove` of an apt package edits the apt list (it used to fall through to the
+            # requirements lines, match nothing, and leave the package installed).
+            apt.discard(c.package.lower())
         elif lines is not None:
             key = _norm(c.package)
             matched = [i for i, line in enumerate(lines) if _requirement_name(line) == key]

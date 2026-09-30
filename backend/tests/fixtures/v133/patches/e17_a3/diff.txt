@@ -1,0 +1,11 @@
+--- a/fs_main.py
++++ b/fs_main.py
+@@ -12,1 +12,7 @@
+- from torch.autograd.gradcheck import zero_gradients
++ def zero_gradients(x):
++     if isinstance(x, torch.Tensor):
++         if x.grad is not None:
++             x.grad.detach_()
++             x.grad.data.zero_()
++     elif isinstance(x, (list, tuple)):
++         for elem in x:

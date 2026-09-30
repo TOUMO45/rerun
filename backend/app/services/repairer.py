@@ -35,7 +35,12 @@ log, the current build plan and dependency file(s), and the content of the one f
 most likely responsible.
 
 You can repair at two layers — use whichever actually addresses the failure:
-- CODE: a unified diff to the repository's own files ("code_diff").
+- CODE: a change to the repository's own files, in ONE of three forms (RERUN rebuilds and checks the diff itself, so
+  you never count hunk lines):
+    "file_edits": [{"path": "<repo-relative>", "old": "<lines copied exactly from the file>", "new": "<replacement>"}]
+        -- PREFERRED: `old` must occur exactly once in the file you were shown.
+    "file_replacements": [{"path": "<repo-relative>", "content": "<the complete new file>"}]
+    "code_diff": "<a unified diff>"  (headers, @@ hunks, every line written out; no placeholders like '...')
 - ENVIRONMENT: structured edits to the build plan ("env_delta") — the right layer for \
 missing system libraries, compilers, unavailable or incompatible package versions, \
 packages that are not on PyPI, or the wrong Python version. The repository's files are \
@@ -78,13 +83,20 @@ Rules, non-negotiable:
 A separate deterministic system will reject your patch outright if it violates any of
 these — so follow them exactly, don't rely on the checker to catch a shortcut.
 
+If web search results were given to you (numbered [1], [2], ...) and a result actually informed your change, list its
+number(s) in "cited_sources"; cite only results you used. RERUN records the URL of every cited result with the change.
+
 Respond with ONLY a single JSON object, no prose, no markdown fences:
 {
-  "code_diff": "<a valid unified diff (---/+++/@@ hunks), or null>",
+  "file_edits": [<edits as above>] or null,
+  "file_replacements": null,
+  "code_diff": null,
   "env_delta": [<zero or more env changes as above>],
+  "cited_sources": [<numbers of the web results you used>],
   "explanation": "<one sentence: what you changed and why it addresses the evidence>"
 }
-Set code_diff to null and env_delta to [] if you cannot propose a safe minimal fix.""" + UNTRUSTED_CONTENT_NOTICE
+Use at most ONE of file_edits / file_replacements / code_diff. Set them all to null and env_delta to [] if you cannot
+propose a safe minimal fix.""" + UNTRUSTED_CONTENT_NOTICE
 
 
 @dataclass(frozen=True)
@@ -96,14 +108,23 @@ class RepairProposal:
     env_delta: tuple = ()
     # True if the first reply was invalid JSON and the model was re-asked.
     parse_retried: bool = False
+    # harness-v1.3.3: structured code changes (patch_pipeline builds and checks the diff) and the numbers of the web
+    # results the model says it used (the orchestrator validates them against what was actually offered).
+    file_edits: tuple = ()
+    file_replacements: tuple = ()
+    cited_sources: tuple = ()
 
     @property
     def has_diff(self) -> bool:
-        return bool(self.diff_text) and not self.declined
+        return self.has_code and not self.declined
+
+    @property
+    def has_code(self) -> bool:
+        return bool(self.diff_text) or bool(self.file_edits) or bool(self.file_replacements)
 
     @property
     def has_change(self) -> bool:
-        return not self.declined and (bool(self.diff_text) or bool(self.env_delta))
+        return not self.declined and (self.has_code or bool(self.env_delta))
 
 
 def build_repair_user_prompt(
@@ -169,9 +190,21 @@ def parse_repair_response(raw: dict) -> RepairProposal:
         # visibly, rather than being dropped here.
         env_delta = [env_delta]
     has_code = diff_text is not None and bool(str(diff_text).strip())
-    if not has_code and not env_delta:
+
+    def _list(key):
+        value = raw.get(key)
+        if value in (None, "", {}, []):
+            return ()
+        return tuple(value) if isinstance(value, list) else (value,)  # a malformed value is kept: patch_pipeline refuses it visibly
+
+    file_edits, file_replacements = _list("file_edits"), _list("file_replacements")
+    cited = tuple(c for c in _list("cited_sources") if isinstance(c, int) and not isinstance(c, bool))
+    if not has_code and not env_delta and not file_edits and not file_replacements:
         return RepairProposal(diff_text=None, explanation=explanation or "model declined to propose a fix", declined=True)
-    return RepairProposal(diff_text=str(diff_text) if has_code else None, explanation=explanation, env_delta=tuple(env_delta))
+    return RepairProposal(
+        diff_text=str(diff_text) if has_code else None, explanation=explanation, env_delta=tuple(env_delta),
+        file_edits=file_edits, file_replacements=file_replacements, cited_sources=cited,
+    )
 
 
 def propose_repair(

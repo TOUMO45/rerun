@@ -758,3 +758,78 @@ ended `BLOCKED`, `DEP_MISSING: numpy`, REPO, phase `repo_run` ($0.006). The audi
 (INFRA/"-" -> REPO_UNDECLARED/D1). Final CONTROL: 1 RUNS_CLEAN, 17 BLOCKED, 2 INDETERMINATE `RUNNER_SETUP_FAILED`; total spend $4.08 with the attempt-1 record.
 **Final gate: (a) pre-registered rule = 17; (b) audit = 13 (12 excluding entry 19's own module).** Strata counts: D1 9, D2 6, D3 3, D4 1, unstratified 1 (PASS).
 The frozen hashes are superseded: `strata.json` sha256 `78edd77de94683e3758d13f47db85cc90590665fe0fef131aadafcc42a1197d7`, `audit_attribution.json` sha256 `4c8e3066eb90045f09361a1e90d5cdabba8c78ad246e4a6a9b3e437453590466`. The earlier hash `ade8083f...` was computed while entry 7 was INFRA_ERROR.
+
+
+## harness-v1.3.3 — EXPLORATORY; v1.3.2 is the pre-registered result (written 2026-09-30, after the v1.3.2 results, before any v1.3.3 run)
+
+**What stands.** The pre-registered corpus-v2.1 ablation ran on the sealed `harness-v1.3.2` (commit `77b3cfe`): CONTROL 20/20, TREATMENT 20/20, recorded spend
+$21.76. Its result is **Reproducibility Recovery Rate 0/16 (Wilson 95 % 0 %–19 %)**, reported in `reports/corpus-v2.1/RESULTS.md` (commit `8d47dfc`) with every
+number pointing at a record. That result, the records under `runs/corpus_v2_batch/harness-v1.3.2/` and every pre-registered rule above are **not changed by anything
+below**. It is a measurement of a defective repair loop (16 source patches proposed, 0 applied, Tavily queried 46 times and cited 0 times, 3 terminal errors taken
+from noise), not a finding about the papers or their authors.
+
+**What v1.3.3 is.** A fix of the defects listed in `reports/corpus-v2.1/candidate_v1.3.3_defects.md`, mapped one by one in
+`reports/corpus-v2.1/v1.3.3/DEFECT_FIX_MAP.md` (what is fixed, what is only partly fixed and how that was measured, what is left open: D-13, the repo's own build
+step in D-6, and the existence of apt package names in D-12). The fixes were designed **after seeing the corpus-v2 results**. From here on corpus-v2 is a
+**disclosed development set**: nothing measured on it with v1.3.3 is confirmatory, every v1.3.3 number is labelled exploratory, and it is always shown beside the
+v1.3.2 number, never instead of it. A confirmatory claim needs a corpus drawn after the fixes; none is drawn.
+
+**Parameters introduced (sealed in code, not `.env`).** Sandbox cost rate for killed operations $0.0085/s (the maximum over 168 real operations in this repository's
+records: median 0.0026, p95 0.0040, max 0.00845); per-operation funding cap for repair operations (revised below: $2.00, the whole entry cap; the as-published baseline keeps the 600 s wall clock); an operation killed at its
+limit ends INDETERMINATE `COST_CAP` (NOT_MEASURED); minimum fundable operation 30 s; smoke limit 60 s for repair re-executions; era cutoff relaxation 365 days
+per package. The $0.0085 rate is an observed bound, not a guarantee; a killed step's spend is recorded as an estimate and flagged as such.
+
+**What a v1.3.3 `RUNS_AFTER_REPAIR` means.** Repair re-executions run under a smoke limit: the documented command is run unchanged for up to 60 s; a pass is "finished with
+exit 0" or "still running at 60 s, with output and no traceback, then stopped". It is recorded per attempt (`execution`). It is **not** "completed" and **not** "reproduced the
+paper", and the as-published baseline run is unchanged (not smoke), so a v1.3.3 recovery and a CONTROL pass are not the same kind of success and are never summed.
+
+**Correction to this file.** The CONTROL section above says the harness saw no dependency file for any of the 16 audited entries. The records show dependency files for
+entries 5 (Pipfile, requirements.txt), 9 (requirements.txt) and 17 (setup.py); 17 of 20 entries have none (`RESULTS.md` §3). The text above is left as written.
+
+**Plan, stated before any v1.3.3 spend (operator decision 2026-09-30).** (1) Seal v1.3.3 after a live verification of every sandbox-touching path (the seal rule).
+(2) A paid **smoke gate**, TREATMENT only, cap $6, on 4 entries (the selection below is superseded by the amendment that follows: entries 11, 10, 3, 8). Pass only if ALL hold: at least 2 of 4 reach RUNS_CLEAN or RUNS_AFTER_REPAIR; at least 1 source patch applied via `git apply`;
+at least 1 repair carries a real Tavily citation stored in the record; no entry over $2 and the cost guard fired on nothing or fired correctly. If it fails: stop, report root
+causes, no further spend without a new decision. (3) Only if it passes: a full exploratory TREATMENT run on all 20 (cap $25; CONTROL v1.3.2 stays the baseline unless a fix
+changes CONTROL behaviour, which the fix map lists, with a separate estimate for a CONTROL re-run), then the Phase B analysis again, beside v1.3.2, HARNESS_INDUCED rows kept.
+(4) Only then the product surface. The new ledger starts at $0; the v1.3.2 spend ($21.76 recorded, possibly more: D-8) is not part of it.
+
+### Amendment (2026-09-30, operator review, before any v1.3.3 run; supersedes the smoke-set selection and the cost parameters in the section above)
+
+**1. Smoke set: entries 11, 10, 3, 8 (TREATMENT only).** The plan's rule ("the D1 entries with the shortest CONTROL error chains") is degenerate: all nine D1
+CONTROL chains have exactly one link. The tie is broken outcome-blind by the smallest dependency batch found by the static scan
+(`reports/corpus-v2.1/v1.3.3/dep_scan_d1.json`): entry 11 (4 packages), 10 (5), 3 (6); the next would be entries 7 and 15 (8 each). What they exercise:
+11 the NumPy cap (D-16: its v1.3.2 TREATMENT ended INDETERMINATE RUNNER_SETUP_FAILED on NumPy 2 beside an old torch), 3 the README-declared Python 3.6 (D-11: v1.3.2
+ran it on the era's 3.10). Entry 10's v1.3.2 terminal error was GPU_REQUIRED (`Torch not compiled with CUDA enabled`), so it may end BLOCKED however well the loop works;
+it stays because the rule is outcome-blind, and the gate is judged on all four. **Entry 8 replaces entry 1** (operator decision): entry 1's terminal v1.3.2 failure is
+`No module named 'curves'`, a module the repository does not contain and no repair can supply, so it cannot satisfy criterion (a); entry 8 exercises the era-lock fix (its
+v1.3.2 era lock died on `torch`, which had no release before the era) and the patch pipeline (its v1.3.2 attempt 3 was a header-only diff). The selection and its reasons are
+recorded here before any run.
+
+**2. Gate criteria, unchanged.** (a) at least 2 of the 4 reach RUNS_CLEAN or RUNS_AFTER_REPAIR; (b) at least 1 source patch applied via `git apply`; (c) at least 1
+repair with a real Tavily citation stored in the record; (d) no entry over $2 and the cost guard fired on nothing or fired correctly. Cap $6, operator approval before launch.
+**Criterion (b) rule:** if no entry of the set ever proposed a source patch (every repair was environment-only), (b) is N/A for Step 2, and it becomes mandatory for the
+reporting of Step 3: the Step 3 report must state the number of source patches proposed and applied, and a Step 3 with zero patches proposed is reported as "the patch
+pipeline was not exercised", never as a pass.
+
+**3. Cost rule, revised before any run.** Entry 18's CONTROL operation took 57 s (TREATMENT 75 s), cost $0.163, far inside the ~176 s the first design allowed, but the
+check found that 3 of the 20 v1.3.2 CONTROL operations (entries 3, 14, 5) took 195-494 s of wall time at a normal cost of $0.17-$0.29 (entry 3: 494 s in CONTROL, 84 s in
+TREATMENT), i.e. slow installs or transient slowness that cost little. A 176 s limit would have turned them into false `COST_CAP`s, and could do the same to the only passing
+entry. Therefore: **the as-published baseline run keeps the pre-registered 600 s wall clock and is never shortened by the budget rule** (so CONTROL is unchanged by this
+rule); its spend is recorded and counts against the entry cap, and an entry whose baseline used the cap ends `COST_CAP` before any repair (observed baseline cost: at most
+$0.35 in 40 operations). **Repair operations** (time machine, build-isolation step, every repair) are funded with everything the entry has left (per-operation cap = the $2.00
+entry cap), at the worst observed rate of $0.0085/s, killed at that limit, and the killed step's spend is recorded as a flagged estimate. Consequence, stated plainly: the
+per-entry cap is hard for repair operations and is NOT hard for the baseline run, whose worst case at the maximum observed rate is $5.10 (never observed for a baseline); and a
+repair operation that legitimately needs more than its funding (e.g. the 221-316 s installs of v1.3.2 entry 16) ends `COST_CAP`, which is counted and reported, not hidden.
+
+**4. Fixtures and licences.** Only permissively licensed repositories (MIT/BSD/Apache) have their original files committed (`backend/tests/fixtures/v133/NOTICE.md`; only
+IST-DASLab/M-FAC, MIT). For the other six repositories of the stored patches (four without a licence, one with a non-commercial no-copy notice, one whose LICENSE has no grant text) the
+originals are fetched from GitHub at the pinned commit and checked against the recorded git blob (`scripts/fetch_patch_fixtures.py`, `patches/SOURCES.json`); those tests are
+marked `requires_network` and skipped offline.
+
+**5. Known limitations of harness-v1.3.3 (recorded, not fixed).**
+- **D-13, runner-setup failures never reach the time machine.** A `RUNNER_SETUP_FAILED` (the runner's own torch install could not resolve the repository's pinned versions for the
+  image's Python) ends the entry before the era interpreter is considered. Affects **entries 5 and 9** (INDETERMINATE in both arms of v1.3.2); whether an older interpreter would install
+  their pins is untested. They stay outside every rate.
+- **D-6, the repository's own build step is not planned or run.** A module the repository builds itself (a native extension with a documented build command) is no longer mistaken for a
+  PyPI package, but nothing builds it. Affects **entry 19** (`operators._ext`); it stays a REPO failure in the denominator.
+- Also open: apt package names that do not exist on the image (D-12, second half) are not validated before a sandbox run (seen in entries 8 and 12 of v1.3.2).

@@ -46,6 +46,8 @@ from summarize_batch import chain_of  # noqa: E402
 PASS = ("RUNS_CLEAN", "RUNS_AFTER_REPAIR")
 NOT_MEASURED_VERDICTS = ("INFRA_ERROR", "INVALID_HARNESS", "UPLOAD_TOO_LARGE")
 SANDBOX_REASONS = ("SANDBOX_QUOTA", "SANDBOX_INCOMPAT")
+# RERUN-side reason codes: PIPELINE_ERROR (v1.3.2), COST_CAP (v1.3.3: the spend cap stopped the run).
+NOT_MEASURED_REASONS = ("PIPELINE_ERROR", "COST_CAP")
 HOURS_PER_REPAIR_ASSUMPTION = 3  # midpoint of the directive's 2-4 hr/repo range (same constant as BatchLab.tsx)
 CATEGORIES = ("CONTROL_PASS", "REPO_RECOVERED", "REPO_STILL_FAILING", "UNSTABLE_AS_IS", "ENV_ONLY", "SANDBOX_SIDE",
               "NOT_MEASURED")
@@ -82,7 +84,7 @@ def _sandbox_side(v: dict) -> bool:
 
 def categorize(c: dict, t: dict) -> str:
     if c["verdict"] in NOT_MEASURED_VERDICTS or t["verdict"] in NOT_MEASURED_VERDICTS or \
-            c["reason_code"].startswith("PIPELINE_ERROR") or t["reason_code"].startswith("PIPELINE_ERROR"):
+            c["reason_code"].startswith(NOT_MEASURED_REASONS) or t["reason_code"].startswith(NOT_MEASURED_REASONS):
         return "NOT_MEASURED"
     if _sandbox_side(c) or _sandbox_side(t):
         return "SANDBOX_SIDE"

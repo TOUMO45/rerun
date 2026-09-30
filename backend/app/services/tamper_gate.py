@@ -49,6 +49,8 @@ class GateRule:
     UNSAFE_PATH = "UNSAFE_PATH"  # absolute, ../, outside repo root, symlink, rename
     FILE_DELETION = "FILE_DELETION"  # +++ /dev/null — deleting a whole file
     UNVERIFIED_FILE = "UNVERIFIED_FILE"  # touched file whose original the gate did not get
+    # harness-v1.3.3: a patch that never reached `git apply` (did not parse into applicable hunks before the gate).
+    UNAPPLICABLE_PATCH = "UNAPPLICABLE_PATCH"
 
 
 DEFAULT_PROTECTED_PATTERNS: frozenset[str] = frozenset(
@@ -203,6 +205,15 @@ def prepare_patch(diff_text: str) -> PreparedPatch:
             continue
         if tgt in paths:
             violations.append(Violation(rule=GateRule.UNSAFE_PATH, reason=f"'{tgt}' appears twice in one diff", file=tgt))
+            continue
+        if len(patched_file) == 0:
+            # harness-v1.3.2 passed a header-only diff (entries 1 and 8): the gate "approved" a change with no content,
+            # `git apply` then failed with "No valid patches in input" and the repair attempt was spent on nothing.
+            violations.append(Violation(
+                rule=GateRule.UNPARSEABLE_PATCH,
+                reason=f"the diff for '{tgt}' has headers but no hunks: it changes nothing",
+                file=tgt,
+            ))
             continue
         paths.append(tgt)
         if src == _DEV_NULL:

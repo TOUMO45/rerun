@@ -73,13 +73,41 @@ class TavilyContext:
         return {"query": self.query, "sources": [s.as_dict() for s in self.sources]}
 
 
-def build_query(taxonomy_code: str, evidence: str) -> str:
+_FRAMEWORKS = (
+    ("torch", "pytorch"), ("tensorflow", "tensorflow"), ("keras", "keras"), ("chainer", "chainer"), ("mxnet", "mxnet"),
+    ("jax", "jax"), ("theano", "theano"), ("paddle", "paddlepaddle"),
+)
+
+
+def detect_framework(imported_modules) -> str:
+    """The ML framework the repository imports (first match in a fixed order), or "". Deterministic."""
+    names = {str(m).lower() for m in imported_modules or ()}
+    return next((label for module, label in _FRAMEWORKS if module in names), "")
+
+
+def python_minor(base_image: str | None) -> str:
+    """"3.8" from "python:3.8-slim", or ""."""
+    import re
+
+    match = re.match(r"python:(\d+\.\d+)", base_image or "")
+    return match.group(1) if match else ""
+
+
+def build_query(taxonomy_code: str, evidence: str, *, framework: str = "", python_version: str = "", tried: tuple = ()) -> str:
     """A deterministic, explainable query built directly from the failure
     classification — never left to a model to phrase, so a judge or
     reviewer can see exactly what was searched for and why, right next to
-    the citation it produced."""
+    the citation it produced.
+
+    harness-v1.3.3 (D-4): the query carries the error AND the repository's framework and Python version (an error text
+    alone returns generic blog posts), and, when earlier attempts of this run already tried something that did not fix it,
+    what they tried, so a repeated error does not repeat an identical search."""
     readable_code = taxonomy_code.replace("_", " ").lower()
-    return f"python {readable_code} fix: {evidence[:150]}"
+    head = " ".join(part for part in ("python", python_version, framework) if part)
+    query = f"{head} {readable_code} fix: {evidence[:150]}"
+    if tried:
+        query += " | already tried: " + ", ".join(str(t) for t in tried[:3])[:120]
+    return query
 
 
 def fetch_context(
@@ -87,6 +115,10 @@ def fetch_context(
     taxonomy_code: str,
     evidence: str,
     max_results: int = 3,
+    *,
+    framework: str = "",
+    python_version: str = "",
+    tried: tuple = (),
 ) -> TavilyContext:
     """Search Tavily for context on a specific classified failure. Returns
     an empty (but real, not fabricated) `TavilyContext` if no client is
@@ -95,7 +127,7 @@ def fetch_context(
     enrichment (§5's cut ladder item 2: "Tavily-cited repair context ->
     repair without external context, still functions"), not a dependency.
     """
-    query = build_query(taxonomy_code, evidence)
+    query = build_query(taxonomy_code, evidence, framework=framework, python_version=python_version, tried=tried)
     if client is None:
         return TavilyContext(query=query, sources=())
 

@@ -1,0 +1,1 @@
+--- a/fs_main.py\n+++ b/fs_main.py\n@@ -14,1 +14,7 @@\n-from torch.autograd.gradcheck import zero_gradients\n+try:\n+    from torch.autograd.gradcheck import zero_gradients\n+except ImportError:\n+    def zero_gradients(t):\n+        if t.grad is not None:\n+            t.grad.detach_()\n+            t.grad.zero_()\n

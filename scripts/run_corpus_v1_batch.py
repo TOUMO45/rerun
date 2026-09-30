@@ -86,6 +86,7 @@ SANDBOX_TOUCHING_FILES = (
     "backend/app/services/sandbox.py",
     "backend/app/services/sandbox_limits.py",
     "backend/app/services/runner_env.py",
+    "backend/app/services/smoke_exec.py",  # harness-v1.3.3: the smoke launcher runs inside the sandbox
 )
 SEAL_VERIFICATION = "seal_verification.json"
 DRAW_OUTPUTS = ("screening_log.jsonl", "corpus.yaml", "corpus_hash.txt")
@@ -562,7 +563,7 @@ def summarize(records: list[dict]) -> dict:
     sandbox_side = lambda row: (row["reason_code"] or "").startswith(("SANDBOX_QUOTA", "SANDBOX_INCOMPAT"))  # noqa: E731
     primary = [row for row in rows if row["category"] == "PRIMARY"]
     measured = [row for row in primary if row["verdict"] not in our_fault
-                and not (row["reason_code"] or "").startswith("PIPELINE_ERROR") and not sandbox_side(row)]
+                and not (row["reason_code"] or "").startswith(("PIPELINE_ERROR", "COST_CAP")) and not sandbox_side(row)]
     failed = [row for row in measured if row["baseline"] == "FAILS"]
     recovered = [row for row in failed if row["verdict"] == "RUNS_AFTER_REPAIR"]
     blocked: dict[str, int] = {}
@@ -586,6 +587,7 @@ def summarize(records: list[dict]) -> dict:
             "upload_too_large": sum(1 for row in primary if row["verdict"] == "UPLOAD_TOO_LARGE"),
             "sandbox_side": sum(1 for row in primary if sandbox_side(row)),
             "pipeline_error": sum(1 for row in primary if (row["reason_code"] or "").startswith("PIPELINE_ERROR")),
+            "cost_cap": sum(1 for row in primary if (row["reason_code"] or "").startswith("COST_CAP")),
             "verdicts": dict(sorted(verdicts.items())),
             "recovered_repair_mode": {
                 "deterministic": sum(1 for row in recovered if row["repair_mode"] == "deterministic"),
