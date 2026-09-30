@@ -66,3 +66,8 @@ verification records: `runs/sandbox_verification/final/` (9 real Nebius runs; pr
 CONTROL on harness-v1.3.2: 20/20 records, $4.07 (commit `4b99d3b`). Read-only audit in `reports/corpus-v2.1/audit/`: gate (a) 16, (b) 12; no DECLARED_NOT_PARSED.
 Pre-registered before TREATMENT (METHODOLOGY): the INFRA_ERROR retry policy and the fix-difficulty strata (`reports/corpus-v2.1/strata.json`, sha256 `ade8083fcda9bda5...`).
 
+## Phase 5 (partial) - TREATMENT result and comparison (2026-09-30)
+TREATMENT on harness-v1.3.2: 20/20 records, $17.68 (total with CONTROL $21.76 of $25). `scripts/compare_batches.py`: **RRR 0/16 (95 % Wilson 0-19 %)**, no regression.
+Per-stratum table and four harness defects seen in the sealed run (numpy-2/old-torch runner failure charged to ENV, compare_batches filing it as REPO_STILL_FAILING, repair-time wall-clock
+as PIPELINE_ERROR, the non-hard $2 per-entry ceiling): `reports/corpus-v2.1/treatment-findings.md`. Nothing in the sealed harness or any record was changed.
+
