@@ -75,7 +75,7 @@ def test_the_file_is_sealed_and_every_sandbox_touching_file_is_listed():
 def test_the_committed_file_names_only_live_records_that_exist_and_passed():
     """Structure check of the real file (blob currency is checked by preflight at HEAD, not here)."""
     doc = json.loads((ROOT / "seal_verification.json").read_text(encoding="utf-8"))
-    assert doc["harness_tag"] == "harness-v1.3.2" and len(doc["paths"]) >= 7
+    assert doc["harness_tag"] == "harness-v1.3.3" and len(doc["paths"]) >= 10  # v1.3.2: 7 paths; v1.3.3 adds the NumPy cap, the kill path, the smoke launcher
     for entry in doc["paths"]:
         assert entry["live_nebius"] is True and entry["run_ids"] and entry["code_files"]
         for rec in entry["records"]:
