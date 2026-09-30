@@ -1,0 +1,547 @@
+{
+  "run_kind": "live end-to-end run",
+  "dev_run": false,
+  "dry_run": null,
+  "batch": {
+    "harness_tag": "harness-v1.3.3",
+    "harness_commit": "8af1717c81701a3cecd2d8f8ad1b2a7a7be68447",
+    "head_commit": "f167921e9e093200c5d5191ae7bbe72c3a5ebd02",
+    "corpus": "corpus-v2",
+    "prereg_sha256": "ae5a722249156e058d3d360bdc63fa8224140d0688f1daa307ecfa93a98c7284",
+    "corpus_hash": "7df090bea7013974f9f10fb8959ab0162734b51c83a80f744f9c310ce694fbdc",
+    "arm": "treatment",
+    "total_cap_usd": 6.0,
+    "already_spent_usd": 0.0,
+    "entry_id": 11,
+    "category": "PRIMARY",
+    "rules_matched": [],
+    "per_entry_cap_usd": 2.0
+  },
+  "started_at": "2026-09-30T20:52:59.996613+00:00",
+  "corpus_entry": {
+    "name": "JindongGu__VoteAttack",
+    "repo_url": "https://github.com/JindongGu/VoteAttack",
+    "commit_sha": "bdf8b46bc7b3ce772a6f2c0a6e48514423fd6051",
+    "command": "python main.py  --evaluate --dataset cifar10  --eps 0.031  --model capsnet  --attack vote_attack_FGSM",
+    "command_source": "README.md line 9"
+  },
+  "config": {
+    "models": {
+      "recon": "nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B",
+      "planner": "nvidia/nemotron-3-super-120b-a12b",
+      "repairer": "nvidia/nemotron-3-super-120b-a12b",
+      "adjudicator": "nvidia/Nemotron-3-Ultra-550b-a55b"
+    },
+    "sandbox_backend": "token_factory",
+    "sandbox_image_default": "python:3.10-slim",
+    "sandbox_wall_clock_seconds": 600.0,
+    "arm": "treatment",
+    "repair_enabled": true,
+    "max_attempts": 3,
+    "tavily_configured": true,
+    "cost_cap_usd": 2.0
+  },
+  "intake": {
+    "duration_s": 133.61,
+    "resolved_sha": "bdf8b46bc7b3ce772a6f2c0a6e48514423fd6051",
+    "dependency_files": [],
+    "declared_dependencies": [],
+    "entrypoint_candidates": [
+      "main.py"
+    ],
+    "notebook_paths": []
+  },
+  "pipeline_duration_s": 265.82,
+  "repair_mode": "deterministic",
+  "tree_integrity": {
+    "status": "verified",
+    "tree_sha": "8470057f65dd5e16273f985f73cacb3fc669eee3",
+    "files_checked": 13,
+    "excluded_patched": []
+  },
+  "result": {
+    "verdict": "RUNS_AFTER_REPAIR",
+    "taxonomy_code": "DEP_MISSING",
+    "indeterminate_reason": "",
+    "reason_code": null,
+    "error_chain": [
+      {
+        "error": "ModuleNotFoundError: No module named 'tqdm'",
+        "class": "DEP_MISSING",
+        "attribution": "REPO",
+        "phase": "repo_run",
+        "cleared_by": null
+      }
+    ],
+    "first_repo_error": "ModuleNotFoundError: No module named 'tqdm'",
+    "last_error": "ModuleNotFoundError: No module named 'tqdm'",
+    "error_traceback": "",
+    "attempts": [
+      {
+        "attempt_number": 0,
+        "diff_text": "",
+        "gate_decision": "PASS",
+        "gate_violations": [],
+        "exit_code": 0,
+        "stdout_tail": "RERUN_SMOKE_ALIVE: still running after 60s with output and no traceback; stopped by RERUN (smoke execution)\n",
+        "stderr_tail": "\u2588\u2588\u258a   | 117096448/170498071 [00:51<00:22, 2360841.49it/s]\r 69%|\u2588\u2588\u2588\u2588\u2588\u2588\u2589   | 117336064/170498071 [00:51<00:22, 2353026.01it/s]\r 69%|\u2588\u2588\u2588\u2588\u2588\u2588\u2589   | 117576704/170498071 [00:51<00:22, 2360647.93it/s]\r 69%|\u2588\u2588\u2588\u2588\u2588\u2588\u2589   | 117816320/170498071 [00:51<00:22, 2344704.78it/s]\r 69%|\u2588\u2588\u2588\u2588\u2588\u2588\u2589   | 118056960/170498071 [00:51<00:22, 2350455.62it/s]\r 69%|\u2588\u2588\u2588\u2588\u2588\u2588\u2589   | 118295552/170498071 [00:52<00:22, 2360925.20it/s]\r 70%|\u2588\u2588\u2588\u2588\u2588\u2588\u2589   | 118532096/170498071 [00:52<00:22, 2343387.92it/s]\r 70%|\u2588\u2588\u2588\u2588\u2588\u2588\u2589   | 118768640/170498071 [00:52<00:22, 2325530.43it/s]\r 70%|\u2588\u2588\u2588\u2588\u2588\u2588\u2589   | 119008256/170498071 [00:52<00:22, 2326174.42it/s]\r 70%|\u2588\u2588\u2588\u2588\u2588\u2588\u2589   | 119241728/170498071 [00:52<00:22, 2326620.64it/s]\r 70%|\u2588\u2588\u2588\u2588\u2588\u2588\u2588   | 119475200/170498071 [00:52<00:22, 2318425.23it/s]\r 70%|\u2588\u2588\u2588\u2588\u2588\u2588\u2588   | 119712768/170498071 [00:52<00:21, 2311647.79it/s]\r 70%|\u2588\u2588\u2588\u2588\u2588\u2588\u2588   | 119944192/170498071 [00:52<00:21, 2301574.21it/s]\r 70%|\u2588\u2588\u2588\u2588\u2588\u2588\u2588   | 120176640/170498071 [00:52<00:21, 2305519.85it/s]\r 71%|\u2588\u2588\u2588\u2588\u2588\u2588\u2588   | 120408064/170498071 [00:52<00:21, 2300790.01it/s]\r 71%|\u2588\u2588\u2588\u2588\u2588\u2588\u2588   | 120640512/170498071 [00:53<00:21, 2293745.57it/s]\r 71%|\u2588\u2588\u2588\u2588\u2588\u2588\u2588   | 120872960/170498071 [00:53<00:21, 2294139.00it/s]\r 71%|\u2588\u2588\u2588\u2588\u2588\u2588\u2588   | 121104384/170498071 [00:53<00:21, 2298127.13it/s]\r 71%|\u2588\u2588\u2588\u2588\u2588\u2588\u2588   | 121336832/170498071 [00:53<00:21, 2297740.52it/s]\r 71%|\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u258f  | 121568256/170498071 [00:53<00:21, 2292887.34it/s]\r 71%|\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u258f  | 121800704/170498071 [00:53<00:21, 2297169.25it/s]\r 72%|\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u258f  | 122032128/170498071 [00:53<00:21, 2285102.87it/s]\r 72%|\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u258f  | 122264576/170498071 [00:53<00:21, 2280244.63it/s]\r 72%|\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u258f  | 122497024/170498071 [00:53<00:21, 2275077.40it/s]\r 72%|\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u258f  | 122728448/170498071 [00:53<00:21, 2267235.92it/s]\r 72%|\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u258f  | 122960896/170498071 [00:54<00:20, 2267201.62it/s]\r 72%|\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u258f  | 123192320/170498071 [00:54<00:20, 2262467.41it/s]\r 72%|\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u258f  | 123424768/170498071 [00:54<00:20, 2255259.76it/s]\r 73%|\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u258e  | 123656192/170498071 [00:54<00:20, 2257556.56it/s]\r 73%|\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u258e  | 123888640/170498071 [00:54<00:20, 2258498.06it/s]",
+        "tavily_sources": [],
+        "env_delta": [],
+        "resolved_sources": [],
+        "origin": "time_machine",
+        "time_machine": {
+          "era": {
+            "date": "2021-05-01",
+            "source": "pinned-commit",
+            "detail": {
+              "note": "no dependency files in the repository"
+            }
+          },
+          "python": {
+            "version": "3.9",
+            "reason": "newest CPython first released \u2265180 days before the era date 2021-05-01 (https://devguide.python.org/versions/ (first release dates, retrieved 2026-09-24))",
+            "source": "https://devguide.python.org/versions/ (first release dates, retrieved 2026-09-24)"
+          },
+          "undeclared_imports": [
+            "foolbox",
+            "torch",
+            "torchvision",
+            "tqdm"
+          ],
+          "batch_scan": {
+            "install": [
+              "foolbox",
+              "torch",
+              "torchvision",
+              "tqdm"
+            ],
+            "internal_excluded": [
+              "load_data",
+              "models",
+              "modules"
+            ],
+            "optional_skipped": [],
+            "python2_only_skipped": [],
+            "already_declared": [],
+            "import_mappings": []
+          },
+          "import_mappings": [],
+          "apt_added": [],
+          "apt_reason": "",
+          "lock": {
+            "ok": true,
+            "lock": [
+              "certifi==2020.12.5",
+              "chardet==4.0.0",
+              "eagerpy==0.29.0",
+              "foolbox==3.3.1",
+              "gitdb==4.0.7",
+              "gitpython==3.1.14",
+              "idna==2.10",
+              "numpy==1.20.2",
+              "pillow==8.2.0",
+              "requests==2.25.1",
+              "scipy==1.6.3",
+              "setuptools==56.0.0",
+              "smmap==4.0.0",
+              "torch==1.8.1",
+              "torchvision==0.9.1",
+              "tqdm==4.60.0",
+              "typing-extensions==3.10.0.0",
+              "urllib3==1.26.4"
+            ],
+            "inputs": [
+              "foolbox",
+              "torch",
+              "torchvision",
+              "tqdm"
+            ],
+            "not_on_index": [],
+            "relaxed": [],
+            "command": "pip compile - --no-header --no-annotate --quiet --exclude-newer 2021-05-02T00:00:00Z --python-version 3.9 --python-platform x86_64-unknown-linux-gnu --python C:\\Users\\E16\\AppData\\Roaming\\uv\\python\\cpython-3.8.20-windows-x86_64-none\\python.exe",
+            "error": ""
+          }
+        },
+        "execution": {
+          "mode": "smoke",
+          "seconds": 60,
+          "outcome": "alive_at_limit"
+        }
+      }
+    ],
+    "certificate_prose": "The execution log shows a successful re-execution with exit_code=0, indicating the code ran to completion. The sandbox recorded a wall-clock time of 197 seconds and a cost of $0.2924. The taxonomy code DEP_MISSING suggests missing dependencies were resolved prior to execution. Verifies that the artifact executes. Does not verify the paper's numerical results."
+  },
+  "certificate": {
+    "repo_url": "https://github.com/JindongGu/VoteAttack",
+    "commit_sha": "bdf8b46bc7b3ce772a6f2c0a6e48514423fd6051",
+    "build_plan": {
+      "base_image": "python:3.9-slim",
+      "apt_install": [],
+      "install_commands": [
+        "printf '%s\\n' certifi==2020.12.5 chardet==4.0.0 eagerpy==0.29.0 foolbox==3.3.1 gitdb==4.0.7 gitpython==3.1.14 idna==2.10 numpy==1.20.2 pillow==8.2.0 requests==2.25.1 scipy==1.6.3 setuptools==56.0.0 smmap==4.0.0 torch==1.8.1 torchvision==0.9.1 tqdm==4.60.0 typing-extensions==3.10.0.0 urllib3==1.26.4 > .rerun-requirements.txt && pip install -r .rerun-requirements.txt"
+      ],
+      "execute_command": "python main.py  --evaluate --dataset cifar10  --eps 0.031  --model capsnet  --attack vote_attack_FGSM",
+      "notes": [
+        "execute command is the repository's documented command (corpus ground truth)",
+        "base image python:3.10-slim: no usable Python declaration; RERUN default 3.10",
+        "time machine: python 3.9, 18 locked package(s)"
+      ]
+    },
+    "full_log": "[intake] cloned https://github.com/JindongGu/VoteAttack@bdf8b46bc7b3ce772a6f2c0a6e48514423fd6051\n[recon] calling Nemotron Nano\n[recon] entrypoint=main.py confidence=0.90\n[python] python:3.10-slim (default): no usable Python declaration; RERUN default 3.10\n[planner] build plan: {'base_image': 'python:3.10-slim', 'apt_install': [], 'install_commands': ['true  # no declared dependency file found; nothing to install'], 'execute_command': 'python main.py  --evaluate --dataset cifar10  --eps 0.031  --model capsnet  --attack vote_attack_FGSM', 'notes': [\"execute command is the repository's documented command (corpus ground truth)\", 'base image python:3.10-slim: no usable Python declaration; RERUN default 3.10']}\n[integrity] verified 13 file(s) against tree 8470057f65dd5e16273f985f73cacb3fc669eee3\n[sandbox] starting build+execute (wall_clock_seconds=600)\n[runner] torch: repo imports torch, torchvision without declaring it; runner provides the newest matched CPU wheels\n[cost_guard] recorded $0.3220 sandbox spend, $1.6775 remaining today\n[sandbox] id=dfc45926-90a0-4948-9c26-1f6c8cf74c6d exit_code=1\n[baseline] as-is run: FAILS (exit code 1)\n[classifier] DEP_MISSING: ModuleNotFoundError: No module named 'tqdm'\n[era] 2021-05-01 from pinned-commit {'note': 'no dependency files in the repository'}\n[time-machine] era 2021-05-01 (pinned-commit) -> python 3.9; locked 18 package(s) with uv --exclude-newer; not on the index: none\n[smoke] re-execution of the documented command under a 60s smoke limit\n[integrity] verified 13 file(s) against tree 8470057f65dd5e16273f985f73cacb3fc669eee3\n[sandbox] starting build+execute (wall_clock_seconds=197)\n[runner] torch: repo pins torch, torchvision; installed the CPU wheels as a matched set with the same pins\n[cost_guard] recorded $0.2924 sandbox spend, $1.3850 remaining today\n[time-machine] re-execution id=1bcf4802-5f58-426f-a84d-e01e5b8806da exit_code=0",
+    "diffs": [
+      {
+        "attempt_number": 0,
+        "diff_text": "",
+        "gate_decision": "PASS",
+        "gate_violations": [],
+        "exit_code": 0,
+        "stdout_tail": "RERUN_SMOKE_ALIVE: still running after 60s with output and no traceback; stopped by RERUN (smoke execution)\n",
+        "stderr_tail": "\u2588\u2588\u258a   | 117096448/170498071 [00:51<00:22, 2360841.49it/s]\r 69%|\u2588\u2588\u2588\u2588\u2588\u2588\u2589   | 117336064/170498071 [00:51<00:22, 2353026.01it/s]\r 69%|\u2588\u2588\u2588\u2588\u2588\u2588\u2589   | 117576704/170498071 [00:51<00:22, 2360647.93it/s]\r 69%|\u2588\u2588\u2588\u2588\u2588\u2588\u2589   | 117816320/170498071 [00:51<00:22, 2344704.78it/s]\r 69%|\u2588\u2588\u2588\u2588\u2588\u2588\u2589   | 118056960/170498071 [00:51<00:22, 2350455.62it/s]\r 69%|\u2588\u2588\u2588\u2588\u2588\u2588\u2589   | 118295552/170498071 [00:52<00:22, 2360925.20it/s]\r 70%|\u2588\u2588\u2588\u2588\u2588\u2588\u2589   | 118532096/170498071 [00:52<00:22, 2343387.92it/s]\r 70%|\u2588\u2588\u2588\u2588\u2588\u2588\u2589   | 118768640/170498071 [00:52<00:22, 2325530.43it/s]\r 70%|\u2588\u2588\u2588\u2588\u2588\u2588\u2589   | 119008256/170498071 [00:52<00:22, 2326174.42it/s]\r 70%|\u2588\u2588\u2588\u2588\u2588\u2588\u2589   | 119241728/170498071 [00:52<00:22, 2326620.64it/s]\r 70%|\u2588\u2588\u2588\u2588\u2588\u2588\u2588   | 119475200/170498071 [00:52<00:22, 2318425.23it/s]\r 70%|\u2588\u2588\u2588\u2588\u2588\u2588\u2588   | 119712768/170498071 [00:52<00:21, 2311647.79it/s]\r 70%|\u2588\u2588\u2588\u2588\u2588\u2588\u2588   | 119944192/170498071 [00:52<00:21, 2301574.21it/s]\r 70%|\u2588\u2588\u2588\u2588\u2588\u2588\u2588   | 120176640/170498071 [00:52<00:21, 2305519.85it/s]\r 71%|\u2588\u2588\u2588\u2588\u2588\u2588\u2588   | 120408064/170498071 [00:52<00:21, 2300790.01it/s]\r 71%|\u2588\u2588\u2588\u2588\u2588\u2588\u2588   | 120640512/170498071 [00:53<00:21, 2293745.57it/s]\r 71%|\u2588\u2588\u2588\u2588\u2588\u2588\u2588   | 120872960/170498071 [00:53<00:21, 2294139.00it/s]\r 71%|\u2588\u2588\u2588\u2588\u2588\u2588\u2588   | 121104384/170498071 [00:53<00:21, 2298127.13it/s]\r 71%|\u2588\u2588\u2588\u2588\u2588\u2588\u2588   | 121336832/170498071 [00:53<00:21, 2297740.52it/s]\r 71%|\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u258f  | 121568256/170498071 [00:53<00:21, 2292887.34it/s]\r 71%|\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u258f  | 121800704/170498071 [00:53<00:21, 2297169.25it/s]\r 72%|\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u258f  | 122032128/170498071 [00:53<00:21, 2285102.87it/s]\r 72%|\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u258f  | 122264576/170498071 [00:53<00:21, 2280244.63it/s]\r 72%|\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u258f  | 122497024/170498071 [00:53<00:21, 2275077.40it/s]\r 72%|\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u258f  | 122728448/170498071 [00:53<00:21, 2267235.92it/s]\r 72%|\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u258f  | 122960896/170498071 [00:54<00:20, 2267201.62it/s]\r 72%|\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u258f  | 123192320/170498071 [00:54<00:20, 2262467.41it/s]\r 72%|\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u258f  | 123424768/170498071 [00:54<00:20, 2255259.76it/s]\r 73%|\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u258e  | 123656192/170498071 [00:54<00:20, 2257556.56it/s]\r 73%|\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u258e  | 123888640/170498071 [00:54<00:20, 2258498.06it/s]",
+        "tavily_sources": [],
+        "env_delta": [],
+        "resolved_sources": [],
+        "origin": "time_machine",
+        "time_machine": {
+          "era": {
+            "date": "2021-05-01",
+            "source": "pinned-commit",
+            "detail": {
+              "note": "no dependency files in the repository"
+            }
+          },
+          "python": {
+            "version": "3.9",
+            "reason": "newest CPython first released \u2265180 days before the era date 2021-05-01 (https://devguide.python.org/versions/ (first release dates, retrieved 2026-09-24))",
+            "source": "https://devguide.python.org/versions/ (first release dates, retrieved 2026-09-24)"
+          },
+          "undeclared_imports": [
+            "foolbox",
+            "torch",
+            "torchvision",
+            "tqdm"
+          ],
+          "batch_scan": {
+            "install": [
+              "foolbox",
+              "torch",
+              "torchvision",
+              "tqdm"
+            ],
+            "internal_excluded": [
+              "load_data",
+              "models",
+              "modules"
+            ],
+            "optional_skipped": [],
+            "python2_only_skipped": [],
+            "already_declared": [],
+            "import_mappings": []
+          },
+          "import_mappings": [],
+          "apt_added": [],
+          "apt_reason": "",
+          "lock": {
+            "ok": true,
+            "lock": [
+              "certifi==2020.12.5",
+              "chardet==4.0.0",
+              "eagerpy==0.29.0",
+              "foolbox==3.3.1",
+              "gitdb==4.0.7",
+              "gitpython==3.1.14",
+              "idna==2.10",
+              "numpy==1.20.2",
+              "pillow==8.2.0",
+              "requests==2.25.1",
+              "scipy==1.6.3",
+              "setuptools==56.0.0",
+              "smmap==4.0.0",
+              "torch==1.8.1",
+              "torchvision==0.9.1",
+              "tqdm==4.60.0",
+              "typing-extensions==3.10.0.0",
+              "urllib3==1.26.4"
+            ],
+            "inputs": [
+              "foolbox",
+              "torch",
+              "torchvision",
+              "tqdm"
+            ],
+            "not_on_index": [],
+            "relaxed": [],
+            "command": "pip compile - --no-header --no-annotate --quiet --exclude-newer 2021-05-02T00:00:00Z --python-version 3.9 --python-platform x86_64-unknown-linux-gnu --python C:\\Users\\E16\\AppData\\Roaming\\uv\\python\\cpython-3.8.20-windows-x86_64-none\\python.exe",
+            "error": ""
+          }
+        },
+        "execution": {
+          "mode": "smoke",
+          "seconds": 60,
+          "outcome": "alive_at_limit"
+        }
+      }
+    ],
+    "verdict": "RUNS_AFTER_REPAIR",
+    "timestamp": "2026-09-30T20:59:39.427154+00:00",
+    "bundle_version": 4,
+    "baseline": {
+      "result": "FAILS",
+      "exit_code": 1,
+      "base_image": "python:3.10-slim",
+      "install_commands": [
+        "true  # no declared dependency file found; nothing to install"
+      ],
+      "execute_command": "python main.py  --evaluate --dataset cifar10  --eps 0.031  --model capsnet  --attack vote_attack_FGSM",
+      "sandbox_id": "dfc45926-90a0-4948-9c26-1f6c8cf74c6d",
+      "taxonomy_code": "DEP_MISSING",
+      "evidence": "ModuleNotFoundError: No module named 'tqdm'"
+    },
+    "recovery": true,
+    "tree_integrity": {
+      "status": "verified",
+      "tree_sha": "8470057f65dd5e16273f985f73cacb3fc669eee3",
+      "files_checked": 13,
+      "excluded_patched": []
+    },
+    "corpus_hash": "7df090bea7013974f9f10fb8959ab0162734b51c83a80f744f9c310ce694fbdc",
+    "taxonomy_code": "DEP_MISSING",
+    "indeterminate_reason": "",
+    "error_chain": [
+      {
+        "error": "ModuleNotFoundError: No module named 'tqdm'",
+        "class": "DEP_MISSING",
+        "attribution": "REPO",
+        "phase": "repo_run",
+        "cleared_by": null
+      }
+    ],
+    "first_repo_error": "ModuleNotFoundError: No module named 'tqdm'",
+    "last_error": "ModuleNotFoundError: No module named 'tqdm'",
+    "reproduction_passport_hash": "881793aad0354e7886aa9483abdb7cfe4d2893a5614fadb2a2f2ac2ee01db323"
+  },
+  "finished_at": "2026-09-30T20:59:39.489547+00:00",
+  "events": [
+    {
+      "t_s": 0.0,
+      "at": "2026-09-30T20:55:13.612309+00:00",
+      "line": "[intake] cloned https://github.com/JindongGu/VoteAttack@bdf8b46bc7b3ce772a6f2c0a6e48514423fd6051"
+    },
+    {
+      "t_s": 0.01,
+      "at": "2026-09-30T20:55:13.621505+00:00",
+      "line": "[recon] calling Nemotron Nano"
+    },
+    {
+      "t_s": 11.11,
+      "at": "2026-09-30T20:55:24.718127+00:00",
+      "line": "[recon] entrypoint=main.py confidence=0.90"
+    },
+    {
+      "t_s": 11.11,
+      "at": "2026-09-30T20:55:24.726646+00:00",
+      "line": "[python] python:3.10-slim (default): no usable Python declaration; RERUN default 3.10"
+    },
+    {
+      "t_s": 12.2,
+      "at": "2026-09-30T20:55:25.807582+00:00",
+      "line": "[planner] build plan: {'base_image': 'python:3.10-slim', 'apt_install': [], 'install_commands': ['true  # no declared dependency file found; nothing to install'], 'execute_command': 'python main.py  --evaluate --dataset cifar10  --eps 0.031  --model capsnet  --attack vote_attack_FGSM', 'notes': [\"execute command is the repository's documented command (corpus ground truth)\", 'base image python:3.10-slim: no usable Python declaration; RERUN default 3.10']}"
+    },
+    {
+      "t_s": 12.53,
+      "at": "2026-09-30T20:55:26.138399+00:00",
+      "line": "[integrity] verified 13 file(s) against tree 8470057f65dd5e16273f985f73cacb3fc669eee3"
+    },
+    {
+      "t_s": 12.53,
+      "at": "2026-09-30T20:55:26.138441+00:00",
+      "line": "[sandbox] starting build+execute (wall_clock_seconds=600)"
+    },
+    {
+      "t_s": 12.53,
+      "at": "2026-09-30T20:55:26.145157+00:00",
+      "line": "[runner] torch: repo imports torch, torchvision without declaring it; runner provides the newest matched CPU wheels"
+    },
+    {
+      "t_s": 96.28,
+      "at": "2026-09-30T20:56:49.895184+00:00",
+      "line": "[cost_guard] recorded $0.3220 sandbox spend, $1.6775 remaining today"
+    },
+    {
+      "t_s": 96.28,
+      "at": "2026-09-30T20:56:49.895245+00:00",
+      "line": "[sandbox] id=dfc45926-90a0-4948-9c26-1f6c8cf74c6d exit_code=1"
+    },
+    {
+      "t_s": 96.28,
+      "at": "2026-09-30T20:56:49.895267+00:00",
+      "line": "[baseline] as-is run: FAILS (exit code 1)"
+    },
+    {
+      "t_s": 96.29,
+      "at": "2026-09-30T20:56:49.899255+00:00",
+      "line": "[classifier] DEP_MISSING: ModuleNotFoundError: No module named 'tqdm'"
+    },
+    {
+      "t_s": 96.33,
+      "at": "2026-09-30T20:56:49.939407+00:00",
+      "line": "[era] 2021-05-01 from pinned-commit {'note': 'no dependency files in the repository'}"
+    },
+    {
+      "t_s": 98.55,
+      "at": "2026-09-30T20:56:52.158467+00:00",
+      "line": "[time-machine] era 2021-05-01 (pinned-commit) -> python 3.9; locked 18 package(s) with uv --exclude-newer; not on the index: none"
+    },
+    {
+      "t_s": 98.55,
+      "at": "2026-09-30T20:56:52.163635+00:00",
+      "line": "[smoke] re-execution of the documented command under a 60s smoke limit"
+    },
+    {
+      "t_s": 98.8,
+      "at": "2026-09-30T20:56:52.408698+00:00",
+      "line": "[integrity] verified 13 file(s) against tree 8470057f65dd5e16273f985f73cacb3fc669eee3"
+    },
+    {
+      "t_s": 98.8,
+      "at": "2026-09-30T20:56:52.408739+00:00",
+      "line": "[sandbox] starting build+execute (wall_clock_seconds=197)"
+    },
+    {
+      "t_s": 98.8,
+      "at": "2026-09-30T20:56:52.414573+00:00",
+      "line": "[runner] torch: repo pins torch, torchvision; installed the CPU wheels as a matched set with the same pins"
+    },
+    {
+      "t_s": 263.81,
+      "at": "2026-09-30T20:59:37.421293+00:00",
+      "line": "[cost_guard] recorded $0.2924 sandbox spend, $1.3850 remaining today"
+    },
+    {
+      "t_s": 263.81,
+      "at": "2026-09-30T20:59:37.421361+00:00",
+      "line": "[time-machine] re-execution id=1bcf4802-5f58-426f-a84d-e01e5b8806da exit_code=0"
+    }
+  ],
+  "model_calls": [
+    {
+      "model": "nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B",
+      "started_at": "2026-09-30T20:55:13.868163+00:00",
+      "latency_s": 10.85,
+      "finish_reason": "stop",
+      "content_is_none": false,
+      "has_reasoning": true,
+      "usage": {
+        "completion_tokens": 1367,
+        "prompt_tokens": 1692,
+        "total_tokens": 3059,
+        "completion_tokens_details": null,
+        "prompt_tokens_details": null
+      }
+    },
+    {
+      "model": "nvidia/nemotron-3-super-120b-a12b",
+      "started_at": "2026-09-30T20:55:24.728013+00:00",
+      "latency_s": 1.08,
+      "finish_reason": "stop",
+      "content_is_none": false,
+      "has_reasoning": true,
+      "usage": {
+        "completion_tokens": 39,
+        "prompt_tokens": 268,
+        "total_tokens": 307,
+        "completion_tokens_details": {
+          "accepted_prediction_tokens": null,
+          "audio_tokens": null,
+          "reasoning_tokens": 29,
+          "rejected_prediction_tokens": null,
+          "text_tokens": null
+        },
+        "prompt_tokens_details": {
+          "audio_tokens": null,
+          "cache_write_tokens": null,
+          "cached_tokens": 0,
+          "image_tokens": null,
+          "text_tokens": null,
+          "created_cache_tokens": 0,
+          "multimodal_tokens": null
+        },
+        "prompt_cache_hit_tokens": 0,
+        "prompt_cache_miss_tokens": 268
+      }
+    },
+    {
+      "model": "nvidia/Nemotron-3-Ultra-550b-a55b",
+      "started_at": "2026-09-30T20:59:37.423172+00:00",
+      "latency_s": 2.0,
+      "finish_reason": "stop",
+      "content_is_none": false,
+      "has_reasoning": true,
+      "usage": {
+        "completion_tokens": 464,
+        "prompt_tokens": 704,
+        "total_tokens": 1168,
+        "completion_tokens_details": {
+          "accepted_prediction_tokens": null,
+          "audio_tokens": null,
+          "reasoning_tokens": 347,
+          "rejected_prediction_tokens": null,
+          "text_tokens": null
+        },
+        "prompt_tokens_details": {
+          "audio_tokens": null,
+          "cache_write_tokens": null,
+          "cached_tokens": 0,
+          "image_tokens": null,
+          "text_tokens": null,
+          "multimodal_tokens": null
+        },
+        "prompt_cache_hit_tokens": 0,
+        "prompt_cache_miss_tokens": 704
+      }
+    }
+  ],
+  "cost_guard": {
+    "spent_usd": 0.6170817300000001,
+    "model_spent_usd": 0.0026411000000000004,
+    "sandbox_spent_usd": 0.61444063,
+    "estimated_sandbox_spent_usd": 0.0,
+    "cost_events": [],
+    "remaining_usd": 1.3829182699999998,
+    "model_usage": [
+      {
+        "model": "nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B",
+        "prompt_tokens": 1692,
+        "completion_tokens": 1367,
+        "cost_usd": 0.0004296
+      },
+      {
+        "model": "nvidia/nemotron-3-super-120b-a12b",
+        "prompt_tokens": 268,
+        "completion_tokens": 39,
+        "cost_usd": 0.0001155
+      },
+      {
+        "model": "nvidia/Nemotron-3-Ultra-550b-a55b",
+        "prompt_tokens": 704,
+        "completion_tokens": 464,
+        "cost_usd": 0.002096
+      }
+    ],
+    "prices_usd_per_1m": {
+      "nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B": [
+        0.06,
+        0.24
+      ],
+      "nvidia/nemotron-3-super-120b-a12b": [
+        0.3,
+        0.9
+      ],
+      "nvidia/Nemotron-3-Ultra-550b-a55b": [
+        1.0,
+        3.0
+      ]
+    },
+    "prices_source": "https://api.tokenfactory.nebius.com/v1/models?verbose=true (pricing field)",
+    "prices_retrieved": "2026-09-24"
+  }
+}

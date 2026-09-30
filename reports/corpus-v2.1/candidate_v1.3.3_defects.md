@@ -67,3 +67,12 @@ HARNESS_INDUCED is decided in Phase B3 with the definition written there; this f
 ## Observation (not a defect): Tavily was queried but never cited
 
 46 `[tavily]` searches in 16 entries; 0 cited sources; every `tavily_sources` is empty; every `[citations]` line reads "not cited". Tavily-decisive fixes: 0 (and recoveries: 0).
+
+## Found by the v1.3.3 smoke gate (2026-09-30; see `v1.3.3/smoke_gate/SMOKE_GATE_REPORT.md`; none fixed, the harness is sealed)
+
+- **D-18** The repairer prompt shows RERUN's resolved lock as `requirements.txt`; edits to it are refused (entry 7, repairs 2-3 wasted).
+- **D-19** A silent exit 1 after a progress stream leaves the repairer no error text (entry 3: evidence `1`, two applied patches changed nothing, the third broke the syntax).
+- **D-20** The download route (repositories over 125.8 MB: entries 2, 8, 10, 11) cannot carry a patched file: manifest from the patched bytes, sandbox fetches the original, exit 97, INVALID_HARNESS (entry 8).
+- **D-21** The repairer declared no `cited_sources` in 7 searches (0 citations), including when the top result was the API documentation for the moved function (entry 8).
+- **D-22** An attempt that ends in INVALID_HARNESS is not recorded (entry 8, repair 1).
+

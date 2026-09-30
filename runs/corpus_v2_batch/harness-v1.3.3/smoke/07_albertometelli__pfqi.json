@@ -1,0 +1,1286 @@
+{
+  "run_kind": "live end-to-end run",
+  "dev_run": false,
+  "dry_run": null,
+  "batch": {
+    "harness_tag": "harness-v1.3.3",
+    "harness_commit": "8af1717c81701a3cecd2d8f8ad1b2a7a7be68447",
+    "head_commit": "f167921e9e093200c5d5191ae7bbe72c3a5ebd02",
+    "corpus": "corpus-v2",
+    "prereg_sha256": "ae5a722249156e058d3d360bdc63fa8224140d0688f1daa307ecfa93a98c7284",
+    "corpus_hash": "7df090bea7013974f9f10fb8959ab0162734b51c83a80f744f9c310ce694fbdc",
+    "arm": "treatment",
+    "total_cap_usd": 6.0,
+    "already_spent_usd": 0.0,
+    "entry_id": 7,
+    "category": "PRIMARY",
+    "rules_matched": [],
+    "per_entry_cap_usd": 2.0
+  },
+  "started_at": "2026-09-30T20:59:43.292370+00:00",
+  "corpus_entry": {
+    "name": "albertometelli__pfqi",
+    "repo_url": "https://github.com/albertometelli/pfqi",
+    "commit_sha": "84901d291e759cb4e2471f0b2ba521acad6ac335",
+    "command": "python3 scripts/run_cartpole.py",
+    "command_source": "README.md line 18"
+  },
+  "config": {
+    "models": {
+      "recon": "nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B",
+      "planner": "nvidia/nemotron-3-super-120b-a12b",
+      "repairer": "nvidia/nemotron-3-super-120b-a12b",
+      "adjudicator": "nvidia/Nemotron-3-Ultra-550b-a55b"
+    },
+    "sandbox_backend": "token_factory",
+    "sandbox_image_default": "python:3.10-slim",
+    "sandbox_wall_clock_seconds": 600.0,
+    "arm": "treatment",
+    "repair_enabled": true,
+    "max_attempts": 3,
+    "tavily_configured": true,
+    "cost_cap_usd": 2.0
+  },
+  "intake": {
+    "duration_s": 11.54,
+    "resolved_sha": "84901d291e759cb4e2471f0b2ba521acad6ac335",
+    "dependency_files": [],
+    "declared_dependencies": [],
+    "entrypoint_candidates": [
+      "plotters/trading_multi_perf_plotter4x4.py",
+      "scripts/run_trading.py",
+      "trlib/environments/ags_derivatives.py",
+      "trlib/environments/ags_prices.py",
+      "trlib/environments/gridworld_continuous.py",
+      "trlib/environments/trading_proportional.py",
+      "trlib/environments/vec_derivatives.py",
+      "trlib/environments/vec_prices.py",
+      "trlib/experiments/experiment.py"
+    ],
+    "notebook_paths": []
+  },
+  "pipeline_duration_s": 391.57,
+  "repair_mode": "model_assisted",
+  "tree_integrity": {
+    "status": "verified",
+    "tree_sha": "a91de59ccd8827d6dbf004ebaaa09f1044b10e27",
+    "files_checked": 74,
+    "excluded_patched": []
+  },
+  "result": {
+    "verdict": "BLOCKED",
+    "taxonomy_code": "RUNTIME_ERROR_OTHER",
+    "indeterminate_reason": "",
+    "reason_code": null,
+    "error_chain": [
+      {
+        "error": "ModuleNotFoundError: No module named 'numpy'",
+        "class": "DEP_MISSING",
+        "attribution": "REPO",
+        "phase": "repo_run",
+        "cleared_by": 0
+      },
+      {
+        "error": "/bin/sh: 1: pkg-config: not found",
+        "class": "SYS_LIB_MISSING",
+        "attribution": "REPO",
+        "phase": "repo_install",
+        "cleared_by": 1
+      },
+      {
+        "error": "\u00d7 Encountered error while generating package metadata.",
+        "class": "RUNTIME_ERROR_OTHER",
+        "attribution": "REPO",
+        "phase": "repo_install",
+        "cleared_by": null
+      }
+    ],
+    "first_repo_error": "ModuleNotFoundError: No module named 'numpy'",
+    "last_error": "\u00d7 Encountered error while generating package metadata.",
+    "error_traceback": "",
+    "attempts": [
+      {
+        "attempt_number": 0,
+        "diff_text": "",
+        "gate_decision": "PASS",
+        "gate_violations": [],
+        "exit_code": 1,
+        "stdout_tail": "Collecting cloudpickle==1.3.0\n  Downloading cloudpickle-1.3.0-py2.py3-none-any.whl (26 kB)\nCollecting cycler==0.10.0\n  Downloading cycler-0.10.0-py2.py3-none-any.whl (6.5 kB)\nCollecting future==0.18.2\n  Downloading future-0.18.2.tar.gz (829 kB)\n     \u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501 829.2/829.2 kB 24.2 MB/s eta 0:00:00\n  Preparing metadata (setup.py): started\n  Preparing metadata (setup.py): finished with status 'done'\nCollecting gym==0.17.2\n  Downloading gym-0.17.2.tar.gz (1.6 MB)\n     \u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501 1.6/1.6 MB 84.2 MB/s eta 0:00:00\n  Preparing metadata (setup.py): started\n  Preparing metadata (setup.py): finished with status 'done'\nCollecting joblib==0.16.0\n  Downloading joblib-0.16.0-py3-none-any.whl (300 kB)\n     \u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501 300.8/300.8 kB 54.5 MB/s eta 0:00:00\nCollecting kiwisolver==1.2.0\n  Downloading kiwisolver-1.2.0-cp38-cp38-manylinux1_x86_64.whl (92 kB)\n     \u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501 92.2/92.2 kB 26.9 MB/s eta 0:00:00\nCollecting matplotlib==3.3.0\n  Downloading matplotlib-3.3.0-1-cp38-cp38-manylinux1_x86_64.whl (11.5 MB)\n     \u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501 11.5/11.5 MB 77.3 MB/s eta 0:00:00\nCollecting numpy==1.19.1\n  Downloading numpy-1.19.1-cp38-cp38-manylinux2010_x86_64.whl (14.5 MB)\n     \u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501 14.5/14.5 MB 78.4 MB/s eta 0:00:00\nCollecting pandas==1.1.0\n  Downloading pandas-1.1.0-cp38-cp38-manylinux1_x86_64.whl (10.3 MB)\n     \u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501 10.3/10.3 MB 88.8 MB/s eta 0:00:00\nCollecting pillow==7.2.0\n  Downloading Pillow-7.2.0-cp38-cp38-manylinux1_x86_64.whl (2.2 MB)\n     \u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501 2.2/2.2 MB 87.7 MB/s eta 0:00:00\nCollecting pygame==1.9.6\n  Downloading pygame-1.9.6.tar.gz (3.2 MB)\n     \u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501 3.2/3.2 MB 86.7 MB/s eta 0:00:00\n  Preparing metadata (setup.py): started\n  Preparing metadata (setup.py): finished with status 'error'\n",
+        "stderr_tail": "  error: subprocess-exited-with-error\n  \n  \u00d7 python setup.py egg_info did not run successfully.\n  \u2502 exit code: 1\n  \u2570\u2500> [20 lines of output]\n      \n      \n      WARNING, No \"Setup\" File Exists, Running \"buildconfig/config.py\"\n      Using UNIX configuration...\n      \n      /bin/sh: 1: sdl-config: not found\n      /bin/sh: 1: sdl-config: not found\n      /bin/sh: 1: sdl-config: not found\n      /bin/sh: 1: pkg-config: not found\n      /bin/sh: 1: pkg-config: not found\n      /bin/sh: 1: pkg-config: not found\n      /bin/sh: 1: freetype-config: not found\n      /bin/sh: 1: freetype-config: not found\n      /bin/sh: 1: freetype-config: not found\n      Unable to run \"sdl-config\". Please make sure a development version of SDL is installed.\n      \n      Hunting dependencies...\n      WARNING: \"sdl-config\" failed!\n      WARNING: \"pkg-config freetype2\" failed!\n      WARNING: \"freetype-config\" failed!\n      [end of output]\n  \n  note: This error originates from a subprocess, and is likely not a problem with pip.\nerror: metadata-generation-failed\n\n\u00d7 Encountered error while generating package metadata.\n\u2570\u2500> See above for output.\n\nnote: This is an issue with the package mentioned above, not pip.\nhint: See above for details.\n\n[notice] A new release of pip is available: 23.0.1 -> 25.0.1\n[notice] To update, run: pip install --upgrade pip\n",
+        "tavily_sources": [],
+        "env_delta": [],
+        "resolved_sources": [],
+        "origin": "time_machine",
+        "time_machine": {
+          "era": {
+            "date": "2020-08-01",
+            "source": "pinned-commit",
+            "detail": {
+              "note": "no dependency files in the repository"
+            }
+          },
+          "python": {
+            "version": "3.8",
+            "reason": "newest CPython first released \u2265180 days before the era date 2020-08-01 (https://devguide.python.org/versions/ (first release dates, retrieved 2026-09-24))",
+            "source": "https://devguide.python.org/versions/ (first release dates, retrieved 2026-09-24)"
+          },
+          "undeclared_imports": [
+            "gym",
+            "joblib",
+            "matplotlib",
+            "numpy",
+            "pandas",
+            "pygame",
+            "scikit-learn",
+            "scipy"
+          ],
+          "batch_scan": {
+            "install": [
+              "gym",
+              "joblib",
+              "matplotlib",
+              "numpy",
+              "pandas",
+              "pygame",
+              "scikit-learn",
+              "scipy"
+            ],
+            "internal_excluded": [
+              "trlib"
+            ],
+            "optional_skipped": [],
+            "python2_only_skipped": [],
+            "already_declared": [],
+            "import_mappings": [
+              {
+                "import": "sklearn",
+                "distribution": "scikit-learn",
+                "source": "pipreqs",
+                "confidence": "normal"
+              }
+            ]
+          },
+          "import_mappings": [
+            {
+              "import": "sklearn",
+              "distribution": "scikit-learn",
+              "source": "pipreqs",
+              "confidence": "normal"
+            }
+          ],
+          "apt_added": [],
+          "apt_reason": "",
+          "lock": {
+            "ok": true,
+            "lock": [
+              "cloudpickle==1.3.0",
+              "cycler==0.10.0",
+              "future==0.18.2",
+              "gym==0.17.2",
+              "joblib==0.16.0",
+              "kiwisolver==1.2.0",
+              "matplotlib==3.3.0",
+              "numpy==1.19.1",
+              "pandas==1.1.0",
+              "pillow==7.2.0",
+              "pygame==1.9.6",
+              "pyglet==1.5.0",
+              "pyparsing==2.4.7",
+              "python-dateutil==2.8.1",
+              "pytz==2020.1",
+              "scikit-learn==0.23.1",
+              "scipy==1.5.2",
+              "six==1.15.0",
+              "threadpoolctl==2.1.0"
+            ],
+            "inputs": [
+              "gym",
+              "joblib",
+              "matplotlib",
+              "numpy",
+              "pandas",
+              "pygame",
+              "scikit-learn",
+              "scipy"
+            ],
+            "not_on_index": [],
+            "relaxed": [],
+            "command": "pip compile - --no-header --no-annotate --quiet --exclude-newer 2020-08-02T00:00:00Z --python-version 3.8 --python-platform x86_64-unknown-linux-gnu --python C:\\Users\\E16\\AppData\\Roaming\\uv\\python\\cpython-3.8.20-windows-x86_64-none\\python.exe",
+            "error": ""
+          }
+        },
+        "execution": {
+          "mode": "smoke",
+          "seconds": 60,
+          "outcome": "exited"
+        }
+      },
+      {
+        "attempt_number": 1,
+        "diff_text": "",
+        "gate_decision": "PASS",
+        "gate_violations": [],
+        "exit_code": 1,
+        "stdout_tail": "Collecting cloudpickle==1.3.0\n  Downloading cloudpickle-1.3.0-py2.py3-none-any.whl (26 kB)\nCollecting cycler==0.10.0\n  Downloading cycler-0.10.0-py2.py3-none-any.whl (6.5 kB)\nCollecting future==0.18.2\n  Downloading future-0.18.2.tar.gz (829 kB)\n     \u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501 829.2/829.2 kB 36.2 MB/s eta 0:00:00\n  Preparing metadata (setup.py): started\n  Preparing metadata (setup.py): finished with status 'done'\nCollecting gym==0.17.2\n  Downloading gym-0.17.2.tar.gz (1.6 MB)\n     \u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501 1.6/1.6 MB 73.5 MB/s eta 0:00:00\n  Preparing metadata (setup.py): started\n  Preparing metadata (setup.py): finished with status 'done'\nCollecting joblib==0.16.0\n  Downloading joblib-0.16.0-py3-none-any.whl (300 kB)\n     \u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501 300.8/300.8 kB 49.5 MB/s eta 0:00:00\nCollecting kiwisolver==1.2.0\n  Downloading kiwisolver-1.2.0-cp38-cp38-manylinux1_x86_64.whl (92 kB)\n     \u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501 92.2/92.2 kB 24.8 MB/s eta 0:00:00\nCollecting matplotlib==3.3.0\n  Downloading matplotlib-3.3.0-1-cp38-cp38-manylinux1_x86_64.whl (11.5 MB)\n     \u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501 11.5/11.5 MB 65.7 MB/s eta 0:00:00\nCollecting numpy==1.19.1\n  Downloading numpy-1.19.1-cp38-cp38-manylinux2010_x86_64.whl (14.5 MB)\n     \u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501 14.5/14.5 MB 39.2 MB/s eta 0:00:00\nCollecting pandas==1.1.0\n  Downloading pandas-1.1.0-cp38-cp38-manylinux1_x86_64.whl (10.3 MB)\n     \u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501 10.3/10.3 MB 77.7 MB/s eta 0:00:00\nCollecting pillow==7.2.0\n  Downloading Pillow-7.2.0-cp38-cp38-manylinux1_x86_64.whl (2.2 MB)\n     \u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501 2.2/2.2 MB 64.7 MB/s eta 0:00:00\nCollecting pygame==1.9.6\n  Downloading pygame-1.9.6.tar.gz (3.2 MB)\n     \u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501 3.2/3.2 MB 82.2 MB/s eta 0:00:00\n  Preparing metadata (setup.py): started\n  Preparing metadata (setup.py): finished with status 'error'\n",
+        "stderr_tail": "  error: subprocess-exited-with-error\n  \n  \u00d7 python setup.py egg_info did not run successfully.\n  \u2502 exit code: 1\n  \u2570\u2500> [18 lines of output]\n      \n      \n      WARNING, No \"Setup\" File Exists, Running \"buildconfig/config.py\"\n      Using UNIX configuration...\n      \n      Missing dependencies\n      \n      Hunting dependencies...\n      SDL     : found 1.2.15\n      FONT    : not found\n      IMAGE   : not found\n      MIXER   : not found\n      PNG     : found\n      JPEG    : not found\n      SCRAP   : found\n      PORTMIDI: not found\n      PORTTIME: not found\n      FREETYPE: found 24.3.18\n      [end of output]\n  \n  note: This error originates from a subprocess, and is likely not a problem with pip.\nerror: metadata-generation-failed\n\n\u00d7 Encountered error while generating package metadata.\n\u2570\u2500> See above for output.\n\nnote: This is an issue with the package mentioned above, not pip.\nhint: See above for details.\n\n[notice] A new release of pip is available: 23.0.1 -> 25.0.1\n[notice] To update, run: pip install --upgrade pip\n",
+        "tavily_sources": [],
+        "env_delta": [
+          {
+            "command": null,
+            "op": "apt",
+            "package": "pkg-config",
+            "version": null,
+            "git_url": null,
+            "commit": null,
+            "justification": "Required for pygame build to locate dependencies",
+            "evidence": "/bin/sh: 1: pkg-config: not found"
+          },
+          {
+            "command": null,
+            "op": "apt",
+            "package": "libsdl1.2-dev",
+            "version": null,
+            "git_url": null,
+            "commit": null,
+            "justification": "Provides sdl-config for SDL 1.2 development headers",
+            "evidence": "/bin/sh: 1: sdl-config: not found"
+          },
+          {
+            "command": null,
+            "op": "apt",
+            "package": "libfreetype6-dev",
+            "version": null,
+            "git_url": null,
+            "commit": null,
+            "justification": "Provides freetype-config for freetype development headers",
+            "evidence": "/bin/sh: 1: freetype-config: not found"
+          }
+        ],
+        "resolved_sources": [],
+        "origin": "model",
+        "time_machine": null,
+        "execution": {
+          "mode": "smoke",
+          "seconds": 60,
+          "outcome": "exited"
+        }
+      },
+      {
+        "attempt_number": 2,
+        "diff_text": "",
+        "gate_decision": "PASS",
+        "gate_violations": [],
+        "exit_code": 1,
+        "stdout_tail": "Collecting cloudpickle==1.3.0\n  Downloading cloudpickle-1.3.0-py2.py3-none-any.whl (26 kB)\nCollecting cycler==0.10.0\n  Downloading cycler-0.10.0-py2.py3-none-any.whl (6.5 kB)\nCollecting future==0.18.2\n  Downloading future-0.18.2.tar.gz (829 kB)\n     \u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501 829.2/829.2 kB 23.5 MB/s eta 0:00:00\n  Preparing metadata (setup.py): started\n  Preparing metadata (setup.py): finished with status 'done'\nCollecting gym==0.17.2\n  Downloading gym-0.17.2.tar.gz (1.6 MB)\n     \u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501 1.6/1.6 MB 84.2 MB/s eta 0:00:00\n  Preparing metadata (setup.py): started\n  Preparing metadata (setup.py): finished with status 'done'\nCollecting joblib==0.16.0\n  Downloading joblib-0.16.0-py3-none-any.whl (300 kB)\n     \u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501 300.8/300.8 kB 56.7 MB/s eta 0:00:00\nCollecting kiwisolver==1.2.0\n  Downloading kiwisolver-1.2.0-cp38-cp38-manylinux1_x86_64.whl (92 kB)\n     \u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501 92.2/92.2 kB 27.7 MB/s eta 0:00:00\nCollecting matplotlib==3.3.0\n  Downloading matplotlib-3.3.0-1-cp38-cp38-manylinux1_x86_64.whl (11.5 MB)\n     \u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501 11.5/11.5 MB 79.8 MB/s eta 0:00:00\nCollecting numpy==1.19.1\n  Downloading numpy-1.19.1-cp38-cp38-manylinux2010_x86_64.whl (14.5 MB)\n     \u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501 14.5/14.5 MB 76.1 MB/s eta 0:00:00\nCollecting pandas==1.1.0\n  Downloading pandas-1.1.0-cp38-cp38-manylinux1_x86_64.whl (10.3 MB)\n     \u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501 10.3/10.3 MB 86.3 MB/s eta 0:00:00\nCollecting pillow==7.2.0\n  Downloading Pillow-7.2.0-cp38-cp38-manylinux1_x86_64.whl (2.2 MB)\n     \u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501 2.2/2.2 MB 80.5 MB/s eta 0:00:00\nCollecting pygame==1.9.6\n  Downloading pygame-1.9.6.tar.gz (3.2 MB)\n     \u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501 3.2/3.2 MB 85.4 MB/s eta 0:00:00\n  Preparing metadata (setup.py): started\n  Preparing metadata (setup.py): finished with status 'error'\n",
+        "stderr_tail": "  error: subprocess-exited-with-error\n  \n  \u00d7 python setup.py egg_info did not run successfully.\n  \u2502 exit code: 1\n  \u2570\u2500> [18 lines of output]\n      \n      \n      WARNING, No \"Setup\" File Exists, Running \"buildconfig/config.py\"\n      Using UNIX configuration...\n      \n      Missing dependencies\n      \n      Hunting dependencies...\n      SDL     : found 1.2.15\n      FONT    : not found\n      IMAGE   : not found\n      MIXER   : not found\n      PNG     : found\n      JPEG    : not found\n      SCRAP   : found\n      PORTMIDI: not found\n      PORTTIME: not found\n      FREETYPE: found 24.3.18\n      [end of output]\n  \n  note: This error originates from a subprocess, and is likely not a problem with pip.\nerror: metadata-generation-failed\n\n\u00d7 Encountered error while generating package metadata.\n\u2570\u2500> See above for output.\n\nnote: This is an issue with the package mentioned above, not pip.\nhint: See above for details.\n\n[notice] A new release of pip is available: 23.0.1 -> 25.0.1\n[notice] To update, run: pip install --upgrade pip\n",
+        "tavily_sources": [],
+        "env_delta": [
+          {
+            "command": null,
+            "op": "add",
+            "package": "libsdl-ttf2.0-dev",
+            "version": null,
+            "git_url": null,
+            "commit": null,
+            "justification": "Required for SDL_ttf font support in pygame",
+            "evidence": "FONT    : not found"
+          },
+          {
+            "command": null,
+            "op": "add",
+            "package": "libsdl-image1.2-dev",
+            "version": null,
+            "git_url": null,
+            "commit": null,
+            "justification": "Required for SDL_image image support in pygame",
+            "evidence": "IMAGE   : not found"
+          },
+          {
+            "command": null,
+            "op": "add",
+            "package": "libsdl-mixer1.2-dev",
+            "version": null,
+            "git_url": null,
+            "commit": null,
+            "justification": "Required for SDL_mixer audio support in pygame",
+            "evidence": "MIXER   : not found"
+          },
+          {
+            "command": null,
+            "op": "add",
+            "package": "libportmidi-dev",
+            "version": null,
+            "git_url": null,
+            "commit": null,
+            "justification": "Required for PortMidi support in pygame",
+            "evidence": "PORTMIDI: not found"
+          }
+        ],
+        "resolved_sources": [],
+        "origin": "model",
+        "time_machine": null,
+        "execution": {
+          "mode": "smoke",
+          "seconds": 60,
+          "outcome": "exited"
+        }
+      },
+      {
+        "attempt_number": 3,
+        "diff_text": "{\"file_edits\": [{\"path\": \"requirements.txt\", \"old\": \"cloudpickle==1.3.0\\ncycler==0.10.0\\nfuture==0.18.2\\ngym==0.17.2\\njoblib==0.16.0\\nkiwisolver==1.2.0\\nmatplotlib==3.3.0\\nnumpy==1.19.1\\npandas==1.1.0\\npillow==7.2.0\\npygame==1.9.6\\npyglet==1.5.0\\npyparsing==2.4.7\\npython-dateutil==2.8.1\\npytz==2020.1\\nscikit-learn==0.23.1\\nscipy==1.5.2\\nsix==1.15.0\\nthreadpoolctl==2.1.0\\nlibsdl-ttf2.0-dev\\nlibsdl-image1.2-dev\\nlibsdl-mixer1.2-dev\\nlibportmidi-dev\\n\", \"new\": \"cloudpickle==1.3.0\\ncycler==0.10.0\\nfuture==0.18.2\\ngym==0.17.2\\njoblib==0.16.0\\nkiwisolver==1.2.0\\nmatplotlib==3.3.0\\nnumpy==1.19.1\\npandas==1.1.0\\npillow==7.2.0\\npygame==1.9.6\\npyglet==1.5.0\\npyparsing==2.4.7\\npython-dateutil==2.8.1\\npytz==2020.1\\nscikit-learn==0.23.1\\nscipy==1.5.2\\nsix==1.15.0\\nthreadpoolctl==2.1.0\\n\"}], \"file_replacements\": []}",
+        "gate_decision": "REJECT",
+        "gate_violations": [
+          {
+            "rule": "UNAPPLICABLE_PATCH",
+            "reason": "'requirements.txt' is not an existing file in the repository (only edits to existing files are supported)",
+            "file": ""
+          }
+        ],
+        "exit_code": null,
+        "stdout_tail": "",
+        "stderr_tail": "",
+        "tavily_sources": [],
+        "env_delta": [],
+        "resolved_sources": [],
+        "origin": "model",
+        "time_machine": null
+      }
+    ],
+    "certificate_prose": "The repository was blocked after three repair attempts due to a runtime error (RUNTIME_ERROR_OTHER). The repair system rejected a tamper attempt because 'requirements.txt' is not an existing file in the repository, and only edits to existing files are supported. Verifies that the artifact executes. Does not verify the paper's numerical results."
+  },
+  "certificate": {
+    "repo_url": "https://github.com/albertometelli/pfqi",
+    "commit_sha": "84901d291e759cb4e2471f0b2ba521acad6ac335",
+    "build_plan": {
+      "base_image": "python:3.8-slim",
+      "apt_install": [
+        "libfreetype6-dev",
+        "libsdl1.2-dev",
+        "pkg-config"
+      ],
+      "install_commands": [
+        "printf '%s\\n' cloudpickle==1.3.0 cycler==0.10.0 future==0.18.2 gym==0.17.2 joblib==0.16.0 kiwisolver==1.2.0 matplotlib==3.3.0 numpy==1.19.1 pandas==1.1.0 pillow==7.2.0 pygame==1.9.6 pyglet==1.5.0 pyparsing==2.4.7 python-dateutil==2.8.1 pytz==2020.1 scikit-learn==0.23.1 scipy==1.5.2 six==1.15.0 threadpoolctl==2.1.0 libsdl-ttf2.0-dev libsdl-image1.2-dev libsdl-mixer1.2-dev libportmidi-dev > .rerun-requirements.txt && pip install -r .rerun-requirements.txt"
+      ],
+      "execute_command": "python3 scripts/run_cartpole.py",
+      "notes": [
+        "execute command is the repository's documented command (corpus ground truth)",
+        "base image python:3.10-slim: no usable Python declaration; RERUN default 3.10",
+        "time machine: python 3.8, 19 locked package(s)",
+        "env delta: apt pkg-config \u2014 Required for pygame build to locate dependencies",
+        "env delta: apt libsdl1.2-dev \u2014 Provides sdl-config for SDL 1.2 development headers",
+        "env delta: apt libfreetype6-dev \u2014 Provides freetype-config for freetype development headers",
+        "env delta: add libsdl-ttf2.0-dev \u2014 Required for SDL_ttf font support in pygame",
+        "env delta: add libsdl-image1.2-dev \u2014 Required for SDL_image image support in pygame",
+        "env delta: add libsdl-mixer1.2-dev \u2014 Required for SDL_mixer audio support in pygame",
+        "env delta: add libportmidi-dev \u2014 Required for PortMidi support in pygame"
+      ]
+    },
+    "full_log": "[intake] cloned https://github.com/albertometelli/pfqi@84901d291e759cb4e2471f0b2ba521acad6ac335\n[recon] calling Nemotron Nano\n[recon] RECON_MODEL_ERROR: recon model call failed: model response was not valid JSON: Unterminated string starting at: line 6 column 5 (char 140)\n---\n\n{\n  \"entrypoint\": \"plotters/trading_multi_perf_plotter4x4.py\",\n  \"confidence\": 0.92,\n  \"python_version\": null,\n  \"data_requirements\": [\n    \"JSON \u2014 proceeding with the documented command: python3 scripts/run_cartpole.py\n[python] python:3.10-slim (default): no usable Python declaration; RERUN default 3.10\n[planner] build plan: {'base_image': 'python:3.10-slim', 'apt_install': [], 'install_commands': ['true  # no declared dependency file found; nothing to install'], 'execute_command': 'python3 scripts/run_cartpole.py', 'notes': [\"execute command is the repository's documented command (corpus ground truth)\", 'base image python:3.10-slim: no usable Python declaration; RERUN default 3.10']}\n[integrity] verified 74 file(s) against tree a91de59ccd8827d6dbf004ebaaa09f1044b10e27\n[sandbox] starting build+execute (wall_clock_seconds=600)\n[cost_guard] recorded $0.0028 sandbox spend, $1.9955 remaining today\n[sandbox] id=6fc70d6b-971a-4b9f-964d-dd4694f4e229 exit_code=1\n[baseline] as-is run: FAILS (exit code 1)\n[classifier] DEP_MISSING: ModuleNotFoundError: No module named 'numpy'\n[era] 2020-08-01 from pinned-commit {'note': 'no dependency files in the repository'}\n[import-map] sklearn -> scikit-learn (pipreqs, confidence normal)\n[time-machine] era 2020-08-01 (pinned-commit) -> python 3.8; locked 19 package(s) with uv --exclude-newer; not on the index: none\n[smoke] re-execution of the documented command under a 60s smoke limit\n[integrity] verified 74 file(s) against tree a91de59ccd8827d6dbf004ebaaa09f1044b10e27\n[sandbox] starting build+execute (wall_clock_seconds=235)\n[cost_guard] recorded $0.0440 sandbox spend, $1.9515 remaining today\n[time-machine] re-execution id=9d668b2f-4b37-40d0-ae48-64b46e73b447 exit_code=1\n[classifier] SYS_LIB_MISSING: /bin/sh: 1: pkg-config: not found\n[tavily] 3 result(s) for 'python 3.8 sys lib missing fix: /bin/sh: 1: pkg-config: not found'\n[repair 1] tamper gate PASS (env) \u2014 applying and re-executing\n[repair 1] env delta applied; build plan now: {'base_image': 'python:3.8-slim', 'apt_install': ['libfreetype6-dev', 'libsdl1.2-dev', 'pkg-config'], 'install_commands': [\"printf '%s\\\\n' cloudpickle==1.3.0 cycler==0.10.0 future==0.18.2 gym==0.17.2 joblib==0.16.0 kiwisolver==1.2.0 matplotlib==3.3.0 numpy==1.19.1 pandas==1.1.0 pillow==7.2.0 pygame==1.9.6 pyglet==1.5.0 pyparsing==2.4.7 python-dateutil==2.8.1 pytz==2020.1 scikit-learn==0.23.1 scipy==1.5.2 six==1.15.0 threadpoolctl==2.1.0 > .rerun-requirements.txt && pip install -r .rerun-requirements.txt\"], 'execute_command': 'python3 scripts/run_cartpole.py', 'notes': [\"execute command is the repository's documented command (corpus ground truth)\", 'base image python:3.10-slim: no usable Python declaration; RERUN default 3.10', 'time machine: python 3.8, 19 locked package(s)', 'env delta: apt pkg-config \u2014 Required for pygame build to locate dependencies', 'env delta: apt libsdl1.2-dev \u2014 Provides sdl-config for SDL 1.2 development headers', 'env delta: apt libfreetype6-dev \u2014 Provides freetype-config for freetype development headers']}\n[citations] not cited (not used in a decision): https://bugs.python.org/issue36721\n[citations] not cited (not used in a decision): https://rocketreach.co/config-consulting-profile_b6e36dd9c7060d2f\n[citations] not cited (not used in a decision): https://docs.graphbit.ai/python\n[smoke] re-execution of the documented command under a 60s smoke limit\n[integrity] verified 74 file(s) against tree a91de59ccd8827d6dbf004ebaaa09f1044b10e27\n[sandbox] starting build+execute (wall_clock_seconds=229)\n[cost_guard] recorded $0.1878 sandbox spend, $1.7593 remaining today\n[repair 1] re-execution id=d582b433-a293-44a5-8c8f-e736d39c313b exit_code=1\n[classifier] RUNTIME_ERROR_OTHER: \u00d7 Encountered error while generating package metadata.\n[tavily] 3 result(s) for 'python 3.8 runtime error other fix: \u00d7 Encountered error while generating package metadata. | already tried: apt libfreetype6-dev, apt libsdl1-2-dev, apt pkg-config'\n[repair 2] code change is not applicable: 'requirements.txt' is not an existing file in the repository (only edits to existing files are supported); re-asked once (same attempt)\n[repair 2] tamper gate PASS (env) \u2014 applying and re-executing\n[repair 2] env delta applied; build plan now: {'base_image': 'python:3.8-slim', 'apt_install': ['libfreetype6-dev', 'libsdl1.2-dev', 'pkg-config'], 'install_commands': [\"printf '%s\\\\n' cloudpickle==1.3.0 cycler==0.10.0 future==0.18.2 gym==0.17.2 joblib==0.16.0 kiwisolver==1.2.0 matplotlib==3.3.0 numpy==1.19.1 pandas==1.1.0 pillow==7.2.0 pygame==1.9.6 pyglet==1.5.0 pyparsing==2.4.7 python-dateutil==2.8.1 pytz==2020.1 scikit-learn==0.23.1 scipy==1.5.2 six==1.15.0 threadpoolctl==2.1.0 libsdl-ttf2.0-dev libsdl-image1.2-dev libsdl-mixer1.2-dev libportmidi-dev > .rerun-requirements.txt && pip install -r .rerun-requirements.txt\"], 'execute_command': 'python3 scripts/run_cartpole.py', 'notes': [\"execute command is the repository's documented command (corpus ground truth)\", 'base image python:3.10-slim: no usable Python declaration; RERUN default 3.10', 'time machine: python 3.8, 19 locked package(s)', 'env delta: apt pkg-config \u2014 Required for pygame build to locate dependencies', 'env delta: apt libsdl1.2-dev \u2014 Provides sdl-config for SDL 1.2 development headers', 'env delta: apt libfreetype6-dev \u2014 Provides freetype-config for freetype development headers', 'env delta: add libsdl-ttf2.0-dev \u2014 Required for SDL_ttf font support in pygame', 'env delta: add libsdl-image1.2-dev \u2014 Required for SDL_image image support in pygame', 'env delta: add libsdl-mixer1.2-dev \u2014 Required for SDL_mixer audio support in pygame', 'env delta: add libportmidi-dev \u2014 Required for PortMidi support in pygame']}\n[citations] not cited (not used in a decision): https://www.youtube.com/@apt_news\n[citations] not cited (not used in a decision): https://www.youtube.com/@APT_NEWS\n[citations] not cited (not used in a decision): https://apps.apple.com/us/app/apt-news-world/id6749600858\n[smoke] re-execution of the documented command under a 60s smoke limit\n[integrity] verified 74 file(s) against tree a91de59ccd8827d6dbf004ebaaa09f1044b10e27\n[sandbox] starting build+execute (wall_clock_seconds=205)\n[cost_guard] recorded $0.1884 sandbox spend, $1.5577 remaining today\n[repair 2] re-execution id=eab041bd-03a7-4668-8901-4af7d82e5e01 exit_code=1\n[classifier] RUNTIME_ERROR_OTHER: \u00d7 Encountered error while generating package metadata.\n[tavily] 3 result(s) for 'python 3.8 runtime error other fix: \u00d7 Encountered error while generating package metadata. | already tried: add libportmidi-dev, add libsdl-image1-2-dev, add libsdl-mixer1-2-dev'\n[repair 3] code change is not applicable: 'requirements.txt' is not an existing file in the repository (only edits to existing files are supported); re-asked once (same attempt)\n[repair 3] tamper gate REJECT: 'requirements.txt' is not an existing file in the repository (only edits to existing files are supported)\n[citations] not cited (not used in a decision): https://community.home-assistant.io/t/ha-python-upgrade-error-metadata-generation-failed/516789\n[citations] not cited (not used in a decision): https://discourse.mc-stan.org/t/metadata-generation-failed-error-installing-pystan-on-debian/31389\n[citations] not cited (not used in a decision): https://www.geeksforgeeks.org/python/how-to-fix-error-metadata-generation-failed-in-python\n[verdict] BLOCKED after 3 repair attempt(s): RUNTIME_ERROR_OTHER",
+    "diffs": [
+      {
+        "attempt_number": 0,
+        "diff_text": "",
+        "gate_decision": "PASS",
+        "gate_violations": [],
+        "exit_code": 1,
+        "stdout_tail": "Collecting cloudpickle==1.3.0\n  Downloading cloudpickle-1.3.0-py2.py3-none-any.whl (26 kB)\nCollecting cycler==0.10.0\n  Downloading cycler-0.10.0-py2.py3-none-any.whl (6.5 kB)\nCollecting future==0.18.2\n  Downloading future-0.18.2.tar.gz (829 kB)\n     \u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501 829.2/829.2 kB 24.2 MB/s eta 0:00:00\n  Preparing metadata (setup.py): started\n  Preparing metadata (setup.py): finished with status 'done'\nCollecting gym==0.17.2\n  Downloading gym-0.17.2.tar.gz (1.6 MB)\n     \u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501 1.6/1.6 MB 84.2 MB/s eta 0:00:00\n  Preparing metadata (setup.py): started\n  Preparing metadata (setup.py): finished with status 'done'\nCollecting joblib==0.16.0\n  Downloading joblib-0.16.0-py3-none-any.whl (300 kB)\n     \u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501 300.8/300.8 kB 54.5 MB/s eta 0:00:00\nCollecting kiwisolver==1.2.0\n  Downloading kiwisolver-1.2.0-cp38-cp38-manylinux1_x86_64.whl (92 kB)\n     \u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501 92.2/92.2 kB 26.9 MB/s eta 0:00:00\nCollecting matplotlib==3.3.0\n  Downloading matplotlib-3.3.0-1-cp38-cp38-manylinux1_x86_64.whl (11.5 MB)\n     \u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501 11.5/11.5 MB 77.3 MB/s eta 0:00:00\nCollecting numpy==1.19.1\n  Downloading numpy-1.19.1-cp38-cp38-manylinux2010_x86_64.whl (14.5 MB)\n     \u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501 14.5/14.5 MB 78.4 MB/s eta 0:00:00\nCollecting pandas==1.1.0\n  Downloading pandas-1.1.0-cp38-cp38-manylinux1_x86_64.whl (10.3 MB)\n     \u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501 10.3/10.3 MB 88.8 MB/s eta 0:00:00\nCollecting pillow==7.2.0\n  Downloading Pillow-7.2.0-cp38-cp38-manylinux1_x86_64.whl (2.2 MB)\n     \u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501 2.2/2.2 MB 87.7 MB/s eta 0:00:00\nCollecting pygame==1.9.6\n  Downloading pygame-1.9.6.tar.gz (3.2 MB)\n     \u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501 3.2/3.2 MB 86.7 MB/s eta 0:00:00\n  Preparing metadata (setup.py): started\n  Preparing metadata (setup.py): finished with status 'error'\n",
+        "stderr_tail": "  error: subprocess-exited-with-error\n  \n  \u00d7 python setup.py egg_info did not run successfully.\n  \u2502 exit code: 1\n  \u2570\u2500> [20 lines of output]\n      \n      \n      WARNING, No \"Setup\" File Exists, Running \"buildconfig/config.py\"\n      Using UNIX configuration...\n      \n      /bin/sh: 1: sdl-config: not found\n      /bin/sh: 1: sdl-config: not found\n      /bin/sh: 1: sdl-config: not found\n      /bin/sh: 1: pkg-config: not found\n      /bin/sh: 1: pkg-config: not found\n      /bin/sh: 1: pkg-config: not found\n      /bin/sh: 1: freetype-config: not found\n      /bin/sh: 1: freetype-config: not found\n      /bin/sh: 1: freetype-config: not found\n      Unable to run \"sdl-config\". Please make sure a development version of SDL is installed.\n      \n      Hunting dependencies...\n      WARNING: \"sdl-config\" failed!\n      WARNING: \"pkg-config freetype2\" failed!\n      WARNING: \"freetype-config\" failed!\n      [end of output]\n  \n  note: This error originates from a subprocess, and is likely not a problem with pip.\nerror: metadata-generation-failed\n\n\u00d7 Encountered error while generating package metadata.\n\u2570\u2500> See above for output.\n\nnote: This is an issue with the package mentioned above, not pip.\nhint: See above for details.\n\n[notice] A new release of pip is available: 23.0.1 -> 25.0.1\n[notice] To update, run: pip install --upgrade pip\n",
+        "tavily_sources": [],
+        "env_delta": [],
+        "resolved_sources": [],
+        "origin": "time_machine",
+        "time_machine": {
+          "era": {
+            "date": "2020-08-01",
+            "source": "pinned-commit",
+            "detail": {
+              "note": "no dependency files in the repository"
+            }
+          },
+          "python": {
+            "version": "3.8",
+            "reason": "newest CPython first released \u2265180 days before the era date 2020-08-01 (https://devguide.python.org/versions/ (first release dates, retrieved 2026-09-24))",
+            "source": "https://devguide.python.org/versions/ (first release dates, retrieved 2026-09-24)"
+          },
+          "undeclared_imports": [
+            "gym",
+            "joblib",
+            "matplotlib",
+            "numpy",
+            "pandas",
+            "pygame",
+            "scikit-learn",
+            "scipy"
+          ],
+          "batch_scan": {
+            "install": [
+              "gym",
+              "joblib",
+              "matplotlib",
+              "numpy",
+              "pandas",
+              "pygame",
+              "scikit-learn",
+              "scipy"
+            ],
+            "internal_excluded": [
+              "trlib"
+            ],
+            "optional_skipped": [],
+            "python2_only_skipped": [],
+            "already_declared": [],
+            "import_mappings": [
+              {
+                "import": "sklearn",
+                "distribution": "scikit-learn",
+                "source": "pipreqs",
+                "confidence": "normal"
+              }
+            ]
+          },
+          "import_mappings": [
+            {
+              "import": "sklearn",
+              "distribution": "scikit-learn",
+              "source": "pipreqs",
+              "confidence": "normal"
+            }
+          ],
+          "apt_added": [],
+          "apt_reason": "",
+          "lock": {
+            "ok": true,
+            "lock": [
+              "cloudpickle==1.3.0",
+              "cycler==0.10.0",
+              "future==0.18.2",
+              "gym==0.17.2",
+              "joblib==0.16.0",
+              "kiwisolver==1.2.0",
+              "matplotlib==3.3.0",
+              "numpy==1.19.1",
+              "pandas==1.1.0",
+              "pillow==7.2.0",
+              "pygame==1.9.6",
+              "pyglet==1.5.0",
+              "pyparsing==2.4.7",
+              "python-dateutil==2.8.1",
+              "pytz==2020.1",
+              "scikit-learn==0.23.1",
+              "scipy==1.5.2",
+              "six==1.15.0",
+              "threadpoolctl==2.1.0"
+            ],
+            "inputs": [
+              "gym",
+              "joblib",
+              "matplotlib",
+              "numpy",
+              "pandas",
+              "pygame",
+              "scikit-learn",
+              "scipy"
+            ],
+            "not_on_index": [],
+            "relaxed": [],
+            "command": "pip compile - --no-header --no-annotate --quiet --exclude-newer 2020-08-02T00:00:00Z --python-version 3.8 --python-platform x86_64-unknown-linux-gnu --python C:\\Users\\E16\\AppData\\Roaming\\uv\\python\\cpython-3.8.20-windows-x86_64-none\\python.exe",
+            "error": ""
+          }
+        },
+        "execution": {
+          "mode": "smoke",
+          "seconds": 60,
+          "outcome": "exited"
+        }
+      },
+      {
+        "attempt_number": 1,
+        "diff_text": "",
+        "gate_decision": "PASS",
+        "gate_violations": [],
+        "exit_code": 1,
+        "stdout_tail": "Collecting cloudpickle==1.3.0\n  Downloading cloudpickle-1.3.0-py2.py3-none-any.whl (26 kB)\nCollecting cycler==0.10.0\n  Downloading cycler-0.10.0-py2.py3-none-any.whl (6.5 kB)\nCollecting future==0.18.2\n  Downloading future-0.18.2.tar.gz (829 kB)\n     \u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501 829.2/829.2 kB 36.2 MB/s eta 0:00:00\n  Preparing metadata (setup.py): started\n  Preparing metadata (setup.py): finished with status 'done'\nCollecting gym==0.17.2\n  Downloading gym-0.17.2.tar.gz (1.6 MB)\n     \u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501 1.6/1.6 MB 73.5 MB/s eta 0:00:00\n  Preparing metadata (setup.py): started\n  Preparing metadata (setup.py): finished with status 'done'\nCollecting joblib==0.16.0\n  Downloading joblib-0.16.0-py3-none-any.whl (300 kB)\n     \u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501 300.8/300.8 kB 49.5 MB/s eta 0:00:00\nCollecting kiwisolver==1.2.0\n  Downloading kiwisolver-1.2.0-cp38-cp38-manylinux1_x86_64.whl (92 kB)\n     \u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501 92.2/92.2 kB 24.8 MB/s eta 0:00:00\nCollecting matplotlib==3.3.0\n  Downloading matplotlib-3.3.0-1-cp38-cp38-manylinux1_x86_64.whl (11.5 MB)\n     \u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501 11.5/11.5 MB 65.7 MB/s eta 0:00:00\nCollecting numpy==1.19.1\n  Downloading numpy-1.19.1-cp38-cp38-manylinux2010_x86_64.whl (14.5 MB)\n     \u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501 14.5/14.5 MB 39.2 MB/s eta 0:00:00\nCollecting pandas==1.1.0\n  Downloading pandas-1.1.0-cp38-cp38-manylinux1_x86_64.whl (10.3 MB)\n     \u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501 10.3/10.3 MB 77.7 MB/s eta 0:00:00\nCollecting pillow==7.2.0\n  Downloading Pillow-7.2.0-cp38-cp38-manylinux1_x86_64.whl (2.2 MB)\n     \u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501 2.2/2.2 MB 64.7 MB/s eta 0:00:00\nCollecting pygame==1.9.6\n  Downloading pygame-1.9.6.tar.gz (3.2 MB)\n     \u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501 3.2/3.2 MB 82.2 MB/s eta 0:00:00\n  Preparing metadata (setup.py): started\n  Preparing metadata (setup.py): finished with status 'error'\n",
+        "stderr_tail": "  error: subprocess-exited-with-error\n  \n  \u00d7 python setup.py egg_info did not run successfully.\n  \u2502 exit code: 1\n  \u2570\u2500> [18 lines of output]\n      \n      \n      WARNING, No \"Setup\" File Exists, Running \"buildconfig/config.py\"\n      Using UNIX configuration...\n      \n      Missing dependencies\n      \n      Hunting dependencies...\n      SDL     : found 1.2.15\n      FONT    : not found\n      IMAGE   : not found\n      MIXER   : not found\n      PNG     : found\n      JPEG    : not found\n      SCRAP   : found\n      PORTMIDI: not found\n      PORTTIME: not found\n      FREETYPE: found 24.3.18\n      [end of output]\n  \n  note: This error originates from a subprocess, and is likely not a problem with pip.\nerror: metadata-generation-failed\n\n\u00d7 Encountered error while generating package metadata.\n\u2570\u2500> See above for output.\n\nnote: This is an issue with the package mentioned above, not pip.\nhint: See above for details.\n\n[notice] A new release of pip is available: 23.0.1 -> 25.0.1\n[notice] To update, run: pip install --upgrade pip\n",
+        "tavily_sources": [],
+        "env_delta": [
+          {
+            "command": null,
+            "op": "apt",
+            "package": "pkg-config",
+            "version": null,
+            "git_url": null,
+            "commit": null,
+            "justification": "Required for pygame build to locate dependencies",
+            "evidence": "/bin/sh: 1: pkg-config: not found"
+          },
+          {
+            "command": null,
+            "op": "apt",
+            "package": "libsdl1.2-dev",
+            "version": null,
+            "git_url": null,
+            "commit": null,
+            "justification": "Provides sdl-config for SDL 1.2 development headers",
+            "evidence": "/bin/sh: 1: sdl-config: not found"
+          },
+          {
+            "command": null,
+            "op": "apt",
+            "package": "libfreetype6-dev",
+            "version": null,
+            "git_url": null,
+            "commit": null,
+            "justification": "Provides freetype-config for freetype development headers",
+            "evidence": "/bin/sh: 1: freetype-config: not found"
+          }
+        ],
+        "resolved_sources": [],
+        "origin": "model",
+        "time_machine": null,
+        "execution": {
+          "mode": "smoke",
+          "seconds": 60,
+          "outcome": "exited"
+        }
+      },
+      {
+        "attempt_number": 2,
+        "diff_text": "",
+        "gate_decision": "PASS",
+        "gate_violations": [],
+        "exit_code": 1,
+        "stdout_tail": "Collecting cloudpickle==1.3.0\n  Downloading cloudpickle-1.3.0-py2.py3-none-any.whl (26 kB)\nCollecting cycler==0.10.0\n  Downloading cycler-0.10.0-py2.py3-none-any.whl (6.5 kB)\nCollecting future==0.18.2\n  Downloading future-0.18.2.tar.gz (829 kB)\n     \u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501 829.2/829.2 kB 23.5 MB/s eta 0:00:00\n  Preparing metadata (setup.py): started\n  Preparing metadata (setup.py): finished with status 'done'\nCollecting gym==0.17.2\n  Downloading gym-0.17.2.tar.gz (1.6 MB)\n     \u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501 1.6/1.6 MB 84.2 MB/s eta 0:00:00\n  Preparing metadata (setup.py): started\n  Preparing metadata (setup.py): finished with status 'done'\nCollecting joblib==0.16.0\n  Downloading joblib-0.16.0-py3-none-any.whl (300 kB)\n     \u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501 300.8/300.8 kB 56.7 MB/s eta 0:00:00\nCollecting kiwisolver==1.2.0\n  Downloading kiwisolver-1.2.0-cp38-cp38-manylinux1_x86_64.whl (92 kB)\n     \u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501 92.2/92.2 kB 27.7 MB/s eta 0:00:00\nCollecting matplotlib==3.3.0\n  Downloading matplotlib-3.3.0-1-cp38-cp38-manylinux1_x86_64.whl (11.5 MB)\n     \u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501 11.5/11.5 MB 79.8 MB/s eta 0:00:00\nCollecting numpy==1.19.1\n  Downloading numpy-1.19.1-cp38-cp38-manylinux2010_x86_64.whl (14.5 MB)\n     \u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501 14.5/14.5 MB 76.1 MB/s eta 0:00:00\nCollecting pandas==1.1.0\n  Downloading pandas-1.1.0-cp38-cp38-manylinux1_x86_64.whl (10.3 MB)\n     \u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501 10.3/10.3 MB 86.3 MB/s eta 0:00:00\nCollecting pillow==7.2.0\n  Downloading Pillow-7.2.0-cp38-cp38-manylinux1_x86_64.whl (2.2 MB)\n     \u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501 2.2/2.2 MB 80.5 MB/s eta 0:00:00\nCollecting pygame==1.9.6\n  Downloading pygame-1.9.6.tar.gz (3.2 MB)\n     \u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501 3.2/3.2 MB 85.4 MB/s eta 0:00:00\n  Preparing metadata (setup.py): started\n  Preparing metadata (setup.py): finished with status 'error'\n",
+        "stderr_tail": "  error: subprocess-exited-with-error\n  \n  \u00d7 python setup.py egg_info did not run successfully.\n  \u2502 exit code: 1\n  \u2570\u2500> [18 lines of output]\n      \n      \n      WARNING, No \"Setup\" File Exists, Running \"buildconfig/config.py\"\n      Using UNIX configuration...\n      \n      Missing dependencies\n      \n      Hunting dependencies...\n      SDL     : found 1.2.15\n      FONT    : not found\n      IMAGE   : not found\n      MIXER   : not found\n      PNG     : found\n      JPEG    : not found\n      SCRAP   : found\n      PORTMIDI: not found\n      PORTTIME: not found\n      FREETYPE: found 24.3.18\n      [end of output]\n  \n  note: This error originates from a subprocess, and is likely not a problem with pip.\nerror: metadata-generation-failed\n\n\u00d7 Encountered error while generating package metadata.\n\u2570\u2500> See above for output.\n\nnote: This is an issue with the package mentioned above, not pip.\nhint: See above for details.\n\n[notice] A new release of pip is available: 23.0.1 -> 25.0.1\n[notice] To update, run: pip install --upgrade pip\n",
+        "tavily_sources": [],
+        "env_delta": [
+          {
+            "command": null,
+            "op": "add",
+            "package": "libsdl-ttf2.0-dev",
+            "version": null,
+            "git_url": null,
+            "commit": null,
+            "justification": "Required for SDL_ttf font support in pygame",
+            "evidence": "FONT    : not found"
+          },
+          {
+            "command": null,
+            "op": "add",
+            "package": "libsdl-image1.2-dev",
+            "version": null,
+            "git_url": null,
+            "commit": null,
+            "justification": "Required for SDL_image image support in pygame",
+            "evidence": "IMAGE   : not found"
+          },
+          {
+            "command": null,
+            "op": "add",
+            "package": "libsdl-mixer1.2-dev",
+            "version": null,
+            "git_url": null,
+            "commit": null,
+            "justification": "Required for SDL_mixer audio support in pygame",
+            "evidence": "MIXER   : not found"
+          },
+          {
+            "command": null,
+            "op": "add",
+            "package": "libportmidi-dev",
+            "version": null,
+            "git_url": null,
+            "commit": null,
+            "justification": "Required for PortMidi support in pygame",
+            "evidence": "PORTMIDI: not found"
+          }
+        ],
+        "resolved_sources": [],
+        "origin": "model",
+        "time_machine": null,
+        "execution": {
+          "mode": "smoke",
+          "seconds": 60,
+          "outcome": "exited"
+        }
+      },
+      {
+        "attempt_number": 3,
+        "diff_text": "{\"file_edits\": [{\"path\": \"requirements.txt\", \"old\": \"cloudpickle==1.3.0\\ncycler==0.10.0\\nfuture==0.18.2\\ngym==0.17.2\\njoblib==0.16.0\\nkiwisolver==1.2.0\\nmatplotlib==3.3.0\\nnumpy==1.19.1\\npandas==1.1.0\\npillow==7.2.0\\npygame==1.9.6\\npyglet==1.5.0\\npyparsing==2.4.7\\npython-dateutil==2.8.1\\npytz==2020.1\\nscikit-learn==0.23.1\\nscipy==1.5.2\\nsix==1.15.0\\nthreadpoolctl==2.1.0\\nlibsdl-ttf2.0-dev\\nlibsdl-image1.2-dev\\nlibsdl-mixer1.2-dev\\nlibportmidi-dev\\n\", \"new\": \"cloudpickle==1.3.0\\ncycler==0.10.0\\nfuture==0.18.2\\ngym==0.17.2\\njoblib==0.16.0\\nkiwisolver==1.2.0\\nmatplotlib==3.3.0\\nnumpy==1.19.1\\npandas==1.1.0\\npillow==7.2.0\\npygame==1.9.6\\npyglet==1.5.0\\npyparsing==2.4.7\\npython-dateutil==2.8.1\\npytz==2020.1\\nscikit-learn==0.23.1\\nscipy==1.5.2\\nsix==1.15.0\\nthreadpoolctl==2.1.0\\n\"}], \"file_replacements\": []}",
+        "gate_decision": "REJECT",
+        "gate_violations": [
+          {
+            "rule": "UNAPPLICABLE_PATCH",
+            "reason": "'requirements.txt' is not an existing file in the repository (only edits to existing files are supported)",
+            "file": ""
+          }
+        ],
+        "exit_code": null,
+        "stdout_tail": "",
+        "stderr_tail": "",
+        "tavily_sources": [],
+        "env_delta": [],
+        "resolved_sources": [],
+        "origin": "model",
+        "time_machine": null
+      }
+    ],
+    "verdict": "BLOCKED",
+    "timestamp": "2026-09-30T21:06:26.398355+00:00",
+    "bundle_version": 4,
+    "baseline": {
+      "result": "FAILS",
+      "exit_code": 1,
+      "base_image": "python:3.10-slim",
+      "install_commands": [
+        "true  # no declared dependency file found; nothing to install"
+      ],
+      "execute_command": "python3 scripts/run_cartpole.py",
+      "sandbox_id": "6fc70d6b-971a-4b9f-964d-dd4694f4e229",
+      "taxonomy_code": "DEP_MISSING",
+      "evidence": "ModuleNotFoundError: No module named 'numpy'"
+    },
+    "recovery": false,
+    "tree_integrity": {
+      "status": "verified",
+      "tree_sha": "a91de59ccd8827d6dbf004ebaaa09f1044b10e27",
+      "files_checked": 74,
+      "excluded_patched": []
+    },
+    "corpus_hash": "7df090bea7013974f9f10fb8959ab0162734b51c83a80f744f9c310ce694fbdc",
+    "taxonomy_code": "RUNTIME_ERROR_OTHER",
+    "indeterminate_reason": "",
+    "error_chain": [
+      {
+        "error": "ModuleNotFoundError: No module named 'numpy'",
+        "class": "DEP_MISSING",
+        "attribution": "REPO",
+        "phase": "repo_run",
+        "cleared_by": 0
+      },
+      {
+        "error": "/bin/sh: 1: pkg-config: not found",
+        "class": "SYS_LIB_MISSING",
+        "attribution": "REPO",
+        "phase": "repo_install",
+        "cleared_by": 1
+      },
+      {
+        "error": "\u00d7 Encountered error while generating package metadata.",
+        "class": "RUNTIME_ERROR_OTHER",
+        "attribution": "REPO",
+        "phase": "repo_install",
+        "cleared_by": null
+      }
+    ],
+    "first_repo_error": "ModuleNotFoundError: No module named 'numpy'",
+    "last_error": "\u00d7 Encountered error while generating package metadata.",
+    "reproduction_passport_hash": "7b5f38f3ca805802b638f55233ef0f0ddb63a15ec13b574243cdc42733156e85"
+  },
+  "finished_at": "2026-09-30T21:06:26.429337+00:00",
+  "events": [
+    {
+      "t_s": 0.0,
+      "at": "2026-09-30T20:59:54.832818+00:00",
+      "line": "[intake] cloned https://github.com/albertometelli/pfqi@84901d291e759cb4e2471f0b2ba521acad6ac335"
+    },
+    {
+      "t_s": 0.01,
+      "at": "2026-09-30T20:59:54.843443+00:00",
+      "line": "[recon] calling Nemotron Nano"
+    },
+    {
+      "t_s": 28.95,
+      "at": "2026-09-30T21:00:23.783262+00:00",
+      "line": "[recon] RECON_MODEL_ERROR: recon model call failed: model response was not valid JSON: Unterminated string starting at: line 6 column 5 (char 140)\n---\n\n{\n  \"entrypoint\": \"plotters/trading_multi_perf_plotter4x4.py\",\n  \"confidence\": 0.92,\n  \"python_version\": null,\n  \"data_requirements\": [\n    \"JSON \u2014 proceeding with the documented command: python3 scripts/run_cartpole.py"
+    },
+    {
+      "t_s": 28.96,
+      "at": "2026-09-30T21:00:23.796660+00:00",
+      "line": "[python] python:3.10-slim (default): no usable Python declaration; RERUN default 3.10"
+    },
+    {
+      "t_s": 30.05,
+      "at": "2026-09-30T21:00:24.884601+00:00",
+      "line": "[planner] build plan: {'base_image': 'python:3.10-slim', 'apt_install': [], 'install_commands': ['true  # no declared dependency file found; nothing to install'], 'execute_command': 'python3 scripts/run_cartpole.py', 'notes': [\"execute command is the repository's documented command (corpus ground truth)\", 'base image python:3.10-slim: no usable Python declaration; RERUN default 3.10']}"
+    },
+    {
+      "t_s": 30.33,
+      "at": "2026-09-30T21:00:25.160477+00:00",
+      "line": "[integrity] verified 74 file(s) against tree a91de59ccd8827d6dbf004ebaaa09f1044b10e27"
+    },
+    {
+      "t_s": 30.33,
+      "at": "2026-09-30T21:00:25.160535+00:00",
+      "line": "[sandbox] starting build+execute (wall_clock_seconds=600)"
+    },
+    {
+      "t_s": 68.23,
+      "at": "2026-09-30T21:01:03.065585+00:00",
+      "line": "[cost_guard] recorded $0.0028 sandbox spend, $1.9955 remaining today"
+    },
+    {
+      "t_s": 68.23,
+      "at": "2026-09-30T21:01:03.065672+00:00",
+      "line": "[sandbox] id=6fc70d6b-971a-4b9f-964d-dd4694f4e229 exit_code=1"
+    },
+    {
+      "t_s": 68.23,
+      "at": "2026-09-30T21:01:03.065692+00:00",
+      "line": "[baseline] as-is run: FAILS (exit code 1)"
+    },
+    {
+      "t_s": 68.24,
+      "at": "2026-09-30T21:01:03.069284+00:00",
+      "line": "[classifier] DEP_MISSING: ModuleNotFoundError: No module named 'numpy'"
+    },
+    {
+      "t_s": 68.29,
+      "at": "2026-09-30T21:01:03.119357+00:00",
+      "line": "[era] 2020-08-01 from pinned-commit {'note': 'no dependency files in the repository'}"
+    },
+    {
+      "t_s": 68.54,
+      "at": "2026-09-30T21:01:03.377417+00:00",
+      "line": "[import-map] sklearn -> scikit-learn (pipreqs, confidence normal)"
+    },
+    {
+      "t_s": 69.15,
+      "at": "2026-09-30T21:01:03.983778+00:00",
+      "line": "[time-machine] era 2020-08-01 (pinned-commit) -> python 3.8; locked 19 package(s) with uv --exclude-newer; not on the index: none"
+    },
+    {
+      "t_s": 69.16,
+      "at": "2026-09-30T21:01:03.994337+00:00",
+      "line": "[smoke] re-execution of the documented command under a 60s smoke limit"
+    },
+    {
+      "t_s": 69.28,
+      "at": "2026-09-30T21:01:04.116904+00:00",
+      "line": "[integrity] verified 74 file(s) against tree a91de59ccd8827d6dbf004ebaaa09f1044b10e27"
+    },
+    {
+      "t_s": 69.28,
+      "at": "2026-09-30T21:01:04.116942+00:00",
+      "line": "[sandbox] starting build+execute (wall_clock_seconds=235)"
+    },
+    {
+      "t_s": 107.28,
+      "at": "2026-09-30T21:01:42.114073+00:00",
+      "line": "[cost_guard] recorded $0.0440 sandbox spend, $1.9515 remaining today"
+    },
+    {
+      "t_s": 107.28,
+      "at": "2026-09-30T21:01:42.114189+00:00",
+      "line": "[time-machine] re-execution id=9d668b2f-4b37-40d0-ae48-64b46e73b447 exit_code=1"
+    },
+    {
+      "t_s": 107.28,
+      "at": "2026-09-30T21:01:42.117266+00:00",
+      "line": "[classifier] SYS_LIB_MISSING: /bin/sh: 1: pkg-config: not found"
+    },
+    {
+      "t_s": 112.3,
+      "at": "2026-09-30T21:01:47.134073+00:00",
+      "line": "[tavily] 3 result(s) for 'python 3.8 sys lib missing fix: /bin/sh: 1: pkg-config: not found'"
+    },
+    {
+      "t_s": 125.68,
+      "at": "2026-09-30T21:02:00.517734+00:00",
+      "line": "[repair 1] tamper gate PASS (env) \u2014 applying and re-executing"
+    },
+    {
+      "t_s": 125.69,
+      "at": "2026-09-30T21:02:00.517824+00:00",
+      "line": "[repair 1] env delta applied; build plan now: {'base_image': 'python:3.8-slim', 'apt_install': ['libfreetype6-dev', 'libsdl1.2-dev', 'pkg-config'], 'install_commands': [\"printf '%s\\\\n' cloudpickle==1.3.0 cycler==0.10.0 future==0.18.2 gym==0.17.2 joblib==0.16.0 kiwisolver==1.2.0 matplotlib==3.3.0 numpy==1.19.1 pandas==1.1.0 pillow==7.2.0 pygame==1.9.6 pyglet==1.5.0 pyparsing==2.4.7 python-dateutil==2.8.1 pytz==2020.1 scikit-learn==0.23.1 scipy==1.5.2 six==1.15.0 threadpoolctl==2.1.0 > .rerun-requirements.txt && pip install -r .rerun-requirements.txt\"], 'execute_command': 'python3 scripts/run_cartpole.py', 'notes': [\"execute command is the repository's documented command (corpus ground truth)\", 'base image python:3.10-slim: no usable Python declaration; RERUN default 3.10', 'time machine: python 3.8, 19 locked package(s)', 'env delta: apt pkg-config \u2014 Required for pygame build to locate dependencies', 'env delta: apt libsdl1.2-dev \u2014 Provides sdl-config for SDL 1.2 development headers', 'env delta: apt libfreetype6-dev \u2014 Provides freetype-config for freetype development headers']}"
+    },
+    {
+      "t_s": 125.69,
+      "at": "2026-09-30T21:02:00.517847+00:00",
+      "line": "[citations] not cited (not used in a decision): https://bugs.python.org/issue36721"
+    },
+    {
+      "t_s": 125.69,
+      "at": "2026-09-30T21:02:00.517871+00:00",
+      "line": "[citations] not cited (not used in a decision): https://rocketreach.co/config-consulting-profile_b6e36dd9c7060d2f"
+    },
+    {
+      "t_s": 125.69,
+      "at": "2026-09-30T21:02:00.517880+00:00",
+      "line": "[citations] not cited (not used in a decision): https://docs.graphbit.ai/python"
+    },
+    {
+      "t_s": 125.7,
+      "at": "2026-09-30T21:02:00.529049+00:00",
+      "line": "[smoke] re-execution of the documented command under a 60s smoke limit"
+    },
+    {
+      "t_s": 125.83,
+      "at": "2026-09-30T21:02:00.661387+00:00",
+      "line": "[integrity] verified 74 file(s) against tree a91de59ccd8827d6dbf004ebaaa09f1044b10e27"
+    },
+    {
+      "t_s": 125.83,
+      "at": "2026-09-30T21:02:00.661424+00:00",
+      "line": "[sandbox] starting build+execute (wall_clock_seconds=229)"
+    },
+    {
+      "t_s": 205.96,
+      "at": "2026-09-30T21:03:20.795055+00:00",
+      "line": "[cost_guard] recorded $0.1878 sandbox spend, $1.7593 remaining today"
+    },
+    {
+      "t_s": 205.96,
+      "at": "2026-09-30T21:03:20.795179+00:00",
+      "line": "[repair 1] re-execution id=d582b433-a293-44a5-8c8f-e736d39c313b exit_code=1"
+    },
+    {
+      "t_s": 205.97,
+      "at": "2026-09-30T21:03:20.799110+00:00",
+      "line": "[classifier] RUNTIME_ERROR_OTHER: \u00d7 Encountered error while generating package metadata."
+    },
+    {
+      "t_s": 210.17,
+      "at": "2026-09-30T21:03:25.001079+00:00",
+      "line": "[tavily] 3 result(s) for 'python 3.8 runtime error other fix: \u00d7 Encountered error while generating package metadata. | already tried: apt libfreetype6-dev, apt libsdl1-2-dev, apt pkg-config'"
+    },
+    {
+      "t_s": 228.71,
+      "at": "2026-09-30T21:03:43.543737+00:00",
+      "line": "[repair 2] code change is not applicable: 'requirements.txt' is not an existing file in the repository (only edits to existing files are supported); re-asked once (same attempt)"
+    },
+    {
+      "t_s": 250.12,
+      "at": "2026-09-30T21:04:04.951024+00:00",
+      "line": "[repair 2] tamper gate PASS (env) \u2014 applying and re-executing"
+    },
+    {
+      "t_s": 250.12,
+      "at": "2026-09-30T21:04:04.951520+00:00",
+      "line": "[repair 2] env delta applied; build plan now: {'base_image': 'python:3.8-slim', 'apt_install': ['libfreetype6-dev', 'libsdl1.2-dev', 'pkg-config'], 'install_commands': [\"printf '%s\\\\n' cloudpickle==1.3.0 cycler==0.10.0 future==0.18.2 gym==0.17.2 joblib==0.16.0 kiwisolver==1.2.0 matplotlib==3.3.0 numpy==1.19.1 pandas==1.1.0 pillow==7.2.0 pygame==1.9.6 pyglet==1.5.0 pyparsing==2.4.7 python-dateutil==2.8.1 pytz==2020.1 scikit-learn==0.23.1 scipy==1.5.2 six==1.15.0 threadpoolctl==2.1.0 libsdl-ttf2.0-dev libsdl-image1.2-dev libsdl-mixer1.2-dev libportmidi-dev > .rerun-requirements.txt && pip install -r .rerun-requirements.txt\"], 'execute_command': 'python3 scripts/run_cartpole.py', 'notes': [\"execute command is the repository's documented command (corpus ground truth)\", 'base image python:3.10-slim: no usable Python declaration; RERUN default 3.10', 'time machine: python 3.8, 19 locked package(s)', 'env delta: apt pkg-config \u2014 Required for pygame build to locate dependencies', 'env delta: apt libsdl1.2-dev \u2014 Provides sdl-config for SDL 1.2 development headers', 'env delta: apt libfreetype6-dev \u2014 Provides freetype-config for freetype development headers', 'env delta: add libsdl-ttf2.0-dev \u2014 Required for SDL_ttf font support in pygame', 'env delta: add libsdl-image1.2-dev \u2014 Required for SDL_image image support in pygame', 'env delta: add libsdl-mixer1.2-dev \u2014 Required for SDL_mixer audio support in pygame', 'env delta: add libportmidi-dev \u2014 Required for PortMidi support in pygame']}"
+    },
+    {
+      "t_s": 250.12,
+      "at": "2026-09-30T21:04:04.951603+00:00",
+      "line": "[citations] not cited (not used in a decision): https://www.youtube.com/@apt_news"
+    },
+    {
+      "t_s": 250.12,
+      "at": "2026-09-30T21:04:04.951625+00:00",
+      "line": "[citations] not cited (not used in a decision): https://www.youtube.com/@APT_NEWS"
+    },
+    {
+      "t_s": 250.12,
+      "at": "2026-09-30T21:04:04.951635+00:00",
+      "line": "[citations] not cited (not used in a decision): https://apps.apple.com/us/app/apt-news-world/id6749600858"
+    },
+    {
+      "t_s": 250.14,
+      "at": "2026-09-30T21:04:04.972160+00:00",
+      "line": "[smoke] re-execution of the documented command under a 60s smoke limit"
+    },
+    {
+      "t_s": 250.37,
+      "at": "2026-09-30T21:04:05.205869+00:00",
+      "line": "[integrity] verified 74 file(s) against tree a91de59ccd8827d6dbf004ebaaa09f1044b10e27"
+    },
+    {
+      "t_s": 250.37,
+      "at": "2026-09-30T21:04:05.205955+00:00",
+      "line": "[sandbox] starting build+execute (wall_clock_seconds=205)"
+    },
+    {
+      "t_s": 318.4,
+      "at": "2026-09-30T21:05:13.237473+00:00",
+      "line": "[cost_guard] recorded $0.1884 sandbox spend, $1.5577 remaining today"
+    },
+    {
+      "t_s": 318.4,
+      "at": "2026-09-30T21:05:13.237601+00:00",
+      "line": "[repair 2] re-execution id=eab041bd-03a7-4668-8901-4af7d82e5e01 exit_code=1"
+    },
+    {
+      "t_s": 318.41,
+      "at": "2026-09-30T21:05:13.242445+00:00",
+      "line": "[classifier] RUNTIME_ERROR_OTHER: \u00d7 Encountered error while generating package metadata."
+    },
+    {
+      "t_s": 321.44,
+      "at": "2026-09-30T21:05:16.275534+00:00",
+      "line": "[tavily] 3 result(s) for 'python 3.8 runtime error other fix: \u00d7 Encountered error while generating package metadata. | already tried: add libportmidi-dev, add libsdl-image1-2-dev, add libsdl-mixer1-2-dev'"
+    },
+    {
+      "t_s": 359.57,
+      "at": "2026-09-30T21:05:54.406474+00:00",
+      "line": "[repair 3] code change is not applicable: 'requirements.txt' is not an existing file in the repository (only edits to existing files are supported); re-asked once (same attempt)"
+    },
+    {
+      "t_s": 389.55,
+      "at": "2026-09-30T21:06:24.378845+00:00",
+      "line": "[repair 3] tamper gate REJECT: 'requirements.txt' is not an existing file in the repository (only edits to existing files are supported)"
+    },
+    {
+      "t_s": 389.55,
+      "at": "2026-09-30T21:06:24.378889+00:00",
+      "line": "[citations] not cited (not used in a decision): https://community.home-assistant.io/t/ha-python-upgrade-error-metadata-generation-failed/516789"
+    },
+    {
+      "t_s": 389.55,
+      "at": "2026-09-30T21:06:24.378899+00:00",
+      "line": "[citations] not cited (not used in a decision): https://discourse.mc-stan.org/t/metadata-generation-failed-error-installing-pystan-on-debian/31389"
+    },
+    {
+      "t_s": 389.55,
+      "at": "2026-09-30T21:06:24.378906+00:00",
+      "line": "[citations] not cited (not used in a decision): https://www.geeksforgeeks.org/python/how-to-fix-error-metadata-generation-failed-in-python"
+    },
+    {
+      "t_s": 389.55,
+      "at": "2026-09-30T21:06:24.378930+00:00",
+      "line": "[verdict] BLOCKED after 3 repair attempt(s): RUNTIME_ERROR_OTHER"
+    }
+  ],
+  "model_calls": [
+    {
+      "model": "nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B",
+      "started_at": "2026-09-30T20:59:55.070204+00:00",
+      "latency_s": 28.71,
+      "finish_reason": "length",
+      "content_is_none": false,
+      "has_reasoning": true,
+      "usage": {
+        "completion_tokens": 4096,
+        "prompt_tokens": 9315,
+        "total_tokens": 13411,
+        "completion_tokens_details": null,
+        "prompt_tokens_details": null
+      }
+    },
+    {
+      "model": "nvidia/nemotron-3-super-120b-a12b",
+      "started_at": "2026-09-30T21:00:23.798658+00:00",
+      "latency_s": 1.09,
+      "finish_reason": "stop",
+      "content_is_none": false,
+      "has_reasoning": true,
+      "usage": {
+        "completion_tokens": 48,
+        "prompt_tokens": 266,
+        "total_tokens": 314,
+        "completion_tokens_details": {
+          "accepted_prediction_tokens": null,
+          "audio_tokens": null,
+          "reasoning_tokens": 38,
+          "rejected_prediction_tokens": null,
+          "text_tokens": null
+        },
+        "prompt_tokens_details": {
+          "audio_tokens": null,
+          "cache_write_tokens": null,
+          "cached_tokens": 0,
+          "image_tokens": null,
+          "text_tokens": null,
+          "created_cache_tokens": 0,
+          "multimodal_tokens": null
+        },
+        "prompt_cache_hit_tokens": 0,
+        "prompt_cache_miss_tokens": 266
+      }
+    },
+    {
+      "model": "nvidia/nemotron-3-super-120b-a12b",
+      "started_at": "2026-09-30T21:01:47.137492+00:00",
+      "latency_s": 13.37,
+      "finish_reason": "stop",
+      "content_is_none": false,
+      "has_reasoning": true,
+      "usage": {
+        "completion_tokens": 2943,
+        "prompt_tokens": 5575,
+        "total_tokens": 8518,
+        "completion_tokens_details": {
+          "accepted_prediction_tokens": null,
+          "audio_tokens": null,
+          "reasoning_tokens": 2684,
+          "rejected_prediction_tokens": null,
+          "text_tokens": null
+        },
+        "prompt_tokens_details": {
+          "audio_tokens": null,
+          "cache_write_tokens": null,
+          "cached_tokens": 0,
+          "image_tokens": null,
+          "text_tokens": null,
+          "created_cache_tokens": 0,
+          "multimodal_tokens": null
+        },
+        "prompt_cache_hit_tokens": 0,
+        "prompt_cache_miss_tokens": 5575
+      }
+    },
+    {
+      "model": "nvidia/nemotron-3-super-120b-a12b",
+      "started_at": "2026-09-30T21:03:25.004156+00:00",
+      "latency_s": 18.54,
+      "finish_reason": "stop",
+      "content_is_none": false,
+      "has_reasoning": true,
+      "usage": {
+        "completion_tokens": 4211,
+        "prompt_tokens": 5691,
+        "total_tokens": 9902,
+        "completion_tokens_details": {
+          "accepted_prediction_tokens": null,
+          "audio_tokens": null,
+          "reasoning_tokens": 4065,
+          "rejected_prediction_tokens": null,
+          "text_tokens": null
+        },
+        "prompt_tokens_details": {
+          "audio_tokens": null,
+          "cache_write_tokens": null,
+          "cached_tokens": 0,
+          "image_tokens": null,
+          "text_tokens": null,
+          "created_cache_tokens": 0,
+          "multimodal_tokens": null
+        },
+        "prompt_cache_hit_tokens": 0,
+        "prompt_cache_miss_tokens": 5691
+      }
+    },
+    {
+      "model": "nvidia/nemotron-3-super-120b-a12b",
+      "started_at": "2026-09-30T21:03:43.547766+00:00",
+      "latency_s": 11.46,
+      "finish_reason": "stop",
+      "content_is_none": false,
+      "has_reasoning": true,
+      "usage": {
+        "completion_tokens": 2605,
+        "prompt_tokens": 5738,
+        "total_tokens": 8343,
+        "completion_tokens_details": {
+          "accepted_prediction_tokens": null,
+          "audio_tokens": null,
+          "reasoning_tokens": 2222,
+          "rejected_prediction_tokens": null,
+          "text_tokens": null
+        },
+        "prompt_tokens_details": {
+          "audio_tokens": null,
+          "cache_write_tokens": null,
+          "cached_tokens": 0,
+          "image_tokens": null,
+          "text_tokens": null,
+          "created_cache_tokens": 0,
+          "multimodal_tokens": null
+        },
+        "prompt_cache_hit_tokens": 0,
+        "prompt_cache_miss_tokens": 5738
+      }
+    },
+    {
+      "model": "nvidia/nemotron-3-super-120b-a12b",
+      "started_at": "2026-09-30T21:03:55.008364+00:00",
+      "latency_s": 9.91,
+      "finish_reason": "stop",
+      "content_is_none": false,
+      "has_reasoning": true,
+      "usage": {
+        "completion_tokens": 2230,
+        "prompt_tokens": 5802,
+        "total_tokens": 8032,
+        "completion_tokens_details": {
+          "accepted_prediction_tokens": null,
+          "audio_tokens": null,
+          "reasoning_tokens": 1869,
+          "rejected_prediction_tokens": null,
+          "text_tokens": null
+        },
+        "prompt_tokens_details": {
+          "audio_tokens": null,
+          "cache_write_tokens": null,
+          "cached_tokens": 0,
+          "image_tokens": null,
+          "text_tokens": null,
+          "created_cache_tokens": 0,
+          "multimodal_tokens": null
+        },
+        "prompt_cache_hit_tokens": 0,
+        "prompt_cache_miss_tokens": 5802
+      }
+    },
+    {
+      "model": "nvidia/nemotron-3-super-120b-a12b",
+      "started_at": "2026-09-30T21:05:16.280128+00:00",
+      "latency_s": 38.13,
+      "finish_reason": "stop",
+      "content_is_none": false,
+      "has_reasoning": true,
+      "usage": {
+        "completion_tokens": 7936,
+        "prompt_tokens": 5832,
+        "total_tokens": 13768,
+        "completion_tokens_details": {
+          "accepted_prediction_tokens": null,
+          "audio_tokens": null,
+          "reasoning_tokens": 7721,
+          "rejected_prediction_tokens": null,
+          "text_tokens": null
+        },
+        "prompt_tokens_details": {
+          "audio_tokens": null,
+          "cache_write_tokens": null,
+          "cached_tokens": 0,
+          "image_tokens": null,
+          "text_tokens": null,
+          "created_cache_tokens": 0,
+          "multimodal_tokens": null
+        },
+        "prompt_cache_hit_tokens": 0,
+        "prompt_cache_miss_tokens": 5832
+      }
+    },
+    {
+      "model": "nvidia/nemotron-3-super-120b-a12b",
+      "started_at": "2026-09-30T21:05:54.410062+00:00",
+      "latency_s": 29.97,
+      "finish_reason": "stop",
+      "content_is_none": false,
+      "has_reasoning": true,
+      "usage": {
+        "completion_tokens": 6876,
+        "prompt_tokens": 5895,
+        "total_tokens": 12771,
+        "completion_tokens_details": {
+          "accepted_prediction_tokens": null,
+          "audio_tokens": null,
+          "reasoning_tokens": 6354,
+          "rejected_prediction_tokens": null,
+          "text_tokens": null
+        },
+        "prompt_tokens_details": {
+          "audio_tokens": null,
+          "cache_write_tokens": null,
+          "cached_tokens": 0,
+          "image_tokens": null,
+          "text_tokens": null,
+          "created_cache_tokens": 0,
+          "multimodal_tokens": null
+        },
+        "prompt_cache_hit_tokens": 0,
+        "prompt_cache_miss_tokens": 5895
+      }
+    },
+    {
+      "model": "nvidia/Nemotron-3-Ultra-550b-a55b",
+      "started_at": "2026-09-30T21:06:24.380213+00:00",
+      "latency_s": 2.02,
+      "finish_reason": "stop",
+      "content_is_none": false,
+      "has_reasoning": true,
+      "usage": {
+        "completion_tokens": 363,
+        "prompt_tokens": 713,
+        "total_tokens": 1076,
+        "completion_tokens_details": {
+          "accepted_prediction_tokens": null,
+          "audio_tokens": null,
+          "reasoning_tokens": 264,
+          "rejected_prediction_tokens": null,
+          "text_tokens": null
+        },
+        "prompt_tokens_details": {
+          "audio_tokens": null,
+          "cache_write_tokens": null,
+          "cached_tokens": 0,
+          "image_tokens": null,
+          "text_tokens": null,
+          "multimodal_tokens": null
+        },
+        "prompt_cache_hit_tokens": 0,
+        "prompt_cache_miss_tokens": 713
+      }
+    }
+  ],
+  "cost_guard": {
+    "spent_usd": 0.46098039,
+    "model_spent_usd": 0.03794774,
+    "sandbox_spent_usd": 0.42303265,
+    "estimated_sandbox_spent_usd": 0.0,
+    "cost_events": [],
+    "remaining_usd": 1.53901961,
+    "model_usage": [
+      {
+        "model": "nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B",
+        "prompt_tokens": 9315,
+        "completion_tokens": 4096,
+        "cost_usd": 0.00154194
+      },
+      {
+        "model": "nvidia/nemotron-3-super-120b-a12b",
+        "prompt_tokens": 266,
+        "completion_tokens": 48,
+        "cost_usd": 0.000123
+      },
+      {
+        "model": "nvidia/nemotron-3-super-120b-a12b",
+        "prompt_tokens": 5575,
+        "completion_tokens": 2943,
+        "cost_usd": 0.004321200000000001
+      },
+      {
+        "model": "nvidia/nemotron-3-super-120b-a12b",
+        "prompt_tokens": 5691,
+        "completion_tokens": 4211,
+        "cost_usd": 0.0054972
+      },
+      {
+        "model": "nvidia/nemotron-3-super-120b-a12b",
+        "prompt_tokens": 5738,
+        "completion_tokens": 2605,
+        "cost_usd": 0.0040659
+      },
+      {
+        "model": "nvidia/nemotron-3-super-120b-a12b",
+        "prompt_tokens": 5802,
+        "completion_tokens": 2230,
+        "cost_usd": 0.0037476
+      },
+      {
+        "model": "nvidia/nemotron-3-super-120b-a12b",
+        "prompt_tokens": 5832,
+        "completion_tokens": 7936,
+        "cost_usd": 0.008892
+      },
+      {
+        "model": "nvidia/nemotron-3-super-120b-a12b",
+        "prompt_tokens": 5895,
+        "completion_tokens": 6876,
+        "cost_usd": 0.007956900000000001
+      },
+      {
+        "model": "nvidia/Nemotron-3-Ultra-550b-a55b",
+        "prompt_tokens": 713,
+        "completion_tokens": 363,
+        "cost_usd": 0.001802
+      }
+    ],
+    "prices_usd_per_1m": {
+      "nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B": [
+        0.06,
+        0.24
+      ],
+      "nvidia/nemotron-3-super-120b-a12b": [
+        0.3,
+        0.9
+      ],
+      "nvidia/Nemotron-3-Ultra-550b-a55b": [
+        1.0,
+        3.0
+      ]
+    },
+    "prices_source": "https://api.tokenfactory.nebius.com/v1/models?verbose=true (pricing field)",
+    "prices_retrieved": "2026-09-24"
+  }
+}
