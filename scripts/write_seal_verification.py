@@ -39,11 +39,24 @@ PATHS = [
     ("runner_numpy_cap_old_torch", "torch < 2.3 is installed with numpy<2 in the same pip command and `import torch` works on Python 3.9 (corpus-v2 entry 11)",
      [SB, ENV], ["torch_py39_pin1.8.1_numpy_cap.json"]),
     ("kill_at_operation_limit", "a step that would run 300 s is stopped at a 25 s operation limit; SandboxTimeoutError carries the killed step's duration and the completed steps' cost",
-     [SB], ["kill_at_operation_limit_py310.json"]),
+     [SB], ["kill_at_operation_limit_py310.json", "kill_at_operation_limit_py310_extra1.json"]),
     ("smoke_launcher", "the smoke launcher: a still-running command with output passes and is stopped; a finishing command and a failing command keep exit code and output; a silent one fails; on Python 3.10 and 3.6",
      [SB, SMOKE], ["smoke_alive_py310.json", "smoke_exits_ok_py310.json", "smoke_fails_py310.json", "smoke_silent_py310.json",
                    "smoke_alive_py36.json", "smoke_fails_py36.json"]),
 ]
+
+
+def path_checks(pid: str, recs: list[dict]) -> None:
+    """Checks across all records of one path."""
+    if pid == "kill_at_operation_limit":
+        # The API reports a stopped step in two ways (a race, seen live on the same call): the server returns the step's result with
+        # state.timed_out, or the client's wait expires first. Both branches of sandbox.py must have been seen in a real run.
+        vias = {r.get("via") for r in recs}
+        if vias != {"server_result_timed_out", "client_wait_timeout"}:
+            raise SystemExit(f"{pid}: both stop paths must be verified live, records show {sorted(map(str, vias))}")
+        server = next(r for r in recs if r.get("via") == "server_result_timed_out")
+        if not (server.get("completed_cost_usd", 0) > 0 and "exit code" in server.get("message", "")):
+            raise SystemExit(f"{pid}: the server-result record carries no measured cost / exit code")
 
 
 def extra_checks(pid: str, rec: dict) -> None:
@@ -67,13 +80,15 @@ def blob(path: str) -> str:
 def main() -> int:
     entries = []
     for pid, description, code_files, records in PATHS:
-        run_ids = []
+        run_ids, loaded = [], []
         for name in records:
             rec = json.loads((ROOT / FINAL / name).read_text(encoding="utf-8"))
+            loaded.append(rec)
             if not rec.get("ok") or not rec.get("run_id"):
                 raise SystemExit(f"{name}: not a passing live record (ok={rec.get('ok')}, run_id={rec.get('run_id')})")
             extra_checks(pid, rec)
             run_ids.append(rec["run_id"])
+        path_checks(pid, loaded)
         entries.append({"id": pid, "description": description, "live_nebius": True,
                         "code_files": {f: blob(f) for f in code_files},
                         "records": [f"{FINAL}/{n}" for n in records], "run_ids": run_ids})

@@ -838,3 +838,9 @@ marked `requires_network` and skipped offline.
 `state.timed_out`, not as an exception (D-17 in `reports/corpus-v2.1/v1.3.3/DEFECT_FIX_MAP.md`); the harness now reads the flag and records the killed step's measured cost.
 It also means the v1.3.3 "estimate" for a killed step applies only when the client's wait expires before the server answers. Seal verification attempt 1 was stopped on its first
 failure, as instructed; its 10 passing records were made against a `sandbox.py` that this fix changes, so the seal rule requires them to be repeated.
+
+**Seal verification, repeat (2026-09-30).** After the D-17 fix all 17 planned live runs passed on the new `sandbox.py`, plus one extra kill run: the same call was stopped by the client's
+wait in one run (`client_wait_timeout`, 27.9 s, `OperationTimedOutError`) and returned by the server with `state.timed_out` in another (`server_result_timed_out`, 28.0 s, exit code -1,
+measured cost $0.00006), so both branches of the stop handling were seen live; the race between them is real and is the subject of the drafted sponsor issue
+(`reports/corpus-v2.1/sponsor-issues/nebius-sandbox-state-timed_out.md`, not filed). Spend: attempt 1 $1.236 + repeat $1.260 = $2.496 on the new ledger.
+
