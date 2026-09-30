@@ -14,8 +14,8 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-TAG = "harness-v1.3.3"
-FINAL = "runs/sandbox_verification/final-v1.3.3"  # written by scripts/run_seal_verification_v133.py
+TAG = "harness-v1.3.4"
+FINAL = "runs/sandbox_verification/final-v1.3.4"  # written by scripts/run_seal_verification_v133.py (TAG there must match)
 SB, LIM, ENV = ("backend/app/services/sandbox.py", "backend/app/services/sandbox_limits.py",
                 "backend/app/services/runner_env.py")
 SMOKE = "backend/app/services/smoke_exec.py"
@@ -35,6 +35,9 @@ PATHS = [
      [SB, ENV], ["phase_runner_setup_failure_py310.json"]),
     ("patchelf_flag_absent_is_incompat", "a patchelf without --clear-execstack: exit 98 + RERUN_SANDBOX_INCOMPAT, phase runner_setup (attempt-1 entry 3 cause)",
      [SB, ENV], ["patchelf_flag_absent_incompat_py310.json"]),
+    # --- new in harness-v1.3.4 ---
+    ("download_route_overlay", "download route with one patched file: the overlay is applied over the fetched tree before the integrity check and the patched content is present (D-20)",
+     [SB, LIM], ["download_git_overlay_entry8_py310.json"]),
     # --- new in harness-v1.3.3 ---
     ("runner_numpy_cap_old_torch", "torch < 2.3 is installed with numpy<2 in the same pip command and `import torch` works on Python 3.9 (corpus-v2 entry 11)",
      [SB, ENV], ["torch_py39_pin1.8.1_numpy_cap.json"]),
@@ -67,6 +70,8 @@ def extra_checks(pid: str, rec: dict) -> None:
         match = re.search(r"IMPORT_OK\s+\S+\s+(\S+)\s+(\S+)", rec.get("stdout", "") or json.dumps(rec))
         if not match or not match.group(2).startswith("1."):
             raise SystemExit(f"{pid}: numpy version in the sandbox is not 1.x ({match.groups() if match else 'no IMPORT_OK line'})")
+    if pid == "download_route_overlay" and not (rec.get("overlay_file") and "OVERLAY_OK" in (rec.get("stdout") or "")):
+        raise SystemExit(f"{pid}: the overlay case did not show OVERLAY_OK: {rec.get('stdout', '')[-200:]!r}")
     if pid == "kill_at_operation_limit" and not (rec.get("via") in ("server_result_timed_out", "client_wait_timeout") and rec.get("run_id")
                                                  and 15 < rec.get("elapsed_seconds", 0) < 120):
         raise SystemExit(f"{pid}: stop path / id / duration not as expected: {rec.get('via')}, {rec.get('run_id')}, {rec.get('elapsed_seconds')}")

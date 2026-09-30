@@ -83,8 +83,17 @@ Rules, non-negotiable:
 A separate deterministic system will reject your patch outright if it violates any of
 these — so follow them exactly, don't rely on the checker to catch a shortcut.
 
-If web search results were given to you (numbered [1], [2], ...) and a result actually informed your change, list its
-number(s) in "cited_sources"; cite only results you used. RERUN records the URL of every cited result with the change.
+References: web search results are given to you as a numbered list [1]..[k], each with its URL and a snippet. The field
+"cited_sources" is REQUIRED: the numbers of the references you actually used for this change (cite only what you used;
+RERUN records the URL of every cited reference with the change and shows the whole list as "consulted"). An empty list is
+allowed ONLY together with "reason_no_citation": one sentence saying why none of the references applied.
+
+If the section "NO TRACEBACK FOUND" is present, the failing run exited non-zero without any error text. Do NOT guess a code
+fix: a code change that does anything but ADD diagnostics (print / logging / traceback / faulthandler) is rejected. Either add
+diagnostics so the next run shows the error, or fix the environment if the head/tail of the output shows an environment cause.
+
+The "RERUN-managed lock" shown to you is NOT a repository file: RERUN generates it and installs from it. Never target it with
+file_edits / file_replacements / code_diff (refused); change packages with env_delta.
 
 Respond with ONLY a single JSON object, no prose, no markdown fences:
 {
@@ -92,7 +101,8 @@ Respond with ONLY a single JSON object, no prose, no markdown fences:
   "file_replacements": null,
   "code_diff": null,
   "env_delta": [<zero or more env changes as above>],
-  "cited_sources": [<numbers of the web results you used>],
+  "cited_sources": [<REQUIRED: numbers of the references you used, e.g. [2]>],
+  "reason_no_citation": "<REQUIRED when cited_sources is empty: why no reference applied>",
   "explanation": "<one sentence: what you changed and why it addresses the evidence>"
 }
 Use at most ONE of file_edits / file_replacements / code_diff. Set them all to null and env_delta to [] if you cannot
@@ -113,6 +123,9 @@ class RepairProposal:
     file_edits: tuple = ()
     file_replacements: tuple = ()
     cited_sources: tuple = ()
+    # harness-v1.3.4 (D-21): whether the model gave the (required) cited_sources field at all, and its reason for an empty one.
+    cited_sources_given: bool = False
+    reason_no_citation: str = ""
 
     @property
     def has_diff(self) -> bool:
@@ -140,6 +153,7 @@ def build_repair_user_prompt(
     imported_modules: list[str] | None = None,
     followup: str | None = None,
     resolved_lock: list[str] | None = None,
+    silent_failure: dict | None = None,
 ) -> str:
     parts = [
         f"Taxonomy code: {classification.code} ({classification.family})",
@@ -156,8 +170,22 @@ def build_repair_user_prompt(
         parts.append("Current build plan:")
         parts.append(untrusted_block("current build plan", json.dumps(build_plan, indent=2)))
     for name, content in (dependency_files or {}).items():
+        if name.startswith("RERUN-managed lock"):
+            parts.append(f"{name} (NOT a repository file; file_edits on it are refused; change packages with env_delta):")
+            parts.append(untrusted_block("RERUN-managed lock", content[:4000]))
+            continue
         parts.append(f"Dependency file {name}:")
         parts.append(untrusted_block(f"dependency file {name}", content[:4000]))
+    if silent_failure is not None:
+        # harness-v1.3.4 (D-19): the run exited non-zero with no error text. Head and tail of BOTH streams, the exit code, and the rule.
+        parts.append(
+            f"NO TRACEBACK FOUND — do not guess; first add diagnostics. The failing run exited with code {silent_failure.get('exit_code')} "
+            "and printed no traceback, exception line or error block. First 40 and last 80 lines of each stream follow."
+        )
+        parts.append("stdout (head + tail):")
+        parts.append(untrusted_block("failing run stdout head+tail", silent_failure.get("stdout") or "(empty)"))
+        parts.append("stderr (head + tail):")
+        parts.append(untrusted_block("failing run stderr head+tail", silent_failure.get("stderr") or "(empty)"))
     if log_tail:
         parts.append("Tail of the failing run's log (quote `evidence` from here verbatim):")
         parts.append(untrusted_block("failing run log tail", log_tail))
@@ -204,7 +232,19 @@ def parse_repair_response(raw: dict) -> RepairProposal:
     return RepairProposal(
         diff_text=str(diff_text) if has_code else None, explanation=explanation, env_delta=tuple(env_delta),
         file_edits=file_edits, file_replacements=file_replacements, cited_sources=cited,
+        cited_sources_given=isinstance(raw.get("cited_sources"), list), reason_no_citation=str(raw.get("reason_no_citation") or "").strip(),
     )
+
+
+def citation_field_problem(proposal: RepairProposal, n_references: int) -> str | None:
+    """None if the proposal's citation field satisfies the schema given `n_references` references were offered; else what is missing."""
+    if proposal.declined or n_references <= 0:
+        return None
+    if not proposal.cited_sources_given:
+        return "the required field \"cited_sources\" is missing"
+    if not proposal.cited_sources and not proposal.reason_no_citation:
+        return "\"cited_sources\" is empty and \"reason_no_citation\" is missing"
+    return None
 
 
 def propose_repair(
@@ -223,6 +263,8 @@ def propose_repair(
     imported_modules: list[str] | None = None,
     followup: str | None = None,
     resolved_lock: list[str] | None = None,
+    silent_failure: dict | None = None,
+    n_references: int = 0,
 ) -> RepairProposal:
     """Ask Nemotron Super for one candidate patch. A model-call failure
     (bad credentials, timeout, unparseable JSON) is surfaced as a declined
@@ -242,6 +284,7 @@ def propose_repair(
         imported_modules=imported_modules,
         followup=followup,
         resolved_lock=resolved_lock,
+        silent_failure=silent_failure,
     )
     parse_retried = False
     for try_number in (1, 2):
@@ -280,4 +323,24 @@ def propose_repair(
             return RepairProposal(diff_text=None, explanation=f"repair model call failed: {exc}", declined=True)
 
     proposal = parse_repair_response(raw)
+    # harness-v1.3.4 (D-21): cited_sources is required whenever references were offered; one re-ask, same attempt, then the proposal
+    # is kept with the omission recorded (a good fix is not thrown away for a missing field, but the record says it was missing).
+    problem = citation_field_problem(proposal, n_references)
+    if problem:
+        try:
+            raw = call_json_model(
+                client, model=model, system_prompt=_SYSTEM_PROMPT,
+                user_prompt=f"{user_prompt}\n\nYour previous reply was rejected: {problem}. {n_references} numbered references were given to "
+                            "you. Reply again with the complete JSON object, with \"cited_sources\" listing the reference numbers you used, "
+                            "or an empty list plus \"reason_no_citation\".",
+                cost_guard=cost_guard, max_tokens=REPAIR_MAX_TOKENS,
+            )
+            again = parse_repair_response(raw)
+            if citation_field_problem(again, n_references) is None:
+                proposal = again
+            else:
+                proposal = replace(again, reason_no_citation=f"(not given by the model after a re-ask: {problem})")
+        except (ModelResponseParseError, ModelCallError) as exc:
+            proposal = replace(proposal, reason_no_citation=f"(not given by the model; re-ask failed: {str(exc)[:80]})")
+        parse_retried = True
     return replace(proposal, parse_retried=parse_retried) if parse_retried else proposal

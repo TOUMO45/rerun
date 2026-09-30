@@ -172,8 +172,10 @@ def test_a_bad_citation_number_is_ignored_and_logged(tmp_path):
 
 
 def test_a_fix_that_cites_nothing_records_nothing(tmp_path):
-    result, _ = _pipeline(tmp_path, [{**FIX, "explanation": "x"}], [_fail(), _ok()], _Search())
+    result, _ = _pipeline(tmp_path, [{**FIX, "cited_sources": [], "reason_no_citation": "none of the results applied", "explanation": "x"}],
+                          [_fail(), _ok()], _Search())
     assert result.verdict == "RUNS_AFTER_REPAIR" and result.attempts[-1].tavily_sources == ()
+    assert result.attempts[-1].reason_no_citation == "none of the results applied"
 
 
 def test_a_citation_on_a_rejected_attempt_is_not_recorded_nothing_was_used(tmp_path):
@@ -187,7 +189,8 @@ def test_a_citation_on_a_rejected_attempt_is_not_recorded_nothing_was_used(tmp_p
 
 def test_the_second_search_for_the_same_error_is_not_identical_to_the_first(tmp_path):
     """Entry 1 of v1.3.2 ran the same query twice because the error was unchanged. Now the second carries what the run already tried."""
-    env_fix = {"env_delta": [{"op": "add", "package": "tabulate", "version": "0.8.7", "justification": "x", "evidence": ERROR}], "explanation": "x"}
+    env_fix = {"env_delta": [{"op": "add", "package": "tabulate", "version": "0.8.7", "justification": "x", "evidence": ERROR}], "explanation": "x",
+               "cited_sources": [], "reason_no_citation": "none applied"}
     search = _Search()
     _pipeline(tmp_path, [env_fix, {"explanation": "give up"}, {"explanation": "give up"}], [_fail(), _fail()], search)
     assert len(search.queries) >= 2

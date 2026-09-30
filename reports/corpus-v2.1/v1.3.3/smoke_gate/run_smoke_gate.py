@@ -95,17 +95,18 @@ def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--go", action="store_true", help="actually run (spends money)")
     ap.add_argument("--selftest", action="store_true")
+    ap.add_argument("--tag", default="harness-v1.3.4", help="the sealed tag to gate (records go to runs/corpus_v2_batch/<tag>/smoke)")
     args = ap.parse_args()
     if args.selftest:
         return _selftest()
 
     import run_corpus_v1_batch as drv
 
-    frozen = {**drv.preflight("corpus-v2", "harness-v1.3.3"), "arm": "treatment", "total_cap_usd": GATE_CAP_USD, "already_spent_usd": 0.0}
+    frozen = {**drv.preflight("corpus-v2", args.tag), "arm": "treatment", "total_cap_usd": GATE_CAP_USD, "already_spent_usd": 0.0}
     rows = {r["id"]: r for r in drv.entries_for("corpus-v2")}
     plan = [rows[i] for i in ENTRIES]
-    odir = ROOT / "runs" / "corpus_v2_batch" / "harness-v1.3.3" / "smoke"
-    print(f"preflight OK at {frozen['head_commit'][:12]} (tag harness-v1.3.3); gate cap ${GATE_CAP_USD}; entries: "
+    odir = ROOT / "runs" / "corpus_v2_batch" / args.tag / "smoke"
+    print(f"preflight OK at {frozen['head_commit'][:12]} (tag {args.tag}); gate cap ${GATE_CAP_USD}; entries: "
           + ", ".join(f"#{r['id']} {r['name']}" for r in plan))
     if not args.go:
         print("DRY RUN: nothing was run and nothing was spent (pass --go to run).")
@@ -138,7 +139,7 @@ def main() -> int:
             print(f"STOP: entry #{row['id']} ended without a verdict: {record['error']}", flush=True)
             break
     verdict = evaluate_gate(records)
-    out = Path(__file__).with_name("smoke_gate_result.json")
+    out = Path(__file__).with_name(f"smoke_gate_result_{args.tag}.json")
     out.write_text(json.dumps(verdict, indent=2) + "\n", encoding="utf-8", newline="\n")
     print(json.dumps(verdict, indent=2))
     print("SMOKE GATE:", "PASSED" if verdict["passed"] and len(records) == len(ENTRIES) else "NOT PASSED (report root causes; no further spend without a decision)")

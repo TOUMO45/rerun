@@ -17,8 +17,10 @@ Scope of the claim, which every record carries (`AttemptRecord.execution`): a pa
 `seconds` without failing", not "the command finished" and not that any result was reproduced. The baseline (as published)
 run is NOT wrapped: CONTROL and the first TREATMENT run stay comparable.
 
-The launcher is Python 3.6-compatible (the oldest sandbox image is python:3.6-slim), is sent base64-encoded so no shell quoting
-can change it, and never reads the host's environment.
+The launcher is Python 3.6-compatible (the oldest sandbox image is python:3.6-slim) and is sent base64-encoded so no shell quoting
+can change it. harness-v1.3.4 (D-19): the command runs with PYTHONUNBUFFERED=1 and PYTHONFAULTHANDLER=1 (the environment-variable form
+of `-X faulthandler`, so the documented command itself is never edited): a crash after a progress stream leaves its buffered output
+and a fault trace instead of a bare exit code.
 """
 
 from __future__ import annotations
@@ -35,7 +37,10 @@ import base64, json, os, signal, subprocess, sys, threading, time
 spec = json.loads(base64.b64decode(sys.argv[1]).decode("utf-8"))
 seconds = float(spec["seconds"])
 posix = os.name == "posix"
-proc = subprocess.Popen(spec["cmd"], shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, start_new_session=posix)
+env = dict(os.environ)
+env["PYTHONUNBUFFERED"] = "1"      # a crash after a progress stream must not lose the buffered lines (D-19)
+env["PYTHONFAULTHANDLER"] = "1"    # == `python -X faulthandler`, without editing the documented command: a segfault leaves a trace
+proc = subprocess.Popen(spec["cmd"], shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, start_new_session=posix, env=env)
 captured = {"out": [], "err": []}
 
 def pump(stream, key, dest):

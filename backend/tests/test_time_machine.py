@@ -370,7 +370,7 @@ def _run_cite(tmp_path, responses):
 
 PIP_GIT = {"code_diff": None, "env_delta": [{"op": "pip_git", "package": "dassl", "git_url": "https://github.com/KaiyangZhou/Dassl.pytorch",
            "commit": SHA, "justification": "Dassl is GitHub-only", "evidence": "requirement dassl (from versions: none)"}],
-           "explanation": "install from verified source"}
+           "explanation": "install from verified source", "cited_sources": [1]}
 
 
 def test_d_only_the_sources_used_are_cited_the_rest_is_logged(tmp_path):

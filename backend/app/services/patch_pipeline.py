@@ -209,7 +209,16 @@ def _nearest_lines(file_lines: list[str], block: list[str], hint: int) -> str:
 # --- building the new file and the canonical diff --------------------------------------------------------------------------
 
 
+# harness-v1.3.4 (D-18): names under which RERUN's own resolved lock may appear to the model; it is edited through env_delta only.
+RESERVED_LOCK_NAMES = frozenset({".rerun-requirements.txt", "RERUN-managed lock (edit via env_delta only)", "rerun-managed lock"})
+
+
 def _read(root: Path, rel: str) -> tuple[Path, str]:
+    if rel.strip().lower() in {n.lower() for n in RESERVED_LOCK_NAMES} or rel.strip().lower().startswith("rerun-managed lock"):
+        raise PatchProblem(
+            f"{rel!r} is RERUN's managed lock, not a repository file: it cannot be edited with file_edits / code_diff; "
+            "change packages with env_delta (pin / add / remove / pip_git)"
+        )
     candidate = root / rel
     if not rel or rel.startswith(("/", "\\")) or ".." in Path(rel).parts or re.match(r"^[A-Za-z]:", rel):
         raise PatchProblem(f"path {rel!r} is not a repo-relative path inside the repository")

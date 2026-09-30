@@ -858,3 +858,15 @@ proposed, then mandatory for the full run's reporting), (c) at least 1 repair wi
 push and before anything had fetched or used it, to include a one-line fix to a structure test that still named the v1.3.2 tag (tests are outside the batch preflight's data allowlist, so the fix could not follow the tag);
 the tag now points at `8af1717` and will not move again.
 
+### harness-v1.3.4 (2026-09-30, after the v1.3.3 smoke gate did not pass; operator decision: Option 1)
+
+The v1.3.3 smoke gate (`reports/corpus-v2.1/v1.3.3/smoke_gate/SMOKE_GATE_REPORT.md`) did not pass: (a) 1 of 4 recovered (entry 11, by the time machine alone), (b) passed
+(2 source patches applied, entry 3), (c) 0 Tavily citations in 7 searches, (d) passed; spend $2.930. Its five root causes (D-18 to D-22) are fixed in **harness-v1.3.4** to the
+operator's specification, tests first (`reports/corpus-v2.1/v1.3.3/DEFECT_FIX_MAP.md`, section harness-v1.3.4), then a live seal verification of every sandbox-touching path plus
+the download-route overlay case on entry 8's own repository. Rules unchanged: v1.3.2 is the pre-registered result; everything on v1.3.3/v1.3.4 is exploratory on a disclosed
+development set; a sealed tag is never moved (v1.3.4 is a new tag); the gate is re-run on the same four entries (11, 7, 3, 8) with criteria (a)-(d) unchanged, seal repeat cap
+$2.00, re-gate cap $3.50, stop on first failure. If it fails again on (a) or (c), no further Nebius spend without a decision, and the full defect history becomes the write-up.
+
+What a v1.3.4 record adds: `consulted` (every reference offered, numbered as in the prompt) beside `tavily_sources` (the cited ones, each with `cited_via`); `reason_no_citation`;
+`silent_exit`; and, for a run voided by INVALID_HARNESS, the attempt that was being executed. A `content_match` citation is RERUN's deterministic finding that the applied
+change's text appears in that reference; it is labelled as such and is never reported as the model's own citation.

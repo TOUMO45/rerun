@@ -244,6 +244,7 @@ def _pip_git(commit):
             }
         ],
         "explanation": "install dassl from its verified source",
+        "cited_sources": [1],  # v1.3.4: required; the Dassl GitHub result is reference [1]
     }
 
 

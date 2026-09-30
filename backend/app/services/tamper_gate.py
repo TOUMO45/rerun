@@ -51,6 +51,8 @@ class GateRule:
     UNVERIFIED_FILE = "UNVERIFIED_FILE"  # touched file whose original the gate did not get
     # harness-v1.3.3: a patch that never reached `git apply` (did not parse into applicable hunks before the gate).
     UNAPPLICABLE_PATCH = "UNAPPLICABLE_PATCH"
+    # harness-v1.3.4 (D-19): the failing run printed no error text, and the patch changes code instead of adding diagnostics.
+    BLIND_PATCH_ON_SILENT_EXIT = "BLIND_PATCH_ON_SILENT_EXIT"
 
 
 DEFAULT_PROTECTED_PATTERNS: frozenset[str] = frozenset(
@@ -775,3 +777,37 @@ def check_patch(
         canonical_diff=prepared.canonical_diff,
         touched_paths=prepared.paths,
     )
+
+
+# harness-v1.3.4 (D-19). Added lines a diagnostics-only patch may contain: prints, logging, stderr writes, tracebacks, faulthandler,
+# and the imports they need. Anything else (or any removed line) is a code change made without an error to act on.
+_DIAGNOSTIC_LINE_RE = re.compile(
+    r"^\s*(?:print\(|logging\.[a-z]+\(|logger\.[a-z]+\(|log\.[a-z]+\(|sys\.stderr\.write\(|sys\.stdout\.write\(|sys\.stderr\.flush\(\)"
+    r"|sys\.stdout\.flush\(\)|traceback\.print_(?:exc|stack)\(|faulthandler\.(?:enable|dump_traceback)\(|import (?:sys|logging|traceback|faulthandler)\b"
+    r"|from (?:sys|logging|traceback|faulthandler) import\b|logging\.basicConfig\(|#)"
+)
+
+
+def diagnostics_only_violation(diff_text: str) -> Violation | None:
+    """None if every change in `diff_text` is an added diagnostic line (see _DIAGNOSTIC_LINE_RE) and nothing is removed;
+    else the BLIND_PATCH_ON_SILENT_EXIT violation naming the first offending line."""
+    try:
+        patch_set = PatchSet(diff_text)
+    except Exception as exc:  # noqa: BLE001
+        return Violation(rule=GateRule.UNPARSEABLE_PATCH, reason=f"diff could not be parsed: {exc}")
+    for patched_file in patch_set:
+        for hunk in patched_file:
+            for line in hunk:
+                if line.is_removed and line.value.strip():
+                    return Violation(
+                        rule=GateRule.BLIND_PATCH_ON_SILENT_EXIT,
+                        reason=f"the failing run printed no error text; a patch may then only ADD diagnostics, but this one removes {line.value.strip()[:60]!r}",
+                        file=patched_file.target_file,
+                    )
+                if line.is_added and line.value.strip() and not _DIAGNOSTIC_LINE_RE.match(line.value):
+                    return Violation(
+                        rule=GateRule.BLIND_PATCH_ON_SILENT_EXIT,
+                        reason=f"the failing run printed no error text; a patch may then only ADD diagnostics (print/logging/traceback/faulthandler), but this one adds {line.value.strip()[:60]!r}",
+                        file=patched_file.target_file,
+                    )
+    return None

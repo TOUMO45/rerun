@@ -145,6 +145,10 @@ _DEFAULT_FILE_MODE = 0o644
 # file of the first download-route run (attempt 1, entry 2: "374 file(s) ... mode 664 != 0644", content equal).
 _VERIFY_SCRIPT = f"""import hashlib, json, os, sys
 m = json.load(open("{UPLOAD_DIR}/manifest.json"))
+try:
+    overlay = json.load(open("{UPLOAD_DIR}/overlay.json"))
+except (IOError, OSError, ValueError):
+    overlay = {{}}
 bad = []
 for p in sorted(m):
     sha, mode = m[p]
@@ -161,7 +165,8 @@ for p in sorted(m):
 if bad:
     sys.stderr.write("RERUN_UPLOAD_MISMATCH %d file(s): %s\\n" % (len(bad), " ".join(bad[:20])))
     sys.exit({UPLOAD_MISMATCH_EXIT})
-print("RERUN_UPLOAD_VERIFIED %d file(s)" % len(m))
+print("RERUN_UPLOAD_VERIFIED %d file(s) (%d original against the committed blob, %d overlay against the post-patch blob)"
+      % (len(m), len(m) - len(overlay), len(overlay)))
 """
 
 # The download route's fetch step (harness-v1.3.2). Primary: `git clone --filter=blob:none` + `git checkout <sha>`
@@ -226,6 +231,29 @@ open("/tmp/rerun_fetch_route", "w").write("%s %s" % (route, sha))
 print("RERUN_FETCH %s %s" % (route, sha))
 """
 
+# harness-v1.3.4 (D-20): on the download route the sandbox fetches the ORIGINAL tree, so a file patched by a gate-approved repair
+# would fail the manifest check (found live: corpus-v2 entry 8, `utils.py (content)`, exit 97, INVALID_HARNESS). The manifest-only
+# archive therefore also carries an OVERLAY: every patched/added file's post-patch bytes under `<UPLOAD_DIR>/overlay/<path>`, listed in
+# `overlay.json` (path -> [git blob SHA-1 of the post-patch bytes, mode]). overlay.py copies them over the fetched tree AFTER the fetch
+# and BEFORE verify.py; verify.py checks originals against their committed blobs and overlay files against their post-patch blobs (the
+# manifest holds the post-patch hash for them, and reports them as overlay). Python 3.6 code.
+OVERLAY_DIR = f"{UPLOAD_DIR}/overlay"
+_OVERLAY_SCRIPT = f"""import json, os, shutil, sys
+D = "{UPLOAD_DIR}"
+overlay = json.load(open(D + "/overlay.json"))
+for p in sorted(overlay):
+    src = D + "/overlay/" + p
+    if not os.path.isfile(src):
+        sys.stderr.write("RERUN_OVERLAY_MISSING %s\\n" % p)
+        sys.exit({UPLOAD_MISMATCH_EXIT})
+    d = os.path.dirname(p)
+    if d and not os.path.isdir(d):
+        os.makedirs(d)
+    shutil.copyfile(src, p)
+    os.chmod(p, int(overlay[p][1], 8))
+print("RERUN_OVERLAY_APPLIED %d file(s)" % len(overlay))
+"""
+
 # The archive is deleted right after extraction, BEFORE the manifest check
 # (harness-v1.2): the corpus-v1 probe ran out of sandbox storage at 150 MB with
 # archive + extracted tree both on disk. The check reads only the extracted tree.
@@ -242,7 +270,7 @@ def extract_command_for(source: "sandbox_limits.DownloadSource | None") -> str:
         return EXTRACT_COMMAND
     return (
         f"tar -xpf {UPLOAD_ARCHIVE} --no-same-owner && rm -f {UPLOAD_ARCHIVE} "
-        f"&& python3 {UPLOAD_DIR}/fetch.py && python3 {UPLOAD_DIR}/verify.py && rm -rf {UPLOAD_DIR}"
+        f"&& python3 {UPLOAD_DIR}/fetch.py && python3 {UPLOAD_DIR}/overlay.py && python3 {UPLOAD_DIR}/verify.py && rm -rf {UPLOAD_DIR}"
     )
 
 
@@ -260,15 +288,20 @@ def build_upload_archive(
     mtime: float | None = None,
     manifest_only: bool = False,
     download_source: "sandbox_limits.DownloadSource | None" = None,
+    overlay_paths: frozenset[str] = frozenset(),
 ) -> tuple[bytes, dict[str, list[str]]]:
     """(tar bytes, manifest path -> [git blob SHA-1 of the bytes put in the
     tar, octal file mode]). `modes` maps path -> git mode ("100755"/"100644").
     `manifest_only` (download route): the tar carries only the manifest and the
     verifier; the files themselves are fetched inside the sandbox and checked
-    against the same manifest."""
+    against the same manifest. `overlay_paths` (download route, harness-v1.3.4): the
+    files a gate-approved patch changed; their post-patch bytes travel in the tar
+    under the overlay directory and replace the fetched originals before the check."""
     mtime = time.time() if mtime is None else mtime
     modes = modes or {}
     manifest: dict[str, list[str]] = {}
+    overlay: dict[str, list[str]] = {}
+    overlay_norm = {p.replace("\\", "/") for p in overlay_paths}
     buffer = io.BytesIO()
     with tarfile.open(fileobj=buffer, mode="w", format=tarfile.PAX_FORMAT) as tar:
 
@@ -286,13 +319,22 @@ def build_upload_archive(
             mode = file_mode_for(modes.get(rel))
             if not manifest_only:
                 _add(name, data, mode)
+            elif name in overlay_norm:
+                _add(f"{OVERLAY_DIR}/{name}", data, mode)
+                overlay[name] = [_blob_sha1(data), f"{mode:04o}"]
             manifest[name] = [_blob_sha1(data), f"{mode:04o}"]
+        if manifest_only:
+            missing_overlay = sorted(overlay_norm - set(overlay))
+            if missing_overlay:
+                raise UploadIntegrityError(f"overlay path(s) not among the upload files: {missing_overlay[:5]}")
         _add(f"{UPLOAD_DIR}/manifest.json", json.dumps(manifest, sort_keys=True).encode("utf-8"))
         _add(f"{UPLOAD_DIR}/verify.py", _VERIFY_SCRIPT.encode("utf-8"))
         if manifest_only:
             if download_source is None:
                 raise UploadIntegrityError("a manifest-only archive needs its download source")
             _add(f"{UPLOAD_DIR}/fetch.py", _FETCH_SCRIPT.encode("utf-8"))
+            _add(f"{UPLOAD_DIR}/overlay.py", _OVERLAY_SCRIPT.encode("utf-8"))
+            _add(f"{UPLOAD_DIR}/overlay.json", json.dumps(overlay, sort_keys=True).encode("utf-8"))
             _add(f"{UPLOAD_DIR}/source.json", json.dumps(
                 {"owner": download_source.owner, "repo": download_source.repo, "sha": download_source.sha}, sort_keys=True).encode("utf-8"))
     return buffer.getvalue(), manifest
@@ -411,6 +453,7 @@ def run_build_and_execute(
     file_modes: dict[str, str] | None = None,
     download_source: "sandbox_limits.DownloadSource | None" = None,
     torch_setup: "runner_env.TorchSetup | None" = None,
+    overlay_paths: frozenset[str] = frozenset(),
 ) -> SandboxRunResult:
     """Run the full build-plan pipeline in an isolated Token Factory
     Sandbox: reference/import the base image, upload the repo, run each
@@ -456,7 +499,8 @@ def run_build_and_execute(
             raise UploadTooLargeError(len(archive), limit)
         if decision.mode == "download":
             # Never a local upload of an over-limit repo: send the manifest only.
-            archive = build_upload_archive(upload_files, file_modes, manifest_only=True, download_source=download_source)[0]
+            archive = build_upload_archive(upload_files, file_modes, manifest_only=True, download_source=download_source,
+                                           overlay_paths=frozenset(overlay_paths))[0]
             extract_command = extract_command_for(download_source)
 
     # harness-v1.1: transient API failures (timeouts, transport errors, 429,

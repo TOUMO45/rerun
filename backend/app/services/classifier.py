@@ -441,3 +441,25 @@ def fallback_evidence(stderr: str, stdout: str = "", exit_code: int = 1) -> str:
         if lines:
             return lines[-1]
     return f"exit code {exit_code} (the output held only progress bars, warnings or nothing: no error text to show)"
+
+
+# harness-v1.3.4 (D-19): does the output carry an error the repairer can act on? A Python traceback, an exception line, a
+# faulthandler / fatal-error trace, or a compiler/pip error block. A non-zero exit with none of these is a SILENT FAILURE: the
+# repairer is told so and a blind code patch is refused unless it only adds diagnostics.
+_ACTIONABLE_ERROR_RE = re.compile(
+    r"Traceback \(most recent call last\)|^[A-Za-z_][\w.]*(?:Error|Exception|Exit|Interrupt|Warning): \S"
+    r"|Fatal Python error|Windows fatal exception|Segmentation fault|Aborted \(core dumped\)|^error: |^ERROR: |^E: |\bfatal error: |Killed$|MemoryError",
+    re.MULTILINE,
+)
+
+
+def has_actionable_error(stderr: str, stdout: str = "") -> bool:
+    return bool(_ACTIONABLE_ERROR_RE.search(denoise(stderr) + "\n" + denoise(stdout)))
+
+
+def head_and_tail(text: str, head_lines: int = 40, tail_lines: int = 80) -> str:
+    """The first `head_lines` and last `tail_lines` lines of `text` (denoised), with a marker where lines were skipped."""
+    lines = denoise(text or "").split("\n")
+    if len(lines) <= head_lines + tail_lines:
+        return "\n".join(lines)
+    return "\n".join(lines[:head_lines] + [f"[... {len(lines) - head_lines - tail_lines} line(s) skipped ...]"] + lines[-tail_lines:])

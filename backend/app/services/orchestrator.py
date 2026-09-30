@@ -85,6 +85,7 @@ UPLOAD_TOO_LARGE = "UPLOAD_TOO_LARGE"
 from app.services.tamper_gate import (
     GateRule,
     check_patch,
+    diagnostics_only_violation,
     heuristic_eval_call_names,
     heuristic_model_call_names,
     prepare_patch,
@@ -205,6 +206,12 @@ class AttemptRecord:
     execution: dict | None = None
     patch_notes: tuple[str, ...] = ()
     model_patch: str = ""
+    # harness-v1.3.4 (D-21): every reference offered to the model this attempt (numbered as in its prompt); `tavily_sources` holds the
+    # CITED ones (with `cited_via`). `reason_no_citation` is the model's stated reason for an empty citation. (D-19) `silent_exit`: the
+    # failure being repaired printed no error text.
+    consulted: tuple[dict, ...] = ()
+    reason_no_citation: str = ""
+    silent_exit: bool = False
 
     def as_dict(self) -> dict:
         record = {
@@ -227,6 +234,12 @@ class AttemptRecord:
             record["patch_notes"] = list(self.patch_notes)
         if self.model_patch:
             record["model_patch"] = self.model_patch
+        if self.consulted:
+            record["consulted"] = list(self.consulted)
+        if self.reason_no_citation:
+            record["reason_no_citation"] = self.reason_no_citation
+        if self.silent_exit:
+            record["silent_exit"] = True
         return record
 
 
@@ -752,6 +765,9 @@ def _run_stages(
         runner_kwargs = {}
         if _accepts_kwarg(deps.sandbox_runner, "download_source"):
             runner_kwargs["download_source"] = sandbox_limits.DownloadSource.from_repo_url(repo_url, commit_sha)
+        if _accepts_kwarg(deps.sandbox_runner, "overlay_paths"):
+            # harness-v1.3.4 (D-20): patched files travel as an overlay on the download route.
+            runner_kwargs["overlay_paths"] = frozenset(state.patched_paths)
         # Torch is provided by the runner (CPU wheels, exec-stack fix, verified import): runner_env.
         if _accepts_kwarg(deps.sandbox_runner, "torch_setup"):
             torch_setup = runner_env.plan_torch_setup(
@@ -978,7 +994,7 @@ def _run_stages(
             except CostLimitExceeded as exc:
                 _log(f"[time-machine] stopped: daily cost ceiling reached: {exc}")
                 return None
-            except SandboxTimeoutError as exc:
+            except (SandboxTimeoutError, tree_integrity.HarnessIntegrityError) as exc:
                 attempts.append(
                     AttemptRecord(0, "", "PASS", (), None, "", str(exc)[-2000:], (), (change.as_dict(),), (),
                                   origin="time_machine", time_machine=step)
@@ -1087,6 +1103,12 @@ def _run_stages(
                                           origin="time_machine", time_machine=tm_record)
                         )
                         raise
+                    except tree_integrity.HarnessIntegrityError as exc:
+                        attempts.append(
+                            AttemptRecord(0, "", "PASS", (), None, "", f"run void (INVALID_HARNESS): {exc}"[-2000:], (), (), (),
+                                          origin="time_machine", time_machine=tm_record)
+                        )
+                        raise
                     if tm_result is not None:
                         _log(f"[time-machine] re-execution id={tm_result.sandbox_id} exit_code={tm_result.final.exit_code}")
                         attempts.append(
@@ -1140,6 +1162,17 @@ def _run_stages(
             # The full output of the step that failed: the env gate checks
             # every env change's `evidence` against it verbatim.
             failure_log = f"{sandbox_result.final.stderr}\n{sandbox_result.final.stdout}"
+            # harness-v1.3.4 (D-19): a non-zero exit with no error text is a SILENT failure: the repairer gets head+tail of both
+            # streams and the exit code, and a code patch that does more than add diagnostics is refused by the gate.
+            silent_exit = not classifier.has_actionable_error(sandbox_result.final.stderr, sandbox_result.final.stdout)
+            silent_failure = None
+            if silent_exit:
+                silent_failure = {
+                    "exit_code": sandbox_result.final.exit_code,
+                    "stdout": classifier.head_and_tail(sandbox_result.final.stdout),
+                    "stderr": classifier.head_and_tail(sandbox_result.final.stderr),
+                }
+                _log(f"[repair {attempt_number}] silent failure: exit {sandbox_result.final.exit_code} with no error text; the repairer is told not to guess")
 
             state.stage = "tavily"
             if imported_modules is None:
@@ -1194,10 +1227,11 @@ def _run_stages(
                 offered_sources = ()
                 verified_git = frozenset()
             offered_tavily = tuple(s.as_dict() for s in tavily_context.sources)
+            consulted = tuple({"number": n, **t} for n, t in enumerate(offered_tavily, start=1))
             if tavily_context.has_sources:
                 _log(f"[tavily] {len(tavily_context.sources)} result(s) for '{tavily_context.query}'")
 
-            def _cite(env_changes_applied, declared: tuple = ()) -> tuple[tuple, tuple]:
+            def _cite(env_changes_applied, declared: tuple = (), change_text: str = "") -> tuple[tuple, tuple]:
                 """Only sources actually used in a decision are cited: a
                 verified git source a pip_git change installed (plus the
                 Tavily result it was found in), a PyPI release a pin/add
@@ -1230,6 +1264,19 @@ def _run_stages(
                         continue
                     cited_list.append(dict(source, cited_via="model_declared"))
                     _log(f"[citations] cited (model declared it used source [{number}]): {source['url']}")
+                # harness-v1.3.4 (D-21): a reference whose snippet contains the text of the applied change is cited as
+                # `content_match` even when the model did not declare it (deterministic; labelled as such, never as the model's word).
+                signatures = [
+                    ln[1:].strip() for ln in (change_text or "").splitlines()
+                    if ln.startswith("+") and not ln.startswith("+++") and len(ln[1:].strip()) >= 12
+                ] + [f"{c.package}=={c.version}" for c in env_changes_applied if c.op in ("pin", "add") and c.package and c.version]
+                for number, source in enumerate(offered_tavily, start=1):
+                    if source["url"] in {c["url"] for c in cited_list}:
+                        continue
+                    hit = next((sig for sig in signatures if sig and sig in (source.get("content") or "")), None)
+                    if hit:
+                        cited_list.append(dict(source, cited_via="content_match", matched_text=hit[:120]))
+                        _log(f"[citations] cited (the applied change's text appears in reference [{number}]): {source['url']}")
                 cited_tavily = tuple(cited_list)
                 cited_url_set = {c["url"] for c in cited_tavily}
                 for t in offered_tavily:
@@ -1242,8 +1289,10 @@ def _run_stages(
 
             state.stage = "repairer"
             dependency_view = dict(intake_result.dependency_files)
-            if current_requirements is not None:
-                dependency_view["requirements.txt"] = current_requirements
+            if current_requirements is not None and current_requirements != intake_result.dependency_files.get("requirements.txt"):
+                # harness-v1.3.4 (D-18): RERUN's lock / edited copy is never shown under the repository file's name (corpus-v2 entry 7:
+                # the model tried to file_edit "requirements.txt", which did not exist, and lost two attempts).
+                dependency_view["RERUN-managed lock (edit via env_delta only)"] = current_requirements
             if imported_modules is None:
                 imported_modules = env_repair.imported_top_level_modules(workdir)
 
@@ -1263,6 +1312,8 @@ def _run_stages(
                     imported_modules=sorted(imported_modules),
                     followup=followup,
                     resolved_lock=resolved_lock,
+                    silent_failure=silent_failure,
+                    n_references=len(offered_tavily),
                 )
 
             proposal = _propose()
@@ -1273,7 +1324,8 @@ def _run_stages(
             if not proposal.has_change:
                 _log(f"[repair {attempt_number}] declined: {proposal.explanation}")
                 _cite(())
-                attempts.append(AttemptRecord(attempt_number, "", "DECLINED", (), None, "", ""))
+                attempts.append(AttemptRecord(attempt_number, "", "DECLINED", (), None, "", "", consulted=consulted,
+                                              reason_no_citation=proposal.reason_no_citation, silent_exit=silent_exit))
                 continue
 
             # --- Environment gate (deterministic, like the tamper gate) ------
@@ -1316,7 +1368,8 @@ def _run_stages(
                 else:
                     _log(f"[repair {attempt_number}] declined after re-ask: {proposal.explanation}")
                     _cite(())
-                    attempts.append(AttemptRecord(attempt_number, "", "DECLINED", (), None, "", ""))
+                    attempts.append(AttemptRecord(attempt_number, "", "DECLINED", (), None, "", "", consulted=consulted,
+                                              reason_no_citation=proposal.reason_no_citation, silent_exit=silent_exit))
                     continue
 
             def _repeats(changes):
@@ -1334,7 +1387,8 @@ def _run_stages(
                 if not proposal.has_change:
                     _log(f"[repair {attempt_number}] declined after re-ask: {proposal.explanation}")
                     _cite(())
-                    attempts.append(AttemptRecord(attempt_number, "", "DECLINED", (), None, "", ""))
+                    attempts.append(AttemptRecord(attempt_number, "", "DECLINED", (), None, "", "", consulted=consulted,
+                                              reason_no_citation=proposal.reason_no_citation, silent_exit=silent_exit))
                     continue
                 env_changes, env_violations = _env_check(proposal)
                 repeated = _repeats(env_changes)
@@ -1386,7 +1440,8 @@ def _run_stages(
                     if not proposal.has_change:
                         _log(f"[repair {attempt_number}] declined after re-ask: {proposal.explanation}")
                         _cite(())
-                        attempts.append(AttemptRecord(attempt_number, "", "DECLINED", (), None, "", "", model_patch=first_raw))
+                        attempts.append(AttemptRecord(attempt_number, "", "DECLINED", (), None, "", "", model_patch=first_raw,
+                                                      consulted=consulted, reason_no_citation=proposal.reason_no_citation, silent_exit=silent_exit))
                         continue
                     env_changes, env_violations = _env_check(proposal)
                     env_delta_dicts = tuple(c.as_dict() for c in env_changes)
@@ -1425,6 +1480,10 @@ def _run_stages(
                 # the canonical one the gate analyzed.
                 checked_diff = gate_result.canonical_diff or candidate_diff
                 code_violations = gate_result.violations
+                if silent_exit and not code_violations:
+                    blind = diagnostics_only_violation(checked_diff)
+                    if blind is not None:
+                        code_violations = (blind,)
 
             all_violations = tuple(env_violations) + tuple(code_violations)
             if all_violations:
@@ -1444,6 +1503,9 @@ def _run_stages(
                         env_delta_dicts,
                         patch_notes=patch_notes,
                         model_patch=model_patch,
+                        consulted=consulted,
+                        reason_no_citation=proposal.reason_no_citation,
+                        silent_exit=silent_exit,
                     )
                 )
                 continue
@@ -1469,7 +1531,9 @@ def _run_stages(
                     _log(f"[repair {attempt_number}] gate-approved patch failed to apply cleanly: {exc}")
                     _cite(())
                     attempts.append(
-                        AttemptRecord(attempt_number, checked_diff, "PASS", (), None, "", str(exc)[-2000:], (), env_delta_dicts)
+                        AttemptRecord(attempt_number, checked_diff, "PASS", (), None, "", str(exc)[-2000:], (), env_delta_dicts,
+                                      patch_notes=patch_notes, model_patch=model_patch, consulted=consulted,
+                                      reason_no_citation=proposal.reason_no_citation, silent_exit=silent_exit)
                     )
                     continue
             if env_changes:
@@ -1478,7 +1542,7 @@ def _run_stages(
                 if new_requirements is not None:
                     current_requirements = new_requirements
                 _log(f"[repair {attempt_number}] env delta applied; build plan now: {plan.as_dict()}")
-            cited_tavily, cited_resolved = _cite(env_changes, proposal.cited_sources)
+            cited_tavily, cited_resolved = _cite(env_changes, proposal.cited_sources, checked_diff)
             state.build_plan_dict = plan.as_dict()
             try:
                 rerun_result = _execute(workdir, smoke=True)
@@ -1491,7 +1555,17 @@ def _run_stages(
             except SandboxTimeoutError as exc:
                 attempts.append(
                     AttemptRecord(attempt_number, checked_diff, "PASS", (), None, "", str(exc)[-2000:], cited_tavily,
-                                  env_delta_dicts, cited_resolved)
+                                  env_delta_dicts, cited_resolved, consulted=consulted, reason_no_citation=proposal.reason_no_citation,
+                                  silent_exit=silent_exit)
+                )
+                raise
+            except tree_integrity.HarnessIntegrityError as exc:
+                # harness-v1.3.4 (D-22): the run is void, but the attempt (patch, gate verdict, what the sandbox said) is recorded first.
+                attempts.append(
+                    AttemptRecord(attempt_number, checked_diff, "PASS", (), None, "",
+                                  f"run void (INVALID_HARNESS): {exc}; sandbox: {str(exc.record.get('sandbox_stderr', ''))[-800:]}"[-2000:],
+                                  cited_tavily, env_delta_dicts, cited_resolved, patch_notes=patch_notes, model_patch=model_patch,
+                                  consulted=consulted, reason_no_citation=proposal.reason_no_citation, silent_exit=silent_exit)
                 )
                 raise
             _log(
@@ -1514,6 +1588,9 @@ def _run_stages(
                     execution=_execution_of(rerun_result, True),
                     patch_notes=patch_notes,
                     model_patch=model_patch,
+                    consulted=consulted,
+                    reason_no_citation=proposal.reason_no_citation,
+                    silent_exit=silent_exit,
                 )
             )
             if not rerun_result.succeeded:

@@ -2,6 +2,13 @@
 
 One entry per phase of the post-corpus-v2 plan. Numbers are produced by scripts in `scripts/`.
 
+## harness-v1.3.4 — the five defects the v1.3.3 smoke gate found (2026-09-30; exploratory; v1.3.2 stays the pre-registered result)
+Smoke gate v1.3.3 (entries 11, 7, 3, 8): 1/4 recovered, 2 patches applied, 0 citations, no cost event; NOT PASSED. Fixes: D-20 the download route carries patched files as an
+overlay applied before the integrity check (entry 8's INVALID_HARNESS); D-22 a voided attempt is still recorded; D-18 the RERUN-managed lock is never shown as `requirements.txt`
+and cannot be a patch target; D-19 silent failures (no error text) give the repairer head+tail of both streams and the exit code, a blind code patch is rejected unless it only adds
+diagnostics, and re-executions run unbuffered with faulthandler; D-21 numbered references with a REQUIRED `cited_sources` field, `consulted` and cited stored and hashed, a
+deterministic `content_match` citation when the applied change's text appears in a reference. New tests: test_v134_overlay.py, test_v134_repair_loop.py.
+
 ## harness-v1.3.3 — exploratory repair-loop fixes (2026-09-30; v1.3.2 stays the pre-registered result)
 Fixes for the defects the v1.3.2 records showed (`reports/corpus-v2.1/v1.3.3/DEFECT_FIX_MAP.md`): hard per-entry / per-operation spend enforcement during a sandbox operation
 with killed-operation spend recorded and TIMEOUT instead of PIPELINE_ERROR; one static whole-tree dependency batch with the repo's own modules excluded and a dependency-confusion

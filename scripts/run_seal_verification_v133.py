@@ -21,16 +21,18 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 PY = str(ROOT / "backend" / ".venv" / "Scripts" / "python.exe") if os.name == "nt" else str(ROOT / "backend" / ".venv" / "bin" / "python")
-OUT = "runs/sandbox_verification/final-v1.3.3"
+TAG = "harness-v1.3.4"  # the version being sealed; the output folder is per tag
+OUT = f"runs/sandbox_verification/final-{TAG.removeprefix('harness-')}"
 TORCH = "scripts/verify_runner_torch.py"
 DL = "scripts/verify_download_route.py"
 V133 = "scripts/verify_v133_paths.py"
 
 # (record file, argv after the interpreter, extra environment, what it verifies)
 PLAN = [
-    ("download_git_entry2_py310.json", [DL, "https://github.com/DeformableFriends/NeuralTracking", "015256369a94a56b0e478fd100326b9aa97ec9a7", "python:3.10-slim"], {}, "download route (git)"),
-    ("download_tarball_fallback_py36.json", [DL, "https://github.com/octocat/Hello-World", "7fd1a60b01f91b314f59955a4e4d4e80d8edf11d", "python:3.6-slim"], {}, "download route (tarball fallback)"),
-    ("upload_archive_exec_bit_py36.json", ["scripts/verify_upload_route.py", "python:3.6-slim"], {}, "archive upload + exec-bit verify"),
+    ("download_git_entry2_py310.json", [DL, "https://github.com/DeformableFriends/NeuralTracking", "015256369a94a56b0e478fd100326b9aa97ec9a7", "python:3.10-slim", "{out}"], {}, "download route (git)"),
+    ("download_tarball_fallback_py36.json", [DL, "https://github.com/octocat/Hello-World", "7fd1a60b01f91b314f59955a4e4d4e80d8edf11d", "python:3.6-slim", "{out}"], {}, "download route (tarball fallback)"),
+    ("download_git_overlay_entry8_py310.json", [DL, "https://github.com/edenton/svg", "3f19f0b581161614382b2d529f8d92c7d25999e5", "python:3.10-slim", "{out}", "utils.py"], {}, "download route with one patched file carried as an overlay (D-20; the v1.3.3 entry-8 failure)"),
+    ("upload_archive_exec_bit_py36.json", ["scripts/verify_upload_route.py", "python:3.6-slim", "{out}"], {}, "archive upload + exec-bit verify"),
     ("torch_py36_pin1.10.2.json", [TORCH, "python:3.6-slim", "{out}", "pin", "torch==1.10.2"], {}, "runner torch, py3.6, old pin"),
     ("torch_py38_pin1.12.1.json", [TORCH, "python:3.8-slim", "{out}", "pin", "torch==1.12.1"], {}, "runner torch, py3.8, old pin"),
     ("torch_py310_pin1.12.1.json", [TORCH, "python:3.10-slim", "{out}", "pin", "torch==1.12.1"], {}, "runner torch, py3.10, old pin"),
@@ -52,10 +54,7 @@ CONSERVATIVE_COST = 0.30
 
 def command(record: str, argv: list[str]) -> list[str]:
     out = f"{OUT}/{record}"
-    resolved = [a.replace("{out}", out) for a in argv]
-    if argv[0] in ("scripts/verify_upload_route.py",) or argv[0] == DL:
-        resolved.append(out)  # these two take the output path last
-    return [PY, *resolved]
+    return [PY, *(a.replace("{out}", out) for a in argv)]
 
 
 def main() -> int:
@@ -66,7 +65,7 @@ def main() -> int:
     if args.list:
         for record, argv, env, what in PLAN:
             print(f"{record:48s} {what}  env={env or ''}")
-        print(f"{len(PLAN)} live runs; estimated total $1.5-2.0 (previous matrix of 9: $1.07)")
+        print(f"{len(PLAN)} live runs into {OUT}; measured v1.3.3 repeat of 17: $1.26; the overlay case adds ~$0.1")
         return 0
     if args.max_usd <= 0:
         print("refusing to spend: pass --max-usd (and have the operator's approval)")
