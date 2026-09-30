@@ -42,7 +42,7 @@ PATHS = [
     ("runner_numpy_cap_old_torch", "torch < 2.3 is installed with numpy<2 in the same pip command and `import torch` works on Python 3.9 (corpus-v2 entry 11)",
      [SB, ENV], ["torch_py39_pin1.8.1_numpy_cap.json"]),
     ("kill_at_operation_limit", "a step that would run 300 s is stopped at a 25 s operation limit; SandboxTimeoutError carries the killed step's duration and the completed steps' cost",
-     [SB], ["kill_at_operation_limit_py310.json", "kill_at_operation_limit_py310_extra1.json"]),
+     [SB], sorted(p.name for p in (Path(__file__).resolve().parents[1] / "runs/sandbox_verification/final-v1.3.4").glob("kill_at_operation_limit_py310*.json"))),
     ("smoke_launcher", "the smoke launcher: a still-running command with output passes and is stopped; a finishing command and a failing command keep exit code and output; a silent one fails; on Python 3.10 and 3.6",
      [SB, SMOKE], ["smoke_alive_py310.json", "smoke_exits_ok_py310.json", "smoke_fails_py310.json", "smoke_silent_py310.json",
                    "smoke_alive_py36.json", "smoke_fails_py36.json"]),

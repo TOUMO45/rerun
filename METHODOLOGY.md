@@ -870,3 +870,8 @@ $2.00, re-gate cap $3.50, stop on first failure. If it fails again on (a) or (c)
 What a v1.3.4 record adds: `consulted` (every reference offered, numbered as in the prompt) beside `tavily_sources` (the cited ones, each with `cited_via`); `reason_no_citation`;
 `silent_exit`; and, for a run voided by INVALID_HARNESS, the attempt that was being executed. A `content_match` citation is RERUN's deterministic finding that the applied
 change's text appears in that reference; it is labelled as such and is never reported as the model's own citation.
+
+**Seal verification of harness-v1.3.4 (2026-09-30).** 20 live runs, all passed, on the v1.3.4 `sandbox.py` / `smoke_exec.py` / `runner_env.py` blobs: the 17 v1.3.3 paths repeated,
+the download-route overlay case on entry 8's own repository (the file the v1.3.3 gate lost; `OVERLAY_OK`), and the kill path through both stop paths. Measured spend $1.312;
+cumulative on the new ledger $6.738. `seal_verification.json` written from these records; the tag is new (`harness-v1.3.3` is untouched).
+
