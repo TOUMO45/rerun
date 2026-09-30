@@ -750,3 +750,11 @@ D4 build step / the repo's own module: 1; not stratified (PASS, INFRA): 2. **Rep
 pre-registered one (`compare_batches.py`, denominator printed, Wilson 95 %); (2) a **per-stratum table** (n, recovered, Wilson interval), never pooled across strata without the
 per-stratum rows beside it; (3) a sensitivity RRR whose denominator is the audit's REPO_UNDECLARED entries only, labelled as such. n <= 20, so every interval is wide
 and that is the honest size of the claim. Recoveries in D1 are the expected easy wins and are not to be described as evidence for the hard strata.
+
+### Amendment (2026-09-30, after the registered INFRA retry, before any TREATMENT run)
+
+The retry of CONTROL entry 7 (`albertometelli/pfqi`) ran under the policy above: attempt 1 (INFRA_ERROR, $0.003) is kept in `control/infra_retries/`; the retry
+ended `BLOCKED`, `DEP_MISSING: numpy`, REPO, phase `repo_run` ($0.006). The audit and the strata were re-run on the final CONTROL set; **only entry 7's row changed**
+(INFRA/"-" -> REPO_UNDECLARED/D1). Final CONTROL: 1 RUNS_CLEAN, 17 BLOCKED, 2 INDETERMINATE `RUNNER_SETUP_FAILED`; total spend $4.08 with the attempt-1 record.
+**Final gate: (a) pre-registered rule = 17; (b) audit = 13 (12 excluding entry 19's own module).** Strata counts: D1 9, D2 6, D3 3, D4 1, unstratified 1 (PASS).
+The frozen hashes are superseded: `strata.json` sha256 `78edd77de94683e3758d13f47db85cc90590665fe0fef131aadafcc42a1197d7`, `audit_attribution.json` sha256 `4c8e3066eb90045f09361a1e90d5cdabba8c78ad246e4a6a9b3e437453590466`. The earlier hash `ade8083f...` was computed while entry 7 was INFRA_ERROR.

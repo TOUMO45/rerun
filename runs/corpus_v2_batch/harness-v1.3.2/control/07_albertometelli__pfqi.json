@@ -1,0 +1,328 @@
+{
+  "run_kind": "live end-to-end run",
+  "dev_run": false,
+  "dry_run": null,
+  "batch": {
+    "harness_tag": "harness-v1.3.2",
+    "harness_commit": "77b3cfe1697ad74ad13eac1f77ffe0f1e80c7379",
+    "head_commit": "8c442c6818afecf0f278b94c424a0b32218ac930",
+    "corpus": "corpus-v2",
+    "prereg_sha256": "ae5a722249156e058d3d360bdc63fa8224140d0688f1daa307ecfa93a98c7284",
+    "corpus_hash": "7df090bea7013974f9f10fb8959ab0162734b51c83a80f744f9c310ce694fbdc",
+    "arm": "control",
+    "total_cap_usd": 25.0,
+    "already_spent_usd": 0.0,
+    "entry_id": 7,
+    "category": "PRIMARY",
+    "rules_matched": [],
+    "per_entry_cap_usd": 2.0
+  },
+  "started_at": "2026-09-30T12:43:03.885231+00:00",
+  "corpus_entry": {
+    "name": "albertometelli__pfqi",
+    "repo_url": "https://github.com/albertometelli/pfqi",
+    "commit_sha": "84901d291e759cb4e2471f0b2ba521acad6ac335",
+    "command": "python3 scripts/run_cartpole.py",
+    "command_source": "README.md line 18"
+  },
+  "config": {
+    "models": {
+      "recon": "nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B",
+      "planner": "nvidia/nemotron-3-super-120b-a12b",
+      "repairer": "nvidia/nemotron-3-super-120b-a12b",
+      "adjudicator": "nvidia/Nemotron-3-Ultra-550b-a55b"
+    },
+    "sandbox_backend": "token_factory",
+    "sandbox_image_default": "python:3.10-slim",
+    "sandbox_wall_clock_seconds": 600.0,
+    "arm": "control",
+    "repair_enabled": false,
+    "max_attempts": 0,
+    "tavily_configured": false,
+    "cost_cap_usd": 2.0
+  },
+  "intake": {
+    "duration_s": 14.42,
+    "resolved_sha": "84901d291e759cb4e2471f0b2ba521acad6ac335",
+    "dependency_files": [],
+    "declared_dependencies": [],
+    "entrypoint_candidates": [
+      "plotters/trading_multi_perf_plotter4x4.py",
+      "scripts/run_trading.py",
+      "trlib/environments/ags_derivatives.py",
+      "trlib/environments/ags_prices.py",
+      "trlib/environments/gridworld_continuous.py",
+      "trlib/environments/trading_proportional.py",
+      "trlib/environments/vec_derivatives.py",
+      "trlib/environments/vec_prices.py",
+      "trlib/experiments/experiment.py"
+    ],
+    "notebook_paths": []
+  },
+  "pipeline_duration_s": 114.44,
+  "repair_mode": "deterministic",
+  "tree_integrity": {
+    "status": "verified",
+    "tree_sha": "a91de59ccd8827d6dbf004ebaaa09f1044b10e27",
+    "files_checked": 74,
+    "excluded_patched": []
+  },
+  "result": {
+    "verdict": "BLOCKED",
+    "taxonomy_code": "DEP_MISSING",
+    "indeterminate_reason": "",
+    "reason_code": null,
+    "error_chain": [
+      {
+        "error": "ModuleNotFoundError: No module named 'numpy'",
+        "class": "DEP_MISSING",
+        "attribution": "REPO",
+        "phase": "repo_run",
+        "cleared_by": null
+      }
+    ],
+    "first_repo_error": "ModuleNotFoundError: No module named 'numpy'",
+    "last_error": "ModuleNotFoundError: No module named 'numpy'",
+    "error_traceback": "",
+    "attempts": [],
+    "certificate_prose": "The run log shows a ModuleNotFoundError for numpy, indicating a missing dependency. The baseline as-is run failed with exit code 1. The classifier assigned DEP_MISSING and the verdict is BLOCKED after 0 repair attempts. Verifies that the artifact executes. Does not verify the paper's numerical results."
+  },
+  "certificate": {
+    "repo_url": "https://github.com/albertometelli/pfqi",
+    "commit_sha": "84901d291e759cb4e2471f0b2ba521acad6ac335",
+    "build_plan": {
+      "base_image": "python:3.10-slim",
+      "apt_install": [],
+      "install_commands": [
+        "true  # no declared dependency file found; nothing to install"
+      ],
+      "execute_command": "python3 scripts/run_cartpole.py",
+      "notes": [
+        "execute command is the repository's documented command (corpus ground truth)",
+        "base image python:3.10-slim: no usable Python declaration; RERUN default 3.10"
+      ]
+    },
+    "full_log": "[intake] cloned https://github.com/albertometelli/pfqi@84901d291e759cb4e2471f0b2ba521acad6ac335\n[recon] calling Nemotron Nano\n[recon] entrypoint=scripts/run_trading.py confidence=0.85\n[python] python:3.10-slim (default): no usable Python declaration; RERUN default 3.10\n[planner] build plan: {'base_image': 'python:3.10-slim', 'apt_install': [], 'install_commands': ['true  # no declared dependency file found; nothing to install'], 'execute_command': 'python3 scripts/run_cartpole.py', 'notes': [\"execute command is the repository's documented command (corpus ground truth)\", 'base image python:3.10-slim: no usable Python declaration; RERUN default 3.10']}\n[integrity] verified 74 file(s) against tree a91de59ccd8827d6dbf004ebaaa09f1044b10e27\n[sandbox] starting build+execute (wall_clock_seconds=600)\n[cost_guard] recorded $0.0031 sandbox spend, $1.9956 remaining today\n[sandbox] id=7f051d24-36c0-4486-b342-3ac4c25e1c00 exit_code=1\n[baseline] as-is run: FAILS (exit code 1)\n[classifier] DEP_MISSING: ModuleNotFoundError: No module named 'numpy'\n[verdict] BLOCKED after 0 repair attempt(s): DEP_MISSING",
+    "diffs": [],
+    "verdict": "BLOCKED",
+    "timestamp": "2026-09-30T12:45:12.746724+00:00",
+    "bundle_version": 4,
+    "baseline": {
+      "result": "FAILS",
+      "exit_code": 1,
+      "base_image": "python:3.10-slim",
+      "install_commands": [
+        "true  # no declared dependency file found; nothing to install"
+      ],
+      "execute_command": "python3 scripts/run_cartpole.py",
+      "sandbox_id": "7f051d24-36c0-4486-b342-3ac4c25e1c00",
+      "taxonomy_code": "DEP_MISSING",
+      "evidence": "ModuleNotFoundError: No module named 'numpy'"
+    },
+    "recovery": false,
+    "tree_integrity": {
+      "status": "verified",
+      "tree_sha": "a91de59ccd8827d6dbf004ebaaa09f1044b10e27",
+      "files_checked": 74,
+      "excluded_patched": []
+    },
+    "corpus_hash": "7df090bea7013974f9f10fb8959ab0162734b51c83a80f744f9c310ce694fbdc",
+    "taxonomy_code": "DEP_MISSING",
+    "indeterminate_reason": "",
+    "error_chain": [
+      {
+        "error": "ModuleNotFoundError: No module named 'numpy'",
+        "class": "DEP_MISSING",
+        "attribution": "REPO",
+        "phase": "repo_run",
+        "cleared_by": null
+      }
+    ],
+    "first_repo_error": "ModuleNotFoundError: No module named 'numpy'",
+    "last_error": "ModuleNotFoundError: No module named 'numpy'",
+    "reproduction_passport_hash": "8f77faf111e7210c17b4415b12bc7f987c74ba238d04c690f8675ae9094e1d7a"
+  },
+  "finished_at": "2026-09-30T12:45:12.774997+00:00",
+  "events": [
+    {
+      "t_s": 0.0,
+      "at": "2026-09-30T12:43:18.304922+00:00",
+      "line": "[intake] cloned https://github.com/albertometelli/pfqi@84901d291e759cb4e2471f0b2ba521acad6ac335"
+    },
+    {
+      "t_s": 0.0,
+      "at": "2026-09-30T12:43:18.307424+00:00",
+      "line": "[recon] calling Nemotron Nano"
+    },
+    {
+      "t_s": 23.31,
+      "at": "2026-09-30T12:43:41.614380+00:00",
+      "line": "[recon] entrypoint=scripts/run_trading.py confidence=0.85"
+    },
+    {
+      "t_s": 23.31,
+      "at": "2026-09-30T12:43:41.617646+00:00",
+      "line": "[python] python:3.10-slim (default): no usable Python declaration; RERUN default 3.10"
+    },
+    {
+      "t_s": 25.04,
+      "at": "2026-09-30T12:43:43.345059+00:00",
+      "line": "[planner] build plan: {'base_image': 'python:3.10-slim', 'apt_install': [], 'install_commands': ['true  # no declared dependency file found; nothing to install'], 'execute_command': 'python3 scripts/run_cartpole.py', 'notes': [\"execute command is the repository's documented command (corpus ground truth)\", 'base image python:3.10-slim: no usable Python declaration; RERUN default 3.10']}"
+    },
+    {
+      "t_s": 25.29,
+      "at": "2026-09-30T12:43:43.590624+00:00",
+      "line": "[integrity] verified 74 file(s) against tree a91de59ccd8827d6dbf004ebaaa09f1044b10e27"
+    },
+    {
+      "t_s": 25.29,
+      "at": "2026-09-30T12:43:43.590665+00:00",
+      "line": "[sandbox] starting build+execute (wall_clock_seconds=600)"
+    },
+    {
+      "t_s": 112.28,
+      "at": "2026-09-30T12:45:10.586010+00:00",
+      "line": "[cost_guard] recorded $0.0031 sandbox spend, $1.9956 remaining today"
+    },
+    {
+      "t_s": 112.28,
+      "at": "2026-09-30T12:45:10.586144+00:00",
+      "line": "[sandbox] id=7f051d24-36c0-4486-b342-3ac4c25e1c00 exit_code=1"
+    },
+    {
+      "t_s": 112.28,
+      "at": "2026-09-30T12:45:10.586205+00:00",
+      "line": "[baseline] as-is run: FAILS (exit code 1)"
+    },
+    {
+      "t_s": 112.29,
+      "at": "2026-09-30T12:45:10.591463+00:00",
+      "line": "[classifier] DEP_MISSING: ModuleNotFoundError: No module named 'numpy'"
+    },
+    {
+      "t_s": 112.29,
+      "at": "2026-09-30T12:45:10.591571+00:00",
+      "line": "[verdict] BLOCKED after 0 repair attempt(s): DEP_MISSING"
+    }
+  ],
+  "model_calls": [
+    {
+      "model": "nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B",
+      "started_at": "2026-09-30T12:43:18.523666+00:00",
+      "latency_s": 23.09,
+      "finish_reason": "stop",
+      "content_is_none": false,
+      "has_reasoning": true,
+      "usage": {
+        "completion_tokens": 2550,
+        "prompt_tokens": 9313,
+        "total_tokens": 11863,
+        "completion_tokens_details": null,
+        "prompt_tokens_details": null
+      }
+    },
+    {
+      "model": "nvidia/nemotron-3-super-120b-a12b",
+      "started_at": "2026-09-30T12:43:41.618953+00:00",
+      "latency_s": 1.73,
+      "finish_reason": "stop",
+      "content_is_none": false,
+      "has_reasoning": true,
+      "usage": {
+        "completion_tokens": 79,
+        "prompt_tokens": 274,
+        "total_tokens": 353,
+        "completion_tokens_details": {
+          "accepted_prediction_tokens": null,
+          "audio_tokens": null,
+          "reasoning_tokens": 69,
+          "rejected_prediction_tokens": null,
+          "text_tokens": null
+        },
+        "prompt_tokens_details": {
+          "audio_tokens": null,
+          "cache_write_tokens": null,
+          "cached_tokens": 0,
+          "image_tokens": null,
+          "text_tokens": null,
+          "created_cache_tokens": 0,
+          "multimodal_tokens": null
+        },
+        "prompt_cache_hit_tokens": 0,
+        "prompt_cache_miss_tokens": 274
+      }
+    },
+    {
+      "model": "nvidia/Nemotron-3-Ultra-550b-a55b",
+      "started_at": "2026-09-30T12:45:10.594058+00:00",
+      "latency_s": 2.15,
+      "finish_reason": "stop",
+      "content_is_none": false,
+      "has_reasoning": true,
+      "usage": {
+        "completion_tokens": 311,
+        "prompt_tokens": 665,
+        "total_tokens": 976,
+        "completion_tokens_details": {
+          "accepted_prediction_tokens": null,
+          "audio_tokens": null,
+          "reasoning_tokens": 215,
+          "rejected_prediction_tokens": null,
+          "text_tokens": null
+        },
+        "prompt_tokens_details": {
+          "audio_tokens": null,
+          "cache_write_tokens": null,
+          "cached_tokens": 0,
+          "image_tokens": null,
+          "text_tokens": null,
+          "multimodal_tokens": null
+        },
+        "prompt_cache_hit_tokens": 0,
+        "prompt_cache_miss_tokens": 665
+      }
+    }
+  ],
+  "cost_guard": {
+    "spent_usd": 0.005979650000000001,
+    "model_spent_usd": 0.00292208,
+    "sandbox_spent_usd": 0.0030575700000000003,
+    "remaining_usd": 1.99402035,
+    "model_usage": [
+      {
+        "model": "nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B",
+        "prompt_tokens": 9313,
+        "completion_tokens": 2550,
+        "cost_usd": 0.00117078
+      },
+      {
+        "model": "nvidia/nemotron-3-super-120b-a12b",
+        "prompt_tokens": 274,
+        "completion_tokens": 79,
+        "cost_usd": 0.0001533
+      },
+      {
+        "model": "nvidia/Nemotron-3-Ultra-550b-a55b",
+        "prompt_tokens": 665,
+        "completion_tokens": 311,
+        "cost_usd": 0.001598
+      }
+    ],
+    "prices_usd_per_1m": {
+      "nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B": [
+        0.06,
+        0.24
+      ],
+      "nvidia/nemotron-3-super-120b-a12b": [
+        0.3,
+        0.9
+      ],
+      "nvidia/Nemotron-3-Ultra-550b-a55b": [
+        1.0,
+        3.0
+      ]
+    },
+    "prices_source": "https://api.tokenfactory.nebius.com/v1/models?verbose=true (pricing field)",
+    "prices_retrieved": "2026-09-24"
+  }
+}

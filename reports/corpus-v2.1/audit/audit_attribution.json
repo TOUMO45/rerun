@@ -2,15 +2,14 @@
   "control_dir": "runs/corpus_v2_batch/harness-v1.3.2/control",
   "entries": 20,
   "labels": {
-    "REPO_UNDECLARED": 12,
+    "REPO_UNDECLARED": 13,
     "PLATFORM_REQUIRED": 3,
     "ENV_ROT": 3,
-    "INFRA": 1,
     "PASS": 1
   },
-  "gate_registered_rule": 16,
-  "gate_audit": 12,
-  "gate_audit_excluding_internal_modules": 11,
+  "gate_registered_rule": 17,
+  "gate_audit": 13,
+  "gate_audit_excluding_internal_modules": 12,
   "gate_threshold": 8,
   "gate_registered_passes": true,
   "gate_audit_passes": true,
@@ -319,19 +318,47 @@
       "name": "albertometelli__pfqi",
       "repo_url": "https://github.com/albertometelli/pfqi",
       "commit": "84901d291e759cb4e2471f0b2ba521acad6ac335",
-      "verdict": "INFRA_ERROR",
-      "taxonomy_code": null,
-      "reason_code": "INFRA_ERROR:sandbox:ContreeTransportError",
-      "error": "INFRA_ERROR:sandbox:ContreeTransportError: sandbox: ContreeTransportError: ContreeTransportError(request=RequestInfo(url='https://api.tokenfactory.nebius.com/sandboxes/v1/files/46e879cac88d78f962b5844f84e10ebb04562e056ac3bf4a9d8ec71e01586d95', method='GET'), response=None, error='Server disconnected",
-      "chain": [],
-      "registered_repo_attributed": false,
+      "verdict": "BLOCKED",
+      "taxonomy_code": "DEP_MISSING",
+      "reason_code": null,
+      "error": "ModuleNotFoundError: No module named 'numpy'",
+      "chain": [
+        [
+          "DEP_MISSING",
+          "REPO",
+          "repo_run"
+        ]
+      ],
+      "registered_repo_attributed": true,
       "harness_declared_dependencies": [],
       "harness_dependency_files": [],
-      "spent_usd": 0.0028,
-      "label": "INFRA",
-      "rationale": "external-service failure; NOT_MEASURED",
+      "spent_usd": 0.006,
+      "module": "numpy",
+      "candidate_names": [
+        "numpy"
+      ],
+      "readme_mentions": [
+        {
+          "file": "README.md",
+          "line": 8,
+          "text": "numpy",
+          "kind": "docs_mention",
+          "commented": false
+        }
+      ],
+      "internal_module": false,
+      "evidence": [
+        {
+          "file": "README.md",
+          "line": 8,
+          "text": "numpy",
+          "kind": "docs_mention",
+          "commented": false
+        }
+      ],
+      "label": "REPO_UNDECLARED",
       "judgment": false,
-      "evidence": []
+      "rationale": "'numpy' (as numpy) is declared in no manifest, Dockerfile, or install line; the README mentions it in prose (1 line(s))"
     },
     {
       "id": 8,
