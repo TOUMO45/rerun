@@ -1,7 +1,11 @@
 """harness-v1.3.4, D-20: on the download route a patched file travels as an overlay and the integrity check accepts it.
 
 The sandbox's own scripts (overlay.py, verify.py) run here for real, in a temp directory, against a "fetched" tree written by
-the test (the fetch itself needs GitHub and is verified live at the seal)."""
+the test (the fetch itself needs GitHub and is verified live at the seal).
+
+harness-v1.4.0-rc: LEGACY. The live flow no longer uses this path: a checkpoint operation keeps the committed tree in its images
+and sends every patched file in its branch overlay (sandbox.Checkpoint), on both routes. The path stays for runners without
+checkpoints, and these tests keep it honest."""
 
 from __future__ import annotations
 
@@ -16,6 +20,8 @@ import pytest
 
 from app.services import sandbox, sandbox_limits
 from app.services.sandbox import UPLOAD_DIR, UPLOAD_MISMATCH_EXIT, build_upload_archive
+
+pytestmark = pytest.mark.legacy
 
 SOURCE = sandbox_limits.DownloadSource.from_repo_url("https://github.com/o/r", "a" * 40)
 ORIGINAL = b"def psnr(a, b):\n    from skimage.measure import compare_psnr\n    return compare_psnr(a, b)\n"

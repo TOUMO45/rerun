@@ -398,6 +398,18 @@ class SandboxRunResult:
     # extract+verify step; None when there was no upload (and for fakes).
     upload_seconds: float | None = None
     extract_seconds: float | None = None
+    # harness-v1.4.0-rc (D-23), set only by a checkpoint operation (`checkpoint=` given); defaults keep every older caller unchanged.
+    # `layers`: (setup commands contained, image id) of every image this operation KEPT after the tree and after each setup command
+    # it ran, reopenable by id; `branch_from_image`: the image the operation started from (None = fresh from the base image);
+    # `result_image`: the kept image the command ran on (tree + patch + environment), when asked for; `rerun_steps`: RERUN's own
+    # steps (tree extract/verify, patch overlay) with their measured seconds and cost, which are NOT in `steps`;
+    # `setup_commands`: every setup command of the operation's environment; `ran_setup`: the ones this operation actually ran.
+    layers: tuple[tuple[tuple[str, ...], str], ...] = ()
+    branch_from_image: str | None = None
+    result_image: str | None = None
+    rerun_steps: tuple[StepResult, ...] = ()
+    setup_commands: tuple[str, ...] = ()
+    ran_setup: tuple[str, ...] = ()
 
     @property
     def final(self) -> StepResult:
@@ -407,7 +419,12 @@ class SandboxRunResult:
 
     @property
     def total_cost_usd(self) -> float:
-        return sum(s.cost_usd for s in self.steps)
+        # The tree-extract cost is folded into steps[0] (harness-v1.1); RERUN's other own steps (the patch overlay) are added here.
+        return sum(s.cost_usd for s in self.steps) + sum(s.cost_usd for s in self.rerun_steps if s.phase != "rerun_extract")
+
+    @property
+    def kept_images(self) -> tuple[str, ...]:
+        return tuple(dict.fromkeys([*(image for _, image in self.layers), *((self.result_image,) if self.result_image else ())]))
 
     @property
     def succeeded(self) -> bool:
@@ -441,6 +458,117 @@ def _server_timed_out(result) -> bool:
     return getattr(state, "timed_out", False) is True
 
 
+
+
+# --- Checkpoint operations (harness-v1.4.0-rc, D-23) ----------------------------------------------------------
+# Until harness-v1.3.4 every operation rebuilt the environment from the base image (upload, extract, apt, torch, pip, ...) and
+# disposed of every image at its end, so each re-execution paid the torch install again (corpus-v2 entries 8 and 11 ended COST_CAP
+# inside or after a repeated install). Token Factory Sandboxes snapshot the filesystem after every non-disposable run and an image
+# can be reopened by its UUID (contree_sdk `images.use(uuid)`). A checkpoint operation therefore:
+#   - KEEPS the image after the pristine tree and after each setup command it runs ("layers"; the caller records their ids);
+#   - starts, when the caller names one, from such a layer and runs only the setup commands the layer does not already contain;
+#   - applies the repository changes (gate-approved patches) as a small overlay archive on top, after the setup commands, or right
+#     after the tree when a setup command reads a patched file (the caller decides: `branch_before_setup`);
+#   - can keep the image the command runs on (`keep_result`): the adjudicated winner's image becomes the next environment image.
+# The command itself always runs disposable: its own side effects never enter an environment image.
+# The overlay replaces the harness-v1.3.4 D-20 path in the live flow: the tree in a layer is always the committed one (the caller
+# uploads the pristine files, or the download route fetches them), and every patched file travels in the overlay, whatever the repo size.
+
+BRANCH_ARCHIVE = ".rerun-branch.tar"
+BRANCH_DIR = ".rerun_branch_v1"
+
+# Python 3.6-compatible: writes every patched file, removes every deleted one, then checks each written file's git blob SHA-1.
+_BRANCH_SCRIPT = f"""import hashlib, json, os, shutil, sys
+D = "{BRANCH_DIR}"
+spec = json.load(open(D + "/branch.json"))
+bad = []
+for p in sorted(spec["files"]):
+    sha, mode = spec["files"][p]
+    d = os.path.dirname(p)
+    if d and not os.path.isdir(d):
+        os.makedirs(d)
+    shutil.copyfile(D + "/files/" + p, p)
+    os.chmod(p, int(mode, 8))
+    data = open(p, "rb").read()
+    if hashlib.sha1(b"blob " + str(len(data)).encode() + b"\\0" + data).hexdigest() != sha:
+        bad.append(p)
+for p in spec["deleted"]:
+    if os.path.lexists(p):
+        os.remove(p)
+    if os.path.lexists(p):
+        bad.append(p + " (not deleted)")
+if bad:
+    sys.stderr.write("RERUN_BRANCH_MISMATCH %d file(s): %s\\n" % (len(bad), " ".join(bad[:20])))
+    sys.exit({UPLOAD_MISMATCH_EXIT})
+print("RERUN_BRANCH_APPLIED %d file(s) written, %d deleted" % (len(spec["files"]), len(spec["deleted"])))
+"""
+
+BRANCH_COMMAND = (
+    f"tar -xpf {BRANCH_ARCHIVE} --no-same-owner && rm -f {BRANCH_ARCHIVE} "
+    f"&& python3 {BRANCH_DIR}/apply.py && rm -rf {BRANCH_DIR}"
+)
+
+
+@dataclass(frozen=True)
+class Checkpoint:
+    """How one operation uses and produces reusable images (harness-v1.4.0-rc)."""
+
+    # The layer to start from (an image id a previous operation kept) and the setup commands it already contains, which must be a
+    # prefix of this operation's setup commands. None = start fresh from the base image (upload or fetch the pristine tree).
+    start_image: str | None = None
+    start_ops: tuple[str, ...] = ()
+    # Keep the image after the tree (fresh operations) and after every setup command this operation runs.
+    keep_layers: bool = True
+    # The repository changes to put on top: path -> (bytes, octal mode int); and the paths a patch deleted.
+    branch_files: tuple[tuple[str, bytes, int], ...] = ()
+    branch_deleted: tuple[str, ...] = ()
+    # Apply the changes right after the tree instead of after the setup commands (a setup command reads a patched file). The caller
+    # must then not ask to keep layers: they would contain a patched tree.
+    branch_before_setup: bool = False
+    # Keep the image the command runs on (tree + changes + environment).
+    keep_result: bool = False
+
+    @property
+    def has_branch(self) -> bool:
+        return bool(self.branch_files or self.branch_deleted)
+
+
+def build_branch_archive(files: Iterable[tuple[str, bytes, int]], deleted: Iterable[str] = ()) -> bytes:
+    """The overlay tar: every changed file under BRANCH_DIR/files/<path>, branch.json (path -> [git blob SHA-1, mode]) and apply.py."""
+    spec: dict = {"files": {}, "deleted": []}
+    buffer = io.BytesIO()
+    with tarfile.open(fileobj=buffer, mode="w", format=tarfile.PAX_FORMAT) as tar:
+
+        def _add(name: str, data: bytes, mode: int = _DEFAULT_FILE_MODE) -> None:
+            info = tarfile.TarInfo(name)
+            info.size, info.mode, info.mtime, info.uid, info.gid = len(data), mode, 0, 0, 0
+            tar.addfile(info, io.BytesIO(data))
+
+        for path, data, mode in sorted(files):
+            name = path.replace("\\", "/")
+            if name.startswith("/") or ".." in name.split("/") or name.split("/")[0] in (UPLOAD_DIR, BRANCH_DIR):
+                raise UploadIntegrityError(f"refusing to put unsafe or reserved path {path!r} in the overlay")
+            _add(f"{BRANCH_DIR}/files/{name}", data, mode)
+            spec["files"][name] = [_blob_sha1(data), f"{mode:04o}"]
+        for path in sorted(set(deleted)):
+            name = path.replace("\\", "/")
+            if name.startswith("/") or ".." in name.split("/"):
+                raise UploadIntegrityError(f"refusing to delete unsafe path {path!r}")
+            spec["deleted"].append(name)
+        _add(f"{BRANCH_DIR}/branch.json", json.dumps(spec, sort_keys=True).encode("utf-8"))
+        _add(f"{BRANCH_DIR}/apply.py", _BRANCH_SCRIPT.encode("utf-8"))
+    return buffer.getvalue()
+
+
+def setup_commands(install_commands: Iterable[str], torch_setup: "runner_env.TorchSetup | None" = None,
+                   runner_extras: Iterable[str] = ()) -> tuple[str, ...]:
+    """Every setup command of an environment, in the order the sandbox runs them: the build plan's steps split into system packages,
+    the runner's torch install, the rest (sandbox_limits.split_setup_ops), then RERUN's own runner hooks (runner_hooks). Two
+    operations with the same base image whose lists share a prefix can share the layer that prefix produced."""
+    runner_torch = (torch_setup.install_command, torch_setup.fix_command) if torch_setup else ()
+    return (*(op.command for op in sandbox_limits.split_setup_ops(install_commands, runner_torch)), *runner_extras)
+
+
 def run_build_and_execute(
     *,
     api_key: str,
@@ -454,6 +582,8 @@ def run_build_and_execute(
     download_source: "sandbox_limits.DownloadSource | None" = None,
     torch_setup: "runner_env.TorchSetup | None" = None,
     overlay_paths: frozenset[str] = frozenset(),
+    checkpoint: Checkpoint | None = None,
+    runner_extras: tuple[str, ...] = (),
 ) -> SandboxRunResult:
     """Run the full build-plan pipeline in an isolated Token Factory
     Sandbox: reference/import the base image, upload the repo, run each
@@ -461,7 +591,9 @@ def run_build_and_execute(
     non-zero exit code. Always tears down sandbox resources, success or
     failure (§2.6): every intermediate retained (`disposable=False`) image
     is disposed of in `finally`, and the final step always runs with
-    `disposable=True`.
+    `disposable=True`. harness-v1.4.0-rc: with `checkpoint`, the images it
+    names as kept are NOT disposed of (they are reused by later operations
+    of the same entry and recorded), see `Checkpoint`.
 
     `project_id` is passed explicitly into `IAMAuth` rather than left to
     `ContreeSync(token=api_key)`'s shorthand. Found live during this
@@ -487,37 +619,54 @@ def run_build_and_execute(
     # each checked against the per-operation filesystem-delta limit.
     runner_torch = (torch_setup.install_command, torch_setup.fix_command) if torch_setup else ()
     setup = sandbox_limits.check_ops(sandbox_limits.split_setup_ops(install_commands, runner_torch))
-    commands = [*(op.command for op in setup), execute_command]
+    all_setup = (*(op.command for op in setup), *runner_extras)
+    if checkpoint is not None and checkpoint.start_image is not None:
+        if tuple(all_setup[: len(checkpoint.start_ops)]) != tuple(checkpoint.start_ops):
+            raise SandboxError("checkpoint start image does not contain a prefix of this operation's setup commands")
+        to_run = all_setup[len(checkpoint.start_ops):]
+    else:
+        to_run = all_setup
+    commands = [*to_run, execute_command]
     if not [c for c in commands if c]:
         raise SandboxError("no commands to run: install_commands and execute_command are both empty")
     archive, extract_command = None, EXTRACT_COMMAND
-    if upload_files:
+    if upload_files and not (checkpoint is not None and checkpoint.start_image is not None):
         archive = build_upload_archive(upload_files, file_modes)[0]
         limit = UPLOAD_CAP_BYTES if UPLOAD_CAP_BYTES is not None else 1 << 62
         decision = sandbox_limits.decide_upload(len(archive), download_source, limit)
         if decision.mode == "refuse":
             raise UploadTooLargeError(len(archive), limit)
         if decision.mode == "download":
-            # Never a local upload of an over-limit repo: send the manifest only.
+            # Never a local upload of an over-limit repo: send the manifest only. A checkpoint operation never uses the D-20
+            # overlay (its changes travel in the branch archive), so `overlay_paths` only applies to the legacy path.
             archive = build_upload_archive(upload_files, file_modes, manifest_only=True, download_source=download_source,
-                                           overlay_paths=frozenset(overlay_paths))[0]
+                                           overlay_paths=frozenset(overlay_paths) if checkpoint is None else frozenset())[0]
             extract_command = extract_command_for(download_source)
+    branch_archive = None
+    if checkpoint is not None and checkpoint.has_branch:
+        branch_archive = build_branch_archive(checkpoint.branch_files, checkpoint.branch_deleted)
+        limit = UPLOAD_CAP_BYTES if UPLOAD_CAP_BYTES is not None else 1 << 62
+        if len(branch_archive) > limit:
+            raise UploadTooLargeError(len(branch_archive), limit)
 
     # harness-v1.1: transient API failures (timeouts, transport errors, 429,
     # 5xx) re-run the whole chain from a fresh image with bounded exponential
     # backoff; persistent or other external failures -> SandboxInfraError.
     # The wall-clock ceiling (OperationTimedOutError) is never retried.
     try:
-        return retry_call(
+        result = retry_call(
             lambda: _run_once(
                 api_key=api_key,
                 project_id=project_id,
                 base_image=base_image,
                 commands=commands,
-                runner_commands=frozenset(runner_torch),
+                runner_commands=frozenset((*runner_torch, *runner_extras)),
                 wall_clock_seconds=wall_clock_seconds,
                 archive=archive,
                 extract_command=extract_command,
+                checkpoint=checkpoint,
+                start_ops=tuple(checkpoint.start_ops) if checkpoint is not None and checkpoint.start_image else (),
+                branch_archive=branch_archive,
             ),
             source="sandbox",
             is_transient=_is_transient_sandbox_error,
@@ -528,9 +677,39 @@ def run_build_and_execute(
         if isinstance(exc, SandboxInfraError):
             raise
         raise SandboxInfraError(str(exc).removeprefix("sandbox: "), attempts=exc.attempts, cause=exc.__cause__) from exc
+    if checkpoint is None:
+        return result
+    from dataclasses import replace as _replace
+
+    return _replace(result, setup_commands=tuple(all_setup), ran_setup=tuple(to_run))
 
 
 _sleep: Callable[[float], None] = time.sleep  # tests replace it
+
+
+def release_images(*, api_key: str, project_id: str = "", image_ids: Iterable[str]) -> dict:
+    """harness-v1.4.0-rc: the same best-effort disposal `_run_once` applies to every image it does not keep (a trivial disposable run on
+    it), for kept images a later decision no longer needs (the losing candidates' result images). Each disposal is a sandbox run with
+    its own cost, so the measured cost is returned for the caller to record: {"released": n, "cost_usd": total, "seconds": total}."""
+    ids = [i for i in image_ids if i]
+    if not ids or not api_key:
+        return {"released": 0, "cost_usd": 0.0, "seconds": 0.0}
+    client = ContreeSync(
+        config=ContreeConfig(auth=IAMAuth(token=api_key, project_id=project_id), transport_timeout=timeouts.SANDBOX_CLEANUP_S,
+                             operation_timeout=timeouts.SANDBOX_OPERATION_S)
+    )
+    released, cost, seconds = 0, 0.0, 0.0
+    for image_id in ids:
+        try:
+            done = client.images.use(image_id).run(shell="true", disposable=True, timeout=timeouts.SANDBOX_CLEANUP_S).wait()
+            released += 1
+            result = getattr(done, "result", None)
+            cost += float(getattr(result, "cost", 0.0) or 0.0)
+            elapsed = getattr(result, "elapsed_time", None)
+            seconds += elapsed.total_seconds() if elapsed is not None else 0.0
+        except ContreeError:
+            pass  # best-effort, like the cleanup in _run_once
+    return {"released": released, "cost_usd": cost, "seconds": seconds}
 
 
 def _run_once(
@@ -543,6 +722,9 @@ def _run_once(
     archive: bytes | None,
     runner_commands: frozenset[str] = frozenset(),
     extract_command: str = EXTRACT_COMMAND,
+    checkpoint: Checkpoint | None = None,
+    start_ops: tuple[str, ...] = (),
+    branch_archive: bytes | None = None,
 ) -> SandboxRunResult:
     """One attempt of the whole chain. Raises the SDK's own errors (the
     caller classifies them), SandboxError for the wall clock, and
@@ -552,15 +734,25 @@ def _run_once(
     client = ContreeSync(
         config=ContreeConfig(
             auth=IAMAuth(token=api_key, project_id=project_id),
-            transport_timeout=timeouts.sandbox_transport_timeout(len(archive) if archive is not None else 0),
+            transport_timeout=timeouts.sandbox_transport_timeout(
+                (len(archive) if archive is not None else 0) + (len(branch_archive) if branch_archive is not None else 0)),
             operation_timeout=timeouts.SANDBOX_OPERATION_S,
         )
     )
-    image = client.images.docker(base_image)
+    start_image = checkpoint.start_image if checkpoint is not None else None
+    # harness-v1.4.0-rc: an operation can start from a kept image, reopened by its id (strict: the API confirms it exists).
+    image = client.images.use(start_image, strict=True) if start_image else client.images.docker(base_image)
+    keep_layers = checkpoint is not None and checkpoint.keep_layers
+    branch_first = checkpoint is not None and checkpoint.branch_before_setup
 
     steps: list[StepResult] = []
+    rerun_steps: list[StepResult] = []
     current = image
     retained_images = []  # every disposable=False image, for guaranteed cleanup
+    kept: list = []  # the retained images this operation keeps (checkpoint only): never cleaned up
+    layers: list[tuple[tuple[str, ...], str]] = []
+    result_image: str | None = None
+    keep_on_exit = False  # kept images survive only a normal return or a timeout (their layers are then recorded)
 
     # The id reported as sandbox_id: the last image in the chain that has
     # one. The final step always runs disposable=True, and contree_sdk only
@@ -571,19 +763,33 @@ def _run_once(
     # environment image the final step ran on.
     last_image_uuid = getattr(current, "uuid", None)
 
+    def _keep(img, ops: tuple[str, ...] | None) -> None:
+        uuid = getattr(img, "uuid", None)
+        if uuid is None:
+            return
+        if img not in kept:
+            kept.append(img)
+        if ops is not None:
+            layers.append((ops, str(uuid)))
+
     upload_seconds = None
     # Bookkeeping for SandboxTimeoutError: the step being run and how long it has run.
     extract_cost = 0.0
     current_cmd = ""
     step_started = time.monotonic()
+    ran_setup: list[str] = []
     try:
+        # The chain: [upload + extract] [overlay, early] setup... [overlay, late] command. Each item: (kind, command, archive name, bytes).
+        chain: list[tuple[str, str, str | None, bytes | None]] = []
         if archive is not None:
-            upload_started = time.monotonic()
-            current = current.apply_files(files={UPLOAD_ARCHIVE: archive})
-            upload_seconds = round(time.monotonic() - upload_started, 2)
-            retained_images.append(current)
-            last_image_uuid = getattr(current, "uuid", None) or last_image_uuid
-            commands = [extract_command, *commands]
+            chain.append(("extract", extract_command, UPLOAD_ARCHIVE, archive))
+        if branch_archive is not None and branch_first:
+            chain.append(("branch", BRANCH_COMMAND, BRANCH_ARCHIVE, branch_archive))
+        for cmd in commands[:-1]:
+            chain.append(("setup", cmd, None, None))
+        if branch_archive is not None and not branch_first:
+            chain.append(("branch", BRANCH_COMMAND, BRANCH_ARCHIVE, branch_archive))
+        chain.append(("execute", commands[-1], None, None))
 
         # `wall_clock_seconds` is meant to be a single hard ceiling for the
         # WHOLE attempt (§4: "hard limits (wall clock...)"; the TIMEOUT
@@ -598,16 +804,26 @@ def _run_once(
         # matching §9's cost-predictability goal, rather than a per-step
         # allowance that scales with how many install commands a given
         # repo happens to need.
-        deadline = time.monotonic() + wall_clock_seconds
+        deadline = None
         extract_seconds = None
-        for i, cmd in enumerate(commands):
-            is_last = i == len(commands) - 1
+        for kind, cmd, archive_name, archive_bytes in chain:
+            if archive_bytes is not None:
+                upload_started = time.monotonic()
+                current = current.apply_files(files={archive_name: archive_bytes})
+                if kind == "extract":
+                    upload_seconds = round(time.monotonic() - upload_started, 2)
+                retained_images.append(current)
+                last_image_uuid = getattr(current, "uuid", None) or last_image_uuid
+            if deadline is None:
+                # The ceiling starts after the (first) upload, as before harness-v1.4.0-rc.
+                deadline = time.monotonic() + wall_clock_seconds
+            is_last = kind == "execute"
             remaining = deadline - time.monotonic()
             if remaining <= 0:
                 raise SandboxTimeoutError(
                     f"sandbox execution exceeded {wall_clock_seconds}s wall clock "
                     f"for the whole attempt (stopped before running '{cmd}')",
-                    command=cmd, completed_cost_usd=extract_cost + sum(st.cost_usd for st in steps),
+                    command=cmd, completed_cost_usd=extract_cost + sum(st.cost_usd for st in steps) + _branch_cost(rerun_steps),
                     killed_seconds=0.0, completed_steps=tuple(steps),
                 )
             step_started = time.monotonic()
@@ -618,55 +834,89 @@ def _run_once(
                 disposable=is_last,
                 preserve_env=not is_last,
             ).wait()
-            phase = "runner_setup" if cmd in runner_commands else ("repo_run" if is_last else "repo_install")
+            if kind == "extract":
+                phase = "rerun_extract"
+            elif kind == "branch":
+                phase = "rerun_branch"
+            else:
+                phase = "runner_setup" if cmd in runner_commands else ("repo_run" if is_last else "repo_install")
             step = step_result_from_image(executed, cmd, phase)
+            previous = current  # for the command: the image it ran on, kept when asked for (the adjudicated winner's environment)
             current = executed
             last_image_uuid = getattr(executed, "uuid", None) or last_image_uuid
             if step.timed_out:
                 # The server stopped the step at the limit we gave it and returned its result WITH its real cost. It must never be read
                 # as the repository's own failure (an exit code 124/137 classified as a runtime error).
-                raise SandboxTimeoutError(
+                exc = SandboxTimeoutError(
                     f"sandbox execution exceeded {wall_clock_seconds}s wall clock: the sandbox stopped '{cmd[:80]}' at its time limit "
                     f"(server-reported timed_out, exit code {step.exit_code}, cost measured ${step.cost_usd:.4f})",
-                    command=cmd, completed_cost_usd=extract_cost + sum(st.cost_usd for st in steps) + step.cost_usd,
+                    command=cmd, completed_cost_usd=extract_cost + sum(st.cost_usd for st in steps) + _branch_cost(rerun_steps) + step.cost_usd,
                     killed_seconds=0.0, completed_steps=(*steps, step), via="server_result_timed_out",
                     sandbox_id=str(last_image_uuid) if last_image_uuid is not None else None,
                 )
+                exc.layers = tuple(layers)
+                exc.rerun_steps = tuple(rerun_steps)
+                keep_on_exit = True
+                raise exc
             if not is_last:
                 retained_images.append(executed)
-            if cmd == extract_command:
+            if kind in ("extract", "branch"):
                 # RERUN's own step: never part of the repo's result.
+                rerun_steps.append(step)
                 if step.exit_code != 0:
-                    raise UploadIntegrityError(
-                        f"post-extraction check failed (exit code {step.exit_code})", stderr=step.stderr[-2000:]
-                    )
-                extract_cost = step.cost_usd
-                extract_seconds = step.elapsed_seconds
+                    what = "post-extraction check" if kind == "extract" else "patch overlay check"
+                    raise UploadIntegrityError(f"{what} failed (exit code {step.exit_code})", stderr=step.stderr[-2000:])
+                if kind == "extract":
+                    extract_cost = step.cost_usd
+                    extract_seconds = step.elapsed_seconds
+                    if keep_layers:
+                        _keep(executed, ())
                 continue
             steps.append(step)
-            if executed.exit_code != 0:
-                break
+            if kind == "setup":
+                if executed.exit_code != 0:
+                    break
+                ran_setup.append(cmd)
+                if keep_layers:
+                    _keep(executed, (*start_ops, *ran_setup))
+                continue
+            # kind == "execute": `previous` is the image the command ran on.
+            if checkpoint is not None and checkpoint.keep_result:
+                _keep(previous, None)
+                result_image = str(getattr(previous, "uuid", None)) if getattr(previous, "uuid", None) is not None else None
 
         if extract_cost and steps:
             first = steps[0]
             steps[0] = StepResult(first.command, first.exit_code, first.stdout, first.stderr,
                                   first.elapsed_seconds, first.cost_usd + extract_cost, first.phase)
         sandbox_id = str(last_image_uuid) if last_image_uuid is not None else None
+        keep_on_exit = True
         return SandboxRunResult(
-            steps=tuple(steps), sandbox_id=sandbox_id, upload_seconds=upload_seconds, extract_seconds=extract_seconds
+            steps=tuple(steps), sandbox_id=sandbox_id, upload_seconds=upload_seconds, extract_seconds=extract_seconds,
+            layers=tuple(layers), branch_from_image=start_image, result_image=result_image, rerun_steps=tuple(rerun_steps),
         )
 
     except OperationTimedOutError as exc:
-        raise SandboxTimeoutError(
+        keep_on_exit = True
+        timeout_exc = SandboxTimeoutError(
             f"sandbox execution exceeded {wall_clock_seconds}s wall clock: {exc}",
             command=current_cmd,
-            completed_cost_usd=extract_cost + sum(st.cost_usd for st in steps),
+            completed_cost_usd=extract_cost + sum(st.cost_usd for st in steps) + _branch_cost(rerun_steps),
             killed_seconds=time.monotonic() - step_started,
             completed_steps=tuple(steps),
-        ) from exc
+        )
+        timeout_exc.layers = tuple(layers)
+        timeout_exc.rerun_steps = tuple(rerun_steps)
+        raise timeout_exc from exc
     finally:
         for retained in retained_images:
+            if keep_on_exit and retained in kept:
+                continue
             try:
                 retained.run(shell="true", disposable=True, timeout=timeouts.SANDBOX_CLEANUP_S).wait()
             except ContreeError:
                 pass  # best-effort cleanup; nothing more actionable from here
+
+
+def _branch_cost(rerun_steps) -> float:
+    return sum(s.cost_usd for s in rerun_steps if s.phase == "rerun_branch")

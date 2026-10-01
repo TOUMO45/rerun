@@ -34,6 +34,7 @@ FAILED_MARKER = "RERUN_SMOKE_FAILED"
 
 _LAUNCHER = r'''
 import base64, json, os, signal, subprocess, sys, threading, time
+sys.rerun_exit_hook_silent = True  # harness-v1.4.0-rc: the launcher's own exit is never reported by the exit-site hook
 spec = json.loads(base64.b64decode(sys.argv[1]).decode("utf-8"))
 seconds = float(spec["seconds"])
 posix = os.name == "posix"
