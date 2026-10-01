@@ -36,29 +36,153 @@ EXIT_HOOK_MARKER = "RERUN_EXIT_HOOK"
 INSTALLED_MARKER = "RERUN_HOOK_INSTALLED"
 
 _CPU_SHIM_SOURCE = r'''
-"""RERUN CPU shim (harness-v1.4.0-rc): injected by RERUN, not part of the repository."""
+"""RERUN CPU shim (harness-v1.4.2-rc): injected by RERUN, not part of the repository."""
 import sys
 
 _TARGET = "torch"
+_FIRED = set()
+
+
+def _fired(path):
+    """Say once per process which shim path acted: `RERUN_CPU_SHIM_PATH: <path>` on stderr (the harness records it)."""
+    if path in _FIRED:
+        return
+    _FIRED.add(path)
+    try:
+        sys.stderr.write("RERUN_CPU_SHIM_PATH: %s\n" % path)
+        sys.stderr.flush()
+    except Exception:
+        pass
+
+
+def _is_cuda_name(value):
+    return isinstance(value, str) and (value == "cuda" or value.startswith("cuda:"))
 
 
 def _patch(torch):
-    try:
-        torch.cuda.is_available = lambda: False
-        _orig_load = torch.load
+    applied = []
+
+    def step(name, fn):
+        """Every patch stands alone: one that cannot be applied (an attribute this torch version lacks) never disables the others."""
+        try:
+            fn()
+            applied.append(name)
+        except Exception as exc:  # the shim must never break the import it patches
+            try:
+                sys.stderr.write("RERUN_CPU_SHIM: %s not applied (%r)\n" % (name, exc))
+            except Exception:
+                pass
+
+    orig_device = getattr(torch, "device", None)
+
+    def to_cpu(value):
+        """('cuda' / 'cuda:N' / a cuda torch.device) -> the CPU equivalent; anything else unchanged. Returns (value, changed)."""
+        if _is_cuda_name(value):
+            return "cpu", True
+        if orig_device is not None and isinstance(value, orig_device) and getattr(value, "type", None) == "cuda":
+            return orig_device("cpu"), True
+        return value, False
+
+    # 1. torch.cuda.is_available() is False.
+    def is_available_patch():
+        def is_available():
+            _fired("cuda.is_available")
+            return False
+
+        torch.cuda.is_available = is_available
+
+    # 2. torch.load maps every storage to the CPU.
+    def load_patch():
+        orig_load = torch.load
 
         def load(f, *args, **kwargs):
+            _fired("torch.load")
             if args:
                 args = ("cpu",) + tuple(args[1:])
             else:
                 kwargs["map_location"] = "cpu"
-            return _orig_load(f, *args, **kwargs)
+            return orig_load(f, *args, **kwargs)
 
-        load.__wrapped__ = _orig_load
+        load.__wrapped__ = orig_load
         torch.load = load
-        sys.stderr.write("RERUN_CPU_SHIM: injected by RERUN: torch.load(map_location='cpu'), torch.cuda.is_available() -> False\n")
-    except Exception as exc:  # the shim must never break the import it patches
-        sys.stderr.write("RERUN_CPU_SHIM: not applied (%r)\n" % (exc,))
+
+    # 3. Tensor.cuda() and Module.cuda() return self.
+    def tensor_cuda_patch():
+        def tensor_cuda(self, *args, **kwargs):
+            _fired("tensor.cuda")
+            return self
+
+        torch.Tensor.cuda = tensor_cuda
+
+    def module_cuda_patch():
+        def module_cuda(self, *args, **kwargs):
+            _fired("module.cuda")
+            return self
+
+        torch.nn.Module.cuda = module_cuda
+
+    # 4. .to("cuda...") / .to(device=...) / .to(torch.device("cuda...")) on Tensor and Module go to the CPU.
+    def wrap_to(owner, name):
+        orig = owner.to
+
+        def to(self, *args, **kwargs):
+            changed = False
+            new_args = []
+            for a in args:
+                a, c = to_cpu(a)
+                new_args.append(a)
+                changed = changed or c
+            if "device" in kwargs:
+                kwargs = dict(kwargs)
+                kwargs["device"], c = to_cpu(kwargs["device"])
+                changed = changed or c
+            if changed:
+                _fired(name)
+            return orig(self, *new_args, **kwargs)
+
+        to.__wrapped__ = orig
+        owner.to = to
+
+    # 5. torch.device("cuda...") is the CPU device. A proxy class keeps isinstance(x, torch.device) true for real devices.
+    def device_patch():
+        if orig_device is None:
+            raise AttributeError("this torch has no torch.device")
+
+        class _DeviceMeta(type):
+            def __instancecheck__(cls, obj):
+                return isinstance(obj, orig_device)
+
+            def __subclasscheck__(cls, sub):
+                return issubclass(sub, orig_device)
+
+        def device_new(cls, *args, **kwargs):
+            new_args = []
+            changed = False
+            for a in args:
+                a, c = to_cpu(a)
+                new_args.append(a)
+                changed = changed or c
+            if "type" in kwargs:
+                kwargs = dict(kwargs)
+                kwargs["type"], c = to_cpu(kwargs["type"])
+                changed = changed or c
+            if changed:
+                _fired("torch.device")
+            return orig_device(*new_args, **kwargs)
+
+        torch.device = _DeviceMeta("device", (object,), {"__new__": device_new, "__doc__": orig_device.__doc__})
+
+    step("torch.cuda.is_available() -> False", is_available_patch)
+    step("torch.load(map_location='cpu')", load_patch)
+    step("Tensor.cuda() returns the tensor", tensor_cuda_patch)
+    step("Module.cuda() returns the module", module_cuda_patch)
+    step("Tensor.to('cuda*') -> cpu", lambda: wrap_to(torch.Tensor, "tensor.to"))
+    step("Module.to('cuda*') -> cpu", lambda: wrap_to(torch.nn.Module, "module.to"))
+    step("torch.device('cuda*') -> cpu", device_patch)
+    try:
+        sys.stderr.write("RERUN_CPU_SHIM: injected by RERUN: %s\n" % ", ".join(applied))
+    except Exception:
+        pass
 
 
 class _Loader(object):
@@ -233,13 +357,32 @@ class Hook:
 
 
 HOOKS = {
-    CPU_SHIM: Hook(CPU_SHIM, "cpu_shim", "GPU_REQUIRED at repair time"),
+    CPU_SHIM: Hook(
+        CPU_SHIM, "cpu_shim", "GPU_REQUIRED at repair time",
+        "covers torch.load (map_location), torch.cuda.is_available(), Tensor.cuda() and Module.cuda() (return self), .to('cuda*') on Tensor and "
+        "Module and torch.device('cuda*') (-> cpu); does NOT cover device='cuda' strings given to factory functions (torch.zeros(device='cuda')), "
+        "torch.cuda.*Tensor types or torch.set_default_tensor_type('torch.cuda.FloatTensor')",
+    ),
     EXIT_HOOK: Hook(
         EXIT_HOOK, "exit_site_hook", "a non-zero exit with no traceback (silent exit, D-25)",
         "a bare `raise SystemExit(n)` in the repository's own code is not captured; sys.exit, os._exit, exit(), quit() and "
         "libraries that call sys.exit are",
     ),
 }
+
+
+_SHIM_PATH_RE = re.compile(r"^RERUN_CPU_SHIM_PATH: (\S+)", re.MULTILINE)
+
+
+def shim_paths_fired(*texts: str) -> list[str]:
+    """The CPU shim paths that acted, in order of first appearance, from a run's output (`RERUN_CPU_SHIM_PATH: <path>`, one line per path per
+    process): cuda.is_available, torch.load, tensor.cuda, module.cuda, tensor.to, module.to, torch.device (harness-v1.4.2-rc, D-39)."""
+    seen: list[str] = []
+    for text in texts:
+        for path in _SHIM_PATH_RE.findall(text or ""):
+            if path not in seen:
+                seen.append(path)
+    return seen
 
 
 def source_of(name: str) -> str:
@@ -353,3 +496,93 @@ def wrap_entry_command(command: str, python: str | None = None) -> tuple[str | N
     code = base64.b64encode(_EXIT_WRAPPER_SOURCE.encode("utf-8")).decode("ascii")
     launcher = f"{exe} " + "".join(f"{flag} " for flag in flags) + f"-c \"import base64;exec(base64.b64decode('{code}').decode('utf-8'))\""
     return " ".join([*env, launcher, mode, shlex.quote(target), *(shlex.quote(a) for a in args)]).strip(), "wrapped"
+
+
+# --- resource evidence (harness-v1.4.2-rc, D-38 / D-40) --------------------------------------------------------------------------
+
+EVIDENCE_BEGIN = "RERUN_EVIDENCE_BEGIN"
+EVIDENCE_END = "RERUN_EVIDENCE_END"
+OUTSIDE_PYTHON_REASON_CODE = "EXIT_OUTSIDE_PYTHON"
+
+# Appended after the documented command, which runs unchanged in a subshell first: the evidence goes to stderr, the command's exit status is kept.
+# Every read is tolerant (a file the sandbox does not have prints nothing); nothing here changes the repository or the environment.
+_EVIDENCE_SUFFIX = (
+    'rc=$?; { echo "RERUN_EVIDENCE_BEGIN exit_status=$rc"; '
+    'echo "--ulimit"; ulimit -a 2>&1 | grep -E "core file size|max memory size|virtual memory|address space"; '
+    'echo "--meminfo"; grep -E "^(MemTotal|MemAvailable|SwapTotal):" /proc/meminfo 2>&1; '
+    'echo "--nproc"; nproc 2>&1; '
+    'echo "--kernel"; uname -r 2>&1; cat /proc/swaps 2>&1 | tail -n +2; cat /proc/sys/vm/overcommit_memory 2>&1; '
+    'echo "--selfcgroup"; cat /proc/self/cgroup 2>&1; '
+    'echo "--cgroup"; for f in /sys/fs/cgroup/memory.max /sys/fs/cgroup/memory.events /sys/fs/cgroup/memory.peak /sys/fs/cgroup/cpu.max '
+    '/sys/fs/cgroup/memory/memory.limit_in_bytes /sys/fs/cgroup/memory/memory.max_usage_in_bytes /sys/fs/cgroup/memory/memory.failcnt; do '
+    '[ -r "$f" ] && echo "$f=$(tr "\\n" " " < "$f")"; done; '
+    'echo "--dmesg"; dmesg 2>&1 | grep -iE "killed process|out of memory|oom-kill|oom_kill" | tail -n 5; '
+    'echo "RERUN_EVIDENCE_END"; } >&2; exit $rc'
+)
+
+
+def evidence_command(command: str) -> str:
+    """`command` run unchanged in a subshell, followed by the evidence block on stderr and the command's own exit status. The command sits on its own
+    lines: a trailing `# comment` in a documented command (corpus-v2 #3: `python feature_vgg16.py #gpu_id #split`) would otherwise swallow the `)`."""
+    return f"(\n{command}\n); {_EVIDENCE_SUFFIX}"
+
+
+def parse_evidence(*texts: str) -> dict | None:
+    """The evidence block in a run's output, or None if the run printed none (the shell did not get that far, or the block is cut off)."""
+    blob = "\n".join(t or "" for t in texts)
+    match = re.search(rf"{EVIDENCE_BEGIN} exit_status=(-?\d+)(.*?){EVIDENCE_END}", blob, re.S)
+    if not match:
+        return None
+    body = match.group(2)
+
+    def kb(name: str) -> int | None:
+        m = re.search(rf"^{name}:\s+(\d+) kB", body, re.M)
+        return int(m.group(1)) if m else None
+
+    cgroup = dict(re.findall(r"^(/sys/fs/cgroup/\S+?)=(.*)$", body, re.M))
+    events = next((v for k, v in cgroup.items() if k.endswith("memory.events")), "")
+    oom = re.search(r"\boom_kill (\d+)", events)
+    section = lambda name: body.split(f"--{name}", 1)[1].split("\n--", 1)[0] if f"--{name}" in body else ""  # noqa: E731
+    nproc = re.search(r"\d+", section("nproc"))
+    return {
+        "exit_status": int(match.group(1)),
+        "mem_total_kb": kb("MemTotal"),
+        "mem_available_kb": kb("MemAvailable"),
+        "swap_total_kb": kb("SwapTotal"),
+        "nproc": int(nproc.group(0)) if nproc else None,
+        "cgroup": {k: v.strip() for k, v in cgroup.items()},
+        "oom_kill": int(oom.group(1)) if oom else None,
+        "dmesg": [line.strip() for line in section("dmesg").splitlines() if line.strip()],
+        "ulimit": [line.strip() for line in section("ulimit").splitlines() if line.strip()],
+        "kernel": [line.strip() for line in section("kernel").splitlines() if line.strip()],
+        "self_cgroup": [line.strip() for line in section("selfcgroup").splitlines() if line.strip()],
+    }
+
+
+def kill_evidenced(evidence: dict | None) -> bool:
+    """A kill is evidenced by the command's own status (SIGKILL: 137 or -9), a cgroup OOM-kill count above zero, or a kernel log line about a killed
+    process / out of memory. No evidence at all is not evidence of a kill."""
+    if not evidence:
+        return False
+    if evidence.get("exit_status") in (137, -9) or (evidence.get("oom_kill") or 0) > 0:
+        return True
+    return any(re.search(r"killed process|out of memory|oom", line, re.I) for line in evidence.get("dmesg", []))
+
+
+def limit_quote(evidence: dict | None) -> str:
+    """The limits as the sandbox itself showed them (one line), or an empty string when the run read none."""
+    if not evidence:
+        return ""
+    parts = []
+    if evidence.get("mem_total_kb"):
+        parts.append(f"/proc/meminfo MemTotal {evidence['mem_total_kb']} kB ({evidence['mem_total_kb'] / 1048576:.2f} GiB)")
+    if evidence.get("nproc"):
+        parts.append(f"nproc {evidence['nproc']}")
+    for path, value in evidence.get("cgroup", {}).items():
+        if path.endswith(("memory.max", "memory.limit_in_bytes", "cpu.max")):
+            parts.append(f"{path} {value}")
+    if evidence.get("oom_kill") is not None:
+        parts.append(f"memory.events oom_kill {evidence['oom_kill']}")
+    if evidence.get("dmesg"):
+        parts.append(f"dmesg: {evidence['dmesg'][-1][:160]}")
+    return "; ".join(parts)

@@ -60,6 +60,7 @@ from app.services import (
     infra,
     patch_pipeline,
     python_policy,
+    resource_limits,
     runner_env,
     runner_hooks,
     sandbox_limits,
@@ -145,6 +146,8 @@ OUR_FAULT_CODES: tuple[str, ...] = (
     "RUNNER_SETUP_FAILED",
     # harness-v1.3.3: the per-entry / per-operation spend cap stopped the run (RERUN's budget, not the repository).
     "COST_CAP",
+    # harness-v1.4.2: the process was killed by SIGKILL (the sandbox's resource limit): a platform limit says nothing about the paper's code.
+    "RESOURCE_LIMIT",
 )
 
 _REASON_CODE_RE = re.compile(r"^([A-Z][A-Z_]*(?::[A-Za-z0-9_.-]+)*): ")
@@ -196,6 +199,10 @@ class _RunState:
     apt_layers: list = field(default_factory=list)
     # harness-v1.4.1-rc (D-35): the entry command runs through RERUN's exit-site wrapper (runner_hooks.wrap_entry_command) from here on.
     exit_wrapper: bool = False
+    # harness-v1.4.2-rc (D-38 / D-40): the one resource-evidence run of this entry ({"collected", "evidence", "kill_evidenced", "limit_quote", ...}), and a
+    # stop decided by it: (reason code, INDETERMINATE reason) for RESOURCE_LIMIT or EXIT_OUTSIDE_PYTHON. No model attempt follows a stop.
+    resource_evidence: dict | None = None
+    resource_stop: tuple | None = None
 
 
 def _cost_cap_reason(message: str) -> str:
@@ -1018,6 +1025,7 @@ def _run_stages(
             "cost_usd": round(cost_usd, 6),
             "cost_estimated_usd": round(estimated_usd, 6),
             "outcome": outcome,
+            "resource_limits": resource_limits.record(),
             "exit_code": result.final.exit_code if result is not None and result.steps else None,
             "killed_step": (getattr(exc, "command", "") or "")[:160] if outcome == "killed" else None,
             "killed_seconds": round(getattr(exc, "killed_seconds", 0.0) or 0.0, 1) if outcome == "killed" else None,
@@ -1049,7 +1057,8 @@ def _run_stages(
     def _execute_once(current_workdir: Path, *, smoke: bool = False, baseline: bool = False, plan_used=None,
                       extra_files: dict | None = None, keep_result: bool = False, share: int = 1, role: str = "",
                       candidate: int | None = None, resumed_after: int | None = None, may_resume: bool = False,
-                      extra_apt_layers: tuple = (), extra_extras: tuple = (), exec_wrapper: bool | None = None) -> SandboxRunResult:
+                      extra_apt_layers: tuple = (), extra_extras: tuple = (), exec_wrapper: bool | None = None,
+                      evidence: bool = False) -> SandboxRunResult:
         # §9: the daily cost ceiling must actually stop spend, not just be
         # documented. There's no pre-flight cost quote from the sandbox
         # API, so this refuses to start a step at all once today's real
@@ -1102,6 +1111,9 @@ def _run_stages(
             else:
                 wrapper_note = f"not applicable: {why}"
             _log(f"[exit-wrapper] {role or 're-execution'}: {wrapper_note}")
+        if evidence:
+            # harness-v1.4.2-rc: the command (wrapped when the exit wrapper is on) runs unchanged, then the sandbox's own limits and any kill are read.
+            base_command = runner_hooks.evidence_command(base_command)
         execute_command = base_command
         if smoke and deps.smoke_seconds:
             # harness-v1.3.3: a repair re-execution asks "does it run", not "does it finish" (smoke_exec).
@@ -1311,6 +1323,46 @@ def _run_stages(
     taxonomy_code: str | None = None
     indeterminate_reason = ""
 
+    def _collect_resource_evidence(role: str, why: str) -> dict:
+        """harness-v1.4.2-rc (D-38 / D-40). ONE evidence run per entry (TREATMENT only): the current command (through the exit wrapper if it is on) runs
+        again with the sandbox's own limits and kill traces read after it (`runner_hooks.evidence_command`); recorded as attempt 0 / origin time_machine with
+        `time_machine_action` {rule resource_evidence, evidence, kill_evidenced, limit_quote}. Never raises: a run that cannot be made leaves `collected` False."""
+        if state.resource_evidence is not None:
+            return state.resource_evidence
+        action = {"rule": "resource_evidence", "matched_error": why[:500], "phase": "repair",
+                  "fires_on": "a failure classified RESOURCE_LIMIT, or a silent exit the exit hook and the exit wrapper could not explain (D-38, D-40)",
+                  "limit": "reads what the sandbox shows after the command (/proc/meminfo, nproc, cgroup memory files, dmesg, ulimit): none of these is guaranteed to "
+                           "exist or be readable; the run repeats the command, so a kill that depends on timing may not repeat"}
+        found: dict = {"collected": False, "evidence": None, "kill_evidenced": False, "limit_quote": ""}
+        if not deps.repair_enabled:
+            found["reason"] = "repair is off for this arm: no extra operation is run"
+        else:
+            try:
+                result = _execute(workdir, smoke=True, role=role, evidence=True)
+            except (CostLimitExceeded, SandboxTimeoutError, tree_integrity.HarnessIntegrityError) as exc:
+                found["reason"] = f"the evidence run did not complete: {str(exc)[:300]}"
+                action["stopped"] = found["reason"]
+                attempts.append(AttemptRecord(0, "", "PASS", (), None, "", found["reason"][-2000:], origin="time_machine", time_machine_action=action))
+            else:
+                parsed = runner_hooks.parse_evidence(result.final.stderr, result.final.stdout)
+                found.update(collected=parsed is not None, evidence=parsed, kill_evidenced=runner_hooks.kill_evidenced(parsed),
+                             limit_quote=runner_hooks.limit_quote(parsed), exit_code=result.final.exit_code)
+                if parsed is None:
+                    found["reason"] = "the run printed no evidence block"
+                action.update(evidence=parsed, kill_evidenced=found["kill_evidenced"], limit_quote=found["limit_quote"])
+                _log(f"[time-machine] resource evidence: kill evidenced={found['kill_evidenced']}; {found['limit_quote'] or found.get('reason', '')}")
+                attempts.append(AttemptRecord(0, "", "PASS", (), result.final.exit_code, result.final.stdout[-2000:], result.final.stderr[-2000:],
+                                              origin="time_machine", execution=_execution_of(result, True), time_machine_action=action))
+        state.resource_evidence = found
+        return found
+
+    def _resource_reason(classification) -> str:
+        """The INDETERMINATE reason of a RESOURCE_LIMIT: the kill, the limits as the sandbox showed them (else as documented), and that no model attempt was made."""
+        found = _collect_resource_evidence("resource evidence", classification.evidence)
+        quote = found.get("limit_quote") or resource_limits.quote()
+        return (f"RESOURCE_LIMIT: {classification.evidence}; limits ({quote}) — the sandbox killed the process; not a verdict on the repository, "
+                "and no repair attempt was made.")
+
     def _note_failure(attempt_number: int, classification, phase: str = "repo_run") -> str | None:
         """Record a classified failure in the run's error chain. Returns an
         INDETERMINATE reason if the failure is sandbox-side (a limit or a platform
@@ -1329,6 +1381,8 @@ def _run_stages(
             ),
             phase,
         )
+        if classification.code == classifier.TaxonomyCode.RESOURCE_LIMIT:
+            return _resource_reason(classification)
         if classification.code in classifier.TaxonomyCode.SANDBOX_CODES:
             return f"{classification.code}: {classification.evidence} — a sandbox-side failure, not a verdict on the repository."
         if phase == error_chain.PHASE_RUNNER_SETUP:
@@ -1687,6 +1741,8 @@ def _run_stages(
             except (SandboxTimeoutError, tree_integrity.HarnessIntegrityError) as exc:
                 _record(None, "", str(exc)[-2000:])
                 raise
+            if name == runner_hooks.CPU_SHIM:
+                action["paths_fired"] = runner_hooks.shim_paths_fired(result.final.stderr, result.final.stdout)
             _log(f"[time-machine] re-execution id={result.sandbox_id} exit_code={result.final.exit_code}")
             _record(result.final.exit_code, result.final.stdout[-2000:], result.final.stderr[-2000:], _execution_of(result, True))
             return result
@@ -1730,6 +1786,19 @@ def _run_stages(
             action["result"] = "the wrapper printed the traceback of the raise" if printed else runner_hooks.OUTSIDE_PYTHON
             if not printed:
                 _log(f"[time-machine] the wrapper printed nothing either: {runner_hooks.OUTSIDE_PYTHON}")
+                # harness-v1.4.2-rc (D-38 / D-40): once more, with the sandbox's own evidence: a kill is RESOURCE_LIMIT, anything else stays "exit outside
+                # Python"; either way the entry ends INDETERMINATE and no model attempt is spent on it.
+                found = _collect_resource_evidence("exit wrapper with evidence", action["matched_error"])
+                if found.get("kill_evidenced"):
+                    state.resource_stop = ("RESOURCE_LIMIT", f"RESOURCE_LIMIT: the command exited with code {result.final.exit_code} and printed no error; the "
+                                           f"exit hook and the exit wrapper printed nothing and the evidence run shows a kill ({found['limit_quote']}) — the "
+                                           "sandbox killed the process; not a verdict on the repository, and no repair attempt was made.")
+                else:
+                    seen = found["limit_quote"] or found.get("reason") or "no evidence could be read"
+                    state.resource_stop = (runner_hooks.OUTSIDE_PYTHON_REASON_CODE, f"{runner_hooks.OUTSIDE_PYTHON_REASON_CODE}: {runner_hooks.OUTSIDE_PYTHON} — the "
+                                           f"command exited with code {result.final.exit_code} and printed no error; the exit-site hook and the exit wrapper printed "
+                                           f"nothing and the evidence run shows no kill ({seen}). The exit is not a Python SystemExit and nothing says why; not a "
+                                           "verdict on the repository, and no model attempt was spent on it.")
             _log(f"[time-machine] re-execution id={result.sandbox_id} exit_code={result.final.exit_code}")
             _record(result.final.exit_code, result.final.stdout[-2000:], result.final.stderr[-2000:], _execution_of(result, True))
             return result
@@ -1779,6 +1848,14 @@ def _run_stages(
                 sandbox_result = step_result
                 if step_result.succeeded:
                     verdict = "RUNS_AFTER_REPAIR"
+                    stop_run = True
+                    break
+                if state.resource_stop:
+                    stop_code, stop_reason = state.resource_stop
+                    verdict, indeterminate_reason = "INDETERMINATE", stop_reason
+                    if stop_code == "RESOURCE_LIMIT":
+                        taxonomy_code = classifier.TaxonomyCode.RESOURCE_LIMIT
+                    _log(f"[verdict] INDETERMINATE: {stop_reason}")
                     stop_run = True
                     break
                 state.stage = "classifier"
@@ -2367,7 +2444,8 @@ def _run_stages(
                                                   declared_deps=intake_result.declared_dependencies)
                         output = f"{result.final.stderr}\n{result.final.stdout}"
                         installed = hooks_installed | {runner_hooks.hook_of_command(c) for c in cand["extras"]}
-                        silent = not classifier.has_actionable_error(result.final.stderr, result.final.stdout)
+                        silent = (not classifier.has_actionable_error(result.final.stderr, result.final.stdout)
+                                  and cls.code != classifier.TaxonomyCode.RESOURCE_LIMIT)  # a SIGKILL is not a silent exit (D-38)
                         compiler = missing_compiler_error(cls)
                         action: dict | None = None
                         if compiler and "build-essential" not in cand["plan"].apt_install:
@@ -2427,6 +2505,8 @@ def _run_stages(
                             action["stopped"] = f"stopped before completion: {str(exc)[:300]}"
                             cand = {**cand, "actions": [*cand["actions"], action]}
                             break
+                        if action["rule"] == runner_hooks.HOOKS[runner_hooks.CPU_SHIM].rule:
+                            action["paths_fired"] = runner_hooks.shim_paths_fired(again.final.stderr, again.final.stdout)
                         if action["rule"] == runner_hooks.EXIT_WRAPPER_RULE:
                             printed = (runner_hooks.EXIT_WRAPPER_MARKER in f"{again.final.stderr}\n{again.final.stdout}"
                                        or classifier.has_actionable_error(again.final.stderr, again.final.stdout))
@@ -2485,8 +2565,11 @@ def _run_stages(
                           "output_tail": f"{e['result'].final.stderr[-1200:]}\n{e['result'].final.stdout[-800:]}",
                           "explanation": e["proposal"].explanation} for e in qualifying],
                         cost_guard=cost_guard,
+                        # harness-v1.4.2-rc (D-37): the failure being repaired, for the partial-progress rule
+                        current_stage=_candidate_stage(sandbox_result, (_execution_of(sandbox_result, True) or {}).get("outcome", "exited")),
                     )
                     _log(f"[adjudicator] qualifying candidate(s) {list(adjudication.qualifying)}; chosen: {adjudication.chosen}"
+                         + (f" ({adjudication.adopted_reason})" if adjudication.adopted_reason else "")
                          + (f" (model not called: {adjudication.reasoning})" if not adjudication.model_called else
                             f"; reasoning: {adjudication.reasoning[:300]}"))
                 winner = next((e for e in executed if adjudication is not None and e["number"] == adjudication.chosen), None)

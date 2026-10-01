@@ -232,6 +232,10 @@ class CandidateAdjudication:
     replies: tuple[str, ...] = ()
     reasked: bool = False
     fallback_basis: dict | None = None
+    # harness-v1.4.2-rc (D-37): why this candidate was adopted ("adjudicator" | "fallback: <why>" | "partial progress"), and for the last one the
+    # recorded stages it was chosen from (the failure being repaired and the candidate's).
+    adopted_reason: str = ""
+    partial_progress: dict | None = None
 
     def as_dict(self) -> dict:
         record = {"chosen": self.chosen, "reasoning": self.reasoning, "qualifying": list(self.qualifying),
@@ -244,6 +248,10 @@ class CandidateAdjudication:
             record["reasked"] = True
         if self.fallback_basis is not None:
             record["fallback_basis"] = self.fallback_basis
+        if self.adopted_reason:
+            record["adopted_reason"] = self.adopted_reason
+        if self.partial_progress is not None:
+            record["partial_progress"] = self.partial_progress
         return record
 
 
@@ -264,6 +272,30 @@ def stage_rank(stage: dict | None) -> tuple:
     phase = _PHASE_RANK.get(stage.get("phase"), -1)
     ran = 1 if stage.get("outcome") == "failed_while_running" else 0
     return (0, phase, int(stage.get("setup_completed") or 0), ran, float(stage.get("seconds") or 0.0))
+
+
+def advance_key(stage: dict | None) -> tuple:
+    """The COARSE order `partial_progress_choice` uses to decide that a run strictly advanced past another (no seconds: a longer run is not
+    progress): (passed, phase, setup steps completed when the failure is in setup, still running when it failed). Larger = further."""
+    if not stage:
+        return (0, -1, 0, 0)
+    if stage.get("exit_code") == 0:
+        return (1, 3, 0, 0)
+    phase = stage.get("phase")
+    completed = int(stage.get("setup_completed") or 0) if phase in ("runner_setup", "repo_install") else 0
+    return (0, _PHASE_RANK.get(phase, -1), completed, 1 if stage.get("outcome") == "failed_while_running" else 0)
+
+
+def partial_progress_choice(current: dict | None, candidates: list[dict]) -> dict | None:
+    """harness-v1.4.2-rc (D-37). When no candidate was adopted, the one that got furthest (the recorded stage order: runner setup < install step k <
+    the repository's own command < passed) IF it strictly advances past the failure being repaired; ties go to the finer `stage_rank`, then to the
+    lowest number. Returns {"number", "current", "chosen"} or None. A candidate that only moves sideways (the same stage) is never adopted."""
+    now = advance_key(current)
+    ahead = [c for c in candidates if advance_key(c.get("stage")) > now]
+    if not ahead:
+        return None
+    best = max(ahead, key=lambda c: (advance_key(c.get("stage")), stage_rank(c.get("stage")), -c["number"]))
+    return {"number": best["number"], "current": current, "chosen": best.get("stage")}
 
 
 def _deterministic_choice(candidates: list[dict]) -> int | None:
@@ -300,10 +332,31 @@ class _Tap:
         return pop() if callable(pop) else []
 
 
-def adjudicate_candidates(client, model: str | None, failure: str, candidates: list[dict], cost_guard=None) -> CandidateAdjudication:
+def adjudicate_candidates(client, model: str | None, failure: str, candidates: list[dict], cost_guard=None,
+                          current_stage: dict | None = None) -> CandidateAdjudication:
     """`candidates`: the qualifying ones, each {"number", "diff", "env_delta", "exit_code", "outcome", "output_tail", "explanation",
     "stage"} (`stage`: see `stage_rank`). harness-v1.4.1-rc (D-32): a reply that is not valid JSON is re-asked ONCE, and both replies are
-    recorded; when the answer is still unusable RERUN chooses by `_deterministic_choice` and records what it chose from."""
+    recorded; when the answer is still unusable RERUN chooses by `_deterministic_choice` and records what it chose from.
+    harness-v1.4.2-rc (D-37): given `current_stage` (the stage of the failure being repaired), a decision of "none" is replaced by the candidate
+    that strictly advanced furthest (`partial_progress_choice`), recorded as adopted_reason "partial progress"."""
+    result = _adjudicate(client, model, failure, candidates, cost_guard)
+    if result.chosen is None and candidates and current_stage is not None:
+        pick = partial_progress_choice(current_stage, candidates)
+        if pick is not None:
+            from dataclasses import replace
+
+            return replace(
+                result, chosen=pick["number"], adopted_reason="partial progress", partial_progress=pick,
+                reasoning=f"{result.reasoning} | RERUN adopted candidate {pick['number']} for partial progress: its run got further than the "
+                          f"failure being repaired (stage {pick['current']} -> {pick['chosen']}), though it did not pass.")
+    if result.chosen is not None and not result.adopted_reason:
+        from dataclasses import replace
+
+        return replace(result, adopted_reason=f"fallback: {result.fallback}" if result.fallback else "adjudicator")
+    return result
+
+
+def _adjudicate(client, model: str | None, failure: str, candidates: list[dict], cost_guard=None) -> CandidateAdjudication:
     qualifying = tuple(c["number"] for c in candidates)
     if not candidates:
         return CandidateAdjudication(None, "no candidate passed the gate and changed the exit outcome", qualifying, False)

@@ -117,8 +117,8 @@ def attribute(
     never REPO, whatever the error text says. Attempt 1, entry 3: RERUN's own `patchelf --clear-execstack` failed on
     python:3.6-slim and the text ("getting info about ...: No such file or directory") was read as DATA_MISSING/REPO."""
     if phase == PHASE_RUNNER_SETUP:
-        return SANDBOX_QUOTA if code == "SANDBOX_QUOTA" else PLATFORM if code == "SANDBOX_INCOMPAT" else ENV
-    if code == "SANDBOX_QUOTA":
+        return SANDBOX_QUOTA if code in ("SANDBOX_QUOTA", "RESOURCE_LIMIT") else PLATFORM if code == "SANDBOX_INCOMPAT" else ENV
+    if code in ("SANDBOX_QUOTA", "RESOURCE_LIMIT"):  # harness-v1.4.2-rc: a SIGKILL (the sandbox's resource limit) is an infrastructure limit, not the repository's error
         return SANDBOX_QUOTA
     if code == "SANDBOX_INCOMPAT":
         return PLATFORM

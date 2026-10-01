@@ -63,6 +63,15 @@ SANDBOX_COST_RATE_USD_PER_S = 0.0085
 # its baseline $0.3299 over 78.5 s, $0.0042). Funding every operation at the 0.0085 worst case starved it: the era environment was built,
 # the 60 s smoke run was not funded, the entry ended COST_CAP with $0.62 unspent. The rate is now the rolling rate this entry's own
 # completed operations cost per wall second, times a safety factor, between a floor and the old ceiling (the owner's numbers).
+# harness-v1.4.2-rc (owner decision, D-27): a killed step is ESTIMATED at the API's own median cost per BILLED second x 1.5. The old estimate used
+# the $0.0085 ceiling above (an observed bound over WHOLE-operation wall seconds) and was not an upper bound for a step: over 21 steps of at least
+# 3 s in the harness-v1.4.0 gate records the API's cost per billed second has minimum $0.01005, median $0.01013, maximum $0.01454 (docs/design/D-36.md,
+# section 3). Past estimates are NOT recomputed; each is annotated "computed at $0.0085/s, not an upper bound (D-27)".
+KILLED_STEP_MEDIAN_USD_PER_BILLED_S = 0.01013
+KILLED_STEP_SAFETY = 1.5
+KILLED_STEP_ESTIMATE_RATE_USD_PER_S = 0.0152  # 0.01013 x 1.5 = 0.015195, the owner's figure
+KILLED_STEP_RATE_SOURCE = ("API median cost per billed second 0.01013 x 1.5 (21 steps >= 3 s of the harness-v1.4.0 gate records, docs/design/D-36.md "
+                           "section 3; owner decision, D-27)")
 FUNDING_SAFETY = 1.5
 FUNDING_RATE_FLOOR_USD_PER_S = 0.0030
 FUNDING_RATE_CEILING_USD_PER_S = SANDBOX_COST_RATE_USD_PER_S
@@ -168,15 +177,19 @@ class CostGuard:
                 f"requested > ${self.daily_cost_ceiling_usd:.4f} ceiling"
             )
 
-    def record_spend(self, actual_cost_usd: float, *, estimated: bool = False, note: str = "") -> None:
-        """Sandbox spend (the SDK's measured per-run cost; `estimated=True` for a killed step's upper bound)."""
+    def record_spend(self, actual_cost_usd: float, *, estimated: bool = False, note: str = "",
+                     rate_usd_per_s: float | None = None, rate_source: str = "") -> None:
+        """Sandbox spend (the SDK's measured per-run cost; `estimated=True` for a killed step's ESTIMATE, stored with its rate and the rate's source)."""
         with self._lock:
             self._roll_day_if_needed()
             self._spent_today_usd += actual_cost_usd
             self.sandbox_spent_usd += actual_cost_usd
             if estimated:
                 self.estimated_spent_usd += actual_cost_usd
-                self.cost_events.append({"kind": "estimated", "usd": round(actual_cost_usd, 6), "note": note})
+                event = {"kind": "estimated", "usd": round(actual_cost_usd, 6), "note": note}
+                if rate_usd_per_s is not None:
+                    event.update(rate_usd_per_s=rate_usd_per_s, rate_source=rate_source)
+                self.cost_events.append(event)
 
     def funding_rate(self) -> FundingRate:
         """harness-v1.4.1-rc (D-30): the rate the NEXT operation is funded at. Measured from this entry's completed operations
@@ -211,13 +224,16 @@ class CostGuard:
         return fundable / (rate_usd_per_s if rate_usd_per_s is not None else self.funding_rate().rate)
 
     def record_killed_operation(self, completed_steps_usd: float, killed_seconds: float,
-                                rate_usd_per_s: float = SANDBOX_COST_RATE_USD_PER_S, note: str = "") -> float:
+                                rate_usd_per_s: float = KILLED_STEP_ESTIMATE_RATE_USD_PER_S, note: str = "") -> float:
         """Record an operation the sandbox stopped at its time limit: the steps that completed at their measured cost,
-        the step that was killed at `killed_seconds x rate` (estimate). Returns the total recorded."""
+        the step that was killed at `killed_seconds x rate` (ESTIMATED; harness-v1.4.2-rc: the API's median per billed second x 1.5,
+        stored on the cost event with its source). Returns the total recorded."""
         estimate = max(killed_seconds, 0.0) * rate_usd_per_s
+        label = f"killed step ran {killed_seconds:.0f}s at ${rate_usd_per_s}/s"
         with self._lock:
             self.record_spend(completed_steps_usd)
-            self.record_spend(estimate, estimated=True, note=note or f"killed step ran {killed_seconds:.0f}s at ${rate_usd_per_s}/s")
+            self.record_spend(estimate, estimated=True, note=f"{note}; {label}" if note else label, rate_usd_per_s=rate_usd_per_s,
+                              rate_source=KILLED_STEP_RATE_SOURCE if rate_usd_per_s == KILLED_STEP_ESTIMATE_RATE_USD_PER_S else "caller's rate")
         return completed_steps_usd + estimate
 
     def record_model_usage(self, model: str, prompt_tokens: int, completion_tokens: int) -> float | None:

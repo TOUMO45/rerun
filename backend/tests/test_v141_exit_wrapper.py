@@ -152,14 +152,26 @@ WRAPPER_TRACE = ("RERUN_EXIT_WRAPPER: the entry script raised SystemExit(1); the
                  "Traceback (most recent call last):\n  File \"main.py\", line 6, in main\n    raise SystemExit(1)\nSystemExit: 1\n")
 
 
-def _silent_cloud(monkeypatch, *, wrapper_prints: bool):
+def _decoded(shell: str) -> str:
+    try:
+        return json.loads(base64.b64decode(shell.split()[-1]))["cmd"]
+    except Exception:  # noqa: BLE001 - not a smoke command
+        return ""
+
+
+NO_KILL_EVIDENCE = ("RERUN_EVIDENCE_BEGIN exit_status=1\n--meminfo\nMemTotal:        2048000 kB\n--nproc\n2\n--cgroup\n"
+                    "/sys/fs/cgroup/memory.events=low 0 high 0 max 0 oom 0 oom_kill 0 \n--dmesg\nRERUN_EVIDENCE_END\n")
+
+
+def _silent_cloud(monkeypatch, *, wrapper_prints: bool, evidence: str = NO_KILL_EVIDENCE):
     def behaviour(shell, built, files):
         if shell in EXEC or _is_wrapped(shell):
             if not any("numpy==1.19.5" in b for b in built):
                 return 1, "", SKLEARN_MISSING
             if _is_wrapped(shell) and wrapper_prints:
                 return 1, "", ENTRY_03_SILENT["stderr_tail"][-200:] + "\n" + WRAPPER_TRACE
-            return 1, ENTRY_03_SILENT["stdout_tail"], ENTRY_03_SILENT["stderr_tail"]  # the recorded silent exit (the hook prints nothing)
+            extra = evidence if "RERUN_EVIDENCE_BEGIN" in _decoded(shell) else ""  # the evidence run prints the block after the command
+            return 1, ENTRY_03_SILENT["stdout_tail"], ENTRY_03_SILENT["stderr_tail"] + extra  # the recorded silent exit (the hook prints nothing)
         return None
 
     return v140_cloud.install(monkeypatch, behaviour)
@@ -188,14 +200,32 @@ def test_entry_3s_recorded_silent_exit_gets_the_wrapper_after_the_hook_printed_n
     assert all(op.get("exit_wrapper") == "applied" for op in guard.operations if op["role"].startswith("repair"))
 
 
-def test_if_the_wrapper_prints_nothing_either_the_record_says_exit_outside_python(tmp_path, monkeypatch):
+def test_if_the_wrapper_prints_nothing_either_the_record_says_exit_outside_python_and_the_entry_ends_indeterminate(tmp_path, monkeypatch):
+    """harness-v1.4.1 went on to ask the model (BLOCKED after nine refused patches). harness-v1.4.2-rc (item 4): one evidence run, then INDETERMINATE
+    EXIT_OUTSIDE_PYTHON with that reason; no model attempt (the repair client raises if called)."""
     _repo(tmp_path, {"main.py": BARE_EXIT})
     cloud = _silent_cloud(monkeypatch, wrapper_prints=False)
-    decline = {"file_edits": None, "env_delta": [], "explanation": "no traceback anywhere"}
-    result, _, _ = _run(tmp_path, cloud, repair=_Chat([decline] * 3, "repair model"))
+    repair = _Chat([], "repair model")  # raises if called
+    result, _, guard = _run(tmp_path, cloud, repair=repair)
     action = next(a.time_machine_action for a in result.attempts if a.time_machine_action and a.time_machine_action["rule"] == "exit_wrapper")
     assert action["applied"] is True and action["result"] == "exit outside Python" == runner_hooks.OUTSIDE_PYTHON
-    assert result.verdict == "BLOCKED"
+    assert result.verdict == "INDETERMINATE" and result.indeterminate_reason.startswith("EXIT_OUTSIDE_PYTHON: exit outside Python")
+    assert "no kill" in result.indeterminate_reason and "MemTotal 2048000 kB" in result.indeterminate_reason and "no model attempt was spent" in result.indeterminate_reason
+    assert repair.calls == [] and not [a for a in result.attempts if a.origin == "model"]
+    evidence = next(a.time_machine_action for a in result.attempts if a.time_machine_action and a.time_machine_action["rule"] == "resource_evidence")
+    assert evidence["kill_evidenced"] is False and evidence["evidence"]["oom_kill"] == 0 and evidence["evidence"]["mem_total_kb"] == 2048000
+    assert sum(1 for op in guard.operations if op["role"] == "exit wrapper with evidence") == 1  # once, with the wrapper in place
+
+
+def test_if_the_evidence_shows_a_kill_the_entry_ends_resource_limit(tmp_path, monkeypatch):
+    killed = NO_KILL_EVIDENCE.replace("oom_kill 0", "oom_kill 1").replace("--dmesg\n", "--dmesg\nOut of memory: Killed process 4242 (python)\n")
+    _repo(tmp_path, {"main.py": BARE_EXIT})
+    cloud = _silent_cloud(monkeypatch, wrapper_prints=False, evidence=killed)
+    repair = _Chat([], "repair model")
+    result, _, _ = _run(tmp_path, cloud, repair=repair)
+    assert result.verdict == "INDETERMINATE" and result.indeterminate_reason.startswith("RESOURCE_LIMIT: the command exited with code 1")
+    assert "oom_kill 1" in result.indeterminate_reason and "Killed process 4242" in result.indeterminate_reason
+    assert result.taxonomy_code == "RESOURCE_LIMIT" and repair.calls == []
 
 
 def test_a_command_the_wrapper_cannot_wrap_is_recorded_and_not_run_again(tmp_path, monkeypatch):

@@ -73,14 +73,15 @@ def test_the_recorded_stop_of_entry_11_would_have_been_funded_for_the_full_smoke
 
 def test_at_the_old_1_25_entry_cap_entry_11_would_still_end_cost_cap_after_a_late_stop():
     """Stated, not hidden. With $1.25 the new rate funds about 146 s, below the 168 s the operation needed: it would be stopped about 38 s
-    into its smoke run, the guard's estimate for that killed step leaves about $0.30, which funds fewer seconds than one resumed operation
-    needs (the smoke run plus the start-up margin): neither rule saves #11 at $1.25. At the pre-registered $1.50 the rate alone funds it."""
+    into its smoke run, the guard's estimate for that killed step (v1.4.1: $0.0085/s, about $0.32 and $0.30 left; v1.4.2: $0.0152/s, about $0.57
+    and $0.05 left) leaves less than one resumed operation needs (the smoke run plus the start-up margin): neither rule saves #11 at $1.25.
+    At the pre-registered $1.50 the rate alone funds it."""
     guard, _, era = _guard_after_the_recorded_baseline(1.25)
     funded = guard.operation_seconds_budget()
     assert era["funded_seconds"] < funded < era["funded_seconds"] + 60
     guard.record_killed_operation(era["cost_usd"], funded - era["funded_seconds"])  # setup steps as recorded + the killed smoke step at the ceiling
     assert guard.operation_seconds_budget() < 60 + orchestrator.RESUME_START_MARGIN_S
-    assert guard.remaining_today_usd == pytest.approx(0.30, abs=0.01)
+    assert guard.remaining_today_usd == pytest.approx(0.05, abs=0.01)  # at $0.0152/s (harness-v1.4.1 estimated at $0.0085/s: about $0.30)
 
 
 def test_the_stop_as_recorded_was_resumable_at_the_old_cap_the_scenario_the_resume_rule_was_written_for():

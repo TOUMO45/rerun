@@ -18,6 +18,7 @@ import app.services.sandbox as sandbox_module
 from app.services.cost_guard import (
     MIN_OPERATION_SECONDS,
     PER_OPERATION_CAP_USD,
+    KILLED_STEP_ESTIMATE_RATE_USD_PER_S,
     SANDBOX_COST_RATE_USD_PER_S,
     CostGuard,
     CostLimitExceeded,
@@ -44,9 +45,11 @@ def test_operation_budget_is_bounded_by_the_per_operation_cap_and_by_what_the_en
 def test_killed_operation_records_measured_steps_plus_a_flagged_estimate():
     g = CostGuard(daily_cost_ceiling_usd=2.0)
     total = g.record_killed_operation(completed_steps_usd=0.10, killed_seconds=100.0)
-    assert total == pytest.approx(0.10 + 100.0 * SANDBOX_COST_RATE_USD_PER_S)
+    assert total == pytest.approx(0.10 + 100.0 * KILLED_STEP_ESTIMATE_RATE_USD_PER_S)  # harness-v1.4.2-rc: $0.0152/s (was $0.0085/s)
     assert g.spent_today_usd == pytest.approx(total)
-    assert g.estimated_spent_usd == pytest.approx(100.0 * SANDBOX_COST_RATE_USD_PER_S)
+    assert g.estimated_spent_usd == pytest.approx(100.0 * KILLED_STEP_ESTIMATE_RATE_USD_PER_S)
+    event = g.cost_events[-1]
+    assert event["rate_usd_per_s"] == 0.0152 and "median" in event["rate_source"] and "killed step ran 100s at $0.0152/s" in event["note"]
     assert g.cost_events and g.cost_events[0]["kind"] == "estimated"
 
 
@@ -223,7 +226,12 @@ def test_budget_kill_of_a_repair_records_an_estimate_and_ends_INDETERMINATE_COST
     assert result.verdict == "INDETERMINATE"
     assert result.indeterminate_reason.startswith("COST_CAP: ")
     assert guard.estimated_spent_usd > 0.0
-    assert guard.spent_today_usd <= 2.0 + 0.06  # never more than the repair was funded for (plus the measured part)
+    # harness-v1.4.2-rc: the killed step is ESTIMATED at $0.0152/s (the API's median per billed second x 1.5), above the $0.0085/s ceiling the operation
+    # was FUNDED at, so the recorded spend of a kill can exceed the money the operation was funded with (it was "never more than funded" while both rates
+    # were $0.0085/s). The estimate is the ledger's lower-bound-style record, not a charge; what stays true is that the sum is exactly the parts.
+    killed_seconds = calls[1] - 10.0
+    assert guard.spent_today_usd == pytest.approx(0.01 + 0.05 + killed_seconds * KILLED_STEP_ESTIMATE_RATE_USD_PER_S, abs=0.02)
+    assert guard.estimated_spent_usd == pytest.approx(killed_seconds * KILLED_STEP_ESTIMATE_RATE_USD_PER_S)
     assert "operation stopped" in result.full_log
     assert result.attempts[-1].env_delta and result.attempts[-1].env_delta[0]["package"] == "pyyaml"  # the delta that was running is kept
 
@@ -249,7 +257,7 @@ def test_a_baseline_that_overruns_the_wall_clock_is_TIMEOUT_as_in_v132_with_its_
     guard = CostGuard(daily_cost_ceiling_usd=2.0)
     result = _run(tmp_path, runner, guard)
     assert result.verdict == "TIMEOUT"
-    assert guard.spent_today_usd == pytest.approx(0.02 + 590.0 * SANDBOX_COST_RATE_USD_PER_S)
+    assert guard.spent_today_usd == pytest.approx(0.02 + 590.0 * KILLED_STEP_ESTIMATE_RATE_USD_PER_S)
 
 
 def test_a_wall_clock_overrun_below_the_budget_limit_is_TIMEOUT_and_its_spend_is_recorded(tmp_path):
@@ -260,7 +268,7 @@ def test_a_wall_clock_overrun_below_the_budget_limit_is_TIMEOUT_and_its_spend_is
     guard = CostGuard(daily_cost_ceiling_usd=2.0)
     result = _run(tmp_path, runner, guard, wall=50.0)  # configured wall clock (50 s) is the smaller bound
     assert result.verdict == "TIMEOUT"
-    assert guard.spent_today_usd == pytest.approx(0.02 + 40.0 * SANDBOX_COST_RATE_USD_PER_S)
+    assert guard.spent_today_usd == pytest.approx(0.02 + 40.0 * KILLED_STEP_ESTIMATE_RATE_USD_PER_S)
 
 
 def test_a_timeout_in_a_repair_reexecution_is_TIMEOUT_not_PIPELINE_ERROR(tmp_path):

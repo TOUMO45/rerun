@@ -41,6 +41,8 @@ class TaxonomyCode:
     # infrastructure limit or a platform refusal is not evidence about the paper's code.
     SANDBOX_QUOTA = "SANDBOX_QUOTA"  # a Nebius limit: upload rejected, fs delta, disk full
     SANDBOX_INCOMPAT = "SANDBOX_INCOMPAT"  # the platform refuses to load a valid artifact
+    # harness-v1.4.2-rc (D-38, D-40): the process was killed by SIGKILL (exit 137 / -9: the memory limit's OOM kill, or the sandbox itself).
+    RESOURCE_LIMIT = "RESOURCE_LIMIT"
 
     FAMILY = {
         DEP_UNPINNED_CONFLICT: "Dependencies",
@@ -58,9 +60,10 @@ class TaxonomyCode:
         RUNTIME_ERROR_OTHER: "Code",
         SANDBOX_QUOTA: "Platform",
         SANDBOX_INCOMPAT: "Platform",
+        RESOURCE_LIMIT: "Platform",
     }
 
-    SANDBOX_CODES = frozenset({SANDBOX_QUOTA, SANDBOX_INCOMPAT})
+    SANDBOX_CODES = frozenset({SANDBOX_QUOTA, SANDBOX_INCOMPAT, RESOURCE_LIMIT})
 
     ALL = tuple(FAMILY.keys())
 
@@ -335,6 +338,11 @@ def _evidence_line(text: str, match: re.Match) -> str:
     return text[start : end if end != -1 else len(text)].strip()
 
 
+# 128 + SIGKILL (a shell reports a killed child this way) and the negative return code a launcher sees for a killed process. Other signals are NOT
+# listed on purpose: SIGSEGV (139) and SIGABRT (134) are crashes of the program or its native code, SIGTERM (143) may be the program's own.
+SIGKILL_EXIT_CODES = frozenset({137, -9})
+
+
 def classify(
     exit_code: int,
     stderr: str,
@@ -354,6 +362,17 @@ def classify(
     # TensorFlow `W ... Could not load dynamic library 'libnvinfer.so.6'` line used to be classified SYS_LIB_MISSING while the real
     # failure (`AttributeError: module 'tensorflow' has no attribute 'get_variable'`) sat below it (corpus-v2 entry 12), and a
     # progress fragment ("17.6") was recorded as the error (entry 3).
+    raw_output = f"{stderr}\n{stdout}"
+    if exit_code in SIGKILL_EXIT_CODES:
+        # harness-v1.4.2-rc (D-38): a SIGKILL is not the repository's error text and not a silent exit: the kernel's OOM killer or the sandbox ended
+        # the process (corpus-v2 #11, harness-v1.4.1 gate: `1/40 [00:01<00:53, 1.37s/it]Killed`, exit 137, the line lost in denoise() as a progress bar).
+        shell_said = bool(re.search(r"\bKilled\b", raw_output))
+        return Classification(
+            code=TaxonomyCode.RESOURCE_LIMIT,
+            family=TaxonomyCode.FAMILY[TaxonomyCode.RESOURCE_LIMIT],
+            evidence=f"exit code {exit_code}: the process was killed by SIGKILL" + (" (the shell printed 'Killed')" if shell_said else ""),
+            matched_pattern=f"exit code in {sorted(SIGKILL_EXIT_CODES)}",
+        )
     stderr, stdout = denoise(stderr), denoise(stdout)
     combined = f"{stderr}\n{stdout}"
 
