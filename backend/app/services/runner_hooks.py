@@ -11,6 +11,11 @@ setup commands, so it lands on top of the checkpoint image and never forces a re
     `exit()` / `quit()` and every library that calls `sys.exit` (argparse, click) is printed to stderr when the exit code is non-zero,
     ending in a `SystemExit: <code>` line. Limit, stated in every record that uses it: a bare `raise SystemExit(n)` in the repository's
     own code is not captured (Python offers no hook for it short of tracing every frame).
+  - `exit wrapper` (harness-v1.4.1-rc, D-35; not an installed hook but a launcher for the entry script; fires when the exit hook was
+    installed and printed nothing): the entry script runs through `runpy.run_path` (or `run_module` for `python -m`) inside a
+    `try/except SystemExit` that prints the traceback of the raise to stderr and re-raises, so the process exits with the same code.
+    This captures the bare `raise SystemExit(n)` the hook cannot see. If the wrapper also prints nothing, the process did not leave
+    through a Python `SystemExit` at all, and the record says "exit outside Python".
 
 The module sources are Python 3.6-compatible (the oldest sandbox image is python:3.6-slim) and are sent base64-encoded, like the smoke
 launcher, so no shell quoting can change them.
@@ -19,6 +24,8 @@ launcher, so no shell quoting can change them.
 from __future__ import annotations
 
 import base64
+import re
+import shlex
 from dataclasses import dataclass
 
 CPU_SHIM = "cpu_shim"
@@ -254,3 +261,95 @@ def hook_of_command(command: str) -> str | None:
         if command == install_command(name):
             return name
     return None
+
+
+# --- the exit wrapper (harness-v1.4.1-rc, D-35) -----------------------------------------------------------------------------------
+
+EXIT_WRAPPER = "exit_wrapper"
+EXIT_WRAPPER_RULE = "exit_wrapper"
+EXIT_WRAPPER_MARKER = "RERUN_EXIT_WRAPPER"
+EXIT_WRAPPER_FIRES_ON = "a non-zero exit with no traceback after the exit-site hook was installed and printed nothing (D-35)"
+EXIT_WRAPPER_LIMIT = (
+    "only a Python SystemExit reaches the wrapper; a signal, a C library's exit() or a shell `exit` does not. On Python 3.9+ the script "
+    "sees sys.argv[0] as an absolute path (runpy.run_path sets it from the path it was given; `__file__` is absolute there, as with "
+    "`python script.py`)"
+)
+OUTSIDE_PYTHON = "exit outside Python"
+
+_EXIT_WRAPPER_SOURCE = r'''
+import os, runpy, sys, traceback
+mode, target = sys.argv[1], sys.argv[2]
+sys.argv = [target] + sys.argv[3:]
+sys.path[:] = [p for p in sys.path if p != ""]  # `python -c` puts the working directory first; `python script.py` puts the script's own
+if mode == "script":
+    sys.path.insert(0, os.path.dirname(os.path.abspath(target)))
+else:
+    sys.path.insert(0, os.getcwd())
+try:
+    if mode == "script":
+        # Python 3.9+ gives the main script an absolute __file__ (`python script.py`); older interpreters keep it as typed. A relative
+        # __file__ would break `os.chdir(os.path.dirname(__file__))` (dirname is ""), which research scripts do.
+        runpy.run_path(os.path.abspath(target) if sys.version_info >= (3, 9) else target, run_name="__main__")
+    else:
+        runpy.run_module(target, run_name="__main__", alter_sys=True)
+except SystemExit as exc:
+    code = exc.code
+    if code not in (None, 0) and not getattr(sys, "rerun_exit_hook_silent", False):
+        sys.stderr.write("RERUN_EXIT_WRAPPER: the entry %s raised SystemExit(%r); the traceback of the raise (most recent call last):\n" % (mode, code))
+        traceback.print_exc()
+        sys.stderr.flush()
+    raise
+'''
+
+_SAFE_PYTHON_FLAGS = frozenset({"-u", "-B", "-O", "-OO", "-s", "-S", "-E", "-I", "-q"})
+_SHELL_OPERATORS = frozenset({"&&", "||", ";", "|", "&", ">", ">>", "<", "<<", "2>&1", "&>", "(", ")"})
+_PYTHON_EXE = re.compile(r"^(.*/)?python(3(\.\d+)?)?$")
+_ASSIGNMENT = re.compile(r"^([A-Za-z_][A-Za-z0-9_]*)=(.*)$", re.DOTALL)
+
+
+def exit_wrapper_source() -> str:
+    return _EXIT_WRAPPER_SOURCE
+
+
+def wrap_entry_command(command: str, python: str | None = None) -> tuple[str | None, str]:
+    """The documented command with its entry script run through the exit wrapper, or (None, why) when the command is not a plain
+    `[VAR=value ...] python [-u ...] script.py [args]` / `python -m module [args]` (any shell operator, a `-c` program or another
+    interpreter is left alone: nothing is wrapped and the record says so). Same interpreter, same arguments, same working directory;
+    `python` replaces the interpreter (tests run the wrapper with sys.executable). Arguments are re-quoted exactly as the shell
+    would have split them (a trailing `# comment` is dropped, as the shell drops it)."""
+    try:
+        tokens = shlex.split(command, comments=True)
+    except ValueError as exc:
+        return None, f"the command cannot be parsed ({exc})"
+    if not tokens:
+        return None, "the command is empty"
+    if any(t in _SHELL_OPERATORS or "$(" in t or "`" in t for t in tokens):
+        return None, "the command uses shell operators"
+    i, env = 0, []
+    while i < len(tokens) and _ASSIGNMENT.match(tokens[i]):
+        name, value = _ASSIGNMENT.match(tokens[i]).groups()
+        env.append(f"{name}={shlex.quote(value)}")
+        i += 1
+    if i >= len(tokens) or not _PYTHON_EXE.match(tokens[i]):
+        return None, "the command does not start with python"
+    exe, i, flags = python or tokens[i], i + 1, []
+    while i < len(tokens) and tokens[i].startswith("-") and tokens[i] not in ("-m", "-c"):
+        if tokens[i] not in _SAFE_PYTHON_FLAGS:
+            return None, f"the python option {tokens[i]} is not supported"
+        flags.append(tokens[i])
+        i += 1
+    if i >= len(tokens):
+        return None, "the command names no script"
+    if tokens[i] == "-c":
+        return None, "the command is a python -c program"
+    if tokens[i] == "-m":
+        if i + 1 >= len(tokens):
+            return None, "python -m without a module"
+        mode, target, args = "module", tokens[i + 1], tokens[i + 2:]
+    elif tokens[i].endswith(".py"):
+        mode, target, args = "script", tokens[i], tokens[i + 1:]
+    else:
+        return None, "the command does not run a .py script or a module"
+    code = base64.b64encode(_EXIT_WRAPPER_SOURCE.encode("utf-8")).decode("ascii")
+    launcher = f"{exe} " + "".join(f"{flag} " for flag in flags) + f"-c \"import base64;exec(base64.b64decode('{code}').decode('utf-8'))\""
+    return " ".join([*env, launcher, mode, shlex.quote(target), *(shlex.quote(a) for a in args)]).strip(), "wrapped"

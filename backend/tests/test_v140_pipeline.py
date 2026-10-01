@@ -361,8 +361,10 @@ def test_tavily_snippets_reach_the_candidate_generator_with_the_citation_rule(tm
 # --- entry 7: D-24 (already in) on the checkpoint runner ------------------------------------------------------------------
 
 def test_entry_7_d24_under_checkpoints_branches_from_the_kept_tree_and_never_reuploads(tmp_path, monkeypatch):
-    """The recorded gcc error of entry 7 (v1.3.4 gate, repair 2). build-essential changes the FIRST setup command (apt), so no setup
-    layer can be reused, but the kept pristine-tree layer can: nothing is uploaded or fetched again."""
+    """The recorded gcc error of entry 7 (v1.3.4 gate, repair 2). Nothing is uploaded or fetched again. (harness-v1.4.0: build-essential
+    changed the FIRST setup command, so only the kept pristine-tree layer could be reused and the era lock was installed again;
+    harness-v1.4.1-rc, D-34: it is an additive layer on the kept environment image, so the image holding the lock is reused, see
+    test_v141_apt_layer.py. The assertions below were changed from `start_setup_commands == 0` accordingly.)"""
     gcc = next(a for a in _recorded("07_albertometelli__pfqi")["result"]["attempts"] if a["attempt_number"] == 2)["stderr_tail"]
     assert "unable to execute 'gcc'" in gcc
     _repo(tmp_path, {"main.py": "import numpy\n"})
@@ -381,7 +383,10 @@ def test_entry_7_d24_under_checkpoints_branches_from_the_kept_tree_and_never_reu
     assert result.verdict == "RUNS_AFTER_REPAIR" and deps.repair_client.calls == []
     assert result.attempts[-1].time_machine_action["rule"] == "missing_compiler_build_essential"
     tm_op, d24_op = guard.operations[-2], guard.operations[-1]
-    assert d24_op["start_setup_commands"] == 0 and d24_op["branch_from_image"] in tm_op["kept_images"]
+    assert d24_op["start_setup_commands"] == 1 and d24_op["branch_from_image"] == tm_op["env_image_id"]  # the era lock's layer, not the tree
+    from app.services.orchestrator import apt_layer_command
+
+    assert [i["command"] for i in d24_op["install_seconds"]] == [apt_layer_command(["build-essential"])]  # only the apt layer ran
     assert not [s for s in d24_op["rerun_steps"] if s["phase"] == "rerun_extract"]  # the tree was not uploaded again
     assert sum(1 for c in cloud.ran if c.startswith("tar -xpf " + sandbox.UPLOAD_ARCHIVE)) == 2  # baseline + time machine only
 

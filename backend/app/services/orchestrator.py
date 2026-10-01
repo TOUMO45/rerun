@@ -107,6 +107,26 @@ class OrchestratorError(RuntimeError):
     pass
 
 
+def apt_layer_command(packages) -> str:
+    """harness-v1.4.1-rc (D-34): the setup command of an additive apt layer. It starts with `export DEBIAN_FRONTEND=noninteractive &&`, so
+    sandbox_limits.split_setup_ops does NOT file it with the system-package operations (which always run first): it keeps its place
+    among the plan's own install commands, after the kept layers it is added onto."""
+    return "export DEBIAN_FRONTEND=noninteractive && apt-get update && apt-get install -y " + " ".join(sorted(packages))
+
+
+# harness-v1.4.1-rc (D-31): how many times one logical operation may be resumed from a kept image after budget-limited stops.
+MAX_RESUMES = 2
+
+
+class _BudgetStopResumable(Exception):
+    """Internal. An operation stopped at its budget-derived limit, the entry can still fund one operation and `layer` (a kept image)
+    holds part of the environment: `_execute` runs the next operation from it."""
+
+    def __init__(self, layer: dict, operation: int, reason: str):
+        super().__init__(reason)
+        self.layer, self.operation = layer, operation
+
+
 # Reason codes that mean "RERUN itself failed", not "the repo failed". Runs
 # ending with one of these are reported separately and excluded from the
 # Batch Lab reproducibility denominator (runner.aggregate_batch_results) —
@@ -171,6 +191,11 @@ class _RunState:
     layers: list = field(default_factory=list)
     env_image: dict | None = None
     runner_extras: list = field(default_factory=list)
+    # harness-v1.4.1-rc (D-34): apt packages added at repair time, each as an additive layer on top of the kept environment image
+    # ({"packages", "after_rest"}: see `_apt_layer_for`), in the order they were added.
+    apt_layers: list = field(default_factory=list)
+    # harness-v1.4.1-rc (D-35): the entry command runs through RERUN's exit-site wrapper (runner_hooks.wrap_entry_command) from here on.
+    exit_wrapper: bool = False
 
 
 def _cost_cap_reason(message: str) -> str:
@@ -355,6 +380,10 @@ class PipelineResult:
 _PROJECT_FILES = ("setup.py", "setup.cfg", "pyproject.toml")
 # harness-v1.4.0-rc: seconds a candidate branch needs beyond the smoke limit (reopening the image, the overlay step, start-up).
 CANDIDATE_START_MARGIN_S = 45.0
+# harness-v1.4.1-rc (D-31): what a RESUME from a kept environment image needs beyond the smoke run (reopen the image, start the command):
+# at most 10.0 s of wall time in the 22 harness-v1.4.0 gate operations that ran no setup step (#3 op 4: 14.2 s wall for 4.2 s billed;
+# the other branch runs 7-9 s), doubled.
+RESUME_START_MARGIN_S = 20.0
 _PIP_PROJECT_RE = re.compile(r"pip3? install[^&|;]*(\s-e\s|\s\.(\s|$|\[)|\s\./)|setup\.py\s+(install|develop)")
 
 
@@ -362,6 +391,27 @@ _PROJECT_INSTALL_RE = re.compile(
     r"pip3? install(?![^&|;]*\s-e\s)[^&|;]*\s\.(\s|$|\[)|pip3? install(?![^&|;]*\s-e\s)[^&|;]*\s\./(\s|$)"
     r"|setup\.py\s+(install|build|build_ext|bdist\w*)"
 )
+
+
+def _candidate_action_record(actions: list) -> dict | None:
+    """harness-v1.4.1-rc (D-33): the deterministic steps taken on a candidate's branch, as one `time_machine_action`: the first step, with
+    any later ones under `then`. None when no rule fired (older records are unchanged)."""
+    if not actions:
+        return None
+    return {**actions[0], **({"then": list(actions[1:])} if len(actions) > 1 else {})}
+
+
+def _candidate_stage(result: SandboxRunResult, outcome: str) -> dict:
+    """harness-v1.4.1-rc (D-32): how far a candidate's run got, from what its operation recorded: the phase of its final step, the
+    setup steps that finished, the smoke record's outcome and how long the final step ran (adjudicator.stage_rank orders these)."""
+    final = result.final
+    return {
+        "phase": final.phase,
+        "setup_completed": sum(1 for s in result.steps if s.phase in ("runner_setup", "repo_install") and s.exit_code == 0),
+        "outcome": outcome,
+        "seconds": round(final.elapsed_seconds, 3),
+        "exit_code": final.exit_code,
+    }
 
 
 def _installs_project_copy(command: str) -> bool:
@@ -875,6 +925,53 @@ def _run_stages(
                     best = layer
         return best
 
+    def _sandbox_steps(use_plan, extra_layers: tuple = ()) -> tuple[str, ...]:
+        """harness-v1.4.1-rc (D-34): the setup steps the sandbox runs for `use_plan`. The apt packages a repair added after an environment
+        image had been kept are left out of the first (apt) step and installed by their own layer, placed right after the part of the
+        plan's install commands that the kept image already holds (`after_rest`; the front of that list if the commands changed). With
+        no layer this is exactly `use_plan.as_shell_steps()`."""
+        layers = [*state.apt_layers, *extra_layers]
+        if not layers:
+            return use_plan.as_shell_steps()
+        late = {p for layer in layers for p in layer["packages"]}
+        first = tuple(p for p in use_plan.apt_install if p not in late)
+        rest = _rest_with_layers(use_plan.install_commands, layers)
+        head = ["apt-get update && apt-get install -y " + " ".join(first)] if first else []
+        return tuple([*head, *rest])
+
+    def _rest_with_layers(install_commands, layers) -> list[str]:
+        """The plan's install commands with each apt layer inserted, in the order the layers were added. A layer's `after_rest` is the
+        exact list of commands (earlier layers' included) that must precede it; if they no longer do, it goes to the front."""
+        rest = list(install_commands)
+        for layer in layers:
+            after = tuple(layer["after_rest"])
+            rest.insert(len(after) if tuple(rest[: len(after)]) == after else 0, apt_layer_command(layer["packages"]))
+        return rest
+
+    def _apt_layer_for(plan_before, plan_after, existing: tuple = (), extra_extras: tuple = ()) -> dict | None:
+        """harness-v1.4.1-rc (D-34): the additive layer for the apt packages `plan_after` has and `plan_before` lacked, or None when
+        there are none or nothing is kept to add them onto (a fresh build then installs them in its first apt step, as before).
+        The layer goes after the deepest kept image of the environment WITHOUT those packages: the setup steps that image holds stay
+        where they are, and only what it lacks (the new packages, then the remaining steps) runs on top of it."""
+        added = tuple(sorted(set(plan_after.apt_install) - set(plan_before.apt_install)))
+        if not added or not (deps.repair_enabled and _declares_kwarg(deps.sandbox_runner, "checkpoint")):
+            return None
+        probe = replace(plan_after, apt_install=plan_before.apt_install)
+        steps = _sandbox_steps(probe, existing)
+        torch_setup = (runner_env.plan_torch_setup([*probe.as_shell_steps(), *intake_result.dependency_files.values()], workdir)
+                       if _accepts_kwarg(deps.sandbox_runner, "torch_setup") else None)
+        extras = (*state.runner_extras, *extra_extras) if _declares_kwarg(deps.sandbox_runner, "runner_extras") else ()
+        kept = _best_layer(plan_after.base_image, setup_commands(steps, torch_setup, extras))
+        if kept is None or not kept["ops"]:
+            return None
+        held = set(kept["ops"])
+        after: list[str] = []
+        for command in _rest_with_layers(plan_after.install_commands, [*state.apt_layers, *existing]):
+            if command not in held:
+                break
+            after.append(command)
+        return {"packages": added, "after_rest": tuple(after), "after_image": kept["image"], "after_ops": len(kept["ops"])}
+
     def _operation_record(outcome: str, *, use_plan, funded: float, wall: float, start: dict | None, cmds: tuple[str, ...],
                           torch_setup, role: str, candidate: int | None, share: int, result: SandboxRunResult | None = None,
                           exc: BaseException | None = None, cost_usd: float = 0.0, estimated_usd: float = 0.0) -> dict:
@@ -926,9 +1023,33 @@ def _run_stages(
             "killed_seconds": round(getattr(exc, "killed_seconds", 0.0) or 0.0, 1) if outcome == "killed" else None,
         }
 
-    def _execute(current_workdir: Path, *, smoke: bool = False, baseline: bool = False, plan_used=None,
-                 extra_files: dict | None = None, keep_result: bool = False, share: int = 1, role: str = "",
-                 candidate: int | None = None) -> SandboxRunResult:
+    def _one_operation_seconds() -> float:
+        """harness-v1.4.1-rc (D-31): what ONE funded operation needs: the smoke run plus the start-up margin (a resume from a kept image
+        runs the command and little else); without a smoke run, the guard's minimum."""
+        return (deps.smoke_seconds + RESUME_START_MARGIN_S) if deps.smoke_seconds else MIN_OPERATION_SECONDS
+
+    def _execute(current_workdir: Path, **kwargs) -> SandboxRunResult:
+        """harness-v1.4.1-rc (D-31). One sandbox operation, resumed after a budget-limited stop. Until v1.4.0 a stop at the operation's
+        budget-derived limit always ended the entry COST_CAP, even when the stopped operation had kept every layer it built and the
+        entry could fund another operation (corpus-v2 #11, v1.4.0 gate: the era environment complete, $0.62 left). Now such a stop
+        is followed by the next operation, which reopens the deepest kept image and runs what the image lacks. The entry ends COST_CAP
+        only when money left cannot fund one operation or no environment image is kept. At most MAX_RESUMES per call."""
+        resumed_after = None
+        for resumes in range(MAX_RESUMES + 1):
+            try:
+                return _execute_once(current_workdir, resumed_after=resumed_after, may_resume=resumes < MAX_RESUMES, **kwargs)
+            except _BudgetStopResumable as stop:
+                resumed_after = stop.operation
+                _log(f"[cost_guard] resuming after the budget-limited stop of operation {stop.operation}: image {stop.layer['image']} "
+                     f"holds {len(stop.layer['ops'])} setup command(s); ${cost_guard.remaining_today_usd:.4f} left funds "
+                     f"{cost_guard.operation_seconds_budget(share=max(kwargs.get('share', 1), 1)):.0f}s, one operation needs "
+                     f"{_one_operation_seconds():.0f}s")
+        raise AssertionError("unreachable: the last pass cannot resume")  # pragma: no cover
+
+    def _execute_once(current_workdir: Path, *, smoke: bool = False, baseline: bool = False, plan_used=None,
+                      extra_files: dict | None = None, keep_result: bool = False, share: int = 1, role: str = "",
+                      candidate: int | None = None, resumed_after: int | None = None, may_resume: bool = False,
+                      extra_apt_layers: tuple = (), extra_extras: tuple = (), exec_wrapper: bool | None = None) -> SandboxRunResult:
         # §9: the daily cost ceiling must actually stop spend, not just be
         # documented. There's no pre-flight cost quote from the sandbox
         # API, so this refuses to start a step at all once today's real
@@ -948,13 +1069,18 @@ def _run_stages(
             # entry into a false regression. Its spend is recorded, counts against the entry cap, and an entry whose baseline used the cap
             # ends COST_CAP before any repair (the pre-check above). Observed baseline cost: at most $0.35 in 40 operations.
             operation_seconds = deps.sandbox_wall_clock_seconds
+            funding = {"basis": "baseline: the pre-registered wall clock, not budget-limited", "rate_used_usd_per_s": None,
+                       "source_operations": []}
         else:
             # harness-v1.4.0-rc: `share` operations run at the same time (repair candidates); each may use its share of what is left.
-            budget_seconds = cost_guard.operation_seconds_budget(share=max(share, 1))
+            # harness-v1.4.1-rc (D-30): funded at the rolling rate this entry's completed operations measured (x1.5, floor, ceiling).
+            rate = cost_guard.funding_rate()
+            funding = rate.as_dict()
+            budget_seconds = cost_guard.operation_seconds_budget(rate_usd_per_s=rate.rate, share=max(share, 1))
             if budget_seconds < MIN_OPERATION_SECONDS:
                 state.cost_capped = (
                     f"${cost_guard.remaining_today_usd:.2f} left funds only {budget_seconds:.0f}s of sandbox time "
-                    f"(minimum {MIN_OPERATION_SECONDS:.0f}s at ${SANDBOX_COST_RATE_USD_PER_S}/s)"
+                    f"(minimum {MIN_OPERATION_SECONDS:.0f}s at ${rate.rate:.4f}/s, {rate.basis})"
                     + (f" per concurrent operation ({share} at once)" if share > 1 else "")
                 )
                 raise OperationBudgetExhausted(state.cost_capped)
@@ -966,10 +1092,20 @@ def _run_stages(
         # line arrives, rather than only after the whole build+execute
         # step finishes.
         upload_files = _collect_upload_files(current_workdir)
-        execute_command = use_plan.execute_command
+        base_command, wrapper_note = use_plan.execute_command, None
+        if not baseline and (state.exit_wrapper if exec_wrapper is None else exec_wrapper):
+            # harness-v1.4.1-rc (D-35): the entry script runs through RERUN's exit-site wrapper (a bare `raise SystemExit(n)` leaves a
+            # traceback); the documented command is otherwise unchanged (same program, arguments, working directory).
+            wrapped, why = runner_hooks.wrap_entry_command(use_plan.execute_command)
+            if wrapped is not None:
+                base_command, wrapper_note = wrapped, "applied"
+            else:
+                wrapper_note = f"not applicable: {why}"
+            _log(f"[exit-wrapper] {role or 're-execution'}: {wrapper_note}")
+        execute_command = base_command
         if smoke and deps.smoke_seconds:
             # harness-v1.3.3: a repair re-execution asks "does it run", not "does it finish" (smoke_exec).
-            execute_command = smoke_exec.wrap(use_plan.execute_command, deps.smoke_seconds)
+            execute_command = smoke_exec.wrap(base_command, deps.smoke_seconds)
             _log(f"[smoke] re-execution of the documented command under a {deps.smoke_seconds}s smoke limit")
         # Clone integrity gate: the uploaded bytes must be the committed bytes
         # (except files changed by gate-approved patches). Raises
@@ -992,10 +1128,12 @@ def _run_stages(
             if torch_setup is not None:
                 _log(f"[runner] torch: {torch_setup.reason}")
             runner_kwargs["torch_setup"] = torch_setup
-        extras = tuple(state.runner_extras) if _declares_kwarg(deps.sandbox_runner, "runner_extras") else ()
+        extras = (*state.runner_extras, *extra_extras) if _declares_kwarg(deps.sandbox_runner, "runner_extras") else ()
         if extras:
             runner_kwargs["runner_extras"] = extras
-        cmds = setup_commands(use_plan.as_shell_steps(), torch_setup, extras)
+        # harness-v1.4.1-rc (D-34): apt packages added at repair time are additive layers inside the setup list, not part of its first step.
+        steps = _sandbox_steps(use_plan, extra_apt_layers)
+        cmds = setup_commands(steps, torch_setup, extras)
         # harness-v1.4.0-rc (D-23): TREATMENT operations reuse kept images instead of rebuilding the environment every time.
         checkpoint_mode = deps.repair_enabled and _declares_kwarg(deps.sandbox_runner, "checkpoint")
         start, fresh = None, True
@@ -1043,9 +1181,13 @@ def _run_stages(
         started = time.monotonic()
 
         def _record_op(outcome: str, **kwargs) -> dict:
-            op = cost_guard.record_operation(_operation_record(
+            op = cost_guard.record_operation({**_operation_record(
                 outcome, use_plan=use_plan, funded=operation_seconds, wall=time.monotonic() - started, start=start, cmds=cmds,
-                torch_setup=torch_setup, role=role, candidate=candidate, share=share, **kwargs))
+                torch_setup=torch_setup, role=role, candidate=candidate, share=share, **kwargs),
+                "funding": funding, **({"resumed_after_operation": resumed_after} if resumed_after is not None else {}),
+                **({"apt_layers": [{"packages": list(L["packages"]), "after_rest_commands": len(L["after_rest"])}
+                                   for L in (*state.apt_layers, *extra_apt_layers)]} if (state.apt_layers or extra_apt_layers) else {}),
+                **({"exit_wrapper": wrapper_note} if wrapper_note else {})})
             if checkpoint_mode or op["install_seconds"]:
                 torch_note = ("torch installed" if op["torch_installed"] else
                               ("torch already in the start image" if op["torch_in_start_image"] else "no torch install"))
@@ -1060,7 +1202,7 @@ def _run_stages(
                 api_key=deps.sandbox_api_key,
                 project_id=deps.sandbox_project_id,
                 base_image=use_plan.base_image,
-                install_commands=use_plan.as_shell_steps(),
+                install_commands=steps,
                 execute_command=execute_command,
                 wall_clock_seconds=operation_seconds,
                 upload_files=upload_files if fresh else None,
@@ -1096,7 +1238,17 @@ def _run_stages(
                 f"${cost_guard.remaining_today_usd:.4f} left"
             )
             if operation_seconds < deps.sandbox_wall_clock_seconds - 1e-6:
-                state.cost_capped = f"a sandbox operation reached its budget-derived limit of {operation_seconds:.0f}s"
+                reason = f"a sandbox operation reached its budget-derived limit of {operation_seconds:.0f}s"
+                # harness-v1.4.1-rc (D-31): the entry goes on while money left funds one operation AND an environment image is kept.
+                kept = _best_layer(use_plan.base_image, cmds) if checkpoint_mode else None
+                funds_now = cost_guard.operation_seconds_budget(share=max(share, 1))
+                needed = _one_operation_seconds()
+                if kept is not None and (kept["ops"] or not cmds) and funds_now >= needed and may_resume:
+                    raise _BudgetStopResumable(kept, killed_op["n"], reason) from exc
+                why = ("no environment image is kept" if kept is None or not (kept["ops"] or not cmds) else
+                       f"${cost_guard.remaining_today_usd:.4f} left funds {funds_now:.0f}s, below one operation ({needed:.0f}s)"
+                       if funds_now < needed else "the resume limit of this operation was reached")
+                state.cost_capped = f"{reason}; not resumed: {why}"
                 raise OperationBudgetExhausted(state.cost_capped) from exc
             raise
         cost_guard.record_spend(result.total_cost_usd)
@@ -1330,9 +1482,17 @@ def _run_stages(
             if violations:
                 _log(f"[time-machine] build-essential step refused by the env gate: {'; '.join(v.reason for v in violations)}")
                 return None
+            plan_before = plan
             plan, new_requirements = env_repair.apply_env_delta(plan, (change,), current_requirements)
             if new_requirements is not None:
                 current_requirements = new_requirements
+            # harness-v1.4.1-rc (D-34): an additive layer on the kept environment image, never a rebuild from the tree image.
+            layer = _apt_layer_for(plan_before, plan)
+            if layer is not None:
+                state.apt_layers.append(layer)
+                action["apt_layer"] = {"layering": "additive", "on_kept_image": layer["after_image"], "setup_commands_kept": layer["after_ops"]}
+                _log(f"[time-machine] build-essential goes in as an additive layer on kept image {layer['after_image']} "
+                     f"({layer['after_ops']} setup command(s) stay in it)")
             _log(f"[time-machine] deterministic step: apt build-essential (matched error: {matched_error}); no model call")
             state.build_plan_dict = plan.as_dict()
 
@@ -1421,14 +1581,22 @@ def _run_stages(
                         )
                         lock_lines = list(lock.lock_lines)
                         resolved_lock = lock_lines
+                        plan_before = plan
                         plan = time_machine.apply_lock(plan, py_version, lock_lines, apt_added)
+                        _era_layer = _apt_layer_for(plan_before, plan)
+                        if _era_layer is not None:
+                            state.apt_layers.append(_era_layer)
                         current_requirements = "\n".join(lock_lines) + "\n"
                     else:
                         _log(
                             f"[time-machine] era lock unavailable ({lock.error[-200:].strip()!r}); fallback: one pip step for "
                             f"{len(fallback_names)} undeclared import(s), unpinned, on {plan.base_image}"
                         )
+                        plan_before = plan
                         plan = time_machine.apply_batch_pip(plan, fallback_names, apt_added)
+                        _era_layer = _apt_layer_for(plan_before, plan)
+                        if _era_layer is not None:
+                            state.apt_layers.append(_era_layer)
                         tm_record["fallback"] = {"kind": "batch_pip_unpinned", "packages": list(fallback_names), "base_image": plan.base_image}
                     state.build_plan_dict = plan.as_dict()
                     try:
@@ -1523,6 +1691,49 @@ def _run_stages(
             _record(result.final.exit_code, result.final.stdout[-2000:], result.final.stderr[-2000:], _execution_of(result, True))
             return result
 
+        wrapper_tried = False
+
+        def _auto_exit_wrapper(failed: SandboxRunResult) -> SandboxRunResult | None:
+            """harness-v1.4.1-rc (D-35). Deterministic step (no model): the exit-site hook was installed and printed nothing, so the entry
+            script now runs through RERUN's wrapper (runpy.run_path inside a try/except SystemExit that prints the traceback and re-raises
+            with the same code), which sees the bare `raise SystemExit(n)` the hook cannot. If the wrapper prints nothing either, the
+            record says "exit outside Python". Recorded as attempt 0 / origin time_machine; it uses up no model attempt. Returns the
+            re-execution's result, or None when the command cannot be wrapped or the budget stops it."""
+            action = {"rule": runner_hooks.EXIT_WRAPPER_RULE,
+                      "matched_error": f"exit code {failed.final.exit_code} with no error text; the exit-site hook printed nothing",
+                      "fires_on": runner_hooks.EXIT_WRAPPER_FIRES_ON, "limit": runner_hooks.EXIT_WRAPPER_LIMIT, "phase": "repair"}
+
+            def _record(exit_code, stdout, stderr, execution=None) -> None:
+                attempts.append(AttemptRecord(0, "", "PASS", (), exit_code, stdout, stderr, origin="time_machine",
+                                              execution=execution, time_machine_action=action))
+
+            wrapped, why = runner_hooks.wrap_entry_command(plan.execute_command)
+            if wrapped is None:
+                action.update(applied=False, reason=why)
+                _log(f"[time-machine] exit wrapper not applicable: {why}")
+                _record(failed.final.exit_code, "", "", None)
+                return None
+            action["applied"] = True
+            state.exit_wrapper = True
+            _log("[time-machine] deterministic step: exit wrapper (the exit-site hook printed nothing); no model call")
+            try:
+                result = _execute(workdir, smoke=True, role="time machine: exit_wrapper")
+            except CostLimitExceeded as exc:
+                _log(f"[time-machine] stopped: daily cost ceiling reached: {exc}")
+                _record(None, "", f"stopped before completion: {exc}"[-2000:])
+                return None
+            except (SandboxTimeoutError, tree_integrity.HarnessIntegrityError) as exc:
+                _record(None, "", str(exc)[-2000:])
+                raise
+            printed = (runner_hooks.EXIT_WRAPPER_MARKER in f"{result.final.stderr}\n{result.final.stdout}"
+                       or classifier.has_actionable_error(result.final.stderr, result.final.stdout))
+            action["result"] = "the wrapper printed the traceback of the raise" if printed else runner_hooks.OUTSIDE_PYTHON
+            if not printed:
+                _log(f"[time-machine] the wrapper printed nothing either: {runner_hooks.OUTSIDE_PYTHON}")
+            _log(f"[time-machine] re-execution id={result.sandbox_id} exit_code={result.final.exit_code}")
+            _record(result.final.exit_code, result.final.stdout[-2000:], result.final.stderr[-2000:], _execution_of(result, True))
+            return result
+
         for attempt_number in range(1, (deps.max_attempts if deps.repair_enabled else 0) + 1):
             if verdict is not None or state.cost_capped:
                 break
@@ -1550,6 +1761,12 @@ def _run_stages(
                     state.stage = "time_machine"
                     step_result = _auto_runner_hook(runner_hooks.EXIT_HOOK,
                                                     f"exit code {sandbox_result.final.exit_code} with no error text")
+                elif (hooks_ok and runner_hooks.EXIT_HOOK in hooks_installed and not wrapper_tried
+                      and not classifier.has_actionable_error(sandbox_result.final.stderr, sandbox_result.final.stdout)
+                      and runner_hooks.EXIT_HOOK_MARKER not in f"{sandbox_result.final.stderr}\n{sandbox_result.final.stdout}"):
+                    state.stage = "time_machine"
+                    wrapper_tried = True
+                    step_result = _auto_exit_wrapper(sandbox_result)
                 else:
                     break
                 if state.cost_capped:
@@ -2023,9 +2240,13 @@ def _run_stages(
                         continue
                 if env_changes:
                     state.stage = "apply_env"
+                    plan_before = plan
                     plan, new_requirements = env_repair.apply_env_delta(plan, env_changes, current_requirements)
                     if new_requirements is not None:
                         current_requirements = new_requirements
+                    _layer = _apt_layer_for(plan_before, plan)
+                    if _layer is not None:
+                        state.apt_layers.append(_layer)
                     _log(f"[repair {attempt_number}] env delta applied; build plan now: {plan.as_dict()}")
                 cited_tavily, cited_resolved = _cite(env_changes, proposal.cited_sources, checked_diff)
                 state.build_plan_dict = plan.as_dict()
@@ -2101,12 +2322,17 @@ def _run_stages(
                                               silent_exit=silent_exit, candidate=cand["number"])
                             )
                             continue
-                    cand_plan, cand_requirements = plan, current_requirements
+                    cand_plan, cand_requirements, cand_layers = plan, current_requirements, ()
                     if cand["env_changes"]:
                         cand_plan, new_requirements = env_repair.apply_env_delta(plan, cand["env_changes"], current_requirements)
                         if new_requirements is not None:
                             cand_requirements = new_requirements
-                    runnable.append({**cand, "files": files, "plan": cand_plan, "requirements": cand_requirements})
+                        _cand_layer = _apt_layer_for(plan, cand_plan)  # harness-v1.4.1-rc (D-34): apt packages go in as an additive layer
+                        cand_layers = (_cand_layer,) if _cand_layer is not None else ()
+                    # harness-v1.4.1-rc (D-33): what the deterministic rules add to THIS candidate's branch (they act on every candidate's
+                    # failure): apt layers, runner hooks, the exit wrapper, and the actions taken (recorded on the candidate's attempt).
+                    runnable.append({**cand, "files": files, "plan": cand_plan, "requirements": cand_requirements,
+                                     "apt_layers": cand_layers, "extras": (), "wrapper": False, "wrapper_tried": False, "actions": []})
                 if not runnable:
                     continue
                 # Run them at the same time only when each one's share of what is left still funds the smoke run plus start-up and the
@@ -2121,11 +2347,100 @@ def _run_stages(
                         f"{len(runnable)} concurrent branches of {needed_seconds:.0f}s each)")
                      + ", each in its own branch of the environment image")
 
+                def _candidate_run(cand: dict, role: str):
+                    return _execute(workdir, smoke=True, plan_used=cand["plan"], extra_files=cand["files"], keep_result=True,
+                                    share=concurrent, role=role, candidate=cand["number"], extra_apt_layers=tuple(cand["apt_layers"]),
+                                    extra_extras=tuple(cand["extras"]), exec_wrapper=True if cand["wrapper"] else None)
+
+                def _observe_candidate(cand: dict, result: SandboxRunResult):
+                    """harness-v1.4.1-rc (D-33). The deterministic rules (D-24 build-essential, the CPU shim, the exit-site hook, the exit
+                    wrapper) observe EVERY candidate's failure, not only the adopted one: before, a rule keyed on a failure that a candidate
+                    produced but the adjudicator did not adopt never fired (corpus-v2 #7, harness-v1.4.0 round 2: a candidate's run reached
+                    `unable to execute 'gcc'`, D-24 never saw it). A rule that matches fires on THIS candidate's branch (an additive layer
+                    or a runner hook on its image, then its command again); the action is recorded as `time_machine_action` on the
+                    candidate's attempt, and the candidate's outcome is the run after the rules."""
+                    label = f"repair {attempt_number} candidate {cand['number']}"
+                    for _ in range(4):
+                        if result.succeeded:
+                            break
+                        cls = classifier.classify(result.final.exit_code, result.final.stderr, result.final.stdout,
+                                                  declared_deps=intake_result.declared_dependencies)
+                        output = f"{result.final.stderr}\n{result.final.stdout}"
+                        installed = hooks_installed | {runner_hooks.hook_of_command(c) for c in cand["extras"]}
+                        silent = not classifier.has_actionable_error(result.final.stderr, result.final.stdout)
+                        compiler = missing_compiler_error(cls)
+                        action: dict | None = None
+                        if compiler and "build-essential" not in cand["plan"].apt_install:
+                            change = env_repair.EnvChange(op="apt", package="build-essential", evidence=compiler,
+                                                          justification="deterministic: the failing run could not execute a C compiler")
+                            violations = env_repair.check_env_delta(
+                                (change,), log_text=output, imported_modules=frozenset(),
+                                has_requirements_txt=cand["requirements"] is not None,
+                                locked_requirements=(tuple(cand["requirements"].splitlines())
+                                                     if resolved_lock is not None and cand["requirements"] else None),
+                                apt_packages=frozenset(cand["plan"].apt_install))
+                            if violations:
+                                _log(f"[time-machine] {label}: build-essential step refused by the env gate: "
+                                     f"{'; '.join(v.reason for v in violations)}")
+                                break
+                            plan_after, requirements_after = env_repair.apply_env_delta(cand["plan"], (change,), cand["requirements"])
+                            layer = _apt_layer_for(cand["plan"], plan_after, existing=tuple(cand["apt_layers"]),
+                                                   extra_extras=tuple(cand["extras"]))
+                            cand = {**cand, "plan": plan_after, "requirements": requirements_after,
+                                    "apt_layers": (*cand["apt_layers"], *((layer,) if layer is not None else ()))}
+                            action = {"rule": BUILD_ESSENTIAL_RULE, "matched_error": compiler, "apt_added": ["build-essential"],
+                                      "phase": "repair", "on_candidate": cand["number"]}
+                            if layer is not None:
+                                action["apt_layer"] = {"layering": "additive", "on_kept_image": layer["after_image"],
+                                                       "setup_commands_kept": layer["after_ops"]}
+                        elif hooks_ok and cls.code == classifier.TaxonomyCode.GPU_REQUIRED and runner_hooks.CPU_SHIM not in installed:
+                            hook = runner_hooks.HOOKS[runner_hooks.CPU_SHIM]
+                            cand = {**cand, "extras": (*cand["extras"], runner_hooks.install_command(runner_hooks.CPU_SHIM))}
+                            action = {"rule": hook.rule, "matched_error": (cls.evidence or cls.code)[:500], "hook": hook.name,
+                                      "fires_on": hook.fires_on, "phase": "repair", "on_candidate": cand["number"]}
+                        elif hooks_ok and runner_hooks.EXIT_HOOK not in installed and silent:
+                            hook = runner_hooks.HOOKS[runner_hooks.EXIT_HOOK]
+                            cand = {**cand, "extras": (*cand["extras"], runner_hooks.install_command(runner_hooks.EXIT_HOOK))}
+                            action = {"rule": hook.rule, "matched_error": f"exit code {result.final.exit_code} with no error text",
+                                      "hook": hook.name, "fires_on": hook.fires_on, "limit": hook.limit, "phase": "repair",
+                                      "on_candidate": cand["number"]}
+                        elif (hooks_ok and runner_hooks.EXIT_HOOK in installed and silent and not cand["wrapper_tried"]
+                              and not (state.exit_wrapper or cand["wrapper"]) and runner_hooks.EXIT_HOOK_MARKER not in output):
+                            wrapped, why = runner_hooks.wrap_entry_command(cand["plan"].execute_command)
+                            action = {"rule": runner_hooks.EXIT_WRAPPER_RULE, "applied": wrapped is not None, "phase": "repair",
+                                      "matched_error": f"exit code {result.final.exit_code} with no error text; the exit-site hook printed nothing",
+                                      "fires_on": runner_hooks.EXIT_WRAPPER_FIRES_ON, "limit": runner_hooks.EXIT_WRAPPER_LIMIT,
+                                      "on_candidate": cand["number"]}
+                            cand = {**cand, "wrapper_tried": True, "wrapper": wrapped is not None}
+                            if wrapped is None:
+                                action["reason"] = why
+                                cand["actions"] = [*cand["actions"], action]
+                                _log(f"[time-machine] {label}: exit wrapper not applicable: {why}")
+                                break
+                        if action is None:
+                            break
+                        _log(f"[time-machine] {label}: deterministic step {action['rule']} (matched: {action['matched_error'][:160]}); "
+                             "no model call")
+                        try:
+                            again = _candidate_run(cand, f"{label}: {action['rule']}")
+                        except CostLimitExceeded as exc:
+                            action["stopped"] = f"stopped before completion: {str(exc)[:300]}"
+                            cand = {**cand, "actions": [*cand["actions"], action]}
+                            break
+                        if action["rule"] == runner_hooks.EXIT_WRAPPER_RULE:
+                            printed = (runner_hooks.EXIT_WRAPPER_MARKER in f"{again.final.stderr}\n{again.final.stdout}"
+                                       or classifier.has_actionable_error(again.final.stderr, again.final.stdout))
+                            action["result"] = ("the wrapper printed the traceback of the raise" if printed
+                                                else runner_hooks.OUTSIDE_PYTHON)
+                        cand = {**cand, "actions": [*cand["actions"], action]}
+                        result = again
+                    return result, cand
+
                 def _run_candidate(cand: dict):
                     try:
-                        return cand, _execute(workdir, smoke=True, plan_used=cand["plan"], extra_files=cand["files"], keep_result=True,
-                                              share=concurrent, role=f"repair {attempt_number} candidate {cand['number']}",
-                                              candidate=cand["number"]), None
+                        result = _candidate_run(cand, f"repair {attempt_number} candidate {cand['number']}")
+                        result, cand = _observe_candidate(cand, result)
+                        return cand, result, None
                     except Exception as exc:  # noqa: BLE001 - every candidate's outcome is recorded before anything is raised
                         return cand, None, exc
 
@@ -2166,6 +2481,7 @@ def _run_stages(
                         [{"number": e["number"], "diff": e["checked_diff"], "env_delta": json.dumps(list(e["env_delta_dicts"])),
                           "exit_code": e["result"].final.exit_code,
                           "outcome": (_execution_of(e["result"], True) or {}).get("outcome", "exited"),
+                          "stage": _candidate_stage(e["result"], (_execution_of(e["result"], True) or {}).get("outcome", "exited")),
                           "output_tail": f"{e['result'].final.stderr[-1200:]}\n{e['result'].final.stdout[-800:]}",
                           "explanation": e["proposal"].explanation} for e in qualifying],
                         cost_guard=cost_guard,
@@ -2208,6 +2524,7 @@ def _run_stages(
                             branch=branch,
                             adjudication=adjudication_record,
                             chosen=(e is winner) if adjudication is not None else None,
+                            time_machine_action=_candidate_action_record(e["actions"]),
                         )
                     )
                     if result is not None and not result.succeeded and e is not winner:
@@ -2260,13 +2577,22 @@ def _run_stages(
                     except OrchestratorError as exc:
                         # It applied in the scratch copy a moment ago; failing here means the checkout changed under RERUN.
                         raise OrchestratorError(f"the adjudicated candidate's patch no longer applies to the checkout: {exc}") from exc
-                if env_changes:
+                if env_changes or winner["plan"] != plan or winner["requirements"] != current_requirements:
                     plan, current_requirements = winner["plan"], winner["requirements"]
                     _log(f"[repair {attempt_number}] candidate {winner['number']}'s env delta applied; build plan now: {plan.as_dict()}")
+                # harness-v1.4.1-rc (D-33/D-34/D-35): what the rules added to the winner's branch is now the run's environment.
+                state.apt_layers.extend(winner["apt_layers"])
+                for command in winner["extras"]:
+                    state.runner_extras.append(command)
+                    adopted_hook = runner_hooks.hook_of_command(command)
+                    if adopted_hook:
+                        hooks_installed.add(adopted_hook)
+                if winner["wrapper"]:
+                    state.exit_wrapper = True
                 state.build_plan_dict = plan.as_dict()
                 rerun_result = winner["result"]
                 if rerun_result.result_image:
-                    winner_cmds = tuple(rerun_result.setup_commands) or setup_commands(plan.as_shell_steps(), None, tuple(state.runner_extras))
+                    winner_cmds = tuple(rerun_result.setup_commands) or setup_commands(_sandbox_steps(plan), None, tuple(state.runner_extras))
                     _register_layers(plan.base_image, ((winner_cmds, rerun_result.result_image),), len(cost_guard.operations), patched=True)
                     state.env_image = {"image": rerun_result.result_image, "base_image": plan.base_image, "ops": winner_cmds,
                                        "op": len(cost_guard.operations), "adopted_from_candidate": winner["number"]}

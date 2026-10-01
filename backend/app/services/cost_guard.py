@@ -58,6 +58,14 @@ class OperationBudgetExhausted(CostLimitExceeded):
 # cost per second over 168 real sandbox operations in this repository's run records (median 0.0026, p95 0.0040,
 # maximum 0.00845 = entry 13 of harness-v1.3.2, $5.1174 in 605.5 s): 0.0085. It is an observed bound, not a guarantee.
 SANDBOX_COST_RATE_USD_PER_S = 0.0085
+# harness-v1.4.1-rc (D-30): the guard funds WALL-clock seconds, the API bills sandbox time, and an operation's wall time is several times
+# its billed time (corpus-v2 #11, harness-v1.4.0: $0.2975 for 29.2 s of billed time but 108 s of wall time, about $0.0028 per wall second;
+# its baseline $0.3299 over 78.5 s, $0.0042). Funding every operation at the 0.0085 worst case starved it: the era environment was built,
+# the 60 s smoke run was not funded, the entry ended COST_CAP with $0.62 unspent. The rate is now the rolling rate this entry's own
+# completed operations cost per wall second, times a safety factor, between a floor and the old ceiling (the owner's numbers).
+FUNDING_SAFETY = 1.5
+FUNDING_RATE_FLOOR_USD_PER_S = 0.0030
+FUNDING_RATE_CEILING_USD_PER_S = SANDBOX_COST_RATE_USD_PER_S
 # No single REPAIR operation (one build+execute chain) may be funded for more than this: the whole entry cap, i.e. all the budget the entry
 # has left. (Revised 2026-09-30 before any v1.3.3 run: $1.50 gave ~176 s, but 3 of the 20 v1.3.2 CONTROL operations took 195-494 s of wall
 # time at a normal cost of $0.17-$0.29 (slow installs / transient slowness; entry 3 took 494 s in CONTROL and 84 s in TREATMENT), so a
@@ -66,6 +74,25 @@ SANDBOX_COST_RATE_USD_PER_S = 0.0085
 PER_OPERATION_CAP_USD = 2.00
 # Below this many fundable seconds an operation is not started.
 MIN_OPERATION_SECONDS = 30.0
+
+
+@dataclass(frozen=True)
+class FundingRate:
+    """The USD-per-wall-second rate one operation is funded at (harness-v1.4.1-rc, D-30), with what it came from. `measured` is the
+    entry's own rolling rate (sum of completed operations' cost over their wall time), None while none has completed;
+    `source_operations` are their numbers (`operations[].n`)."""
+
+    rate: float
+    measured: float | None
+    source_operations: tuple[int, ...]
+    basis: str  # "measured x safety" | "floor" | "ceiling" | "no completed operation: ceiling"
+
+    def as_dict(self) -> dict:
+        return {"rate_used_usd_per_s": round(self.rate, 8),
+                "measured_usd_per_s": None if self.measured is None else round(self.measured, 8),
+                "safety": FUNDING_SAFETY, "floor_usd_per_s": FUNDING_RATE_FLOOR_USD_PER_S,
+                "ceiling_usd_per_s": FUNDING_RATE_CEILING_USD_PER_S, "basis": self.basis,
+                "source_operations": list(self.source_operations)}
 
 
 @dataclass
@@ -151,18 +178,37 @@ class CostGuard:
                 self.estimated_spent_usd += actual_cost_usd
                 self.cost_events.append({"kind": "estimated", "usd": round(actual_cost_usd, 6), "note": note})
 
+    def funding_rate(self) -> FundingRate:
+        """harness-v1.4.1-rc (D-30): the rate the NEXT operation is funded at. Measured from this entry's completed operations
+        (`outcome == "completed"`, with a wall time and a cost): sum of their cost over the sum of their wall seconds, times
+        FUNDING_SAFETY, clamped to [floor, ceiling]. With no completed operation yet the ceiling (the v1.3.3 rate) applies. A killed
+        operation is not a source: part of its cost is an estimate at the ceiling, not a measurement."""
+        with self._lock:
+            sources = [op for op in self.operations
+                       if op.get("outcome") == "completed" and (op.get("wall_seconds") or 0) > 0 and op.get("cost_usd") is not None]
+        if not sources:
+            return FundingRate(FUNDING_RATE_CEILING_USD_PER_S, None, (), "no completed operation: ceiling")
+        measured = sum(op["cost_usd"] for op in sources) / sum(op["wall_seconds"] for op in sources)
+        scaled = measured * FUNDING_SAFETY
+        ids = tuple(op["n"] for op in sources)
+        if scaled >= FUNDING_RATE_CEILING_USD_PER_S:
+            return FundingRate(FUNDING_RATE_CEILING_USD_PER_S, measured, ids, "ceiling")
+        if scaled <= FUNDING_RATE_FLOOR_USD_PER_S:
+            return FundingRate(FUNDING_RATE_FLOOR_USD_PER_S, measured, ids, "floor")
+        return FundingRate(scaled, measured, ids, "measured x safety")
+
     def operation_seconds_budget(
-        self, rate_usd_per_s: float = SANDBOX_COST_RATE_USD_PER_S, per_operation_cap_usd: float = PER_OPERATION_CAP_USD,
+        self, rate_usd_per_s: float | None = None, per_operation_cap_usd: float = PER_OPERATION_CAP_USD,
         share: int = 1,
     ) -> float:
         """Seconds one sandbox operation may run: the smaller of what the entry has left and the per-operation cap,
         divided by the cost rate. The caller passes this to the sandbox as the hard wall clock of the operation.
         harness-v1.4.0-rc: `share` operations run at the same time; each gets its share of what is LEFT (the per-operation cap is
-        per operation and is not divided)."""
+        per operation and is not divided). harness-v1.4.1-rc (D-30): the rate is `funding_rate()` unless the caller names one."""
         self._roll_day_if_needed()
         left = max(self.daily_cost_ceiling_usd - self._spent_today_usd, 0.0)
         fundable = min(left / max(share, 1), per_operation_cap_usd)
-        return fundable / rate_usd_per_s
+        return fundable / (rate_usd_per_s if rate_usd_per_s is not None else self.funding_rate().rate)
 
     def record_killed_operation(self, completed_steps_usd: float, killed_seconds: float,
                                 rate_usd_per_s: float = SANDBOX_COST_RATE_USD_PER_S, note: str = "") -> float:

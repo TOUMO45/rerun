@@ -26,7 +26,13 @@ import re
 from dataclasses import dataclass
 
 from app.services.infra import InfraError
-from app.services.model_client import UNTRUSTED_CONTENT_NOTICE, ModelCallError, call_json_model, untrusted_block
+from app.services.model_client import (
+    UNTRUSTED_CONTENT_NOTICE,
+    ModelCallError,
+    ModelResponseParseError,
+    call_json_model,
+    untrusted_block,
+)
 
 # Output budget incl. reasoning tokens (model_client retries once at 2x).
 ADJUDICATOR_MAX_TOKENS = 2048
@@ -220,29 +226,96 @@ class CandidateAdjudication:
     qualifying: tuple[int, ...]
     model_called: bool
     fallback: str = ""  # why RERUN decided instead of the model, when it did
+    # harness-v1.4.1-rc (D-32), each only serialized when set: every raw reply the adjudicator gave, in order (a first reply that was not
+    # valid JSON is followed by the re-ask's reply); and, when RERUN chose, the recorded stage of each qualifying candidate that the
+    # choice was made from.
+    replies: tuple[str, ...] = ()
+    reasked: bool = False
+    fallback_basis: dict | None = None
 
     def as_dict(self) -> dict:
         record = {"chosen": self.chosen, "reasoning": self.reasoning, "qualifying": list(self.qualifying),
                   "model_called": self.model_called}
         if self.fallback:
             record["fallback"] = self.fallback
+        if self.replies:
+            record["replies"] = list(self.replies)
+        if self.reasked:
+            record["reasked"] = True
+        if self.fallback_basis is not None:
+            record["fallback_basis"] = self.fallback_basis
         return record
 
 
+# harness-v1.4.1-rc (D-32): how far a candidate's run got, from what its operation recorded (no model involved).
+_PHASE_RANK = {"runner_setup": 0, "repo_install": 1, "repo_run": 2}
+
+
+def stage_rank(stage: dict | None) -> tuple:
+    """Order of candidate runs by the furthest recorded stage, larger = further. `stage` = {"phase": the phase of the run's final step
+    ("runner_setup" < "repo_install" < "repo_run"), "setup_completed": setup steps that finished before it, "outcome": the smoke record's
+    outcome ("exited" | "alive_at_limit" | "failed_while_running"), "seconds": how long the final step ran, "exit_code"}. A run that
+    exited 0 is furthest; a failure in setup counts the setup steps completed; a failure in the repository's own command counts whether
+    it was still running when it failed, then how long it ran. A candidate with no stage ranks lowest (ties go to the lowest number)."""
+    if not stage:
+        return (0, -1, 0, 0, 0.0)
+    if stage.get("exit_code") == 0:
+        return (1, 3, 0, 0, 0.0)
+    phase = _PHASE_RANK.get(stage.get("phase"), -1)
+    ran = 1 if stage.get("outcome") == "failed_while_running" else 0
+    return (0, phase, int(stage.get("setup_completed") or 0), ran, float(stage.get("seconds") or 0.0))
+
+
 def _deterministic_choice(candidates: list[dict]) -> int | None:
+    """RERUN's choice when the model's answer is unusable: the first candidate whose run passed; otherwise the one whose run got
+    furthest by its recorded stage (D-32; harness-v1.4.0 took the first qualifying one: on corpus-v2 #7 round 1 that was candidate 1,
+    stopped in package metadata, while candidate 2 had finished the install and reached `No module named 'Box2D'`); ties go to the
+    lowest number."""
+    if not candidates:
+        return None
     passed = [c["number"] for c in candidates if c.get("exit_code") == 0]
-    return passed[0] if passed else (candidates[0]["number"] if candidates else None)
+    if passed:
+        return passed[0]
+    return max(candidates, key=lambda c: (stage_rank(c.get("stage")), -c["number"]))["number"]
+
+
+def _basis(candidates: list[dict], choice: int | None) -> dict:
+    return {"rule": "first passing run, else furthest recorded stage, ties to the lowest number",
+            "stages": {str(c["number"]): c.get("stage") for c in candidates}, "chosen": choice}
+
+
+class _Tap:
+    """Records every raw reply of the wrapped chat client, valid JSON or not (call_json_model returns only the parsed dict)."""
+
+    def __init__(self, client):
+        self._client, self.replies = client, []
+
+    def chat_completion(self, **kwargs):
+        text = self._client.chat_completion(**kwargs)
+        self.replies.append(str(text)[:2000])
+        return text
+
+    def pop_usage(self):
+        pop = getattr(self._client, "pop_usage", None)
+        return pop() if callable(pop) else []
 
 
 def adjudicate_candidates(client, model: str | None, failure: str, candidates: list[dict], cost_guard=None) -> CandidateAdjudication:
-    """`candidates`: the qualifying ones, each {"number", "diff", "env_delta", "exit_code", "outcome", "output_tail", "explanation"}."""
+    """`candidates`: the qualifying ones, each {"number", "diff", "env_delta", "exit_code", "outcome", "output_tail", "explanation",
+    "stage"} (`stage`: see `stage_rank`). harness-v1.4.1-rc (D-32): a reply that is not valid JSON is re-asked ONCE, and both replies are
+    recorded; when the answer is still unusable RERUN chooses by `_deterministic_choice` and records what it chose from."""
     qualifying = tuple(c["number"] for c in candidates)
     if not candidates:
         return CandidateAdjudication(None, "no candidate passed the gate and changed the exit outcome", qualifying, False)
-    if client is None or model is None:
+
+    def _by_rerun(why: str, fallback: str, *, replies=(), reasked=False, model_called=True) -> CandidateAdjudication:
         choice = _deterministic_choice(candidates)
-        return CandidateAdjudication(choice, f"no adjudicator configured; RERUN chose candidate {choice} deterministically",
-                                     qualifying, False, fallback="no adjudicator client")
+        return CandidateAdjudication(choice, f"{why}; RERUN chose candidate {choice} deterministically (furthest recorded stage)",
+                                     qualifying, model_called, fallback=fallback, replies=tuple(replies), reasked=reasked,
+                                     fallback_basis=_basis(candidates, choice))
+
+    if client is None or model is None:
+        return _by_rerun("no adjudicator configured", "no adjudicator client", model_called=False)
     parts = ["The failure being repaired:", untrusted_block("failure evidence", failure[:2000])]
     for c in candidates:
         parts.append(f"Candidate {c['number']}: run exit code {c.get('exit_code')}, outcome {c.get('outcome')}")
@@ -250,20 +323,33 @@ def adjudicate_candidates(client, model: str | None, failure: str, candidates: l
         parts.append(untrusted_block(f"candidate {c['number']} code diff", str(c.get("diff") or "(none)")[:4000]))
         parts.append(untrusted_block(f"candidate {c['number']} environment changes", str(c.get("env_delta") or "(none)")[:1500]))
         parts.append(untrusted_block(f"candidate {c['number']} run output tail", str(c.get("output_tail") or "")[-2000:]))
+    prompt = "\n".join(parts)
+    tap = _Tap(client)
+    reasked = False
     try:
-        raw = call_json_model(client, model=model, system_prompt=_CANDIDATE_SYSTEM_PROMPT, user_prompt="\n".join(parts),
-                              cost_guard=cost_guard, max_tokens=CANDIDATE_ADJUDICATOR_MAX_TOKENS)
+        try:
+            raw = call_json_model(tap, model=model, system_prompt=_CANDIDATE_SYSTEM_PROMPT, user_prompt=prompt,
+                                  cost_guard=cost_guard, max_tokens=CANDIDATE_ADJUDICATOR_MAX_TOKENS)
+        except ModelResponseParseError as exc:
+            reasked = True
+            first_line = str(exc).splitlines()[0][:200]
+            raw = call_json_model(
+                tap, model=model, system_prompt=_CANDIDATE_SYSTEM_PROMPT, cost_guard=cost_guard,
+                max_tokens=CANDIDATE_ADJUDICATOR_MAX_TOKENS,
+                user_prompt=f"{prompt}\n\nYour previous reply could not be parsed as JSON ({first_line}). Reply again with ONLY the JSON "
+                            'object {"chosen": <candidate number or null>, "reasoning": "<2-4 sentences>"}, no prose, no markdown fences.')
+    except ModelResponseParseError:
+        return _by_rerun("the adjudicator's reply was not valid JSON twice", "reply not valid JSON after a re-ask",
+                         replies=tap.replies, reasked=True)
     except (ModelCallError, InfraError) as exc:
-        choice = _deterministic_choice(candidates)
-        return CandidateAdjudication(choice, f"adjudicator call failed ({str(exc)[:120]}); RERUN chose candidate {choice} deterministically",
-                                     qualifying, True, fallback="model call failed")
+        return _by_rerun(f"adjudicator call failed ({str(exc)[:120]})", "model call failed", replies=tap.replies, reasked=reasked)
     chosen = raw.get("chosen")
     reasoning = str(raw.get("reasoning") or "").strip()
+    common = {"replies": tuple(tap.replies), "reasked": reasked}
     if chosen is None:
-        return CandidateAdjudication(None, reasoning or "the adjudicator chose none", qualifying, True)
+        return CandidateAdjudication(None, reasoning or "the adjudicator chose none", qualifying, True, **common)
     if isinstance(chosen, bool) or not isinstance(chosen, int) or chosen not in qualifying:
-        choice = _deterministic_choice(candidates)
-        return CandidateAdjudication(choice, f"the adjudicator answered {chosen!r}, not a qualifying candidate {list(qualifying)}; "
-                                             f"RERUN chose candidate {choice} deterministically. Model reasoning: {reasoning[:300]}",
-                                     qualifying, True, fallback="answer outside the qualifying candidates")
-    return CandidateAdjudication(chosen, reasoning, qualifying, True)
+        return _by_rerun(f"the adjudicator answered {chosen!r}, not a qualifying candidate {list(qualifying)}; "
+                         f"model reasoning: {reasoning[:300]}", "answer outside the qualifying candidates", replies=tap.replies,
+                         reasked=reasked)
+    return CandidateAdjudication(chosen, reasoning, qualifying, True, **common)
