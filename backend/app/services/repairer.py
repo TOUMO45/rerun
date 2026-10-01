@@ -109,6 +109,24 @@ Use at most ONE of file_edits / file_replacements / code_diff. Set them all to n
 propose a safe minimal fix.""" + UNTRUSTED_CONTENT_NOTICE
 
 
+CITATION_RULE = (
+    "Citation rule: if your change uses ANYTHING from a numbered reference above (a version number, a package name, a flag, a code "
+    "line, an API name), you MUST list that reference's number in \"cited_sources\". If none of them contributed, give an empty list "
+    "and \"reason_no_citation\"."
+)
+
+
+def candidate_followup(previous: list[str], candidate_number: int) -> str:
+    """harness-v1.4.0-rc: the follow-up that asks for candidate `candidate_number` (2 or 3) of the same failure: a DIFFERENT fix from
+    the candidates already proposed this round (summarized), or a decline."""
+    listed = "\n".join(f"- candidate {i}: {summary[:400]}" for i, summary in enumerate(previous, start=1)) or "- (none proposed)"
+    return (
+        f"You are now proposing candidate {candidate_number} for the SAME failure. Candidates already proposed this round (each will "
+        f"be tried in its own sandbox branch):\n{listed}\nPropose a DIFFERENT fix (a different file, line, package or approach), "
+        "or decline with empty fields if you have no other safe minimal fix. Reply with the complete JSON object."
+    )
+
+
 @dataclass(frozen=True)
 class RepairProposal:
     diff_text: str | None  # the code diff
@@ -201,6 +219,8 @@ def build_repair_user_prompt(
     if external_context:
         parts.append("Additional context (cited dependency/environment evidence):")
         parts.append(untrusted_block("web search results (Tavily)", external_context))
+        # harness-v1.4.0-rc (directive step 1.5): the snippets above are given to the candidate generator with this rule.
+        parts.append(CITATION_RULE)
     if followup:
         parts.append(followup)
     return "\n".join(parts)

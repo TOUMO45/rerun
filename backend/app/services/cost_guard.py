@@ -34,6 +34,7 @@ time is not actually capped by `daily_cost_ceiling_usd` at all today.
 
 from __future__ import annotations
 
+import threading
 from dataclasses import dataclass, field
 from datetime import date
 from functools import lru_cache
@@ -86,6 +87,10 @@ class CostGuard:
     # the API returns no cost for them) and the events that produced it, for the run record.
     estimated_spent_usd: float = field(default=0.0, repr=False)
     cost_events: list = field(default_factory=list, repr=False)
+    # harness-v1.4.0-rc: one record per sandbox operation (the orchestrator appends; live_run writes them as `operations`), and a
+    # lock, because candidate branches run concurrently and record their spend from several threads.
+    operations: list = field(default_factory=list, repr=False)
+    _lock: threading.RLock = field(default_factory=threading.RLock, repr=False, compare=False)
 
     def _roll_day_if_needed(self) -> None:
         current = date.today()
@@ -138,12 +143,13 @@ class CostGuard:
 
     def record_spend(self, actual_cost_usd: float, *, estimated: bool = False, note: str = "") -> None:
         """Sandbox spend (the SDK's measured per-run cost; `estimated=True` for a killed step's upper bound)."""
-        self._roll_day_if_needed()
-        self._spent_today_usd += actual_cost_usd
-        self.sandbox_spent_usd += actual_cost_usd
-        if estimated:
-            self.estimated_spent_usd += actual_cost_usd
-            self.cost_events.append({"kind": "estimated", "usd": round(actual_cost_usd, 6), "note": note})
+        with self._lock:
+            self._roll_day_if_needed()
+            self._spent_today_usd += actual_cost_usd
+            self.sandbox_spent_usd += actual_cost_usd
+            if estimated:
+                self.estimated_spent_usd += actual_cost_usd
+                self.cost_events.append({"kind": "estimated", "usd": round(actual_cost_usd, 6), "note": note})
 
     def operation_seconds_budget(
         self, rate_usd_per_s: float = SANDBOX_COST_RATE_USD_PER_S, per_operation_cap_usd: float = PER_OPERATION_CAP_USD
@@ -159,25 +165,34 @@ class CostGuard:
         """Record an operation the sandbox stopped at its time limit: the steps that completed at their measured cost,
         the step that was killed at `killed_seconds x rate` (estimate). Returns the total recorded."""
         estimate = max(killed_seconds, 0.0) * rate_usd_per_s
-        self.record_spend(completed_steps_usd)
-        self.record_spend(estimate, estimated=True, note=note or f"killed step ran {killed_seconds:.0f}s at ${rate_usd_per_s}/s")
+        with self._lock:
+            self.record_spend(completed_steps_usd)
+            self.record_spend(estimate, estimated=True, note=note or f"killed step ran {killed_seconds:.0f}s at ${rate_usd_per_s}/s")
         return completed_steps_usd + estimate
 
     def record_model_usage(self, model: str, prompt_tokens: int, completion_tokens: int) -> float | None:
         """Price one model call from the configured table and add it to the
         daily total. Returns the cost, or None if the model is unpriced (the
         tokens are still recorded — never a guessed price)."""
-        self._roll_day_if_needed()
-        price = self.model_prices_usd_per_1m.get(model)
-        cost = None
-        if price is not None:
-            cost = (prompt_tokens * price[0] + completion_tokens * price[1]) / 1_000_000
-            self._spent_today_usd += cost
-            self.model_spent_usd += cost
-        self.model_usage.append(
-            {"model": model, "prompt_tokens": prompt_tokens, "completion_tokens": completion_tokens, "cost_usd": cost}
-        )
+        with self._lock:
+            self._roll_day_if_needed()
+            price = self.model_prices_usd_per_1m.get(model)
+            cost = None
+            if price is not None:
+                cost = (prompt_tokens * price[0] + completion_tokens * price[1]) / 1_000_000
+                self._spent_today_usd += cost
+                self.model_spent_usd += cost
+            self.model_usage.append(
+                {"model": model, "prompt_tokens": prompt_tokens, "completion_tokens": completion_tokens, "cost_usd": cost}
+            )
         return cost
+
+    def record_operation(self, operation: dict) -> dict:
+        """harness-v1.4.0-rc: append one sandbox operation's record (numbered in order of completion)."""
+        with self._lock:
+            operation = {"n": len(self.operations) + 1, **operation}
+            self.operations.append(operation)
+        return operation
 
     def check_attempt_budget(self, run_id: str) -> None:
         """Raise CostLimitExceeded if `run_id` has already used its full

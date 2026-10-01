@@ -169,6 +169,7 @@ def main(argv: list[str] | None = None) -> int:
             "arm": args.arm,
             "repair_enabled": deps.repair_enabled,
             "max_attempts": deps.max_attempts,
+            "candidates_per_round": deps.candidates_per_round,
             "tavily_configured": deps.tavily_client is not None,
             "cost_cap_usd": args.cost_cap_usd,
         },
@@ -247,6 +248,9 @@ def main(argv: list[str] | None = None) -> int:
             "prices_source": settings.model_prices_source,
             "prices_retrieved": settings.model_prices_retrieved,
         }
+        # harness-v1.4.0-rc: one record per sandbox operation (sandbox_seconds, install_seconds per install step,
+        # branch_from_image, result_image, image_kept, ...), written even when the run ended on an error.
+        record["operations"] = list(cost_guard.operations)
         args.out.parent.mkdir(parents=True, exist_ok=True)
         args.out.write_text(json.dumps(record, indent=2), encoding="utf-8")
         print(f"wrote {args.out}")

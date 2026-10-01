@@ -97,6 +97,8 @@ class Settings(BaseSettings):
     demo_mode: bool = False
     daily_cost_ceiling_usd: float = 25.0
     max_attempts_per_run: int = 3
+    # harness-v1.4.0-rc: repair candidates per failure (each runs in its own branch of the checkpoint image; 1 = harness-v1.3.x semantics).
+    repair_candidates_per_round: int = 3
     # §7: committed at repo root, precomputed by the offline batch runner.
     batch_results_path: str = "../batch_results.json"
 

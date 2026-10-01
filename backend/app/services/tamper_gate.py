@@ -53,6 +53,9 @@ class GateRule:
     UNAPPLICABLE_PATCH = "UNAPPLICABLE_PATCH"
     # harness-v1.3.4 (D-19): the failing run printed no error text, and the patch changes code instead of adding diagnostics.
     BLIND_PATCH_ON_SILENT_EXIT = "BLIND_PATCH_ON_SILENT_EXIT"
+    # harness-v1.4.0-rc: every repair candidate is py_compile-checked after the patch (compile() also refuses what ast.parse accepts,
+    # e.g. `return` outside a function).
+    PY_COMPILE_FAILED = "PY_COMPILE_FAILED"
 
 
 DEFAULT_PROTECTED_PATTERNS: frozenset[str] = frozenset(
@@ -811,3 +814,44 @@ def diagnostics_only_violation(diff_text: str) -> Violation | None:
                         file=patched_file.target_file,
                     )
     return None
+
+
+def patched_sources(diff_text: str, original_sources: Mapping[str, str]) -> dict[str, str]:
+    """harness-v1.4.0-rc. The post-patch text of every file `diff_text` touches and whose original is in `original_sources` (an added
+    file starts empty), reconstructed the same way the gate reads it. Pure."""
+    prepared = prepare_patch(diff_text)
+    if prepared.patch_set is None:
+        return {}
+    normalized = {}
+    for key, value in original_sources.items():
+        norm, err = _normalize_header_path(key)
+        if not err:
+            normalized[norm] = value
+    out: dict[str, str] = {}
+    for patched_file in prepared.patch_set:
+        norm, err = _normalize_header_path(patched_file.target_file)
+        if err or norm not in prepared.paths:
+            continue
+        old = "" if norm in prepared.added_paths else normalized.get(norm)
+        if old is None:
+            continue
+        try:
+            out[norm] = _apply_patched_file(old, patched_file)
+        except Exception:  # noqa: BLE001 - check_patch reports it as UNPARSEABLE_PATCH
+            continue
+    return out
+
+
+def py_compile_violations(diff_text: str, original_sources: Mapping[str, str]) -> tuple[Violation, ...]:
+    """harness-v1.4.0-rc: every patched .py file must compile (the check `python -m py_compile` makes), with this interpreter's
+    grammar, the same one the gate's ast.parse uses. Pure."""
+    found: list[Violation] = []
+    for path, source in patched_sources(diff_text, original_sources).items():
+        if not path.endswith(".py"):
+            continue
+        try:
+            compile(source, path, "exec", dont_inherit=True)
+        except (SyntaxError, ValueError) as exc:
+            found.append(Violation(rule=GateRule.PY_COMPILE_FAILED,
+                                   reason=f"'{path}' does not compile after the patch (py_compile): {exc}", file=path))
+    return tuple(found)

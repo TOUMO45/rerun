@@ -25,6 +25,7 @@ from __future__ import annotations
 import re
 from dataclasses import dataclass
 
+from app.services.infra import InfraError
 from app.services.model_client import UNTRUSTED_CONTENT_NOTICE, ModelCallError, call_json_model, untrusted_block
 
 # Output budget incl. reasoning tokens (model_client retries once at 2x).
@@ -191,3 +192,78 @@ def adjudicate(
         model_attempted_upgrade=attempted_upgrade,
         used_templated_fallback=used_fallback,
     )
+
+
+# --- harness-v1.4.0-rc: adjudication between repair candidates ---------------------------------------------------
+# Super proposes up to three candidates per failure; each ran in its own branch of the checkpoint image. The candidates that passed the
+# tamper gate AND changed the exit outcome are shown to Ultra, which picks the one whose change most plausibly fixes the failure without
+# weakening what the repository's command does, or none. Ultra's choice is checked in code (it must be one of the qualifying numbers);
+# when the call fails, RERUN picks deterministically (the first qualifying candidate whose run passed, else the first qualifying one)
+# and the record says so.
+
+CANDIDATE_ADJUDICATOR_MAX_TOKENS = 2048
+
+_CANDIDATE_SYSTEM_PROMPT = """You adjudicate between candidate repairs of a research repository that failed to run. Each candidate
+was proposed by another model, passed a deterministic tamper gate, and was executed in its own sandbox branch; you see its change and
+what its run printed. Choose the ONE candidate whose change most plausibly fixes the failure while leaving the repository's documented
+command doing the same work (no skipped steps, no reduced data or epochs, no swallowed errors, no edited evaluation). A run that passed
+is not automatically the best: it may have passed by doing less. Choose null if no candidate is acceptable.
+
+Respond with ONLY a JSON object, no prose, no markdown fences:
+{"chosen": <candidate number or null>, "reasoning": "<2-4 sentences citing the specific evidence>"}""" + UNTRUSTED_CONTENT_NOTICE
+
+
+@dataclass(frozen=True)
+class CandidateAdjudication:
+    chosen: int | None
+    reasoning: str
+    qualifying: tuple[int, ...]
+    model_called: bool
+    fallback: str = ""  # why RERUN decided instead of the model, when it did
+
+    def as_dict(self) -> dict:
+        record = {"chosen": self.chosen, "reasoning": self.reasoning, "qualifying": list(self.qualifying),
+                  "model_called": self.model_called}
+        if self.fallback:
+            record["fallback"] = self.fallback
+        return record
+
+
+def _deterministic_choice(candidates: list[dict]) -> int | None:
+    passed = [c["number"] for c in candidates if c.get("exit_code") == 0]
+    return passed[0] if passed else (candidates[0]["number"] if candidates else None)
+
+
+def adjudicate_candidates(client, model: str | None, failure: str, candidates: list[dict], cost_guard=None) -> CandidateAdjudication:
+    """`candidates`: the qualifying ones, each {"number", "diff", "env_delta", "exit_code", "outcome", "output_tail", "explanation"}."""
+    qualifying = tuple(c["number"] for c in candidates)
+    if not candidates:
+        return CandidateAdjudication(None, "no candidate passed the gate and changed the exit outcome", qualifying, False)
+    if client is None or model is None:
+        choice = _deterministic_choice(candidates)
+        return CandidateAdjudication(choice, f"no adjudicator configured; RERUN chose candidate {choice} deterministically",
+                                     qualifying, False, fallback="no adjudicator client")
+    parts = ["The failure being repaired:", untrusted_block("failure evidence", failure[:2000])]
+    for c in candidates:
+        parts.append(f"Candidate {c['number']}: run exit code {c.get('exit_code')}, outcome {c.get('outcome')}")
+        parts.append(untrusted_block(f"candidate {c['number']} explanation", str(c.get("explanation") or "")[:600]))
+        parts.append(untrusted_block(f"candidate {c['number']} code diff", str(c.get("diff") or "(none)")[:4000]))
+        parts.append(untrusted_block(f"candidate {c['number']} environment changes", str(c.get("env_delta") or "(none)")[:1500]))
+        parts.append(untrusted_block(f"candidate {c['number']} run output tail", str(c.get("output_tail") or "")[-2000:]))
+    try:
+        raw = call_json_model(client, model=model, system_prompt=_CANDIDATE_SYSTEM_PROMPT, user_prompt="\n".join(parts),
+                              cost_guard=cost_guard, max_tokens=CANDIDATE_ADJUDICATOR_MAX_TOKENS)
+    except (ModelCallError, InfraError) as exc:
+        choice = _deterministic_choice(candidates)
+        return CandidateAdjudication(choice, f"adjudicator call failed ({str(exc)[:120]}); RERUN chose candidate {choice} deterministically",
+                                     qualifying, True, fallback="model call failed")
+    chosen = raw.get("chosen")
+    reasoning = str(raw.get("reasoning") or "").strip()
+    if chosen is None:
+        return CandidateAdjudication(None, reasoning or "the adjudicator chose none", qualifying, True)
+    if isinstance(chosen, bool) or not isinstance(chosen, int) or chosen not in qualifying:
+        choice = _deterministic_choice(candidates)
+        return CandidateAdjudication(choice, f"the adjudicator answered {chosen!r}, not a qualifying candidate {list(qualifying)}; "
+                                             f"RERUN chose candidate {choice} deterministically. Model reasoning: {reasoning[:300]}",
+                                     qualifying, True, fallback="answer outside the qualifying candidates")
+    return CandidateAdjudication(chosen, reasoning, qualifying, True)
