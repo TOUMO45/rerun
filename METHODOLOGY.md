@@ -1012,3 +1012,10 @@ python:3.6-slim), run 2 (the additive apt layer on a kept image: only the layer 
 id). Seal spend $0.3263 = $0.1254 API-reported + $0.2009 ESTIMATED (the stopped step of K1), cap $1.00; ledger $14.9758 [$13.8041 API-reported + $1.1717 ESTIMATED], a lower bound
 (D-27). The seal -> gate rule holds (every check passed, branch run at most $0.15, seal at most $1.00): the gate starts automatically. `seal_verification.json` (16 paths: 11 carried
 over from v1.4.0, 5 for v1.4.1) written by `scripts/write_seal_verification_v141.py`; tag `harness-v1.4.1` on the seal commit. Report: `reports/corpus-v2.1/v1.4.1/seal/SEAL_STATUS.md`.
+
+**Gate v1.4.1 result (2026-10-01): NOT PASSED, attempted.** (a) 0 of 4 (#3, #7, #8, #11 all BLOCKED); (b) pass, 8 patches applied of 26 proposed (all on #8); (c) pass, 6 attempts with a stored Tavily
+citation; (d) pass, no entry over $2.00 (largest $1.1140 of the $1.50 cap), no operation stopped; (e) pass on all four. No entry ended COST_CAP (v1.4.0: two). The exit wrapper reported "exit outside Python"
+on #3 and #11 (on #11 the cause is a kill by signal, exit 137). Gate spend $3.5247 API-reported (incl. $0.3625 model share, price table), $0.0077588 of smoke tests and a link probe; the first pre-batch upload
+smoke test failed on a slow line (0.16 MB/s) and the gate refused to start, then passed on the second attempt. Ledger $18.5083 [$17.3366 API-reported + $1.1717 ESTIMATED], lower bound (D-27), under the $25.00
+ceiling. BILLED: the owner reads the balance after the gate. Report with findings and new defects D-37 to D-39: `reports/corpus-v2.1/v1.4.1/gate/GATE_REPORT_v1.4.1.md`. v1.4.1 is documented beside v1.4.0 as
+"attempted, did not pass"; Phase D then proceeds with all four versions (separate directive: the REPLAY, dashboard and submission figures change with it).

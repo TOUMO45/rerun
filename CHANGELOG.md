@@ -2,6 +2,13 @@
 
 One entry per phase of the post-corpus-v2 plan. Numbers are produced by scripts in `scripts/`.
 
+## harness-v1.4.1 — gate v1.4.1: attempted, did not pass (2026-10-01; live, owner's caps)
+Gate on entries 3, 7, 8, 11: NOT PASSED, (a) 0 of 4 (all BLOCKED; no entry ended COST_CAP, v1.4.0 had two); (b), (c), (d), (e) pass (8 patches applied, 6 attempts with stored citations, largest entry
+$1.1140 of $1.50, no operation stopped). Live: the exit wrapper reported "exit outside Python" on #3 and #11 (#11: killed by signal, exit 137, after the CPU shim cleared its GPU error); the CPU shim fired on a
+candidate's own failure on #8 (D-33); the adjudicator re-asked once on #7 (D-32). New findings D-37 (the adjudicator adopts no partial progress), D-38 (a kill by signal is a silent exit), D-39 (the shim does not
+cover `.cuda()`). The first pre-batch upload smoke test failed on a slow line and the gate refused to start; it passed on the second attempt. Gate spend $3.5247 API-reported; ledger $18.5083
+($17.3366 API-REPORTED + $1.1717 ESTIMATED, lower bound D-27). Report: `reports/corpus-v2.1/v1.4.1/gate/GATE_REPORT_v1.4.1.md`. Phase D assets unchanged.
+
 ## harness-v1.4.1 — seal (option B over changed files only), complete (2026-10-01; live, owner's caps)
 Ten live operations, all ok: the exit wrapper on Python 3.10 and 3.6 (a bare `raise SystemExit(1)` leaves nothing on stderr with the hook alone), the additive apt layer on a kept
 image, and the layer of an operation stopped at its limit reopened by id by a new operation (D-31 on the real service). Seal spend $0.3263 ($0.1254 API-REPORTED + $0.2009
