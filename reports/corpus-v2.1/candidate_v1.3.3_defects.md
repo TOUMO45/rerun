@@ -121,3 +121,31 @@ Annotation on **D-36** (2026-10-01, the owner's second balance reading): $49.57 
 
 Annotation on **D-27** (2026-10-01, owner decision): from harness-v1.4.2 on, a killed step is ESTIMATED at the API's median cost per billed second x 1.5 = $0.0152/s (the rate and its source are recorded with each estimate); past estimates are not recomputed. Each past estimate carries: **computed at $0.0085/s, not an upper bound (D-27)**:
 v1.3.4 gate #8 $0.2842 (`runs/corpus_v2_batch/harness-v1.3.4/smoke/08_edenton__svg.json`), v1.4.0 seal run 2 attempt 1 at most $0.4998 (`runs/sandbox_verification/v1.4.0-seal/run2_E_attempt1_killed.json`), v1.4.0 gate #8 operation 11 $0.1868, v1.4.1 seal K1 $0.2009 (`runs/sandbox_verification/v1.4.1-seal/run3_K1_operation_stopped_at_its_limit.json`); the v1.3.3 and v1.4.1 gates stored no estimate. They sum to $1.1717 in the ledger (the ESTIMATED part), a lower bound.
+
+## harness-v1.4.2-rc: D-37 to D-40 fixed-unvalidated (2026-10-01; offline; the owner's v1.4.2 directive)
+
+No gate has validated any of these: status **fixed-unvalidated**, basis = the named test. Tags as in the section above. D-37, D-38 and D-39 were registered as open by the harness-v1.4.1 gate (above); this section is
+their annotation, not a rewrite.
+
+- **D-37 [annotation: fixed-unvalidated]** When no candidate passes, the adjudicator adopts the candidate whose run got furthest by the recorded stage order (runner setup < install step k < the repository's own command < passed),
+  PROVIDED it strictly advances past the failure being repaired (a coarse key: phase, setup steps completed, still running when it failed; seconds are ignored, a longer run is not progress); `adopted_reason` = "partial progress"
+  with the two stages recorded; Ultra's own choice is labelled "adjudicator", RERUN's JSON fallback "fallback: <why>". The adopted candidate's change is applied and its kept image is the next round's environment (the existing
+  adoption path). Tests: `backend/tests/test_v142_partial_progress.py` (corpus-v2 #7, harness-v1.4.1 gate rounds 1-3 read from the committed record: Box2D is further than pkg-config; and a pipeline run whose round 2 branches from the
+  adopted candidate's image).
+- **D-38 [annotation: fixed-unvalidated; see D-40]** An exit by SIGKILL (137, -9) is classified RESOURCE_LIMIT before any text rule (the shell's `Killed` was lost with the progress bar it sat on, so the kill read as a silent exit);
+  it is attributed to the sandbox, never to the repository.
+- **D-39 [annotation: fixed-unvalidated]** The CPU shim now also returns self from `Tensor.cuda()` and `Module.cuda()`, maps `.to("cuda*")` / `.to(torch.device("cuda*"))` / `device=` on Tensor and Module to the CPU, and makes
+  `torch.device("cuda*")` the CPU device (a proxy class that keeps `isinstance(x, torch.device)` true); every patch stands alone (one that cannot be applied is reported and never disables the others), and each path that acted prints
+  `RERUN_CPU_SHIM_PATH: <path>` once per process, which the harness records as `time_machine_action.paths_fired`. Limit, recorded with every use: device strings given to factory functions (`torch.zeros(device="cuda")`),
+  `torch.cuda.*Tensor` types and `torch.set_default_tensor_type("torch.cuda.FloatTensor")` are NOT covered. Tests: `backend/tests/test_v142_cpu_shim.py` (a fake torch that raises #8's recorded `Torch not compiled with CUDA enabled`;
+  the same checks against real CPU torch when RERUN_REAL_TORCH_PYTHON names an interpreter that has it).
+- **D-40** Resource classification and evidence. (1) RESOURCE_LIMIT (taxonomy, family Platform, a sandbox code like SANDBOX_QUOTA) ends the entry INDETERMINATE with the limit quoted, never BLOCKED, and no model attempt is spent
+  (corpus-v2 #11, v1.4.1: nine candidates were refused by the silent-exit rule after the kill). (2) ONE evidence run per entry (TREATMENT only): the command (through the exit wrapper if it is on) runs unchanged in a subshell and the
+  sandbox's own limits and kill traces are read after it (`/proc/meminfo`, `nproc`, cgroup memory files, kernel version, `dmesg`, `ulimit`), parsed by the harness; the reason quotes them, or the documented limits when none could be read.
+  (3) The unexplained silent exit of #3: after the exit hook printed nothing and the exit wrapper printed nothing, the wrapper runs once more WITH the evidence; a kill evidenced (status 137, a cgroup `oom_kill` count above zero, or a kernel
+  log line) is RESOURCE_LIMIT, otherwise the record keeps "exit outside Python" and the entry ends INDETERMINATE EXIT_OUTSIDE_PYTHON with that reason and the evidence; no model attempt is spent. (4) The sandbox's resource limits are stored on every
+  operation (`operations[].resource_limits`): `docs/design/D-40-resources.md` (offline research) found NO documented memory or CPU figure for a Sandboxes microVM, no parameter to choose a size and no larger instance (beta, access by request,
+  contree@nebius.com); the only documented cap is the 12 GiB writable layer. The record says "not documented"; nothing is invented. **Not done, on purpose:** storing the API's per-step `max_rss` (reachable through the SDK object
+  `result._raw.result.resources.max_rss` with no new call) needs an additive change to `sandbox.py`, which would make every seal entry that lists it stale (about $0.8 to re-verify, above the ceiling room left); proposed for a later
+  version. Tests: `backend/tests/test_v142_resource_limit.py` (#11's recorded kill; the evidence command run for real with sh; baseline and CONTROL; a killed candidate gets no hook or wrapper), `backend/tests/test_v141_exit_wrapper.py`
+  (the #3-shaped silent exit ends INDETERMINATE EXIT_OUTSIDE_PYTHON, or RESOURCE_LIMIT when the evidence shows a kill). Status: fixed-unvalidated.

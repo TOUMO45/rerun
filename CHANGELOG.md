@@ -2,6 +2,14 @@
 
 One entry per phase of the post-corpus-v2 plan. Numbers are produced by scripts in `scripts/`.
 
+## harness-v1.4.2-rc — Step 1 of the v1.4.2 directive (2026-10-01; offline, unsealed, no Nebius call, no spend)
+Four fixes from the v1.4.1 gate: D-37 the adjudicator adopts the candidate that strictly advanced furthest when none passes ("partial progress"); D-39 the CPU shim covers `.cuda()`, `.to("cuda*")` and `torch.device("cuda*")` and records
+the paths that fired; D-38/D-40 exit 137 / -9 is RESOURCE_LIMIT (INDETERMINATE with the limit quoted, one evidence run that reads the sandbox's own limits, no model attempt; the documented limits, none for memory and CPU, are stored on every
+operation); #3's "exit outside Python" gets one more wrapper run with evidence (RESOURCE_LIMIT if a kill is evidenced, else INDETERMINATE EXIT_OUTSIDE_PYTHON). From now on a killed step is ESTIMATED at $0.0152/s (owner, D-27); past
+estimates are annotated, not recomputed. BILLED for the v1.4.1 gate: $49.57 (at most $0.43 cumulative; $0.04 between the readings against $3.8588 recorded). Gate v1.4.2 pre-registered (same entries, order, criteria; entry cap $1.50,
+gate cap $6.00; seal cap $0.49 so that seal + gate stay under the $25.00 ceiling); seal = option B over changed files, estimated $0.2821. `harness-v1.4.1` (`5ba14a2`) untouched. Ledger $18.5083 ($17.3366 API-REPORTED + $1.1717 ESTIMATED,
+lower bound D-27). Report: `reports/corpus-v2.1/v1.4.2/STEP1_REPORT.md`.
+
 ## harness-v1.4.1 — gate v1.4.1: attempted, did not pass (2026-10-01; live, owner's caps)
 Gate on entries 3, 7, 8, 11: NOT PASSED, (a) 0 of 4 (all BLOCKED; no entry ended COST_CAP, v1.4.0 had two); (b), (c), (d), (e) pass (8 patches applied, 6 attempts with stored citations, largest entry
 $1.1140 of $1.50, no operation stopped). Live: the exit wrapper reported "exit outside Python" on #3 and #11 (#11: killed by signal, exit 137, after the CPU shim cleared its GPU error); the CPU shim fired on a

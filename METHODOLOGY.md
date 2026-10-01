@@ -1019,3 +1019,31 @@ on #3 and #11 (on #11 the cause is a kill by signal, exit 137). Gate spend $3.52
 smoke test failed on a slow line (0.16 MB/s) and the gate refused to start, then passed on the second attempt. Ledger $18.5083 [$17.3366 API-reported + $1.1717 ESTIMATED], lower bound (D-27), under the $25.00
 ceiling. BILLED: the owner reads the balance after the gate. Report with findings and new defects D-37 to D-39: `reports/corpus-v2.1/v1.4.1/gate/GATE_REPORT_v1.4.1.md`. v1.4.1 is documented beside v1.4.0 as
 "attempted, did not pass"; Phase D then proceeds with all four versions (separate directive: the REPLAY, dashboard and submission figures change with it).
+
+
+### harness-v1.4.2-rc (2026-10-01; offline, unsealed, no Nebius call in Step 1) and the pre-registration of gate v1.4.2 (the final gate)
+
+**Why.** The harness-v1.4.1 gate (annotated in `GATE_REPORT_v1.4.1.md`, findings D-37 to D-39): the adjudicator adopted nothing unless the run passed (#7, three rounds), a kill by signal read as a silent exit (#11, exit 137), the CPU shim did not
+cover `.cuda()` (#8), and #3's silent exit stayed unexplained. v1.4.2 fixes those four, from the owner's directive; `harness-v1.4.1` (`5ba14a2`) stays untouched. Owner decisions in the same message: the killed-step ESTIMATE is the API's median per
+billed second x 1.5 = $0.0152/s from now on, tagged ESTIMATED with its rate and source recorded on the cost event; past estimates are not recomputed and are annotated "computed at $0.0085/s, not an upper bound (D-27)"; BILLED for the
+v1.4.1 gate is the owner's reading ($49.61 -> $49.57; at most $0.43 cumulative; $0.04 between the readings against $3.8588 recorded).
+
+**What changes in a run (TREATMENT; the as-published baseline is unchanged).**
+1. D-37: a "none" from the adjudicator becomes the candidate that strictly advanced furthest past the failure being repaired (coarse stage key; `adopted_reason` "partial progress"); the next round starts from its kept image.
+2. D-39: the CPU shim also covers `.cuda()` on Tensor and Module, `.to("cuda*")`, `torch.device("cuda*")`; each path that acted is recorded (`paths_fired`).
+3. D-38 / D-40: exit 137 / -9 is RESOURCE_LIMIT; the entry ends INDETERMINATE with the limit quoted (read from the sandbox by one evidence run, else the documented limits), never BLOCKED, and no model attempt is spent; the sandbox's
+   documented limits (none for memory and CPU) are stored on every operation; a larger instance is not documented and is not used.
+4. #3's "exit outside Python": one more wrapper run with the evidence; a kill evidenced is RESOURCE_LIMIT, otherwise INDETERMINATE EXIT_OUTSIDE_PYTHON with that reason; no model attempt.
+
+**Gate v1.4.2, pre-registered here before any v1.4.2 run.** Same four entries (3, 7, 8, 11) in that order, TREATMENT only, criteria (a)-(e) unchanged from the v1.4.0 gate (the runner `reports/corpus-v2.1/v1.4.2/gate/run_gate_v142.py` loads them;
+an INDETERMINATE ending, by resource or by an unexplained exit, is not a pass under (a)). Caps (owner): fixed entry cap $1.50, gate cap $6.00 (= 4 x entry), seal at most $1.00, ledger ceiling $25.00 API-reported. The ceiling binds:
+ledger $18.5083 + gate cap $6.00 leaves $0.4917 for the seal, so the seal cap is **$0.49** (the owner's $1.00 is looser than the ceiling arithmetic; worst case 18.5083 + 0.49 + 6.00 = $24.9983). Hard stop at the gate cap; each entry reported as it
+lands. After the gate, whatever the verdict, all live work stops (owner); v1.4.2 is documented beside v1.4.1 and the Phase D update follows (v1.4.0, v1.4.1, v1.4.2 into passports, REPLAY, dashboard and the submission texts, the headline
+becoming the count over all gate entry-runs).
+
+**Seal of harness-v1.4.2: option B over CHANGED files only.** Among the sandbox-touching files only `runner_hooks.py` changed again (the shim, the evidence command): the 13 entries of the v1.4.1 seal whose code files are unchanged are carried over
+by `scripts/write_seal_verification_v142.py` (it stops if a blob changed); the three entries that list `runner_hooks.py` are re-verified and one is new. Live checks (`reports/corpus-v2.1/v1.4.2/seal/run_seal_v142.py`, records in
+`runs/sandbox_verification/v1.4.2-seal/`): run 1 A, B (the branch-run cost for the rule), C, W0, W1, W2 as in v1.4.1; run 2 E0 a calm run with the evidence block, E1a a process that SIGKILLs itself (exit 137, `Killed`, kill evidenced, classified
+RESOURCE_LIMIT by the harness's own classifier), E1b informational: memory allocated in 64 MiB chunks until killed or 48 GiB, bounded by a 25 s clock, the first look at what the sandbox holds. ESTIMATED cost $0.2821 (A-W2 from the v1.4.1 seal
+records, E1b the clock bound at $0.0103 per billed second), cap $0.49, an operation starts only while 1.5 x its estimate is left. The shim's new paths are checked against REAL torch offline (a torch install in the sandbox would cost more than the
+rest of the seal). **Seal -> gate (owner's rule, unchanged, automatic):** every seal check passed, branch-run cost at most $0.15 API-reported, seal spend within its cap; otherwise stop and report. Tag `harness-v1.4.2` only on a passed seal.
