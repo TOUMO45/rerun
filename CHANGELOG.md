@@ -2,6 +2,13 @@
 
 One entry per phase of the post-corpus-v2 plan. Numbers are produced by scripts in `scripts/`.
 
+## Phase D housekeeping 2 — D-28, passport schema note, ledger rounding (2026-10-01; documentation and regenerated passports)
+D-28 registered (the `record_*_sha256` values of `results_tables.json` are hashes of CRLF worktree files, not git blobs): open, documented only; `results_tables.json` is not
+modified, `results_tables.md` carries the annotation beside its first hash column, and `reports/phase-d/record_index.md` maps worktree hash -> blob hash -> record id.
+Passport schema: v1 at tag `phase-d1`, v2 at tag `phase-d2` (so passport hashes differ between the two tags), v3 from this commit (adds `record.results_tables_sha256`). Passports
+are regenerable from the record blobs at any of these commits with `python -m phase_d.build_passports`. Ledger: the report's $10.134 is a sum of rounded components; the
+full-precision record sum is annotated beside it. REPLAY regenerated (passport hashes changed).
+
 ## Phase D2 — REPLAY from committed records, cross-checked against the passports (2026-10-01; offline, no Nebius call)
 `python -m phase_d.build_replay` writes `reports/phase-d/replay/<version>.json`, `<version>.md` and `index.md` for harness-v1.3.2 (the pre-registered anchor, CONTROL and
 TREATMENT separate), v1.3.3 and v1.3.4 (EXPLORATORY badges from D1, verbatim). Per entry: baseline, era lock, each attempt (gate decision, outcome, consulted, cited, reason,

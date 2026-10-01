@@ -92,7 +92,7 @@ corpus `7df090bea7013974f9f10fb8959ab0162734b51c83a80f744f9c310ce694fbdc` · har
 
 ## B3 Harness-induced / repair-induced
 
-| # | label | evidence | terminal error | record sha256 |
+| # | label | evidence | terminal error | record sha256 [Annotation 2026-10-01, Phase D: D-28: the record hashes in this file and in `results_tables.json` are SHA-256 of the CRLF worktree files, not of the git blobs; they do not match passport record ids. Mapping: `reports/phase-d/record_index.md`.] |
 |--:|---|---|---|---|
 | 1 | HARNESS_INDUCED_LINK | Iterable link: repair 1 pinned tabulate==0.8.7 (2020) onto the runner's default 3.10 because the era lock failed (era python 3.8 computed, not used) | `ModuleNotFoundError: No module named 'curves'` | `0871895d002c…` |
 | 3 | CANDIDATE | README declares Python 3.6 (CONTROL ran 3.6); the time machine re-ran on era python 3.10; terminal error is undiagnosed (see MISDIAGNOSED) | `17.6` | `cecabc8526d7…` |

@@ -366,3 +366,15 @@ def test_the_model_produced_a_recorded_repair_attempt_in_5_of_the_8_gate_runs(bu
     assert sum(1 for p in gate if any(a["type"] == "model" for a in p["attempts"])) == 5
     recovered = [(p["harness_tag"], p["entry"]["id"]) for p in gate if p["verdict"]["verdict"] in passports.RECOVERED]
     assert recovered == [(V133, "11")]  # the smoke-limit artefact; produced by the time machine alone
+
+
+def test_d28_the_results_tables_hash_is_the_crlf_worktree_hash_and_is_reconciled_with_the_blob(built):
+    listed = [(r, p["record"]["results_tables_sha256"]) for r, p in built if p["record"]["results_tables_sha256"].get("value")]
+    assert len(listed) == 40 and {(r.harness_tag, r.record_set.name) for r, _ in listed} == {(V132, "control"), (V132, "treatment")}
+    index = (ROOT / INDEX).read_text(encoding="utf-8")
+    for record, field in listed:
+        assert field["value"] != record.sha256 and field["equals_sha256_of_blob_with_crlf"] is True and "D-28" in field["label"]
+        assert field["value"] == hashlib.sha256(record.blob.replace(b"\n", b"\r\n")).hexdigest()
+        assert f"| `{record.record_id}` | `{record.sha256}` | `{field['value']}` |" in index
+    others = [p["record"]["results_tables_sha256"] for r, p in built if (r, p["record"]["results_tables_sha256"]) not in listed]
+    assert len(others) == 9 and all(o == {"value": None, "reason": "not listed in reports/corpus-v2.1/results_tables.json"} for o in others)
