@@ -582,6 +582,11 @@ def _inventory(docs: dict[str, dict], summary_defects: dict) -> dict:
         "records": {"value": len(entries), "tag": MEASURED, "count_of": {"where": "committed run records with a passport", "records": [x["record_id"] for x in entries]}},
         "defects": {"value": len(summary_defects["rows"]), "tag": MEASURED,
                     "count_of": {"where": "rows of the defect register", "records": [row["id"] for row in summary_defects["rows"]]}},
+        "defects_by_status": {
+            status: {"value": sum(1 for row in summary_defects["rows"] if row["status"] == status), "tag": MEASURED,
+                     "count_of": {"where": f"rows of the defect register with status {status}",
+                                  "records": [row["id"] for row in summary_defects["rows"] if row["status"] == status]}}
+            for status in register.STATUSES},
     }
 
 

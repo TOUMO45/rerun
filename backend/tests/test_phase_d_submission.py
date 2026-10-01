@@ -18,6 +18,7 @@ from phase_d import dashboard, replay  # noqa: E402
 # Grows by one file per deliverable commit.
 DOCS = [
     "docs/submission/demo_script.md",
+    "README.md",
 ]
 TAGGED_DOCS = [d for d in DOCS if d != "docs/submission/criteria_map.md"]
 
@@ -128,3 +129,46 @@ def test_the_demo_script_fits_three_minutes_and_maps_every_numbered_sentence_to_
         assert record_id in stored, record_id
     for shown in set(re.findall(r"`((?:reports|runs|docs)/[^`#]+)", text)):
         assert (ROOT / shown).exists(), shown
+
+
+# ---------------------------------------------------------------- README
+
+README_SECTIONS = ["What it is", "The measured result", "How it works", "Where Nemotron is used", "Where Token Factory is used", "Where Tavily is used",
+                   "Run it offline in one command", "Run it live", "Evidence and integrity", "Defect register summary and status rule", "Cost ledger",
+                   "License", "Known limits"]
+
+
+def _summary() -> dict:
+    return json.loads((ROOT / replay.REPLAY_DIR / "summary.json").read_text(encoding="utf-8"))
+
+
+def test_the_readme_has_the_required_sections_in_order():
+    headings = re.findall(r"^## (.+)$", _text("README.md"), flags=re.M)
+    assert headings == README_SECTIONS
+
+
+def test_the_readme_names_the_models_exactly_as_the_records_do():
+    text = _text("README.md")
+    recorded = {r["model"] for v in _summary()["stack"]["versions"] for r in v["roles"]}
+    assert recorded and set(re.findall(r"nvidia/[A-Za-z0-9._-]+", text)) == recorded
+    assert "prompt-engineered" in text and "fine-tuned" in text
+
+
+def test_the_readme_states_the_headline_the_badges_the_ledger_and_the_limits():
+    text = _text("README.md")
+    summary = _summary()
+    for tag in (replay.VERSIONS[1], replay.VERSIONS[2]):
+        badge = json.loads((ROOT / replay.REPLAY_DIR / f"{tag}.json").read_text(encoding="utf-8"))["badge"]["text"]
+        assert f"`{badge}`" in text, tag
+    assert "reports/phase-d/dashboard/index.html" in text and "python -m phase_d.build_dashboard" in text
+    ledger = summary["ledger"]
+    for part in ("total", "measured", "estimated"):
+        assert f"${ledger[part]['value']:.4f}" in text
+    assert "lower bound" in text and "D-27" in text
+    for defect in ("D-21", "D-23", "D-25", "D-26", "D-27", "D-28"):
+        assert defect in text.split("## Known limits")[1], defect
+    for status, count in summary["inventory"]["defects_by_status"].items():
+        assert f"`{status}`: {count['value']} [MEASURED]" in text
+    assert "smoke-limit artefact" in text and "0 [MEASURED] of 8 [MEASURED]" in text
+    for rel in set(re.findall(r"\]\(((?!https?:)[^)#]+)", text)):
+        assert (ROOT / rel).exists(), rel

@@ -29,4 +29,4 @@ the exploratory versions sit beside it with their badges. Rebuild with `python -
 
 Headline counts, the defect register and the cost ledger, each number with its tag and its records.
 
-- [summary.json](summary.json) · sha256 `95059119fa53ce7b2a8bdc1320c0b9d809af7cc2338173556c23f826d05b1cff`
+- [summary.json](summary.json) · sha256 `6fea55966e66b846a28bc783f7ef35a36a1289d835bc35d4a8fd41472099f418`

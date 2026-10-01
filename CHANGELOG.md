@@ -7,7 +7,9 @@ One commit per deliverable. (1) `docs/submission/demo_script.md`: a timed script
 sentence that contains a number to a passport field or record id. To let the video and the texts quote models and counts from a recorded artifact, `replay/summary.json` gained `stack`
 (model per role, call and token counts, sandbox backend, search configuration, read from the run records) and `inventory`, and the dashboard gained a "How it ran, as recorded" section.
 `backend/tests/test_phase_d_submission.py` checks every submission text: each number is in the REPLAY JSON, each line with a number carries a tag, and no sentence says the LLM repair
-loop recovered an entry. The pre-Phase-D demo script moved to `docs/history/`. Ledger: $10.1349 ($9.8507 MEASURED + $0.2842 ESTIMATED, lower bound D-27).
+loop recovered an entry. The pre-Phase-D demo script moved to `docs/history/`. (2) `README.md` rewritten in the submission order (what it is, the measured result, how it works, where Nemotron / Token Factory / Tavily are used,
+offline and live runs, evidence and integrity, defect register and status rule, cost ledger, licence, known limits); the model names are checked against the records, every number is in
+the REPLAY JSON and tagged; `summary.json` `inventory` gained the defect counts by status. The build-log README moved to `docs/history/README_build_log.md`. Ledger: $10.1349 ($9.8507 MEASURED + $0.2842 ESTIMATED, lower bound D-27).
 
 ## Phase D4 — design notes for D-23 and D-25 (2026-10-01; documents only, no code)
 `docs/design/D-23.md` (cached torch layer and per-operation floor, compared) and `docs/design/D-25.md` (harness-injected exit-site hook, with a `-X dev -m trace` fallback): the problem
