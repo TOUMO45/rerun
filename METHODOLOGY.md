@@ -1004,3 +1004,11 @@ in the v1.4.0 seal.
 **Seal -> gate (owner's rule, automatic).** The gate starts only if ALL hold: every seal check passed; the measured branch-run cost (op B) is at most $0.15
 API-reported; the seal spend is at most $1.00. Otherwise stop and report. Tag `harness-v1.4.1` only on a passed seal (the seal commit carries
 `seal_verification.json`); until then `harness-v1.4.1-rc` stays and nothing is gated.
+
+
+**Seal of harness-v1.4.1: complete, all checks passed (2026-10-01, live).** Ten operations, all `ok`: run 1 (A ready image, B one branch run at $0.00062790 API-reported,
+C the hooks on a kept image, W0 the bare `raise SystemExit(1)` with the hook alone: stderr empty, W1 the same through the exit wrapper: the raise site, W2 the wrapper on
+python:3.6-slim), run 2 (the additive apt layer on a kept image: only the layer ran, gcc present), run 3 (an operation stopped at its limit kept its first layer and a new operation reopened it by
+id). Seal spend $0.3263 = $0.1254 API-reported + $0.2009 ESTIMATED (the stopped step of K1), cap $1.00; ledger $14.9758 [$13.8041 API-reported + $1.1717 ESTIMATED], a lower bound
+(D-27). The seal -> gate rule holds (every check passed, branch run at most $0.15, seal at most $1.00): the gate starts automatically. `seal_verification.json` (16 paths: 11 carried
+over from v1.4.0, 5 for v1.4.1) written by `scripts/write_seal_verification_v141.py`; tag `harness-v1.4.1` on the seal commit. Report: `reports/corpus-v2.1/v1.4.1/seal/SEAL_STATUS.md`.

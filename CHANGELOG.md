@@ -2,6 +2,12 @@
 
 One entry per phase of the post-corpus-v2 plan. Numbers are produced by scripts in `scripts/`.
 
+## harness-v1.4.1 — seal (option B over changed files only), complete (2026-10-01; live, owner's caps)
+Ten live operations, all ok: the exit wrapper on Python 3.10 and 3.6 (a bare `raise SystemExit(1)` leaves nothing on stderr with the hook alone), the additive apt layer on a kept
+image, and the layer of an operation stopped at its limit reopened by id by a new operation (D-31 on the real service). Seal spend $0.3263 ($0.1254 API-REPORTED + $0.2009
+ESTIMATED), branch run $0.00062790. 11 of the 12 v1.4.0 seal entries carried over (their code files are unchanged). Tag `harness-v1.4.1`. The gate v1.4.1 starts under the seal -> gate rule.
+Ledger $14.9758 ($13.8041 API-REPORTED + $1.1717 ESTIMATED, lower bound D-27). Report: `reports/corpus-v2.1/v1.4.1/seal/SEAL_STATUS.md`.
+
 ## harness-v1.4.1-rc — Step 1 of the v1.4.1 directive (2026-10-01; offline, unsealed, no Nebius call, no spend)
 Six deterministic fixes from the v1.4.0 gate records, each registered fixed-unvalidated (D-30 to D-35) with its test: the funding rate is the rolling measured rate of the
 entry's own completed operations x 1.5 (floor $0.0030, ceiling $0.0085) and is recorded on every operation; a budget-limited stop resumes from a kept environment image while the
