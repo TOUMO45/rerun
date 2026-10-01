@@ -1,4 +1,4 @@
-# Phase D — passports (D1) and REPLAY (D2)
+# Phase D — passports (D1), REPLAY (D2) and dashboard (D3)
 
 One passport per committed run record of harness-v1.3.2, harness-v1.3.3 and harness-v1.3.4, generated offline from the
 committed blobs. The list of record ids is in [record_index.md](record_index.md); the passports are under `passports/`.
@@ -9,6 +9,9 @@ python -m phase_d.verify_passports    # rebuild and diff to zero; exit 1 on any 
 python -m phase_d.check_tags          # exit 1 if any number lacks a tag
 python -m phase_d.build_replay        # rebuild REPLAY (passports are verified first)
 python -m phase_d.build_replay --check   # rebuild REPLAY and diff to zero; exit 1 on any difference
+python -m phase_d.build_dashboard     # build dashboard/index.html (stops if the REPLAY check or the page check fails)
+python -m phase_d.build_dashboard --check   # rebuild the page and diff to zero
+python -m phase_d.check_dashboard     # parse the page: every number tagged and linked, no external resource
 ```
 
 ## Rules
@@ -60,6 +63,19 @@ Markdown, text in code spans is quoted verbatim; outside code spans every number
 Passport schema v2 added the tagged fields REPLAY displays: `attempts[].consulted_count`, `cost.batch_cap`, `cost.operations[]`
 (the cost guard's own log line per sandbox operation, DERIVED), the gate criteria b and d in the badge figures, and the
 pre-registered primary line of harness-v1.3.2 (`badge.figures`, from `reports/corpus-v2.1/results_tables.json`).
+
+## Dashboard (D3)
+
+[dashboard/index.html](dashboard/index.html) is one static page, built from the REPLAY JSON only (the three version files and
+`replay/summary.json`, which holds the headline counts, the defect register and the cost ledger). It opens from `file://`: no
+script, no animation, no external resource. Every number is shown with its tag and links to the record, or the list of records,
+it was read from; dollar values show 4 decimals with the full-precision value in the `data-value` attribute and the tooltip.
+Text in code style is quoted verbatim from the REPLAY JSON. A cost bar always draws MEASURED and ESTIMATED as separate segments.
+
+Defect status rule (`phase_d/defects.py`, each row with quoted sources that the build checks): `fixed-and-gated` means the fix map
+calls it fixed with no open remainder and a committed gate or seal report line states the fix was observed working live (it does
+not mean the gate passed); `fixed-unvalidated` means a fix or correction exists without such a line; `open` means no fix, a fix
+the fix map itself calls partial, or a defect that still shows in practice.
 
 ## Ledger
 

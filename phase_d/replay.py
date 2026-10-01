@@ -22,6 +22,7 @@ import re
 from pathlib import Path
 from typing import Any
 
+from . import defects as register
 from .passports import DERIVED, ESTIMATED, GATE_FILES, MEASURED, PASSPORT_DIR, RECOVERED, RESULTS_TABLES, TAGS, passport_path
 from .records import ROOT, BlobSource, GitBlobSource, Record, load_records
 
@@ -252,6 +253,8 @@ def _entry(e: _Entry) -> dict:
         "record_path": record.path,
         "passport_path": passport_path(record),
         "passport_hash": passport["passport_hash"],
+        "record_sha256": e.text("record.sha256", record.sha256),
+        "results_tables_sha256": _worktree_hash(e),
         "entry": {"id": e.text("entry.id", record.entry), "name": e.text("entry.name", d["corpus_entry"]["name"])},
         "arm": e.text("arm", record.arm),
         "record_set": e.text("record.record_set", record.record_set.name),
@@ -261,6 +264,18 @@ def _entry(e: _Entry) -> dict:
         "timeline": timeline,
         "cost": cost,
     }
+
+
+def _worktree_hash(e: _Entry) -> dict:
+    """The D-28 hash results_tables.json lists for the record, re-derived here from the blob (LF written as CRLF)."""
+    field = resolve(e.passport, "record.results_tables_sha256")
+    out = {k: field[k] for k in ("value", "label", "note", "reason") if k in field}
+    out["ref"] = {"record_id": e.rid, "field": "record.results_tables_sha256"}
+    if field["value"] is not None:
+        own = hashlib.sha256(e.record.blob.replace(bytes([10]), bytes([13, 10]))).hexdigest()
+        if field["value"] != own or field.get("equals_sha256_of_blob_with_crlf") is not True:
+            e._fail("record.results_tables_sha256", field["value"], own)
+    return out
 
 
 # ---------------------------------------------------------------- one version
@@ -379,6 +394,136 @@ def build_replay(source: BlobSource | None = None, passports: dict[str, dict] | 
     if extra:
         raise ReplayError(f"passports without a committed record: {extra}")
     return {tag: build_version(tag, [r for r in records if r.harness_tag == tag], passports, by_id, source) for tag in VERSIONS}
+
+
+# ---------------------------------------------------------------- summary: headline, defect register, ledger
+
+SUMMARY_SCHEMA = "rerun/phase-d/replay-summary/v1"
+SEAL_SETS = (
+    ("seal-attempt-one-v133", "Seal verification, first attempt", "harness-v1.3.3", "runs/sandbox_verification/attempt1-v1.3.3"),
+    ("seal-repeat-v133", "Seal verification, repeat", "harness-v1.3.3", "runs/sandbox_verification/final-v1.3.3"),
+    ("seal-v134", "Seal verification", "harness-v1.3.4", "runs/sandbox_verification/final-v1.3.4"),
+)
+LEDGER_LINE = {"path": GATE_FILES["harness-v1.3.4"]["report"], "quote": "Cumulative on the new ledger: $6.738 + $3.396 = **$10.134** (ceiling ~$11)."}
+LOWER_BOUND_LINE = {"path": GATE_FILES["harness-v1.3.4"]["report"], "quote": "$10.134 is a lower bound (D-27)."}
+ARTEFACT = "ENTRY-11-SMOKE-LIMIT-ARTEFACT"
+
+
+def _records(entries: list[dict], where: str) -> dict:
+    return {"value": len(entries), "tag": MEASURED, "count_of": {"where": where, "records": [x["record_id"] for x in entries]}}
+
+
+def _quote_present(source: BlobSource, src: dict) -> None:
+    if src["quote"] not in source.read(src["path"]).decode("utf-8").replace("\r\n", "\n"):
+        raise ReplayError(f"quoted source not found in {src['path']}: {src['quote']!r}")
+
+
+def _has_model_attempt(x: dict) -> bool:
+    return any(s["step"] == "attempt" and s["type"] == "model" for s in x["timeline"])
+
+
+def _headline(docs: dict[str, dict]) -> dict:
+    gate = [x for tag in VERSIONS if docs[tag]["badge"]["exploratory"] for x in docs[tag]["entries"]]
+    recovered = [x for x in gate if x["timeline"][-1]["verdict"] in RECOVERED]
+    by_loop = [x for x in recovered if any(s["step"] == "attempt" and s["type"] == "model" and s["outcome"] == "applied" for s in x["timeline"])]
+    artefacts = [x for x in recovered if any(n["id"] == ARTEFACT for n in x["timeline"][-1]["annotations"])]
+    alone = [x for x in recovered if not _has_model_attempt(x)]
+    if len(artefacts) != len(recovered) or len(alone) != len(recovered) or by_loop:
+        raise ReplayError("headline: the records no longer support the statement (a recovery without the artefact annotation, or one with a model repair)")
+    note = next(n for n in artefacts[0]["timeline"][-1]["annotations"] if n["id"] == ARTEFACT) if artefacts else None
+    return {
+        "gate_entry_runs": _records(gate, "entry-runs of the two exploratory gates"),
+        "recovered_by_llm_loop": _records(by_loop, "verdict RUNS_CLEAN or RUNS_AFTER_REPAIR with an applied model repair attempt"),
+        "apparent_recoveries": _records(recovered, "verdict RUNS_CLEAN or RUNS_AFTER_REPAIR"),
+        "apparent_recoveries_annotated_as_artefact": _records(artefacts, "apparent recovery carrying the smoke-limit artefact annotation"),
+        "recoveries_by_time_machine_alone": _records(alone, "apparent recovery with no model repair attempt in the record"),
+        "with_recorded_model_attempt": _records([x for x in gate if _has_model_attempt(x)], "at least one model repair attempt in the record"),
+        "artefact": [{"record_id": x["record_id"], "harness_tag": x["record_id"].split("/")[0], "entry": x["entry"]["id"], "annotation": note} for x in artefacts],
+    }
+
+
+def _defects(docs: dict[str, dict], source: BlobSource) -> dict:
+    entries = [x for tag in VERSIONS for x in docs[tag]["entries"]]
+    rows = []
+    for row in register.REGISTER:
+        for src in [row["registered"]] + row["basis"]:
+            _quote_present(source, src)
+        if row["status"] not in register.STATUSES:
+            raise ReplayError(f"{row['id']}: unknown status {row['status']!r}")
+        annotated = [x for x in entries if any(n["id"] == row["id"] for n in x["timeline"][-1]["annotations"])]
+        if row["id"] == "D-28":
+            annotated = [x for x in entries if x["results_tables_sha256"]["value"] is not None]
+        rows.append({**row, "passports": [{"record_id": x["record_id"], "passport_path": x["passport_path"],
+                                           "harness_tag": x["record_id"].split("/")[0], "entry": x["entry"]["id"], "arm": x["arm"]} for x in annotated]})
+    known = {row["id"] for row in rows}
+    unknown = sorted({n["id"] for x in entries for n in x["timeline"][-1]["annotations"] if n["id"].startswith("D-")} - known)
+    if unknown or [row["id"] for row in rows] != [f"D-{i}" for i in range(1, len(rows) + 1)]:
+        raise ReplayError(f"defect register: not a complete D-1..D-n list, or annotations name unknown defects {unknown}")
+    return {"status_rule": dict(register.STATUS_RULE), "rows": rows}
+
+
+def _ledger(docs: dict[str, dict], source: BlobSource) -> dict:
+    for line in (LEDGER_LINE, LOWER_BOUND_LINE):
+        _quote_present(source, line)
+    components, kills = [], []
+    for key, name, tag, directory in SEAL_SETS:
+        costed: dict[str, list[str]] = {"cost_usd": [], "completed_cost_usd": []}
+        total, listed = 0.0, []
+        for path in source.list_dir(directory):
+            if not path.endswith(".json"):
+                continue
+            blob = source.read(path)
+            data, rid = json.loads(blob.decode("utf-8")), f"{path}@{hashlib.sha256(blob).hexdigest()}"
+            field = next((f for f in costed if f in data), None)
+            listed.append({"record": rid, "path": path, "cost_field": field})
+            if field:
+                costed[field].append(rid)
+                total += data[field]
+            no_killed_step_cost = data.get("path") == "kill_at_operation_limit" and (field is None or data.get("via") == "client_wait_timeout")
+            if no_killed_step_cost:
+                seconds = data.get("killed_seconds")
+                kills.append({
+                    "record": rid, "path": path, "component": key, "via": data.get("via"), "error": data.get("error"), "message": data.get("message"),
+                    "killed_seconds": {"value": seconds, "tag": MEASURED, "record_field": {"record": rid, "field": "killed_seconds"}}
+                    if seconds is not None else {"value": None, "reason": "no killed_seconds field in this record"},
+                    "completed_cost": {"value": data[field], "tag": MEASURED, "record_field": {"record": rid, "field": field}}
+                    if field else {"value": None, "reason": "no cost field in this record"},
+                })
+        components.append({
+            "key": key, "name": name, "kind": "seal", "harness_tag": tag, "directory": directory, "records": listed,
+            "measured": {"value": round(total, 10), "tag": MEASURED,
+                         "sum_of_records": [{"field": f, "records": ids} for f, ids in costed.items() if ids]},
+            "estimated": {"value": None, "reason": "no estimate field in the seal-verification records"},
+        })
+    for tag in VERSIONS:
+        doc = docs[tag]
+        if not doc["badge"]["exploratory"]:
+            continue
+        ids = [x["record_id"] for x in doc["entries"]]
+        components.append({
+            "key": "gate-" + tag.replace("harness-", "").replace(".", ""), "name": "Smoke gate", "kind": "gate", "harness_tag": tag,
+            "directory": doc["entries"][0]["record_path"].rsplit("/", 1)[0],
+            "records": [{"record": x["record_id"], "path": x["record_path"], "cost_field": "cost_guard.spent_usd"} for x in doc["entries"]],
+            "measured": {"value": doc["batch"]["measured"]["value"], "tag": MEASURED, "sum_of": {"field": "cost.measured", "records": ids}},
+            "estimated": {"value": doc["batch"]["estimated"]["value"], "tag": ESTIMATED, "sum_of": {"field": "cost.estimated", "records": ids}},
+        })
+    order = ["seal-attempt-one-v133", "seal-repeat-v133", "gate-v133", "seal-v134", "gate-v134"]
+    components.sort(key=lambda c: order.index(c["key"]))
+    measured = round(sum(c["measured"]["value"] for c in components), 10)
+    estimated = round(sum(c["estimated"]["value"] or 0.0 for c in components), 10)
+    return {
+        "reported_line": LEDGER_LINE, "lower_bound": {"defect": "D-27", "line": LOWER_BOUND_LINE},
+        "components": components,
+        "measured": {"value": measured, "tag": MEASURED, "sum_of_components": "measured"},
+        "estimated": {"value": estimated, "tag": ESTIMATED, "sum_of_components": "estimated"},
+        "total": {"value": round(measured + estimated, 10), "tag": ESTIMATED, "sum_of_components": "measured + estimated",
+                  "note": "contains an ESTIMATED component: shown as measured + estimated, never as one MEASURED figure"},
+        "kill_records": kills,
+    }
+
+
+def build_summary(docs: dict[str, dict], source: BlobSource) -> dict:
+    return {"schema": SUMMARY_SCHEMA, "headline": _headline(docs), "defects": _defects(docs, source), "ledger": _ledger(docs, source)}
 
 
 # ---------------------------------------------------------------- output files
@@ -535,12 +680,15 @@ def index_markdown(docs: dict[str, dict], files: dict[str, bytes]) -> bytes:
             rel = f"{REPLAY_DIR}/{tag}.{ext}"
             lines.append(f"- [{tag}.{ext}]({tag}.{ext}) · sha256 {code(hashlib.sha256(files[rel]).hexdigest())}")
         lines.append("")
+    lines += ["## Summary", "", "Headline counts, the defect register and the cost ledger, each number with its tag and its records.", "",
+              f"- [summary.json](summary.json) · sha256 {code(hashlib.sha256(files[f'{REPLAY_DIR}/summary.json']).hexdigest())}", ""]
     return ("\n".join(lines).rstrip("\n") + "\n").encode("utf-8")
 
 
 def expected_files(source: BlobSource | None = None, passports: dict[str, dict] | None = None, root: Path = ROOT) -> dict[str, bytes]:
+    source = source or GitBlobSource()
     docs = build_replay(source, passports, root)
-    files: dict[str, bytes] = {}
+    files: dict[str, bytes] = {f"{REPLAY_DIR}/summary.json": to_json(build_summary(docs, source))}
     for tag, doc in docs.items():
         files[f"{REPLAY_DIR}/{tag}.json"] = to_json(doc)
         files[f"{REPLAY_DIR}/{tag}.md"] = to_markdown(doc)

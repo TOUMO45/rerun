@@ -25,19 +25,21 @@ NUMBER = re.compile(r"\d+(?:\.\d+)?(?:e-?\d+)?")
 
 
 class CachedSource:
-    """Every blob the build needs, read from git once; tests tamper with the in-memory copy."""
+    """Blobs read from git once and cached; tests tamper with the in-memory copy."""
 
     def __init__(self) -> None:
-        git = records.GitBlobSource()
-        self.dirs = {rs.directory: git.list_dir(rs.directory) for rs in records.RECORD_SETS}
-        paths = [p for listing in self.dirs.values() for p in listing if records.ENTRY_FILE.match(p.rsplit("/", 1)[1])]
-        paths += [f["result"] for f in passports.GATE_FILES.values()] + [passports.RESULTS_TABLES]
-        self.blobs = {p: git.read(p) for p in paths}
+        self.git = records.GitBlobSource()
+        self.dirs: dict[str, list[str]] = {}
+        self.blobs: dict[str, bytes] = {}
 
     def list_dir(self, directory: str) -> list[str]:
+        if directory not in self.dirs:
+            self.dirs[directory] = self.git.list_dir(directory)
         return list(self.dirs[directory])
 
     def read(self, path: str) -> bytes:
+        if path not in self.blobs:
+            self.blobs[path] = self.git.read(path)
         return self.blobs[path]
 
 
@@ -59,6 +61,11 @@ def docs(source, stored) -> dict[str, dict]:
 @pytest.fixture(scope="module")
 def files(source, stored) -> dict[str, bytes]:
     return replay.expected_files(source, stored)
+
+
+@pytest.fixture(scope="module")
+def summary(files) -> dict:
+    return json.loads(files[f"{replay.REPLAY_DIR}/summary.json"].decode("utf-8"))
 
 
 def _md(files, tag: str) -> str:
@@ -93,7 +100,7 @@ def test_the_replay_output_is_byte_identical_across_two_runs(source, stored, fil
     again = replay.expected_files(source, stored)
     digest = lambda fs: hashlib.sha256(b"".join(k.encode() + b"\0" + v for k, v in sorted(fs.items()))).hexdigest()  # noqa: E731
     assert digest(again) == digest(files) and list(again) == list(files)
-    assert sorted(files) == sorted([f"{replay.REPLAY_DIR}/{t}.{ext}" for t in replay.VERSIONS for ext in ("json", "md")] + [f"{replay.REPLAY_DIR}/index.md"])
+    assert sorted(files) == sorted([f"{replay.REPLAY_DIR}/{t}.{ext}" for t in replay.VERSIONS for ext in ("json", "md")] + [f"{replay.REPLAY_DIR}/index.md", f"{replay.REPLAY_DIR}/summary.json"])
 
 
 def test_any_network_call_during_replay_fails(source, stored, monkeypatch):
@@ -102,7 +109,7 @@ def test_any_network_call_during_replay_fails(source, stored, monkeypatch):
 
     for name in ("socket", "create_connection", "getaddrinfo"):
         monkeypatch.setattr(socket, name, refuse)
-    assert len(replay.expected_files(source, stored)) == 7
+    assert len(replay.expected_files(source, stored)) == 8
 
 
 def test_the_stored_replay_files_are_identical_to_a_rebuild():
@@ -379,3 +386,107 @@ def test_the_code_span_helper_quotes_any_text():
         span = replay.code(text)
         assert CODE_SPAN.sub("", f"x {span} y") == "x  y", text
     assert replay.show({"value": 55, "tag": "DERIVED"}) == "55 [DERIVED]" and replay.show({"value": None, "reason": "r"}) == "null (`r`)"
+
+
+# ---------------------------------------------------------------- summary.json: headline, defect register, ledger
+
+def test_the_headline_counts_are_tagged_counts_of_records(summary, docs):
+    h = summary["headline"]
+    values = {k: v["value"] for k, v in h.items() if k != "artefact"}
+    assert values == {"gate_entry_runs": 8, "recovered_by_llm_loop": 0, "apparent_recoveries": 1, "apparent_recoveries_annotated_as_artefact": 1,
+                      "recoveries_by_time_machine_alone": 1, "with_recorded_model_attempt": 5}
+    gate = {x["record_id"] for tag in (V133, V134) for x in docs[tag]["entries"]}
+    for key, v in h.items():
+        if key != "artefact":
+            assert v["tag"] == "MEASURED" and v["value"] == len(v["count_of"]["records"]) and set(v["count_of"]["records"]) <= gate
+    assert set(h["gate_entry_runs"]["count_of"]["records"]) == gate
+    assert [(a["harness_tag"], a["entry"]) for a in h["artefact"]] == [(V133, "11")] and "smoke-limit artefact" in h["artefact"][0]["annotation"]["text"]
+
+
+def test_the_headline_build_stops_if_the_records_stop_supporting_it(docs):
+    changed = copy.deepcopy(docs)
+    next(x for x in changed[V133]["entries"] if x["entry"]["id"] == "11")["timeline"][-1]["annotations"] = []
+    with pytest.raises(replay.ReplayError):
+        replay._headline(changed)
+
+
+def test_the_defect_register_is_d1_to_d28_with_quoted_sources(summary, source, docs):
+    rows = summary["defects"]["rows"]
+    assert [r["id"] for r in rows] == [f"D-{i}" for i in range(1, 29)]
+    assert {r["status"] for r in rows} == {"fixed-and-gated", "fixed-unvalidated", "open"} == set(summary["defects"]["status_rule"])
+    status = {r["id"]: r["status"] for r in rows}
+    assert all(status[f"D-{i}"] == "open" for i in (1, 6, 7, 12, 13, 21, 23, 24, 25, 26, 27, 28))  # D-24 is open until D4
+    for r in rows:
+        for src in [r["registered"]] + r["basis"]:
+            assert src["quote"] in source.read(src["path"]).decode("utf-8").replace("\r\n", "\n"), r["id"]
+        assert not re.search(r"\d", r["title"] + r["note"]), r["id"]  # no number is displayed from this text
+        if r["status"] == "fixed-and-gated":
+            assert len(r["basis"]) >= 1 and any("smoke_gate" in b["path"] or b["path"] == "METHODOLOGY.md" for b in r["basis"]), r["id"]
+    annotated = {r["id"]: {p["record_id"] for p in r["passports"]} for r in rows}
+    assert len(annotated["D-28"]) == 40 and len(annotated["D-13"]) == 4
+    assert annotated["D-26"] == {_entry(docs, V134, "03")["record_id"]} and annotated["D-24"] == {_entry(docs, V134, "07")["record_id"]}
+
+
+def test_a_missing_defect_quote_stops_the_build(docs, source, monkeypatch):
+    from phase_d import defects
+
+    broken = copy.deepcopy(defects.REGISTER)
+    broken[0]["basis"][0]["quote"] = "this sentence is not in the report"
+    monkeypatch.setattr(defects, "REGISTER", broken)
+    with pytest.raises(replay.ReplayError):
+        replay.build_summary(docs, source)
+
+
+def test_the_ledger_is_recomputed_from_records_split_and_a_lower_bound(summary, source, stored):
+    ledger = summary["ledger"]
+    assert [c["key"] for c in ledger["components"]] == ["seal-attempt-one-v133", "seal-repeat-v133", "gate-v133", "seal-v134", "gate-v134"]
+    total_m = total_e = 0.0
+    for c in ledger["components"]:
+        if c["kind"] == "seal":
+            value = 0.0
+            for part in c["measured"]["sum_of_records"]:
+                for rid in part["records"]:
+                    path, sha = rid.split("@")
+                    blob = source.read(path)
+                    assert hashlib.sha256(blob).hexdigest() == sha
+                    value += json.loads(blob)[part["field"]]
+            assert c["estimated"] == {"value": None, "reason": "no estimate field in the seal-verification records"}
+        else:
+            value = sum(stored[rid]["cost"]["measured"]["value"] for rid in c["measured"]["sum_of"]["records"])
+            assert c["estimated"]["value"] == round(sum(stored[rid]["cost"]["estimated"]["value"] for rid in c["estimated"]["sum_of"]["records"]), 10)
+            total_e += c["estimated"]["value"]
+        assert c["measured"] ["value"] == round(value, 10) and c["measured"]["tag"] == "MEASURED"
+        total_m += c["measured"]["value"]
+    assert ledger["measured"]["value"] == round(total_m, 10) and ledger["estimated"]["value"] == round(total_e, 10)
+    assert (round(ledger["measured"]["value"], 4), round(ledger["estimated"]["value"], 4), round(ledger["total"]["value"], 4)) == (9.8507, 0.2842, 10.1349)
+    assert (ledger["measured"]["tag"], ledger["estimated"]["tag"], ledger["total"]["tag"]) == ("MEASURED", "ESTIMATED", "ESTIMATED")
+    assert ledger["lower_bound"]["defect"] == "D-27" and "$10.134" in ledger["reported_line"]["quote"]
+    kills = ledger["kill_records"]
+    assert [k["killed_seconds"]["value"] for k in kills] == [None, 26.7, 26.3]
+    assert [k["via"] for k in kills] == [None, "client_wait_timeout", "client_wait_timeout"] and kills[0]["error"]
+    for k in kills[1:]:
+        path, _ = k["record"].split("@")
+        assert json.loads(source.read(path))["killed_seconds"] == k["killed_seconds"]["value"] and k["killed_seconds"]["tag"] == "MEASURED"
+
+
+def test_every_number_in_the_summary_is_tagged_with_a_pointer(summary):
+    for path, obj in _walk(summary):
+        if isinstance(obj, dict):
+            for key, value in obj.items():
+                if _is_number(value):
+                    assert key == "value" and obj.get("tag") in passports.TAGS, f"{path}.{key}"
+        elif isinstance(obj, list):
+            assert not any(_is_number(v) for v in obj), path
+    for path, obj in _tagged(summary):
+        assert sum(k in obj for k in ("count_of", "sum_of", "sum_of_records", "sum_of_components", "record_field")) == 1, path
+
+
+def test_entries_carry_the_blob_hash_and_the_d28_worktree_hash(docs):
+    for tag, doc in docs.items():
+        for x in doc["entries"]:
+            assert x["record_id"].endswith("@" + x["record_sha256"])
+            listed = x["results_tables_sha256"]
+            if tag == V132 and x["record_set"] in ("control", "treatment"):
+                assert listed["value"] and listed["value"] != x["record_sha256"] and "D-28" in listed["label"]
+            else:
+                assert listed["value"] is None and listed["reason"]

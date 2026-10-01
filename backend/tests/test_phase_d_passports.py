@@ -22,19 +22,21 @@ V132, V133, V134 = "harness-v1.3.2", "harness-v1.3.3", "harness-v1.3.4"
 
 
 class CachedSource:
-    """Every blob the build needs, read from git once; tests tamper with the in-memory copy."""
+    """Blobs read from git once and cached; tests tamper with the in-memory copy."""
 
     def __init__(self) -> None:
-        git = records.GitBlobSource()
-        self.dirs = {rs.directory: git.list_dir(rs.directory) for rs in records.RECORD_SETS}
-        paths = [p for listing in self.dirs.values() for p in listing if records.ENTRY_FILE.match(p.rsplit("/", 1)[1])]
-        paths += [f["result"] for f in passports.GATE_FILES.values()] + [passports.RESULTS_TABLES]
-        self.blobs = {p: git.read(p) for p in paths}
+        self.git = records.GitBlobSource()
+        self.dirs: dict[str, list[str]] = {}
+        self.blobs: dict[str, bytes] = {}
 
     def list_dir(self, directory: str) -> list[str]:
+        if directory not in self.dirs:
+            self.dirs[directory] = self.git.list_dir(directory)
         return list(self.dirs[directory])
 
     def read(self, path: str) -> bytes:
+        if path not in self.blobs:
+            self.blobs[path] = self.git.read(path)
         return self.blobs[path]
 
 

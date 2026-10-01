@@ -2,6 +2,14 @@
 
 One entry per phase of the post-corpus-v2 plan. Numbers are produced by scripts in `scripts/`.
 
+## Phase D3 — static dashboard from the REPLAY JSON (2026-10-01; offline, no Nebius call)
+`python -m phase_d.build_dashboard` writes `reports/phase-d/dashboard/index.html`: headline card, gate scorecard (pre-registered anchor, CONTROL and TREATMENT separate; the two
+EXPLORATORY versions with their D1 badges above the numbers), cost ledger (MEASURED + ESTIMATED, lower bound D-27, the three seal kill records), defect register D-1..D-28 with
+status and passport links, and a per-entry drill-down. The build stops if the REPLAY check fails or if the rendered page has an untagged or unlinked number or an external resource
+(`phase_d/check_dashboard.py` parses the HTML). REPLAY gained `summary.json` (headline counts, defect register with quoted sources, ledger recomputed from the seal and gate records)
+and, per entry, the blob hash and the D-28 worktree hash. Passport annotations no longer carry a `status` (the register is the single source; still schema v3). D-24 is shown open.
+Tests: test_phase_d_dashboard.py; test_phase_d_replay.py extended.
+
 ## Phase D housekeeping 2 — D-28, passport schema note, ledger rounding (2026-10-01; documentation and regenerated passports)
 D-28 registered (the `record_*_sha256` values of `results_tables.json` are hashes of CRLF worktree files, not git blobs): open, documented only; `results_tables.json` is not
 modified, `results_tables.md` carries the annotation beside its first hash column, and `reports/phase-d/record_index.md` maps worktree hash -> blob hash -> record id.

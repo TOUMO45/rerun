@@ -22,7 +22,8 @@ from typing import Any
 from .records import BlobSource, GitBlobSource, Record, load_records
 
 # v2 (phase-d2): + attempts[].consulted_count, cost.batch_cap, cost.operations, badge criteria b/d, v1.3.2 anchor
-# v3 (phase-d3): + record.results_tables_sha256 (D-28: the CRLF worktree hash results_tables.json lists for the record)
+# v3 (phase-d3): + record.results_tables_sha256 (D-28: the CRLF worktree hash results_tables.json lists for the record);
+#                 annotations[].status dropped (a defect's status is in the register, not on each passport)
 SCHEMA = "rerun/phase-d/passport/v3"
 MEASURED, ESTIMATED, DERIVED = "MEASURED", "ESTIMATED", "DERIVED"
 TAGS = (MEASURED, ESTIMATED, DERIVED)
@@ -80,7 +81,7 @@ def _src(path: str, quote: str) -> dict:
 
 
 def _defect(defect: str, text: str, quote: str, path: str = DEFECTS) -> dict:
-    return {"id": defect, "text": text, "status": "open", "sources": [_src(path, quote)]}
+    return {"id": defect, "text": text, "sources": [_src(path, quote)]}  # the defect's status lives in the register (phase_d/defects.py)
 
 
 ANNOTATIONS: dict[tuple[str, str, str], list[dict]] = {
