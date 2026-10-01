@@ -5,7 +5,8 @@ Display rules:
     goes to the record (or to the list of records) it was read from; nothing else outside `<code>` contains a digit;
   * `<code>` holds verbatim strings from the REPLAY JSON (ids, paths, quoted lines, the D1 badge sentence);
   * dollar values are shown with 4 decimals, the full-precision JSON value is in `data-value` and the tooltip;
-  * a cost bar always draws MEASURED and ESTIMATED as separate segments;
+  * a cost bar always draws API-REPORTED and ESTIMATED as separate segments;
+  * the one BILLED number (the owner's account-balance reading) links to its own source line, not to a record;
   * no script, no animation, no external resource: the page opens from file://.
 """
 
@@ -54,7 +55,7 @@ class Page:
         if obj["value"] is None:
             return f'<span class="absent">not recorded <span class="why">({q(obj.get("reason"))})</span></span>'
         tag, value = obj["tag"], obj["value"]
-        record = ""
+        record, source = "", ""
         if "ref" in obj:
             record = obj["ref"]["record_id"]
             at = at or self.anchor[record]
@@ -63,11 +64,14 @@ class Page:
             at = at or "run-" + slug(record.split("/")[0])
         elif "record_field" in obj:
             record = obj["record_field"]["record"]
+        elif "owner_reading" in obj:
+            source = "owner-balance-reading"  # BILLED: the owner's reading of the account balance page, not a record
         if at is None:
             raise ValueError(f"no record link for {obj!r}")
         full = json.dumps(value, ensure_ascii=False)
-        attrs = f'href="#{at}" data-tag="{tag}" data-value="{esc(full)}"' + (f' data-record="{esc(record)}"' if record else "")
-        title = esc(f"{full} {tag}" + (f" — record {record}" if record else " — see the linked record list"))
+        attrs = (f'href="#{at}" data-tag="{tag}" data-value="{esc(full)}"' + (f' data-record="{esc(record)}"' if record else "")
+                 + (f' data-source="{source}"' if source else ""))
+        title = esc(f"{full} {tag}" + (f" — record {record}" if record else " — the owner's account-balance reading" if source else " — see the linked record list"))
         if isinstance(value, str):
             return f'<span class="num"><a class="s" {attrs} title="{title}">{q(value)}</a><span class="tag {tag}">{tag}</span></span>'
         shown = f"${value:.4f}" if usd else full
@@ -90,13 +94,13 @@ class Page:
     def set_name(rs: dict) -> str:
         return q(rs["arm"]) if rs["arm"] == rs["record_set"] else f'{q(rs["arm"])} arm, set {q(rs["record_set"])}'
 
-    def meter(self, measured: Any, estimated: Any, cap: Any, label: str) -> str:
-        m = measured or 0.0
+    def meter(self, reported: Any, estimated: Any, cap: Any, label: str) -> str:
+        m = reported or 0.0
         e = estimated or 0.0
         if not cap or cap <= 0:
             return ""
         scale = max(cap, m + e)
-        parts = [f'<span class="seg m" style="width:{100 * m / scale:.2f}%" title="measured part"></span>']
+        parts = [f'<span class="seg rep" style="width:{100 * m / scale:.2f}%" title="API-reported part"></span>']
         if e > 0:
             parts.append(f'<span class="seg e" style="width:{100 * e / scale:.2f}%" title="estimated part"></span>')
         over = m + e > cap
@@ -163,7 +167,7 @@ every recovery-shaped result came from the deterministic time machine.</p>
             sets += f'<li><span class="set-name">{self.set_name(rs)}</span> {counts}</li>'
         batch = doc["batch"]
         cost = (f'<p class="costline">Batch cost: {self.num(batch["measured"], usd=True)} + {self.num(batch["estimated"], usd=True)} of cap {self.num(batch["cap"], usd=True)}</p>'
-                + self.meter(batch["measured"]["value"], batch["estimated"]["value"], batch["cap"]["value"], "batch cost against the batch cap, measured and estimated drawn separately"))
+                + self.meter(batch["measured"]["value"], batch["estimated"]["value"], batch["cap"]["value"], "batch cost against the batch cap, API-reported and estimated drawn separately"))
         links = ""
         if exploratory:
             lk = badge["links"]
@@ -191,7 +195,7 @@ every recovery-shaped result came from the deterministic time machine.</p>
         for c in L["components"]:
             at = f"led-{c['key']}"
             est = self.num(c["estimated"], usd=True, at=at)
-            bar = self.meter(c["measured"]["value"], c["estimated"]["value"], top, "component cost, measured and estimated drawn separately")
+            bar = self.meter(c["measured"]["value"], c["estimated"]["value"], top, "component cost, API-reported and estimated drawn separately")
             rows += (f'<tr><th scope="row">{esc(c["name"])} {q(c["harness_tag"])}</th><td>{self.num(c["measured"], usd=True, at=at)}</td><td>{est}</td>'
                      f'<td class="barcell">{bar}</td><td><a href="#{at}">records</a></td></tr>')
             items = ""
@@ -205,14 +209,31 @@ every recovery-shaped result came from the deterministic time machine.</p>
             detail = f'stopped through {q(k["via"])}; {q(k["message"])}' if k["via"] else f'error line {q(k["error"])}'
             kills += (f'<li data-record="{esc(k["record"])}">{q(k["record"])}<br>killed seconds {self.num(k["killed_seconds"], at=at)} · '
                       f'completed cost {self.num(k["completed_cost"], usd=True, at=at)} · {detail}</li>')
+        bl = L["billed"]
+        acct = bl["account"]
+        gate_lines = "".join(
+            f'<li id="billed-{slug(g["for_component"])}"><span class="why">{esc(g["name"])}</span> {q(g["harness_tag"])}: '
+            f'<span class="absent">no balance reading <span class="tag {g["tag"]}">{g["tag"]}</span> <span class="why">({q(g["reason"])})</span></span></li>'
+            for g in bl["gates"])
+        billed = f'''<div class="billed" id="billed">
+<h3 id="billed-h">Account balance reading</h3>
+<p class="note">{q(bl["rule"])}</p>
+<ul class="billed-lines">
+<li id="billed-account" data-source="owner-balance-reading">{esc(acct["label"])}: {esc(acct["bound"])} {self.num(acct, usd=True, at="billed-account")}
+<span class="why">Source: {q(acct["owner_reading"]["source"])} {esc(acct["note"])}</span></li>
+{gate_lines}
+</ul>
+</div>'''
         return f'''<section id="ledger" aria-labelledby="ledger-h">
 <h2 id="ledger-h">Cost ledger</h2>
 <p class="big money">{self.num(L["measured"], usd=True, at="ledger-components")} <span class="of">+</span> {self.num(L["estimated"], usd=True, at="ledger-components")}</p>
 <p class="statement">Lower bound ({q(L["lower_bound"]["defect"])}): the ledger records only completed cost, so the spend of a killed step is absent wherever no estimate was stored.
 Sum of both parts: {self.num(L["total"], usd=True, at="ledger-components")} — {q(L["total"]["note"])}.</p>
+<p class="statement">These ledger figures are the sandbox API's reported operation cost, not account billing. The account balance reading below is a different figure, and the two are not reconciled ({q("D-36")}, open).</p>
+{billed}
 <p class="note">Reported ledger line, quoted: {q(L["reported_line"]["quote"])} in {q(L["reported_line"]["path"])}. The reported figure adds components that were already rounded; the sums shown here are over the full-precision record values. Annotation beside that line: {q(L["lower_bound"]["line"]["quote"])}</p>
-<p class="legend"><span class="key"><span class="sw m"></span>MEASURED</span><span class="key"><span class="sw e"></span>ESTIMATED (hatched)</span></p>
-<div id="ledger-components"><table class="ledger"><thead><tr><th scope="col">Component</th><th scope="col">Measured</th><th scope="col">Estimated</th><th scope="col">Share of the largest component</th><th scope="col">Records</th></tr></thead><tbody>{rows}</tbody></table>
+<p class="legend"><span class="key"><span class="sw rep"></span>API-REPORTED</span><span class="key"><span class="sw e"></span>ESTIMATED (hatched)</span></p>
+<div id="ledger-components"><table class="ledger"><thead><tr><th scope="col">Component</th><th scope="col">API-reported</th><th scope="col">Estimated</th><th scope="col">Share of the largest component</th><th scope="col">Records</th></tr></thead><tbody>{rows}</tbody></table>
 <h3>Seal kill records with no cost for the killed step</h3>
 <ul class="kills">{kills}</ul>
 {lists}
@@ -309,7 +330,7 @@ Sum of both parts: {self.num(L["total"], usd=True, at="ledger-components")} — 
         verdict = x["timeline"][-1]["verdict"]
         ops = ""
         for op in c["operations"]:
-            extra = f' · stopped at second {self.num(op["stopped_at_second"])} · measured part {self.num(op["measured_part"], usd=True)}' if op["killed"] else ""
+            extra = f' · stopped at second {self.num(op["stopped_at_second"])} · API-reported part {self.num(op["measured_part"], usd=True)}' if op["killed"] else ""
             src = op["spend"]["source"]
             ops += (f'<li>{q(op["operation"])}: spend {self.num(op["spend"], usd=True)} · remaining {self.num(op["remaining"], usd=True)}{extra}'
                     f'<br><span class="why">{q(src["line"])} — {q(src["field"])} of {q(src["record_id"])}</span></li>')
@@ -318,7 +339,7 @@ Sum of both parts: {self.num(L["total"], usd=True, at="ledger-components")} — 
         worktree = (f'{q(wt["label"])} {q(wt["value"])} <span class="why">{q(wt["note"])}</span>' if wt["value"] else
                     f'<span class="absent">worktree hash not listed <span class="why">({q(wt["reason"])})</span></span>')
         superseded = f'<p class="beside">Superseded by {self.entry_link(x["superseded_by"])}</p>' if x["superseded_by"] else ""
-        bar = self.meter(c["measured"]["value"], c["estimated"]["value"], c["per_entry_cap"]["value"], "entry cost against the entry cap, measured and estimated drawn separately")
+        bar = self.meter(c["measured"]["value"], c["estimated"]["value"], c["per_entry_cap"]["value"], "entry cost against the entry cap, API-reported and estimated drawn separately")
         return f'''<details class="entry" id="{self.anchor[x["record_id"]]}" data-record="{esc(x["record_id"])}">
 <summary><span class="eid">{q(x["entry"]["id"])}</span> <span class="ename">{q(x["entry"]["name"])}</span> <span class="verdict-chip">{q(verdict)}</span>
 <span class="ecost">{self.num(c["entry_total"], usd=True)}</span>{bar}</summary>
@@ -333,10 +354,10 @@ Sum of both parts: {self.num(L["total"], usd=True, at="ledger-components")} — 
 {superseded}
 <h4>Timeline</h4><ol class="timeline">{"".join(self.step(s) for s in x["timeline"])}</ol>
 <h4>Cost</h4>
-<p>Total {self.num(c["entry_total"], usd=True)} = measured {self.num(c["measured"], usd=True)} + estimated {self.num(c["estimated"], usd=True)} · model {self.num(c["model"], usd=True)} ·
+<p>Total {self.num(c["entry_total"], usd=True)} = API-reported {self.num(c["measured"], usd=True)} + estimated {self.num(c["estimated"], usd=True)} · model {self.num(c["model"], usd=True)} ·
 entry cap {self.num(c["per_entry_cap"], usd=True)} · over the entry cap {q(c["over_entry_cap"])}</p>
 <ol class="ops">{ops}</ol>
-<p>Batch so far: measured {self.num(cum["measured"], usd=True)} + estimated {self.num(cum["estimated"], usd=True)} of cap {self.num(c["batch_cap"], usd=True)} ·
+<p>Batch so far: API-reported {self.num(cum["measured"], usd=True)} + estimated {self.num(cum["estimated"], usd=True)} of cap {self.num(c["batch_cap"], usd=True)} ·
 over the batch cap {q(cum["over_batch_cap"])}</p>
 </div></details>'''
 
@@ -372,11 +393,12 @@ over the batch cap {q(cum["over_batch_cap"])}</p>
 <header class="top">
 <p class="kicker">RERUN, reproducibility harness</p>
 <h1>Evidence dashboard</h1>
-<p class="lede">A negative result, laid out so it can be checked. Every number below carries its tag and links to the record it was read from; quoted text is verbatim from a committed record.</p>
+<p class="lede">A negative result, laid out so it can be checked. Every number below carries its tag and links to the record it was read from (the one BILLED number links to the owner's balance reading it came from); quoted text is verbatim from a committed record.</p>
 <ul class="taglegend">
-<li><span class="tag MEASURED">MEASURED</span> a stored field of a committed record, or a count or sum of such fields</li>
+<li><span class="tag API-REPORTED">API-REPORTED</span> (formerly MEASURED) a stored field of a committed record, or a count or sum of such fields; a dollar figure with this tag is the sandbox API's reported operation cost, not account billing ({q("D-36")}, open)</li>
 <li><span class="tag ESTIMATED">ESTIMATED</span> flagged as an estimate by the cost guard itself</li>
 <li><span class="tag DERIVED">DERIVED</span> parsed from a record line, which is quoted with its record id</li>
+<li><span class="tag BILLED">BILLED</span> an account-balance reading taken by the owner; used only in the explicit BILLED lines of the ledger, never on an API cost</li>
 </ul>
 <nav aria-label="Sections"><a href="#headline">Headline</a><a href="#scorecard">Scorecard</a><a href="#ledger">Ledger</a><a href="#stack">Stack</a><a href="#defects">Defects</a><a href="#entries">Entries</a></nav>
 </header>
@@ -406,9 +428,9 @@ def build_html(files: dict[str, bytes]) -> bytes:
 
 CSS = """
 :root{color-scheme:light;--bg:#eef1ef;--surface:#ffffff;--ink:#101815;--ink2:#46544f;--rule:#c9d1cd;--quote:#f4f6f5;
---m:#2a78d6;--e:#eb6834;--d:#4a3aa7;--warn:#fab219;--warn-ink:#1c1400;--fail:#b3261e;--pass:#0b6b0b;--link:#0b4fa8}
+--rep:#2a78d6;--e:#eb6834;--d:#4a3aa7;--b:#0b7a75;--warn:#fab219;--warn-ink:#1c1400;--fail:#b3261e;--pass:#0b6b0b;--link:#0b4fa8}
 @media (prefers-color-scheme:dark){:root{color-scheme:dark;--bg:#121614;--surface:#1b211e;--ink:#f2f5f3;--ink2:#b4c0bb;--rule:#38423e;--quote:#232a27;
---m:#3987e5;--e:#d95926;--d:#9085e9;--warn:#fab219;--warn-ink:#1c1400;--fail:#ff8a80;--pass:#6fd66f;--link:#8ab8ff}}
+--rep:#3987e5;--e:#d95926;--d:#9085e9;--b:#4fd1c5;--warn:#fab219;--warn-ink:#1c1400;--fail:#ff8a80;--pass:#6fd66f;--link:#8ab8ff}}
 *{box-sizing:border-box}
 body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
 header.top,main,footer{max-width:76rem;margin:0 auto;padding:1.25rem 1rem}
@@ -430,7 +452,8 @@ section{margin:0 0 2.6rem}
 .num{white-space:nowrap}
 .n,.s{font-variant-numeric:tabular-nums;font-weight:700;color:var(--ink);text-decoration:underline;text-decoration-thickness:1px;text-underline-offset:2px}
 .tag{font:700 .62rem/1 system-ui,sans-serif;letter-spacing:.04em;margin-left:.3em;padding:.2em .4em;border-radius:3px;border:1px solid currentColor;vertical-align:.2em;white-space:nowrap}
-.tag.MEASURED{color:var(--m)}.tag.ESTIMATED{color:var(--e);border-style:dashed}.tag.DERIVED{color:var(--d);border-style:dotted}
+.tag.API-REPORTED{color:var(--rep)}.tag.ESTIMATED{color:var(--e);border-style:dashed}.tag.DERIVED{color:var(--d);border-style:dotted}
+.tag.BILLED{color:var(--b);border-style:double;border-width:3px}
 .taglegend{list-style:none;padding:0;margin:0;display:grid;gap:.3rem;color:var(--ink2);font-size:.92rem}
 .absent{color:var(--ink2);font-style:italic}
 .why{color:var(--ink2);font-size:.86rem}
@@ -454,7 +477,7 @@ section{margin:0 0 2.6rem}
 .band.exploratory{background:var(--warn);color:var(--warn-ink);border-bottom:6px solid var(--warn-ink);
 background-image:repeating-linear-gradient(135deg,transparent 0 14px,rgba(28,20,0,.13) 14px 18px)}
 .band.exploratory code{color:var(--warn-ink);background:transparent}
-.band.anchor{background:var(--quote);border-bottom:6px solid var(--m)}
+.band.anchor{background:var(--quote);border-bottom:6px solid var(--rep)}
 .band.small{margin:0 0 .5rem;border-radius:4px}
 .crits,.sets,.rule,.kills,.notes,.src,ul.ids,ol.ids{list-style:none;padding:0;margin:0}
 .crit{padding:.55rem 0;border-top:1px solid var(--rule)}
@@ -471,14 +494,18 @@ background-image:repeating-linear-gradient(135deg,transparent 0 14px,rgba(28,20,
 .links{font-size:.86rem;color:var(--ink2)}
 .meter{display:flex;position:relative;height:12px;width:100%;min-width:6rem;background:var(--quote);border:1px solid var(--rule);border-radius:2px;gap:2px;overflow:hidden}
 .seg{display:block;height:100%}
-.seg.m{background:var(--m)}
+.seg.rep{background:var(--rep)}
 .seg.e{background:var(--e);background-image:repeating-linear-gradient(45deg,transparent 0 3px,rgba(255,255,255,.75) 3px 5px)}
 .meter .cap{position:absolute;top:-2px;bottom:-2px;width:3px;background:var(--ink)}
 .meter.over{border-color:var(--fail)}
+.billed{background:var(--surface);border:1px solid var(--rule);border-left:6px solid var(--b);border-radius:4px;padding:.4rem 1rem .7rem;margin:.8rem 0}
+.billed h3{margin:.2rem 0}
+.billed-lines{list-style:none;padding:0;margin:.3rem 0 0}
+.billed-lines li{padding:.3rem 0;border-top:1px solid var(--rule)}
 .legend{display:flex;gap:1.2rem;font-size:.86rem;color:var(--ink2);margin:.4rem 0}
 .key{display:inline-flex;align-items:center;gap:.35rem}
 .sw{display:inline-block;width:1.4rem;height:.7rem;border-radius:2px}
-.sw.m{background:var(--m)}.sw.e{background:var(--e);background-image:repeating-linear-gradient(45deg,transparent 0 3px,rgba(255,255,255,.75) 3px 5px)}
+.sw.rep{background:var(--rep)}.sw.e{background:var(--e);background-image:repeating-linear-gradient(45deg,transparent 0 3px,rgba(255,255,255,.75) 3px 5px)}
 table{border-collapse:collapse;width:100%;background:var(--surface);border:1px solid var(--rule)}
 th,td{text-align:left;vertical-align:top;padding:.5rem .6rem;border-top:1px solid var(--rule);font-size:.93rem}
 thead th{border-top:0;font-size:.8rem;color:var(--ink2)}

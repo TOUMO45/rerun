@@ -1,7 +1,9 @@
-"""Tag check: fail if any number in a passport lacks exactly one of MEASURED | ESTIMATED | DERIVED.
+"""Tag check: fail if any number in a passport lacks exactly one of API-REPORTED | ESTIMATED | DERIVED.
 
-A JSON number is allowed only as the `value` of an object whose `tag` is one of the three. A DERIVED value must
-quote its source line with a record id; a null value must give a reason. Numbers inside quoted text (error
+A JSON number is allowed only as the `value` of an object whose `tag` is one of the three (API-REPORTED was named
+MEASURED until D-36; same meaning). A DERIVED value must quote its source line with a record id; a null value must
+give a reason. BILLED is a known tag but is refused on a passport: it is for the owner's account-balance readings
+(REPLAY summary, `ledger.billed`), never for a record value or an API cost. Numbers inside quoted text (error
 messages, event lines, annotation sentences) are strings and are not checked here.
 
     python -m phase_d.check_tags            # every file under reports/phase-d/passports
@@ -14,7 +16,7 @@ import sys
 from pathlib import Path
 from typing import Any
 
-from .passports import DERIVED, PASSPORT_DIR, TAGS
+from .passports import BILLED, DERIVED, PASSPORT_DIR, TAGS
 from .records import ROOT
 
 
@@ -37,6 +39,8 @@ def violations(obj: Any, path: str = "$") -> list[str]:
         if "tag" in obj:
             if obj["tag"] not in TAGS:
                 found.append(f"{path}: unknown tag {obj['tag']!r}")
+            elif obj["tag"] == BILLED:
+                found.append(f"{path}: BILLED is for the owner's account-balance readings, not for a record value")
             if "value" not in obj:
                 found.append(f"{path}: a tag without a value")
             if obj["tag"] == DERIVED:
@@ -75,7 +79,7 @@ def main() -> int:
     if bad:
         print(f"tag check FAILED: {sum(len(v) for v in bad.values())} violation(s) in {len(bad)} file(s)")
         return 1
-    print("tag check passed: every number carries MEASURED, ESTIMATED or DERIVED")
+    print("tag check passed: every number carries API-REPORTED, ESTIMATED or DERIVED")
     return 0
 
 

@@ -2,12 +2,16 @@
 
 Rules the builder enforces (Phase D directive, decisions of 2026-10-01):
   * a record value is copied, never recomputed or rounded; a correction is an annotation beside it;
-  * every JSON number is `{"value": n, "tag": MEASURED | ESTIMATED | DERIVED}`:
-      MEASURED  the value is a stored field of a committed record (or a count / sum / difference of such fields,
-                then with `computed_from`),
-      ESTIMATED the cost guard itself flagged the amount as an estimate (a killed sandbox step),
-      DERIVED   the value was parsed from event text or a `cost_events[].note`; the source line is quoted verbatim
-                with its record id;
+  * every JSON number is `{"value": n, "tag": API-REPORTED | ESTIMATED | DERIVED}`:
+      API-REPORTED  the value is a stored field of a committed record (or a count / sum / difference of such fields,
+                    then with `computed_from`). A dollar figure with this tag is the sandbox API's reported
+                    operation cost, NOT account billing (D-36, open). This tag was named MEASURED until D-36;
+                    the meaning is unchanged, only the word,
+      ESTIMATED     the cost guard itself flagged the amount as an estimate (a killed sandbox step),
+      DERIVED       the value was parsed from event text or a `cost_events[].note`; the source line is quoted
+                    verbatim with its record id;
+  * a fourth tag, BILLED, exists but never appears on a passport: it is used only on the owner's account-balance
+    readings in the REPLAY summary (`ledger.billed`), never on an API cost;
   * a field the harness version did not store is `{"value": null, "reason": "not recorded by harness-vX.Y.Z"}`;
   * identifiers and ordinals (entry, attempt, reference) are strings, not numbers.
 """
@@ -24,9 +28,12 @@ from .records import BlobSource, GitBlobSource, Record, load_records
 # v2 (phase-d2): + attempts[].consulted_count, cost.batch_cap, cost.operations, badge criteria b/d, v1.3.2 anchor
 # v3 (phase-d3): + record.results_tables_sha256 (D-28: the CRLF worktree hash results_tables.json lists for the record);
 #                 annotations[].status dropped (a defect's status is in the register, not on each passport)
-SCHEMA = "rerun/phase-d/passport/v3"
-MEASURED, ESTIMATED, DERIVED = "MEASURED", "ESTIMATED", "DERIVED"
-TAGS = (MEASURED, ESTIMATED, DERIVED)
+# v4 (D-36):      tag MEASURED renamed API-REPORTED (same meaning; a dollar figure is the sandbox API's reported operation
+#                 cost, not account billing); no value changed
+SCHEMA = "rerun/phase-d/passport/v4"
+API_REPORTED, ESTIMATED, DERIVED, BILLED = "API-REPORTED", "ESTIMATED", "DERIVED", "BILLED"
+RECORD_TAGS = (API_REPORTED, ESTIMATED, DERIVED)  # the tags a passport or a REPLAY version file may carry
+TAGS = (API_REPORTED, ESTIMATED, DERIVED, BILLED)  # BILLED: the owner's account-balance readings only (REPLAY summary, ledger.billed)
 PASSPORT_DIR = "reports/phase-d/passports"
 
 GATE_DIR = "reports/corpus-v2.1/v1.3.3/smoke_gate"
@@ -47,8 +54,8 @@ class BuildError(Exception):
     pass
 
 
-def measured(value: Any, **extra: Any) -> dict:
-    return {"value": value, "tag": MEASURED, **extra}
+def api_reported(value: Any, **extra: Any) -> dict:
+    return {"value": value, "tag": API_REPORTED, **extra}
 
 
 def absent(reason: str) -> dict:
@@ -56,11 +63,11 @@ def absent(reason: str) -> dict:
 
 
 def tag_numbers(obj: Any) -> Any:
-    """Copy a record subtree; every bare number becomes a MEASURED value (it is a stored field)."""
+    """Copy a record subtree; every bare number becomes an API-REPORTED value (it is a stored field)."""
     if isinstance(obj, bool) or obj is None or isinstance(obj, str):
         return obj
     if isinstance(obj, (int, float)):
-        return measured(obj)
+        return api_reported(obj)
     if isinstance(obj, list):
         return [tag_numbers(x) for x in obj]
     return {k: tag_numbers(v) for k, v in obj.items()}
@@ -127,7 +134,7 @@ ANNOTATIONS: dict[tuple[str, str, str], list[dict]] = {
         _defect("D-23", "COST_CAP during the torch install, before the repository ran.",
                 "**D-23** The per-repair funding rule starves entries whose re-executions each pay a ~90 s torch install"),
         {"id": "COST-CONTAINS-ESTIMATE",
-         "text": "The recorded spend contains the cost guard's estimate for the killed step; show it as measured + estimated (see cost), never as one MEASURED figure.",
+         "text": "The recorded spend contains the cost guard's estimate for the killed step; show it as API-reported + estimated (see cost), never as one API-REPORTED figure.",
          "sources": [_src(GATE_FILES["harness-v1.3.4"]["result"], "\"kind\": \"estimated\"")]},
     ],
     ("harness-v1.3.4", "smoke", "11"): [
@@ -217,11 +224,11 @@ def _attempt(record: Record, index: int, a: dict, kills: dict[int, dict]) -> dic
         "reject_reason": list(a.get("gate_violations") or []) if decision == "REJECT" else absent(f"not applicable: gate decision {decision}"),
         "consulted": [{"ref": f"[{c['number']}]", "title": c["title"], "url": c["url"], "content_sha256": _sha(c.get("content") or "")}
                       for c in a["consulted"]] if "consulted" in a else absent(not_on_attempt),
-        "consulted_count": measured(len(a["consulted"]), computed_from=f"length of {field}.consulted") if "consulted" in a else absent(not_on_attempt),
+        "consulted_count": api_reported(len(a["consulted"]), computed_from=f"length of {field}.consulted") if "consulted" in a else absent(not_on_attempt),
         "cited": absent(CITED_NOTE),
         "reason_no_citation": a["reason_no_citation"] if "reason_no_citation" in a else absent(not_on_attempt),
         "silent_exit": a["silent_exit"] if "silent_exit" in a else absent(not_on_attempt),
-        "exit_code": measured(exit_code, source_field=f"{field}.exit_code") if exit_code is not None else absent("no re-execution recorded for this attempt"),
+        "exit_code": api_reported(exit_code, source_field=f"{field}.exit_code") if exit_code is not None else absent("no re-execution recorded for this attempt"),
         "change": {
             "diff_sha256": _sha(diff) if diff else absent("no diff on this attempt"),
             "patch_notes": list(a["patch_notes"]) if "patch_notes" in a else absent(not_on_attempt if tag != "harness-v1.3.2" else not_recorded),
@@ -229,7 +236,7 @@ def _attempt(record: Record, index: int, a: dict, kills: dict[int, dict]) -> dic
         },
         "execution": {
             "mode": execution["mode"] if execution else absent(no_exec),
-            "seconds": measured(execution["seconds"], source_field=f"{field}.execution.seconds") if execution else absent(no_exec),
+            "seconds": api_reported(execution["seconds"], source_field=f"{field}.execution.seconds") if execution else absent(no_exec),
             "outcome": execution["outcome"] if execution else absent(no_exec),
             "funded_seconds": kill["funded_seconds"] if kill else absent(no_kill),
             "wall_seconds": kill["wall_seconds"] if kill else absent(no_kill),
@@ -292,23 +299,23 @@ def _cost(record: Record) -> dict:
     events = cg.get("cost_events")
     cost = {
         "value": spent,
-        "tag": ESTIMATED if has_estimate else MEASURED,
+        "tag": ESTIMATED if has_estimate else API_REPORTED,
         "currency": "USD",
         "source_field": "cost_guard.spent_usd",
     }
     if has_estimate:
-        cost["note"] = "contains an ESTIMATED component: show as measured + estimated, never as one MEASURED figure"
-    cost["measured"] = measured(round(spent - estimate, 10), computed_from="cost_guard.spent_usd - cost_guard.estimated_sandbox_spent_usd") \
-        if has_estimate else measured(spent, source_field="cost_guard.spent_usd")
+        cost["note"] = "contains an ESTIMATED component: show as API-reported + estimated, never as one API-REPORTED figure"
+    cost["measured"] = api_reported(round(spent - estimate, 10), computed_from="cost_guard.spent_usd - cost_guard.estimated_sandbox_spent_usd") \
+        if has_estimate else api_reported(spent, source_field="cost_guard.spent_usd")
     cost["estimated"] = {"value": estimate, "tag": ESTIMATED, "source_field": "cost_guard.estimated_sandbox_spent_usd"} \
         if estimate is not None else absent(f"not recorded by {tag}")
-    cost["model"] = measured(cg["model_spent_usd"], source_field="cost_guard.model_spent_usd")
-    cost["per_entry_cap"] = measured(cap, source_field="batch.per_entry_cap_usd") if cap is not None else absent(f"not recorded by {tag}")
+    cost["model"] = api_reported(cg["model_spent_usd"], source_field="cost_guard.model_spent_usd")
+    cost["per_entry_cap"] = api_reported(cap, source_field="batch.per_entry_cap_usd") if cap is not None else absent(f"not recorded by {tag}")
     batch_cap = record.data["batch"].get("total_cap_usd")
-    cost["batch_cap"] = measured(batch_cap, source_field="batch.total_cap_usd") if batch_cap is not None else absent(f"not recorded by {tag}")
+    cost["batch_cap"] = api_reported(batch_cap, source_field="batch.total_cap_usd") if batch_cap is not None else absent(f"not recorded by {tag}")
     cost["operations"] = _operations(record)
     cost["cost_events"] = [
-        {"kind": e["kind"], "usd": {"value": e["usd"], "tag": ESTIMATED if e["kind"] == "estimated" else MEASURED}, "note": e.get("note")}
+        {"kind": e["kind"], "usd": {"value": e["usd"], "tag": ESTIMATED if e["kind"] == "estimated" else API_REPORTED}, "note": e.get("note")}
         for e in events] if events is not None else absent(f"not recorded by {tag}")
     return cost
 
@@ -364,22 +371,22 @@ def _badge(tag: str, stats: dict[str, dict]) -> dict:
                 "text": "PRE-REGISTERED — harness-v1.3.2 is the pre-registered CONTROL / TREATMENT run; not exploratory.",
                 "figures": [{"criterion": "primary", "label": anchor["label"], "note": anchor["note"],
                              "text": f"{anchor['recovered']}/{anchor['denominator']}",
-                             "recovered": measured(anchor["recovered"], source_field="rates[0].recovered", source=anchor["source"]),
-                             "denominator": measured(anchor["denominator"], source_field="rates[0].denominator", source=anchor["source"])}],
+                             "recovered": api_reported(anchor["recovered"], source_field="rates[0].recovered", source=anchor["source"]),
+                             "denominator": api_reported(anchor["denominator"], source_field="rates[0].denominator", source=anchor["source"])}],
                 "links": {"results_tables": RESULTS_TABLES, "results": "reports/corpus-v2.1/RESULTS.md"}}
     s = stats[tag]
     files = s["files"]
     gate_json = f"{files['result']}@sha256:{s['result_sha256']}"
     a = {"criterion": "a", "ok": s["ok"]["a"], "detail": s["detail"]["a"], "text": f"{s['recovered']}/{s['entries']}",
-         "recovered": measured(s["recovered"], computed_from=f"count of verdicts in {list(RECOVERED)}", source=gate_json),
-         "entries": measured(s["entries"], computed_from="count of verdicts", source=gate_json)}
+         "recovered": api_reported(s["recovered"], computed_from=f"count of verdicts in {list(RECOVERED)}", source=gate_json),
+         "entries": api_reported(s["entries"], computed_from="count of verdicts", source=gate_json)}
     b = {"criterion": "b", "ok": s["ok"]["b"], "detail": s["detail"]["b"],
-         "applied": measured(s["applied"], computed_from="length of b.applied", source=gate_json),
-         "proposed": measured(s["proposed"], computed_from="length of b.proposed", source=gate_json)}
+         "applied": api_reported(s["applied"], computed_from="length of b.applied", source=gate_json),
+         "proposed": api_reported(s["proposed"], computed_from="length of b.proposed", source=gate_json)}
     c = {"criterion": "c", "ok": s["ok"]["c"], "detail": s["detail"]["c"],
-         "citations": measured(s["citations"], computed_from="length of c.cited", source=gate_json)}
+         "citations": api_reported(s["citations"], computed_from="length of c.cited", source=gate_json)}
     d = {"criterion": "d", "ok": s["ok"]["d"], "detail": s["detail"]["d"],
-         "cost_cap_endings": measured(s["cost_cap_endings"], computed_from="number of entries in d.cost_cap_endings", source=gate_json)}
+         "cost_cap_endings": api_reported(s["cost_cap_endings"], computed_from="number of entries in d.cost_cap_endings", source=gate_json)}
     if tag == "harness-v1.3.3":
         a["text"] += " (measured)"
         a["annotation"] = ARTEFACT_NOTE
@@ -388,20 +395,20 @@ def _badge(tag: str, stats: dict[str, dict]) -> dict:
         c["text"] = f"{s['citations']} citations in {len(s['searches'])} searches"
         text = f"EXPLORATORY — did not pass its pre-registered gate. a: {a['text']}, c: {c['text']}."
     else:
-        c["attempts_consulted"] = measured(len(s["consulted_attempts"]), computed_from="count of result.attempts[*].consulted",
+        c["attempts_consulted"] = api_reported(len(s["consulted_attempts"]), computed_from="count of result.attempts[*].consulted",
                                            source=_attempt_refs(s["consulted_attempts"]))
-        c["references_consulted"] = measured(s["references"], computed_from="sum of len(result.attempts[*].consulted)",
+        c["references_consulted"] = api_reported(s["references"], computed_from="sum of len(result.attempts[*].consulted)",
                                              source=_attempt_refs(s["consulted_attempts"]))
-        c["reasons_recorded"] = measured(len(s["reasons"]), computed_from="count of result.attempts[*].reason_no_citation",
+        c["reasons_recorded"] = api_reported(len(s["reasons"]), computed_from="count of result.attempts[*].reason_no_citation",
                                          source=_attempt_refs(s["reasons"]))
         c["text"] = (f"{s['citations']} citations ({len(s['consulted_attempts'])} attempts consulted, "
                      f"{s['references']} refs, {len(s['reasons'])} reasons recorded)")
         text = f"EXPLORATORY — did not pass its pre-registered gate. a: {a['text']}, c: {c['text']}."
     spent, estimated = s["spent"], s["estimated"]
-    gate_cost: dict = {"value": round(spent, 10), "tag": ESTIMATED if estimated else MEASURED, "currency": "USD",
+    gate_cost: dict = {"value": round(spent, 10), "tag": ESTIMATED if estimated else API_REPORTED, "currency": "USD",
                        "computed_from": "sum of cost_guard.spent_usd over the gate records", "source": s["record_ids"]}
     if estimated:
-        gate_cost["measured"] = measured(round(spent - estimated, 10), computed_from="sum of spent_usd - sum of estimated_sandbox_spent_usd")
+        gate_cost["measured"] = api_reported(round(spent - estimated, 10), computed_from="sum of spent_usd - sum of estimated_sandbox_spent_usd")
         gate_cost["estimated"] = {"value": round(estimated, 10), "tag": ESTIMATED, "computed_from": "sum of cost_guard.estimated_sandbox_spent_usd"}
     return {"exploratory": True, "label": "EXPLORATORY", "text": text, "gate_passed": s["passed"], "figures": [a, b, c, d], "gate_cost": gate_cost,
             "links": {"gate_result": files["result"], "gate_report": files["report"], "run_records": s["record_ids"],
@@ -478,7 +485,7 @@ def build_passport(record: Record, by_key: dict[tuple[str, str, str], Record], s
                     "indeterminate_reason": result.get("indeterminate_reason"), "recovery": cert.get("recovery"),
                     "first_repo_error": result.get("first_repo_error"), "last_error": result.get("last_error")},
         "baseline": {"result": baseline.get("result"),
-                     "exit_code": measured(baseline["exit_code"], source_field="certificate.baseline.exit_code")
+                     "exit_code": api_reported(baseline["exit_code"], source_field="certificate.baseline.exit_code")
                      if baseline.get("exit_code") is not None else absent("no baseline exit code recorded"),
                      "taxonomy_code": baseline.get("taxonomy_code"), "evidence": baseline.get("evidence")},
         "classification_chain": [
@@ -509,7 +516,7 @@ def record_index(built: list[tuple[Record, dict]]) -> str:
     lines = [
         "# Phase D record index",
         "",
-        f"{len(built)} run records (MEASURED: count of committed record blobs), one passport each. Record id = `<harness_tag>/<arm>/<entry>@<sha256>`; the SHA-256 is taken over the",
+        f"{len(built)} run records (API-REPORTED: count of committed record blobs), one passport each. Record id = `<harness_tag>/<arm>/<entry>@<sha256>`; the SHA-256 is taken over the",
         "committed blob (`git cat-file blob HEAD:<path>`), never over the worktree file. Generated by `python -m phase_d.build_passports`;",
         "checked by `python -m phase_d.verify_passports`.",
         "",

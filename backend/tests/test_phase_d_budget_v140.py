@@ -52,4 +52,4 @@ def test_every_dollar_figure_in_a_sentence_carries_a_tag():
     for line in text.splitlines():
         if line.startswith("|") or "$" not in line:
             continue  # table cells are tagged by the sentence under the table
-        assert re.search(r"MEASURED|DERIVED|ESTIMATED", line), line
+        assert re.search(r"API-REPORTED|DERIVED|ESTIMATED", line), line

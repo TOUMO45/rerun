@@ -3,7 +3,8 @@
 Fails if:
   * a digit appears in visible text outside a quoted `<code>` string and outside a tagged number;
   * a tagged number lacks its tag, its visible tag chip, its full-precision value, or a link to a record
-    (the link target must exist on the page and carry, or contain, a record id);
+    (the link target must exist on the page and carry, or contain, a record id); a BILLED number is the owner's
+    account-balance reading, not a record value: its link target must carry, or contain, a `data-source` instead;
   * a displayed number is not its `data-value` (dollars: 4 decimals; everything else: the JSON value);
   * the page references any external resource, or contains a script or an animation.
 
@@ -19,7 +20,7 @@ from html.parser import HTMLParser
 from pathlib import Path
 
 from .dashboard import DASHBOARD
-from .passports import TAGS
+from .passports import BILLED, TAGS
 from .records import ROOT
 
 VOID = {"meta", "br", "hr", "img", "input", "link", "source", "wbr", "area", "base", "col", "embed", "track"}
@@ -127,8 +128,10 @@ def problems(page: str) -> list[str]:
         target = ids.get(href[1:]) if href.startswith("#") else None
         if target is None:
             found.append(f"{where}: no link to a record on the page ({href!r})")
-        elif not (n.attrs.get("data-record") or any("data-record" in t.attrs for t in target.walk())):
-            found.append(f"{where}: its link target {href} carries no record id")
+        else:
+            carried, what = ("data-source", "source") if tag == BILLED else ("data-record", "record id")
+            if not (n.attrs.get(carried) or any(carried in t.attrs for t in target.walk())):
+                found.append(f"{where}: its link target {href} carries no {what}")
         if "data-value" not in n.attrs:
             found.append(f"{where}: no full-precision data-value")
             continue

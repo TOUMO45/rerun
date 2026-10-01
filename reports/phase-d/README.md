@@ -22,10 +22,13 @@ python -m phase_d.check_dashboard     # parse the page: every number tagged and 
 - **Records win.** A value is copied from the record and never recomputed, rounded or corrected. A correction is an
   annotation beside the original, with a quoted source.
 - **Tags.** Every number carries exactly one tag:
-  - `MEASURED`: a stored field of a committed record, or a count / sum / difference of such fields (then with `computed_from`);
+  - `API-REPORTED` (formerly MEASURED): a stored field of a committed record, or a count / sum / difference of such fields (then with `computed_from`).
+    A dollar figure with this tag is the sandbox API's reported operation cost, not account billing (D-36, open); the meaning is unchanged, only the word;
   - `ESTIMATED`: flagged as an estimate by the cost guard itself (the killed step of harness-v1.3.4 entry 8);
   - `DERIVED`: parsed from event text or a `cost_events[].note`; the source line is quoted verbatim with its record id
-    (`funded_seconds`, `wall_seconds`, `killed_by`, `killed_step_seconds`, the search count of the harness-v1.3.3 badge).
+    (`funded_seconds`, `wall_seconds`, `killed_by`, `killed_step_seconds`, the search count of the harness-v1.3.3 badge);
+  - `BILLED`: an account-balance reading taken by the owner. It never appears on a passport or on a REPLAY version file and is never used on an API cost;
+    it appears only as the explicit BILLED lines of `replay/summary.json` (`ledger.billed`), where the check refuses it anywhere else.
 - **Absent fields.** A field the harness version did not store is `{"value": null, "reason": "not recorded by harness-vX.Y.Z"}`.
   `cited` is null on every attempt: `tavily_sources` is empty on all attempts, consistent with D-21 open.
 - **Badges.** harness-v1.3.3 and harness-v1.3.4 passports carry the EXPLORATORY badge with that version's own measured gate
@@ -59,10 +62,13 @@ exploratory versions sit beside it with their D1 badges. The output has no build
 Every number in the replay JSON is a tagged passport field carried with a pointer: `ref` (one passport field), `sum_of` (the
 sum of one passport field over the version's run order) or `count_of` (how many passports have a field value). In the
 Markdown, text in code spans is quoted verbatim; outside code spans every number is a tagged value followed by its tag.
+The one exception is the BILLED lines of `replay/summary.json` (`ledger.billed`): they are the owner's account-balance reading, not a passport field, and
+carry `owner_reading` (the account line) or `for_component` (a gate line, null with a reason) instead of a passport pointer.
 
 Passport schema v2 added the tagged fields REPLAY displays: `attempts[].consulted_count`, `cost.batch_cap`, `cost.operations[]`
 (the cost guard's own log line per sandbox operation, DERIVED), the gate criteria b and d in the badge figures, and the
 pre-registered primary line of harness-v1.3.2 (`badge.figures`, from `reports/corpus-v2.1/results_tables.json`).
+Passport schema v4 renamed the first tag to API-REPORTED (D-36, see Tags above); no value changed.
 
 ## Dashboard (D3)
 
@@ -70,7 +76,8 @@ pre-registered primary line of harness-v1.3.2 (`badge.figures`, from `reports/co
 `replay/summary.json`, which holds the headline counts, the defect register and the cost ledger). It opens from `file://`: no
 script, no animation, no external resource. Every number is shown with its tag and links to the record, or the list of records,
 it was read from; dollar values show 4 decimals with the full-precision value in the `data-value` attribute and the tooltip.
-Text in code style is quoted verbatim from the REPLAY JSON. A cost bar always draws MEASURED and ESTIMATED as separate segments.
+Text in code style is quoted verbatim from the REPLAY JSON. A cost bar always draws API-REPORTED and ESTIMATED as separate segments. The one BILLED number on the page
+(the owner's account-balance reading, in the ledger section) links to its own source line instead of to a record.
 
 Defect status rule (`phase_d/defects.py`, each row with quoted sources that the build checks): `fixed-and-gated` means the fix map
 calls it fixed with no open remainder and a committed gate or seal report line states the fix was observed working live (it does
@@ -79,7 +86,12 @@ the fix map itself calls partial, or a defect that still shows in practice.
 
 ## Ledger
 
-The ledger is $10.1349 = $9.8507 MEASURED + $0.2842 ESTIMATED: the sum of the full-precision cost fields of the seal-verification
+The ledger is $10.1349 = $9.8507 API-REPORTED + $0.2842 ESTIMATED: the sum of the full-precision cost fields of the seal-verification
 and gate records (`replay/summary.json`, `ledger`). It is a lower bound (D-27): it records only completed cost, and the spend of a
 killed step is absent wherever the cost guard stored no estimate. Missing amounts are not reconstructed. The gate report's $10.134
 is quoted beside it on the dashboard; that figure is a sum of components that were already rounded.
+
+These figures are the sandbox API's reported operation cost, not account billing. Beside them, `replay/summary.json` holds `ledger.billed`: the owner's
+reading of the Nebius account balance page (BILLED, at most $0.39 for the whole account, cumulative, not per gate; Nebius billing lag is unknown; the
+reading is quoted as the line's source) and, for each gate that exists in REPLAY (harness-v1.3.3 and harness-v1.3.4), a BILLED line that is null with a
+reason: no balance reading was taken for that gate. The two kinds of figure are not reconciled (D-36, open).

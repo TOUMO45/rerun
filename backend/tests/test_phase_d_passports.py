@@ -217,7 +217,10 @@ def test_the_tag_check_fails_on_an_untagged_number(tmp_path):
     assert check_tags.violations({"cost": 0.28})
     assert check_tags.violations({"cost": {"value": 0.28}})
     assert check_tags.violations({"cost": {"value": 0.28, "tag": "GUESSED"}})
-    assert check_tags.violations({"list": [{"value": 1, "tag": "MEASURED"}, 2]})
+    assert check_tags.violations({"list": [{"value": 1, "tag": "API-REPORTED"}, 2]})
+    assert check_tags.violations({"x": {"value": 1, "tag": "MEASURED"}})  # the old tag name is no longer a tag (D-36)
+    assert check_tags.violations({"x": {"value": 0.39, "tag": "BILLED"}})  # BILLED is for the owner's balance reading, never a passport value
+    assert check_tags.violations({"x": {"value": 1, "tag": "API-REPORTED"}}) == []
     assert check_tags.violations({"x": {"value": 55, "tag": "DERIVED"}})  # no quoted source
     assert check_tags.violations({"x": {"value": 55, "tag": "DERIVED", "source": {"record_id": "r"}}})
     assert check_tags.violations({"x": {"value": None}})  # null without a reason
@@ -246,7 +249,7 @@ def test_measured_values_are_copied_from_the_record_unchanged(built):
 def test_entry_8_v134_cost_is_estimated_and_split(built):
     cost = _passport(built, V134, "smoke", "08")["cost"]
     assert cost["tag"] == "ESTIMATED"
-    assert (cost["measured"]["tag"], round(cost["measured"]["value"], 4)) == ("MEASURED", 0.3939)
+    assert (cost["measured"]["tag"], round(cost["measured"]["value"], 4)) == ("API-REPORTED", 0.3939)
     assert (cost["estimated"]["tag"], round(cost["estimated"]["value"], 4)) == ("ESTIMATED", 0.2842)
     assert cost["measured"]["value"] + cost["estimated"]["value"] == pytest.approx(cost["value"], abs=1e-9)
     assert cost["cost_events"][0]["usd"]["tag"] == "ESTIMATED"
@@ -265,7 +268,7 @@ def test_the_v134_gate_cost_is_shown_as_measured_plus_estimated(built):
     assert gate["tag"] == "ESTIMATED"
     assert (round(gate["value"], 3), round(gate["measured"]["value"], 3), round(gate["estimated"]["value"], 3)) == (3.396, 3.112, 0.284)
     gate133 = _passport(built, V133, "smoke", "03")["badge"]["gate_cost"]
-    assert gate133["tag"] == "MEASURED" and round(gate133["value"], 4) == 2.9298 and "estimated" not in gate133
+    assert gate133["tag"] == "API-REPORTED" and round(gate133["value"], 4) == 2.9298 and "estimated" not in gate133
 
 
 # ---------------------------------------------------------------- derived values

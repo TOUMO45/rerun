@@ -27,8 +27,8 @@ TAGGED_DOCS = [d for d in DOCS if d != "docs/submission/criteria_map.md"]
 
 # A standalone number: not part of a word, an identifier, a hash or a dotted version.
 NUMBER = re.compile(r"(?<![A-Za-z0-9_.])\d+(?:\.\d+)?(?![A-Za-z0-9_])")
-TAG = re.compile(r"MEASURED|ESTIMATED|DERIVED")
-TAG_MARK = re.compile(r"\[(?:MEASURED|ESTIMATED|DERIVED)\]")
+TAG = re.compile(r"API-REPORTED|ESTIMATED|DERIVED|BILLED")
+TAG_MARK = re.compile(r"\[(?:API-REPORTED|ESTIMATED|DERIVED|BILLED)\]")
 # The only allowlist: timeline timestamps (m:ss) and the judging / rating scales.
 ALLOWLIST = (re.compile(r"\b\d:\d\d\b"), re.compile(r"\b5-point\b"), re.compile(r"\b1[–-]10\b"), re.compile(r"\b\d{1,2}/10\b"), re.compile(r"\bout of 10\b"))
 CODE_SPAN = re.compile(r"(`+).+?\1")
@@ -79,7 +79,7 @@ def test_every_number_in_the_submission_text_is_in_the_replay_json(rel, allowed)
 
 @pytest.mark.parametrize("rel", TAGGED_DOCS)
 def test_every_line_with_a_number_carries_a_tag(rel):
-    """Outside code spans, link targets and defect ids, a line that shows a number also shows MEASURED, ESTIMATED or DERIVED."""
+    """Outside code spans, link targets and defect ids, a line that shows a number also shows API-REPORTED, ESTIMATED, DERIVED or BILLED."""
     for number, line in enumerate(_text(rel).splitlines(), 1):
         prose = DEFECT_ID.sub(" ", LINK_TARGET.sub("]", CODE_SPAN.sub(" ", _strip_allowlist(line))))
         if NUMBER.search(prose):
@@ -171,8 +171,8 @@ def test_the_readme_states_the_headline_the_badges_the_ledger_and_the_limits():
     for defect in ("D-21", "D-23", "D-25", "D-26", "D-27", "D-28"):
         assert defect in text.split("## Known limits")[1], defect
     for status, count in summary["inventory"]["defects_by_status"].items():
-        assert f"`{status}`: {count['value']} [MEASURED]" in text
-    assert "smoke-limit artefact" in text and "0 [MEASURED] of 8 [MEASURED]" in text
+        assert f"`{status}`: {count['value']} [API-REPORTED]" in text
+    assert "smoke-limit artefact" in text and "0 [API-REPORTED] of 8 [API-REPORTED]" in text
     for rel in set(re.findall(r"\]\(((?!https?:)[^)#]+)", text)):
         assert (ROOT / rel).exists(), rel
 
@@ -202,7 +202,7 @@ def test_the_description_is_at_most_400_words_and_the_tagline_is_two_sentences()
     spoken = TAG_MARK.sub(" ", description).replace("**", "")
     assert len(spoken.split()) <= 400, len(spoken.split())
     assert len(re.findall(r"[.!?](?:\s|$)", TAG_MARK.sub("", tagline))) == 2
-    assert "0 [MEASURED] of 8 [MEASURED]" in tagline and "0 [MEASURED] of 8 [MEASURED]" in description
+    assert "0 [API-REPORTED] of 8 [API-REPORTED]" in tagline and "0 [API-REPORTED] of 8 [API-REPORTED]" in description
     assert "EXPLORATORY" in description and "lower bound" in description and "smoke-limit artefact" in description
 
 

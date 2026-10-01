@@ -23,10 +23,12 @@ from pathlib import Path
 from typing import Any
 
 from . import defects as register
-from .passports import DERIVED, ESTIMATED, GATE_FILES, MEASURED, PASSPORT_DIR, RECOVERED, RESULTS_TABLES, TAGS, passport_path
+from .passports import (API_REPORTED, BILLED, DERIVED, ESTIMATED, GATE_FILES, PASSPORT_DIR, RECORD_TAGS, RECOVERED, RESULTS_TABLES, TAGS,
+                        passport_path)
 from .records import ROOT, BlobSource, GitBlobSource, Record, load_records
 
-SCHEMA = "rerun/phase-d/replay/v1"
+# v2 (D-36): tag MEASURED renamed API-REPORTED (same meaning); summary.json gains ledger.billed (BILLED lines); no value changed
+SCHEMA = "rerun/phase-d/replay/v2"
 REPLAY_DIR = "reports/phase-d/replay"
 VERSIONS = ("harness-v1.3.2", "harness-v1.3.3", "harness-v1.3.4")
 _SKIP = object()
@@ -104,7 +106,7 @@ class _Entry:
         obj = resolve(self.passport, field)
         if not isinstance(obj, dict) or "value" not in obj or ("tag" not in obj and obj["value"] is not None):
             raise ReplayError(f"{self.record.path}: {field} is not a tagged field")
-        if "tag" in obj and obj["tag"] not in TAGS:
+        if "tag" in obj and obj["tag"] not in RECORD_TAGS:
             raise ReplayError(f"{self.record.path}: {field} has an unknown tag")
         if expected is not _SKIP and obj["value"] != expected:
             self._fail(field, obj["value"], expected)
@@ -290,7 +292,7 @@ def _sum(entries: list[dict], passports: dict[str, dict], field: str, through: i
 
 def _count(entries: list[dict], field: str, value: str) -> dict:
     ids = [x["record_id"] for x in entries]
-    return {"value": sum(1 for x in entries if x["timeline"][-1]["verdict"] == value), "tag": MEASURED,
+    return {"value": sum(1 for x in entries if x["timeline"][-1]["verdict"] == value), "tag": API_REPORTED,
             "count_of": {"field": field, "equals": value, "records": ids}}
 
 
@@ -359,7 +361,7 @@ def build_version(tag: str, records: list[Record], passports: dict[str, dict], r
         raise ReplayError(f"{tag}: more than one batch cap in the records: {sorted(caps)}")
     for x in entries:
         i = position[x["record_id"]]
-        measured, estimated = _sum(run_order, passports, "cost.measured", i, MEASURED), _sum(run_order, passports, "cost.estimated", i, ESTIMATED)
+        measured, estimated = _sum(run_order, passports, "cost.measured", i, API_REPORTED), _sum(run_order, passports, "cost.estimated", i, ESTIMATED)
         total = measured["value"] + (estimated["value"] or 0.0)
         x["cost"]["batch_cumulative"] = {"measured": measured, "estimated": estimated,
                                          "over_batch_cap": bool(total > x["cost"]["batch_cap"]["value"])}
@@ -378,7 +380,7 @@ def build_version(tag: str, records: list[Record], passports: dict[str, dict], r
         "badge": badge,
         "scorecard": {"criteria": badge["figures"], "gate_passed": badge.get("gate_passed"), "record_sets": sets},
         "batch": {"cap": first.num("cost.batch_cap"), "run_order": [x["record_id"] for x in run_order],
-                  "measured": _sum(run_order, passports, "cost.measured", last, MEASURED),
+                  "measured": _sum(run_order, passports, "cost.measured", last, API_REPORTED),
                   "estimated": _sum(run_order, passports, "cost.estimated", last, ESTIMATED)},
         "entries": entries,
     }
@@ -398,7 +400,7 @@ def build_replay(source: BlobSource | None = None, passports: dict[str, dict] | 
 
 # ---------------------------------------------------------------- summary: headline, defect register, ledger
 
-SUMMARY_SCHEMA = "rerun/phase-d/replay-summary/v1"
+SUMMARY_SCHEMA = "rerun/phase-d/replay-summary/v2"
 SEAL_SETS = (
     ("seal-attempt-one-v133", "Seal verification, first attempt", "harness-v1.3.3", "runs/sandbox_verification/attempt1-v1.3.3"),
     ("seal-repeat-v133", "Seal verification, repeat", "harness-v1.3.3", "runs/sandbox_verification/final-v1.3.3"),
@@ -408,9 +410,18 @@ LEDGER_LINE = {"path": GATE_FILES["harness-v1.3.4"]["report"], "quote": "Cumulat
 LOWER_BOUND_LINE = {"path": GATE_FILES["harness-v1.3.4"]["report"], "quote": "$10.134 is a lower bound (D-27)."}
 ARTEFACT = "ENTRY-11-SMOKE-LIMIT-ARTEFACT"
 
+# BILLED lines (D-36): the owner's own reading of the account balance page. Never an API cost; not per gate.
+BILLED_RULE = ("BILLED is used only for an account-balance reading taken by the owner, never on an API cost. The ledger figures in this summary are the "
+               "sandbox API's reported operation cost, not account billing; the two are not reconciled (D-36, open).")
+BILLED_ACCOUNT_USD = 0.39
+BILLED_ACCOUNT_SOURCE = ("owner's reading of the Nebius account balance page: $49.61 of $50.00 at 19:37 local time, 2026-10-01; "
+                         "whole account, cumulative, not per gate")
+BILLED_ACCOUNT_NOTE = "Nebius billing lag is unknown: a charge not yet posted to the account would not show in this reading, so it is a reading, not a final bill."
+BILLED_NO_GATE_READING = "no balance reading was taken for this gate; the only reading is the account-level one above"
+
 
 def _records(entries: list[dict], where: str) -> dict:
-    return {"value": len(entries), "tag": MEASURED, "count_of": {"where": where, "records": [x["record_id"] for x in entries]}}
+    return {"value": len(entries), "tag": API_REPORTED, "count_of": {"where": where, "records": [x["record_id"] for x in entries]}}
 
 
 def _quote_present(root: Path, src: dict) -> None:
@@ -486,14 +497,14 @@ def _ledger(docs: dict[str, dict], source: BlobSource, root: Path) -> dict:
                 seconds = data.get("killed_seconds")
                 kills.append({
                     "record": rid, "path": path, "component": key, "via": data.get("via"), "error": data.get("error"), "message": data.get("message"),
-                    "killed_seconds": {"value": seconds, "tag": MEASURED, "record_field": {"record": rid, "field": "killed_seconds"}}
+                    "killed_seconds": {"value": seconds, "tag": API_REPORTED, "record_field": {"record": rid, "field": "killed_seconds"}}
                     if seconds is not None else {"value": None, "reason": "no killed_seconds field in this record"},
-                    "completed_cost": {"value": data[field], "tag": MEASURED, "record_field": {"record": rid, "field": field}}
+                    "completed_cost": {"value": data[field], "tag": API_REPORTED, "record_field": {"record": rid, "field": field}}
                     if field else {"value": None, "reason": "no cost field in this record"},
                 })
         components.append({
             "key": key, "name": name, "kind": "seal", "harness_tag": tag, "directory": directory, "records": listed,
-            "measured": {"value": round(total, 10), "tag": MEASURED,
+            "measured": {"value": round(total, 10), "tag": API_REPORTED,
                          "sum_of_records": [{"field": f, "records": ids} for f, ids in costed.items() if ids]},
             "estimated": {"value": None, "reason": "no estimate field in the seal-verification records"},
         })
@@ -506,21 +517,29 @@ def _ledger(docs: dict[str, dict], source: BlobSource, root: Path) -> dict:
             "key": "gate-" + tag.replace("harness-", "").replace(".", ""), "name": "Smoke gate", "kind": "gate", "harness_tag": tag,
             "directory": doc["entries"][0]["record_path"].rsplit("/", 1)[0],
             "records": [{"record": x["record_id"], "path": x["record_path"], "cost_field": "cost_guard.spent_usd"} for x in doc["entries"]],
-            "measured": {"value": doc["batch"]["measured"]["value"], "tag": MEASURED, "sum_of": {"field": "cost.measured", "records": ids}},
+            "measured": {"value": doc["batch"]["measured"]["value"], "tag": API_REPORTED, "sum_of": {"field": "cost.measured", "records": ids}},
             "estimated": {"value": doc["batch"]["estimated"]["value"], "tag": ESTIMATED, "sum_of": {"field": "cost.estimated", "records": ids}},
         })
     order = ["seal-attempt-one-v133", "seal-repeat-v133", "gate-v133", "seal-v134", "gate-v134"]
     components.sort(key=lambda c: order.index(c["key"]))
     measured = round(sum(c["measured"]["value"] for c in components), 10)
     estimated = round(sum(c["estimated"]["value"] or 0.0 for c in components), 10)
+    billed = {
+        "rule": BILLED_RULE,
+        "account": {"scope": "account", "label": "Account level, cumulative, not per gate", "bound": "at most", "value": BILLED_ACCOUNT_USD, "tag": BILLED,
+                    "currency": "USD", "owner_reading": {"by": "owner", "source": BILLED_ACCOUNT_SOURCE}, "note": BILLED_ACCOUNT_NOTE},
+        "gates": [{"scope": "gate", "name": c["name"], "harness_tag": c["harness_tag"], "for_component": c["key"],
+                   "value": None, "tag": BILLED, "reason": BILLED_NO_GATE_READING} for c in components if c["kind"] == "gate"],
+    }
     return {
         "reported_line": LEDGER_LINE, "lower_bound": {"defect": "D-27", "line": LOWER_BOUND_LINE},
         "components": components,
-        "measured": {"value": measured, "tag": MEASURED, "sum_of_components": "measured"},
+        "measured": {"value": measured, "tag": API_REPORTED, "sum_of_components": "measured"},
         "estimated": {"value": estimated, "tag": ESTIMATED, "sum_of_components": "estimated"},
         "total": {"value": round(measured + estimated, 10), "tag": ESTIMATED, "sum_of_components": "measured + estimated",
-                  "note": "contains an ESTIMATED component: shown as measured + estimated, never as one MEASURED figure"},
+                  "note": "contains an ESTIMATED component: shown as API-reported + estimated, never as one API-REPORTED figure"},
         "kill_records": kills,
+        "billed": billed,
     }
 
 
@@ -546,7 +565,7 @@ def _stack(records: list[Record]) -> dict:
             return json.loads(values.pop())
 
         def total(field: str, value) -> dict:
-            return {"value": value, "tag": MEASURED, "sum_of_records": [{"field": field, "records": ids}]}
+            return {"value": value, "tag": API_REPORTED, "sum_of_records": [{"field": field, "records": ids}]}
 
         models = same("config.models")
         prices = same("cost_guard.prices_usd_per_1m")
@@ -559,8 +578,8 @@ def _stack(records: list[Record]) -> dict:
                 "calls": total(f"count of model_calls where model is {model}", len(mine)),
                 "prompt_tokens": total(f"model_calls[].usage.prompt_tokens where model is {model}", sum(c["usage"]["prompt_tokens"] for c in mine)),
                 "completion_tokens": total(f"model_calls[].usage.completion_tokens where model is {model}", sum(c["usage"]["completion_tokens"] for c in mine)),
-                "price_per_million_input_tokens": {"value": prices[model][0], "tag": MEASURED, "record_field": {"record": ids[0], "field": f"cost_guard.prices_usd_per_1m[{model}][0]"}},
-                "price_per_million_output_tokens": {"value": prices[model][1], "tag": MEASURED, "record_field": {"record": ids[0], "field": f"cost_guard.prices_usd_per_1m[{model}][1]"}},
+                "price_per_million_input_tokens": {"value": prices[model][0], "tag": API_REPORTED, "record_field": {"record": ids[0], "field": f"cost_guard.prices_usd_per_1m[{model}][0]"}},
+                "price_per_million_output_tokens": {"value": prices[model][1], "tag": API_REPORTED, "record_field": {"record": ids[0], "field": f"cost_guard.prices_usd_per_1m[{model}][1]"}},
             })
         searching = [r for r in recs if r.data["config"].get("tavily_configured")]
         versions.append({
@@ -570,7 +589,7 @@ def _stack(records: list[Record]) -> dict:
             "model_calls": calls,
             "sandbox": {"backend": same("config.sandbox_backend"), "default_image": same("config.sandbox_image_default"),
                         "prices_source": same("cost_guard.prices_source"), "prices_retrieved": same("cost_guard.prices_retrieved")},
-            "search": {"provider": "Tavily", "records_with_search_configured": {"value": len(searching), "tag": MEASURED,
+            "search": {"provider": "Tavily", "records_with_search_configured": {"value": len(searching), "tag": API_REPORTED,
                        "count_of": {"where": "config.tavily_configured is true", "records": [r.record_id for r in searching]}}},
         })
     return {"versions": versions, "note": "prompt-engineered: the records name hosted model endpoints; no fine-tuned model appears in any record"}
@@ -579,21 +598,37 @@ def _stack(records: list[Record]) -> dict:
 def _inventory(docs: dict[str, dict], summary_defects: dict) -> dict:
     entries = [x for tag in VERSIONS for x in docs[tag]["entries"]]
     return {
-        "records": {"value": len(entries), "tag": MEASURED, "count_of": {"where": "committed run records with a passport", "records": [x["record_id"] for x in entries]}},
-        "defects": {"value": len(summary_defects["rows"]), "tag": MEASURED,
+        "records": {"value": len(entries), "tag": API_REPORTED, "count_of": {"where": "committed run records with a passport", "records": [x["record_id"] for x in entries]}},
+        "defects": {"value": len(summary_defects["rows"]), "tag": API_REPORTED,
                     "count_of": {"where": "rows of the defect register", "records": [row["id"] for row in summary_defects["rows"]]}},
         "defects_by_status": {
-            status: {"value": sum(1 for row in summary_defects["rows"] if row["status"] == status), "tag": MEASURED,
+            status: {"value": sum(1 for row in summary_defects["rows"] if row["status"] == status), "tag": API_REPORTED,
                      "count_of": {"where": f"rows of the defect register with status {status}",
                                   "records": [row["id"] for row in summary_defects["rows"] if row["status"] == status]}}
             for status in register.STATUSES},
     }
 
 
+def check_billed(summary: dict) -> None:
+    """BILLED appears only in `ledger.billed`: one account line that points at the owner's reading, and one null line with a reason per gate."""
+    billed = summary["ledger"]["billed"]
+    rest = json.dumps({**summary, "ledger": {k: v for k, v in summary["ledger"].items() if k != "billed"}}, ensure_ascii=False)
+    if f'"{BILLED}"' in rest:
+        raise ReplayError("BILLED is used outside ledger.billed")
+    account = billed["account"]
+    if account["tag"] != BILLED or not account["owner_reading"].get("source") or account["bound"] != "at most":
+        raise ReplayError("ledger.billed.account: a BILLED value needs the owner's reading as its source and its bound")
+    for line in billed["gates"]:
+        if line["tag"] != BILLED or line["value"] is not None or not line.get("reason"):
+            raise ReplayError(f"ledger.billed.gates: a gate without a balance reading is null with a reason ({line.get('harness_tag')})")
+
+
 def build_summary(docs: dict[str, dict], source: BlobSource, root: Path = ROOT) -> dict:
     registered = _defects(docs, root)
-    return {"schema": SUMMARY_SCHEMA, "headline": _headline(docs), "inventory": _inventory(docs, registered),
-            "stack": _stack(load_records(source)), "defects": registered, "ledger": _ledger(docs, source, root)}
+    summary = {"schema": SUMMARY_SCHEMA, "headline": _headline(docs), "inventory": _inventory(docs, registered),
+               "stack": _stack(load_records(source)), "defects": registered, "ledger": _ledger(docs, source, root)}
+    check_billed(summary)
+    return summary
 
 
 # ---------------------------------------------------------------- output files
@@ -694,16 +729,16 @@ def _entry_md(x: dict) -> list[str]:
     for step in x["timeline"]:
         lines += _step_md(step)
     c = x["cost"]
-    lines.append(f"- cost (USD): total {show(c['entry_total'])} = measured {show(c['measured'])} + estimated {show(c['estimated'])} · model {show(c['model'])} · "
+    lines.append(f"- cost (USD): total {show(c['entry_total'])} = API-reported {show(c['measured'])} + estimated {show(c['estimated'])} · model {show(c['model'])} · "
                  f"entry cap {show(c['per_entry_cap'])} · over the entry cap {code(c['over_entry_cap'])}")
     for op in c["operations"]:
         line = f"  - {code(op['operation'])}: spend {show(op['spend'])} · remaining {show(op['remaining'])}"
         if op["killed"]:
-            line += f" · STOPPED at second {show(op['stopped_at_second'])} · measured part {show(op['measured_part'])}"
+            line += f" · STOPPED at second {show(op['stopped_at_second'])} · API-reported part {show(op['measured_part'])}"
         lines.append(line)
         lines += [f"    - {s}" for s in _sources(op["spend"])]
     cum = c["batch_cumulative"]
-    lines.append(f"  - batch so far: measured {show(cum['measured'])} + estimated {show(cum['estimated'])} of cap {show(c['batch_cap'])} · "
+    lines.append(f"  - batch so far: API-reported {show(cum['measured'])} + estimated {show(cum['estimated'])} of cap {show(c['batch_cap'])} · "
                  f"over the batch cap {code(cum['over_batch_cap'])}")
     return lines + [""]
 
@@ -711,8 +746,9 @@ def _entry_md(x: dict) -> list[str]:
 def to_markdown(doc: dict) -> bytes:
     badge = doc["badge"]
     lines = [f"# REPLAY {code(doc['harness_tag'])} — {doc['role']}", "",
-             "Offline replay from committed records. Every number below is a tagged passport field (MEASURED, ESTIMATED or DERIVED);",
-             "text in code spans is quoted verbatim from a record or a passport. Generated by `python -m phase_d.build_replay`.", "",
+             "Offline replay from committed records. Every number below is a tagged passport field (API-REPORTED, ESTIMATED or DERIVED);",
+             "API-REPORTED is a stored record field, or a count or sum of such fields; a dollar figure with that tag is the sandbox API's reported operation cost, not account billing.",
+             "Text in code spans is quoted verbatim from a record or a passport. Generated by `python -m phase_d.build_replay`.", "",
              "## Badge", "", f"> {code(badge['text'])}", ""]
     if badge["exploratory"]:
         links = badge["links"]
@@ -723,7 +759,7 @@ def to_markdown(doc: dict) -> bytes:
         cost = badge["gate_cost"]
         cost_line = f"- gate cost (USD): {show(cost)}"
         if "measured" in cost:
-            cost_line += f" = measured {show(cost['measured'])} + estimated {show(cost['estimated'])}"
+            cost_line += f" = API-reported {show(cost['measured'])} + estimated {show(cost['estimated'])}"
         lines.append(cost_line)
     else:
         lines.append("- not exploratory: this is the pre-registered run the exploratory versions sit beside")
@@ -733,7 +769,7 @@ def to_markdown(doc: dict) -> bytes:
         lines.append(f"- {code(rs['arm'])} ({code(rs['record_set'])}): {counts}")
     batch = doc["batch"]
     lines += ["", "## Cost against the batch cap", "",
-              f"- measured {show(batch['measured'])} + estimated {show(batch['estimated'])} of cap {show(batch['cap'])} (USD)", "", "## Entries", ""]
+              f"- API-reported {show(batch['measured'])} + estimated {show(batch['estimated'])} of cap {show(batch['cap'])} (USD)", "", "## Entries", ""]
     for x in doc["entries"]:
         lines += _entry_md(x)
     return ("\n".join(lines).rstrip("\n") + "\n").encode("utf-8")
@@ -750,7 +786,13 @@ def index_markdown(docs: dict[str, dict], files: dict[str, bytes]) -> bytes:
             rel = f"{REPLAY_DIR}/{tag}.{ext}"
             lines.append(f"- [{tag}.{ext}]({tag}.{ext}) · sha256 {code(hashlib.sha256(files[rel]).hexdigest())}")
         lines.append("")
-    lines += ["## Summary", "", "Headline counts, the defect register and the cost ledger, each number with its tag and its records.", "",
+    lines += ["## Tags", "",
+              f"- {code(API_REPORTED)} (formerly MEASURED): a stored field of a committed record, or a count or sum of such fields. A dollar figure with this tag is the sandbox API's "
+              f"reported operation cost, not account billing ({code('D-36')}, open).",
+              f"- {code(ESTIMATED)}: flagged as an estimate by the cost guard itself.",
+              f"- {code(DERIVED)}: parsed from event text or a cost_events note; the source line is quoted verbatim with its record id.",
+              f"- {code(BILLED)}: an account-balance reading taken by the owner. It is used only on the explicit BILLED lines of `summary.json` (`ledger.billed`), never on an API cost.", "",
+              "## Summary", "", "Headline counts, the defect register and the cost ledger (with its BILLED lines), each number with its tag and its records.", "",
               f"- [summary.json](summary.json) · sha256 {code(hashlib.sha256(files[f'{REPLAY_DIR}/summary.json']).hexdigest())}", ""]
     return ("\n".join(lines).rstrip("\n") + "\n").encode("utf-8")
 

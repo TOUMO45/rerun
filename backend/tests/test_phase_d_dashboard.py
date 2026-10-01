@@ -141,18 +141,27 @@ def test_the_stored_page_passes_the_check(page):
 
 
 def test_the_check_fails_on_an_untagged_or_unlinked_number_and_on_external_resources():
-    ok = ('<div id="rec" data-record="r"><span class="num"><a class="n" href="#rec" data-tag="MEASURED" data-value="0.28421" '
-          'title="0.28421 MEASURED">$0.2842</a><span class="tag MEASURED">MEASURED</span></span> <code>entry 8</code></div>')
+    ok = ('<div id="rec" data-record="r"><span class="num"><a class="n" href="#rec" data-tag="API-REPORTED" data-value="0.28421" '
+          'title="0.28421 API-REPORTED">$0.2842</a><span class="tag API-REPORTED">API-REPORTED</span></span> <code>entry 8</code></div>')
     assert problems(ok) == []
     assert problems("<p>cost 0.28</p>")  # a bare number in text
-    assert problems(ok.replace('<span class="tag MEASURED">MEASURED</span>', ""))  # no visible tag
-    assert problems(ok.replace('data-tag="MEASURED"', ""))  # no tag at all
+    assert problems(ok.replace('<span class="tag API-REPORTED">API-REPORTED</span>', ""))  # no visible tag
+    assert problems(ok.replace('data-tag="API-REPORTED"', ""))  # no tag at all
+    assert problems(ok.replace('data-tag="API-REPORTED"', 'data-tag="MEASURED"'))  # the old tag name is no longer a tag (D-36)
     assert problems(ok.replace('href="#rec"', 'href="#missing"'))  # no record link
     assert problems(ok.replace(' data-record="r"', ""))  # the link target carries no record id
     assert problems(ok.replace("$0.2842", "$0.2850"))  # displayed text is not the value
     assert problems(ok.replace(">$0.2842<", ">0.28<"))
     assert problems(ok.replace(' data-value="0.28421"', ""))
-    assert problems(ok.replace('<span class="tag MEASURED">MEASURED</span>', '<span class="tag ESTIMATED">ESTIMATED</span>'))
+    assert problems(ok.replace('<span class="tag API-REPORTED">API-REPORTED</span>', '<span class="tag ESTIMATED">ESTIMATED</span>'))
+    # BILLED: the owner's balance reading links to a source (data-source), not to a record
+    billed = ('<li id="b" data-source="owner-balance-reading"><span class="num"><a class="n" href="#b" data-tag="BILLED" data-value="0.39" data-source="owner-balance-reading" '
+              'title="0.39 BILLED">$0.3900</a><span class="tag BILLED">BILLED</span></span></li>')
+    assert problems(billed) == []
+    no_source = billed.replace(' data-source="owner-balance-reading"', "")
+    assert problems(no_source)  # neither the number nor its link target carries a source
+    assert problems(no_source.replace('<li id="b">', '<li id="b" data-record="r">'))  # a record id is not a source for BILLED
+    assert problems(ok.replace('data-record="r"', 'data-source="owner-balance-reading"'))  # nor is a source a record id for an API-REPORTED value
     for bad in ('<a href="https://example.com">x</a>', '<a href="//example.com/x">x</a>', '<img src="x.png">', "<script>x</script>",
                 '<link rel="stylesheet" href="x.css">', "<style>p{animation:spin 1s}</style>", "<style>p{transition:all}</style>",
                 '<style>@import "x.css";</style>', '<p style="background:url(x.png)">x</p>', '<p onclick="x()">x</p>', '<iframe src="x.html"></iframe>'):
@@ -164,10 +173,12 @@ def test_every_number_on_the_page_carries_its_tag_and_links_to_a_record(root):
     assert len(nums) > 500
     ids = {n.attrs["id"]: n for n in root.walk() if "id" in n.attrs}
     for n in nums:
-        assert n.attrs["data-tag"] in ("MEASURED", "ESTIMATED", "DERIVED")
+        assert n.attrs["data-tag"] in ("API-REPORTED", "ESTIMATED", "DERIVED", "BILLED")
         target = ids[n.attrs["href"][1:]]
-        assert n.attrs.get("data-record") or any("data-record" in t.attrs for t in target.walk())
-    assert {n.attrs["data-tag"] for n in nums} == {"MEASURED", "ESTIMATED", "DERIVED"}
+        carried = "data-source" if n.attrs["data-tag"] == "BILLED" else "data-record"  # BILLED: the owner's reading, not a record
+        assert n.attrs.get(carried) or any(carried in t.attrs for t in target.walk())
+    assert {n.attrs["data-tag"] for n in nums} == {"API-REPORTED", "ESTIMATED", "DERIVED", "BILLED"}
+    assert [(n.text(), n.attrs["data-value"]) for n in nums if n.attrs["data-tag"] == "BILLED"] == [("$0.3900", "0.39")]  # the one BILLED number
 
 
 # ---------------------------------------------------------------- numbers: all from the REPLAY JSON
@@ -237,7 +248,7 @@ def test_the_headline_card_states_the_finding_with_tagged_counts(root):
     statement = next(n for n in _all(card, "p", "statement"))
     assert _clean(_text_without_tags(statement)) == HEADLINE
     assert [n.text() for n in _all(next(iter(_all(card, "p", "big"))), "a", "n")] == ["0", "8"]
-    assert all(n.attrs["data-tag"] == "MEASURED" for n in _all(card, "a", "n"))
+    assert all(n.attrs["data-tag"] == "API-REPORTED" for n in _all(card, "a", "n"))
     assert len(_all(_by_id(root, "hl-gate-entry-runs"), "li")) == 8 and len(_all(_by_id(root, "hl-with-recorded-model-attempt"), "li")) == 5
 
 
@@ -265,7 +276,7 @@ def test_the_defect_register_lists_d1_to_d28_with_a_status_and_passport_links(ro
 def test_the_ledger_shows_measured_plus_estimated_as_a_lower_bound_with_the_three_kill_records(root):
     ledger = _by_id(root, "ledger")
     big = next(n for n in _all(ledger, "p", "big"))
-    assert [(n.text(), n.attrs["data-tag"]) for n in _all(big, "a", "n")] == [("$9.8507", "MEASURED"), ("$0.2842", "ESTIMATED")]
+    assert [(n.text(), n.attrs["data-tag"]) for n in _all(big, "a", "n")] == [("$9.8507", "API-REPORTED"), ("$0.2842", "ESTIMATED")]
     text = _clean(ledger.text())
     assert "Lower bound (D-27)" in text and "$10.134 is a lower bound (D-27)." in text
     kills = _all(next(n for n in _all(ledger, "ul", "kills")), "li")
@@ -275,16 +286,16 @@ def test_the_ledger_shows_measured_plus_estimated_as_a_lower_bound_with_the_thre
     assert len(_all(_by_id(root, "ledger-components"), "tr")) == 6  # header + five components
 
 
-def test_no_bar_merges_measured_and_estimated(root):
+def test_no_bar_merges_api_reported_and_estimated(root):
     meters = _all(root, "span", "meter")
     assert len(meters) > 50
     with_estimate = [m for m in meters if _all(m, "span", "e")]
     assert with_estimate
     for m in meters:
         segs = _all(m, "span", "seg")
-        assert all(len(s.classes() & {"m", "e"}) == 1 for s in segs)
+        assert all(len(s.classes() & {"rep", "e"}) == 1 for s in segs)
     for m in with_estimate:
-        assert _all(m, "span", "m") and "separately" in m.attrs["aria-label"]
+        assert _all(m, "span", "rep") and "separately" in m.attrs["aria-label"] and "API-reported" in m.attrs["aria-label"]
     entry = _by_id(root, "e-harness-v1-3-4-smoke-08")
     assert _all(next(n for n in _all(entry, "span", "meter")), "span", "e")
     assert len(_all(_by_id(root, "ledger"), "span", "sw")) == 2  # the legend names both parts

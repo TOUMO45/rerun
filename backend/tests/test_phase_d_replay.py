@@ -19,7 +19,7 @@ if str(ROOT) not in sys.path:
 from phase_d import build_replay, passports, records, replay  # noqa: E402
 
 V132, V133, V134 = replay.VERSIONS
-TAG_SUFFIX = re.compile(r" \[(MEASURED|ESTIMATED|DERIVED)\]")
+TAG_SUFFIX = re.compile(r" \[(API-REPORTED|ESTIMATED|DERIVED)\]")
 CODE_SPAN = re.compile(r"(`+).+?\1")
 NUMBER = re.compile(r"\d+(?:\.\d+)?(?:e-?\d+)?")
 
@@ -177,7 +177,7 @@ def test_each_version_scorecard_uses_its_own_measured_line(docs):
 
 def test_v132_is_the_anchor_0_of_16_with_control_and_treatment_separate(docs):
     primary = docs[V132]["scorecard"]["criteria"][0]
-    assert (primary["recovered"]["value"], primary["denominator"]["value"], primary["recovered"]["tag"]) == (0, 16, "MEASURED")
+    assert (primary["recovered"]["value"], primary["denominator"]["value"], primary["recovered"]["tag"]) == (0, 16, "API-REPORTED")
     sets = {s["record_set"]: s for s in docs[V132]["scorecard"]["record_sets"]}
     assert list(sets) == ["control", "control/infra_retries", "treatment"]
     assert [len(sets[k]["records"]) for k in sets] == [20, 1, 20] and not set(sets["control"]["records"]) & set(sets["treatment"]["records"])
@@ -198,7 +198,7 @@ def test_every_number_in_the_replay_json_is_tagged_and_equals_its_passport_field
             if isinstance(obj, dict):
                 for key, value in obj.items():
                     if _is_number(value):
-                        assert key == "value" and obj.get("tag") in passports.TAGS, f"{tag} {path}.{key}: untagged number {value!r}"
+                        assert key == "value" and obj.get("tag") in passports.RECORD_TAGS, f"{tag} {path}.{key}: untagged number {value!r}"  # never BILLED here
             elif isinstance(obj, list):
                 assert not any(_is_number(v) for v in obj), f"{tag} {path}: bare number in a list"
         for path, obj in _tagged(doc):
@@ -215,7 +215,7 @@ def test_every_number_in_the_replay_json_is_tagged_and_equals_its_passport_field
             else:
                 count = obj["count_of"]
                 assert obj["value"] == sum(1 for rid in count["records"] if replay.resolve(stored[rid], count["field"]) == count["equals"])
-                assert obj["tag"] == "MEASURED"
+                assert obj["tag"] == "API-REPORTED"
 
 
 def test_absent_values_keep_their_reason_and_pointer(docs, stored):
@@ -292,11 +292,11 @@ def test_each_attempt_shows_gate_outcome_citation_and_execution(docs):
 def test_cost_accumulates_against_the_entry_cap_and_the_batch_cap(docs):
     v134 = docs[V134]
     assert (round(v134["batch"]["measured"]["value"], 3), round(v134["batch"]["estimated"]["value"], 3), v134["batch"]["cap"]["value"]) == (3.112, 0.284, 3.5)
-    assert (v134["batch"]["measured"]["tag"], v134["batch"]["estimated"]["tag"]) == ("MEASURED", "ESTIMATED")
+    assert (v134["batch"]["measured"]["tag"], v134["batch"]["estimated"]["tag"]) == ("API-REPORTED", "ESTIMATED")
     assert [x["entry"]["id"] for rid in v134["batch"]["run_order"] for x in v134["entries"] if x["record_id"] == rid] == ["11", "07", "03", "08"]
     last = _entry(docs, V134, "08")["cost"]
     assert last["batch_cumulative"]["measured"]["value"] == v134["batch"]["measured"]["value"] and last["batch_cumulative"]["over_batch_cap"] is False
-    assert (last["entry_total"]["tag"], last["measured"]["tag"], last["estimated"]["tag"]) == ("ESTIMATED", "MEASURED", "ESTIMATED")
+    assert (last["entry_total"]["tag"], last["measured"]["tag"], last["estimated"]["tag"]) == ("ESTIMATED", "API-REPORTED", "ESTIMATED")
     assert not any(x["cost"]["over_entry_cap"] for x in v134["entries"])
     over = [x["entry"]["id"] for x in docs[V132]["entries"] if x["cost"]["over_entry_cap"]]
     assert over == ["13", "16"]  # D-7, shown as recorded
@@ -398,7 +398,7 @@ def test_the_headline_counts_are_tagged_counts_of_records(summary, docs):
     gate = {x["record_id"] for tag in (V133, V134) for x in docs[tag]["entries"]}
     for key, v in h.items():
         if key != "artefact":
-            assert v["tag"] == "MEASURED" and v["value"] == len(v["count_of"]["records"]) and set(v["count_of"]["records"]) <= gate
+            assert v["tag"] == "API-REPORTED" and v["value"] == len(v["count_of"]["records"]) and set(v["count_of"]["records"]) <= gate
     assert set(h["gate_entry_runs"]["count_of"]["records"]) == gate
     assert [(a["harness_tag"], a["entry"]) for a in h["artefact"]] == [(V133, "11")] and "smoke-limit artefact" in h["artefact"][0]["annotation"]["text"]
 
@@ -458,18 +458,18 @@ def test_the_ledger_is_recomputed_from_records_split_and_a_lower_bound(summary, 
             value = sum(stored[rid]["cost"]["measured"]["value"] for rid in c["measured"]["sum_of"]["records"])
             assert c["estimated"]["value"] == round(sum(stored[rid]["cost"]["estimated"]["value"] for rid in c["estimated"]["sum_of"]["records"]), 10)
             total_e += c["estimated"]["value"]
-        assert c["measured"] ["value"] == round(value, 10) and c["measured"]["tag"] == "MEASURED"
+        assert c["measured"] ["value"] == round(value, 10) and c["measured"]["tag"] == "API-REPORTED"
         total_m += c["measured"]["value"]
     assert ledger["measured"]["value"] == round(total_m, 10) and ledger["estimated"]["value"] == round(total_e, 10)
     assert (round(ledger["measured"]["value"], 4), round(ledger["estimated"]["value"], 4), round(ledger["total"]["value"], 4)) == (9.8507, 0.2842, 10.1349)
-    assert (ledger["measured"]["tag"], ledger["estimated"]["tag"], ledger["total"]["tag"]) == ("MEASURED", "ESTIMATED", "ESTIMATED")
+    assert (ledger["measured"]["tag"], ledger["estimated"]["tag"], ledger["total"]["tag"]) == ("API-REPORTED", "ESTIMATED", "ESTIMATED")
     assert ledger["lower_bound"]["defect"] == "D-27" and "$10.134" in ledger["reported_line"]["quote"]
     kills = ledger["kill_records"]
     assert [k["killed_seconds"]["value"] for k in kills] == [None, 26.7, 26.3]
     assert [k["via"] for k in kills] == [None, "client_wait_timeout", "client_wait_timeout"] and kills[0]["error"]
     for k in kills[1:]:
         path, _ = k["record"].split("@")
-        assert json.loads(source.read(path))["killed_seconds"] == k["killed_seconds"]["value"] and k["killed_seconds"]["tag"] == "MEASURED"
+        assert json.loads(source.read(path))["killed_seconds"] == k["killed_seconds"]["value"] and k["killed_seconds"]["tag"] == "API-REPORTED"
 
 
 def test_every_number_in_the_summary_is_tagged_with_a_pointer(summary):
@@ -477,11 +477,13 @@ def test_every_number_in_the_summary_is_tagged_with_a_pointer(summary):
         if isinstance(obj, dict):
             for key, value in obj.items():
                 if _is_number(value):
-                    assert key == "value" and obj.get("tag") in passports.TAGS, f"{path}.{key}"
+                    assert key == "value" and obj.get("tag") in passports.TAGS, f"{path}.{key}"  # TAGS includes BILLED: ledger.billed only
         elif isinstance(obj, list):
             assert not any(_is_number(v) for v in obj), path
     for path, obj in _tagged(summary):
-        assert sum(k in obj for k in ("count_of", "sum_of", "sum_of_records", "sum_of_components", "record_field")) == 1, path
+        assert sum(k in obj for k in ("count_of", "sum_of", "sum_of_records", "sum_of_components", "record_field", "owner_reading", "for_component")) == 1, path
+        if obj["tag"] == "BILLED":
+            assert path.startswith("$.ledger.billed."), path
 
 
 def test_entries_carry_the_blob_hash_and_the_d28_worktree_hash(docs):
