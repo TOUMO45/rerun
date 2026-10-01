@@ -1,4 +1,4 @@
-"""Phase D REPLAY: an offline, deterministic replay of harness-v1.3.2 / v1.3.3 / v1.3.4 from committed records.
+"""Phase D REPLAY: an offline, deterministic replay of harness-v1.3.2 / v1.3.3 / v1.3.4 / v1.4.0 / v1.4.1 / v1.4.2 from committed records.
 
 REPLAY reads each record blob, rebuilds the entry's timeline (baseline -> era lock -> attempts -> verdict -> cost),
 and cross-checks every value it shows against the passport field it displays. A mismatch is a build failure.
@@ -23,14 +23,16 @@ from pathlib import Path
 from typing import Any
 
 from . import defects as register
-from .passports import (API_REPORTED, BILLED, DERIVED, ESTIMATED, GATE_FILES, PASSPORT_DIR, RECORD_TAGS, RECOVERED, RESULTS_TABLES, TAGS,
-                        passport_path)
+from .passports import (API_REPORTED, BILLED, DERIVED, ESTIMATED, GATE_FILES, PASSPORT_DIR, RECORD_TAGS, RECOVERED, RESULTS_TABLES, SMOKE_CRITERION_NOTE, TAGS,
+                        V14, attempt_label, passport_path)
 from .records import ROOT, BlobSource, GitBlobSource, Record, load_records
 
 # v2 (D-36): tag MEASURED renamed API-REPORTED (same meaning); summary.json gains ledger.billed (BILLED lines); no value changed
-SCHEMA = "rerun/phase-d/replay/v2"
+# v3 (v1.4.x): + harness-v1.4.0 / v1.4.1 / v1.4.2; attempt steps carry candidate, chosen, branch, adjudication and rule steps; cost.stored_operations;
+#               criterion e on the scorecard; the headline is counted over every exploratory gate entry-run (summary schema v3)
+SCHEMA = "rerun/phase-d/replay/v3"
 REPLAY_DIR = "reports/phase-d/replay"
-VERSIONS = ("harness-v1.3.2", "harness-v1.3.3", "harness-v1.3.4")
+VERSIONS = ("harness-v1.3.2", "harness-v1.3.3", "harness-v1.3.4", "harness-v1.4.0", "harness-v1.4.1", "harness-v1.4.2")
 _SKIP = object()
 _PATH = re.compile(r"([^.\[\]]+)|\[(\d+)\]")
 _NUMBER = re.compile(r"\d+(?:\.\d+)?")
@@ -168,9 +170,17 @@ def _attempt_step(e: _Entry, i: int, a: dict) -> dict:
     base = f"attempts[{i}]"
     decision, exit_code = a["gate_decision"], a.get("exit_code")
     tm = a.get("time_machine")
+    tag = e.record.harness_tag
+    extended = tag in V14
+    if a["origin"] != "time_machine":
+        kind = "attempt"
+    elif tm or not extended:
+        kind = "era_lock"
+    else:
+        kind = "rule"  # harness-v1.4.x: a deterministic step (hook, wrapper, shim, evidence run) recorded as a time-machine attempt without an era lock
     step: dict = {
-        "step": "era_lock" if a["origin"] == "time_machine" else "attempt",
-        "attempt": e.text(f"{base}.attempt", f"attempt-{int(a['attempt_number'])}"),
+        "step": kind,
+        "attempt": e.text(f"{base}.attempt", attempt_label(tag, a)),
         "type": e.text(f"{base}.type", a["origin"]),
     }
     if tm:
@@ -183,6 +193,9 @@ def _attempt_step(e: _Entry, i: int, a: dict) -> dict:
             "lock_ok": e.text(f"{tbase}.lock.ok", lock.get("ok")),
             "fallback": e.text(f"{tbase}.fallback.kind", fallback["kind"]) if fallback else None,
         }
+    elif kind == "rule":
+        step["rule_step"] = e.tree(f"{base}.rule_step")
+        step["rule"] = e.text(f"{base}.rule_step.rule", a["time_machine_action"]["rule"])
     else:
         change = resolve(e.passport, f"{base}.change")
         diff = a.get("diff_text") or ""
@@ -199,15 +212,29 @@ def _attempt_step(e: _Entry, i: int, a: dict) -> dict:
         "outcome": e.text(f"{base}.outcome", _own_outcome(decision, exit_code)),
         "reject_reason": e.optional(f"{base}.reject_reason", decision == "REJECT", list(a.get("gate_violations") or [])),
         "consulted_count": e.num(f"{base}.consulted_count", len(a["consulted"]) if "consulted" in a else None),
-        "cited": e.num(f"{base}.cited", None),
+        "cited": _cited(e, base, a) if extended else e.num(f"{base}.cited", None),
         "reason_no_citation": e.optional(f"{base}.reason_no_citation", "reason_no_citation" in a, a.get("reason_no_citation")),
         "silent_exit": e.optional(f"{base}.silent_exit", "silent_exit" in a, a.get("silent_exit")),
         "exit_code": e.num(f"{base}.exit_code", exit_code),
         "execution": _execution(e, i, a),
     })
-    if a.get("tavily_sources"):
+    if extended:
+        step["candidate"] = e.optional(f"{base}.candidate", a.get("candidate") is not None, str(a["candidate"]) if a.get("candidate") is not None else None)
+        step["chosen"] = e.optional(f"{base}.chosen", a.get("chosen") is not None, a.get("chosen"))
+        step["branch"] = e.optional(f"{base}.branch", bool(a.get("branch")), a.get("branch"))
+        step["adjudication"] = e.tree(f"{base}.adjudication") if a.get("adjudication") else e.optional(f"{base}.adjudication", False, None)
+    elif a.get("tavily_sources"):
         raise ReplayError(f"{e.record.path}: attempt {i} has tavily_sources but the passport shows cited as null")
     return step
+
+
+def _cited(e: _Entry, base: str, a: dict) -> Any:
+    """harness-v1.4.x: the sources the repairer cited, as the record stores them (title, url, hash of the stored content); an empty list when it cited none."""
+    shown = e.tree(f"{base}.cited")
+    sources = a.get("tavily_sources") or []
+    if len(shown) != len(sources) or [s["url"] for s in shown] != [s["url"] for s in sources]:
+        e._fail(f"{base}.cited", [s["url"] for s in shown], [s["url"] for s in sources])
+    return shown
 
 
 def _entry(e: _Entry) -> dict:
@@ -245,7 +272,12 @@ def _entry(e: _Entry) -> dict:
         "batch_cap": e.num("cost.batch_cap", d["batch"].get("total_cap_usd")),
         "operations": e.tree("cost.operations"),
     }
-    for key in ("measured", "estimated", "model", "per_entry_cap", "batch_cap", "operations", "cost_events", "note", "currency", "source_field"):
+    if record.harness_tag in V14:
+        stored = e.tree("cost.stored_operations")
+        if len(stored) != len(d["operations"]) or [o["role"] for o in stored] != [o["role"] for o in d["operations"]]:
+            e._fail("cost.stored_operations", [o["role"] for o in stored], [o["role"] for o in d["operations"]])
+        cost["stored_operations"] = stored
+    for key in ("measured", "estimated", "model", "per_entry_cap", "batch_cap", "operations", "stored_operations", "cost_events", "note", "currency", "source_field"):
         cost["entry_total"].pop(key, None)  # the total's own value and tag only; its parts are separate fields
     cap = cost["per_entry_cap"]["value"]
     cost["over_entry_cap"] = bool(cap is not None and cost["entry_total"]["value"] > cap)
@@ -319,11 +351,19 @@ def _check_badge(tag: str, records: list[Record], passports: dict[str, dict], so
     same("a.recovered", figures["a"]["recovered"]["value"], sum(1 for v in gate["verdicts"].values() if v in RECOVERED))
     same("a.entries", figures["a"]["entries"]["value"], len(gate["verdicts"]))
     same("b.applied", figures["b"]["applied"]["value"], len(gate["b"].get("applied") or []))
-    same("b.proposed", figures["b"]["proposed"]["value"], len(gate["b"].get("proposed") or []))
+    same("b.proposed", figures["b"]["proposed"]["value"] if "proposed" in figures["b"] else None, len(gate["b"]["proposed"]) if "proposed" in gate["b"] else None)
     same("c.citations", figures["c"]["citations"]["value"], len(gate["c"]["cited"]))
-    same("d.cost_cap_endings", figures["d"]["cost_cap_endings"]["value"], len(gate["d"].get("cost_cap_endings") or {}))
-    for k in "abcd":
+    same("d.cost_cap_endings", figures["d"]["cost_cap_endings"]["value"],
+         len(gate["d"]["cost_cap_endings"]) if "cost_cap_endings" in gate["d"] else sum(1 for r in records if r.data["result"].get("reason_code") == "COST_CAP"))
+    for k in ("abcde" if "e" in gate else "abcd"):
         same(f"{k}.ok", figures[k]["ok"], bool(gate[k]["ok"]))
+    if "e" in gate:
+        e = figures["e"]
+        same("e.entries", e["entries"]["value"], len(gate["e"]["per_entry"]))
+        same("e.entries_ok", e["entries_ok"]["value"], sum(1 for v in gate["e"]["per_entry"].values() if v["ok"]))
+        same("e.per_entry", e["per_entry"], {k: v["detail"] for k, v in gate["e"]["per_entry"].items()})
+    if tag in V14:
+        same("a.annotation", figures["a"].get("annotation"), SMOKE_CRITERION_NOTE if figures["a"]["recovered"]["value"] else None)
     same("gate_passed", badge["gate_passed"], bool(gate["passed"]))
     same("exploratory", badge["exploratory"], True)
     a, c = figures["a"], figures["c"]
@@ -400,24 +440,61 @@ def build_replay(source: BlobSource | None = None, passports: dict[str, dict] | 
 
 # ---------------------------------------------------------------- summary: headline, defect register, ledger
 
-SUMMARY_SCHEMA = "rerun/phase-d/replay-summary/v2"
+SUMMARY_SCHEMA = "rerun/phase-d/replay-summary/v3"
 SEAL_SETS = (
     ("seal-attempt-one-v133", "Seal verification, first attempt", "harness-v1.3.3", "runs/sandbox_verification/attempt1-v1.3.3"),
     ("seal-repeat-v133", "Seal verification, repeat", "harness-v1.3.3", "runs/sandbox_verification/final-v1.3.3"),
     ("seal-v134", "Seal verification", "harness-v1.3.4", "runs/sandbox_verification/final-v1.3.4"),
+    ("seal-v140-optionb", "Seal verification, option B checks", "harness-v1.4.0", "runs/sandbox_verification/final-v1.4.0"),
+    ("seal-v140", "Seal verification", "harness-v1.4.0", "runs/sandbox_verification/v1.4.0-seal"),
+    ("seal-v141", "Seal verification", "harness-v1.4.1", "runs/sandbox_verification/v1.4.1-seal"),
+    ("seal-v142", "Seal verification", "harness-v1.4.2", "runs/sandbox_verification/v1.4.2-seal"),
 )
-LEDGER_LINE = {"path": GATE_FILES["harness-v1.3.4"]["report"], "quote": "Cumulative on the new ledger: $6.738 + $3.396 = **$10.134** (ceiling ~$11)."}
-LOWER_BOUND_LINE = {"path": GATE_FILES["harness-v1.3.4"]["report"], "quote": "$10.134 is a lower bound (D-27)."}
+# the pre-batch upload smoke tests (and one diagnostic probe) are sandbox operations that cost money and sit in the gate folders
+SMOKE_SETS = (
+    ("smoke-v140", "Pre-batch upload smoke test", "harness-v1.4.0", "runs/corpus_v2_batch/harness-v1.4.0/gate"),
+    ("smoke-v141", "Pre-batch upload smoke tests and probe", "harness-v1.4.1", "runs/corpus_v2_batch/harness-v1.4.1/gate"),
+    ("smoke-v142", "Pre-batch upload smoke test", "harness-v1.4.2", "runs/corpus_v2_batch/harness-v1.4.2/gate"),
+)
+LEDGER_ORDER = ["seal-attempt-one-v133", "seal-repeat-v133", "gate-v133", "seal-v134", "gate-v134", "seal-v140-optionb", "seal-v140", "smoke-v140", "gate-v140",
+                "seal-v141", "smoke-v141", "gate-v141", "seal-v142", "smoke-v142", "gate-v142"]
+G134_REPORT = GATE_FILES["harness-v1.3.4"]["report"]
+G142_REPORT = GATE_FILES["harness-v1.4.2"]["report"]
+LEDGER_LINE = {"path": G142_REPORT, "quote": "Ledger: **$22.4935** [ESTIMATED: $21.3218 API-REPORTED + $1.1717 ESTIMATED], a lower bound (D-27)"}
+LOWER_BOUND_LINE = {"path": G142_REPORT, "quote": "a lower bound (D-27); ceiling $25.00; room left **$2.5065**"}
+# the ledger as each gate report stated it (kept: a figure the reports gave stays beside the one rebuilt from the records)
+LEDGER_HISTORY = (
+    {"harness_tag": "harness-v1.3.4", "path": G134_REPORT, "quote": "Cumulative on the new ledger: $6.738 + $3.396 = **$10.134** (ceiling ~$11)."},
+    {"harness_tag": "harness-v1.4.0", "path": GATE_FILES["harness-v1.4.0"]["report"], "quote": "$14.6495 [ESTIMATED:"},
+    {"harness_tag": "harness-v1.4.1", "path": GATE_FILES["harness-v1.4.1"]["report"],
+     "quote": "**$18.5083** [ESTIMATED: $17.3366 API-reported (including model $ from the price table) + $1.1717 ESTIMATED], a lower bound (D-27)"},
+    {"harness_tag": "harness-v1.4.2", "path": G142_REPORT, "quote": LEDGER_LINE["quote"]},
+)
 ARTEFACT = "ENTRY-11-SMOKE-LIMIT-ARTEFACT"
+SMOKE_RECOVERY = "SMOKE-CRITERION-RECOVERY"
 
 # BILLED lines (D-36): the owner's own reading of the account balance page. Never an API cost; not per gate.
 BILLED_RULE = ("BILLED is used only for an account-balance reading taken by the owner, never on an API cost. The ledger figures in this summary are the "
                "sandbox API's reported operation cost, not account billing; the two are not reconciled (D-36, open).")
-BILLED_ACCOUNT_USD = 0.39
-BILLED_ACCOUNT_SOURCE = ("owner's reading of the Nebius account balance page: $49.61 of $50.00 at 19:37 local time, 2026-10-01; "
-                         "whole account, cumulative, not per gate")
-BILLED_ACCOUNT_NOTE = "Nebius billing lag is unknown: a charge not yet posted to the account would not show in this reading, so it is a reading, not a final bill."
-BILLED_NO_GATE_READING = "no balance reading was taken for this gate; the only reading is the account-level one above"
+# The owner's two readings of the account balance (never an API cost; whole account, cumulative):
+BILLED_READINGS = (
+    {"value": 0.39, "reading": "$49.61 of $50.00 at 19:37 local time, 2026-10-01 (before the harness-v1.4.1 seal and gate)",
+     "source": "owner's reading of the Nebius account balance page, 2026-10-01 19:37 local time; whole account, cumulative, not per gate"},
+    {"value": 0.43, "reading": "$49.57 (screenshot, organisation \"Louay-ag4\"; time of day not stated) after the harness-v1.4.1 seal and gate",
+     "source": "owner's second reading of the Nebius account balance page, 2026-10-01 (screenshot in chat); whole account, cumulative, not per gate"},
+)
+BILLED_ACCOUNT_USD = BILLED_READINGS[-1]["value"]
+BILLED_ACCOUNT_SOURCE = BILLED_READINGS[-1]["source"]
+BILLED_ACCOUNT_NOTE = ("Nebius billing lag is unknown: a charge not yet posted to the account would not show in a reading, so a reading is not a final bill. "
+                           "Between the two readings the balance fell far less than the ledger recorded for the same work (the interval line below gives the difference, and the "
+                           "ledger figure for that interval is quoted with it): the two are not reconciled.")
+BILLED_NO_GATE_READING = "no balance reading was taken for this gate; the only readings are the account-level ones above"
+BILLED_AWAITED = "the owner's balance reading after this gate has not been received yet"
+BILLED_GATE_INTERVALS = {
+    "harness-v1.4.1": {"value": 0.04, "source": "difference of the owner's two readings ($49.61 -> $49.57), the interval that holds the harness-v1.4.1 seal and gate "
+                                                "($3.8588 recorded in the ledger for that interval)"},
+}
+BILLED_PENDING = ("harness-v1.4.2",)
 
 
 def _records(entries: list[dict], where: str) -> dict:
@@ -435,23 +512,52 @@ def _has_model_attempt(x: dict) -> bool:
     return any(s["step"] == "attempt" and s["type"] == "model" for s in x["timeline"])
 
 
+def _has_applied_model_repair(x: dict) -> bool:
+    return any(s["step"] == "attempt" and s["type"] == "model" and s["outcome"] == "applied" for s in x["timeline"])
+
+
 def _headline(docs: dict[str, dict]) -> dict:
+    """The count over EVERY exploratory gate entry-run (harness-v1.3.3, v1.3.4, v1.4.0, v1.4.1, v1.4.2: 20), not over the first two gates only.
+
+    The records must keep supporting the statement the texts make, so the build stops if they do not: every apparent recovery (verdict RUNS_CLEAN or RUNS_AFTER_REPAIR)
+    is exactly one of (a) the smoke-limit artefact (annotated, no model attempt in the record: harness-v1.3.3 #11) or (b) a smoke-criterion recovery (annotated, with an applied
+    model repair attempt in the record: harness-v1.4.2 #7). Neither is a completed run, and none reproduced a result."""
     gate = [x for tag in VERSIONS if docs[tag]["badge"]["exploratory"] for x in docs[tag]["entries"]]
     recovered = [x for x in gate if x["timeline"][-1]["verdict"] in RECOVERED]
-    by_loop = [x for x in recovered if any(s["step"] == "attempt" and s["type"] == "model" and s["outcome"] == "applied" for s in x["timeline"])]
+    with_repair = [x for x in recovered if _has_applied_model_repair(x)]
     artefacts = [x for x in recovered if any(n["id"] == ARTEFACT for n in x["timeline"][-1]["annotations"])]
+    smoke_recoveries = [x for x in recovered if any(n["id"] == SMOKE_RECOVERY for n in x["timeline"][-1]["annotations"])]
     alone = [x for x in recovered if not _has_model_attempt(x)]
-    if len(artefacts) != len(recovered) or len(alone) != len(recovered) or by_loop:
-        raise ReplayError("headline: the records no longer support the statement (a recovery without the artefact annotation, or one with a model repair)")
+    ids = lambda xs: {x["record_id"] for x in xs}  # noqa: E731
+    if (ids(artefacts) | ids(smoke_recoveries) != ids(recovered) or ids(artefacts) & ids(smoke_recoveries)
+            or ids(alone) != ids(artefacts) or ids(with_repair) != ids(smoke_recoveries)):
+        raise ReplayError("headline: the records no longer support the statement (an apparent recovery that is neither the artefact without a model attempt "
+                          "nor the smoke-criterion recovery with an applied model repair)")
     note = next(n for n in artefacts[0]["timeline"][-1]["annotations"] if n["id"] == ARTEFACT) if artefacts else None
+    smoke_note = next(n for n in smoke_recoveries[0]["timeline"][-1]["annotations"] if n["id"] == SMOKE_RECOVERY) if smoke_recoveries else None
+    per_version = []
+    for tag in VERSIONS:
+        if not docs[tag]["badge"]["exploratory"]:
+            continue
+        mine = docs[tag]["entries"]
+        per_version.append({
+            "harness_tag": tag, "gate_passed": docs[tag]["badge"]["gate_passed"],
+            "entry_runs": _records(mine, f"entry-runs of the {tag} gate"),
+            "apparent_recoveries": _records([x for x in mine if x["timeline"][-1]["verdict"] in RECOVERED], f"{tag} entry-runs with verdict RUNS_CLEAN or RUNS_AFTER_REPAIR"),
+            "indeterminate": _records([x for x in mine if x["timeline"][-1]["verdict"] == "INDETERMINATE"], f"{tag} entry-runs with verdict INDETERMINATE"),
+            "blocked": _records([x for x in mine if x["timeline"][-1]["verdict"] == "BLOCKED"], f"{tag} entry-runs with verdict BLOCKED"),
+        })
     return {
-        "gate_entry_runs": _records(gate, "entry-runs of the two exploratory gates"),
-        "recovered_by_llm_loop": _records(by_loop, "verdict RUNS_CLEAN or RUNS_AFTER_REPAIR with an applied model repair attempt"),
+        "gate_entry_runs": _records(gate, "entry-runs of the exploratory gates (harness-v1.3.3, v1.3.4, v1.4.0, v1.4.1, v1.4.2)"),
         "apparent_recoveries": _records(recovered, "verdict RUNS_CLEAN or RUNS_AFTER_REPAIR"),
         "apparent_recoveries_annotated_as_artefact": _records(artefacts, "apparent recovery carrying the smoke-limit artefact annotation"),
         "recoveries_by_time_machine_alone": _records(alone, "apparent recovery with no model repair attempt in the record"),
+        "recoveries_with_applied_model_repair": _records(with_repair, "verdict RUNS_CLEAN or RUNS_AFTER_REPAIR with an applied model repair attempt (smoke criterion)"),
         "with_recorded_model_attempt": _records([x for x in gate if _has_model_attempt(x)], "at least one model repair attempt in the record"),
         "artefact": [{"record_id": x["record_id"], "harness_tag": x["record_id"].split("/")[0], "entry": x["entry"]["id"], "annotation": note} for x in artefacts],
+        "smoke_criterion_recovery": [{"record_id": x["record_id"], "harness_tag": x["record_id"].split("/")[0], "entry": x["entry"]["id"], "annotation": smoke_note}
+                                     for x in smoke_recoveries],
+        "per_version": per_version,
     }
 
 
@@ -475,38 +581,86 @@ def _defects(docs: dict[str, dict], root: Path) -> dict:
     return {"status_rule": dict(register.STATUS_RULE), "rows": rows}
 
 
+def _smoke_cost(data: dict) -> list[tuple[str, float]]:
+    """(field, cost) of every costed sandbox operation in an upload smoke / probe record: `runs[].cost_usd`, or the record's own `cost_usd`."""
+    runs = data.get("runs")
+    if runs is None:
+        return [("cost_usd", data["cost_usd"])] if data.get("cost_usd") is not None else []
+    return [(f"runs[{i}].cost_usd", r["cost_usd"]) for i, r in enumerate(runs) if r.get("cost_usd") is not None]
+
+
 def _ledger(docs: dict[str, dict], source: BlobSource, root: Path) -> dict:
-    for line in (LEDGER_LINE, LOWER_BOUND_LINE):
+    for line in (LEDGER_LINE, LOWER_BOUND_LINE, *LEDGER_HISTORY):
         _quote_present(root, line)
     components, kills = [], []
     for key, name, tag, directory in SEAL_SETS:
-        costed: dict[str, list[str]] = {"cost_usd": [], "completed_cost_usd": []}
-        total, listed = 0.0, []
+        measured_fields: dict[str, list[str]] = {"cost_usd": [], "completed_cost_usd": [], "measured_completed_usd": []}
+        total, estimated_total, listed, estimates = 0.0, 0.0, [], []
         for path in source.list_dir(directory):
             if not path.endswith(".json"):
                 continue
             blob = source.read(path)
             data, rid = json.loads(blob.decode("utf-8")), f"{path}@{hashlib.sha256(blob).hexdigest()}"
-            field = next((f for f in costed if f in data), None)
+            # a killed operation that carries its own split: the API-reported completed steps (`measured_completed_usd`) and the estimate for the killed step
+            if data.get("killed") and data.get("measured_completed_usd") is not None and data.get("cost_usd") is not None:
+                field = "measured_completed_usd"
+                estimates.append({"record": rid, "path": path, "value": round(data["cost_usd"] - data["measured_completed_usd"], 10),
+                                  "field": "cost_usd - measured_completed_usd",
+                                  "computed_from": "cost_usd - measured_completed_usd of the record (the killed step's ESTIMATE, tagged in the record's `cost_tag`)"})
+            else:
+                field = next((f for f in measured_fields if f in data), None)
+            cost = data.get("cost")
+            if isinstance(cost, dict) and cost.get("tag") == "ESTIMATED" and cost.get("estimated_upper_bound_usd") is not None and cost.get("measured_usd") is None:
+                estimates.append({"record": rid, "path": path, "value": cost["estimated_upper_bound_usd"], "field": "cost.estimated_upper_bound_usd",
+                                  "computed_from": "cost.estimated_upper_bound_usd of the record (an upper bound, tagged ESTIMATED in the record)"})
             listed.append({"record": rid, "path": path, "cost_field": field})
             if field:
-                costed[field].append(rid)
+                measured_fields[field].append(rid)
                 total += data[field]
             no_killed_step_cost = data.get("path") == "kill_at_operation_limit" and (field is None or data.get("via") == "client_wait_timeout")
-            if no_killed_step_cost:
+            killed_with_split = field == "measured_completed_usd"
+            if no_killed_step_cost or killed_with_split or (isinstance(cost, dict) and cost.get("estimated_upper_bound_usd") is not None):
                 seconds = data.get("killed_seconds")
-                kills.append({
+                kill = {
                     "record": rid, "path": path, "component": key, "via": data.get("via"), "error": data.get("error"), "message": data.get("message"),
                     "killed_seconds": {"value": seconds, "tag": API_REPORTED, "record_field": {"record": rid, "field": "killed_seconds"}}
                     if seconds is not None else {"value": None, "reason": "no killed_seconds field in this record"},
                     "completed_cost": {"value": data[field], "tag": API_REPORTED, "record_field": {"record": rid, "field": field}}
                     if field else {"value": None, "reason": "no cost field in this record"},
-                })
+                }
+                matching = [e for e in estimates if e["record"] == rid]
+                if matching:
+                    kill["estimated_cost"] = {"value": matching[0]["value"], "tag": ESTIMATED, "computed_from": matching[0]["computed_from"],
+                                              "record_field": {"record": rid, "field": matching[0]["field"]}}
+                kills.append(kill)
+        for e in estimates:
+            estimated_total += e["value"]
         components.append({
             "key": key, "name": name, "kind": "seal", "harness_tag": tag, "directory": directory, "records": listed,
             "measured": {"value": round(total, 10), "tag": API_REPORTED,
-                         "sum_of_records": [{"field": f, "records": ids} for f, ids in costed.items() if ids]},
-            "estimated": {"value": None, "reason": "no estimate field in the seal-verification records"},
+                         "sum_of_records": [{"field": f, "records": ids} for f, ids in measured_fields.items() if ids]},
+            "estimated": ({"value": round(estimated_total, 10), "tag": ESTIMATED,
+                           "sum_of_records": [{"computed_from": e["computed_from"], "record": e["record"],
+                                               "estimated_part": {"value": e["value"], "tag": ESTIMATED, "record_field": {"record": e["record"], "field": e["field"]}}}
+                                              for e in estimates]}
+                          if estimates else {"value": None, "reason": "no estimate field in the seal-verification records"}),
+        })
+    for key, name, tag, directory in SMOKE_SETS:
+        listed, parts, total = [], [], 0.0
+        for path in source.list_dir(directory):
+            if not path.rsplit("/", 1)[1].startswith("upload_"):
+                continue
+            blob = source.read(path)
+            data, rid = json.loads(blob.decode("utf-8")), f"{path}@{hashlib.sha256(blob).hexdigest()}"
+            costed = _smoke_cost(data)
+            listed.append({"record": rid, "path": path, "cost_field": ", ".join(f for f, _ in costed) or None})
+            for field, cost in costed:
+                total += cost
+                parts.append({"record": rid, "field": field})
+        components.append({
+            "key": key, "name": name, "kind": "smoke", "harness_tag": tag, "directory": directory, "records": listed,
+            "measured": {"value": round(total, 10), "tag": API_REPORTED, "sum_of_records": [{"fields": parts}]},
+            "estimated": {"value": None, "reason": "no estimate field in the upload smoke records (a timed-out upload carries no cost: D-27)"},
         })
     for tag in VERSIONS:
         doc = docs[tag]
@@ -514,25 +668,36 @@ def _ledger(docs: dict[str, dict], source: BlobSource, root: Path) -> dict:
             continue
         ids = [x["record_id"] for x in doc["entries"]]
         components.append({
-            "key": "gate-" + tag.replace("harness-", "").replace(".", ""), "name": "Smoke gate", "kind": "gate", "harness_tag": tag,
+            "key": "gate-" + tag.replace("harness-", "").replace(".", ""), "name": "Smoke gate" if tag < "harness-v1.4" else "Gate", "kind": "gate", "harness_tag": tag,
             "directory": doc["entries"][0]["record_path"].rsplit("/", 1)[0],
             "records": [{"record": x["record_id"], "path": x["record_path"], "cost_field": "cost_guard.spent_usd"} for x in doc["entries"]],
             "measured": {"value": doc["batch"]["measured"]["value"], "tag": API_REPORTED, "sum_of": {"field": "cost.measured", "records": ids}},
             "estimated": {"value": doc["batch"]["estimated"]["value"], "tag": ESTIMATED, "sum_of": {"field": "cost.estimated", "records": ids}},
         })
-    order = ["seal-attempt-one-v133", "seal-repeat-v133", "gate-v133", "seal-v134", "gate-v134"]
-    components.sort(key=lambda c: order.index(c["key"]))
+    components.sort(key=lambda c: LEDGER_ORDER.index(c["key"]))
     measured = round(sum(c["measured"]["value"] for c in components), 10)
     estimated = round(sum(c["estimated"]["value"] or 0.0 for c in components), 10)
+    gate_lines = []
+    for c in (c for c in components if c["kind"] == "gate"):
+        line = {"scope": "gate", "name": c["name"], "harness_tag": c["harness_tag"], "for_component": c["key"], "tag": BILLED}
+        if c["harness_tag"] in BILLED_GATE_INTERVALS:
+            interval = BILLED_GATE_INTERVALS[c["harness_tag"]]
+            line.update(value=interval["value"], bound="difference of two readings", currency="USD", owner_reading={"by": "owner", "source": interval["source"]})
+        elif c["harness_tag"] in BILLED_PENDING:
+            line.update(value=None, reason=BILLED_AWAITED)
+        else:
+            line.update(value=None, reason=BILLED_NO_GATE_READING)
+        gate_lines.append(line)
     billed = {
         "rule": BILLED_RULE,
-        "account": {"scope": "account", "label": "Account level, cumulative, not per gate", "bound": "at most", "value": BILLED_ACCOUNT_USD, "tag": BILLED,
+        "account": {"scope": "account", "label": "Account level, cumulative, not per gate (the latest reading)", "bound": "at most", "value": BILLED_ACCOUNT_USD, "tag": BILLED,
                     "currency": "USD", "owner_reading": {"by": "owner", "source": BILLED_ACCOUNT_SOURCE}, "note": BILLED_ACCOUNT_NOTE},
-        "gates": [{"scope": "gate", "name": c["name"], "harness_tag": c["harness_tag"], "for_component": c["key"],
-                   "value": None, "tag": BILLED, "reason": BILLED_NO_GATE_READING} for c in components if c["kind"] == "gate"],
+        "readings": [{"scope": "account", "bound": "at most", "value": r["value"], "tag": BILLED, "currency": "USD", "reading": r["reading"],
+                      "owner_reading": {"by": "owner", "source": r["source"]}} for r in BILLED_READINGS],
+        "gates": gate_lines,
     }
     return {
-        "reported_line": LEDGER_LINE, "lower_bound": {"defect": "D-27", "line": LOWER_BOUND_LINE},
+        "reported_line": LEDGER_LINE, "lower_bound": {"defect": "D-27", "line": LOWER_BOUND_LINE}, "reported_history": [dict(h) for h in LEDGER_HISTORY],
         "components": components,
         "measured": {"value": measured, "tag": API_REPORTED, "sum_of_components": "measured"},
         "estimated": {"value": estimated, "tag": ESTIMATED, "sum_of_components": "estimated"},
@@ -576,8 +741,10 @@ def _stack(records: list[Record]) -> dict:
                 "model": model,
                 "roles": [role for role, _ in ROLES if models[role] == model],
                 "calls": total(f"count of model_calls where model is {model}", len(mine)),
-                "prompt_tokens": total(f"model_calls[].usage.prompt_tokens where model is {model}", sum(c["usage"]["prompt_tokens"] for c in mine)),
-                "completion_tokens": total(f"model_calls[].usage.completion_tokens where model is {model}", sum(c["usage"]["completion_tokens"] for c in mine)),
+                # a call that ended in an error (harness-v1.4.1 #7: APITimeoutError) is counted as a call and has no usage
+                "calls_without_usage": total(f"count of model_calls without usage where model is {model}", sum(1 for c in mine if not c.get("usage"))),
+                "prompt_tokens": total(f"model_calls[].usage.prompt_tokens where model is {model}", sum((c.get("usage") or {}).get("prompt_tokens", 0) for c in mine)),
+                "completion_tokens": total(f"model_calls[].usage.completion_tokens where model is {model}", sum((c.get("usage") or {}).get("completion_tokens", 0) for c in mine)),
                 "price_per_million_input_tokens": {"value": prices[model][0], "tag": API_REPORTED, "record_field": {"record": ids[0], "field": f"cost_guard.prices_usd_per_1m[{model}][0]"}},
                 "price_per_million_output_tokens": {"value": prices[model][1], "tag": API_REPORTED, "record_field": {"record": ids[0], "field": f"cost_guard.prices_usd_per_1m[{model}][1]"}},
             })
@@ -615,12 +782,16 @@ def check_billed(summary: dict) -> None:
     rest = json.dumps({**summary, "ledger": {k: v for k, v in summary["ledger"].items() if k != "billed"}}, ensure_ascii=False)
     if f'"{BILLED}"' in rest:
         raise ReplayError("BILLED is used outside ledger.billed")
-    account = billed["account"]
-    if account["tag"] != BILLED or not account["owner_reading"].get("source") or account["bound"] != "at most":
-        raise ReplayError("ledger.billed.account: a BILLED value needs the owner's reading as its source and its bound")
+    for account in [billed["account"], *billed["readings"]]:
+        if account["tag"] != BILLED or not account["owner_reading"].get("source") or account["bound"] != "at most":
+            raise ReplayError("ledger.billed.account: a BILLED value needs the owner's reading as its source and its bound")
     for line in billed["gates"]:
-        if line["tag"] != BILLED or line["value"] is not None or not line.get("reason"):
+        if line["tag"] != BILLED:
+            raise ReplayError(f"ledger.billed.gates: not a BILLED line ({line.get('harness_tag')})")
+        if line["value"] is None and not line.get("reason"):
             raise ReplayError(f"ledger.billed.gates: a gate without a balance reading is null with a reason ({line.get('harness_tag')})")
+        if line["value"] is not None and not (line.get("owner_reading") or {}).get("source"):
+            raise ReplayError(f"ledger.billed.gates: a BILLED value needs the owner's reading as its source ({line.get('harness_tag')})")
 
 
 def build_summary(docs: dict[str, dict], source: BlobSource, root: Path = ROOT) -> dict:
@@ -689,6 +860,19 @@ def _criterion_md(f: dict) -> str:
     return line
 
 
+def _rule_md(rule_step: Any) -> str:
+    """One deterministic rule step (harness-v1.4.x): the rule and the fields that say what it did, each quoted; its numbers are tagged in the passport."""
+    if not isinstance(rule_step, dict) or "rule" not in rule_step:
+        return show(rule_step)
+    parts = [f"rule {code(rule_step['rule'])}"]
+    for key in ("matched_error", "hook", "applied", "result", "paths_fired", "kill_evidenced", "limit_quote", "on_candidate", "apt_added", "reason"):
+        if key in rule_step:
+            parts.append(f"{key.replace('_', ' ')} {code(rule_step[key])}")
+    for follow in rule_step.get("then") or []:
+        parts.append("then " + _rule_md(follow))
+    return " · ".join(parts)
+
+
 def _step_md(step: dict) -> list[str]:
     if step["step"] == "baseline":
         return [f"- baseline: {code(step['result'])} · exit code {show(step['exit_code'])} · {code(step['taxonomy_code'])} · evidence {code(step['evidence'])}"]
@@ -700,19 +884,32 @@ def _step_md(step: dict) -> list[str]:
             quoted = "; ".join(f"{code(s['path'])}: {code(s['quote'])}" for s in note["sources"])
             lines.append(f"  - annotation {code(note['id'])}: {code(note['text'])} (source {quoted})")
         return lines
-    head = f"- {'era lock' if step['step'] == 'era_lock' else 'attempt'} {code(step['attempt'])} ({code(step['type'])}): "
+    head = f"- {'era lock' if step['step'] == 'era_lock' else 'rule step' if step['step'] == 'rule' else 'attempt'} {code(step['attempt'])} ({code(step['type'])}): "
     if "era_lock" in step:
         lock = step["era_lock"]
         head += f"era {code(lock['era_date'])} · Python {code(lock['python'])} · lock ok {code(lock['lock_ok'])} · fallback {code(lock['fallback'])} · "
+    elif step["step"] == "rule":
+        head += f"{_rule_md(step['rule_step'])} · "
     else:
         proposed = step["proposed"]
         delta = ", ".join(code(" ".join(str(x[k]) for k in ("op", "package", "version") if x[k])) for x in proposed["env_delta"]) or "none"
         head += f"proposed diff {show(proposed['diff_sha256'])} · env delta {delta} · "
+    cited = step["cited"]
+    cited_md = (", ".join(code(s["url"]) for s in cited) or "none") if isinstance(cited, list) else show(cited)
     head += (f"gate {code(step['gate_decision'])} → {code(step['outcome'])} · reject reason {show(step['reject_reason'])} · "
-             f"consulted {show(step['consulted_count'])} · cited {show(step['cited'])} · reason_no_citation {show(step['reason_no_citation'])} · "
+             f"consulted {show(step['consulted_count'])} · cited {cited_md} · reason_no_citation {show(step['reason_no_citation'])} · "
              f"silent_exit {show(step['silent_exit'])} · exit code {show(step['exit_code'])}")
     ex = step["execution"]
     lines = [head, f"  - execution: mode {show(ex['mode'])} · seconds {show(ex['seconds'])} · outcome {show(ex['outcome'])}"]
+    if "candidate" in step:  # harness-v1.4.x
+        lines.append(f"  - candidate {show(step['candidate'])} · chosen {show(step['chosen'])} · branch {show(step['branch'])}")
+        if "rule_step" in step and step["step"] == "attempt" and is_tagged(step["rule_step"]) is False and isinstance(step["rule_step"], dict) and "rule" in step["rule_step"]:
+            lines.append(f"  - rule steps on this candidate's branch: {_rule_md(step['rule_step'])}")
+        adj = step["adjudication"]
+        if isinstance(adj, dict) and "reasoning" in adj:
+            lines.append(f"  - adjudication (shared by the round's candidates): chosen {code(adj['chosen'])} · qualifying {code(adj['qualifying'])} · model called {code(adj['model_called'])}"
+                         + (f" · adopted reason {code(adj['adopted_reason'])}" if "adopted_reason" in adj else "")
+                         + (f" · re-asked {code(adj['reasked'])}" if "reasked" in adj else "") + f" · reasoning {code(adj['reasoning'])}")
     if ex["killed"]:
         lines.append(f"  - KILL: funded seconds {show(ex['funded_seconds'])} · wall seconds {show(ex['wall_seconds'])} · killed by {show(ex['killed_by'])} · "
                      f"killed step seconds {show(ex['killed_step_seconds'])} · cap line at second {show(ex['cap_line']['limit_second'])} crossed at second "
@@ -737,6 +934,10 @@ def _entry_md(x: dict) -> list[str]:
             line += f" · STOPPED at second {show(op['stopped_at_second'])} · API-reported part {show(op['measured_part'])}"
         lines.append(line)
         lines += [f"    - {s}" for s in _sources(op["spend"])]
+    for op in c.get("stored_operations", []):  # harness-v1.4.x: the record's own operation list (a disposal run has no wall or funded seconds)
+        fields = [f"{name.replace('_', ' ')} {show(op[name])}" for name in ("wall_seconds", "sandbox_seconds", "funded_seconds", "cost_usd", "cost_estimated_usd") if name in op]
+        flags = [f"torch installed {code(op['torch_installed'])}"] if "torch_installed" in op else []
+        lines.append(f"  - stored operation {show(op['n'])} {code(op['role'])}: outcome {code(op['outcome'])} · " + " · ".join(fields + flags))
     cum = c["batch_cumulative"]
     lines.append(f"  - batch so far: API-reported {show(cum['measured'])} + estimated {show(cum['estimated'])} of cap {show(c['batch_cap'])} · "
                  f"over the batch cap {code(cum['over_batch_cap'])}")

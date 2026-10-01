@@ -1,4 +1,4 @@
-"""Write the 49 passports and the record index from committed blobs.
+"""Write the 61 passports and the record index from committed blobs.
 
     python -m phase_d.build_passports
 

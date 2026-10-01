@@ -1,4 +1,4 @@
-"""The 49 per-entry run records of harness-v1.3.2 / v1.3.3 / v1.3.4, read from git, never from the worktree.
+"""The 61 per-entry run records of harness-v1.3.2 / v1.3.3 / v1.3.4 / v1.4.0 / v1.4.1 / v1.4.2, read from git, never from the worktree.
 
 A record's identity is `<harness_tag>/<arm>/<entry>@<sha256>`, with the SHA-256 taken over the committed blob
 (`git cat-file blob HEAD:<path>`). The worktree copy is not a valid basis: with `core.autocrlf=true` a checkout
@@ -34,8 +34,12 @@ RECORD_SETS: tuple[RecordSet, ...] = (
     RecordSet("harness-v1.3.2", "treatment", "runs/corpus_v2_batch/harness-v1.3.2/treatment", 20),
     RecordSet("harness-v1.3.3", "smoke", "runs/corpus_v2_batch/harness-v1.3.3/smoke", 4),
     RecordSet("harness-v1.3.4", "smoke", "runs/corpus_v2_batch/harness-v1.3.4/smoke", 4),
+    # the v1.4.x gates (entries 3, 7, 8, 11, TREATMENT only): the folder is `gate`, not `smoke`
+    RecordSet("harness-v1.4.0", "gate", "runs/corpus_v2_batch/harness-v1.4.0/gate", 4),
+    RecordSet("harness-v1.4.1", "gate", "runs/corpus_v2_batch/harness-v1.4.1/gate", 4),
+    RecordSet("harness-v1.4.2", "gate", "runs/corpus_v2_batch/harness-v1.4.2/gate", 4),
 )
-EXPECTED_TOTAL = sum(s.expected for s in RECORD_SETS)  # 49
+EXPECTED_TOTAL = sum(s.expected for s in RECORD_SETS)  # 61
 
 
 class BlobSource(Protocol):
@@ -98,7 +102,7 @@ class RecordError(Exception):
 
 
 def load_records(source: BlobSource | None = None) -> list[Record]:
-    """All 49 records in a fixed order (set order, then path). Raises if a set has an unexpected count."""
+    """All 61 records in a fixed order (set order, then path). Raises if a set has an unexpected count."""
     source = source or GitBlobSource()
     records: list[Record] = []
     for rs in RECORD_SETS:

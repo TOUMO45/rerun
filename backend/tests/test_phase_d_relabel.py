@@ -28,19 +28,28 @@ if str(ROOT) not in sys.path:
 from phase_d import check_dashboard, check_tags, dashboard, passports, replay  # noqa: E402
 
 PHASE_D = ROOT / "reports" / "phase-d"
-V132, V133, V134 = replay.VERSIONS
+V132, V133, V134, V140, V141, V142 = replay.VERSIONS
 OLD_TAG = re.compile(r"(?<![A-Za-z_])MEASURED(?![A-Za-z_])")  # NOT_MEASURED is a stored verdict category of the pre-registered line, not the tag
 SURFACE_TEXTS = ["README.md", "docs/submission/demo_script.md", "docs/submission/devpost_answers.md", "docs/submission/description.md",
                  "docs/submission/criteria_map.md", "docs/design/v1.4.0-budget.md"]
 DEFINES_TAGS = {"README.md", "docs/design/v1.4.0-budget.md", "reports/phase-d/README.md", "reports/phase-d/replay/index.md", "reports/phase-d/dashboard/index.html"}
 DEFINITION = "the sandbox API's reported operation cost, not account billing"
 LEDGER_TEXTS = ["README.md", "docs/submission/devpost_answers.md", "docs/submission/description.md"]
-HONEST = ("the sandbox API's reported operation cost", "at most $0.39 [BILLED]", "not reconciled", "D-36, open")
-ACCOUNT_SOURCE = ("owner's reading of the Nebius account balance page: $49.61 of $50.00 at 19:37 local time, 2026-10-01; "
+HONEST = ("the sandbox API's reported operation cost", "at most $0.43 [BILLED]", "not reconciled", "D-36, open")
+# the owner's two readings of the account balance (the second, $49.57, after the harness-v1.4.1 seal and gate): the latest is the account line
+ACCOUNT_SOURCE = ("owner's second reading of the Nebius account balance page, 2026-10-01 (screenshot in chat); "
                   "whole account, cumulative, not per gate")
-NO_GATE_READING = "no balance reading was taken for this gate; the only reading is the account-level one above"
+FIRST_READING_SOURCE = ("owner's reading of the Nebius account balance page, 2026-10-01 19:37 local time; "
+                        "whole account, cumulative, not per gate")
+INTERVAL_SOURCE = ("difference of the owner's two readings ($49.61 -> $49.57), the interval that holds the harness-v1.4.1 seal and gate "
+                   "($3.8588 recorded in the ledger for that interval)")
+NO_GATE_READING = "no balance reading was taken for this gate; the only readings are the account-level ones above"
+AWAITED = "the owner's balance reading after this gate has not been received yet"
+BILLED_VALUES = {"0.39", "0.43", "0.04"}  # the owner's readings (and the interval between them): the only BILLED figures
 
-# digests over "<file>|<json path>|<value>" of every tagged value, from the files at commit 87b782e (before the relabel)
+# digests over "<file>|<json path>|<value>" of every tagged value, from the files at commit 87b782e (before the relabel). They cover the 49 passports of
+# harness-v1.3.2 / v1.3.3 / v1.3.4 and those versions' REPLAY files: the Phase D update for v1.4.0 / v1.4.1 / v1.4.2 adds files and annotations (strings),
+# and changes no tagged value of these.
 PRE_RELABEL_DIGESTS = {
     "passports": (49, "7cf9a036ef0c738a253a54d4c9fd3bf82ffede453e1cceb627cbbacdfa8bcf1e"),
     "harness-v1.3.2": "8f4de7c74fb6656587d62de2a08c09cf5b86e94319398139cfe6b3634a08eeb4",
@@ -206,7 +215,7 @@ def test_the_kept_image_wording_the_owner_replaced_appears_on_no_surface():
 def test_the_tag_vocabulary_is_api_reported_estimated_derived_and_billed():
     assert passports.TAGS == ("API-REPORTED", "ESTIMATED", "DERIVED", "BILLED")
     assert passports.RECORD_TAGS == passports.TAGS[:3] and "MEASURED" not in passports.TAGS and passports.SCHEMA.endswith("/v4")
-    assert replay.SCHEMA.endswith("/v2") and replay.SUMMARY_SCHEMA.endswith("/v2")
+    assert replay.SCHEMA.endswith("/v3") and replay.SUMMARY_SCHEMA.endswith("/v3")
     assert "NOT account billing" in passports.__doc__ and "BILLED" in passports.__doc__
     for rel in _passport_files() + [f"reports/phase-d/replay/{t}.json" for t in replay.VERSIONS]:
         for path, obj in _tagged_objects(json.loads(_read(rel))):
@@ -229,14 +238,26 @@ def test_every_surface_that_defines_the_tags_says_a_dollar_figure_is_the_apis_re
 
 def test_billed_is_the_owners_balance_reading_in_ledger_billed_and_nowhere_else_in_the_summary():
     summary = _summary()
-    assert [p for p, o in _tagged_objects(summary) if o["tag"] == "BILLED"] == ["$.ledger.billed.account", "$.ledger.billed.gates[0]", "$.ledger.billed.gates[1]"]
+    assert [p for p, o in _tagged_objects(summary) if o["tag"] == "BILLED"] == (
+        ["$.ledger.billed.account", "$.ledger.billed.readings[0]", "$.ledger.billed.readings[1]"] + [f"$.ledger.billed.gates[{i}]" for i in range(5)])
     billed = summary["ledger"]["billed"]
     account = billed["account"]
-    assert (account["value"], account["tag"], account["currency"], account["bound"]) == (0.39, "BILLED", "USD", "at most")
+    assert (account["value"], account["tag"], account["currency"], account["bound"]) == (0.43, "BILLED", "USD", "at most")
     assert account["owner_reading"] == {"by": "owner", "source": ACCOUNT_SOURCE}
     assert "billing lag is unknown" in account["note"] and "cumulative, not per gate" in account["owner_reading"]["source"]
-    assert [(g["harness_tag"], g["for_component"], g["value"], g["tag"], g["reason"]) for g in billed["gates"]] == [
-        (V133, "gate-v133", None, "BILLED", NO_GATE_READING), (V134, "gate-v134", None, "BILLED", NO_GATE_READING)]
+    assert "far less than the ledger recorded" in account["note"] and "not reconciled" in account["note"]
+    # both readings are kept, each the owner's, never an API cost
+    assert [(r["value"], r["owner_reading"]["source"], r["bound"]) for r in billed["readings"]] == [(0.39, FIRST_READING_SOURCE, "at most"), (0.43, ACCOUNT_SOURCE, "at most")]
+    lines = {g["harness_tag"]: g for g in billed["gates"]}
+    assert [(g["harness_tag"], g["for_component"]) for g in billed["gates"]] == [
+        (V133, "gate-v133"), (V134, "gate-v134"), (V140, "gate-v140"), (V141, "gate-v141"), (V142, "gate-v142")]
+    for tag in (V133, V134, V140):
+        assert (lines[tag]["value"], lines[tag]["tag"], lines[tag]["reason"]) == (None, "BILLED", NO_GATE_READING)
+    # the one gate whose interval holds the owner's two readings carries the difference, as BILLED, with that reading as its source
+    assert (lines[V141]["value"], lines[V141]["tag"], lines[V141]["bound"]) == (0.04, "BILLED", "difference of two readings")
+    assert lines[V141]["owner_reading"] == {"by": "owner", "source": INTERVAL_SOURCE} and "reason" not in lines[V141]
+    # the reading after the last gate has not been received: null, with that reason
+    assert (lines[V142]["value"], lines[V142]["tag"], lines[V142]["reason"]) == (None, "BILLED", AWAITED)
     # one BILLED line per gate that exists in the REPLAY, and the exploratory gates are the only gates the ledger has
     assert [c["key"] for c in summary["ledger"]["components"] if c["kind"] == "gate"] == [g["for_component"] for g in billed["gates"]]
     assert "never on an API cost" in billed["rule"] and "D-36" in billed["rule"]
@@ -274,19 +295,26 @@ def test_a_misused_billed_tag_stops_the_build():
         replay.build_replay(passports=tampered)
 
 
-def test_the_dashboard_shows_one_billed_number_and_the_billed_lines_in_the_ledger():
+def test_the_dashboard_shows_the_owners_billed_readings_and_the_billed_lines_in_the_ledger():
     page = _read("reports/phase-d/dashboard/index.html")
     root = check_dashboard.parse(page)
     ledger = next(n for n in root.walk() if n.attrs.get("id") == "ledger")
     numbers = [n for n in check_dashboard.numbers(root) if n.attrs["data-tag"] == "BILLED"]
-    assert [(n.text(), n.attrs["data-value"], n.attrs["data-source"]) for n in numbers] == [("$0.3900", "0.39", "owner-balance-reading")]
-    assert all(_within(n, ledger) for n in numbers) and numbers[0].attrs.get("data-record") is None
+    # the latest account reading, the two readings, and the difference of the two on the one gate whose interval holds them: each from the owner, none from a record
+    assert [(n.text(), n.attrs["data-value"], n.attrs["data-source"]) for n in numbers] == [
+        ("$0.4300", "0.43", "owner-balance-reading"), ("$0.3900", "0.39", "owner-balance-reading"),
+        ("$0.4300", "0.43", "owner-balance-reading"), ("$0.0400", "0.04", "owner-balance-reading")]
+    assert all(_within(n, ledger) for n in numbers) and all(n.attrs.get("data-record") is None for n in numbers)
     chips = [n for n in root.walk() if n.tag == "span" and {"tag", "BILLED"} <= n.classes()]
-    assert [_within(c, ledger) for c in chips] == [False, True, True, True]  # the legend, the account line, and one line per gate
+    assert [_within(c, ledger) for c in chips] == [False] + [True] * 8  # the legend; the account line, the two readings, and one line per gate
     lines = [n for n in ledger.walk() if n.tag == "li" and n.attrs.get("id", "").startswith("billed-")]
-    assert [n.attrs["id"] for n in lines] == ["billed-account", "billed-gate-v133", "billed-gate-v134"]
+    assert [n.attrs["id"] for n in lines] == ["billed-account", "billed-reading-0", "billed-reading-1", "billed-gate-v133", "billed-gate-v134",
+                                              "billed-gate-v140", "billed-gate-v141", "billed-gate-v142"]
     assert "at most" in lines[0].text() and ACCOUNT_SOURCE in lines[0].text() and "billing lag is unknown" in lines[0].text()
-    assert all(NO_GATE_READING in n.text() and "BILLED" in n.text() for n in lines[1:])
+    assert FIRST_READING_SOURCE in lines[1].text() and ACCOUNT_SOURCE in lines[2].text()
+    assert all(NO_GATE_READING in n.text() and "BILLED" in n.text() for n in lines[3:6])
+    assert INTERVAL_SOURCE in lines[6].text() and "difference of two readings" in lines[6].text()  # the one gate with a reading: the interval holding both
+    assert AWAITED in lines[7].text() and "BILLED" in lines[7].text()
     assert "not account billing" in " ".join(ledger.text().split())
     assert check_dashboard.problems(page) == []
 
@@ -301,31 +329,57 @@ def test_the_texts_that_state_a_ledger_figure_say_it_is_the_apis_reported_cost_a
                                  "docs/submission/criteria_map.md"])
 def test_billed_in_the_texts_is_only_the_owners_balance_reading(rel):
     text = _read(rel)
-    assert set(re.findall(r"\$([\d.]+) \[?BILLED", text)) <= {"0.39"}  # the only BILLED figure
-    assert not re.findall(r"\$0\.39(?!\d)(?! \[?BILLED)", text)  # and that figure is never shown without it
+    assert set(re.findall(r"\$([\d.]+) \[?BILLED", text)) <= BILLED_VALUES  # the owner's readings (and their difference): the only BILLED figures
+    assert not re.findall(r"\$(?:0\.39|0\.43|0\.04)(?!\d)(?! \[?BILLED)", text)  # and those figures are never shown without it
     for number, line in enumerate(text.splitlines(), 1):
         if "BILLED" in line:
-            assert re.search(r"\$0\.39 \[?BILLED|account-balance reading|account balance|BILLED lines|BILLED value none|Tags:", line), f"{rel}:{number}: {line[:120]!r}"
+            assert re.search(r"\$(?:0\.39|0\.43|0\.04) \[?BILLED|account-balance reading|account balance|BILLED lines|BILLED value none|Tags:", line), f"{rel}:{number}: {line[:120]!r}"
     if rel == "README.md":
         section = text.split("## Cost ledger")[1].split("## License")[0]
         assert "$49.61 of $50.00 at 19:37 local time, 2026-10-01" in section and "Nebius billing lag is unknown" in section
-        assert section.count("BILLED value none") == 2 and "harness-v1.3.3" in section and "harness-v1.3.4" in section
+        # three gates without a reading, and the last one whose reading has not been received yet (the 2 + 1 + 1 lines of ledger.billed.gates without a value)
+        assert section.count("BILLED value none") == 4 and "has not been received" in section
+        assert all(tag in section for tag in ("harness-v1.3.3", "harness-v1.3.4", "harness-v1.4.0", "harness-v1.4.1", "harness-v1.4.2"))
 
 
 # ---------------------------------------------------------------- no number changed value
 
 def test_no_number_changed_value_in_the_passports_and_the_replay_version_files():
-    rels = _passport_files()
+    original = (V132, V133, V134)
+    rels = [r for r in _passport_files() if any(f"/passports/{tag}/" in r for tag in original)]
     count, digest = PRE_RELABEL_DIGESTS["passports"]
     assert len(rels) == count and _digest(rels) == digest
-    for tag in replay.VERSIONS:
+    assert len(_passport_files()) == 61  # the 12 passports of v1.4.0 / v1.4.1 / v1.4.2 are new files, not changes
+    for tag in original:
         assert _digest([f"reports/phase-d/replay/{tag}.json"]) == PRE_RELABEL_DIGESTS[tag], tag
+
+
+# What the Phase D update for harness-v1.4.0 / v1.4.1 / v1.4.2 legitimately changed in the summary, each with its new value (the headline is now counted over every
+# exploratory gate entry-run, the inventory and the register grew, the ledger gained the new seals, smokes and gates). Nothing else of the pre-relabel table moves.
+UPDATED_BY_PHASE_D = {
+    "$.headline.gate_entry_runs": 20,
+    "$.headline.apparent_recoveries": 2,
+    "$.headline.with_recorded_model_attempt": 14,
+    "$.inventory.records": 61,
+    "$.inventory.defects": 41,
+    "$.inventory.defects_by_status.fixed-and-gated": 19,
+    "$.inventory.defects_by_status.fixed-unvalidated": 9,
+    "$.inventory.defects_by_status.open": 13,
+}
+RENAMED = {"$.headline.recovered_by_llm_loop": "$.headline.recoveries_with_applied_model_repair"}  # same definition, a name that implies no cause; 0 before v1.4.2, 1 now
 
 
 def test_every_tagged_value_of_the_summary_before_the_relabel_is_still_there_with_the_same_value():
     now = dict(_tagged_pairs(_summary()))
     assert len(PRE_RELABEL_SUMMARY) == 73
-    changed = {path: (value, now.get(path, "MISSING")) for path, value in PRE_RELABEL_SUMMARY.items() if now.get(path, "MISSING") != value}
+    expected = {path: UPDATED_BY_PHASE_D.get(path, value) for path, value in PRE_RELABEL_SUMMARY.items() if path not in RENAMED and not path.startswith("$.ledger.")}
+    changed = {path: (value, now.get(path, "MISSING")) for path, value in expected.items() if now.get(path, "MISSING") != value}
     assert not changed, changed
-    assert set(now) - set(PRE_RELABEL_SUMMARY) == {"$.ledger.billed.account", "$.ledger.billed.gates[0]", "$.ledger.billed.gates[1]"}
-    assert (round(now["$.ledger.measured"], 4), round(now["$.ledger.estimated"], 4), round(now["$.ledger.total"], 4)) == (9.8507, 0.2842, 10.1349)
+    assert PRE_RELABEL_SUMMARY["$.headline.recovered_by_llm_loop"] == 0 and now["$.headline.recoveries_with_applied_model_repair"] == 1  # v1.4.2 #7
+    assert "$.headline.recovered_by_llm_loop" not in now
+    # the ledger: the first five components and the two older kill records are exactly as before; the totals grew by the new seals, smokes and gates
+    for path, value in PRE_RELABEL_SUMMARY.items():
+        if path.startswith("$.ledger.components[") or path.startswith("$.ledger.kill_records["):
+            assert now[path] == value, path
+    assert (round(now["$.ledger.measured"], 4), round(now["$.ledger.estimated"], 4), round(now["$.ledger.total"], 4)) == (21.3218, 1.1717, 22.4935)
+    assert PRE_RELABEL_SUMMARY["$.ledger.total"] == 10.1349119627  # the pre-v1.4.0 figure, kept here as the record of what moved

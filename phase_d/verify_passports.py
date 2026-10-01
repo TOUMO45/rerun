@@ -2,7 +2,7 @@
 
     python -m phase_d.verify_passports
 
-Passes only if: all 49 passports and the record index are byte-identical to a fresh rebuild (line endings
+Passes only if: all 61 passports and the record index are byte-identical to a fresh rebuild (line endings
 normalised, because a checkout may rewrite LF to CRLF), there is no extra passport file, every stored
 `passport_hash` recomputes, every number is tagged, and every annotation's quoted source exists in the file it names.
 A record changed by one byte gets a different record id, so its stored passport no longer matches.

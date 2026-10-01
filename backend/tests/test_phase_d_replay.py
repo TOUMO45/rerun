@@ -1,4 +1,4 @@
-"""Phase D2: REPLAY of harness-v1.3.2 / v1.3.3 / v1.3.4 from committed records, cross-checked against the passports."""
+"""Phase D2: REPLAY of harness-v1.3.2 / v1.3.3 / v1.3.4 / v1.4.0 / v1.4.1 / v1.4.2 from committed records, cross-checked against the passports."""
 
 from __future__ import annotations
 
@@ -18,7 +18,7 @@ if str(ROOT) not in sys.path:
 
 from phase_d import build_replay, passports, records, replay  # noqa: E402
 
-V132, V133, V134 = replay.VERSIONS
+V132, V133, V134, V140, V141, V142 = replay.VERSIONS
 TAG_SUFFIX = re.compile(r" \[(API-REPORTED|ESTIMATED|DERIVED)\]")
 CODE_SPAN = re.compile(r"(`+).+?\1")
 NUMBER = re.compile(r"\d+(?:\.\d+)?(?:e-?\d+)?")
@@ -109,7 +109,7 @@ def test_any_network_call_during_replay_fails(source, stored, monkeypatch):
 
     for name in ("socket", "create_connection", "getaddrinfo"):
         monkeypatch.setattr(socket, name, refuse)
-    assert len(replay.expected_files(source, stored)) == 8
+    assert len(replay.expected_files(source, stored)) == 14
 
 
 def test_the_stored_replay_files_are_identical_to_a_rebuild():
@@ -133,18 +133,27 @@ def test_the_index_lists_each_file_with_its_hash(files):
 
 # ---------------------------------------------------------------- badges and scorecards
 
-def test_the_exploratory_badge_is_on_v133_and_v134_and_absent_on_v132(docs, files):
+def test_the_exploratory_badge_is_on_every_gated_version_and_absent_on_v132(docs, files):
     assert docs[V133]["badge"]["text"] == "EXPLORATORY — did not pass its pre-registered gate. a: 1/4 (measured), c: 0 citations in 7 searches."
     assert docs[V134]["badge"]["text"] == ("EXPLORATORY — did not pass its pre-registered gate. a: 0/4, "
                                            "c: 0 citations (7 attempts consulted, 21 refs, 6 reasons recorded).")
-    for tag in (V133, V134):
+    for tag in (V133, V134, V140, V141, V142):
         assert docs[tag]["badge"]["exploratory"] is True and docs[tag]["role"] == "EXPLORATORY"
         assert f"> `{docs[tag]['badge']['text']}`" in _md(files, tag)
         assert docs[tag]["badge"]["links"]["run_records"] and docs[tag]["badge"]["links"]["cost_line"]["quote"]
     assert docs[V132]["badge"]["exploratory"] is False and docs[V132]["role"] == "PRE-REGISTERED ANCHOR"
     assert "EXPLORATORY" not in _md(files, V132) and "EXPLORATORY" not in json.dumps(docs[V132])
     index = files[f"{replay.REPLAY_DIR}/index.md"].decode("utf-8")
-    assert index.index(V132) < index.index(V133) < index.index(V134) and index.count("— EXPLORATORY") == 2
+    assert index.index(V132) < index.index(V133) < index.index(V134) < index.index(V140) < index.index(V141) < index.index(V142) and index.count("— EXPLORATORY") == 5
+    # each version's own measured line, as recorded (the figures are never merged across versions)
+    assert docs[V140]["badge"]["text"] == ("EXPLORATORY — did not pass its pre-registered gate. a: 0/4, "
+                                           "c: 3 citations (" + docs[V140]["badge"]["text"].split("c: 3 citations (")[1])
+    assert docs[V141]["badge"]["text"].startswith("EXPLORATORY — did not pass its pre-registered gate. a: 0/4, c: 6 citations (")
+    assert docs[V142]["badge"]["text"].startswith("EXPLORATORY — did not pass its pre-registered gate. a: 1/4, c: 0 citations (")
+    # a smoke-criterion pass is said to be one, beside the figure
+    a142 = docs[V142]["badge"]["figures"][0]
+    assert a142["annotation"] == passports.SMOKE_CRITERION_NOTE and "annotation" not in docs[V141]["badge"]["figures"][0]
+    assert [f["criterion"] for f in docs[V142]["badge"]["figures"]] == ["a", "b", "c", "d", "e"] and docs[V142]["badge"]["figures"][4]["ok"] is True
 
 
 def test_the_badge_is_the_d1_badge_verbatim(docs, stored):
@@ -276,7 +285,7 @@ def test_the_two_cost_cap_kills_in_v134_show_the_cap_line_crossed_at_the_recorde
         assert f"cap line at second {second} [DERIVED] crossed at second {second} [DERIVED]: `true`" in md
     assert _entry(docs, V134, "08")["timeline"][1]["execution"]["killed_step_seconds"]["value"] == 33
     kills = [(tag, x["entry"]["id"]) for tag, doc in docs.items() for x in doc["entries"] for s in x["timeline"] if s.get("execution", {}).get("killed")]
-    assert kills == [(V134, "08"), (V134, "11")]
+    assert kills == [(V134, "08"), (V134, "11"), (V140, "08"), (V140, "11")]  # harness-v1.4.1 and v1.4.2 stopped no operation
 
 
 def test_each_attempt_shows_gate_outcome_citation_and_execution(docs):
@@ -392,15 +401,25 @@ def test_the_code_span_helper_quotes_any_text():
 
 def test_the_headline_counts_are_tagged_counts_of_records(summary, docs):
     h = summary["headline"]
-    values = {k: v["value"] for k, v in h.items() if k != "artefact"}
-    assert values == {"gate_entry_runs": 8, "recovered_by_llm_loop": 0, "apparent_recoveries": 1, "apparent_recoveries_annotated_as_artefact": 1,
-                      "recoveries_by_time_machine_alone": 1, "with_recorded_model_attempt": 5}
-    gate = {x["record_id"] for tag in (V133, V134) for x in docs[tag]["entries"]}
+    lists = ("artefact", "smoke_criterion_recovery", "per_version")
+    values = {k: v["value"] for k, v in h.items() if k not in lists}
+    # the count over EVERY exploratory gate entry-run (five gates of four entries), not over the first two gates only
+    assert values == {"gate_entry_runs": 20, "apparent_recoveries": 2, "apparent_recoveries_annotated_as_artefact": 1,
+                      "recoveries_by_time_machine_alone": 1, "recoveries_with_applied_model_repair": 1, "with_recorded_model_attempt": 14}
+    gate = {x["record_id"] for tag in (V133, V134, V140, V141, V142) for x in docs[tag]["entries"]}
     for key, v in h.items():
-        if key != "artefact":
+        if key not in lists:
             assert v["tag"] == "API-REPORTED" and v["value"] == len(v["count_of"]["records"]) and set(v["count_of"]["records"]) <= gate
     assert set(h["gate_entry_runs"]["count_of"]["records"]) == gate
     assert [(a["harness_tag"], a["entry"]) for a in h["artefact"]] == [(V133, "11")] and "smoke-limit artefact" in h["artefact"][0]["annotation"]["text"]
+    assert [(a["harness_tag"], a["entry"]) for a in h["smoke_criterion_recovery"]] == [(V142, "07")]
+    assert "smoke-criterion verdict" in h["smoke_criterion_recovery"][0]["annotation"]["text"]
+    # every apparent recovery is exactly one of the two: the artefact (no model attempt) or the smoke-criterion recovery (an applied model repair)
+    assert set(h["apparent_recoveries"]["count_of"]["records"]) == set(h["recoveries_by_time_machine_alone"]["count_of"]["records"]) | set(
+        h["recoveries_with_applied_model_repair"]["count_of"]["records"])
+    per = {p["harness_tag"]: tuple(p[k]["value"] for k in ("entry_runs", "apparent_recoveries", "indeterminate", "blocked")) for p in h["per_version"]}
+    assert per == {V133: (4, 1, 0, 2), V134: (4, 0, 2, 2), V140: (4, 0, 2, 2), V141: (4, 0, 0, 4), V142: (4, 1, 3, 0)}
+    assert [p["gate_passed"] for p in h["per_version"]] == [False] * 5
 
 
 def test_the_headline_build_stops_if_the_records_stop_supporting_it(docs):
@@ -408,26 +427,45 @@ def test_the_headline_build_stops_if_the_records_stop_supporting_it(docs):
     next(x for x in changed[V133]["entries"] if x["entry"]["id"] == "11")["timeline"][-1]["annotations"] = []
     with pytest.raises(replay.ReplayError):
         replay._headline(changed)
+    changed = copy.deepcopy(docs)  # the smoke-criterion recovery loses its annotation: the statement no longer holds
+    next(x for x in changed[V142]["entries"] if x["entry"]["id"] == "07")["timeline"][-1]["annotations"] = []
+    with pytest.raises(replay.ReplayError):
+        replay._headline(changed)
+    changed = copy.deepcopy(docs)  # a new apparent recovery that is neither
+    next(x for x in changed[V141]["entries"] if x["entry"]["id"] == "07")["timeline"][-1]["verdict"] = "RUNS_AFTER_REPAIR"
+    with pytest.raises(replay.ReplayError):
+        replay._headline(changed)
 
 
-def test_the_defect_register_is_d1_to_d28_with_quoted_sources(summary, source, docs):
+def test_the_defect_register_is_d1_to_d41_with_quoted_sources(summary, source, docs):
     rows = summary["defects"]["rows"]
-    assert [r["id"] for r in rows] == [f"D-{i}" for i in range(1, 29)]
+    assert [r["id"] for r in rows] == [f"D-{i}" for i in range(1, 42)]
     assert {r["status"] for r in rows} == {"fixed-and-gated", "fixed-unvalidated", "open"} == set(summary["defects"]["status_rule"])
     status = {r["id"]: r["status"] for r in rows}
-    assert all(status[f"D-{i}"] == "open" for i in (1, 6, 7, 12, 13, 21, 23, 25, 26, 27, 28))  # a partial fix stays open
-    d24 = next(r for r in rows if r["id"] == "D-24")  # fixed post-gate: unvalidated, its basis a test name and not a gate line
-    assert d24["status"] == "fixed-unvalidated" and d24["basis"][0]["path"] == "backend/tests/test_d24_build_essential.py"
-    assert d24["basis"][0]["quote"].startswith("def test_") and not any("smoke_gate" in b["path"] for b in d24["basis"])
+    assert all(status[f"D-{i}"] == "open" for i in (1, 6, 7, 12, 13, 21, 25, 26, 27, 28, 36, 40, 41))  # a partial fix stays open
+    assert all(status[f"D-{i}"] == "fixed-and-gated" for i in (23, 24, 30, 32, 33, 34, 37, 38)) and all(status[f"D-{i}"] == "fixed-unvalidated" for i in (29, 31, 35, 39))
+    counts = {s: sum(1 for r in rows if r["status"] == s) for s in ("fixed-and-gated", "fixed-unvalidated", "open")}
+    assert counts == {"fixed-and-gated": 19, "fixed-unvalidated": 9, "open": 13}
+    # D-24 was fixed after the third exploratory gate and labelled unvalidated then; its basis is still the offline test, and since the sealed versions carry it the
+    # last gate report shows the rule firing live: that gate line is what moves it to fixed-and-gated (and the row says so)
+    d24 = next(r for r in rows if r["id"] == "D-24")
+    assert d24["status"] == "fixed-and-gated" and d24["basis"][0]["path"] == "backend/tests/test_d24_build_essential.py"
+    assert d24["basis"][0]["quote"].startswith("def test_") and any(b["path"].endswith("GATE_REPORT_v1.4.2.md") for b in d24["basis"])
+    d23 = next(r for r in rows if r["id"] == "D-23")
+    assert d23["status"] == "fixed-and-gated" and any("The checkpoint fix worked as designed" == b["quote"] for b in d23["basis"])
     for r in rows:
         for src in [r["registered"]] + r["basis"]:
             assert src["quote"] in (ROOT / src["path"]).read_bytes().decode("utf-8").replace("\r\n", "\n"), r["id"]
         assert not re.search(r"\d", r["title"] + r["note"]), r["id"]  # no number is displayed from this text
-        if r["status"] == "fixed-and-gated":
-            assert len(r["basis"]) >= 1 and any("smoke_gate" in b["path"] or b["path"] == "METHODOLOGY.md" for b in r["basis"]), r["id"]
+        if r["status"] == "fixed-and-gated":  # a committed gate report line (or METHODOLOGY) states the fix was observed working live
+            assert len(r["basis"]) >= 1 and any("smoke_gate" in b["path"] or "/gate/GATE_REPORT_" in b["path"] or b["path"] == "METHODOLOGY.md" for b in r["basis"]), r["id"]
     annotated = {r["id"]: {p["record_id"] for p in r["passports"]} for r in rows}
     assert len(annotated["D-28"]) == 40 and len(annotated["D-13"]) == 4
     assert annotated["D-26"] == {_entry(docs, V134, "03")["record_id"]} and annotated["D-24"] == {_entry(docs, V134, "07")["record_id"]}
+    # D-41 sits beside the entry-3 record of every version that stored its stderr tail (indicated, not proven)
+    assert annotated["D-41"] == {_entry(docs, tag, "03")["record_id"] for tag in (V133, V134, V140, V141, V142)}
+    assert annotated["D-37"] == {_entry(docs, tag, "07")["record_id"] for tag in (V140, V141, V142)}
+    assert annotated["D-38"] == {_entry(docs, V141, "11")["record_id"], _entry(docs, V142, "11")["record_id"]}
 
 
 def test_a_missing_defect_quote_stops_the_build(docs, source, monkeypatch):
@@ -442,7 +480,9 @@ def test_a_missing_defect_quote_stops_the_build(docs, source, monkeypatch):
 
 def test_the_ledger_is_recomputed_from_records_split_and_a_lower_bound(summary, source, stored):
     ledger = summary["ledger"]
-    assert [c["key"] for c in ledger["components"]] == ["seal-attempt-one-v133", "seal-repeat-v133", "gate-v133", "seal-v134", "gate-v134"]
+    assert [c["key"] for c in ledger["components"]] == [
+        "seal-attempt-one-v133", "seal-repeat-v133", "gate-v133", "seal-v134", "gate-v134", "seal-v140-optionb", "seal-v140", "smoke-v140", "gate-v140",
+        "seal-v141", "smoke-v141", "gate-v141", "seal-v142", "smoke-v142", "gate-v142"]
     total_m = total_e = 0.0
     for c in ledger["components"]:
         if c["kind"] == "seal":
@@ -453,7 +493,27 @@ def test_the_ledger_is_recomputed_from_records_split_and_a_lower_bound(summary, 
                     blob = source.read(path)
                     assert hashlib.sha256(blob).hexdigest() == sha
                     value += json.loads(blob)[part["field"]]
-            assert c["estimated"] == {"value": None, "reason": "no estimate field in the seal-verification records"}
+            if c["estimated"]["value"] is None:
+                assert c["estimated"] == {"value": None, "reason": "no estimate field in the seal-verification records"}
+            else:  # a seal that stopped an operation: the estimate is a stored field (or a difference of two), each part pointing at its record
+                assert c["key"] in ("seal-v140", "seal-v141") and c["estimated"]["tag"] == "ESTIMATED"
+                parts = c["estimated"]["sum_of_records"]
+                assert c["estimated"]["value"] == round(sum(p["estimated_part"]["value"] for p in parts), 10)
+                for p in parts:
+                    record = json.loads(source.read(p["record"].split("@")[0]))
+                    stored_value = (record["cost"]["estimated_upper_bound_usd"] if "cost" in record and isinstance(record["cost"], dict)
+                                    else round(record["cost_usd"] - record["measured_completed_usd"], 10))
+                    assert p["estimated_part"]["value"] == stored_value and p["estimated_part"]["record_field"]["record"] == p["record"]
+                total_e += c["estimated"]["value"]
+        elif c["kind"] == "smoke":
+            value = 0.0
+            for part in c["measured"]["sum_of_records"][0]["fields"]:
+                path, sha = part["record"].split("@")
+                blob = source.read(path)
+                assert hashlib.sha256(blob).hexdigest() == sha
+                data = json.loads(blob)
+                value += resolve_field(data, part["field"])
+            assert c["estimated"]["value"] is None and "D-27" in c["estimated"]["reason"]
         else:
             value = sum(stored[rid]["cost"]["measured"]["value"] for rid in c["measured"]["sum_of"]["records"])
             assert c["estimated"]["value"] == round(sum(stored[rid]["cost"]["estimated"]["value"] for rid in c["estimated"]["sum_of"]["records"]), 10)
@@ -461,15 +521,32 @@ def test_the_ledger_is_recomputed_from_records_split_and_a_lower_bound(summary, 
         assert c["measured"] ["value"] == round(value, 10) and c["measured"]["tag"] == "API-REPORTED"
         total_m += c["measured"]["value"]
     assert ledger["measured"]["value"] == round(total_m, 10) and ledger["estimated"]["value"] == round(total_e, 10)
-    assert (round(ledger["measured"]["value"], 4), round(ledger["estimated"]["value"], 4), round(ledger["total"]["value"], 4)) == (9.8507, 0.2842, 10.1349)
+    # rebuilt from the records, the ledger is the figure the last gate report states (a lower bound, D-27), to the fourth decimal
+    assert (round(ledger["measured"]["value"], 4), round(ledger["estimated"]["value"], 4), round(ledger["total"]["value"], 4)) == (21.3218, 1.1717, 22.4935)
     assert (ledger["measured"]["tag"], ledger["estimated"]["tag"], ledger["total"]["tag"]) == ("API-REPORTED", "ESTIMATED", "ESTIMATED")
-    assert ledger["lower_bound"]["defect"] == "D-27" and "$10.134" in ledger["reported_line"]["quote"]
+    assert ledger["lower_bound"]["defect"] == "D-27" and "$22.4935" in ledger["reported_line"]["quote"]
+    # every gate report's own ledger statement stays beside the rebuilt one, and the running total each stated is reproduced from the records up to that gate
+    assert [h["harness_tag"] for h in ledger["reported_history"]] == [V134, V140, V141, V142]
+    assert "$10.134" in ledger["reported_history"][0]["quote"] and "$14.6495" in ledger["reported_history"][1]["quote"] and "$18.5083" in ledger["reported_history"][2]["quote"]
+    order = [c["key"] for c in ledger["components"]]
+    running = {tag: round(sum(c["measured"]["value"] + (c["estimated"]["value"] or 0.0) for c in ledger["components"][: order.index(key) + 1]), 4)
+               for tag, key in ((V134, "gate-v134"), (V140, "gate-v140"), (V141, "gate-v141"), (V142, "gate-v142"))}
+    assert running == {V134: 10.1349, V140: 14.6495, V141: 18.5083, V142: 22.4935}
     kills = ledger["kill_records"]
-    assert [k["killed_seconds"]["value"] for k in kills] == [None, 26.7, 26.3]
-    assert [k["via"] for k in kills] == [None, "client_wait_timeout", "client_wait_timeout"] and kills[0]["error"]
-    for k in kills[1:]:
+    assert [k["killed_seconds"]["value"] for k in kills] == [None, 26.7, 26.3, 25.8, None, 23.634523099994112]
+    assert [k["component"] for k in kills] == ["seal-attempt-one-v133", "seal-repeat-v133", "seal-v134", "seal-v140-optionb", "seal-v140", "seal-v141"]
+    assert [k["via"] for k in kills] == [None, "client_wait_timeout", "client_wait_timeout", "client_wait_timeout", None, "client_wait_timeout"] and kills[0]["error"]
+    for k in kills:
         path, _ = k["record"].split("@")
-        assert json.loads(source.read(path))["killed_seconds"] == k["killed_seconds"]["value"] and k["killed_seconds"]["tag"] == "API-REPORTED"
+        if k["killed_seconds"]["value"] is not None:
+            assert json.loads(source.read(path))["killed_seconds"] == k["killed_seconds"]["value"] and k["killed_seconds"]["tag"] == "API-REPORTED"
+    assert [(k["component"], k["estimated_cost"]["value"]) for k in kills if "estimated_cost" in k] == [("seal-v140", 0.4998), ("seal-v141", 0.2008934463)]
+    assert all(k["estimated_cost"]["tag"] == "ESTIMATED" for k in kills if "estimated_cost" in k)
+
+
+def resolve_field(data, field):
+    """`runs[1].cost_usd` or `cost_usd` of an upload smoke record."""
+    return replay.resolve(data, field)
 
 
 def test_every_number_in_the_summary_is_tagged_with_a_pointer(summary):
@@ -481,7 +558,9 @@ def test_every_number_in_the_summary_is_tagged_with_a_pointer(summary):
         elif isinstance(obj, list):
             assert not any(_is_number(v) for v in obj), path
     for path, obj in _tagged(summary):
-        assert sum(k in obj for k in ("count_of", "sum_of", "sum_of_records", "sum_of_components", "record_field", "owner_reading", "for_component")) == 1, path
+        pointers = sum(k in obj for k in ("count_of", "sum_of", "sum_of_records", "sum_of_components", "record_field", "owner_reading", "for_component"))
+        # a BILLED gate line points at its gate component AND, when the owner's interval reading exists, at that reading (null lines carry a reason instead)
+        assert pointers == (2 if "for_component" in obj and "owner_reading" in obj else 1), path
         if obj["tag"] == "BILLED":
             assert path.startswith("$.ledger.billed."), path
 

@@ -18,7 +18,8 @@ if str(ROOT) not in sys.path:
 from phase_d import check_tags, passports, records, verify_passports  # noqa: E402
 from phase_d.build_passports import INDEX, expected_files  # noqa: E402
 
-V132, V133, V134 = "harness-v1.3.2", "harness-v1.3.3", "harness-v1.3.4"
+V132, V133, V134, V140, V141, V142 = "harness-v1.3.2", "harness-v1.3.3", "harness-v1.3.4", "harness-v1.4.0", "harness-v1.4.1", "harness-v1.4.2"
+V14 = (V140, V141, V142)
 
 
 class CachedSource:
@@ -75,13 +76,14 @@ def _passport(built, tag: str, record_set: str, entry: str) -> dict:
 
 # ---------------------------------------------------------------- inventory and record ids
 
-def test_there_are_49_records_with_unique_ids(built):
-    assert len(built) == records.EXPECTED_TOTAL == 49
+def test_there_are_61_records_with_unique_ids(built):
+    assert len(built) == records.EXPECTED_TOTAL == 61
     per_set = {}
     for record, _ in built:
         per_set[(record.harness_tag, record.record_set.name)] = per_set.get((record.harness_tag, record.record_set.name), 0) + 1
-    assert per_set == {(V132, "control"): 20, (V132, "control/infra_retries"): 1, (V132, "treatment"): 20, (V133, "smoke"): 4, (V134, "smoke"): 4}
-    assert len({p["record_id"] for _, p in built}) == 49
+    assert per_set == {(V132, "control"): 20, (V132, "control/infra_retries"): 1, (V132, "treatment"): 20, (V133, "smoke"): 4, (V134, "smoke"): 4,
+                       (V140, "gate"): 4, (V141, "gate"): 4, (V142, "gate"): 4}
+    assert len({p["record_id"] for _, p in built}) == 61
 
 
 def test_record_id_is_tag_arm_entry_and_the_blob_sha256(built):
@@ -135,7 +137,7 @@ def test_the_build_never_opens_a_record_in_the_worktree(source, monkeypatch):
 
     monkeypatch.setattr(io, "open", guarded)
     monkeypatch.setattr(builtins, "open", guarded)
-    assert len(passports.build_all(source)) == 49
+    assert len(passports.build_all(source)) == 61
 
 
 def test_the_build_makes_no_network_connection(source, monkeypatch):
@@ -144,7 +146,7 @@ def test_the_build_makes_no_network_connection(source, monkeypatch):
 
     monkeypatch.setattr(socket, "socket", refuse)
     monkeypatch.setattr(socket, "create_connection", refuse)
-    assert len(expected_files(source)) == 50
+    assert len(expected_files(source)) == 62
 
 
 # ---------------------------------------------------------------- verifier and tamper detection
@@ -257,7 +259,7 @@ def test_entry_8_v134_cost_is_estimated_and_split(built):
 
 def test_only_entry_8_v134_carries_an_estimated_cost(built):
     estimated = [(r.harness_tag, r.entry) for r, p in built if p["cost"]["tag"] == "ESTIMATED"]
-    assert estimated == [(V134, "08")]
+    assert estimated == [(V134, "08"), (V140, "08")]  # the two gate entries whose operation was stopped (v1.4.1 and v1.4.2 stopped none)
     for record, passport in built:
         if record.harness_tag == V132:
             assert passport["cost"]["estimated"] == {"value": None, "reason": "not recorded by harness-v1.3.2"}
@@ -288,7 +290,11 @@ def test_kill_values_are_derived_and_quote_their_source_line(built):
 
 def test_no_kill_is_invented_where_none_is_recorded(built):
     killed = [(r.harness_tag, r.entry, a["attempt"]) for r, p in built for a in p["attempts"] if a["execution"]["killed_by"].get("tag")]
-    assert killed == [(V134, "08", "attempt-0"), (V134, "11", "attempt-2")]
+    assert killed == [(V134, "08", "attempt-0"), (V134, "11", "attempt-2"),
+                      (V140, "08", "attempt-0-missing_compiler_build_essential"), (V140, "11", "attempt-0")]
+    # harness-v1.4.0 #8 attempt 0 holds an era lock (exit 1) and a stopped rule step (no exit code): only the stopped step carries the kill
+    era = _passport(built, V140, "gate", "08")["attempts"][0]
+    assert era["exit_code"]["value"] == 1 and era["execution"]["killed_by"].get("tag") is None
 
 
 # ---------------------------------------------------------------- absent fields
@@ -296,6 +302,8 @@ def test_no_kill_is_invented_where_none_is_recorded(built):
 def test_fields_a_harness_version_did_not_store_are_null_with_the_version(built):
     for record, passport in built:
         for a in passport["attempts"]:
+            if record.harness_tag in V14:
+                continue  # harness-v1.4.x stores the citations: `cited` is the list (see test_v14x_passports_...)
             assert a["cited"] == {"value": None, "reason": "tavily_sources empty on all attempts — consistent with D-21 open"}
             if record.harness_tag in (V132, V133):
                 expected = {"value": None, "reason": f"not recorded by {record.harness_tag}"}
@@ -344,7 +352,7 @@ def test_badges_are_per_version_and_use_that_versions_measured_line(built):
     assert b133["figures"][2]["searches"]["tag"] == "DERIVED" and len(b133["figures"][2]["searches"]["source"]) == 7
     for record, passport in built:
         badge = passport["badge"]
-        assert badge["exploratory"] is (record.harness_tag in (V133, V134))
+        assert badge["exploratory"] is (record.harness_tag in (V133, V134, V140, V141, V142))
         assert ("EXPLORATORY" in badge["text"]) is badge["exploratory"]
         if badge["exploratory"]:
             assert badge["links"]["run_records"] and badge["links"]["cost_line"]["quote"] and badge["links"]["gate_result"]
@@ -382,4 +390,4 @@ def test_d28_the_results_tables_hash_is_the_crlf_worktree_hash_and_is_reconciled
         assert field["value"] == hashlib.sha256(record.blob.replace(b"\n", b"\r\n")).hexdigest()
         assert f"| `{record.record_id}` | `{record.sha256}` | `{field['value']}` |" in index
     others = [p["record"]["results_tables_sha256"] for r, p in built if (r, p["record"]["results_tables_sha256"]) not in listed]
-    assert len(others) == 9 and all(o == {"value": None, "reason": "not listed in reports/corpus-v2.1/results_tables.json"} for o in others)
+    assert len(others) == 21 and all(o == {"value": None, "reason": "not listed in reports/corpus-v2.1/results_tables.json"} for o in others)

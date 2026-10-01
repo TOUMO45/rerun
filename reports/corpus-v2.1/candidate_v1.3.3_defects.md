@@ -153,10 +153,10 @@ their annotation, not a rewrite.
 ## harness-v1.4.2 gate (2026-10-01; live; NOT PASSED: 1 of 4): live observations of D-37..D-40, and D-41
 
 - **D-37 [annotation: observed live once]** #7, round 2: Ultra said none; RERUN adopted candidate 2 for partial progress (`adopted_reason` "partial progress", stage repo_install -> repo_run); round 3 started from its image and its adopted
-  candidate's run was alive at the 60 s smoke limit (RUNS_AFTER_REPAIR). One run, one entry: not a validation (status stays fixed-unvalidated); v1.4.1 ended BLOCKED on the same entry. Report: `reports/corpus-v2.1/v1.4.2/gate/GATE_REPORT_v1.4.2.md`.
+  candidate's run was alive at the 60 s smoke limit (RUNS_AFTER_REPAIR). One run, one entry: a gate report line states it worked live, which is the register's rule for fixed-and-gated (it does not mean the gate passed; it is one observation, not a measured rate); v1.4.1 ended BLOCKED on the same entry. Report: `reports/corpus-v2.1/v1.4.2/gate/GATE_REPORT_v1.4.2.md`.
 - **D-38 / D-40 [annotation: observed live once]** #11: exit 137 after the CPU shim -> RESOURCE_LIMIT; one evidence run on the same environment read the sandbox: MemTotal 4,034,744 kB (3.85 GiB), 4 CPUs, no swap, and the kernel log
   `Out of memory: Killed process 76 (python) ... anon-rss:3895992kB`. The entry ended INDETERMINATE RESOURCE_LIMIT with no model attempt. #3: the evidence run printed no block (see D-41). The seal's allocation probe (3776 MiB allocated, then killed, exit 137,
-  the same kernel line) measured the same VM size. Status: fixed-unvalidated, observed.
+  the same kernel line) measured the same VM size. Status by the register's rule: **D-38 fixed-and-gated** (the classification and the INDETERMINATE ending were observed live); **D-40 open** (partly fixed: the API's per-step `max_rss` is still not stored and the #3 evidence run was blocked by D-41).
 - **D-39 [annotation: not exercised live]** No `.cuda()`, `.to` or `torch.device` call was reached in the gate (#11 used `cuda.is_available` and `torch.load` only; #8 failed earlier on `compare_psnr`). Status: fixed-unvalidated; real-torch check offline.
 - **D-41** The sandbox SDK truncates stdout and stderr at 65,535 bytes (`contree_sdk` 0.3.6, `default_truncate_output_at = 65535`; the result's `.truncated` flag) and the harness neither raises the limit nor reads the flag, so the END of a long output is lost: tracebacks,
   the exit hook's stack, the exit wrapper's traceback, the evidence block. Evidence in the records: #3 (every version): the stored stderr tails of the baseline, hook, wrapper and evidence runs all end mid-progress-bar at `17.8%`, which projects to about 72 KB of stderr
@@ -164,4 +164,13 @@ their annotation, not a rewrite.
   error message that was cut off, and the repair model never saw it. Not touched: #11 (its stderr ends in `Killed`, inside the cap). **Not proven** (no record stores `.truncated`); one live probe of about $0.002 would settle it, not run (all live work stopped at the end of the gate).
   Fix (not made; would change sealed `sandbox.py`): pass a large `truncate_output_at` or tail the streams from files in the sandbox, and store `.truncated` on every operation. Cost of a re-seal about $0.8 to $1.2 (ESTIMATED) plus a new gate, above the room under the $25.00 ceiling ($2.5065).
   Status: **found, open**.
+
+## Phase D register update after the harness-v1.4.2 gate (2026-10-02): statuses re-read against the gate reports
+
+The Phase D register (`phase_d/defects.py`, D-1..D-41) applies one rule to every row: **fixed-and-gated** when a committed gate report line states that the fix was observed working live (it does not mean a gate passed: none did), **fixed-unvalidated** when only offline tests or the seal show it, **open** for a partial fix or a defect that still shows. Re-read against the five exploratory gate reports:
+
+- **D-23** moves from open to **fixed-and-gated**: the checkpoint images of the first root-cause-line version are observed in its gate ("The checkpoint fix worked as designed", `reports/corpus-v2.1/v1.4.0/gate/GATE_REPORT_v1.4.0.md`); criterion (e), torch installed at most once per environment image, passed in all three root-cause gates. Entries that still ended COST_CAP did so for D-30 / D-31 (registered later), not for the torch reinstall.
+- **D-24** moves from fixed-unvalidated to **fixed-and-gated**: it was fixed after the third exploratory gate and labelled unvalidated then; the sealed versions since carry it, and the last gate shows the compiler rule firing live on a candidate's own branch with no model call.
+- **D-21** stays **open**: citations are stored in the first two root-cause-line gates (3, then 6) and absent in the last (0), so it still shows in practice.
+- **D-36, D-40, D-41** are open; **D-29, D-31, D-35, D-39** are fixed-unvalidated; **D-30, D-32, D-33, D-34, D-37, D-38** are fixed-and-gated (each with its gate line quoted in the register).
 

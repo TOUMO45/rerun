@@ -1,4 +1,4 @@
-"""The defect register D-1..D-28 as data, each row with quoted sources from the committed reports.
+"""The defect register D-1..D-41 as data, each row with quoted sources from the committed reports.
 
 Status rule (shown on the dashboard):
   fixed-and-gated    the fix-map status is "fixed" with no open remainder AND a committed gate (or seal) report line states the
@@ -15,14 +15,17 @@ DEFECTS = "reports/corpus-v2.1/candidate_v1.3.3_defects.md"
 FIXMAP = "reports/corpus-v2.1/v1.3.3/DEFECT_FIX_MAP.md"
 G133 = "reports/corpus-v2.1/v1.3.3/smoke_gate/SMOKE_GATE_REPORT.md"
 G134 = "reports/corpus-v2.1/v1.3.3/smoke_gate/SMOKE_GATE_REPORT_v1.3.4.md"
+G141 = "reports/corpus-v2.1/v1.4.1/gate/GATE_REPORT_v1.4.1.md"
+G142 = "reports/corpus-v2.1/v1.4.2/gate/GATE_REPORT_v1.4.2.md"
+SEAL141 = "reports/corpus-v2.1/v1.4.1/seal/SEAL_STATUS.md"
 METHODOLOGY = "METHODOLOGY.md"
 D24_TEST = "backend/tests/test_d24_build_essential.py"
 
 FIXED_GATED, FIXED_UNVALIDATED, OPEN = "fixed-and-gated", "fixed-unvalidated", "open"
 STATUSES = (FIXED_GATED, FIXED_UNVALIDATED, OPEN)
 STATUS_RULE = {
-    FIXED_GATED: "The fix map calls it fixed with no open remainder, and a committed gate or seal report line states the fix was observed "
-                 "working live. It does not mean the gate passed: neither exploratory gate did.",
+    FIXED_GATED: "The fix map calls it fixed with no open remainder, and a committed gate report line states the fix was observed "
+                 "working live. It does not mean a gate passed: none did.",
     FIXED_UNVALIDATED: "A fix or correction exists, but no committed gate line shows it working (offline tests, seal only, or a documentation correction).",
     OPEN: "No fix, a fix the fix map itself calls partial, or a defect that still shows in practice.",
 }
@@ -98,16 +101,18 @@ REGISTER: list[dict] = [
          [(G134, "D-20 (verified at the seal on entry 8's repository; not reached in the gate)")], "Verified live at the seal only; not reached in the gate."),
     _row("D-21", "The repairer never cites", OPEN, (DEFECTS, "- **D-21** The repairer declared no `cited_sources` in 7 searches"),
          [(G134, "**D-21 (still open in practice): the repairer never cites, even with a REQUIRED field.**")],
-         "The mechanism exists; no attempt in any record carries a citation."),
+         "The mechanism exists; citations are stored in the records of the first two root-cause-line gates and are absent in the last, so it still shows in practice."),
     _row("D-22", "An attempt that ended in a harness error was not recorded", FIXED_GATED,
          (DEFECTS, "- **D-22** An attempt that ends in INVALID_HARNESS is not recorded"),
          [(FIXMAP, "| D-22 section | fixed |"), (G134, "D-22 (no attempt lost)")]),
-    _row("D-23", "Per-repair funding starves entries that pay a torch install each time", OPEN, (DEFECTS, "- **D-23** The per-repair funding rule"),
-         [(DEFECTS, NOT_FIXED_134)]),
-    _row("D-24", "The compiler rule fires only on the baseline classification", FIXED_UNVALIDATED, (DEFECTS, "- **D-24** The deterministic"),
+    _row("D-23", "Per-repair funding starves entries that pay a torch install each time", FIXED_GATED, (DEFECTS, "- **D-23** The per-repair funding rule"),
+         [(DEFECTS, NOT_FIXED_134), ("reports/corpus-v2.1/v1.4.0/gate/GATE_REPORT_v1.4.0.md", "The checkpoint fix worked as designed")],
+         "Fixed by checkpoint images in the first root-cause-line version and observed in its gate (the era run branched from the baseline's torch layer). Entries that still ended COST_CAP did so for the funding and resume defects registered later."),
+    _row("D-24", "The compiler rule fires only on the baseline classification", FIXED_GATED, (DEFECTS, "- **D-24** The deterministic"),
          [(D24_TEST, "def test_at_repair_time_the_recorded_gcc_error_adds_build_essential_with_no_model_call"),
-          ("CHANGELOG.md", "post-gate, unvalidated")],
-         "Fixed after the last gate, in a harness version that is not sealed and has run in no gate. The basis is an offline test, not a gate line."),
+          ("CHANGELOG.md", "post-gate, unvalidated"),
+          (G142, "Candidate 3 had the D-33/D-34/D-35 rules fire on its branch (build-essential, exit hook, exit wrapper: $0.5079 together)")],
+         "Fixed after the third exploratory gate and labelled unvalidated then; the sealed versions since carry it, and the last gate shows the compiler rule firing live on a candidate's own branch, with no model call."),
     _row("D-25", "Model-placed diagnostics cannot locate a deliberate silent exit", OPEN, (DEFECTS, "- **D-25** One round of model-placed diagnostics"),
          [(DEFECTS, NOT_FIXED_134)]),
     _row("D-26", "No reason is recorded when a declined attempt does not cite", OPEN,
@@ -116,4 +121,44 @@ REGISTER: list[dict] = [
          "The ledger total is a lower bound."),
     _row("D-28", "Result-table record hashes are hashes of worktree files", OPEN, (DEFECTS, "- **D-28** `record_*_sha256` in"), [(DEFECTS, PHASE_D)],
          "The mapping to blob hashes and record ids is in the record index."),
+    # D-29..D-41: found by the harness-v1.4.0 seal and the v1.4.0 / v1.4.1 / v1.4.2 gates (register: candidate_v1.3.3_defects.md)
+    _row("D-29", "The seal script of the first root-cause-line version lost the cost of a timed-out operation", FIXED_UNVALIDATED, (DEFECTS, "- **D-29** The v1.4.0 seal script"),
+         [(DEFECTS, "Status: fixed-unvalidated (tests exist; not gate-validated)")],
+         "A seal-script defect: its fix is exercised by the later seals, which are not gates."),
+    _row("D-30", "The guard funded every operation at a fixed wall-clock rate", FIXED_GATED, (DEFECTS, "- **D-30** The guard funded every operation at a fixed $0.0085 per second of WALL clock"),
+         [(G141, "**D-30** funded every operation between $0.0030 and $0.0052 per wall second (recorded on each) and never starved one")],
+         "The rolling rate worked live in the second root-cause gate. In the last gate one entry ended COST_CAP at its entry cap, not for lack of the funding rule."),
+    _row("D-31", "A budget-limited stop ended the entry although the kept layers could resume", FIXED_UNVALIDATED,
+         (DEFECTS, "- **D-31** A budget-limited stop ended the entry even when the stopped operation had kept every layer it built"),
+         [(G141, "**D-31** was not exercised (no operation")], "Verified at the seal on the real service (the kept layer of a killed operation is reopened); not exercised in any gate."),
+    _row("D-32", "The candidate adjudicator had no JSON re-ask", FIXED_GATED, (DEFECTS, "- **D-32** The candidate adjudicator had no JSON re-ask"),
+         [(G141, "**D-32** re-asked live once (#7 round 3)."), (G142, "D-32's re-ask worked on #8 round 1.")]),
+    _row("D-33", "The deterministic rules only saw the adopted failure", FIXED_GATED,
+         (DEFECTS, "- **D-33** The deterministic rules (D-24, the CPU shim, the exit-site hook) only saw the adopted failure."),
+         [(G141, "**D-33** fired live once, adopted (#8 round 3, the CPU shim on the candidate's own failure)")]),
+    _row("D-34", "A repair-time apt package rebuilt the first setup step", FIXED_GATED,
+         (DEFECTS, "- **D-34** An apt package added at repair time changed the plan's FIRST setup step"),
+         [(G142, "Candidate 3 had the D-33/D-34/D-35 rules fire on its branch (build-essential, exit hook, exit wrapper: $0.5079 together)")],
+         "The additive apt layer ran live in the last gate, on two entries."),
+    _row("D-35", "The exit-site hook cannot see a bare raise SystemExit", FIXED_UNVALIDATED, (DEFECTS, "- **D-35** The exit-site hook cannot see a bare `raise SystemExit(n)`"),
+         [(G141, "**D-35** fired twice (#3, #11) and both times reported \"exit outside Python\"")],
+         "The wrapper fired in the gates and printed nothing each time; the seal shows it printing the raise site on a controlled script. Whether its output on the silent-exit entry was cut off by the truncation defect is not proven, so no gate line shows it working."),
+    _row("D-36", "Ledger figures are API-reported cost, not account billing", OPEN, (DEFECTS, "- **D-36** Ledger figures are the sandbox API's reported operation cost"),
+         [(DEFECTS, "Annotation on **D-36** (2026-10-01, the owner's second balance reading)"), (G141, "D-36 stays open")],
+         "The balance moved far less than the ledger in both readings; the cause is not established."),
+    _row("D-37", "The adjudicator adopted nothing unless the run passed", FIXED_GATED, (DEFECTS, "- **D-37** The candidate adjudicator adopts nothing unless the run passes."),
+         [(G142, "D-37 partial progress worked as designed on #7 round 2")],
+         "Observed once, on one entry: the adoption and its reasons are in the record. The only RUNS_AFTER_REPAIR of the root-cause-line gates followed it."),
+    _row("D-38", "A kill by signal was classified as a silent exit", FIXED_GATED, (DEFECTS, "- **D-38** A kill by signal is classified as a silent exit."),
+         [(G142, "D-38 / D-40: #11 is a MEMORY kill, evidenced from inside the sandbox (OOM-killer line, 3.85 GiB VM)")]),
+    _row("D-39", "The CPU shim did not cover an explicit .cuda()", FIXED_UNVALIDATED, (DEFECTS, "- **D-39** The CPU shim covers `torch.load` and `torch.cuda.is_available()` only."),
+         [(G142, "D-39 was not exercised live (no `.cuda()`/`.to`/`torch.device` call was reached")],
+         "Checked against real torch offline; no gate reached such a call."),
+    _row("D-40", "The sandbox's resource limits were invisible to the harness", OPEN, (DEFECTS, "- **D-40** Resource classification and evidence."),
+         [(DEFECTS, "**Not done, on purpose:** storing the API's per-step `max_rss`")],
+         "Partly fixed: kills are classified, one evidence run reads the sandbox and one entry's limit is recorded; the API's per-step peak memory is still not stored and the evidence run of the silent-exit entry was blocked by the truncation defect."),
+    _row("D-41", "The sandbox SDK truncates each output stream at a fixed byte limit and the harness does not look", OPEN,
+         (DEFECTS, "- **D-41** The sandbox SDK truncates stdout and stderr at 65,535 bytes"),
+         [(G142, "## D-41 (new, found by this gate, NOT fixed, not yet proven)")],
+         "Found by the last gate; indicated by the records of the silent-exit entry in every version, not proven (no record stores the SDK's `.truncated` flag)."),
 ]

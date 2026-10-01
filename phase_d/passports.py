@@ -1,4 +1,4 @@
-"""Phase D passports: one per committed run record (49), rebuilt deterministically from git blobs.
+"""Phase D passports: one per committed run record (61), rebuilt deterministically from git blobs.
 
 Rules the builder enforces (Phase D directive, decisions of 2026-10-01):
   * a record value is copied, never recomputed or rounded; a correction is an annotation beside it;
@@ -30,7 +30,13 @@ from .records import BlobSource, GitBlobSource, Record, load_records
 #                 annotations[].status dropped (a defect's status is in the register, not on each passport)
 # v4 (D-36):      tag MEASURED renamed API-REPORTED (same meaning; a dollar figure is the sandbox API's reported operation
 #                 cost, not account billing); no value changed
+# v5 (v1.4.x): the passports of harness-v1.4.0 / v1.4.1 / v1.4.2 only. Same fields as v4 plus, per attempt, the candidate number, `chosen`, `branch`,
+#                 `adjudication` and the rule steps (`time_machine_action`), real `cited[]` where the record stores citations, and `cost.stored_operations`
+#                 (the record's own `operations[]`). The passports of v1.3.2 / v1.3.3 / v1.3.4 stay schema v4 and byte-identical: nothing about them changed.
 SCHEMA = "rerun/phase-d/passport/v4"
+SCHEMA_V14 = "rerun/phase-d/passport/v5"
+V14 = ("harness-v1.4.0", "harness-v1.4.1", "harness-v1.4.2")  # the gates of the root-cause line: candidates, branches, rule steps, stored operations
+HAS_D21_FIELDS = ("harness-v1.3.4", *V14)  # versions whose attempts store consulted / reason_no_citation / silent_exit
 API_REPORTED, ESTIMATED, DERIVED, BILLED = "API-REPORTED", "ESTIMATED", "DERIVED", "BILLED"
 RECORD_TAGS = (API_REPORTED, ESTIMATED, DERIVED)  # the tags a passport or a REPLAY version file may carry
 TAGS = (API_REPORTED, ESTIMATED, DERIVED, BILLED)  # BILLED: the owner's account-balance readings only (REPLAY summary, ledger.billed)
@@ -43,11 +49,22 @@ GATE_FILES = {
                        "cost_line": "Spend: **$2.9298** (gate)."},
     "harness-v1.3.4": {"result": f"{GATE_DIR}/smoke_gate_result_harness-v1.3.4.json", "report": f"{GATE_DIR}/SMOKE_GATE_REPORT_v1.3.4.md",
                        "cost_line": "Gate spend **$3.3962** (cap $3.50)."},
+    "harness-v1.4.0": {"result": "reports/corpus-v2.1/v1.4.0/gate/gate_result_harness-v1.4.0.json",
+                       "report": "reports/corpus-v2.1/v1.4.0/gate/GATE_REPORT_v1.4.0.md",
+                       "cost_line": "Gate spend: $3.194323"},
+    "harness-v1.4.1": {"result": "reports/corpus-v2.1/v1.4.1/gate/gate_result_harness-v1.4.1.json",
+                       "report": "reports/corpus-v2.1/v1.4.1/gate/GATE_REPORT_v1.4.1.md",
+                       "cost_line": "Gate spend: **$3.5247**"},
+    "harness-v1.4.2": {"result": "reports/corpus-v2.1/v1.4.2/gate/gate_result_harness-v1.4.2.json",
+                       "report": "reports/corpus-v2.1/v1.4.2/gate/GATE_REPORT_v1.4.2.md",
+                       "cost_line": "Gate spend: **$3.9350**"},
 }
 RESULTS_TABLES = "reports/corpus-v2.1/results_tables.json"
 RECOVERED = ("RUNS_CLEAN", "RUNS_AFTER_REPAIR")
 CITED_NOTE = "tavily_sources empty on all attempts — consistent with D-21 open"
 ARTEFACT_NOTE = "the one recovery (entry 11) was later identified as a smoke-limit artefact; measured line unchanged."
+SMOKE_CRITERION_NOTE = ("RUNS_AFTER_REPAIR here is a smoke-criterion verdict: the repository's command ran for the 60 s smoke limit without failing, "
+                        "not to completion, and no result was reproduced.")
 
 
 class BuildError(Exception):
@@ -81,6 +98,25 @@ def _attempt_label(number: Any) -> str:
     return f"attempt-{int(number)}"
 
 
+def attempt_label(tag: str, a: dict) -> str:
+    """The attempt's label in its passport. harness-v1.4.x: three candidates of one round share the attempt number and the rule steps of
+    one entry all carry attempt 0, so the label adds `-candidate-<k>` or `-<rule>`; earlier versions keep `attempt-<n>` unchanged."""
+    label = _attempt_label(a["attempt_number"])
+    if tag not in V14:
+        return label
+    if a.get("candidate") is not None:
+        return f"{label}-candidate-{a['candidate']}"
+    rule = (a.get("time_machine_action") or {}).get("rule")
+    return f"{label}-{rule}" if rule else label
+
+
+def round_label(tag: str, number: Any) -> str:
+    """What `cleared_by` points at: a repair attempt (before v1.4.x) or a repair round (v1.4.x, where a round has up to three candidates)."""
+    if tag in V14 and int(number) != 0:
+        return f"repair-round-{int(number)}"
+    return _attempt_label(number)  # attempt 0 is the time machine in every version
+
+
 # ---------------------------------------------------------------- annotations (editorial, each with a quoted source)
 
 def _src(path: str, quote: str) -> dict:
@@ -89,6 +125,15 @@ def _src(path: str, quote: str) -> dict:
 
 def _defect(defect: str, text: str, quote: str, path: str = DEFECTS) -> dict:
     return {"id": defect, "text": text, "sources": [_src(path, quote)]}  # the defect's status lives in the register (phase_d/defects.py)
+
+
+D41_QUOTE = "- **D-41** The sandbox SDK truncates stdout and stderr at 65,535 bytes"
+
+
+def _d41() -> dict:
+    return _defect("D-41", "Every stored stderr tail of this entry ends mid-progress-bar at the same character; the hook, wrapper and evidence output that come after the "
+                   "program are missing. The sandbox SDK truncates output at 65,535 bytes (indicated by the records, not proven): the \"silent exit\" may be a cut-off error message.",
+                   D41_QUOTE)
 
 
 ANNOTATIONS: dict[tuple[str, str, str], list[dict]] = {
@@ -104,7 +149,8 @@ ANNOTATIONS: dict[tuple[str, str, str], list[dict]] = {
     ("harness-v1.3.2", "treatment", "15"): [_defect("D-8", "A re-execution hit the wall clock (PIPELINE_ERROR); its spend may be missing from the recorded cost.",
                                                      "**D-8 A timed-out sandbox operation may be unrecorded spend.**")],
     ("harness-v1.3.3", "smoke", "03"): [_defect("D-19", "Silent exit after a progress stream: the repairer had no error text.",
-                                                 "**D-19** A silent exit 1 after a progress stream leaves the repairer no error text (entry 3")],
+                                                 "**D-19** A silent exit 1 after a progress stream leaves the repairer no error text (entry 3"),
+                                         _d41()],
     ("harness-v1.3.3", "smoke", "07"): [_defect("D-18", "The repairer was shown RERUN's lock as requirements.txt; edits to it were refused.",
                                                  "**D-18** The repairer prompt shows RERUN's resolved lock as `requirements.txt`; edits to it are refused (entry 7")],
     ("harness-v1.3.3", "smoke", "08"): [
@@ -127,6 +173,7 @@ ANNOTATIONS: dict[tuple[str, str, str], list[dict]] = {
                 "**D-25** One round of model-placed diagnostics does not locate a deliberate silent `exit 1` (entry 3)"),
         _defect("D-26", "attempt-1 was DECLINED with references consulted, and the record stores no reason_no_citation for it.",
                 "**D-26** `reason_no_citation` is not recorded on a DECLINED attempt"),
+        _d41(),
     ],
     ("harness-v1.3.4", "smoke", "07"): [_defect("D-24", "A missing compiler found after a repair went to the model instead of the deterministic rule.",
                                                  "**D-24** The deterministic \"missing gcc -> build-essential\" rule fires only on the baseline classification")],
@@ -146,6 +193,70 @@ ANNOTATIONS: dict[tuple[str, str, str], list[dict]] = {
          "related_record": ("harness-v1.3.3", "smoke", "11")},
     ],
 }
+# harness-v1.4.x gates (record set `gate`): what the register says about each record, each with the defect's own registration line as its source
+_Q = {
+    "D-30": "- **D-30** The guard funded every operation at a fixed $0.0085 per second of WALL clock",
+    "D-31": "- **D-31** A budget-limited stop ended the entry even when the stopped operation had kept every layer it built",
+    "D-32": "- **D-32** The candidate adjudicator had no JSON re-ask",
+    "D-33": "- **D-33** The deterministic rules (D-24, the CPU shim, the exit-site hook) only saw the adopted failure.",
+    "D-34": "- **D-34** An apt package added at repair time changed the plan's FIRST setup step",
+    "D-35": "- **D-35** The exit-site hook cannot see a bare `raise SystemExit(n)`",
+    "D-37": "- **D-37** The candidate adjudicator adopts nothing unless the run passes.",
+    "D-38": "- **D-38** A kill by signal is classified as a silent exit.",
+    "D-39": "- **D-39** The CPU shim covers `torch.load` and `torch.cuda.is_available()` only.",
+    "D-40": "- **D-40** Resource classification and evidence.",
+}
+
+
+def _g(defect: str, text: str) -> dict:
+    return _defect(defect, text, _Q[defect])
+
+
+ANNOTATIONS.update({
+    ("harness-v1.4.0", "gate", "03"): [
+        _g("D-35", "The exit hook was installed automatically and printed nothing; the record does not show whether the exit was a bare `raise SystemExit` or a process-level exit "
+                   "(the exit wrapper that separates the two came in harness-v1.4.1)."), _d41()],
+    ("harness-v1.4.0", "gate", "07"): [
+        _g("D-32", "Round 1: the adjudicator's reply was not valid JSON and the fallback chose the first qualifying candidate (a package-metadata error) although another had reached `No module named 'Box2D'`."),
+        _g("D-33", "Round 2: a candidate's run reached `unable to execute gcc`, the adjudicator adopted none, and the compiler rule never saw it."),
+        _g("D-37", "Candidates that moved the failure to a later stage were refused because the run still failed.")],
+    ("harness-v1.4.0", "gate", "08"): [
+        _g("D-30", "The last operation was funded 44.1 s at the fixed wall-clock rate; the guard's rule stopped it after the entry had used 91.4 % of its cap."),
+        _g("D-34", "Operation 11 (build-essential for a gcc error) started a second torch install instead of adding an apt layer, and was stopped."),
+        {"id": "COST-CONTAINS-ESTIMATE",
+         "text": "The recorded spend contains the cost guard's estimate for the killed step, computed at $0.0085/s, not an upper bound (D-27); show it as API-reported + estimated (see cost), never as one API-REPORTED figure.",
+         "sources": [_src(GATE_FILES["harness-v1.4.0"]["report"], "| INDETERMINATE COST_CAP | $1.1422")]}],
+    ("harness-v1.4.0", "gate", "11"): [
+        _g("D-30", "The era operation was funded 108.2 s at the fixed rate and was stopped as the smoke launcher was about to start, with about half of the entry's cap unspent."),
+        _g("D-31", "A budget-limited stop ended the entry although the stopped operation had kept every layer it built and the entry could fund another operation.")],
+    ("harness-v1.4.1", "gate", "03"): [
+        _g("D-35", "The exit wrapper ran after the hook printed nothing, printed nothing either, and the record says `exit outside Python`; the cause is not established."), _d41()],
+    ("harness-v1.4.1", "gate", "07"): [
+        _g("D-32", "The adjudicator's invalid JSON reply was re-asked once (round 3) and the second reply was used."),
+        _g("D-37", "In all three rounds the one qualifying candidate had moved the failure to a later stage and was refused because the run still failed.")],
+    ("harness-v1.4.1", "gate", "08"): [
+        _g("D-33", "In round 3 the CPU shim fired on a candidate's own failure and was adopted with it."),
+        _g("D-39", "The run reached an explicit `.cuda()` after `torch.load` and `is_available` were handled and failed with `Torch not compiled with CUDA enabled`.")],
+    ("harness-v1.4.1", "gate", "11"): [
+        _g("D-35", "The exit wrapper reported `exit outside Python`; the cause is visible in this record: `Killed`, exit 137."),
+        _g("D-38", "A kill by signal after the CPU shim cleared the GPU error was classified as a silent exit and nine candidate patches were asked for.")],
+    ("harness-v1.4.2", "gate", "03"): [
+        _g("D-40", "The evidence run printed no evidence block; the entry ended INDETERMINATE with reason code EXIT_OUTSIDE_PYTHON and no model attempt."),
+        _g("D-35", "The exit hook, the exit wrapper and the evidence run each printed nothing."), _d41()],
+    ("harness-v1.4.2", "gate", "07"): [
+        _g("D-37", "Round 2: Ultra said none and RERUN adopted candidate 2 for partial progress (its run reached `No module named 'Box2D'`); round 3 started from its image."),
+        {"id": "SMOKE-CRITERION-RECOVERY",
+         "text": "RUNS_AFTER_REPAIR is this record's verdict and is unchanged. It is a smoke-criterion verdict: the adopted candidate's run was alive and printing at the 60 s smoke limit, "
+                 "not finished, and no result was reproduced. The entry's repair rounds contain model-proposed environment changes adopted by the adjudicator (no source patch).",
+         "sources": [_src(GATE_FILES["harness-v1.4.2"]["report"], "**This is \"the command ran 60 s without failing\", not \"finished\" and not \"results reproduced\".**")]}],
+    ("harness-v1.4.2", "gate", "08"): [
+        _g("D-32", "Round 1: Ultra's reply was invalid JSON once and the re-ask worked."),
+        _g("D-33", "On candidate 3's branch the compiler rule, the exit hook and the exit wrapper fired.")],
+    ("harness-v1.4.2", "gate", "11"): [
+        _g("D-38", "The kill after the CPU shim was classified RESOURCE_LIMIT and the entry ended INDETERMINATE with no model attempt."),
+        _g("D-40", "One evidence run read the kernel's out-of-memory line and the VM's memory (3.85 GiB): the kill is a sandbox memory limit.")],
+})
+
 for _arm in ("control", "treatment"):
     for _entry in ("05", "09"):
         ANNOTATIONS[("harness-v1.3.2", _arm, _entry)] = [_defect(
@@ -202,22 +313,62 @@ def _outcome(decision: str, exit_code: Any, path: str) -> str:
     raise BuildError(f"{path}: unknown gate_decision {decision!r}")
 
 
+def _cited(a: dict) -> Any:
+    """harness-v1.4.x: the sources the repairer cited (stored `tavily_sources`): title, url and a hash of the stored content, as for `consulted`."""
+    sources = a.get("tavily_sources") or []
+    if not sources:
+        return []
+    return [{"title": s["title"], "url": s["url"], "content_sha256": _sha(s.get("content") or "")} for s in sources]
+
+
+def _adjudication(adj: dict) -> dict:
+    """The candidate adjudication as the record stores it: strings copied, counts tagged, the raw replies reduced to their number."""
+    # candidate numbers are identifiers, not measurements: strings (the passport rule for ordinals)
+    out: dict = {"chosen": str(adj["chosen"]) if adj.get("chosen") is not None else None, "model_called": adj.get("model_called"),
+                 "qualifying": [str(n) for n in adj.get("qualifying") or []], "reasoning": adj.get("reasoning")}
+    for key in ("adopted_reason", "fallback", "reasked"):
+        if key in adj:
+            out[key] = adj[key]
+    if "replies" in adj:
+        out["replies"] = api_reported(len(adj["replies"]), computed_from="length of the adjudication's replies")
+    if adj.get("partial_progress"):
+        pp = adj["partial_progress"]
+        out["partial_progress"] = {"number": str(pp["number"]), "current": tag_numbers(pp.get("current")), "chosen": tag_numbers(pp.get("chosen"))}
+    if adj.get("released_images") is not None:
+        out["released_images"] = api_reported(len(adj["released_images"]), computed_from="length of adjudication.released_images")
+    return out
+
+
+def _extended(a: dict) -> dict:
+    """harness-v1.4.x only: what the root-cause line added to an attempt."""
+    tma = a.get("time_machine_action")
+    return {
+        "candidate": str(a["candidate"]) if a.get("candidate") is not None else absent("not a repair candidate"),
+        "chosen": a["chosen"] if a.get("chosen") is not None else absent("no adjudication for this attempt"),
+        "branch": dict(a["branch"]) if a.get("branch") else absent("no branch run recorded for this attempt"),
+        "adjudication": _adjudication(a["adjudication"]) if a.get("adjudication") else absent("no adjudication recorded for this attempt"),
+        "rule_step": tag_numbers(tma) if tma else absent("not a deterministic rule step"),
+    }
+
+
 def _attempt(record: Record, index: int, a: dict, kills: dict[int, dict]) -> dict:
     tag = record.harness_tag
     not_recorded = f"not recorded by {tag}"
-    has_d21_fields = tag == "harness-v1.3.4"
+    has_d21_fields = tag in HAS_D21_FIELDS
     not_on_attempt = "not present on this attempt in the record" if has_d21_fields else not_recorded
-    if a.get("tavily_sources"):
-        raise BuildError(f"{record.path}: attempt {a['attempt_number']} has tavily_sources; the cited[] rule assumes none")
+    if a.get("tavily_sources") and tag not in V14:
+        raise BuildError(f"{record.path}: attempt {a['attempt_number']} has tavily_sources; the cited[] rule assumes none before harness-v1.4.0")
     field = f"result.attempts[{index}]"
     decision, exit_code = a["gate_decision"], a.get("exit_code")
     execution = a.get("execution")
     no_exec = "no execution recorded for this attempt" if tag != "harness-v1.3.2" else not_recorded
     kill = kills.get(int(a["attempt_number"]))
+    if kill is not None and tag in V14 and int(a["attempt_number"]) == 0 and exit_code is not None:
+        kill = None  # attempt 0 holds several steps in harness-v1.4.x (era lock, then rule steps); the stopped one is the step with no exit code
     no_kill = f"no kill recorded for this attempt; the funded limit is not a stored field in {tag}"
     diff = a.get("diff_text") or ""
-    return {
-        "attempt": _attempt_label(a["attempt_number"]),
+    out = {
+        "attempt": attempt_label(tag, a),
         "type": a["origin"],
         "gate_decision": decision,
         "outcome": _outcome(decision, exit_code, record.path),
@@ -225,7 +376,7 @@ def _attempt(record: Record, index: int, a: dict, kills: dict[int, dict]) -> dic
         "consulted": [{"ref": f"[{c['number']}]", "title": c["title"], "url": c["url"], "content_sha256": _sha(c.get("content") or "")}
                       for c in a["consulted"]] if "consulted" in a else absent(not_on_attempt),
         "consulted_count": api_reported(len(a["consulted"]), computed_from=f"length of {field}.consulted") if "consulted" in a else absent(not_on_attempt),
-        "cited": absent(CITED_NOTE),
+        "cited": _cited(a) if tag in V14 else absent(CITED_NOTE),
         "reason_no_citation": a["reason_no_citation"] if "reason_no_citation" in a else absent(not_on_attempt),
         "silent_exit": a["silent_exit"] if "silent_exit" in a else absent(not_on_attempt),
         "exit_code": api_reported(exit_code, source_field=f"{field}.exit_code") if exit_code is not None else absent("no re-execution recorded for this attempt"),
@@ -244,6 +395,9 @@ def _attempt(record: Record, index: int, a: dict, kills: dict[int, dict]) -> dic
             "killed_step_seconds": kill["killed_step_seconds"] if kill and "killed_step_seconds" in kill else absent(no_kill),
         },
     }
+    if tag in V14:
+        out.update(_extended(a))
+    return out
 
 
 def _time_machine_action(a: dict) -> dict:
@@ -290,6 +444,12 @@ def _operations(record: Record) -> list[dict]:
         ops.append({"operation": f"operation-{len(ops) + 1}", **op})
     return ops
 
+def _stored_operations(record: Record) -> list[dict]:
+    """harness-v1.4.x: the record's own `operations[]` (one per sandbox operation: role, candidate, wall and sandbox seconds, the funded seconds and the rate they were
+    funded at, cost, kept images, resource limits), numbers tagged API-REPORTED as stored fields; the per-step list `rerun_steps` is left in the record."""
+    return [tag_numbers({k: v for k, v in op.items() if k != "rerun_steps"}) for op in record.data["operations"]]
+
+
 def _cost(record: Record) -> dict:
     tag = record.harness_tag
     cg = record.data["cost_guard"]
@@ -314,6 +474,8 @@ def _cost(record: Record) -> dict:
     batch_cap = record.data["batch"].get("total_cap_usd")
     cost["batch_cap"] = api_reported(batch_cap, source_field="batch.total_cap_usd") if batch_cap is not None else absent(f"not recorded by {tag}")
     cost["operations"] = _operations(record)
+    if tag in V14:
+        cost["stored_operations"] = _stored_operations(record)
     cost["cost_events"] = [
         {"kind": e["kind"], "usd": {"value": e["usd"], "tag": ESTIMATED if e["kind"] == "estimated" else API_REPORTED}, "note": e.get("note")}
         for e in events] if events is not None else absent(f"not recorded by {tag}")
@@ -347,9 +509,14 @@ def _gate_stats(records: list[Record], source: BlobSource) -> dict[str, dict]:
             "files": files, "result_sha256": hashlib.sha256(result_blob).hexdigest(), "record_ids": [r.record_id for r in recs],
             "recovered": sum(1 for v in result["verdicts"].values() if v in RECOVERED), "entries": len(result["verdicts"]),
             "citations": len(result["c"]["cited"]),
-            "proposed": len(result["b"].get("proposed") or []), "applied": len(result["b"].get("applied") or []),
-            "cost_cap_endings": len(result["d"].get("cost_cap_endings") or {}),
-            "ok": {k: bool(result[k]["ok"]) for k in "abcd"}, "detail": {k: result[k]["detail"] for k in "abcd"}, "passed": bool(result["passed"]),
+            "proposed": len(result["b"]["proposed"]) if "proposed" in result["b"] else None, "applied": len(result["b"].get("applied") or []),
+            "cost_cap_endings": len(result["d"]["cost_cap_endings"]) if "cost_cap_endings" in result["d"]
+            else sum(1 for r in recs if r.data["result"].get("reason_code") == "COST_CAP"),
+            "cost_cap_from_records": "cost_cap_endings" not in result["d"],
+            "ok": {k: bool(result[k]["ok"]) for k in ("abcde" if "e" in result else "abcd")},
+            "detail": {k: result[k]["detail"] for k in "abcd"},
+            "e_per_entry": ({entry: {"ok": bool(v["ok"]), "detail": v["detail"]} for entry, v in result["e"]["per_entry"].items()} if "e" in result else None),
+            "passed": bool(result["passed"]),
             "searches": searches,
             "consulted_attempts": [(r, a) for r, a in attempts if "consulted" in a],
             "references": sum(len(a["consulted"]) for _, a in attempts if "consulted" in a),
@@ -361,7 +528,7 @@ def _gate_stats(records: list[Record], source: BlobSource) -> dict[str, dict]:
 
 
 def _attempt_refs(pairs: list) -> list[str]:
-    return [f"{r.record_id}#{_attempt_label(a['attempt_number'])}" for r, a in pairs]
+    return [f"{r.record_id}#{attempt_label(r.harness_tag, a)}" for r, a in pairs]
 
 
 def _badge(tag: str, stats: dict[str, dict]) -> dict:
@@ -382,11 +549,26 @@ def _badge(tag: str, stats: dict[str, dict]) -> dict:
          "entries": api_reported(s["entries"], computed_from="count of verdicts", source=gate_json)}
     b = {"criterion": "b", "ok": s["ok"]["b"], "detail": s["detail"]["b"],
          "applied": api_reported(s["applied"], computed_from="length of b.applied", source=gate_json),
-         "proposed": api_reported(s["proposed"], computed_from="length of b.proposed", source=gate_json)}
+         }
+    if s["proposed"] is not None:
+        b["proposed"] = api_reported(s["proposed"], computed_from="length of b.proposed", source=gate_json)
+    else:
+        b["proposed_note"] = "the gate result stores the proposed count only in its `detail` text (quoted on this figure), not as a field"
     c = {"criterion": "c", "ok": s["ok"]["c"], "detail": s["detail"]["c"],
          "citations": api_reported(s["citations"], computed_from="length of c.cited", source=gate_json)}
     d = {"criterion": "d", "ok": s["ok"]["d"], "detail": s["detail"]["d"],
-         "cost_cap_endings": api_reported(s["cost_cap_endings"], computed_from="number of entries in d.cost_cap_endings", source=gate_json)}
+         "cost_cap_endings": api_reported(s["cost_cap_endings"], computed_from="count of records with result.reason_code COST_CAP", source=s["record_ids"])
+         if s["cost_cap_from_records"]
+         else api_reported(s["cost_cap_endings"], computed_from="number of entries in d.cost_cap_endings", source=gate_json)}
+    figures = [a, b, c, d]
+    if tag in V14:
+        e = {"criterion": "e", "ok": s["ok"]["e"],
+             "entries_ok": api_reported(sum(1 for v in s["e_per_entry"].values() if v["ok"]), computed_from="count of e.per_entry with ok", source=gate_json),
+             "entries": api_reported(len(s["e_per_entry"]), computed_from="count of e.per_entry", source=gate_json),
+             "per_entry": {entry: v["detail"] for entry, v in s["e_per_entry"].items()}}
+        figures.append(e)
+        if s["recovered"]:
+            a["annotation"] = SMOKE_CRITERION_NOTE
     if tag == "harness-v1.3.3":
         a["text"] += " (measured)"
         a["annotation"] = ARTEFACT_NOTE
@@ -410,7 +592,7 @@ def _badge(tag: str, stats: dict[str, dict]) -> dict:
     if estimated:
         gate_cost["measured"] = api_reported(round(spent - estimated, 10), computed_from="sum of spent_usd - sum of estimated_sandbox_spent_usd")
         gate_cost["estimated"] = {"value": round(estimated, 10), "tag": ESTIMATED, "computed_from": "sum of cost_guard.estimated_sandbox_spent_usd"}
-    return {"exploratory": True, "label": "EXPLORATORY", "text": text, "gate_passed": s["passed"], "figures": [a, b, c, d], "gate_cost": gate_cost,
+    return {"exploratory": True, "label": "EXPLORATORY", "text": text, "gate_passed": s["passed"], "figures": figures, "gate_cost": gate_cost,
             "links": {"gate_result": files["result"], "gate_report": files["report"], "run_records": s["record_ids"],
                       "cost_line": _src(files["report"], files["cost_line"])}}
 
@@ -468,7 +650,7 @@ def build_passport(record: Record, by_key: dict[tuple[str, str, str], Record], s
             note["related_record"] = by_key[note["related_record"]].record_id
         annotations.append(note)
     passport = {
-        "schema": SCHEMA,
+        "schema": SCHEMA_V14 if tag in V14 else SCHEMA,
         "record_id": record.record_id,
         "record": {"path": record.path, "sha256": record.sha256, "record_set": record.record_set.name,
                    "hash_basis": "git blob at HEAD (git cat-file blob HEAD:<path>), never the worktree file",
@@ -490,7 +672,7 @@ def build_passport(record: Record, by_key: dict[tuple[str, str, str], Record], s
                      "taxonomy_code": baseline.get("taxonomy_code"), "evidence": baseline.get("evidence")},
         "classification_chain": [
             {"error": e["error"], "class": e["class"], "attribution": e["attribution"], "phase": e["phase"],
-             "cleared_by": _attempt_label(e["cleared_by"]) if e.get("cleared_by") is not None else absent("not cleared by any attempt")}
+             "cleared_by": round_label(tag, e["cleared_by"]) if e.get("cleared_by") is not None else absent("not cleared by any attempt")}
             for e in result.get("error_chain") or []],
         "attempts": [_attempt(record, i, a, kills) for i, a in enumerate(attempts)],
         "time_machine_actions": [_time_machine_action(a) for a in attempts if a.get("time_machine")],
