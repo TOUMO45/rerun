@@ -9,25 +9,25 @@ Three Nemotron models through Nebius Token Factory, each with one narrow job (na
 
 - `nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B` for recon: find the entrypoint or abstain. It is the most frequent call and the cheapest to get wrong safely, because an abstention ends the run as INDETERMINATE instead of guessing.
 - `nvidia/nemotron-3-super-120b-a12b` for planning and repair: it proposes system packages, patches and environment changes. It is the only role that reasons over code and logs, so it gets the mid-size model.
-- `nvidia/Nemotron-3-Ultra-550b-a55b` for adjudication: it writes the certificate prose and may only downgrade a verdict. One call per run, so the largest model is affordable there.
+- `nvidia/Nemotron-3-Ultra-550b-a55b` for adjudication: it chooses between the candidate repairs of a round (from harness-v1.4.0) and writes the certificate prose, and may only downgrade a verdict. A few calls per run, so the largest model is affordable there.
 
-Recorded calls in the last gate: Nano 4 [API-REPORTED], Super 16 [API-REPORTED], Ultra 4 [API-REPORTED]. The decisions that matter (classification, the tamper gate, the env gate, the cost guard, the verdict) are deterministic code, not model calls.
+Recorded calls in the last gate: Nano 3 [API-REPORTED], Super 22 [API-REPORTED], Ultra 8 [API-REPORTED]. The decisions that matter (classification, the tamper gate, the env gate, the cost guard, the verdict) are deterministic code, not model calls.
 
 ## How would you rate Nemotron's output quality (1–10)?
 
 **PROPOSED: 4/10 for the repair role, as measured here.** The owner decides.
 
 Evidence for:
-- Patches are well-formed enough to apply: 2 [API-REPORTED] applied of 4 [API-REPORTED] proposed in each gate (criterion b passed in both).
-- The model abstains and explains itself: it recorded a reason for not citing on 6 [API-REPORTED] attempts, and declined an attempt rather than guess once the harness told it there was no error text.
-- It produced a recorded repair attempt in 5 [API-REPORTED] of 8 [API-REPORTED] gate entry-runs.
+- Patches and environment changes are well-formed enough to apply: criterion (b) passed in every gate.
+- The model abstains and explains itself: it recorded a reason for not citing on 15 [API-REPORTED] attempts in the last gate, and declined an attempt rather than guess once the harness told it there was no error text.
+- It produced a recorded repair attempt in 14 [API-REPORTED] of 20 [API-REPORTED] gate entry-runs, and in the last gate the one entry-run that ended RUNS_AFTER_REPAIR (a smoke-criterion pass: the command ran for the smoke limit without failing) followed environment changes it had proposed.
 
 Evidence against:
-- The repair loop recovered 0 [API-REPORTED] of 8 [API-REPORTED] gate entry-runs, and 0 [API-REPORTED] of 16 [API-REPORTED] on the pre-registered run.
-- It never cited a search result: 0 [API-REPORTED] citations with 21 [API-REPORTED] references offered in the last gate (D-21).
+- No gate passed: 2 [API-REPORTED] of 20 [API-REPORTED] gate entry-runs ended RUNS_CLEAN or RUNS_AFTER_REPAIR, one a smoke-limit artefact and one that smoke-criterion pass, and 0 [API-REPORTED] of 16 [API-REPORTED] recovered on the pre-registered run.
+- It cited a source in some gates and in none of the last: 0 [API-REPORTED] citations with 51 [API-REPORTED] references offered there (D-21).
 - It proposed installing a C compiler as a Python package (D-24) and, before the harness forbade it, patched blindly on a silent exit (D-19).
 
-This rates one repairer model on one small corpus under a strict gate. It is not a general rating of Nemotron, and the other two roles were not scored separately: not measured.
+This rates one repairer model on one small corpus under a strict gate. It is not a general rating of Nemotron, and the other two roles were not scored separately: not measured. If the owner counts the one smoke-criterion pass in the repairer's favour, 5/10 is as defensible from the same records.
 
 ## Prompt-engineered or fine-tuned?
 
@@ -44,14 +44,14 @@ Not measured. Every record uses the three Nemotron models above; there is no rec
 - **The models endpoint with pricing**: the cost guard prices every call from it and records the source and retrieval date.
 - **Seal verification**: every sandbox-touching code path was executed live before a harness version was sealed; the logs are committed under `runs/sandbox_verification/`.
 
-Recorded spend on the current ledger: $10.1349 [ESTIMATED] = $9.8507 [API-REPORTED] + $0.2842 [ESTIMATED], a lower bound (D-27). That is the sandbox API's reported operation cost; the account balance page showed at most $0.39 [BILLED] charged at the time of the owner's reading, and the two are not reconciled (D-36, open).
+Recorded spend on the current ledger: $22.4935 [ESTIMATED] = $21.3218 [API-REPORTED] + $1.1717 [ESTIMATED], a lower bound (D-27). That is the sandbox API's reported operation cost; the account balance page showed at most $0.43 [BILLED] charged at the time of the owner's second reading, and the two are not reconciled (D-36, open).
 
 ## How likely are you to recommend Nebius Token Factory?
 
 **PROPOSED: 7/10.** The owner decides.
 
-Evidence for: the sandboxes carried the 49 [API-REPORTED] recorded entry-runs (one ended in a transport error and was retried under the registered policy) and the seal verifications; the pricing endpoint made a hard cost guard possible.
-Evidence against: a step stopped by the sandbox comes back as a normal result with a flag the SDK does not surface (D-17), and the spend of a killed step is not reported, so our ledger is a lower bound (D-27).
+Evidence for: the sandboxes carried the 61 [API-REPORTED] recorded entry-runs (one ended in a transport error and was retried under the registered policy) and the seal verifications; the pricing endpoint made a hard cost guard possible; the API returns peak memory per operation.
+Evidence against: a step stopped by the sandbox comes back as a normal result with a flag the SDK does not surface (D-17); the spend of a killed step is not reported, so our ledger is a lower bound (D-27); the memory and CPU of a sandbox VM are not documented (we read 3.85 [DERIVED] GiB from inside, D-40); and the SDK truncates each output stream at a fixed byte limit by default (D-41).
 
 ## How was the developer experience?
 
@@ -64,17 +64,18 @@ Evidence: the sandbox SDK was usable from its source, but its behaviour at limit
 In Nebius Token Factory, from what the records show:
 - surface the timed-out state of a sandbox step as an error or a documented field (D-17; an issue is drafted in `reports/corpus-v2.1/sponsor-issues/`);
 - report the cost of a step that was stopped, so a ledger does not need an estimate (D-27);
-- allow a cached image layer per environment, so a re-execution does not pay the same install again (D-23).
+- document the memory and CPU of a sandbox VM and let a run choose a larger one: one entry was killed by the 3.85 [DERIVED] GiB the VM has (D-40);
+- make the output truncation limit visible where a result is read, or raise its default: it may have hidden an error message for several versions (D-41).
 
-In RERUN: the three open defects with design notes or register rows (D-21, D-23, D-25), and storing funded and wall seconds as record fields instead of deriving them from event lines.
+In RERUN: the open defects (D-21, D-25, D-40, D-41), storing the output-truncation flag and the API's peak memory on every operation, and storing funded and wall seconds as record fields instead of deriving them from event lines.
 
 ## What is next?
 
-Nothing is scheduled to spend money: the stop rule is in force. The next steps are written and costed, not promised: a cached torch layer or a per-operation floor (`docs/design/D-23.md`), and a harness-injected exit-site hook (`docs/design/D-25.md`). Each note says what a validating gate would have to measure before the defect may be called fixed.
+Nothing is scheduled to spend money: the stop rule is in force. The next step is written down, not promised: read the truncation flag and raise the output limit (D-41). That changes sealed code, so it needs a new seal and a new gate, and the room left under the spend ceiling does not cover both; it is the owner's decision. Each design note (`docs/design/D-25.md`, `docs/design/D-40-resources.md`) says what a validating gate would have to measure before the defect may be called fixed.
 
 ## Did you use Tavily?
 
-**Yes.** Tavily is called at runtime before each repair attempt, and the references are stored on the attempt: 7 [API-REPORTED] attempts consulted and 21 [API-REPORTED] references in the last gate. The honest sentence: the model never cited any of them (0 [API-REPORTED] citations), the record says so on every attempt, and that defect (D-21) is open.
+**Yes.** Tavily is called at runtime before each repair attempt, and the references are stored on the attempt: 15 [API-REPORTED] attempts consulted and 51 [API-REPORTED] references in the last gate. The honest sentence: the model cited sources in the two gates before it (3 [API-REPORTED] and 6 [API-REPORTED] citations) and in none of the last (0 [API-REPORTED] citations); whether a citation shaped a decision is not measured, and that defect (D-21) is open.
 
 ## Is this a new project or an existing one?
 

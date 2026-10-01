@@ -160,7 +160,7 @@ def test_the_readme_names_the_models_exactly_as_the_records_do():
 def test_the_readme_states_the_headline_the_badges_the_ledger_and_the_limits():
     text = _text("README.md")
     summary = _summary()
-    for tag in (replay.VERSIONS[1], replay.VERSIONS[2]):
+    for tag in replay.VERSIONS[1:]:  # every exploratory version's own badge line, as recorded
         badge = json.loads((ROOT / replay.REPLAY_DIR / f"{tag}.json").read_text(encoding="utf-8"))["badge"]["text"]
         assert f"`{badge}`" in text, tag
     assert "reports/phase-d/dashboard/index.html" in text and "python -m phase_d.build_dashboard" in text
@@ -168,11 +168,11 @@ def test_the_readme_states_the_headline_the_badges_the_ledger_and_the_limits():
     for part in ("total", "measured", "estimated"):
         assert f"${ledger[part]['value']:.4f}" in text
     assert "lower bound" in text and "D-27" in text
-    for defect in ("D-21", "D-23", "D-25", "D-26", "D-27", "D-28"):
+    for defect in ("D-21", "D-25", "D-26", "D-27", "D-28", "D-36", "D-40", "D-41"):
         assert defect in text.split("## Known limits")[1], defect
     for status, count in summary["inventory"]["defects_by_status"].items():
         assert f"`{status}`: {count['value']} [API-REPORTED]" in text
-    assert "smoke-limit artefact" in text and "0 [API-REPORTED] of 8 [API-REPORTED]" in text
+    assert "smoke-limit artefact" in text and "2 [API-REPORTED] of 20 [API-REPORTED]" in text and "smoke-criterion pass" in text
     for rel in set(re.findall(r"\]\(((?!https?:)[^)#]+)", text)):
         assert (ROOT / rel).exists(), rel
 
@@ -187,7 +187,8 @@ def test_the_devpost_answers_mark_ratings_as_proposed_and_leave_the_owner_questi
     assert len(rated) == 3 and all("PROPOSED" in sections[name] and "The owner decides." in sections[name] for name in rated)
     assert sections["How does it compare with other models?"].strip().startswith("Not measured.")
     assert sections["Prompt-engineered or fine-tuned?"].strip().startswith("Prompt-engineered.")
-    assert sections["Did you use Tavily?"].strip().startswith("**Yes.**") and "never cited" in sections["Did you use Tavily?"]
+    tavily = sections["Did you use Tavily?"]
+    assert tavily.strip().startswith("**Yes.**") and "0 [API-REPORTED] citations" in tavily and "whether a citation shaped a decision is not measured" in tavily
     assert sections["Is this a new project or an existing one?"].strip() == "<!-- OWNER TO ANSWER: left blank on purpose -->"
     recorded = {r["model"] for v in _summary()["stack"]["versions"] for r in v["roles"]}
     assert set(re.findall(r"nvidia/[A-Za-z0-9._-]+", text)) == recorded
@@ -202,8 +203,9 @@ def test_the_description_is_at_most_400_words_and_the_tagline_is_two_sentences()
     spoken = TAG_MARK.sub(" ", description).replace("**", "")
     assert len(spoken.split()) <= 400, len(spoken.split())
     assert len(re.findall(r"[.!?](?:\s|$)", TAG_MARK.sub("", tagline))) == 2
-    assert "0 [API-REPORTED] of 8 [API-REPORTED]" in tagline and "0 [API-REPORTED] of 8 [API-REPORTED]" in description
+    assert "2 [API-REPORTED] of 20 [API-REPORTED]" in tagline and "2 [API-REPORTED] of 20 [API-REPORTED]" in description
     assert "EXPLORATORY" in description and "lower bound" in description and "smoke-limit artefact" in description
+    assert "smoke-criterion pass" in description and "not a rate" in description and "D-41" in description
 
 
 # ---------------------------------------------------------------- criteria map
@@ -225,7 +227,7 @@ def test_the_criteria_map_gives_three_evidence_items_and_one_weakest_point_per_c
     for test_name in set(re.findall(r"`(test_\w+)`", text)):
         assert any(f"def {test_name}(" in f.read_text(encoding="utf-8") for f in tests.glob("test_*.py")), test_name
     assert "static dashboard is not an interactive product" in sections["Design"]
-    assert "did not recover" in sections["Technological Implementation"]
+    assert "No gate passed" in sections["Technological Implementation"] and "not a rate" in sections["Technological Implementation"]
 
 
 def test_all_five_submission_texts_exist():

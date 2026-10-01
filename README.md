@@ -9,13 +9,24 @@ API-REPORTED (formerly MEASURED) means a stored field of a committed record, or 
 
 ## The measured result
 
-**The LLM repair loop recovered 0 [API-REPORTED] of 8 [API-REPORTED] gate entry-runs.** The one apparent recovery (harness-v1.3.3, entry `11`) was a
-smoke-limit artefact, produced by the deterministic time machine alone. The model produced a recorded repair attempt in 5 [API-REPORTED] of those 8 [API-REPORTED].
+**Over every gate entry-run of the exploratory versions, 2 [API-REPORTED] of 20 [API-REPORTED] ended RUNS_CLEAN or RUNS_AFTER_REPAIR, and no gate passed.**
+One apparent recovery (harness-v1.3.3, entry `11`) was a smoke-limit artefact, produced by the deterministic time machine alone.
+The other (harness-v1.4.2, entry `07`) is a smoke-criterion pass: its command ran for the smoke limit without failing, after model-proposed environment changes were adopted by the adjudicator; it did not run to completion and no result was reproduced.
+A model produced a recorded repair attempt in 14 [API-REPORTED] of those 20 [API-REPORTED].
 
 - Pre-registered run (harness-v1.3.2, CONTROL and TREATMENT kept separate): with repair switched on, 0 [API-REPORTED] of 16 [API-REPORTED] repositories recovered.
 - harness-v1.3.3, badge as recorded: `EXPLORATORY — did not pass its pre-registered gate. a: 1/4 (measured), c: 0 citations in 7 searches.`
   Beside it: the one recovery (entry `11`) was later identified as a smoke-limit artefact; the measured line is unchanged.
 - harness-v1.3.4, badge as recorded: `EXPLORATORY — did not pass its pre-registered gate. a: 0/4, c: 0 citations (7 attempts consulted, 21 refs, 6 reasons recorded).`
+- harness-v1.4.0 (checkpoint images, three candidate repairs per round, an adjudicator that chooses between them, a CPU shim, an exit hook), badge as recorded: `EXPLORATORY — did not pass its pre-registered gate. a: 0/4, c: 3 citations (24 attempts consulted, 72 refs, 15 reasons recorded).`
+- harness-v1.4.1 (a rolling funding rate, resume from a kept image, an exit wrapper), badge as recorded: `EXPLORATORY — did not pass its pre-registered gate. a: 0/4, c: 6 citations (36 attempts consulted, 108 refs, 28 reasons recorded).`
+- harness-v1.4.2 (partial progress, a wider CPU shim, resource-kill classification with an evidence run), badge as recorded: `EXPLORATORY — did not pass its pre-registered gate. a: 1/4, c: 0 citations (15 attempts consulted, 51 refs, 15 reasons recorded).`
+  Beside it: its one RUNS_AFTER_REPAIR is a smoke-criterion verdict, as the paragraph above says. Criterion (c) failed in this gate: no citation was stored.
+
+What the last gate found about the harness itself, from its own records:
+
+- Entry `11` was killed by the sandbox (exit code 137). One evidence run read the sandbox from inside: a kernel out-of-memory line, on a VM with 3.85 [DERIVED] GiB of memory and 4 [API-REPORTED] CPUs. That is a sandbox limit, not something a repair can fix: the entry ended INDETERMINATE (RESOURCE_LIMIT), never BLOCKED.
+- Entry `03` ended INDETERMINATE (EXIT_OUTSIDE_PYTHON) and that label is probably wrong: the sandbox SDK cuts each output stream at a fixed byte limit and the harness never looked (D-41, open, not proven). Every stored stderr of this entry, in every version, ends at the same point of a progress bar, so the error message that follows may have been cut off.
 
 This is a statement about this harness and its repair loop on this corpus, not about the papers and not about automated repair in general.
 What a run verifies is execution at smoke level: a re-execution "passes" when it ran for 60 [API-REPORTED] seconds without failing. It does not verify a paper's numerical results.
@@ -65,9 +76,10 @@ The model names below are the ones stored in the run records (`config.models`), 
 | repairer | `nvidia/nemotron-3-super-120b-a12b` | Proposes a minimal patch or environment change; the gates decide, never the model |
 | adjudicator | `nvidia/Nemotron-3-Ultra-550b-a55b` | Writes the certificate prose; it may only downgrade a verdict, never upgrade one |
 
-Calls recorded in the harness-v1.3.4 gate: Nano 4 [API-REPORTED], Super 16 [API-REPORTED], Ultra 4 [API-REPORTED]. In the pre-registered run: Nano 40 [API-REPORTED], Super 99 [API-REPORTED], Ultra 38 [API-REPORTED].
-The small model does the cheap, frequent, abstention-prone job; the mid-size model does planning and repair; the largest writes prose under a rule that it cannot improve a verdict.
-What the models did not do is in the result above: no model repair recovered an entry.
+Calls recorded in the harness-v1.4.2 gate: Nano 3 [API-REPORTED], Super 22 [API-REPORTED], Ultra 8 [API-REPORTED]. In the pre-registered run: Nano 40 [API-REPORTED], Super 99 [API-REPORTED], Ultra 38 [API-REPORTED].
+From harness-v1.4.0 the adjudicator also chooses between up to three candidate repairs per round, re-asked once on an invalid reply, and it still cannot upgrade a verdict.
+The small model does the cheap, frequent, abstention-prone job; the mid-size model does planning and repair; the largest writes prose and chooses between candidates under a rule that it cannot improve a verdict.
+What the models did, as recorded: model-proposed environment changes were adopted in the one entry-run that ended RUNS_AFTER_REPAIR under the smoke criterion (harness-v1.4.2, entry `07`); no gate passed.
 
 ## Where Token Factory is used
 
@@ -75,15 +87,19 @@ What the models did not do is in the result above: no model repair recovered an 
 - **Model endpoints.** The three Nemotron models are called through Token Factory's OpenAI-compatible endpoint; each call's token usage is stored in the record (`model_calls`).
 - **Prices.** The cost guard prices each call from `https://api.tokenfactory.nebius.com/v1/models?verbose=true (pricing field)`, as recorded with the retrieval date in every record.
 - **Seal verification.** Before a harness version is sealed, every sandbox-touching code path is executed live once and its log is committed (`seal_verification.json`).
+- **Resource limits.** No document gives a memory or CPU figure for a sandbox VM (`docs/design/D-40-resources.md`). The harness read them from inside: 3.85 [DERIVED] GiB of memory, 4 [API-REPORTED] CPUs, no swap, and a process that holds all the memory is killed by the kernel with exit code 137 (the seal's allocation probe and the last gate's evidence run agree).
 
 ## Where Tavily is used
 
-Tavily is called at runtime, once per repair attempt, with the failure's class and error line. The references offered to the model are stored on the attempt as `consulted`.
+Tavily is called at runtime, once per repair attempt, with the failure's class and error line. The references offered to the model are stored on the attempt as `consulted`; from harness-v1.4.0 the sources the model actually cited are stored too (`cited`).
 
-- harness-v1.3.4 gate: 7 [API-REPORTED] attempts consulted, 21 [API-REPORTED] references, 0 [API-REPORTED] citations, 6 [API-REPORTED] recorded reasons for not citing.
+- harness-v1.4.2 gate: 15 [API-REPORTED] attempts consulted, 51 [API-REPORTED] references, 0 [API-REPORTED] citations, 15 [API-REPORTED] recorded reasons for not citing.
+- harness-v1.4.1 gate: 36 [API-REPORTED] attempts consulted, 108 [API-REPORTED] references, 6 [API-REPORTED] citations, 28 [API-REPORTED] recorded reasons.
+- harness-v1.4.0 gate: 24 [API-REPORTED] attempts consulted, 72 [API-REPORTED] references, 3 [API-REPORTED] citations, 15 [API-REPORTED] recorded reasons.
+- harness-v1.3.4 gate: 7 [API-REPORTED] attempts consulted, 21 [API-REPORTED] references, 0 [API-REPORTED] citations, 6 [API-REPORTED] recorded reasons.
 - harness-v1.3.3 gate: 0 [API-REPORTED] citations in 7 [DERIVED] searches.
 
-The honest note: the model never cited a reference, in any record. `cited` is null on every attempt of every passport, and defect D-21 is open. The search happened; its use by the model is not demonstrated.
+The honest note: the model cited a source in two of the three most recent root-cause gates and in none of the last, where criterion (c) failed. Whether a citation shaped a decision is not measured. `cited` is null on every attempt of the harness-v1.3.x passports, and defect D-21 stays open.
 
 ## Run it offline in one command
 
@@ -105,13 +121,13 @@ Live runs spend money on Nebius. None is needed to inspect the result, and the p
 - **Prerequisites.** The backend's dependencies (`backend/pyproject.toml`), git, a Nebius Token Factory API key and a Tavily API key.
 - **Environment variables.** Copy `.env.example` to `.env` and set `NEBIUS_API_KEY` and `TAVILY_API_KEY`. The model names and the sandbox backend have recorded defaults.
 - **One repository.** `scripts/live_run.py` runs the pipeline once with a hard cost cap (`--cost-cap-usd`).
-- **A batch.** `scripts/run_corpus_v1_batch.py` refuses to start unless the checkout is a sealed harness tag with a current seal verification. The sealed tag is `harness-v1.3.4`; `main` is ahead of it and is not sealed.
-- **Cost caps, as recorded.** Entry cap $2.0 [API-REPORTED]. Batch caps: $25.0 [API-REPORTED] for the pre-registered run, $6.0 [API-REPORTED] and $3.5 [API-REPORTED] for the two gates.
-- **Expected spend per entry.** In the two gates an entry cost between $0.4610 [API-REPORTED] and $1.2825 [API-REPORTED]. In the pre-registered run the cap was not yet hard: one entry reached $5.6773 [API-REPORTED] (D-7).
+- **A batch.** `scripts/run_corpus_v1_batch.py` refuses to start unless the checkout is a sealed harness tag with a current seal verification. The sealed tag is `harness-v1.4.2`; `main` is ahead of it by records, reports and the Phase D assets only (the harness paths are byte-identical to the tag).
+- **Cost caps, as recorded.** Entry cap $2.0 [API-REPORTED] in the first gates and $1.5 [API-REPORTED] in the root-cause gates. Batch caps: $25.0 [API-REPORTED] for the pre-registered run; for the five gates $6.0 [API-REPORTED], $3.5 [API-REPORTED], $5.0 [API-REPORTED], $6.0 [API-REPORTED] and $6.0 [API-REPORTED].
+- **Expected spend per entry.** In the five gates an entry cost between $0.4610 [API-REPORTED] and $1.3058 [API-REPORTED]. In the pre-registered run the cap was not yet hard: one entry reached $5.6773 [API-REPORTED] (D-7).
 
 ## Evidence and integrity
 
-- **Passports.** 49 [API-REPORTED] run records, one passport each, under `reports/phase-d/passports/`. A record id is `<harness_tag>/<arm>/<entry>@<sha256 of the committed blob>`; the list is in [reports/phase-d/record_index.md](reports/phase-d/record_index.md).
+- **Passports.** 61 [API-REPORTED] run records, one passport each, under `reports/phase-d/passports/`. A record id is `<harness_tag>/<arm>/<entry>@<sha256 of the committed blob>`; the list is in [reports/phase-d/record_index.md](reports/phase-d/record_index.md).
 - **Verifier.** `python -m phase_d.verify_passports` rebuilds every passport from the record blobs and diffs to zero.
 - **Tamper tests.** One changed byte in any record changes its record id and fails verification (`backend/tests/test_phase_d_passports.py`). A passport that disagrees with its record stops the REPLAY build (`backend/tests/test_phase_d_replay.py`).
 - **Tags.** A check fails the build if any number lacks a tag or a link to its record (`python -m phase_d.check_tags`, `python -m phase_d.check_dashboard`).
@@ -120,19 +136,19 @@ Live runs spend money on Nebius. None is needed to inspect the result, and the p
 
 ## Defect register summary and status rule
 
-The harness reports on itself: 28 [API-REPORTED] defects, D-1 to D-28, each with quoted sources that the build checks.
+The harness reports on itself: 41 [API-REPORTED] defects, D-1 to D-41, each with quoted sources that the build checks.
 
-- `fixed-and-gated`: 11 [API-REPORTED]. The fix map calls it fixed with no open remainder, and a committed gate or seal report line states the fix was observed working live. It does not mean the gate passed: neither exploratory gate did.
-- `fixed-unvalidated`: 6 [API-REPORTED]. A fix or correction exists, but no committed gate line shows it working.
-- `open`: 11 [API-REPORTED]. No fix, a fix the fix map itself calls partial, or a defect that still shows in practice.
+- `fixed-and-gated`: 19 [API-REPORTED]. The fix map calls it fixed with no open remainder, and a committed gate report line states the fix was observed working live. It does not mean a gate passed: none did.
+- `fixed-unvalidated`: 9 [API-REPORTED]. A fix or correction exists, but no committed gate line shows it working (offline tests, seal only, or a documentation correction).
+- `open`: 13 [API-REPORTED]. No fix, a fix the fix map itself calls partial, or a defect that still shows in practice.
 
-The rule is the author's, not the gate's: a partial fix counts as open, and a passed criterion is not a fixed defect. D-24 was fixed after the last gate and is `fixed-unvalidated`: it has run in no gate.
+The rule is the author's, not the gate's: a partial fix counts as open, and a passed criterion is not a fixed defect. D-23 and D-24 moved to `fixed-and-gated` after the root-cause gates showed them working; their rows say why.
 The register, with the basis of every row, is on the dashboard and in `reports/phase-d/replay/summary.json`.
 
 ## Cost ledger
 
-$10.1349 [ESTIMATED] = $9.8507 [API-REPORTED] + $0.2842 [ESTIMATED]. It is a lower bound (D-27): the ledger records only completed cost, and the spend of a killed step is absent wherever no estimate was stored.
-These figures are the sandbox API's reported operation cost, not account billing: the account balance page showed at most $0.39 [BILLED] charged at the time of the owner's reading, and the two are not reconciled (D-36, open).
+$22.4935 [ESTIMATED] = $21.3218 [API-REPORTED] + $1.1717 [ESTIMATED]. It is a lower bound (D-27): the ledger records only completed cost, and the spend of a killed step is absent wherever no estimate was stored.
+These figures are the sandbox API's reported operation cost, not account billing: the account balance page showed at most $0.43 [BILLED] charged at the time of the owner's second reading, and the two are not reconciled (D-36, open).
 
 | Component | API-reported | Estimated |
 |---|---|---|
@@ -141,14 +157,28 @@ These figures are the sandbox API's reported operation cost, not account billing
 | Smoke gate, harness-v1.3.3 | $2.9298 [API-REPORTED] | $0.0000 [ESTIMATED] |
 | Seal verification, harness-v1.3.4 | $1.3125 [API-REPORTED] | not recorded |
 | Smoke gate, harness-v1.3.4 | $3.1120 [API-REPORTED] | $0.2842 [ESTIMATED] |
+| Seal verification, option B checks, harness-v1.4.0 | $0.6985 [API-REPORTED] | not recorded |
+| Seal verification, harness-v1.4.0 | $0.1170 [API-REPORTED] | $0.4998 [ESTIMATED] |
+| Pre-batch upload smoke test, harness-v1.4.0 | $0.0049 [API-REPORTED] | not recorded |
+| Gate, harness-v1.4.0 | $3.0076 [API-REPORTED] | $0.1868 [ESTIMATED] |
+| Seal verification, harness-v1.4.1 | $0.1254 [API-REPORTED] | $0.2009 [ESTIMATED] |
+| Pre-batch upload smoke tests and probe, harness-v1.4.1 | $0.0078 [API-REPORTED] | not recorded |
+| Gate, harness-v1.4.1 | $3.5247 [API-REPORTED] | $0.0000 [ESTIMATED] |
+| Seal verification, harness-v1.4.2 | $0.0450 [API-REPORTED] | not recorded |
+| Pre-batch upload smoke test, harness-v1.4.2 | $0.0051 [API-REPORTED] | not recorded |
+| Gate, harness-v1.4.2 | $3.9350 [API-REPORTED] | $0.0000 [ESTIMATED] |
 
-The gate report's own line reads `$10.134`; that figure adds components that were already rounded, and it is quoted beside the record sum on the dashboard. The pre-registered run is outside this ledger: its recorded spend is $21.7572 [API-REPORTED].
+Rebuilt from the records, the sum equals the figure the last gate report states, to the fourth decimal; the earlier gate reports stated $10.134, $14.6495 and $18.5083 (quoted on the dashboard). The pre-registered run is outside this ledger: its recorded spend is $21.7572 [API-REPORTED].
 
-BILLED lines, from the owner's reading of the account balance (never an API cost; `reports/phase-d/replay/summary.json`, `ledger.billed`):
+BILLED lines, from the owner's readings of the account balance (never an API cost; `reports/phase-d/replay/summary.json`, `ledger.billed`):
 
-- Account level, cumulative, not per gate: at most $0.39 [BILLED]. Source: the owner's reading of the Nebius account balance page, $49.61 of $50.00 at 19:37 local time, 2026-10-01. Nebius billing lag is unknown.
-- Smoke gate, harness-v1.3.3: BILLED value none. No balance reading was taken for this gate; the only reading is the account-level one above.
-- Smoke gate, harness-v1.3.4: BILLED value none. No balance reading was taken for this gate; the only reading is the account-level one above.
+- Account level, cumulative, not per gate: at most $0.43 [BILLED]. Source: the owner's second reading of the Nebius account balance page ($49.57, after the harness-v1.4.1 seal and gate). Nebius billing lag is unknown.
+- The first reading: at most $0.39 [BILLED] ($49.61 of $50.00 at 19:37 local time, 2026-10-01).
+- Gate, harness-v1.4.1: $0.04 [BILLED], the difference of the two readings; the ledger recorded far more for the same interval (the dashboard shows both).
+- Smoke gate, harness-v1.3.3: BILLED value none. No balance reading was taken for this gate; the only readings are the account-level ones above.
+- Smoke gate, harness-v1.3.4: BILLED value none. No balance reading was taken for this gate; the only readings are the account-level ones above.
+- Gate, harness-v1.4.0: BILLED value none. No balance reading was taken for this gate; the only readings are the account-level ones above.
+- Gate, harness-v1.4.2: BILLED value none yet. The owner's balance reading after this gate has not been received.
 
 ## License
 
@@ -156,11 +186,13 @@ BILLED lines, from the owner's reading of the account balance (never an API cost
 
 ## Known limits
 
-- **D-21, open.** The repairer never cites a search result, even with a required field.
-- **D-23, open.** Per-repair funding starves entries whose every re-execution pays a torch install. Design note: [docs/design/D-23.md](docs/design/D-23.md).
-- **D-25, open.** Model-placed diagnostics cannot locate a deliberate silent exit. Design note: [docs/design/D-25.md](docs/design/D-25.md).
+- **D-41, open, not proven.** The sandbox SDK truncates each output stream at a fixed byte limit and the harness never read the flag that says so; a long progress stream can hide the error that ends it. The silent exit of entry `03` in every version is probably such a case. One cheap live probe would settle it; none was run, because all live work stopped at the end of the last gate. Fixing it changes sealed code, so it needs a new seal and a new gate, and the room left under the spend ceiling does not cover both.
+- **D-40, open.** The sandbox's memory limit is now read from inside (3.85 [DERIVED] GiB), but the API's per-step peak memory is still not stored.
+- **D-21, open.** The repairer cites in some gates and not in others.
+- **D-25, open.** Model-placed diagnostics and the exit hook did not locate a deliberate silent exit (possibly because of D-41). Design note: [docs/design/D-25.md](docs/design/D-25.md).
 - **D-26, open.** No reason is recorded when a declined attempt does not cite.
 - **D-27, open.** The ledger records only completed cost, so its total is a lower bound.
 - **D-28, open.** The record hashes in `reports/corpus-v2.1/results_tables.json` are hashes of worktree files, not of git blobs; the mapping is in the record index.
-- **Scope.** Smoke-level execution, one corpus, one repairer model, a small exploratory set. The dashboard is a static page, not an interactive product.
+- **D-36, open.** The ledger is the sandbox API's reported operation cost; the account balance moved far less. Not reconciled.
+- **Scope.** Smoke-level execution, one corpus, one repairer model, a small exploratory set. One entry-run ended RUNS_AFTER_REPAIR under the smoke criterion: that is not a rate. The dashboard is a static page, not an interactive product.
 - **History.** How the project was built, phase by phase: [docs/history/README_build_log.md](docs/history/README_build_log.md) and [CHANGELOG.md](CHANGELOG.md).
