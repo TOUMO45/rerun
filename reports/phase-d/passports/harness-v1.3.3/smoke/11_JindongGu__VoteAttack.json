@@ -1,0 +1,333 @@
+{
+  "schema": "rerun/phase-d/passport/v1",
+  "record_id": "harness-v1.3.3/treatment/11@619a97784e6abc3f29fedf36a7c4723c65232111233a34e3299a1ed3eee034a2",
+  "record": {
+    "path": "runs/corpus_v2_batch/harness-v1.3.3/smoke/11_JindongGu__VoteAttack.json",
+    "sha256": "619a97784e6abc3f29fedf36a7c4723c65232111233a34e3299a1ed3eee034a2",
+    "record_set": "smoke",
+    "hash_basis": "git blob at HEAD (git cat-file blob HEAD:<path>), never the worktree file"
+  },
+  "image_id": {
+    "value": "dfc45926-90a0-4948-9c26-1f6c8cf74c6d",
+    "source_field": "certificate.baseline.sandbox_id",
+    "base_image": "python:3.10-slim"
+  },
+  "harness_tag": "harness-v1.3.3",
+  "harness_commit": "8af1717c81701a3cecd2d8f8ad1b2a7a7be68447",
+  "arm": "treatment",
+  "entry": {
+    "id": "11",
+    "name": "JindongGu__VoteAttack",
+    "repo_url": "https://github.com/JindongGu/VoteAttack",
+    "commit_sha": "bdf8b46bc7b3ce772a6f2c0a6e48514423fd6051",
+    "category": "PRIMARY"
+  },
+  "run": {
+    "started_at": "2026-09-30T20:52:59.996613+00:00",
+    "finished_at": "2026-09-30T20:59:39.489547+00:00"
+  },
+  "verdict": {
+    "verdict": "RUNS_AFTER_REPAIR",
+    "taxonomy_code": "DEP_MISSING",
+    "reason_code": null,
+    "indeterminate_reason": "",
+    "recovery": true,
+    "first_repo_error": "ModuleNotFoundError: No module named 'tqdm'",
+    "last_error": "ModuleNotFoundError: No module named 'tqdm'"
+  },
+  "baseline": {
+    "result": "FAILS",
+    "exit_code": {
+      "value": 1,
+      "tag": "MEASURED",
+      "source_field": "certificate.baseline.exit_code"
+    },
+    "taxonomy_code": "DEP_MISSING",
+    "evidence": "ModuleNotFoundError: No module named 'tqdm'"
+  },
+  "classification_chain": [
+    {
+      "error": "ModuleNotFoundError: No module named 'tqdm'",
+      "class": "DEP_MISSING",
+      "attribution": "REPO",
+      "phase": "repo_run",
+      "cleared_by": {
+        "value": null,
+        "reason": "not cleared by any attempt"
+      }
+    }
+  ],
+  "attempts": [
+    {
+      "attempt": "attempt-0",
+      "type": "time_machine",
+      "gate_decision": "PASS",
+      "outcome": "applied",
+      "reject_reason": {
+        "value": null,
+        "reason": "not applicable: gate decision PASS"
+      },
+      "consulted": {
+        "value": null,
+        "reason": "not recorded by harness-v1.3.3"
+      },
+      "cited": {
+        "value": null,
+        "reason": "tavily_sources empty on all attempts — consistent with D-21 open"
+      },
+      "reason_no_citation": {
+        "value": null,
+        "reason": "not recorded by harness-v1.3.3"
+      },
+      "silent_exit": {
+        "value": null,
+        "reason": "not recorded by harness-v1.3.3"
+      },
+      "exit_code": {
+        "value": 0,
+        "tag": "MEASURED",
+        "source_field": "result.attempts[0].exit_code"
+      },
+      "change": {
+        "diff_sha256": {
+          "value": null,
+          "reason": "no diff on this attempt"
+        },
+        "patch_notes": {
+          "value": null,
+          "reason": "not recorded by harness-v1.3.3"
+        },
+        "env_delta": []
+      },
+      "execution": {
+        "mode": "smoke",
+        "seconds": {
+          "value": 60,
+          "tag": "MEASURED",
+          "source_field": "result.attempts[0].execution.seconds"
+        },
+        "outcome": "alive_at_limit",
+        "funded_seconds": {
+          "value": null,
+          "reason": "no kill recorded for this attempt; the funded limit is not a stored field in harness-v1.3.3"
+        },
+        "wall_seconds": {
+          "value": null,
+          "reason": "no kill recorded for this attempt; the funded limit is not a stored field in harness-v1.3.3"
+        },
+        "killed_by": {
+          "value": null,
+          "reason": "no kill recorded for this attempt; the funded limit is not a stored field in harness-v1.3.3"
+        },
+        "killed_step_seconds": {
+          "value": null,
+          "reason": "no kill recorded for this attempt; the funded limit is not a stored field in harness-v1.3.3"
+        }
+      }
+    }
+  ],
+  "time_machine_actions": [
+    {
+      "attempt": "attempt-0",
+      "outcome": "applied",
+      "era": {
+        "date": "2021-05-01",
+        "source": "pinned-commit",
+        "detail": {
+          "note": "no dependency files in the repository"
+        }
+      },
+      "python": {
+        "version": "3.9",
+        "reason": "newest CPython first released ≥180 days before the era date 2021-05-01 (https://devguide.python.org/versions/ (first release dates, retrieved 2026-09-24))",
+        "source": "https://devguide.python.org/versions/ (first release dates, retrieved 2026-09-24)"
+      },
+      "undeclared_imports": [
+        "foolbox",
+        "torch",
+        "torchvision",
+        "tqdm"
+      ],
+      "apt_added": [],
+      "apt_reason": "",
+      "lock": {
+        "ok": true,
+        "lock": [
+          "certifi==2020.12.5",
+          "chardet==4.0.0",
+          "eagerpy==0.29.0",
+          "foolbox==3.3.1",
+          "gitdb==4.0.7",
+          "gitpython==3.1.14",
+          "idna==2.10",
+          "numpy==1.20.2",
+          "pillow==8.2.0",
+          "requests==2.25.1",
+          "scipy==1.6.3",
+          "setuptools==56.0.0",
+          "smmap==4.0.0",
+          "torch==1.8.1",
+          "torchvision==0.9.1",
+          "tqdm==4.60.0",
+          "typing-extensions==3.10.0.0",
+          "urllib3==1.26.4"
+        ],
+        "relaxed": [],
+        "not_on_index": [],
+        "error": ""
+      },
+      "fallback": null
+    }
+  ],
+  "cost": {
+    "value": 0.6170817300000001,
+    "tag": "MEASURED",
+    "currency": "USD",
+    "source_field": "cost_guard.spent_usd",
+    "measured": {
+      "value": 0.6170817300000001,
+      "tag": "MEASURED",
+      "source_field": "cost_guard.spent_usd"
+    },
+    "estimated": {
+      "value": 0.0,
+      "tag": "ESTIMATED",
+      "source_field": "cost_guard.estimated_sandbox_spent_usd"
+    },
+    "model": {
+      "value": 0.0026411000000000004,
+      "tag": "MEASURED",
+      "source_field": "cost_guard.model_spent_usd"
+    },
+    "per_entry_cap": {
+      "value": 2.0,
+      "tag": "MEASURED",
+      "source_field": "batch.per_entry_cap_usd"
+    },
+    "cost_events": []
+  },
+  "badge": {
+    "exploratory": true,
+    "label": "EXPLORATORY",
+    "text": "EXPLORATORY — did not pass its pre-registered gate. a: 1/4 (measured), c: 0 citations in 7 searches.",
+    "figures": [
+      {
+        "criterion": "a",
+        "text": "1/4 (measured)",
+        "recovered": {
+          "value": 1,
+          "tag": "MEASURED",
+          "computed_from": "count of verdicts in ['RUNS_CLEAN', 'RUNS_AFTER_REPAIR']",
+          "source": "reports/corpus-v2.1/v1.3.3/smoke_gate/smoke_gate_result.json@sha256:a397908ac28c7f28e30c5b11823e342d007590f77c47c339efe8620710b99427"
+        },
+        "entries": {
+          "value": 4,
+          "tag": "MEASURED",
+          "computed_from": "count of verdicts",
+          "source": "reports/corpus-v2.1/v1.3.3/smoke_gate/smoke_gate_result.json@sha256:a397908ac28c7f28e30c5b11823e342d007590f77c47c339efe8620710b99427"
+        },
+        "annotation": "the one recovery (entry 11) was later identified as a smoke-limit artefact; measured line unchanged."
+      },
+      {
+        "criterion": "c",
+        "citations": {
+          "value": 0,
+          "tag": "MEASURED",
+          "computed_from": "length of c.cited",
+          "source": "reports/corpus-v2.1/v1.3.3/smoke_gate/smoke_gate_result.json@sha256:a397908ac28c7f28e30c5b11823e342d007590f77c47c339efe8620710b99427"
+        },
+        "searches": {
+          "value": 7,
+          "tag": "DERIVED",
+          "computed_from": "count of '[tavily] ' event lines",
+          "source": [
+            {
+              "record_id": "harness-v1.3.3/treatment/03@27da7b1bac4666c24e514c2f6816890d7f729fff0004f57f852c0d0f33a57048",
+              "field": "events[23].line",
+              "line": "[tavily] 3 result(s) for 'python 3.6 pytorch runtime error other fix: 1'"
+            },
+            {
+              "record_id": "harness-v1.3.3/treatment/03@27da7b1bac4666c24e514c2f6816890d7f729fff0004f57f852c0d0f33a57048",
+              "field": "events[36].line",
+              "line": "[tavily] 3 result(s) for 'python 3.6 pytorch runtime error other fix: 1'"
+            },
+            {
+              "record_id": "harness-v1.3.3/treatment/03@27da7b1bac4666c24e514c2f6816890d7f729fff0004f57f852c0d0f33a57048",
+              "field": "events[49].line",
+              "line": "[tavily] 3 result(s) for 'python 3.6 pytorch runtime error other fix: 1'"
+            },
+            {
+              "record_id": "harness-v1.3.3/treatment/07@ef6ed06d9a4120a981ea479eac605ec241126d636fb2e2861e895e1846604b63",
+              "field": "events[20].line",
+              "line": "[tavily] 3 result(s) for 'python 3.8 sys lib missing fix: /bin/sh: 1: pkg-config: not found'"
+            },
+            {
+              "record_id": "harness-v1.3.3/treatment/07@ef6ed06d9a4120a981ea479eac605ec241126d636fb2e2861e895e1846604b63",
+              "field": "events[32].line",
+              "line": "[tavily] 3 result(s) for 'python 3.8 runtime error other fix: × Encountered error while generating package metadata. | already tried: apt libfreetype6-dev, apt libsdl1-2-dev, apt pkg-config'"
+            },
+            {
+              "record_id": "harness-v1.3.3/treatment/07@ef6ed06d9a4120a981ea479eac605ec241126d636fb2e2861e895e1846604b63",
+              "field": "events[45].line",
+              "line": "[tavily] 3 result(s) for 'python 3.8 runtime error other fix: × Encountered error while generating package metadata. | already tried: add libportmidi-dev, add libsdl-image1-2-dev, add libsdl-mixer1-2-dev'"
+            },
+            {
+              "record_id": "harness-v1.3.3/treatment/08@ed4623a2efd97f6eae566b4c8069a594b3af231a589d980434d3c23870c4accd",
+              "field": "events[25].line",
+              "line": "[tavily] 3 result(s) for 'python 3.10 pytorch runtime error other fix: ImportError: cannot import name 'compare_psnr' from 'skimage.measure' (/usr/local/lib/python3.10/site-packages/skimage/measure/__init__.py)'"
+            }
+          ]
+        },
+        "text": "0 citations in 7 searches"
+      }
+    ],
+    "gate_cost": {
+      "value": 2.92978009,
+      "tag": "MEASURED",
+      "currency": "USD",
+      "computed_from": "sum of cost_guard.spent_usd over the gate records",
+      "source": [
+        "harness-v1.3.3/treatment/03@27da7b1bac4666c24e514c2f6816890d7f729fff0004f57f852c0d0f33a57048",
+        "harness-v1.3.3/treatment/07@ef6ed06d9a4120a981ea479eac605ec241126d636fb2e2861e895e1846604b63",
+        "harness-v1.3.3/treatment/08@ed4623a2efd97f6eae566b4c8069a594b3af231a589d980434d3c23870c4accd",
+        "harness-v1.3.3/treatment/11@619a97784e6abc3f29fedf36a7c4723c65232111233a34e3299a1ed3eee034a2"
+      ]
+    },
+    "links": {
+      "gate_result": "reports/corpus-v2.1/v1.3.3/smoke_gate/smoke_gate_result.json",
+      "gate_report": "reports/corpus-v2.1/v1.3.3/smoke_gate/SMOKE_GATE_REPORT.md",
+      "run_records": [
+        "harness-v1.3.3/treatment/03@27da7b1bac4666c24e514c2f6816890d7f729fff0004f57f852c0d0f33a57048",
+        "harness-v1.3.3/treatment/07@ef6ed06d9a4120a981ea479eac605ec241126d636fb2e2861e895e1846604b63",
+        "harness-v1.3.3/treatment/08@ed4623a2efd97f6eae566b4c8069a594b3af231a589d980434d3c23870c4accd",
+        "harness-v1.3.3/treatment/11@619a97784e6abc3f29fedf36a7c4723c65232111233a34e3299a1ed3eee034a2"
+      ],
+      "cost_line": {
+        "path": "reports/corpus-v2.1/v1.3.3/smoke_gate/SMOKE_GATE_REPORT.md",
+        "quote": "Spend: **$2.9298** (gate)."
+      }
+    }
+  },
+  "superseded_by": {
+    "value": null,
+    "reason": "not superseded"
+  },
+  "annotations": [
+    {
+      "id": "ENTRY-11-SMOKE-LIMIT-ARTEFACT",
+      "text": "RUNS_AFTER_REPAIR is this record's measured verdict and is unchanged. The harness-v1.3.4 gate ran the same era environment past the smoke limit and reached a REPO torch.load defect: this recovery was a smoke-limit artefact, produced by the deterministic time machine alone (no model repair attempt in this record).",
+      "sources": [
+        {
+          "path": "reports/corpus-v2.1/v1.3.3/smoke_gate/SMOKE_GATE_REPORT_v1.3.4.md",
+          "quote": "**v1.3.3's \"recovery\" was a smoke-limit artefact.**"
+        },
+        {
+          "path": "reports/corpus-v2.1/candidate_v1.3.3_defects.md",
+          "quote": "**v1.3.3 entry 11** was a smoke-limit artefact, not a recovery"
+        }
+      ],
+      "related_record": "harness-v1.3.4/treatment/11@697388c90f63cf594426e76a616763dc1718637b9f66b9bb1d95c6438de2a21a"
+    }
+  ],
+  "passport_hash": "6e397d4e7b1ab6929939d4403d2eeecdd16a2152dffd9502f003adcad335255e"
+}

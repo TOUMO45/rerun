@@ -1,0 +1,585 @@
+{
+  "schema": "rerun/phase-d/passport/v1",
+  "record_id": "harness-v1.3.4/treatment/03@937744fe7a07e901961158d15fcb31bba204d9d214ef0ebb9624442b7fcc0544",
+  "record": {
+    "path": "runs/corpus_v2_batch/harness-v1.3.4/smoke/03_autumn9999__vmtl.json",
+    "sha256": "937744fe7a07e901961158d15fcb31bba204d9d214ef0ebb9624442b7fcc0544",
+    "record_set": "smoke",
+    "hash_basis": "git blob at HEAD (git cat-file blob HEAD:<path>), never the worktree file"
+  },
+  "image_id": {
+    "value": "4b8bff8d-a7d5-4d39-ad2e-5e9573ab156b",
+    "source_field": "certificate.baseline.sandbox_id",
+    "base_image": "python:3.6-slim"
+  },
+  "harness_tag": "harness-v1.3.4",
+  "harness_commit": "10319b3c15087f658b343cee20fa9e270ba1b781",
+  "arm": "treatment",
+  "entry": {
+    "id": "03",
+    "name": "autumn9999__vmtl",
+    "repo_url": "https://github.com/autumn9999/vmtl",
+    "commit_sha": "e20022da842cd44c3e9566ee76c2f888e08b8e80",
+    "category": "PRIMARY"
+  },
+  "run": {
+    "started_at": "2026-09-30T22:39:38.027882+00:00",
+    "finished_at": "2026-09-30T22:48:41.066833+00:00"
+  },
+  "verdict": {
+    "verdict": "BLOCKED",
+    "taxonomy_code": "RUNTIME_ERROR_OTHER",
+    "reason_code": null,
+    "indeterminate_reason": "",
+    "recovery": false,
+    "first_repo_error": "ModuleNotFoundError: No module named 'sklearn'",
+    "last_error": "1"
+  },
+  "baseline": {
+    "result": "FAILS",
+    "exit_code": {
+      "value": 1,
+      "tag": "MEASURED",
+      "source_field": "certificate.baseline.exit_code"
+    },
+    "taxonomy_code": "DEP_MISSING",
+    "evidence": "ModuleNotFoundError: No module named 'sklearn'"
+  },
+  "classification_chain": [
+    {
+      "error": "ModuleNotFoundError: No module named 'sklearn'",
+      "class": "DEP_MISSING",
+      "attribution": "REPO",
+      "phase": "repo_run",
+      "cleared_by": "attempt-0"
+    },
+    {
+      "error": "1",
+      "class": "RUNTIME_ERROR_OTHER",
+      "attribution": "REPO",
+      "phase": "repo_run",
+      "cleared_by": {
+        "value": null,
+        "reason": "not cleared by any attempt"
+      }
+    }
+  ],
+  "attempts": [
+    {
+      "attempt": "attempt-0",
+      "type": "time_machine",
+      "gate_decision": "PASS",
+      "outcome": "applied",
+      "reject_reason": {
+        "value": null,
+        "reason": "not applicable: gate decision PASS"
+      },
+      "consulted": {
+        "value": null,
+        "reason": "not present on this attempt in the record"
+      },
+      "cited": {
+        "value": null,
+        "reason": "tavily_sources empty on all attempts — consistent with D-21 open"
+      },
+      "reason_no_citation": {
+        "value": null,
+        "reason": "not present on this attempt in the record"
+      },
+      "silent_exit": {
+        "value": null,
+        "reason": "not present on this attempt in the record"
+      },
+      "exit_code": {
+        "value": 1,
+        "tag": "MEASURED",
+        "source_field": "result.attempts[0].exit_code"
+      },
+      "change": {
+        "diff_sha256": {
+          "value": null,
+          "reason": "no diff on this attempt"
+        },
+        "patch_notes": {
+          "value": null,
+          "reason": "not present on this attempt in the record"
+        },
+        "env_delta": []
+      },
+      "execution": {
+        "mode": "smoke",
+        "seconds": {
+          "value": 60,
+          "tag": "MEASURED",
+          "source_field": "result.attempts[0].execution.seconds"
+        },
+        "outcome": "exited",
+        "funded_seconds": {
+          "value": null,
+          "reason": "no kill recorded for this attempt; the funded limit is not a stored field in harness-v1.3.4"
+        },
+        "wall_seconds": {
+          "value": null,
+          "reason": "no kill recorded for this attempt; the funded limit is not a stored field in harness-v1.3.4"
+        },
+        "killed_by": {
+          "value": null,
+          "reason": "no kill recorded for this attempt; the funded limit is not a stored field in harness-v1.3.4"
+        },
+        "killed_step_seconds": {
+          "value": null,
+          "reason": "no kill recorded for this attempt; the funded limit is not a stored field in harness-v1.3.4"
+        }
+      }
+    },
+    {
+      "attempt": "attempt-1",
+      "type": "model",
+      "gate_decision": "DECLINED",
+      "outcome": "declined",
+      "reject_reason": {
+        "value": null,
+        "reason": "not applicable: gate decision DECLINED"
+      },
+      "consulted": [
+        {
+          "ref": "[1]",
+          "title": "Warning for old GPU and cuda runtime error with fast.ai lesson - PyTorch Forums",
+          "url": "https://discuss.pytorch.org/t/warning-for-old-gpu-and-cuda-runtime-error-with-fast-ai-lesson/13868",
+          "content_sha256": "d0a7cf2ecff66e1f9b75d9ed651a48800bbfd8c6adc8c1816c367393bb42c00d"
+        },
+        {
+          "ref": "[2]",
+          "title": "How to Fix Dll Errors (\\torch\\lib\\fbgemm.dll) When Installing and Importing PyTorch in Python",
+          "url": "https://www.youtube.com/watch?v=sbQPGyVbePY",
+          "content_sha256": "549cbceda2772c6e35b7db74353bbe2244c0689f4c6544613db7ba37f1c0c08b"
+        },
+        {
+          "ref": "[3]",
+          "title": "How to solve RuntimeError : CUDA Error",
+          "url": "https://www.educative.io/answers/how-to-solve-runtimeerror-cuda-error",
+          "content_sha256": "affa30e590a8ab7a7153ec288f2028780f466a85e16298a82b0bed61d247e186"
+        }
+      ],
+      "cited": {
+        "value": null,
+        "reason": "tavily_sources empty on all attempts — consistent with D-21 open"
+      },
+      "reason_no_citation": {
+        "value": null,
+        "reason": "not present on this attempt in the record"
+      },
+      "silent_exit": true,
+      "exit_code": {
+        "value": null,
+        "reason": "no re-execution recorded for this attempt"
+      },
+      "change": {
+        "diff_sha256": {
+          "value": null,
+          "reason": "no diff on this attempt"
+        },
+        "patch_notes": {
+          "value": null,
+          "reason": "not present on this attempt in the record"
+        },
+        "env_delta": []
+      },
+      "execution": {
+        "mode": {
+          "value": null,
+          "reason": "no execution recorded for this attempt"
+        },
+        "seconds": {
+          "value": null,
+          "reason": "no execution recorded for this attempt"
+        },
+        "outcome": {
+          "value": null,
+          "reason": "no execution recorded for this attempt"
+        },
+        "funded_seconds": {
+          "value": null,
+          "reason": "no kill recorded for this attempt; the funded limit is not a stored field in harness-v1.3.4"
+        },
+        "wall_seconds": {
+          "value": null,
+          "reason": "no kill recorded for this attempt; the funded limit is not a stored field in harness-v1.3.4"
+        },
+        "killed_by": {
+          "value": null,
+          "reason": "no kill recorded for this attempt; the funded limit is not a stored field in harness-v1.3.4"
+        },
+        "killed_step_seconds": {
+          "value": null,
+          "reason": "no kill recorded for this attempt; the funded limit is not a stored field in harness-v1.3.4"
+        }
+      }
+    },
+    {
+      "attempt": "attempt-2",
+      "type": "model",
+      "gate_decision": "PASS",
+      "outcome": "applied",
+      "reject_reason": {
+        "value": null,
+        "reason": "not applicable: gate decision PASS"
+      },
+      "consulted": [
+        {
+          "ref": "[1]",
+          "title": "Warning for old GPU and cuda runtime error with fast.ai lesson - PyTorch Forums",
+          "url": "https://discuss.pytorch.org/t/warning-for-old-gpu-and-cuda-runtime-error-with-fast-ai-lesson/13868",
+          "content_sha256": "d0a7cf2ecff66e1f9b75d9ed651a48800bbfd8c6adc8c1816c367393bb42c00d"
+        },
+        {
+          "ref": "[2]",
+          "title": "How to Fix Dll Errors (\\torch\\lib\\fbgemm.dll) When Installing and Importing PyTorch in Python",
+          "url": "https://www.youtube.com/watch?v=sbQPGyVbePY",
+          "content_sha256": "549cbceda2772c6e35b7db74353bbe2244c0689f4c6544613db7ba37f1c0c08b"
+        },
+        {
+          "ref": "[3]",
+          "title": "How to solve RuntimeError : CUDA Error",
+          "url": "https://www.educative.io/answers/how-to-solve-runtimeerror-cuda-error",
+          "content_sha256": "affa30e590a8ab7a7153ec288f2028780f466a85e16298a82b0bed61d247e186"
+        }
+      ],
+      "cited": {
+        "value": null,
+        "reason": "tavily_sources empty on all attempts — consistent with D-21 open"
+      },
+      "reason_no_citation": "No external references were needed; the fix adds diagnostic prints to the training loop to identify where the program hangs.",
+      "silent_exit": true,
+      "exit_code": {
+        "value": 1,
+        "tag": "MEASURED",
+        "source_field": "result.attempts[2].exit_code"
+      },
+      "change": {
+        "diff_sha256": "381ef654b4f330f010226492f2d2c1b1fadd984a9dd1fb8d7b769151bd9ea252",
+        "patch_notes": [
+          "train.py: file_edits[1] replaced 1 occurrence"
+        ],
+        "env_delta": []
+      },
+      "execution": {
+        "mode": "smoke",
+        "seconds": {
+          "value": 60,
+          "tag": "MEASURED",
+          "source_field": "result.attempts[2].execution.seconds"
+        },
+        "outcome": "exited",
+        "funded_seconds": {
+          "value": null,
+          "reason": "no kill recorded for this attempt; the funded limit is not a stored field in harness-v1.3.4"
+        },
+        "wall_seconds": {
+          "value": null,
+          "reason": "no kill recorded for this attempt; the funded limit is not a stored field in harness-v1.3.4"
+        },
+        "killed_by": {
+          "value": null,
+          "reason": "no kill recorded for this attempt; the funded limit is not a stored field in harness-v1.3.4"
+        },
+        "killed_step_seconds": {
+          "value": null,
+          "reason": "no kill recorded for this attempt; the funded limit is not a stored field in harness-v1.3.4"
+        }
+      }
+    },
+    {
+      "attempt": "attempt-3",
+      "type": "model",
+      "gate_decision": "REJECT",
+      "outcome": "rejected",
+      "reject_reason": [
+        {
+          "rule": "BLIND_PATCH_ON_SILENT_EXIT",
+          "reason": "the failing run printed no error text; a patch may then only ADD diagnostics (print/logging/traceback/faulthandler), but this one adds 'try:'",
+          "file": "b/train.py"
+        }
+      ],
+      "consulted": [
+        {
+          "ref": "[1]",
+          "title": "Warning for old GPU and cuda runtime error with fast.ai lesson - PyTorch Forums",
+          "url": "https://discuss.pytorch.org/t/warning-for-old-gpu-and-cuda-runtime-error-with-fast-ai-lesson/13868",
+          "content_sha256": "d0a7cf2ecff66e1f9b75d9ed651a48800bbfd8c6adc8c1816c367393bb42c00d"
+        },
+        {
+          "ref": "[2]",
+          "title": "How to Fix Dll Errors (\\torch\\lib\\fbgemm.dll) When Installing and Importing PyTorch in Python",
+          "url": "https://www.youtube.com/watch?v=sbQPGyVbePY",
+          "content_sha256": "549cbceda2772c6e35b7db74353bbe2244c0689f4c6544613db7ba37f1c0c08b"
+        },
+        {
+          "ref": "[3]",
+          "title": "How to solve RuntimeError : CUDA Error",
+          "url": "https://www.educative.io/answers/how-to-solve-runtimeerror-cuda-error",
+          "content_sha256": "affa30e590a8ab7a7153ec288f2028780f466a85e16298a82b0bed61d247e186"
+        }
+      ],
+      "cited": {
+        "value": null,
+        "reason": "tavily_sources empty on all attempts — consistent with D-21 open"
+      },
+      "reason_no_citation": "We are adding diagnostics to the code to capture the error, which does not require external references.",
+      "silent_exit": true,
+      "exit_code": {
+        "value": null,
+        "reason": "no re-execution recorded for this attempt"
+      },
+      "change": {
+        "diff_sha256": "c35b93392292c73b05c7b35399366f0c8973e2cdb4f9497eb3adf453d690928f",
+        "patch_notes": [
+          "train.py: file_edits[1] replaced 1 occurrence"
+        ],
+        "env_delta": []
+      },
+      "execution": {
+        "mode": {
+          "value": null,
+          "reason": "no execution recorded for this attempt"
+        },
+        "seconds": {
+          "value": null,
+          "reason": "no execution recorded for this attempt"
+        },
+        "outcome": {
+          "value": null,
+          "reason": "no execution recorded for this attempt"
+        },
+        "funded_seconds": {
+          "value": null,
+          "reason": "no kill recorded for this attempt; the funded limit is not a stored field in harness-v1.3.4"
+        },
+        "wall_seconds": {
+          "value": null,
+          "reason": "no kill recorded for this attempt; the funded limit is not a stored field in harness-v1.3.4"
+        },
+        "killed_by": {
+          "value": null,
+          "reason": "no kill recorded for this attempt; the funded limit is not a stored field in harness-v1.3.4"
+        },
+        "killed_step_seconds": {
+          "value": null,
+          "reason": "no kill recorded for this attempt; the funded limit is not a stored field in harness-v1.3.4"
+        }
+      }
+    }
+  ],
+  "time_machine_actions": [
+    {
+      "attempt": "attempt-0",
+      "outcome": "applied",
+      "era": {
+        "date": "2022-09-15",
+        "source": "pinned-commit",
+        "detail": {
+          "note": "no dependency files in the repository"
+        }
+      },
+      "python": {
+        "version": "3.6",
+        "reason": "declared by README (3.6)",
+        "source": "https://devguide.python.org/versions/ (first release dates, retrieved 2026-09-24)"
+      },
+      "undeclared_imports": [
+        "numpy",
+        "pillow",
+        "scikit-learn",
+        "scipy",
+        "torch",
+        "torchvision"
+      ],
+      "apt_added": [],
+      "apt_reason": "",
+      "lock": {
+        "ok": true,
+        "lock": [
+          "future==0.18.2",
+          "joblib==1.1.0",
+          "numpy==1.19.5",
+          "pillow==8.4.0",
+          "scikit-learn==0.24.2",
+          "scipy==1.5.4",
+          "threadpoolctl==3.1.0",
+          "torch==1.5.1",
+          "torchvision==0.6.1"
+        ],
+        "relaxed": [],
+        "not_on_index": [],
+        "error": ""
+      },
+      "fallback": null
+    }
+  ],
+  "cost": {
+    "value": 0.69899948,
+    "tag": "MEASURED",
+    "currency": "USD",
+    "source_field": "cost_guard.spent_usd",
+    "measured": {
+      "value": 0.69899948,
+      "tag": "MEASURED",
+      "source_field": "cost_guard.spent_usd"
+    },
+    "estimated": {
+      "value": 0.0,
+      "tag": "ESTIMATED",
+      "source_field": "cost_guard.estimated_sandbox_spent_usd"
+    },
+    "model": {
+      "value": 0.06102200000000001,
+      "tag": "MEASURED",
+      "source_field": "cost_guard.model_spent_usd"
+    },
+    "per_entry_cap": {
+      "value": 1.4809,
+      "tag": "MEASURED",
+      "source_field": "batch.per_entry_cap_usd"
+    },
+    "cost_events": []
+  },
+  "badge": {
+    "exploratory": true,
+    "label": "EXPLORATORY",
+    "text": "EXPLORATORY — did not pass its pre-registered gate. a: 0/4, c: 0 citations (7 attempts consulted, 21 refs, 6 reasons recorded).",
+    "figures": [
+      {
+        "criterion": "a",
+        "text": "0/4",
+        "recovered": {
+          "value": 0,
+          "tag": "MEASURED",
+          "computed_from": "count of verdicts in ['RUNS_CLEAN', 'RUNS_AFTER_REPAIR']",
+          "source": "reports/corpus-v2.1/v1.3.3/smoke_gate/smoke_gate_result_harness-v1.3.4.json@sha256:23583cd1c429e2aaa6bfde3dadc389f6ba0845d92da7dd4e43c1f248ff8f48df"
+        },
+        "entries": {
+          "value": 4,
+          "tag": "MEASURED",
+          "computed_from": "count of verdicts",
+          "source": "reports/corpus-v2.1/v1.3.3/smoke_gate/smoke_gate_result_harness-v1.3.4.json@sha256:23583cd1c429e2aaa6bfde3dadc389f6ba0845d92da7dd4e43c1f248ff8f48df"
+        }
+      },
+      {
+        "criterion": "c",
+        "citations": {
+          "value": 0,
+          "tag": "MEASURED",
+          "computed_from": "length of c.cited",
+          "source": "reports/corpus-v2.1/v1.3.3/smoke_gate/smoke_gate_result_harness-v1.3.4.json@sha256:23583cd1c429e2aaa6bfde3dadc389f6ba0845d92da7dd4e43c1f248ff8f48df"
+        },
+        "attempts_consulted": {
+          "value": 7,
+          "tag": "MEASURED",
+          "computed_from": "count of result.attempts[*].consulted",
+          "source": [
+            "harness-v1.3.4/treatment/03@937744fe7a07e901961158d15fcb31bba204d9d214ef0ebb9624442b7fcc0544#attempt-1",
+            "harness-v1.3.4/treatment/03@937744fe7a07e901961158d15fcb31bba204d9d214ef0ebb9624442b7fcc0544#attempt-2",
+            "harness-v1.3.4/treatment/03@937744fe7a07e901961158d15fcb31bba204d9d214ef0ebb9624442b7fcc0544#attempt-3",
+            "harness-v1.3.4/treatment/07@6bd614a2a0447ead7e9dc6007b6fe868a29af9660ed175ddf667e08f74673a98#attempt-1",
+            "harness-v1.3.4/treatment/07@6bd614a2a0447ead7e9dc6007b6fe868a29af9660ed175ddf667e08f74673a98#attempt-2",
+            "harness-v1.3.4/treatment/07@6bd614a2a0447ead7e9dc6007b6fe868a29af9660ed175ddf667e08f74673a98#attempt-3",
+            "harness-v1.3.4/treatment/11@697388c90f63cf594426e76a616763dc1718637b9f66b9bb1d95c6438de2a21a#attempt-1"
+          ]
+        },
+        "references_consulted": {
+          "value": 21,
+          "tag": "MEASURED",
+          "computed_from": "sum of len(result.attempts[*].consulted)",
+          "source": [
+            "harness-v1.3.4/treatment/03@937744fe7a07e901961158d15fcb31bba204d9d214ef0ebb9624442b7fcc0544#attempt-1",
+            "harness-v1.3.4/treatment/03@937744fe7a07e901961158d15fcb31bba204d9d214ef0ebb9624442b7fcc0544#attempt-2",
+            "harness-v1.3.4/treatment/03@937744fe7a07e901961158d15fcb31bba204d9d214ef0ebb9624442b7fcc0544#attempt-3",
+            "harness-v1.3.4/treatment/07@6bd614a2a0447ead7e9dc6007b6fe868a29af9660ed175ddf667e08f74673a98#attempt-1",
+            "harness-v1.3.4/treatment/07@6bd614a2a0447ead7e9dc6007b6fe868a29af9660ed175ddf667e08f74673a98#attempt-2",
+            "harness-v1.3.4/treatment/07@6bd614a2a0447ead7e9dc6007b6fe868a29af9660ed175ddf667e08f74673a98#attempt-3",
+            "harness-v1.3.4/treatment/11@697388c90f63cf594426e76a616763dc1718637b9f66b9bb1d95c6438de2a21a#attempt-1"
+          ]
+        },
+        "reasons_recorded": {
+          "value": 6,
+          "tag": "MEASURED",
+          "computed_from": "count of result.attempts[*].reason_no_citation",
+          "source": [
+            "harness-v1.3.4/treatment/03@937744fe7a07e901961158d15fcb31bba204d9d214ef0ebb9624442b7fcc0544#attempt-2",
+            "harness-v1.3.4/treatment/03@937744fe7a07e901961158d15fcb31bba204d9d214ef0ebb9624442b7fcc0544#attempt-3",
+            "harness-v1.3.4/treatment/07@6bd614a2a0447ead7e9dc6007b6fe868a29af9660ed175ddf667e08f74673a98#attempt-1",
+            "harness-v1.3.4/treatment/07@6bd614a2a0447ead7e9dc6007b6fe868a29af9660ed175ddf667e08f74673a98#attempt-2",
+            "harness-v1.3.4/treatment/07@6bd614a2a0447ead7e9dc6007b6fe868a29af9660ed175ddf667e08f74673a98#attempt-3",
+            "harness-v1.3.4/treatment/11@697388c90f63cf594426e76a616763dc1718637b9f66b9bb1d95c6438de2a21a#attempt-1"
+          ]
+        },
+        "text": "0 citations (7 attempts consulted, 21 refs, 6 reasons recorded)"
+      }
+    ],
+    "gate_cost": {
+      "value": 3.3962138927,
+      "tag": "ESTIMATED",
+      "currency": "USD",
+      "computed_from": "sum of cost_guard.spent_usd over the gate records",
+      "source": [
+        "harness-v1.3.4/treatment/03@937744fe7a07e901961158d15fcb31bba204d9d214ef0ebb9624442b7fcc0544",
+        "harness-v1.3.4/treatment/07@6bd614a2a0447ead7e9dc6007b6fe868a29af9660ed175ddf667e08f74673a98",
+        "harness-v1.3.4/treatment/08@cf7e86f9580bb99147920b33d6481c61f55506e979bb75ee354527a6e2610bf9",
+        "harness-v1.3.4/treatment/11@697388c90f63cf594426e76a616763dc1718637b9f66b9bb1d95c6438de2a21a"
+      ],
+      "measured": {
+        "value": 3.11200478,
+        "tag": "MEASURED",
+        "computed_from": "sum of spent_usd - sum of estimated_sandbox_spent_usd"
+      },
+      "estimated": {
+        "value": 0.2842091127,
+        "tag": "ESTIMATED",
+        "computed_from": "sum of cost_guard.estimated_sandbox_spent_usd"
+      }
+    },
+    "links": {
+      "gate_result": "reports/corpus-v2.1/v1.3.3/smoke_gate/smoke_gate_result_harness-v1.3.4.json",
+      "gate_report": "reports/corpus-v2.1/v1.3.3/smoke_gate/SMOKE_GATE_REPORT_v1.3.4.md",
+      "run_records": [
+        "harness-v1.3.4/treatment/03@937744fe7a07e901961158d15fcb31bba204d9d214ef0ebb9624442b7fcc0544",
+        "harness-v1.3.4/treatment/07@6bd614a2a0447ead7e9dc6007b6fe868a29af9660ed175ddf667e08f74673a98",
+        "harness-v1.3.4/treatment/08@cf7e86f9580bb99147920b33d6481c61f55506e979bb75ee354527a6e2610bf9",
+        "harness-v1.3.4/treatment/11@697388c90f63cf594426e76a616763dc1718637b9f66b9bb1d95c6438de2a21a"
+      ],
+      "cost_line": {
+        "path": "reports/corpus-v2.1/v1.3.3/smoke_gate/SMOKE_GATE_REPORT_v1.3.4.md",
+        "quote": "Gate spend **$3.3962** (cap $3.50)."
+      }
+    }
+  },
+  "superseded_by": {
+    "value": null,
+    "reason": "not superseded"
+  },
+  "annotations": [
+    {
+      "id": "D-25",
+      "text": "Model-placed diagnostics did not locate the deliberate silent exit.",
+      "status": "open",
+      "sources": [
+        {
+          "path": "reports/corpus-v2.1/candidate_v1.3.3_defects.md",
+          "quote": "**D-25** One round of model-placed diagnostics does not locate a deliberate silent `exit 1` (entry 3)"
+        }
+      ]
+    },
+    {
+      "id": "D-26",
+      "text": "attempt-1 was DECLINED with references consulted, and the record stores no reason_no_citation for it.",
+      "status": "open",
+      "sources": [
+        {
+          "path": "reports/corpus-v2.1/candidate_v1.3.3_defects.md",
+          "quote": "**D-26** `reason_no_citation` is not recorded on a DECLINED attempt"
+        }
+      ]
+    }
+  ],
+  "passport_hash": "f7ece205c7b919bb3facd841b9820f872bc6953af85de0e1e58fbcc90bcdee03"
+}

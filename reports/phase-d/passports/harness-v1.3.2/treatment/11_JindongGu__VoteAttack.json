@@ -1,0 +1,234 @@
+{
+  "schema": "rerun/phase-d/passport/v1",
+  "record_id": "harness-v1.3.2/treatment/11@03aff7dc63c59129e8fc9ffad74741a78a84799a855a08143a32f6267ae1fe44",
+  "record": {
+    "path": "runs/corpus_v2_batch/harness-v1.3.2/treatment/11_JindongGu__VoteAttack.json",
+    "sha256": "03aff7dc63c59129e8fc9ffad74741a78a84799a855a08143a32f6267ae1fe44",
+    "record_set": "treatment",
+    "hash_basis": "git blob at HEAD (git cat-file blob HEAD:<path>), never the worktree file"
+  },
+  "image_id": {
+    "value": "3c4f823c-769e-465d-babd-79aff4d39db5",
+    "source_field": "certificate.baseline.sandbox_id",
+    "base_image": "python:3.10-slim"
+  },
+  "harness_tag": "harness-v1.3.2",
+  "harness_commit": "77b3cfe1697ad74ad13eac1f77ffe0f1e80c7379",
+  "arm": "treatment",
+  "entry": {
+    "id": "11",
+    "name": "JindongGu__VoteAttack",
+    "repo_url": "https://github.com/JindongGu/VoteAttack",
+    "commit_sha": "bdf8b46bc7b3ce772a6f2c0a6e48514423fd6051",
+    "category": "PRIMARY"
+  },
+  "run": {
+    "started_at": "2026-09-30T13:41:07.634443+00:00",
+    "finished_at": "2026-09-30T13:47:02.637046+00:00"
+  },
+  "verdict": {
+    "verdict": "INDETERMINATE",
+    "taxonomy_code": "RUNTIME_ERROR_OTHER",
+    "reason_code": "RUNNER_SETUP_FAILED",
+    "indeterminate_reason": "RUNNER_SETUP_FAILED: subprocess.CalledProcessError: Command '['/usr/local/bin/python', '-c', \"import torch; print('RERUN_TORCH_OK', torch.__version__)\"]' returned non-zero exit status 1. — RERUN's own setup step failed before the repository's first command ran; not a verdict on the repository.",
+    "recovery": false,
+    "first_repo_error": "ModuleNotFoundError: No module named 'tqdm'",
+    "last_error": "subprocess.CalledProcessError: Command '['/usr/local/bin/python', '-c', \"import torch; print('RERUN_TORCH_OK', torch.__version__)\"]' returned non-zero exit status 1."
+  },
+  "baseline": {
+    "result": "FAILS",
+    "exit_code": {
+      "value": 1,
+      "tag": "MEASURED",
+      "source_field": "certificate.baseline.exit_code"
+    },
+    "taxonomy_code": "DEP_MISSING",
+    "evidence": "ModuleNotFoundError: No module named 'tqdm'"
+  },
+  "classification_chain": [
+    {
+      "error": "ModuleNotFoundError: No module named 'tqdm'",
+      "class": "DEP_MISSING",
+      "attribution": "REPO",
+      "phase": "repo_run",
+      "cleared_by": "attempt-0"
+    },
+    {
+      "error": "subprocess.CalledProcessError: Command '['/usr/local/bin/python', '-c', \"import torch; print('RERUN_TORCH_OK', torch.__version__)\"]' returned non-zero exit status 1.",
+      "class": "RUNTIME_ERROR_OTHER",
+      "attribution": "ENV",
+      "phase": "runner_setup",
+      "cleared_by": {
+        "value": null,
+        "reason": "not cleared by any attempt"
+      }
+    }
+  ],
+  "attempts": [
+    {
+      "attempt": "attempt-0",
+      "type": "time_machine",
+      "gate_decision": "PASS",
+      "outcome": "applied",
+      "reject_reason": {
+        "value": null,
+        "reason": "not applicable: gate decision PASS"
+      },
+      "consulted": {
+        "value": null,
+        "reason": "not recorded by harness-v1.3.2"
+      },
+      "cited": {
+        "value": null,
+        "reason": "tavily_sources empty on all attempts — consistent with D-21 open"
+      },
+      "reason_no_citation": {
+        "value": null,
+        "reason": "not recorded by harness-v1.3.2"
+      },
+      "silent_exit": {
+        "value": null,
+        "reason": "not recorded by harness-v1.3.2"
+      },
+      "exit_code": {
+        "value": 1,
+        "tag": "MEASURED",
+        "source_field": "result.attempts[0].exit_code"
+      },
+      "change": {
+        "diff_sha256": {
+          "value": null,
+          "reason": "no diff on this attempt"
+        },
+        "patch_notes": {
+          "value": null,
+          "reason": "not recorded by harness-v1.3.2"
+        },
+        "env_delta": []
+      },
+      "execution": {
+        "mode": {
+          "value": null,
+          "reason": "not recorded by harness-v1.3.2"
+        },
+        "seconds": {
+          "value": null,
+          "reason": "not recorded by harness-v1.3.2"
+        },
+        "outcome": {
+          "value": null,
+          "reason": "not recorded by harness-v1.3.2"
+        },
+        "funded_seconds": {
+          "value": null,
+          "reason": "no kill recorded for this attempt; the funded limit is not a stored field in harness-v1.3.2"
+        },
+        "wall_seconds": {
+          "value": null,
+          "reason": "no kill recorded for this attempt; the funded limit is not a stored field in harness-v1.3.2"
+        },
+        "killed_by": {
+          "value": null,
+          "reason": "no kill recorded for this attempt; the funded limit is not a stored field in harness-v1.3.2"
+        },
+        "killed_step_seconds": {
+          "value": null,
+          "reason": "no kill recorded for this attempt; the funded limit is not a stored field in harness-v1.3.2"
+        }
+      }
+    }
+  ],
+  "time_machine_actions": [
+    {
+      "attempt": "attempt-0",
+      "outcome": "applied",
+      "era": {
+        "date": "2021-05-01",
+        "source": "pinned-commit",
+        "detail": {
+          "note": "no dependency files in the repository"
+        }
+      },
+      "python": {
+        "version": "3.9",
+        "reason": "newest CPython first released ≥180 days before the era date 2021-05-01 (https://devguide.python.org/versions/ (first release dates, retrieved 2026-09-24))",
+        "source": "https://devguide.python.org/versions/ (first release dates, retrieved 2026-09-24)"
+      },
+      "undeclared_imports": [
+        "foolbox",
+        "torch",
+        "torchvision",
+        "tqdm"
+      ],
+      "apt_added": [],
+      "apt_reason": "",
+      "lock": {
+        "ok": true,
+        "lock": [
+          "certifi==2020.12.5",
+          "chardet==4.0.0",
+          "eagerpy==0.29.0",
+          "foolbox==3.3.1",
+          "gitdb==4.0.7",
+          "gitpython==3.1.14",
+          "idna==2.10",
+          "numpy==1.20.2",
+          "pillow==8.2.0",
+          "requests==2.25.1",
+          "scipy==1.6.3",
+          "setuptools==56.0.0",
+          "smmap==4.0.0",
+          "torch==1.8.1",
+          "torchvision==0.9.1",
+          "tqdm==4.60.0",
+          "typing-extensions==3.10.0.0",
+          "urllib3==1.26.4"
+        ],
+        "relaxed": null,
+        "not_on_index": [],
+        "error": ""
+      },
+      "fallback": null
+    }
+  ],
+  "cost": {
+    "value": 0.54361767,
+    "tag": "MEASURED",
+    "currency": "USD",
+    "source_field": "cost_guard.spent_usd",
+    "measured": {
+      "value": 0.54361767,
+      "tag": "MEASURED",
+      "source_field": "cost_guard.spent_usd"
+    },
+    "estimated": {
+      "value": null,
+      "reason": "not recorded by harness-v1.3.2"
+    },
+    "model": {
+      "value": 0.00325694,
+      "tag": "MEASURED",
+      "source_field": "cost_guard.model_spent_usd"
+    },
+    "per_entry_cap": {
+      "value": 2.0,
+      "tag": "MEASURED",
+      "source_field": "batch.per_entry_cap_usd"
+    },
+    "cost_events": {
+      "value": null,
+      "reason": "not recorded by harness-v1.3.2"
+    }
+  },
+  "badge": {
+    "exploratory": false,
+    "label": "PRE-REGISTERED",
+    "text": "PRE-REGISTERED — harness-v1.3.2 is the pre-registered CONTROL / TREATMENT run; not exploratory."
+  },
+  "superseded_by": {
+    "value": null,
+    "reason": "not superseded"
+  },
+  "annotations": [],
+  "passport_hash": "e1b1c7087d5eadbaef237b1bfef4a41d2200b26b19476d675322c100f59b435c"
+}

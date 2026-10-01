@@ -81,6 +81,10 @@ HARNESS_INDUCED is decided in Phase B3 with the definition written there; this f
 - **D-23** The per-repair funding rule starves entries whose re-executions each pay a ~90 s torch install (entries 11, 8: COST_CAP before the repository ran).
 - **D-24** The deterministic "missing gcc -> build-essential" rule fires only on the baseline classification, not after a repair (entry 7: the model proposed `gcc` as a pip package).
 - **D-25** One round of model-placed diagnostics does not locate a deliberate silent `exit 1` (entry 3); RERUN should inject the diagnostic itself.
-- **D-21 (open in practice)** With a REQUIRED `cited_sources`, the repairer filled `reason_no_citation` 9 times out of 9; no `content_match` either. The mechanism is complete; the model does not cite.
+- **D-21 (open in practice)** With a REQUIRED `cited_sources`, the repairer filled `reason_no_citation` 9 times out of 9; no `content_match` either. The mechanism is complete; the model does not cite. [Annotation 2026-10-01, Phase D1: records show 7 attempts consulted; the figure 9 is not reproducible from records (`consulted` on 7 attempts, 21 references; `reason_no_citation` on 6).]
 - **v1.3.3 entry 11** was a smoke-limit artefact, not a recovery (run further, a REPO `torch.load` defect).
+
+## Found by the Phase D record inventory (2026-10-01; offline, from the committed records; documented only, not fixed)
+
+- **D-26** `reason_no_citation` is not recorded on a DECLINED attempt (harness-v1.3.4, entry 3, repair 1: `consulted` holds 3 references, the attempt was DECLINED, and the record has no `reason_no_citation` and no citation). Status: open.
 

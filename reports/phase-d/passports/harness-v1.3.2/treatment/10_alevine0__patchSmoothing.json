@@ -1,0 +1,449 @@
+{
+  "schema": "rerun/phase-d/passport/v1",
+  "record_id": "harness-v1.3.2/treatment/10@24d62d9c2b8a28c32d25bcfd3c7eade12b34d9bfff813d4dec7071deb407f47c",
+  "record": {
+    "path": "runs/corpus_v2_batch/harness-v1.3.2/treatment/10_alevine0__patchSmoothing.json",
+    "sha256": "24d62d9c2b8a28c32d25bcfd3c7eade12b34d9bfff813d4dec7071deb407f47c",
+    "record_set": "treatment",
+    "hash_basis": "git blob at HEAD (git cat-file blob HEAD:<path>), never the worktree file"
+  },
+  "image_id": {
+    "value": "228ca22b-1188-4965-a18c-6a27ecafeb74",
+    "source_field": "certificate.baseline.sandbox_id",
+    "base_image": "python:3.10-slim"
+  },
+  "harness_tag": "harness-v1.3.2",
+  "harness_commit": "77b3cfe1697ad74ad13eac1f77ffe0f1e80c7379",
+  "arm": "treatment",
+  "entry": {
+    "id": "10",
+    "name": "alevine0__patchSmoothing",
+    "repo_url": "https://github.com/alevine0/patchSmoothing",
+    "commit_sha": "6bdd01cdedde97763f36953de768f2b68952689c",
+    "category": "PRIMARY"
+  },
+  "run": {
+    "started_at": "2026-09-30T13:34:42.993816+00:00",
+    "finished_at": "2026-09-30T13:41:04.266685+00:00"
+  },
+  "verdict": {
+    "verdict": "BLOCKED",
+    "taxonomy_code": "GPU_REQUIRED",
+    "reason_code": null,
+    "indeterminate_reason": "",
+    "recovery": false,
+    "first_repo_error": "ModuleNotFoundError: No module named 'scipy'",
+    "last_error": "raise AssertionError(\"Torch not compiled with CUDA enabled\")"
+  },
+  "baseline": {
+    "result": "FAILS",
+    "exit_code": {
+      "value": 1,
+      "tag": "MEASURED",
+      "source_field": "certificate.baseline.exit_code"
+    },
+    "taxonomy_code": "DEP_MISSING",
+    "evidence": "ModuleNotFoundError: No module named 'scipy'"
+  },
+  "classification_chain": [
+    {
+      "error": "ModuleNotFoundError: No module named 'scipy'",
+      "class": "DEP_MISSING",
+      "attribution": "REPO",
+      "phase": "repo_run",
+      "cleared_by": "attempt-0"
+    },
+    {
+      "error": "raise AssertionError(\"Torch not compiled with CUDA enabled\")",
+      "class": "GPU_REQUIRED",
+      "attribution": "REPO",
+      "phase": "repo_run",
+      "cleared_by": {
+        "value": null,
+        "reason": "not cleared by any attempt"
+      }
+    }
+  ],
+  "attempts": [
+    {
+      "attempt": "attempt-0",
+      "type": "time_machine",
+      "gate_decision": "PASS",
+      "outcome": "applied",
+      "reject_reason": {
+        "value": null,
+        "reason": "not applicable: gate decision PASS"
+      },
+      "consulted": {
+        "value": null,
+        "reason": "not recorded by harness-v1.3.2"
+      },
+      "cited": {
+        "value": null,
+        "reason": "tavily_sources empty on all attempts — consistent with D-21 open"
+      },
+      "reason_no_citation": {
+        "value": null,
+        "reason": "not recorded by harness-v1.3.2"
+      },
+      "silent_exit": {
+        "value": null,
+        "reason": "not recorded by harness-v1.3.2"
+      },
+      "exit_code": {
+        "value": 1,
+        "tag": "MEASURED",
+        "source_field": "result.attempts[0].exit_code"
+      },
+      "change": {
+        "diff_sha256": {
+          "value": null,
+          "reason": "no diff on this attempt"
+        },
+        "patch_notes": {
+          "value": null,
+          "reason": "not recorded by harness-v1.3.2"
+        },
+        "env_delta": []
+      },
+      "execution": {
+        "mode": {
+          "value": null,
+          "reason": "not recorded by harness-v1.3.2"
+        },
+        "seconds": {
+          "value": null,
+          "reason": "not recorded by harness-v1.3.2"
+        },
+        "outcome": {
+          "value": null,
+          "reason": "not recorded by harness-v1.3.2"
+        },
+        "funded_seconds": {
+          "value": null,
+          "reason": "no kill recorded for this attempt; the funded limit is not a stored field in harness-v1.3.2"
+        },
+        "wall_seconds": {
+          "value": null,
+          "reason": "no kill recorded for this attempt; the funded limit is not a stored field in harness-v1.3.2"
+        },
+        "killed_by": {
+          "value": null,
+          "reason": "no kill recorded for this attempt; the funded limit is not a stored field in harness-v1.3.2"
+        },
+        "killed_step_seconds": {
+          "value": null,
+          "reason": "no kill recorded for this attempt; the funded limit is not a stored field in harness-v1.3.2"
+        }
+      }
+    },
+    {
+      "attempt": "attempt-1",
+      "type": "model",
+      "gate_decision": "REJECT",
+      "outcome": "rejected",
+      "reject_reason": [
+        {
+          "rule": "UNPARSEABLE_PATCH",
+          "reason": "'utils_band.py' does not parse as valid Python after the patch: cannot assign to expression here. Maybe you meant '==' instead of '='? (<unknown>, line 11)",
+          "file": "utils_band.py"
+        }
+      ],
+      "consulted": {
+        "value": null,
+        "reason": "not recorded by harness-v1.3.2"
+      },
+      "cited": {
+        "value": null,
+        "reason": "tavily_sources empty on all attempts — consistent with D-21 open"
+      },
+      "reason_no_citation": {
+        "value": null,
+        "reason": "not recorded by harness-v1.3.2"
+      },
+      "silent_exit": {
+        "value": null,
+        "reason": "not recorded by harness-v1.3.2"
+      },
+      "exit_code": {
+        "value": null,
+        "reason": "no re-execution recorded for this attempt"
+      },
+      "change": {
+        "diff_sha256": "5c96e2e079af24adf3008339ca7ffeb26b030dceb904c5a9bac8ac1f4184beb5",
+        "patch_notes": {
+          "value": null,
+          "reason": "not recorded by harness-v1.3.2"
+        },
+        "env_delta": []
+      },
+      "execution": {
+        "mode": {
+          "value": null,
+          "reason": "not recorded by harness-v1.3.2"
+        },
+        "seconds": {
+          "value": null,
+          "reason": "not recorded by harness-v1.3.2"
+        },
+        "outcome": {
+          "value": null,
+          "reason": "not recorded by harness-v1.3.2"
+        },
+        "funded_seconds": {
+          "value": null,
+          "reason": "no kill recorded for this attempt; the funded limit is not a stored field in harness-v1.3.2"
+        },
+        "wall_seconds": {
+          "value": null,
+          "reason": "no kill recorded for this attempt; the funded limit is not a stored field in harness-v1.3.2"
+        },
+        "killed_by": {
+          "value": null,
+          "reason": "no kill recorded for this attempt; the funded limit is not a stored field in harness-v1.3.2"
+        },
+        "killed_step_seconds": {
+          "value": null,
+          "reason": "no kill recorded for this attempt; the funded limit is not a stored field in harness-v1.3.2"
+        }
+      }
+    },
+    {
+      "attempt": "attempt-2",
+      "type": "model",
+      "gate_decision": "REJECT",
+      "outcome": "rejected",
+      "reject_reason": [
+        {
+          "rule": "UNPARSEABLE_PATCH",
+          "reason": "'utils_band.py' does not parse as valid Python after the patch: unexpected indent (<unknown>, line 8)",
+          "file": "utils_band.py"
+        }
+      ],
+      "consulted": {
+        "value": null,
+        "reason": "not recorded by harness-v1.3.2"
+      },
+      "cited": {
+        "value": null,
+        "reason": "tavily_sources empty on all attempts — consistent with D-21 open"
+      },
+      "reason_no_citation": {
+        "value": null,
+        "reason": "not recorded by harness-v1.3.2"
+      },
+      "silent_exit": {
+        "value": null,
+        "reason": "not recorded by harness-v1.3.2"
+      },
+      "exit_code": {
+        "value": null,
+        "reason": "no re-execution recorded for this attempt"
+      },
+      "change": {
+        "diff_sha256": "e480fa0a46100295a75f69a8f9589db7ba51893dab0fbcb90f684331c15b6a16",
+        "patch_notes": {
+          "value": null,
+          "reason": "not recorded by harness-v1.3.2"
+        },
+        "env_delta": []
+      },
+      "execution": {
+        "mode": {
+          "value": null,
+          "reason": "not recorded by harness-v1.3.2"
+        },
+        "seconds": {
+          "value": null,
+          "reason": "not recorded by harness-v1.3.2"
+        },
+        "outcome": {
+          "value": null,
+          "reason": "not recorded by harness-v1.3.2"
+        },
+        "funded_seconds": {
+          "value": null,
+          "reason": "no kill recorded for this attempt; the funded limit is not a stored field in harness-v1.3.2"
+        },
+        "wall_seconds": {
+          "value": null,
+          "reason": "no kill recorded for this attempt; the funded limit is not a stored field in harness-v1.3.2"
+        },
+        "killed_by": {
+          "value": null,
+          "reason": "no kill recorded for this attempt; the funded limit is not a stored field in harness-v1.3.2"
+        },
+        "killed_step_seconds": {
+          "value": null,
+          "reason": "no kill recorded for this attempt; the funded limit is not a stored field in harness-v1.3.2"
+        }
+      }
+    },
+    {
+      "attempt": "attempt-3",
+      "type": "model",
+      "gate_decision": "DECLINED",
+      "outcome": "declined",
+      "reject_reason": {
+        "value": null,
+        "reason": "not applicable: gate decision DECLINED"
+      },
+      "consulted": {
+        "value": null,
+        "reason": "not recorded by harness-v1.3.2"
+      },
+      "cited": {
+        "value": null,
+        "reason": "tavily_sources empty on all attempts — consistent with D-21 open"
+      },
+      "reason_no_citation": {
+        "value": null,
+        "reason": "not recorded by harness-v1.3.2"
+      },
+      "silent_exit": {
+        "value": null,
+        "reason": "not recorded by harness-v1.3.2"
+      },
+      "exit_code": {
+        "value": null,
+        "reason": "no re-execution recorded for this attempt"
+      },
+      "change": {
+        "diff_sha256": {
+          "value": null,
+          "reason": "no diff on this attempt"
+        },
+        "patch_notes": {
+          "value": null,
+          "reason": "not recorded by harness-v1.3.2"
+        },
+        "env_delta": []
+      },
+      "execution": {
+        "mode": {
+          "value": null,
+          "reason": "not recorded by harness-v1.3.2"
+        },
+        "seconds": {
+          "value": null,
+          "reason": "not recorded by harness-v1.3.2"
+        },
+        "outcome": {
+          "value": null,
+          "reason": "not recorded by harness-v1.3.2"
+        },
+        "funded_seconds": {
+          "value": null,
+          "reason": "no kill recorded for this attempt; the funded limit is not a stored field in harness-v1.3.2"
+        },
+        "wall_seconds": {
+          "value": null,
+          "reason": "no kill recorded for this attempt; the funded limit is not a stored field in harness-v1.3.2"
+        },
+        "killed_by": {
+          "value": null,
+          "reason": "no kill recorded for this attempt; the funded limit is not a stored field in harness-v1.3.2"
+        },
+        "killed_step_seconds": {
+          "value": null,
+          "reason": "no kill recorded for this attempt; the funded limit is not a stored field in harness-v1.3.2"
+        }
+      }
+    }
+  ],
+  "time_machine_actions": [
+    {
+      "attempt": "attempt-0",
+      "outcome": "applied",
+      "era": {
+        "date": "2022-08-22",
+        "source": "pinned-commit",
+        "detail": {
+          "note": "no dependency files in the repository"
+        }
+      },
+      "python": {
+        "version": "3.10",
+        "reason": "newest CPython first released ≥180 days before the era date 2022-08-22 (https://devguide.python.org/versions/ (first release dates, retrieved 2026-09-24))",
+        "source": "https://devguide.python.org/versions/ (first release dates, retrieved 2026-09-24)"
+      },
+      "undeclared_imports": [
+        "numpy",
+        "scipy",
+        "statsmodels",
+        "torch",
+        "torchvision"
+      ],
+      "apt_added": [],
+      "apt_reason": "",
+      "lock": {
+        "ok": true,
+        "lock": [
+          "certifi==2022.6.15",
+          "charset-normalizer==2.1.1",
+          "idna==3.3",
+          "numpy==1.23.2",
+          "packaging==21.3",
+          "pandas==1.4.3",
+          "patsy==0.5.2",
+          "pillow==9.2.0",
+          "pyparsing==3.0.9",
+          "python-dateutil==2.8.2",
+          "pytz==2022.2.1",
+          "requests==2.28.1",
+          "scipy==1.9.0",
+          "six==1.16.0",
+          "statsmodels==0.13.2",
+          "torch==1.12.1",
+          "torchvision==0.13.1",
+          "typing-extensions==4.3.0",
+          "urllib3==1.26.12"
+        ],
+        "relaxed": null,
+        "not_on_index": [],
+        "error": ""
+      },
+      "fallback": null
+    }
+  ],
+  "cost": {
+    "value": 0.72493411,
+    "tag": "MEASURED",
+    "currency": "USD",
+    "source_field": "cost_guard.spent_usd",
+    "measured": {
+      "value": 0.72493411,
+      "tag": "MEASURED",
+      "source_field": "cost_guard.spent_usd"
+    },
+    "estimated": {
+      "value": null,
+      "reason": "not recorded by harness-v1.3.2"
+    },
+    "model": {
+      "value": 0.026831400000000005,
+      "tag": "MEASURED",
+      "source_field": "cost_guard.model_spent_usd"
+    },
+    "per_entry_cap": {
+      "value": 2.0,
+      "tag": "MEASURED",
+      "source_field": "batch.per_entry_cap_usd"
+    },
+    "cost_events": {
+      "value": null,
+      "reason": "not recorded by harness-v1.3.2"
+    }
+  },
+  "badge": {
+    "exploratory": false,
+    "label": "PRE-REGISTERED",
+    "text": "PRE-REGISTERED — harness-v1.3.2 is the pre-registered CONTROL / TREATMENT run; not exploratory."
+  },
+  "superseded_by": {
+    "value": null,
+    "reason": "not superseded"
+  },
+  "annotations": [],
+  "passport_hash": "8a4811e2251e15ee15b0fac05788397e6c267304d290721dbf716a9064dc1553"
+}

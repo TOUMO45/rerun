@@ -8,11 +8,12 @@ mechanical result: `smoke_gate_result_harness-v1.3.4.json`. Exploratory, develop
 | criterion | result | evidence |
 |---|---|---|
 | (a) at least 2 of 4 RUNS_CLEAN / RUNS_AFTER_REPAIR | **FAIL: 0 of 4** | #11 INDETERMINATE COST_CAP; #7 BLOCKED; #3 BLOCKED; #8 INDETERMINATE COST_CAP |
-| (b) at least 1 source patch applied | PASS: 2 applied of 4 proposed | #11 repairs 1 and 2 applied (repair 2's re-execution was then cost-capped); #3 repair 2 applied (diagnostics only), repair 3 rejected by the new rule |
-| (c) at least 1 Tavily citation stored | **FAIL: 0** | 9 references consulted across 3 repairs of #11/#7/#3 (all stored as `consulted`); the model gave `reason_no_citation` every time; no `content_match` |
+| (b) at least 1 source patch applied | PASS: 2 applied of 4 proposed | #11 repairs 1 and 2 applied (repair 2's re-execution was then cost-capped); #3 repair 2 applied (diagnostics only), repair 3 rejected by the new rule [Annotation 2026-10-01, Phase D1: the mechanical result lists the 2 applied patches as #11 repair 1 and #3 repair 2; #11 repair 2 has no exit code in its record (killed before a re-execution result) and the passport shows it as `gate_passed_not_executed`.] |
+| (c) at least 1 Tavily citation stored | **FAIL: 0** | 9 references consulted across 3 repairs of #11/#7/#3 (all stored as `consulted`); the model gave `reason_no_citation` every time; no `content_match` [Annotation 2026-10-01, Phase D1: records show 7 attempts consulted; the figure 9 is not reproducible from records. From the 4 gate records: 0 cited, 7 attempts with `consulted` (21 references), 6 with `reason_no_citation`; #3 repair 1 (DECLINED) has none, see D-26.] |
 | (d) no entry over $2, cost guard correct | PASS | $1.2825, $0.7366, $0.6990, $0.6781; the guard fired twice (#11, #8), both correctly: the operation was killed at its funded limit and the killed step's spend was recorded (#8: $0.28 estimate flagged) |
 
 Gate spend **$3.3962** (cap $3.50). Cumulative on the new ledger: $6.738 + $3.396 = **$10.134** (ceiling ~$11).
+[Annotation 2026-10-01, Phase D1: the gate spend contains the cost guard's estimate for entry 8's killed step, so it is not a single MEASURED figure: $3.396 = $3.112 MEASURED + $0.284 ESTIMATED. The same holds for the ledger line: $10.134 = $9.850 MEASURED + $0.284 ESTIMATED. Source: `cost_guard.spent_usd` and `cost_guard.estimated_sandbox_spent_usd` of the 4 gate records; see `reports/phase-d/record_index.md`.]
 
 ## Per entry (what changed since v1.3.3)
 
@@ -33,8 +34,10 @@ Gate spend **$3.3962** (cap $3.50). Cumulative on the new ledger: $6.738 + $3.39
 
 ## What worked live in v1.3.4 (evidence in the records)
 
-D-18 (no attempt targeted the lock), D-19 (silent exits detected, head+tail delivered, blind patch rejected, diagnostics patch applied), D-21 mechanics (references numbered, `consulted` stored on 9 attempts, `reason_no_citation` recorded 9 times), D-22 (no attempt lost), D-20 (verified at the seal on entry 8's repository; not reached in the gate), cost guard (two correct kills, spend recorded, no entry over $2).
+D-18 (no attempt targeted the lock), D-19 (silent exits detected, head+tail delivered, blind patch rejected, diagnostics patch applied), D-21 mechanics (references numbered, `consulted` stored on 9 attempts, `reason_no_citation` recorded 9 times [Annotation 2026-10-01, Phase D1: records show 7 attempts consulted; the figure 9 is not reproducible from records (`consulted` on 7 attempts, `reason_no_citation` on 6).]), D-22 (no attempt lost), D-20 (verified at the seal on entry 8's repository; not reached in the gate), cost guard (two correct kills, spend recorded, no entry over $2).
 
 ## Reading
 
 0 of 4. The model repair loop has now recovered 0 of 7 entry-attempts across two gates; every recovery-shaped result so far came from the deterministic time machine, and the one that looked like a recovery was an artefact of the smoke limit. The failures are traceable (D-23 scheduling, D-24 a missing deterministic rule, D-25 diagnostics placement, D-21 a model that does not cite), which is the write-up's content under Option 2. This is a statement about the repair loop, not about the papers.
+
+[Annotation 2026-10-01, Phase D1: "0 of 7 entry-attempts" is restated so that it needs no arithmetic: across two gates the LLM repair loop recovered 0 of 8 entry-runs; the one apparent recovery (v1.3.3 entry 11) was a smoke-limit artefact. The model produced a recorded repair attempt in 5 of the 8. Every recovery-shaped result came from the deterministic time machine. The original sentence above is unchanged.]

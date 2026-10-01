@@ -1,0 +1,693 @@
+{
+  "schema": "rerun/phase-d/passport/v1",
+  "record_id": "harness-v1.3.4/treatment/07@6bd614a2a0447ead7e9dc6007b6fe868a29af9660ed175ddf667e08f74673a98",
+  "record": {
+    "path": "runs/corpus_v2_batch/harness-v1.3.4/smoke/07_albertometelli__pfqi.json",
+    "sha256": "6bd614a2a0447ead7e9dc6007b6fe868a29af9660ed175ddf667e08f74673a98",
+    "record_set": "smoke",
+    "hash_basis": "git blob at HEAD (git cat-file blob HEAD:<path>), never the worktree file"
+  },
+  "image_id": {
+    "value": "579e3b53-e2fe-439b-90eb-1b91107692fd",
+    "source_field": "certificate.baseline.sandbox_id",
+    "base_image": "python:3.10-slim"
+  },
+  "harness_tag": "harness-v1.3.4",
+  "harness_commit": "10319b3c15087f658b343cee20fa9e270ba1b781",
+  "arm": "treatment",
+  "entry": {
+    "id": "07",
+    "name": "albertometelli__pfqi",
+    "repo_url": "https://github.com/albertometelli/pfqi",
+    "commit_sha": "84901d291e759cb4e2471f0b2ba521acad6ac335",
+    "category": "PRIMARY"
+  },
+  "run": {
+    "started_at": "2026-09-30T22:31:56.672837+00:00",
+    "finished_at": "2026-09-30T22:39:35.118254+00:00"
+  },
+  "verdict": {
+    "verdict": "BLOCKED",
+    "taxonomy_code": "DEP_NOT_ON_PYPI",
+    "reason_code": null,
+    "indeterminate_reason": "",
+    "recovery": false,
+    "first_repo_error": "ModuleNotFoundError: No module named 'numpy'",
+    "last_error": "ERROR: Could not find a version that satisfies the requirement gcc (from versions: none)"
+  },
+  "baseline": {
+    "result": "FAILS",
+    "exit_code": {
+      "value": 1,
+      "tag": "MEASURED",
+      "source_field": "certificate.baseline.exit_code"
+    },
+    "taxonomy_code": "DEP_MISSING",
+    "evidence": "ModuleNotFoundError: No module named 'numpy'"
+  },
+  "classification_chain": [
+    {
+      "error": "ModuleNotFoundError: No module named 'numpy'",
+      "class": "DEP_MISSING",
+      "attribution": "REPO",
+      "phase": "repo_run",
+      "cleared_by": "attempt-0"
+    },
+    {
+      "error": "/bin/sh: 1: pkg-config: not found",
+      "class": "SYS_LIB_MISSING",
+      "attribution": "REPO",
+      "phase": "repo_install",
+      "cleared_by": "attempt-1"
+    },
+    {
+      "error": "× Encountered error while generating package metadata.",
+      "class": "RUNTIME_ERROR_OTHER",
+      "attribution": "REPO",
+      "phase": "repo_install",
+      "cleared_by": "attempt-2"
+    },
+    {
+      "error": "unable to execute 'gcc': No such file or directory",
+      "class": "SYS_LIB_MISSING",
+      "attribution": "REPO",
+      "phase": "repo_install",
+      "cleared_by": "attempt-3"
+    },
+    {
+      "error": "ERROR: Could not find a version that satisfies the requirement gcc (from versions: none)",
+      "class": "DEP_NOT_ON_PYPI",
+      "attribution": "REPO",
+      "phase": "repo_install",
+      "cleared_by": {
+        "value": null,
+        "reason": "not cleared by any attempt"
+      }
+    }
+  ],
+  "attempts": [
+    {
+      "attempt": "attempt-0",
+      "type": "time_machine",
+      "gate_decision": "PASS",
+      "outcome": "applied",
+      "reject_reason": {
+        "value": null,
+        "reason": "not applicable: gate decision PASS"
+      },
+      "consulted": {
+        "value": null,
+        "reason": "not present on this attempt in the record"
+      },
+      "cited": {
+        "value": null,
+        "reason": "tavily_sources empty on all attempts — consistent with D-21 open"
+      },
+      "reason_no_citation": {
+        "value": null,
+        "reason": "not present on this attempt in the record"
+      },
+      "silent_exit": {
+        "value": null,
+        "reason": "not present on this attempt in the record"
+      },
+      "exit_code": {
+        "value": 1,
+        "tag": "MEASURED",
+        "source_field": "result.attempts[0].exit_code"
+      },
+      "change": {
+        "diff_sha256": {
+          "value": null,
+          "reason": "no diff on this attempt"
+        },
+        "patch_notes": {
+          "value": null,
+          "reason": "not present on this attempt in the record"
+        },
+        "env_delta": []
+      },
+      "execution": {
+        "mode": "smoke",
+        "seconds": {
+          "value": 60,
+          "tag": "MEASURED",
+          "source_field": "result.attempts[0].execution.seconds"
+        },
+        "outcome": "exited",
+        "funded_seconds": {
+          "value": null,
+          "reason": "no kill recorded for this attempt; the funded limit is not a stored field in harness-v1.3.4"
+        },
+        "wall_seconds": {
+          "value": null,
+          "reason": "no kill recorded for this attempt; the funded limit is not a stored field in harness-v1.3.4"
+        },
+        "killed_by": {
+          "value": null,
+          "reason": "no kill recorded for this attempt; the funded limit is not a stored field in harness-v1.3.4"
+        },
+        "killed_step_seconds": {
+          "value": null,
+          "reason": "no kill recorded for this attempt; the funded limit is not a stored field in harness-v1.3.4"
+        }
+      }
+    },
+    {
+      "attempt": "attempt-1",
+      "type": "model",
+      "gate_decision": "PASS",
+      "outcome": "applied",
+      "reject_reason": {
+        "value": null,
+        "reason": "not applicable: gate decision PASS"
+      },
+      "consulted": [
+        {
+          "ref": "[1]",
+          "title": "Configure: error: Python libs not found. Windows requires Python modules to be explicitly linked to libpython. configure failed - DeepStream SDK - NVIDIA Developer Forums",
+          "url": "https://forums.developer.nvidia.com/t/configure-error-python-libs-not-found-windows-requires-python-modules-to-be-explicitly-linked-to-libpython-configure-failed/220185",
+          "content_sha256": "386756a5b986c3c2675b2d07ae00458e3ceedd97ac0ccb7436467c3f095fb88e"
+        },
+        {
+          "ref": "[2]",
+          "title": "How to solve a missing pkg-config command | Qt Forum",
+          "url": "https://forum.qt.io/topic/85361/how-to-solve-a-missing-pkg-config-command",
+          "content_sha256": "81eaec68e72a0c6ac5dbe8fda02ddfb7f015c6eb54b502b7faf3fee95f499c43"
+        },
+        {
+          "ref": "[3]",
+          "title": "Problem installing mysqlclient - Can not find valid pkg-config name - Community Cloud - Streamlit",
+          "url": "https://discuss.streamlit.io/t/problem-installing-mysqlclient-can-not-find-valid-pkg-config-name/47108",
+          "content_sha256": "6c38a9ae8ae5f9b7c6b5376c900be62ae961dfdd82c6e2b3763a6997c59a7062"
+        }
+      ],
+      "cited": {
+        "value": null,
+        "reason": "tavily_sources empty on all attempts — consistent with D-21 open"
+      },
+      "reason_no_citation": "The fix is derived directly from the error messages in the log and standard Debian package dependencies for building SDL-based packages.",
+      "silent_exit": {
+        "value": null,
+        "reason": "not present on this attempt in the record"
+      },
+      "exit_code": {
+        "value": 1,
+        "tag": "MEASURED",
+        "source_field": "result.attempts[1].exit_code"
+      },
+      "change": {
+        "diff_sha256": {
+          "value": null,
+          "reason": "no diff on this attempt"
+        },
+        "patch_notes": {
+          "value": null,
+          "reason": "not present on this attempt in the record"
+        },
+        "env_delta": [
+          {
+            "command": null,
+            "op": "apt",
+            "package": "pkg-config",
+            "version": null,
+            "git_url": null,
+            "commit": null,
+            "justification": "Required to resolve '/bin/sh: 1: pkg-config: not found' during package build",
+            "evidence": "/bin/sh: 1: pkg-config: not found"
+          },
+          {
+            "command": null,
+            "op": "apt",
+            "package": "libsdl1.2-dev",
+            "version": null,
+            "git_url": null,
+            "commit": null,
+            "justification": "Required to resolve '/bin/sh: 1: sdl-config: not found' during pygame build",
+            "evidence": "/bin/sh: 1: sdl-config: not found"
+          },
+          {
+            "command": null,
+            "op": "apt",
+            "package": "libfreetype6-dev",
+            "version": null,
+            "git_url": null,
+            "commit": null,
+            "justification": "Required to resolve '/bin/sh: 1: freetype-config: not found' during pygame build",
+            "evidence": "/bin/sh: 1: freetype-config: not found"
+          }
+        ]
+      },
+      "execution": {
+        "mode": "smoke",
+        "seconds": {
+          "value": 60,
+          "tag": "MEASURED",
+          "source_field": "result.attempts[1].execution.seconds"
+        },
+        "outcome": "exited",
+        "funded_seconds": {
+          "value": null,
+          "reason": "no kill recorded for this attempt; the funded limit is not a stored field in harness-v1.3.4"
+        },
+        "wall_seconds": {
+          "value": null,
+          "reason": "no kill recorded for this attempt; the funded limit is not a stored field in harness-v1.3.4"
+        },
+        "killed_by": {
+          "value": null,
+          "reason": "no kill recorded for this attempt; the funded limit is not a stored field in harness-v1.3.4"
+        },
+        "killed_step_seconds": {
+          "value": null,
+          "reason": "no kill recorded for this attempt; the funded limit is not a stored field in harness-v1.3.4"
+        }
+      }
+    },
+    {
+      "attempt": "attempt-2",
+      "type": "model",
+      "gate_decision": "PASS",
+      "outcome": "applied",
+      "reject_reason": {
+        "value": null,
+        "reason": "not applicable: gate decision PASS"
+      },
+      "consulted": [
+        {
+          "ref": "[1]",
+          "title": "Problem with installation of python-rtmidi on ubuntu 22.04 LTS - Scampsters",
+          "url": "https://scampsters.marcevanstein.com/t/problem-with-installation-of-python-rtmidi-on-ubuntu-22-04-lts/310",
+          "content_sha256": "544e8c973d86c4613acaed38b616dea6cd983193936ee47327498bdcc896b92b"
+        },
+        {
+          "ref": "[2]",
+          "title": "Trouble installing: meson yields \"ERROR: Python dependency not found\" (#90) · Issues · Paul Mollière / petitRADTRANS · GitLab",
+          "url": "https://gitlab.com/mauricemolli/petitRADTRANS/-/issues/90",
+          "content_sha256": "8f4f99bdb54e944fe73c3ea57f21111b3c9fbc795e05fc266d0a62de3fe120c2"
+        },
+        {
+          "ref": "[3]",
+          "title": "\"pip install pycairo\" gives error on WSL  Ubuntu 22.04.5 LTS  · Issue #386 · pygobject/pycairo · GitHub",
+          "url": "https://github.com/pygobject/pycairo/issues/386",
+          "content_sha256": "97902bc27e511df64907384e1b9203399388b18d79fb743267e9a8d7e1d2db1b"
+        }
+      ],
+      "cited": {
+        "value": null,
+        "reason": "tavily_sources empty on all attempts — consistent with D-21 open"
+      },
+      "reason_no_citation": "The evidence lines are taken directly from the failing run's log showing missing dependencies.",
+      "silent_exit": {
+        "value": null,
+        "reason": "not present on this attempt in the record"
+      },
+      "exit_code": {
+        "value": 1,
+        "tag": "MEASURED",
+        "source_field": "result.attempts[2].exit_code"
+      },
+      "change": {
+        "diff_sha256": {
+          "value": null,
+          "reason": "no diff on this attempt"
+        },
+        "patch_notes": {
+          "value": null,
+          "reason": "not present on this attempt in the record"
+        },
+        "env_delta": [
+          {
+            "command": null,
+            "op": "apt",
+            "package": "libsdl-ttf2.0-dev",
+            "version": null,
+            "git_url": null,
+            "commit": null,
+            "justification": "Missing FONT dependency causes pygame build to fail",
+            "evidence": "FONT    : not found"
+          },
+          {
+            "command": null,
+            "op": "apt",
+            "package": "libsdl-image1.2-dev",
+            "version": null,
+            "git_url": null,
+            "commit": null,
+            "justification": "Missing IMAGE dependency causes pygame build to fail",
+            "evidence": "IMAGE   : not found"
+          },
+          {
+            "command": null,
+            "op": "apt",
+            "package": "libsdl-mixer1.2-dev",
+            "version": null,
+            "git_url": null,
+            "commit": null,
+            "justification": "Missing MIXER dependency causes pygame build to fail",
+            "evidence": "MIXER   : not found"
+          },
+          {
+            "command": null,
+            "op": "apt",
+            "package": "libportmidi-dev",
+            "version": null,
+            "git_url": null,
+            "commit": null,
+            "justification": "Missing PORTMIDI dependency causes pygame build to fail",
+            "evidence": "PORTMIDI: not found"
+          }
+        ]
+      },
+      "execution": {
+        "mode": "smoke",
+        "seconds": {
+          "value": 60,
+          "tag": "MEASURED",
+          "source_field": "result.attempts[2].execution.seconds"
+        },
+        "outcome": "exited",
+        "funded_seconds": {
+          "value": null,
+          "reason": "no kill recorded for this attempt; the funded limit is not a stored field in harness-v1.3.4"
+        },
+        "wall_seconds": {
+          "value": null,
+          "reason": "no kill recorded for this attempt; the funded limit is not a stored field in harness-v1.3.4"
+        },
+        "killed_by": {
+          "value": null,
+          "reason": "no kill recorded for this attempt; the funded limit is not a stored field in harness-v1.3.4"
+        },
+        "killed_step_seconds": {
+          "value": null,
+          "reason": "no kill recorded for this attempt; the funded limit is not a stored field in harness-v1.3.4"
+        }
+      }
+    },
+    {
+      "attempt": "attempt-3",
+      "type": "model",
+      "gate_decision": "PASS",
+      "outcome": "applied",
+      "reject_reason": {
+        "value": null,
+        "reason": "not applicable: gate decision PASS"
+      },
+      "consulted": [
+        {
+          "ref": "[1]",
+          "title": "PopOS apt-get update broken - Linux - Level1Techs Forums",
+          "url": "https://forum.level1techs.com/t/popos-apt-get-update-broken/159575",
+          "content_sha256": "46eaf207a3d25a2f4457201424b107321cdfb1974455fbda08fbe6c060e5ee87"
+        },
+        {
+          "ref": "[2]",
+          "title": "‎APT News World App - App Store",
+          "url": "https://apps.apple.com/us/app/apt-news-world/id6749600858",
+          "content_sha256": "3efb740de7369dc4f25c81e8a98d88779aebf425572881edcbb690d9229cba27"
+        },
+        {
+          "ref": "[3]",
+          "title": "Point Blank Dev",
+          "url": "https://www.zoominfo.com/c/point-blank-dev/466392024",
+          "content_sha256": "96759da9f132907c2db4e79b78be1d2c8d8c92b2725430590a625c11341e90fb"
+        }
+      ],
+      "cited": {
+        "value": null,
+        "reason": "tavily_sources empty on all attempts — consistent with D-21 open"
+      },
+      "reason_no_citation": "The fix is derived directly from the error message indicating missing gcc.",
+      "silent_exit": {
+        "value": null,
+        "reason": "not present on this attempt in the record"
+      },
+      "exit_code": {
+        "value": 1,
+        "tag": "MEASURED",
+        "source_field": "result.attempts[3].exit_code"
+      },
+      "change": {
+        "diff_sha256": {
+          "value": null,
+          "reason": "no diff on this attempt"
+        },
+        "patch_notes": {
+          "value": null,
+          "reason": "not present on this attempt in the record"
+        },
+        "env_delta": [
+          {
+            "command": null,
+            "op": "add",
+            "package": "gcc",
+            "version": null,
+            "git_url": null,
+            "commit": null,
+            "justification": "Install GCC compiler to enable building pygame from source",
+            "evidence": "unable to execute 'gcc': No such file or directory"
+          }
+        ]
+      },
+      "execution": {
+        "mode": "smoke",
+        "seconds": {
+          "value": 60,
+          "tag": "MEASURED",
+          "source_field": "result.attempts[3].execution.seconds"
+        },
+        "outcome": "exited",
+        "funded_seconds": {
+          "value": null,
+          "reason": "no kill recorded for this attempt; the funded limit is not a stored field in harness-v1.3.4"
+        },
+        "wall_seconds": {
+          "value": null,
+          "reason": "no kill recorded for this attempt; the funded limit is not a stored field in harness-v1.3.4"
+        },
+        "killed_by": {
+          "value": null,
+          "reason": "no kill recorded for this attempt; the funded limit is not a stored field in harness-v1.3.4"
+        },
+        "killed_step_seconds": {
+          "value": null,
+          "reason": "no kill recorded for this attempt; the funded limit is not a stored field in harness-v1.3.4"
+        }
+      }
+    }
+  ],
+  "time_machine_actions": [
+    {
+      "attempt": "attempt-0",
+      "outcome": "applied",
+      "era": {
+        "date": "2020-08-01",
+        "source": "pinned-commit",
+        "detail": {
+          "note": "no dependency files in the repository"
+        }
+      },
+      "python": {
+        "version": "3.8",
+        "reason": "newest CPython first released ≥180 days before the era date 2020-08-01 (https://devguide.python.org/versions/ (first release dates, retrieved 2026-09-24))",
+        "source": "https://devguide.python.org/versions/ (first release dates, retrieved 2026-09-24)"
+      },
+      "undeclared_imports": [
+        "gym",
+        "joblib",
+        "matplotlib",
+        "numpy",
+        "pandas",
+        "pygame",
+        "scikit-learn",
+        "scipy"
+      ],
+      "apt_added": [],
+      "apt_reason": "",
+      "lock": {
+        "ok": true,
+        "lock": [
+          "cloudpickle==1.3.0",
+          "cycler==0.10.0",
+          "future==0.18.2",
+          "gym==0.17.2",
+          "joblib==0.16.0",
+          "kiwisolver==1.2.0",
+          "matplotlib==3.3.0",
+          "numpy==1.19.1",
+          "pandas==1.1.0",
+          "pillow==7.2.0",
+          "pygame==1.9.6",
+          "pyglet==1.5.0",
+          "pyparsing==2.4.7",
+          "python-dateutil==2.8.1",
+          "pytz==2020.1",
+          "scikit-learn==0.23.1",
+          "scipy==1.5.2",
+          "six==1.15.0",
+          "threadpoolctl==2.1.0"
+        ],
+        "relaxed": [],
+        "not_on_index": [],
+        "error": ""
+      },
+      "fallback": null
+    }
+  ],
+  "cost": {
+    "value": 0.7366330499999999,
+    "tag": "MEASURED",
+    "currency": "USD",
+    "source_field": "cost_guard.spent_usd",
+    "measured": {
+      "value": 0.7366330499999999,
+      "tag": "MEASURED",
+      "source_field": "cost_guard.spent_usd"
+    },
+    "estimated": {
+      "value": 0.0,
+      "tag": "ESTIMATED",
+      "source_field": "cost_guard.estimated_sandbox_spent_usd"
+    },
+    "model": {
+      "value": 0.02151078,
+      "tag": "MEASURED",
+      "source_field": "cost_guard.model_spent_usd"
+    },
+    "per_entry_cap": {
+      "value": 2.0,
+      "tag": "MEASURED",
+      "source_field": "batch.per_entry_cap_usd"
+    },
+    "cost_events": []
+  },
+  "badge": {
+    "exploratory": true,
+    "label": "EXPLORATORY",
+    "text": "EXPLORATORY — did not pass its pre-registered gate. a: 0/4, c: 0 citations (7 attempts consulted, 21 refs, 6 reasons recorded).",
+    "figures": [
+      {
+        "criterion": "a",
+        "text": "0/4",
+        "recovered": {
+          "value": 0,
+          "tag": "MEASURED",
+          "computed_from": "count of verdicts in ['RUNS_CLEAN', 'RUNS_AFTER_REPAIR']",
+          "source": "reports/corpus-v2.1/v1.3.3/smoke_gate/smoke_gate_result_harness-v1.3.4.json@sha256:23583cd1c429e2aaa6bfde3dadc389f6ba0845d92da7dd4e43c1f248ff8f48df"
+        },
+        "entries": {
+          "value": 4,
+          "tag": "MEASURED",
+          "computed_from": "count of verdicts",
+          "source": "reports/corpus-v2.1/v1.3.3/smoke_gate/smoke_gate_result_harness-v1.3.4.json@sha256:23583cd1c429e2aaa6bfde3dadc389f6ba0845d92da7dd4e43c1f248ff8f48df"
+        }
+      },
+      {
+        "criterion": "c",
+        "citations": {
+          "value": 0,
+          "tag": "MEASURED",
+          "computed_from": "length of c.cited",
+          "source": "reports/corpus-v2.1/v1.3.3/smoke_gate/smoke_gate_result_harness-v1.3.4.json@sha256:23583cd1c429e2aaa6bfde3dadc389f6ba0845d92da7dd4e43c1f248ff8f48df"
+        },
+        "attempts_consulted": {
+          "value": 7,
+          "tag": "MEASURED",
+          "computed_from": "count of result.attempts[*].consulted",
+          "source": [
+            "harness-v1.3.4/treatment/03@937744fe7a07e901961158d15fcb31bba204d9d214ef0ebb9624442b7fcc0544#attempt-1",
+            "harness-v1.3.4/treatment/03@937744fe7a07e901961158d15fcb31bba204d9d214ef0ebb9624442b7fcc0544#attempt-2",
+            "harness-v1.3.4/treatment/03@937744fe7a07e901961158d15fcb31bba204d9d214ef0ebb9624442b7fcc0544#attempt-3",
+            "harness-v1.3.4/treatment/07@6bd614a2a0447ead7e9dc6007b6fe868a29af9660ed175ddf667e08f74673a98#attempt-1",
+            "harness-v1.3.4/treatment/07@6bd614a2a0447ead7e9dc6007b6fe868a29af9660ed175ddf667e08f74673a98#attempt-2",
+            "harness-v1.3.4/treatment/07@6bd614a2a0447ead7e9dc6007b6fe868a29af9660ed175ddf667e08f74673a98#attempt-3",
+            "harness-v1.3.4/treatment/11@697388c90f63cf594426e76a616763dc1718637b9f66b9bb1d95c6438de2a21a#attempt-1"
+          ]
+        },
+        "references_consulted": {
+          "value": 21,
+          "tag": "MEASURED",
+          "computed_from": "sum of len(result.attempts[*].consulted)",
+          "source": [
+            "harness-v1.3.4/treatment/03@937744fe7a07e901961158d15fcb31bba204d9d214ef0ebb9624442b7fcc0544#attempt-1",
+            "harness-v1.3.4/treatment/03@937744fe7a07e901961158d15fcb31bba204d9d214ef0ebb9624442b7fcc0544#attempt-2",
+            "harness-v1.3.4/treatment/03@937744fe7a07e901961158d15fcb31bba204d9d214ef0ebb9624442b7fcc0544#attempt-3",
+            "harness-v1.3.4/treatment/07@6bd614a2a0447ead7e9dc6007b6fe868a29af9660ed175ddf667e08f74673a98#attempt-1",
+            "harness-v1.3.4/treatment/07@6bd614a2a0447ead7e9dc6007b6fe868a29af9660ed175ddf667e08f74673a98#attempt-2",
+            "harness-v1.3.4/treatment/07@6bd614a2a0447ead7e9dc6007b6fe868a29af9660ed175ddf667e08f74673a98#attempt-3",
+            "harness-v1.3.4/treatment/11@697388c90f63cf594426e76a616763dc1718637b9f66b9bb1d95c6438de2a21a#attempt-1"
+          ]
+        },
+        "reasons_recorded": {
+          "value": 6,
+          "tag": "MEASURED",
+          "computed_from": "count of result.attempts[*].reason_no_citation",
+          "source": [
+            "harness-v1.3.4/treatment/03@937744fe7a07e901961158d15fcb31bba204d9d214ef0ebb9624442b7fcc0544#attempt-2",
+            "harness-v1.3.4/treatment/03@937744fe7a07e901961158d15fcb31bba204d9d214ef0ebb9624442b7fcc0544#attempt-3",
+            "harness-v1.3.4/treatment/07@6bd614a2a0447ead7e9dc6007b6fe868a29af9660ed175ddf667e08f74673a98#attempt-1",
+            "harness-v1.3.4/treatment/07@6bd614a2a0447ead7e9dc6007b6fe868a29af9660ed175ddf667e08f74673a98#attempt-2",
+            "harness-v1.3.4/treatment/07@6bd614a2a0447ead7e9dc6007b6fe868a29af9660ed175ddf667e08f74673a98#attempt-3",
+            "harness-v1.3.4/treatment/11@697388c90f63cf594426e76a616763dc1718637b9f66b9bb1d95c6438de2a21a#attempt-1"
+          ]
+        },
+        "text": "0 citations (7 attempts consulted, 21 refs, 6 reasons recorded)"
+      }
+    ],
+    "gate_cost": {
+      "value": 3.3962138927,
+      "tag": "ESTIMATED",
+      "currency": "USD",
+      "computed_from": "sum of cost_guard.spent_usd over the gate records",
+      "source": [
+        "harness-v1.3.4/treatment/03@937744fe7a07e901961158d15fcb31bba204d9d214ef0ebb9624442b7fcc0544",
+        "harness-v1.3.4/treatment/07@6bd614a2a0447ead7e9dc6007b6fe868a29af9660ed175ddf667e08f74673a98",
+        "harness-v1.3.4/treatment/08@cf7e86f9580bb99147920b33d6481c61f55506e979bb75ee354527a6e2610bf9",
+        "harness-v1.3.4/treatment/11@697388c90f63cf594426e76a616763dc1718637b9f66b9bb1d95c6438de2a21a"
+      ],
+      "measured": {
+        "value": 3.11200478,
+        "tag": "MEASURED",
+        "computed_from": "sum of spent_usd - sum of estimated_sandbox_spent_usd"
+      },
+      "estimated": {
+        "value": 0.2842091127,
+        "tag": "ESTIMATED",
+        "computed_from": "sum of cost_guard.estimated_sandbox_spent_usd"
+      }
+    },
+    "links": {
+      "gate_result": "reports/corpus-v2.1/v1.3.3/smoke_gate/smoke_gate_result_harness-v1.3.4.json",
+      "gate_report": "reports/corpus-v2.1/v1.3.3/smoke_gate/SMOKE_GATE_REPORT_v1.3.4.md",
+      "run_records": [
+        "harness-v1.3.4/treatment/03@937744fe7a07e901961158d15fcb31bba204d9d214ef0ebb9624442b7fcc0544",
+        "harness-v1.3.4/treatment/07@6bd614a2a0447ead7e9dc6007b6fe868a29af9660ed175ddf667e08f74673a98",
+        "harness-v1.3.4/treatment/08@cf7e86f9580bb99147920b33d6481c61f55506e979bb75ee354527a6e2610bf9",
+        "harness-v1.3.4/treatment/11@697388c90f63cf594426e76a616763dc1718637b9f66b9bb1d95c6438de2a21a"
+      ],
+      "cost_line": {
+        "path": "reports/corpus-v2.1/v1.3.3/smoke_gate/SMOKE_GATE_REPORT_v1.3.4.md",
+        "quote": "Gate spend **$3.3962** (cap $3.50)."
+      }
+    }
+  },
+  "superseded_by": {
+    "value": null,
+    "reason": "not superseded"
+  },
+  "annotations": [
+    {
+      "id": "D-24",
+      "text": "A missing compiler found after a repair went to the model instead of the deterministic rule.",
+      "status": "open",
+      "sources": [
+        {
+          "path": "reports/corpus-v2.1/candidate_v1.3.3_defects.md",
+          "quote": "**D-24** The deterministic \"missing gcc -> build-essential\" rule fires only on the baseline classification"
+        }
+      ]
+    }
+  ],
+  "passport_hash": "43112de0745bfd2b17af7d4f88be4b504829d3caf6f434c29f3c29d744d25741"
+}

@@ -1,0 +1,535 @@
+{
+  "schema": "rerun/phase-d/passport/v1",
+  "record_id": "harness-v1.3.4/treatment/11@697388c90f63cf594426e76a616763dc1718637b9f66b9bb1d95c6438de2a21a",
+  "record": {
+    "path": "runs/corpus_v2_batch/harness-v1.3.4/smoke/11_JindongGu__VoteAttack.json",
+    "sha256": "697388c90f63cf594426e76a616763dc1718637b9f66b9bb1d95c6438de2a21a",
+    "record_set": "smoke",
+    "hash_basis": "git blob at HEAD (git cat-file blob HEAD:<path>), never the worktree file"
+  },
+  "image_id": {
+    "value": "89021033-8bcb-406d-8299-4b490d38e26d",
+    "source_field": "certificate.baseline.sandbox_id",
+    "base_image": "python:3.10-slim"
+  },
+  "harness_tag": "harness-v1.3.4",
+  "harness_commit": "10319b3c15087f658b343cee20fa9e270ba1b781",
+  "arm": "treatment",
+  "entry": {
+    "id": "11",
+    "name": "JindongGu__VoteAttack",
+    "repo_url": "https://github.com/JindongGu/VoteAttack",
+    "commit_sha": "bdf8b46bc7b3ce772a6f2c0a6e48514423fd6051",
+    "category": "PRIMARY"
+  },
+  "run": {
+    "started_at": "2026-09-30T22:21:22.905383+00:00",
+    "finished_at": "2026-09-30T22:31:53.810185+00:00"
+  },
+  "verdict": {
+    "verdict": "INDETERMINATE",
+    "taxonomy_code": "RUNTIME_ERROR_OTHER",
+    "reason_code": "COST_CAP",
+    "indeterminate_reason": "COST_CAP: a sandbox operation reached its budget-derived limit of 119s — RERUN's per-entry / per-operation spend cap stopped the run; not a verdict on the repository.",
+    "recovery": false,
+    "first_repo_error": "ModuleNotFoundError: No module named 'tqdm'",
+    "last_error": "UnboundLocalError: local variable 'torch' referenced before assignment"
+  },
+  "baseline": {
+    "result": "FAILS",
+    "exit_code": {
+      "value": 1,
+      "tag": "MEASURED",
+      "source_field": "certificate.baseline.exit_code"
+    },
+    "taxonomy_code": "DEP_MISSING",
+    "evidence": "ModuleNotFoundError: No module named 'tqdm'"
+  },
+  "classification_chain": [
+    {
+      "error": "ModuleNotFoundError: No module named 'tqdm'",
+      "class": "DEP_MISSING",
+      "attribution": "REPO",
+      "phase": "repo_run",
+      "cleared_by": "attempt-0"
+    },
+    {
+      "error": "RuntimeError: Attempting to deserialize object on a CUDA device but torch.cuda.is_available() is False. If you are running on a CPU-only machine, please use torch.load with map_location=torch.device('cpu') to map your storages to the CPU.",
+      "class": "GPU_REQUIRED",
+      "attribution": "REPO",
+      "phase": "repo_run",
+      "cleared_by": "attempt-1"
+    },
+    {
+      "error": "UnboundLocalError: local variable 'torch' referenced before assignment",
+      "class": "RUNTIME_ERROR_OTHER",
+      "attribution": "REPO",
+      "phase": "repo_run",
+      "cleared_by": {
+        "value": null,
+        "reason": "not cleared by any attempt"
+      }
+    }
+  ],
+  "attempts": [
+    {
+      "attempt": "attempt-0",
+      "type": "time_machine",
+      "gate_decision": "PASS",
+      "outcome": "applied",
+      "reject_reason": {
+        "value": null,
+        "reason": "not applicable: gate decision PASS"
+      },
+      "consulted": {
+        "value": null,
+        "reason": "not present on this attempt in the record"
+      },
+      "cited": {
+        "value": null,
+        "reason": "tavily_sources empty on all attempts — consistent with D-21 open"
+      },
+      "reason_no_citation": {
+        "value": null,
+        "reason": "not present on this attempt in the record"
+      },
+      "silent_exit": {
+        "value": null,
+        "reason": "not present on this attempt in the record"
+      },
+      "exit_code": {
+        "value": 1,
+        "tag": "MEASURED",
+        "source_field": "result.attempts[0].exit_code"
+      },
+      "change": {
+        "diff_sha256": {
+          "value": null,
+          "reason": "no diff on this attempt"
+        },
+        "patch_notes": {
+          "value": null,
+          "reason": "not present on this attempt in the record"
+        },
+        "env_delta": []
+      },
+      "execution": {
+        "mode": "smoke",
+        "seconds": {
+          "value": 60,
+          "tag": "MEASURED",
+          "source_field": "result.attempts[0].execution.seconds"
+        },
+        "outcome": "exited",
+        "funded_seconds": {
+          "value": null,
+          "reason": "no kill recorded for this attempt; the funded limit is not a stored field in harness-v1.3.4"
+        },
+        "wall_seconds": {
+          "value": null,
+          "reason": "no kill recorded for this attempt; the funded limit is not a stored field in harness-v1.3.4"
+        },
+        "killed_by": {
+          "value": null,
+          "reason": "no kill recorded for this attempt; the funded limit is not a stored field in harness-v1.3.4"
+        },
+        "killed_step_seconds": {
+          "value": null,
+          "reason": "no kill recorded for this attempt; the funded limit is not a stored field in harness-v1.3.4"
+        }
+      }
+    },
+    {
+      "attempt": "attempt-1",
+      "type": "model",
+      "gate_decision": "PASS",
+      "outcome": "applied",
+      "reject_reason": {
+        "value": null,
+        "reason": "not applicable: gate decision PASS"
+      },
+      "consulted": [
+        {
+          "ref": "[1]",
+          "title": "Announcing early access to Chainguard’s CUDA Optimized Images",
+          "url": "https://www.chainguard.dev/unchained/announcing-early-access-to-chainguards-cuda-optimized-images",
+          "content_sha256": "0f86157616145d80de8610ba244b4ae830004b0418ba5ed19a1d8cf562c3060d"
+        },
+        {
+          "ref": "[2]",
+          "title": "5,000 Pytorch Cuda Jobs, Employment | Indeed",
+          "url": "https://www.indeed.com/q-pytorch-cuda-jobs.html",
+          "content_sha256": "b93d501061e2ea041d670f236578e168c4cbe8d39ce26a7bc08941e0e6180147"
+        },
+        {
+          "ref": "[3]",
+          "title": "Cloudian Launches Open Source PyTorch Support, Enabling Simplified Machine Learning Workflows with Hybrid Edge Storage Integration for AWS Outposts and Local Zones",
+          "url": "https://finance.yahoo.com/news/cloudian-launches-open-source-pytorch-100000526.html",
+          "content_sha256": "749e0066788a270e7fd41fc4bef196f1d29ab8e41cafdd10f2dcd4f9090dccbc"
+        }
+      ],
+      "cited": {
+        "value": null,
+        "reason": "tavily_sources empty on all attempts — consistent with D-21 open"
+      },
+      "reason_no_citation": "The fix involves patching torch.load to map to CPU when loading the model state dict, which is a standard solution for the CUDA deserialization error. No external references were needed as the solution is based on PyTorch best practices.",
+      "silent_exit": {
+        "value": null,
+        "reason": "not present on this attempt in the record"
+      },
+      "exit_code": {
+        "value": 1,
+        "tag": "MEASURED",
+        "source_field": "result.attempts[1].exit_code"
+      },
+      "change": {
+        "diff_sha256": "b144756ab0864718e109fe68fb3018282405cf33e8bfd734514800a86a999e01",
+        "patch_notes": [
+          "main.py: file_edits[1] replaced 1 occurrence"
+        ],
+        "env_delta": []
+      },
+      "execution": {
+        "mode": "smoke",
+        "seconds": {
+          "value": 60,
+          "tag": "MEASURED",
+          "source_field": "result.attempts[1].execution.seconds"
+        },
+        "outcome": "exited",
+        "funded_seconds": {
+          "value": null,
+          "reason": "no kill recorded for this attempt; the funded limit is not a stored field in harness-v1.3.4"
+        },
+        "wall_seconds": {
+          "value": null,
+          "reason": "no kill recorded for this attempt; the funded limit is not a stored field in harness-v1.3.4"
+        },
+        "killed_by": {
+          "value": null,
+          "reason": "no kill recorded for this attempt; the funded limit is not a stored field in harness-v1.3.4"
+        },
+        "killed_step_seconds": {
+          "value": null,
+          "reason": "no kill recorded for this attempt; the funded limit is not a stored field in harness-v1.3.4"
+        }
+      }
+    },
+    {
+      "attempt": "attempt-2",
+      "type": "model",
+      "gate_decision": "PASS",
+      "outcome": "gate_passed_not_executed",
+      "reject_reason": {
+        "value": null,
+        "reason": "not applicable: gate decision PASS"
+      },
+      "consulted": {
+        "value": null,
+        "reason": "not present on this attempt in the record"
+      },
+      "cited": {
+        "value": null,
+        "reason": "tavily_sources empty on all attempts — consistent with D-21 open"
+      },
+      "reason_no_citation": {
+        "value": null,
+        "reason": "not present on this attempt in the record"
+      },
+      "silent_exit": {
+        "value": null,
+        "reason": "not present on this attempt in the record"
+      },
+      "exit_code": {
+        "value": null,
+        "reason": "no re-execution recorded for this attempt"
+      },
+      "change": {
+        "diff_sha256": "e28d4dcc9a0c3bb7ed8240cfc9f7d47286f25475d9a90cab572d8da3ae6a9762",
+        "patch_notes": {
+          "value": null,
+          "reason": "not present on this attempt in the record"
+        },
+        "env_delta": []
+      },
+      "execution": {
+        "mode": {
+          "value": null,
+          "reason": "no execution recorded for this attempt"
+        },
+        "seconds": {
+          "value": null,
+          "reason": "no execution recorded for this attempt"
+        },
+        "outcome": {
+          "value": null,
+          "reason": "no execution recorded for this attempt"
+        },
+        "funded_seconds": {
+          "value": 119,
+          "tag": "DERIVED",
+          "source": {
+            "record_id": "harness-v1.3.4/treatment/11@697388c90f63cf594426e76a616763dc1718637b9f66b9bb1d95c6438de2a21a",
+            "field": "events[45].line",
+            "line": "[repair 2] stopped: daily cost ceiling reached: a sandbox operation reached its budget-derived limit of 119s"
+          }
+        },
+        "wall_seconds": {
+          "value": 119,
+          "tag": "DERIVED",
+          "source": {
+            "record_id": "harness-v1.3.4/treatment/11@697388c90f63cf594426e76a616763dc1718637b9f66b9bb1d95c6438de2a21a",
+            "field": "events[44].line",
+            "line": "[cost_guard] operation stopped at 119s; recorded $0.2889 (0.2889 measured + estimate for the killed step), $0.7200 left"
+          }
+        },
+        "killed_by": {
+          "value": "cost_guard",
+          "tag": "DERIVED",
+          "source": {
+            "record_id": "harness-v1.3.4/treatment/11@697388c90f63cf594426e76a616763dc1718637b9f66b9bb1d95c6438de2a21a",
+            "field": "events[44].line",
+            "line": "[cost_guard] operation stopped at 119s; recorded $0.2889 (0.2889 measured + estimate for the killed step), $0.7200 left"
+          }
+        },
+        "killed_step_seconds": {
+          "value": 0,
+          "tag": "DERIVED",
+          "source": {
+            "record_id": "harness-v1.3.4/treatment/11@697388c90f63cf594426e76a616763dc1718637b9f66b9bb1d95c6438de2a21a",
+            "field": "cost_guard.cost_events[0].note",
+            "line": "killed after 0s: python3 -c \"import base64;exec(base64.b64decode('CmltcG9ydCBiYXNlNjQsIGpzb24sIG9"
+          }
+        }
+      }
+    }
+  ],
+  "time_machine_actions": [
+    {
+      "attempt": "attempt-0",
+      "outcome": "applied",
+      "era": {
+        "date": "2021-05-01",
+        "source": "pinned-commit",
+        "detail": {
+          "note": "no dependency files in the repository"
+        }
+      },
+      "python": {
+        "version": "3.9",
+        "reason": "newest CPython first released ≥180 days before the era date 2021-05-01 (https://devguide.python.org/versions/ (first release dates, retrieved 2026-09-24))",
+        "source": "https://devguide.python.org/versions/ (first release dates, retrieved 2026-09-24)"
+      },
+      "undeclared_imports": [
+        "foolbox",
+        "torch",
+        "torchvision",
+        "tqdm"
+      ],
+      "apt_added": [],
+      "apt_reason": "",
+      "lock": {
+        "ok": true,
+        "lock": [
+          "certifi==2020.12.5",
+          "chardet==4.0.0",
+          "eagerpy==0.29.0",
+          "foolbox==3.3.1",
+          "gitdb==4.0.7",
+          "gitpython==3.1.14",
+          "idna==2.10",
+          "numpy==1.20.2",
+          "pillow==8.2.0",
+          "requests==2.25.1",
+          "scipy==1.6.3",
+          "setuptools==56.0.0",
+          "smmap==4.0.0",
+          "torch==1.8.1",
+          "torchvision==0.9.1",
+          "tqdm==4.60.0",
+          "typing-extensions==3.10.0.0",
+          "urllib3==1.26.4"
+        ],
+        "relaxed": [],
+        "not_on_index": [],
+        "error": ""
+      },
+      "fallback": null
+    }
+  ],
+  "cost": {
+    "value": 1.2824555100000001,
+    "tag": "MEASURED",
+    "currency": "USD",
+    "source_field": "cost_guard.spent_usd",
+    "measured": {
+      "value": 1.2824555100000001,
+      "tag": "MEASURED",
+      "source_field": "cost_guard.spent_usd"
+    },
+    "estimated": {
+      "value": 0.0,
+      "tag": "ESTIMATED",
+      "source_field": "cost_guard.estimated_sandbox_spent_usd"
+    },
+    "model": {
+      "value": 0.01617638,
+      "tag": "MEASURED",
+      "source_field": "cost_guard.model_spent_usd"
+    },
+    "per_entry_cap": {
+      "value": 2.0,
+      "tag": "MEASURED",
+      "source_field": "batch.per_entry_cap_usd"
+    },
+    "cost_events": [
+      {
+        "kind": "estimated",
+        "usd": {
+          "value": 0.0,
+          "tag": "ESTIMATED"
+        },
+        "note": "killed after 0s: python3 -c \"import base64;exec(base64.b64decode('CmltcG9ydCBiYXNlNjQsIGpzb24sIG9"
+      }
+    ]
+  },
+  "badge": {
+    "exploratory": true,
+    "label": "EXPLORATORY",
+    "text": "EXPLORATORY — did not pass its pre-registered gate. a: 0/4, c: 0 citations (7 attempts consulted, 21 refs, 6 reasons recorded).",
+    "figures": [
+      {
+        "criterion": "a",
+        "text": "0/4",
+        "recovered": {
+          "value": 0,
+          "tag": "MEASURED",
+          "computed_from": "count of verdicts in ['RUNS_CLEAN', 'RUNS_AFTER_REPAIR']",
+          "source": "reports/corpus-v2.1/v1.3.3/smoke_gate/smoke_gate_result_harness-v1.3.4.json@sha256:23583cd1c429e2aaa6bfde3dadc389f6ba0845d92da7dd4e43c1f248ff8f48df"
+        },
+        "entries": {
+          "value": 4,
+          "tag": "MEASURED",
+          "computed_from": "count of verdicts",
+          "source": "reports/corpus-v2.1/v1.3.3/smoke_gate/smoke_gate_result_harness-v1.3.4.json@sha256:23583cd1c429e2aaa6bfde3dadc389f6ba0845d92da7dd4e43c1f248ff8f48df"
+        }
+      },
+      {
+        "criterion": "c",
+        "citations": {
+          "value": 0,
+          "tag": "MEASURED",
+          "computed_from": "length of c.cited",
+          "source": "reports/corpus-v2.1/v1.3.3/smoke_gate/smoke_gate_result_harness-v1.3.4.json@sha256:23583cd1c429e2aaa6bfde3dadc389f6ba0845d92da7dd4e43c1f248ff8f48df"
+        },
+        "attempts_consulted": {
+          "value": 7,
+          "tag": "MEASURED",
+          "computed_from": "count of result.attempts[*].consulted",
+          "source": [
+            "harness-v1.3.4/treatment/03@937744fe7a07e901961158d15fcb31bba204d9d214ef0ebb9624442b7fcc0544#attempt-1",
+            "harness-v1.3.4/treatment/03@937744fe7a07e901961158d15fcb31bba204d9d214ef0ebb9624442b7fcc0544#attempt-2",
+            "harness-v1.3.4/treatment/03@937744fe7a07e901961158d15fcb31bba204d9d214ef0ebb9624442b7fcc0544#attempt-3",
+            "harness-v1.3.4/treatment/07@6bd614a2a0447ead7e9dc6007b6fe868a29af9660ed175ddf667e08f74673a98#attempt-1",
+            "harness-v1.3.4/treatment/07@6bd614a2a0447ead7e9dc6007b6fe868a29af9660ed175ddf667e08f74673a98#attempt-2",
+            "harness-v1.3.4/treatment/07@6bd614a2a0447ead7e9dc6007b6fe868a29af9660ed175ddf667e08f74673a98#attempt-3",
+            "harness-v1.3.4/treatment/11@697388c90f63cf594426e76a616763dc1718637b9f66b9bb1d95c6438de2a21a#attempt-1"
+          ]
+        },
+        "references_consulted": {
+          "value": 21,
+          "tag": "MEASURED",
+          "computed_from": "sum of len(result.attempts[*].consulted)",
+          "source": [
+            "harness-v1.3.4/treatment/03@937744fe7a07e901961158d15fcb31bba204d9d214ef0ebb9624442b7fcc0544#attempt-1",
+            "harness-v1.3.4/treatment/03@937744fe7a07e901961158d15fcb31bba204d9d214ef0ebb9624442b7fcc0544#attempt-2",
+            "harness-v1.3.4/treatment/03@937744fe7a07e901961158d15fcb31bba204d9d214ef0ebb9624442b7fcc0544#attempt-3",
+            "harness-v1.3.4/treatment/07@6bd614a2a0447ead7e9dc6007b6fe868a29af9660ed175ddf667e08f74673a98#attempt-1",
+            "harness-v1.3.4/treatment/07@6bd614a2a0447ead7e9dc6007b6fe868a29af9660ed175ddf667e08f74673a98#attempt-2",
+            "harness-v1.3.4/treatment/07@6bd614a2a0447ead7e9dc6007b6fe868a29af9660ed175ddf667e08f74673a98#attempt-3",
+            "harness-v1.3.4/treatment/11@697388c90f63cf594426e76a616763dc1718637b9f66b9bb1d95c6438de2a21a#attempt-1"
+          ]
+        },
+        "reasons_recorded": {
+          "value": 6,
+          "tag": "MEASURED",
+          "computed_from": "count of result.attempts[*].reason_no_citation",
+          "source": [
+            "harness-v1.3.4/treatment/03@937744fe7a07e901961158d15fcb31bba204d9d214ef0ebb9624442b7fcc0544#attempt-2",
+            "harness-v1.3.4/treatment/03@937744fe7a07e901961158d15fcb31bba204d9d214ef0ebb9624442b7fcc0544#attempt-3",
+            "harness-v1.3.4/treatment/07@6bd614a2a0447ead7e9dc6007b6fe868a29af9660ed175ddf667e08f74673a98#attempt-1",
+            "harness-v1.3.4/treatment/07@6bd614a2a0447ead7e9dc6007b6fe868a29af9660ed175ddf667e08f74673a98#attempt-2",
+            "harness-v1.3.4/treatment/07@6bd614a2a0447ead7e9dc6007b6fe868a29af9660ed175ddf667e08f74673a98#attempt-3",
+            "harness-v1.3.4/treatment/11@697388c90f63cf594426e76a616763dc1718637b9f66b9bb1d95c6438de2a21a#attempt-1"
+          ]
+        },
+        "text": "0 citations (7 attempts consulted, 21 refs, 6 reasons recorded)"
+      }
+    ],
+    "gate_cost": {
+      "value": 3.3962138927,
+      "tag": "ESTIMATED",
+      "currency": "USD",
+      "computed_from": "sum of cost_guard.spent_usd over the gate records",
+      "source": [
+        "harness-v1.3.4/treatment/03@937744fe7a07e901961158d15fcb31bba204d9d214ef0ebb9624442b7fcc0544",
+        "harness-v1.3.4/treatment/07@6bd614a2a0447ead7e9dc6007b6fe868a29af9660ed175ddf667e08f74673a98",
+        "harness-v1.3.4/treatment/08@cf7e86f9580bb99147920b33d6481c61f55506e979bb75ee354527a6e2610bf9",
+        "harness-v1.3.4/treatment/11@697388c90f63cf594426e76a616763dc1718637b9f66b9bb1d95c6438de2a21a"
+      ],
+      "measured": {
+        "value": 3.11200478,
+        "tag": "MEASURED",
+        "computed_from": "sum of spent_usd - sum of estimated_sandbox_spent_usd"
+      },
+      "estimated": {
+        "value": 0.2842091127,
+        "tag": "ESTIMATED",
+        "computed_from": "sum of cost_guard.estimated_sandbox_spent_usd"
+      }
+    },
+    "links": {
+      "gate_result": "reports/corpus-v2.1/v1.3.3/smoke_gate/smoke_gate_result_harness-v1.3.4.json",
+      "gate_report": "reports/corpus-v2.1/v1.3.3/smoke_gate/SMOKE_GATE_REPORT_v1.3.4.md",
+      "run_records": [
+        "harness-v1.3.4/treatment/03@937744fe7a07e901961158d15fcb31bba204d9d214ef0ebb9624442b7fcc0544",
+        "harness-v1.3.4/treatment/07@6bd614a2a0447ead7e9dc6007b6fe868a29af9660ed175ddf667e08f74673a98",
+        "harness-v1.3.4/treatment/08@cf7e86f9580bb99147920b33d6481c61f55506e979bb75ee354527a6e2610bf9",
+        "harness-v1.3.4/treatment/11@697388c90f63cf594426e76a616763dc1718637b9f66b9bb1d95c6438de2a21a"
+      ],
+      "cost_line": {
+        "path": "reports/corpus-v2.1/v1.3.3/smoke_gate/SMOKE_GATE_REPORT_v1.3.4.md",
+        "quote": "Gate spend **$3.3962** (cap $3.50)."
+      }
+    }
+  },
+  "superseded_by": {
+    "value": null,
+    "reason": "not superseded"
+  },
+  "annotations": [
+    {
+      "id": "D-23",
+      "text": "COST_CAP during a re-execution's torch install.",
+      "status": "open",
+      "sources": [
+        {
+          "path": "reports/corpus-v2.1/candidate_v1.3.3_defects.md",
+          "quote": "**D-23** The per-repair funding rule starves entries whose re-executions each pay a ~90 s torch install"
+        }
+      ]
+    },
+    {
+      "id": "ENTRY-11-SMOKE-LIMIT-ARTEFACT",
+      "text": "This run went past the point harness-v1.3.3 recorded as a recovery and reached a REPO torch.load defect.",
+      "sources": [
+        {
+          "path": "reports/corpus-v2.1/v1.3.3/smoke_gate/SMOKE_GATE_REPORT_v1.3.4.md",
+          "quote": "**v1.3.3's \"recovery\" was a smoke-limit artefact.**"
+        }
+      ],
+      "related_record": "harness-v1.3.3/treatment/11@619a97784e6abc3f29fedf36a7c4723c65232111233a34e3299a1ed3eee034a2"
+    }
+  ],
+  "passport_hash": "cb22383cd2cbb2c0988981043774d8294edc44f812806f78d0865f50d689cae0"
+}

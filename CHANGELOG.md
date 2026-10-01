@@ -2,6 +2,15 @@
 
 One entry per phase of the post-corpus-v2 plan. Numbers are produced by scripts in `scripts/`.
 
+## Phase D1 — passports from committed records (2026-10-01; offline, no Nebius call; the sealed harness is untouched)
+`phase_d/` (outside the sealed harness paths) builds one passport per committed run record of harness-v1.3.2 / v1.3.3 / v1.3.4 into `reports/phase-d/passports/`, with
+`reports/phase-d/record_index.md`. Record id = `<harness_tag>/<arm>/<entry>@<sha256 of the committed blob>`; every number is tagged MEASURED, ESTIMATED or DERIVED; a field a
+harness version did not store is null with that reason. `python -m phase_d.verify_passports` rebuilds from the blobs and diffs to zero; `python -m phase_d.check_tags` fails on an
+untagged number. harness-v1.3.3 and v1.3.4 passports carry the EXPLORATORY badge with each version's own measured gate line. Annotations added beside (never in place of) the
+original lines of `SMOKE_GATE_REPORT_v1.3.4.md` and `candidate_v1.3.3_defects.md`: the figure 9 for consulted attempts is not reproducible from records (records: `consulted` on 7
+attempts, `reason_no_citation` on 6), the gate and ledger totals contain the entry-8 estimate, and the headline is restated as 0 of 8 entry-runs. New defect D-26
+(`reason_no_citation` not recorded on a DECLINED attempt): open, documented only. Tests: test_phase_d_passports.py.
+
 ## harness-v1.3.4 — the five defects the v1.3.3 smoke gate found (2026-09-30; exploratory; v1.3.2 stays the pre-registered result)
 Smoke gate v1.3.3 (entries 11, 7, 3, 8): 1/4 recovered, 2 patches applied, 0 citations, no cost event; NOT PASSED. Fixes: D-20 the download route carries patched files as an
 overlay applied before the integrity check (entry 8's INVALID_HARNESS); D-22 a voided attempt is still recorded; D-18 the RERUN-managed lock is never shown as `requirements.txt`
