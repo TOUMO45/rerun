@@ -66,3 +66,14 @@ $0.200893 ESTIMATED); gate $3.524718; smoke tests and the link probe $0.0077588.
 
 **BILLED line (this gate's own).** The owner reads the account balance after the gate; the figure is not known yet and this report states none. The only reading on record is the account-level one from before
 this step: at most $0.39 [BILLED] cumulative at 19:37 local on 2026-10-01 (before the v1.4.1 seal and gate). Ledger figures are the sandbox API's reported cost, not account billing (D-36, open).
+
+## Annotation: BILLED line for this gate (owner's reading, 2026-10-01; the text above is unchanged)
+
+Account balance after the seal and the gate (a screenshot of the Nebius console, organisation "Louay-ag4", time of day not stated; the table rows visible beside it are dated 2026-10-01 21:xx):
+**$49.57 [BILLED]**. The earlier reading was $49.61 at 19:37 local, before the v1.4.1 seal and gate. So, for the whole account:
+- cumulative charged: **at most $0.43 [BILLED]** ($50.00 - $49.57), against a ledger of $18.5083 API-reported (a factor of about 43);
+- charged between the two readings, which span this seal, this gate, the smoke tests and the link probe: **$0.04 [BILLED]** (rounded to cents: $0.03 to $0.05), against **$3.8588 [API-REPORTED + ESTIMATED]** the ledger
+  recorded for the same work (a factor of about 96) [DERIVED: $18.5083 - $14.6495];
+- the model share of that work alone is $0.3625 [DERIVED from the price table] (gate records; the seal made no model call), more than the whole $0.04 charged.
+So the charged amount is below even the price-table value of the model tokens, which D-36's reading as "sandboxes are free in beta and the balance is the model tokens" would have to explain by a billing lag, a different
+model price or a credit that the balance page does not show. Not established; D-36 stays open (`docs/design/D-36.md`, section "Second reading"). Ledger figures remain the sandbox API's reported cost, not account billing.
