@@ -1,36 +1,21 @@
 {
-  "harness_tag": "harness-v1.3.4",
-  "written_at": "2026-09-30T22:18:11.604719+00:00",
-  "rule": "no seal without one real Nebius execution per new sandbox-touching path; a WSL dry run is a smoke test, not verification; a code file changed after its verification invalidates the entry",
+  "harness_tag": "harness-v1.4.0",
+  "written_at": "2026-10-01T16:23:12.816364+00:00",
+  "rule": "no seal without one real Nebius execution per sandbox-touching path the gate uses (option B, METHODOLOGY, harness-v1.4.0); a WSL dry run is a smoke test, not verification; a code file changed after its verification invalidates the entry",
   "paths": [
     {
       "id": "download_route_git",
-      "description": "in-sandbox download: git clone --filter=blob:none + pinned checkout + HEAD/status checks, then manifest verify (entry 2, the attempt-1 exit-97 case)",
+      "description": "in-sandbox download (git) of corpus-v2 entry 8's own repository (143 MB) + manifest verify",
       "live_nebius": true,
       "code_files": {
-        "backend/app/services/sandbox.py": "2b074a1a27cac961f8b140fd04f2c6a32597c825",
+        "backend/app/services/sandbox.py": "5f77d5bca7cf64c55daabbcf50b3a9d3b5b6240d",
         "backend/app/services/sandbox_limits.py": "bfb04105b708bb400c1174ad498fb64bb3c0661b"
       },
       "records": [
-        "runs/sandbox_verification/final-v1.3.4/download_git_entry2_py310.json"
+        "runs/sandbox_verification/final-v1.4.0/download_git_entry8_py310.json"
       ],
       "run_ids": [
-        "af2125db-8d05-45af-a3b8-d2c0d76672c6"
-      ]
-    },
-    {
-      "id": "download_route_tarball_fallback",
-      "description": "in-sandbox download where git cannot be installed (python:3.6-slim, archived apt): GitHub tarball + manifest verify",
-      "live_nebius": true,
-      "code_files": {
-        "backend/app/services/sandbox.py": "2b074a1a27cac961f8b140fd04f2c6a32597c825",
-        "backend/app/services/sandbox_limits.py": "bfb04105b708bb400c1174ad498fb64bb3c0661b"
-      },
-      "records": [
-        "runs/sandbox_verification/final-v1.3.4/download_tarball_fallback_py36.json"
-      ],
-      "run_ids": [
-        "a48a30aa-1ca2-4344-a3cf-be6e56d11ee1"
+        "5e038ede-bd62-4bfa-846d-1165bd390490"
       ]
     },
     {
@@ -38,143 +23,107 @@
       "description": "the normal one-tar upload + extraction + manifest verify (exec-bit comparison) + modes",
       "live_nebius": true,
       "code_files": {
-        "backend/app/services/sandbox.py": "2b074a1a27cac961f8b140fd04f2c6a32597c825"
+        "backend/app/services/sandbox.py": "5f77d5bca7cf64c55daabbcf50b3a9d3b5b6240d"
       },
       "records": [
-        "runs/sandbox_verification/final-v1.3.4/upload_archive_exec_bit_py36.json"
+        "runs/sandbox_verification/final-v1.4.0/upload_archive_exec_bit_py36.json"
       ],
       "run_ids": [
-        "de0e952a-19ad-4e81-9e76-68831f164b01"
+        "4f266552-dcd2-457e-9f74-6347582f93fc"
       ]
     },
     {
       "id": "runner_torch_execstack_fix",
-      "description": "runner torch install + patchelf (runner-owned prefix, flag verified) + import on python 3.6 / 3.8 / 3.10, old torch pins",
+      "description": "runner torch install + patchelf + import, python 3.6 old pin (entry 3's era torch)",
       "live_nebius": true,
       "code_files": {
-        "backend/app/services/sandbox.py": "2b074a1a27cac961f8b140fd04f2c6a32597c825",
+        "backend/app/services/sandbox.py": "5f77d5bca7cf64c55daabbcf50b3a9d3b5b6240d",
         "backend/app/services/sandbox_limits.py": "bfb04105b708bb400c1174ad498fb64bb3c0661b",
         "backend/app/services/runner_env.py": "350c6846f22ed01eca4768132051993e47173b03"
       },
       "records": [
-        "runs/sandbox_verification/final-v1.3.4/torch_py36_pin1.10.2.json",
-        "runs/sandbox_verification/final-v1.3.4/torch_py38_pin1.12.1.json",
-        "runs/sandbox_verification/final-v1.3.4/torch_py310_pin1.12.1.json"
+        "runs/sandbox_verification/final-v1.4.0/torch_py36_pin1.10.2.json"
       ],
       "run_ids": [
-        "d00522c3-52cb-40a0-8271-aff233c275ee",
-        "cb5a4c9a-f5d5-4b51-92be-be6d57b76e98",
-        "c7eff282-09b6-42bb-8575-df67348ed327"
+        "fddc8027-8412-4ff1-b7eb-06991e5322e3"
       ]
     },
     {
       "id": "runner_torch_matched_family",
-      "description": "an undeclared `import torchvision` gets torch + torchvision (+ torchaudio) as a matched set (attempt-1 entry 4)",
+      "description": "an undeclared `import torchvision` gets the matched torch family (entries 8 and 11 baselines)",
       "live_nebius": true,
       "code_files": {
-        "backend/app/services/sandbox.py": "2b074a1a27cac961f8b140fd04f2c6a32597c825",
+        "backend/app/services/sandbox.py": "5f77d5bca7cf64c55daabbcf50b3a9d3b5b6240d",
         "backend/app/services/runner_env.py": "350c6846f22ed01eca4768132051993e47173b03"
       },
       "records": [
-        "runs/sandbox_verification/final-v1.3.4/torch_py310_imports_torchvision.json"
+        "runs/sandbox_verification/final-v1.4.0/torch_py310_imports_torchvision.json"
       ],
       "run_ids": [
-        "4c873cbc-fa63-4ee8-a414-858e7c26bdae"
-      ]
-    },
-    {
-      "id": "runner_setup_phase_tag_on_failure",
-      "description": "a failing runner op is tagged phase=runner_setup by the real runner and no repo command runs",
-      "live_nebius": true,
-      "code_files": {
-        "backend/app/services/sandbox.py": "2b074a1a27cac961f8b140fd04f2c6a32597c825",
-        "backend/app/services/runner_env.py": "350c6846f22ed01eca4768132051993e47173b03"
-      },
-      "records": [
-        "runs/sandbox_verification/final-v1.3.4/phase_runner_setup_failure_py310.json"
-      ],
-      "run_ids": [
-        "eca0262a-8141-4526-b116-1b33d479adf0"
-      ]
-    },
-    {
-      "id": "patchelf_flag_absent_is_incompat",
-      "description": "a patchelf without --clear-execstack: exit 98 + RERUN_SANDBOX_INCOMPAT, phase runner_setup (attempt-1 entry 3 cause)",
-      "live_nebius": true,
-      "code_files": {
-        "backend/app/services/sandbox.py": "2b074a1a27cac961f8b140fd04f2c6a32597c825",
-        "backend/app/services/runner_env.py": "350c6846f22ed01eca4768132051993e47173b03"
-      },
-      "records": [
-        "runs/sandbox_verification/final-v1.3.4/patchelf_flag_absent_incompat_py310.json"
-      ],
-      "run_ids": [
-        "327c71c2-b9af-4c4c-88ba-ff7417b2e407"
-      ]
-    },
-    {
-      "id": "download_route_overlay",
-      "description": "download route with one patched file: the overlay is applied over the fetched tree before the integrity check and the patched content is present (D-20)",
-      "live_nebius": true,
-      "code_files": {
-        "backend/app/services/sandbox.py": "2b074a1a27cac961f8b140fd04f2c6a32597c825",
-        "backend/app/services/sandbox_limits.py": "bfb04105b708bb400c1174ad498fb64bb3c0661b"
-      },
-      "records": [
-        "runs/sandbox_verification/final-v1.3.4/download_git_overlay_entry8_py310.json"
-      ],
-      "run_ids": [
-        "5e30468e-1ade-465a-a9dc-99957ffac64f"
+        "721c6cd2-779d-4996-95e4-0b5459262156"
       ]
     },
     {
       "id": "runner_numpy_cap_old_torch",
-      "description": "torch < 2.3 is installed with numpy<2 in the same pip command and `import torch` works on Python 3.9 (corpus-v2 entry 11)",
+      "description": "torch < 2.3 with numpy<2 on Python 3.9 (entry 11's era torch)",
       "live_nebius": true,
       "code_files": {
-        "backend/app/services/sandbox.py": "2b074a1a27cac961f8b140fd04f2c6a32597c825",
+        "backend/app/services/sandbox.py": "5f77d5bca7cf64c55daabbcf50b3a9d3b5b6240d",
         "backend/app/services/runner_env.py": "350c6846f22ed01eca4768132051993e47173b03"
       },
       "records": [
-        "runs/sandbox_verification/final-v1.3.4/torch_py39_pin1.8.1_numpy_cap.json"
+        "runs/sandbox_verification/final-v1.4.0/torch_py39_pin1.8.1_numpy_cap.json"
       ],
       "run_ids": [
-        "f7863b70-6b3d-4a8b-82ce-8c8aa18c8280"
+        "9c842528-79bb-496b-b8f3-7677134306b0"
+      ]
+    },
+    {
+      "id": "runner_setup_phase_tag_on_failure",
+      "description": "a failing runner op is tagged phase=runner_setup and no repo command runs",
+      "live_nebius": true,
+      "code_files": {
+        "backend/app/services/sandbox.py": "5f77d5bca7cf64c55daabbcf50b3a9d3b5b6240d",
+        "backend/app/services/runner_env.py": "350c6846f22ed01eca4768132051993e47173b03"
+      },
+      "records": [
+        "runs/sandbox_verification/final-v1.4.0/phase_runner_setup_failure_py310.json"
+      ],
+      "run_ids": [
+        "83701a46-2aea-475c-b723-840948fb0531"
       ]
     },
     {
       "id": "kill_at_operation_limit",
-      "description": "a step that would run 300 s is stopped at a 25 s operation limit; SandboxTimeoutError carries the killed step's duration and the completed steps' cost",
+      "description": "a step stopped at its operation limit, through both stop paths",
       "live_nebius": true,
       "code_files": {
-        "backend/app/services/sandbox.py": "2b074a1a27cac961f8b140fd04f2c6a32597c825"
+        "backend/app/services/sandbox.py": "5f77d5bca7cf64c55daabbcf50b3a9d3b5b6240d"
       },
       "records": [
-        "runs/sandbox_verification/final-v1.3.4/kill_at_operation_limit_py310.json",
-        "runs/sandbox_verification/final-v1.3.4/kill_at_operation_limit_py310_extra1.json",
-        "runs/sandbox_verification/final-v1.3.4/kill_at_operation_limit_py310_extra2.json"
+        "runs/sandbox_verification/final-v1.4.0/kill_at_operation_limit_py310.json",
+        "runs/sandbox_verification/final-v1.4.0/kill_at_operation_limit_py310_extra1.json"
       ],
       "run_ids": [
-        "dbfbe818-36d4-349f-9354-e97b3fa7be59",
-        "dbfbe818-36d4-349f-9354-e97b3fa7be59",
-        "01a0f464-cbcc-7580-8c7a-462cdae22867"
+        "01a0f83b-305b-736f-8092-a60bbaa1aef9",
+        "dbfbe818-36d4-349f-9354-e97b3fa7be59"
       ]
     },
     {
       "id": "smoke_launcher",
-      "description": "the smoke launcher: a still-running command with output passes and is stopped; a finishing command and a failing command keep exit code and output; a silent one fails; on Python 3.10 and 3.6",
+      "description": "the smoke launcher on Python 3.10 and 3.6 (its own exit now silent for the exit-site hook)",
       "live_nebius": true,
       "code_files": {
-        "backend/app/services/sandbox.py": "2b074a1a27cac961f8b140fd04f2c6a32597c825",
-        "backend/app/services/smoke_exec.py": "f2abcd3d6b1a2acb7d66b8b38e61a323adbe8845"
+        "backend/app/services/sandbox.py": "5f77d5bca7cf64c55daabbcf50b3a9d3b5b6240d",
+        "backend/app/services/smoke_exec.py": "ec61fd0bc3bb39a90da8945310bf3c7e392bcb36"
       },
       "records": [
-        "runs/sandbox_verification/final-v1.3.4/smoke_alive_py310.json",
-        "runs/sandbox_verification/final-v1.3.4/smoke_exits_ok_py310.json",
-        "runs/sandbox_verification/final-v1.3.4/smoke_fails_py310.json",
-        "runs/sandbox_verification/final-v1.3.4/smoke_silent_py310.json",
-        "runs/sandbox_verification/final-v1.3.4/smoke_alive_py36.json",
-        "runs/sandbox_verification/final-v1.3.4/smoke_fails_py36.json"
+        "runs/sandbox_verification/final-v1.4.0/smoke_alive_py310.json",
+        "runs/sandbox_verification/final-v1.4.0/smoke_exits_ok_py310.json",
+        "runs/sandbox_verification/final-v1.4.0/smoke_fails_py310.json",
+        "runs/sandbox_verification/final-v1.4.0/smoke_silent_py310.json",
+        "runs/sandbox_verification/final-v1.4.0/smoke_alive_py36.json",
+        "runs/sandbox_verification/final-v1.4.0/smoke_fails_py36.json"
       ],
       "run_ids": [
         "dbfbe818-36d4-349f-9354-e97b3fa7be59",
@@ -183,6 +132,70 @@
         "dbfbe818-36d4-349f-9354-e97b3fa7be59",
         "34e6cd25-0417-3871-9482-c23769149a5c",
         "34e6cd25-0417-3871-9482-c23769149a5c"
+      ]
+    },
+    {
+      "id": "checkpoint_layers_and_branch_run",
+      "description": "a checkpoint keeps the tree and setup layers; a later operation reopens the deepest layer by id, runs no setup step again, applies the branch overlay and runs the command; its result image is kept",
+      "live_nebius": true,
+      "code_files": {
+        "backend/app/services/sandbox.py": "5f77d5bca7cf64c55daabbcf50b3a9d3b5b6240d",
+        "backend/app/services/sandbox_limits.py": "bfb04105b708bb400c1174ad498fb64bb3c0661b"
+      },
+      "records": [
+        "runs/sandbox_verification/v1.4.0-seal/run1_A_ready_image.json",
+        "runs/sandbox_verification/v1.4.0-seal/run1_B_branch_run.json"
+      ],
+      "run_ids": [
+        "a531213a-6059-49d8-b7f6-92a9e1be33b6",
+        "b96a5e01-99d9-44ec-93d7-4df3ba249104"
+      ]
+    },
+    {
+      "id": "runner_hooks_on_a_kept_image",
+      "description": "the exit-site hook and the CPU shim installed as setup steps on top of a kept image; the hook prints the exit site of a sys.exit(3) inside a function",
+      "live_nebius": true,
+      "code_files": {
+        "backend/app/services/sandbox.py": "5f77d5bca7cf64c55daabbcf50b3a9d3b5b6240d",
+        "backend/app/services/runner_hooks.py": "d3fb688ad22bf071eeac3d6cca4c7b87a839c399"
+      },
+      "records": [
+        "runs/sandbox_verification/v1.4.0-seal/run1_C_runner_hooks.json"
+      ],
+      "run_ids": [
+        "456fd50a-e406-45c8-a683-4e3995782898"
+      ]
+    },
+    {
+      "id": "kept_image_reopened_later",
+      "description": "a kept result image reopened after a wait still holds the patched tree",
+      "live_nebius": true,
+      "code_files": {
+        "backend/app/services/sandbox.py": "5f77d5bca7cf64c55daabbcf50b3a9d3b5b6240d"
+      },
+      "records": [
+        "runs/sandbox_verification/v1.4.0-seal/run1_D_reopen_kept_image.json"
+      ],
+      "run_ids": [
+        "b96a5e01-99d9-44ec-93d7-4df3ba249104"
+      ]
+    },
+    {
+      "id": "checkpoint_real_entry",
+      "description": "corpus-v2 entry 7's recorded environment built as a checkpoint, then reopen + apply + execute from its deepest kept layer (only the setup steps the layer lacks run again)",
+      "live_nebius": true,
+      "code_files": {
+        "backend/app/services/sandbox.py": "5f77d5bca7cf64c55daabbcf50b3a9d3b5b6240d",
+        "backend/app/services/sandbox_limits.py": "bfb04105b708bb400c1174ad498fb64bb3c0661b",
+        "backend/app/services/smoke_exec.py": "ec61fd0bc3bb39a90da8945310bf3c7e392bcb36"
+      },
+      "records": [
+        "runs/sandbox_verification/v1.4.0-seal/run2_E_entry07_checkpoint.json",
+        "runs/sandbox_verification/v1.4.0-seal/run2_F_reopen_apply_execute.json"
+      ],
+      "run_ids": [
+        "feb3c11f-5906-41ea-8efb-3f7b4e6069d5",
+        "9de6fe80-0d35-4a7f-af19-75cf3e9f79e8"
       ]
     }
   ]

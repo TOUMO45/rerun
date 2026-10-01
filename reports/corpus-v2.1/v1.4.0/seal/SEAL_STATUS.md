@@ -1,4 +1,4 @@
-# Seal of harness-v1.4.0 (option B): status after run 1 and the option-B checks — INCOMPLETE, stopped for a decision
+# Seal of harness-v1.4.0 (option B): status after run 1 and the option-B checks — INCOMPLETE at first; completed by the run 2 retry (see the last section)
 
 > **Owner decision (chat, 2026-10-01), annotated here:** option 1. Seal cap raised to $1.70 for the run 2 retry only; E restarts from the
 > kept apt image `81809b90-f48d-4ba3-9ae2-51081ee3cf68` with a fixed 180 s wall clock, then F. Attempt 1 stays ESTIMATED <= $0.4998, not
@@ -52,3 +52,18 @@ The seal is not complete without run 2, and the retry does not fit the strict co
 plan, cost $0.2338 [DERIVED, events[54]] in 136 s. E restarted from the kept apt image runs only the pip step. F branches from E's deepest
 image; if the pip step fails again, as it did in v1.3.4, F runs it again. E + F is therefore about $0.30-$0.40 [ESTIMATED] at observed rates,
 above the $0.2878 left, and the guard's own bound would fund only 34 s.
+
+## Run 2 retry (owner's option 1) — passed; the seal is COMPLETE
+
+| Op | What | ok | Cost [MEASURED] | Record / image |
+|---|---|---|---|---|
+| E | entry 7's recorded environment as a checkpoint, started from the kept apt image `81809b90-f48d-4ba3-9ae2-51081ee3cf68`: only the pip step of the era lock ran; it failed in 5.0 s, `No matching distribution found for gcc` (the same failure v1.3.4 ended on, DEP_NOT_ON_PYPI) | true | $0.05123476 | `run2_E_entry07_checkpoint.json`, run id `feb3c11f-5906-41ea-8efb-3f7b4e6069d5` |
+| F | reopen + apply + execute: reopened the same kept image, applied a one-file overlay, ran only the missing pip step: same outcome as E | true | $0.05192514 | `run2_F_reopen_apply_execute.json`, run id `9de6fe80-0d35-4a7f-af19-75cf3e9f79e8` |
+
+Seal spend: $0.815528 [MEASURED: run 1 $0.013848 + option-B checks $0.698525 + run 2 retry $0.103160] + at most $0.4998 [ESTIMATED,
+run 2 attempt 1, not recomputed] = at most $1.3153, under the $1.70 cap. Ledger: $11.4503 [ESTIMATED: $10.6662 MEASURED + $0.7840
+ESTIMATED], lower bound (D-27).
+
+Seal -> gate rule (owner): every seal check passed (the killed attempt 1 is superseded by the authorised retry and stays on record);
+measured branch-run cost $0.00054618 <= $0.15; kept images unbilled on available evidence; seal spend <= $1.70. **All hold: the gate
+starts automatically.** `seal_verification.json` written by `scripts/write_seal_verification_v140.py` (12 paths); tag `harness-v1.4.0`.
