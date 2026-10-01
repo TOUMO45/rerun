@@ -1,5 +1,12 @@
 # Seal of harness-v1.4.0 (option B): status after run 1 and the option-B checks — INCOMPLETE, stopped for a decision
 
+> **Owner decision (chat, 2026-10-01), annotated here:** option 1. Seal cap raised to $1.70 for the run 2 retry only; E restarts from the
+> kept apt image `81809b90-f48d-4ba3-9ae2-51081ee3cf68` with a fixed 180 s wall clock, then F. Attempt 1 stays ESTIMATED <= $0.4998, not
+> recomputed. The seal-script defect is registered as **D-29** (fixed-unvalidated; `reports/corpus-v2.1/candidate_v1.3.3_defects.md`).
+> Kept-image billing is recorded as **"unbilled on available evidence (docs list only run and import_image as billable; reopen after 600 s
+> cost $0.00017)"**; the owner checks the account billing page and reports back; it is not MEASURED until then. Ledger ceiling after this
+> step: $16.84 (lower bound, D-27). If run 2 passes: tag harness-v1.4.0 and start the gate under the stated rule; if it fails: stop.
+
 Caps (owner, chat 2026-10-01): seal $1.50, gate $5.00, entry $1.25. The gate has NOT started; `harness-v1.4.0` is NOT tagged.
 
 ## Seal run 1 — passed (records in `runs/sandbox_verification/v1.4.0-seal/`)

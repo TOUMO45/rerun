@@ -191,6 +191,9 @@ def run_2(api_key: str, project_id: str, guard, op_seconds: float | None = None,
         started_right = e.branch_from_image == start_image if start_image else bool(e.layers) and e.layers[0][0] == ()
         docs = [_record("run2_E_entry07_checkpoint", ok=started_right, start_image=start_image, **_result_doc(e))]
         env_ops, env_image = e.layers[-1] if e.layers else (start_ops, start_image)  # the deepest image E has
+        if guard.remaining_today_usd <= 0:
+            print(f"STOP: E used the run cap (${guard.spent_today_usd:.4f}); F not started")
+            return docs
         target = sorted(files)[0]
         f = _guarded("run2_F_reopen_apply_execute", guard, lambda: sandbox.run_build_and_execute(
             api_key=api_key, project_id=project_id, base_image=plan.base_image, install_commands=steps, execute_command=command,
