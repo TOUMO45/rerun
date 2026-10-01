@@ -524,8 +524,71 @@ def _ledger(docs: dict[str, dict], source: BlobSource, root: Path) -> dict:
     }
 
 
+ROLES = (
+    ("recon", "finds the entrypoint to run and abstains (INDETERMINATE) when it cannot"),
+    ("planner", "adds system packages to an otherwise deterministic build plan"),
+    ("repairer", "proposes a minimal patch or environment change; the tamper gate and the env gate decide, never the model"),
+    ("adjudicator", "writes the certificate prose; it may only downgrade a verdict, never upgrade one"),
+)
+
+
+def _stack(records: list[Record]) -> dict:
+    """Which models, sandbox backend and search were recorded, per harness version, read from the run records."""
+    versions = []
+    for tag in VERSIONS:
+        recs = [r for r in records if r.harness_tag == tag]
+        ids = [r.record_id for r in recs]
+
+        def same(field: str):
+            values = {json.dumps(resolve(r.data, field), sort_keys=True) for r in recs}
+            if len(values) != 1:
+                raise ReplayError(f"{tag}: {field} differs between records")
+            return json.loads(values.pop())
+
+        def total(field: str, value) -> dict:
+            return {"value": value, "tag": MEASURED, "sum_of_records": [{"field": field, "records": ids}]}
+
+        models = same("config.models")
+        prices = same("cost_guard.prices_usd_per_1m")
+        calls = []
+        for model in dict.fromkeys(models[role] for role, _ in ROLES):
+            mine = [c for r in recs for c in r.data["model_calls"] if c["model"] == model]
+            calls.append({
+                "model": model,
+                "roles": [role for role, _ in ROLES if models[role] == model],
+                "calls": total(f"count of model_calls where model is {model}", len(mine)),
+                "prompt_tokens": total(f"model_calls[].usage.prompt_tokens where model is {model}", sum(c["usage"]["prompt_tokens"] for c in mine)),
+                "completion_tokens": total(f"model_calls[].usage.completion_tokens where model is {model}", sum(c["usage"]["completion_tokens"] for c in mine)),
+                "price_per_million_input_tokens": {"value": prices[model][0], "tag": MEASURED, "record_field": {"record": ids[0], "field": f"cost_guard.prices_usd_per_1m[{model}][0]"}},
+                "price_per_million_output_tokens": {"value": prices[model][1], "tag": MEASURED, "record_field": {"record": ids[0], "field": f"cost_guard.prices_usd_per_1m[{model}][1]"}},
+            })
+        searching = [r for r in recs if r.data["config"].get("tavily_configured")]
+        versions.append({
+            "harness_tag": tag,
+            "records": ids,
+            "roles": [{"role": role, "model": models[role], "does": does} for role, does in ROLES],
+            "model_calls": calls,
+            "sandbox": {"backend": same("config.sandbox_backend"), "default_image": same("config.sandbox_image_default"),
+                        "prices_source": same("cost_guard.prices_source"), "prices_retrieved": same("cost_guard.prices_retrieved")},
+            "search": {"provider": "Tavily", "records_with_search_configured": {"value": len(searching), "tag": MEASURED,
+                       "count_of": {"where": "config.tavily_configured is true", "records": [r.record_id for r in searching]}}},
+        })
+    return {"versions": versions, "note": "prompt-engineered: the records name hosted model endpoints; no fine-tuned model appears in any record"}
+
+
+def _inventory(docs: dict[str, dict], summary_defects: dict) -> dict:
+    entries = [x for tag in VERSIONS for x in docs[tag]["entries"]]
+    return {
+        "records": {"value": len(entries), "tag": MEASURED, "count_of": {"where": "committed run records with a passport", "records": [x["record_id"] for x in entries]}},
+        "defects": {"value": len(summary_defects["rows"]), "tag": MEASURED,
+                    "count_of": {"where": "rows of the defect register", "records": [row["id"] for row in summary_defects["rows"]]}},
+    }
+
+
 def build_summary(docs: dict[str, dict], source: BlobSource, root: Path = ROOT) -> dict:
-    return {"schema": SUMMARY_SCHEMA, "headline": _headline(docs), "defects": _defects(docs, root), "ledger": _ledger(docs, source, root)}
+    registered = _defects(docs, root)
+    return {"schema": SUMMARY_SCHEMA, "headline": _headline(docs), "inventory": _inventory(docs, registered),
+            "stack": _stack(load_records(source)), "defects": registered, "ledger": _ledger(docs, source, root)}
 
 
 # ---------------------------------------------------------------- output files

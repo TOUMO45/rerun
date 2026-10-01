@@ -219,6 +219,26 @@ Sum of both parts: {self.num(L["total"], usd=True, at="ledger-components")} — 
 </div>
 </section>'''
 
+    def stack(self) -> str:
+        cards = ""
+        for v in self.summary["stack"]["versions"]:
+            at = "run-" + slug(v["harness_tag"])
+            roles = "".join(f"<tr><th scope=\"row\">{esc(r['role'])}</th><td>{q(r['model'])}</td><td>{esc(r['does'])}</td></tr>" for r in v["roles"])
+            calls = "".join(
+                f"<tr><th scope=\"row\">{q(c['model'])}</th><td>{self.num(c['calls'], at=at)}</td><td>{self.num(c['prompt_tokens'], at=at)}</td>"
+                f"<td>{self.num(c['completion_tokens'], at=at)}</td></tr>" for c in v["model_calls"])
+            sandbox = v["sandbox"]
+            cards += (f'<article class="card"><h3>{q(v["harness_tag"])}</h3>'
+                      f'<table><thead><tr><th scope="col">Role</th><th scope="col">Model, as recorded</th><th scope="col">What the call does</th></tr></thead><tbody>{roles}</tbody></table>'
+                      f'<table><thead><tr><th scope="col">Model</th><th scope="col">Calls</th><th scope="col">Prompt tokens</th><th scope="col">Completion tokens</th></tr></thead><tbody>{calls}</tbody></table>'
+                      f'<p class="links">Sandbox backend {q(sandbox["backend"])}, default image {q(sandbox["default_image"])}; prices from {q(sandbox["prices_source"])}, retrieved {q(sandbox["prices_retrieved"])}. '
+                      f'Records with {esc(v["search"]["provider"])} search configured: {self.num(v["search"]["records_with_search_configured"], at=at)}.</p></article>')
+        inv = self.summary["inventory"]
+        return (f'<section id="stack" aria-labelledby="stack-h"><h2 id="stack-h">How it ran, as recorded</h2>'
+                f'<p class="lede">Models, sandbox and search as the run records name them. {esc(self.summary["stack"]["note"])}. '
+                f'Run records with a passport: {self.num(inv["records"], at="entries")}; defect register rows: {self.num(inv["defects"], at="defects")}.</p>'
+                f'<div class="grid wide">{cards}</div></section>')
+
     def defects(self) -> str:
         D = self.summary["defects"]
         icon = {"fixed-and-gated": "●", "fixed-unvalidated": "◐", "open": "○"}
@@ -358,12 +378,13 @@ over the batch cap {q(cum["over_batch_cap"])}</p>
 <li><span class="tag ESTIMATED">ESTIMATED</span> flagged as an estimate by the cost guard itself</li>
 <li><span class="tag DERIVED">DERIVED</span> parsed from a record line, which is quoted with its record id</li>
 </ul>
-<nav aria-label="Sections"><a href="#headline">Headline</a><a href="#scorecard">Scorecard</a><a href="#ledger">Ledger</a><a href="#defects">Defects</a><a href="#entries">Entries</a></nav>
+<nav aria-label="Sections"><a href="#headline">Headline</a><a href="#scorecard">Scorecard</a><a href="#ledger">Ledger</a><a href="#stack">Stack</a><a href="#defects">Defects</a><a href="#entries">Entries</a></nav>
 </header>
 <main>
 {self.headline()}
 {self.scorecard()}
 {self.ledger()}
+{self.stack()}
 {self.defects()}
 {self.entries()}
 </main>
@@ -425,6 +446,8 @@ section{margin:0 0 2.6rem}
 .note{color:var(--ink2);max-width:80ch}
 .cols{display:grid;grid-template-columns:repeat(auto-fit,minmax(17rem,1fr));gap:.6rem 1.4rem}
 .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(19rem,1fr));gap:1rem;align-items:start}
+.grid.wide{grid-template-columns:repeat(auto-fit,minmax(26rem,1fr))}
+.card table{margin:.4rem 0;border:0}
 .card{background:var(--surface);border:1px solid var(--rule);border-radius:4px;padding:0 1rem 1rem;overflow:hidden}
 .band{margin:0 -1rem .6rem;padding:.7rem 1rem;border-bottom:1px solid var(--rule)}
 .band-label{display:inline-block;font:800 .8rem/1 system-ui,sans-serif;letter-spacing:.08em;padding:.3em .5em;margin-bottom:.45rem;border:2px solid currentColor}

@@ -2,6 +2,13 @@
 
 One entry per phase of the post-corpus-v2 plan. Numbers are produced by scripts in `scripts/`.
 
+## Phase D5 — submission assets (2026-10-01; documents and offline tooling only, no Nebius call)
+One commit per deliverable. (1) `docs/submission/demo_script.md`: a timed script under three minutes that shows recorded artifacts only, with a side-by-side table mapping every spoken
+sentence that contains a number to a passport field or record id. To let the video and the texts quote models and counts from a recorded artifact, `replay/summary.json` gained `stack`
+(model per role, call and token counts, sandbox backend, search configuration, read from the run records) and `inventory`, and the dashboard gained a "How it ran, as recorded" section.
+`backend/tests/test_phase_d_submission.py` checks every submission text: each number is in the REPLAY JSON, each line with a number carries a tag, and no sentence says the LLM repair
+loop recovered an entry. The pre-Phase-D demo script moved to `docs/history/`. Ledger: $10.1349 ($9.8507 MEASURED + $0.2842 ESTIMATED, lower bound D-27).
+
 ## Phase D4 — design notes for D-23 and D-25 (2026-10-01; documents only, no code)
 `docs/design/D-23.md` (cached torch layer and per-operation floor, compared) and `docs/design/D-25.md` (harness-injected exit-site hook, with a `-X dev -m trace` fallback): the problem
 as the records show it with record ids, the proposed mechanism, what a validating gate would have to measure, and an ESTIMATED cost of that gate. Both defects stay open.
