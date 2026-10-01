@@ -21,6 +21,7 @@ DOCS = [
     "README.md",
     "docs/submission/devpost_answers.md",
     "docs/submission/description.md",
+    "docs/submission/criteria_map.md",
 ]
 TAGGED_DOCS = [d for d in DOCS if d != "docs/submission/criteria_map.md"]
 
@@ -203,3 +204,31 @@ def test_the_description_is_at_most_400_words_and_the_tagline_is_two_sentences()
     assert len(re.findall(r"[.!?](?:\s|$)", TAG_MARK.sub("", tagline))) == 2
     assert "0 [MEASURED] of 8 [MEASURED]" in tagline and "0 [MEASURED] of 8 [MEASURED]" in description
     assert "EXPLORATORY" in description and "lower bound" in description and "smoke-limit artefact" in description
+
+
+# ---------------------------------------------------------------- criteria map
+
+def test_the_criteria_map_gives_three_evidence_items_and_one_weakest_point_per_criterion():
+    text = _text("docs/submission/criteria_map.md")
+    sections = dict(re.findall(r"^## (.+?)\n(.*?)(?=^## |\Z)", text, flags=re.M | re.S))
+    assert list(sections) == ["Technological Implementation", "Design", "Potential Impact", "Quality of the Idea"]
+    stored = replay.load_passports(ROOT)
+    for name, body in sections.items():
+        strongest = body.split("**Weakest point.**")[0]
+        assert len(re.findall(r"^\d\. ", strongest, flags=re.M)) == 3, name
+        assert body.count("**Weakest point.**") == 1 and body.count("**What mitigates it.**") == 1, name
+        for item in re.findall(r"^\d\. .*$", strongest, flags=re.M):
+            assert re.search(r"@[0-9a-f]{64}|test_\w+|summary\.json", item), f"{name}: an evidence item without a record id or a test name: {item[:100]}"
+    for record_id in set(re.findall(r"harness-v[\d.]+/\w+/\d\d@[0-9a-f]{64}", text)):
+        assert record_id in stored, record_id
+    tests = (ROOT / "backend" / "tests")
+    for test_name in set(re.findall(r"`(test_\w+)`", text)):
+        assert any(f"def {test_name}(" in f.read_text(encoding="utf-8") for f in tests.glob("test_*.py")), test_name
+    assert "static dashboard is not an interactive product" in sections["Design"]
+    assert "did not recover" in sections["Technological Implementation"]
+
+
+def test_all_five_submission_texts_exist():
+    assert DOCS == ["docs/submission/demo_script.md", "README.md", "docs/submission/devpost_answers.md", "docs/submission/description.md",
+                    "docs/submission/criteria_map.md"]
+    assert all((ROOT / d).is_file() for d in DOCS)

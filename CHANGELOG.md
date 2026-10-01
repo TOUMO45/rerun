@@ -9,7 +9,9 @@ sentence that contains a number to a passport field or record id. To let the vid
 `backend/tests/test_phase_d_submission.py` checks every submission text: each number is in the REPLAY JSON, each line with a number carries a tag, and no sentence says the LLM repair
 loop recovered an entry. The pre-Phase-D demo script moved to `docs/history/`. (2) `README.md` rewritten in the submission order (what it is, the measured result, how it works, where Nemotron / Token Factory / Tavily are used,
 offline and live runs, evidence and integrity, defect register and status rule, cost ledger, licence, known limits); the model names are checked against the records, every number is in
-the REPLAY JSON and tagged; `summary.json` `inventory` gained the defect counts by status. The build-log README moved to `docs/history/README_build_log.md`. Ledger: $10.1349 ($9.8507 MEASURED + $0.2842 ESTIMATED, lower bound D-27).
+the REPLAY JSON and tagged; `summary.json` `inventory` gained the defect counts by status. The build-log README moved to `docs/history/README_build_log.md`. (3) `docs/submission/devpost_answers.md`: question drafts, ratings marked PROPOSED with their evidence, comparison with other models "not measured",
+Tavily = Yes with the sentence that the model never cited a reference, new-vs-existing left blank for the owner. (4) `docs/submission/description.md`: the project description and a
+two-sentence tagline. (5) `docs/submission/criteria_map.md`: for each judging criterion, three evidence items with record ids or test names and the weakest point stated plainly. Ledger: $10.1349 ($9.8507 MEASURED + $0.2842 ESTIMATED, lower bound D-27).
 
 ## Phase D4 — design notes for D-23 and D-25 (2026-10-01; documents only, no code)
 `docs/design/D-23.md` (cached torch layer and per-operation floor, compared) and `docs/design/D-25.md` (harness-injected exit-site hook, with a `-X dev -m trace` fallback): the problem
