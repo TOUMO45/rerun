@@ -2,6 +2,20 @@
 
 One entry per phase of the post-corpus-v2 plan. Numbers are produced by scripts in `scripts/`.
 
+## harness-v1.4.0-rc — Step 1 of the v1.4.0 directive (2026-10-01; offline, unsealed, no Nebius call, no spend)
+Root-cause fix of D-23 (the environment was rebuilt in every sandbox operation): operations keep their images (the committed tree, then one
+image per setup step) and later operations reopen the deepest matching one by id and run only the missing steps; every gate-approved change
+travels in a branch overlay on top (the D-20 download-route overlay leaves the live flow; its tests are marked `legacy`). Deterministic steps
+before any model call: the CPU shim on GPU_REQUIRED and the D-25 exit-site hook on a silent exit (`runner_hooks.py`), next to D-24. Parallel
+repair: up to three candidates per failure, py_compile-checked, run in branches (concurrently when the budget funds each branch, else
+one after another); the outcome-changing ones are adjudicated by
+Ultra, the chosen one is applied and its image becomes the environment image. Gate budget rules (`gate_budget.py`): gate cap >= 4 x a fixed
+entry cap. New record field `operations` (sandbox_seconds, install_seconds per step, branch_from_image, result_image, image_kept, ...).
+Gate v1.4.0 pre-registered in METHODOLOGY with criterion (e); gate and seal runners under `reports/corpus-v2.1/v1.4.0/` (no default caps).
+Details, tests and the decision needed on the seal rule: `reports/corpus-v2.1/v1.4.0/STEP1_REPORT.md`. Step 0 (budget note, annotations)
+is `docs/design/v1.4.0-budget.md`. `harness-v1.3.4` stays at `10319b3`; Phase D assets unchanged. Ledger: $10.1349 ($9.8507 MEASURED +
+$0.2842 ESTIMATED, lower bound D-27).
+
 ## Phase D5 — submission assets (2026-10-01; documents and offline tooling only, no Nebius call)
 One commit per deliverable. (1) `docs/submission/demo_script.md`: a timed script under three minutes that shows recorded artifacts only, with a side-by-side table mapping every spoken
 sentence that contains a number to a passport field or record id. To let the video and the texts quote models and counts from a recorded artifact, `replay/summary.json` gained `stack`

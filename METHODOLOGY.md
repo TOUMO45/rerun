@@ -875,3 +875,39 @@ change's text appears in that reference; it is labelled as such and is never rep
 the download-route overlay case on entry 8's own repository (the file the v1.3.3 gate lost; `OVERLAY_OK`), and the kill path through both stop paths. Measured spend $1.312;
 cumulative on the new ledger $6.738. `seal_verification.json` written from these records; the tag is new (`harness-v1.3.3` is untouched).
 
+
+### harness-v1.4.0-rc (2026-10-01; offline, unsealed, no Nebius call) and the pre-registration of gate v1.4.0
+
+**Why.** The Step 0 budget note (`docs/design/v1.4.0-budget.md`, generated from the records) shows that harness-v1.3.4 rebuilt the environment
+from the base image in every sandbox operation: 18 torch install steps started in the two gates, and two of the four v1.3.4 losses (entries 8 and
+11) ended COST_CAP in or after a repeated install. D-23 is reclassified from design limit to defect (owner, 2026-10-01). The owner's directive maps
+one mechanism to each gate entry: #11 the CPU shim + checkpoint persistence; #08 checkpoint persistence + an entry cap that is never inherited
+from a starved gate remainder; #07 D-24 (already in); #03 the D-25 exit-site hook; then parallel candidates (3 per failure, 3 rounds) as the
+general mechanism. Every change is listed in `reports/corpus-v2.1/v1.4.0/STEP1_REPORT.md` with the test that pins it.
+
+**What changes in a run (TREATMENT; CONTROL and the as-published baseline execution are unchanged).** Sandbox operations keep their images
+(the committed tree, then one image per setup step) and later operations reopen the deepest kept image whose setup steps are a prefix of what
+they need, running only the rest (`sandbox.Checkpoint`). Kept images always hold the committed tree; every gate-approved change travels in a
+small overlay archive put on top (or right after the tree when a setup step reads a patched file), on both upload routes, which replaces the
+D-20 download-route overlay in the live flow. The repairer is asked for up to three candidates per failure; each passes the env gate, the
+tamper gate and py_compile, then runs in its own branch of the environment image (at the same time when what is left funds every branch
+for the smoke run plus a start-up margin, otherwise one after another); the candidates that changed the exit outcome
+go to the adjudicator (Ultra), whose choice is applied to the checkout and whose image becomes the environment image. With one candidate per
+round the harness-v1.3.x flow is unchanged. Deterministic steps come before any model call: D-24, the CPU shim on GPU_REQUIRED, the exit-site
+hook on a non-zero exit with no error text; each is recorded as attempt 0 / origin time_machine with `time_machine_action`.
+
+**What a v1.4.0 record adds.** `operations`: one entry per sandbox operation with `sandbox_seconds` (sum of the API's per-step elapsed times,
+MEASURED), `install_seconds` (each setup step's command, phase, seconds, exit code, cost, and whether it is the torch install), `branch_from_image`,
+`result_image`, `image_kept` / `kept_images`, `env_image_id`, `torch_installed`, `torch_in_start_image`, `torch_env_key`, cost (measured, and the
+estimated part of a killed step), and outcome. Candidate attempts carry `candidate`, `branch`, `adjudication` and `chosen`.
+
+**Gate v1.4.0, pre-registered here before any v1.4.0 run.** Same four entries (11, 7, 3, 8), TREATMENT only, same criteria (a)-(d) as the
+v1.3.4 gate, plus (e): (a) at least 2 of 4 end RUNS_CLEAN or RUNS_AFTER_REPAIR; (b) at least 1 source patch applied (an attempt with a non-empty
+diff that reached a re-execution); (c) at least 1 repair attempt with a stored Tavily citation; (d) no entry over $2.00 and the cost guard correct
+where it fired; (e) torch installed at most once per environment image, from the records' `operations` (no install on top of an image that already
+held torch; no rebuild of an environment an earlier operation of the entry had built; the planner-image baseline's install is counted separately and
+is outside (e); a record without `operations` fails (e)). Runner: `reports/corpus-v2.1/v1.4.0/gate/run_gate_v140.py` (no default caps; the gate cap
+must be at least 4 x the fixed entry cap; an entry is never started with less than the entry cap). Seal first, at most three live runs
+(`reports/corpus-v2.1/v1.4.0/seal/run_seal_v140.py`). Caps: the owner's figures, written in chat before anything runs (proposed shape: seal at most
+$1.50, gate at most $5.00 with $1.25 per entry). If the gate fails, the Phase D assets stay as they are and v1.4.0 is documented as "attempted, did
+not pass" beside the earlier gates.
