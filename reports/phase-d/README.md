@@ -1,4 +1,4 @@
-# Phase D — passports (D1)
+# Phase D — passports (D1) and REPLAY (D2)
 
 One passport per committed run record of harness-v1.3.2, harness-v1.3.3 and harness-v1.3.4, generated offline from the
 committed blobs. The list of record ids is in [record_index.md](record_index.md); the passports are under `passports/`.
@@ -7,6 +7,8 @@ committed blobs. The list of record ids is in [record_index.md](record_index.md)
 python -m phase_d.build_passports     # rebuild passports + record index from git blobs
 python -m phase_d.verify_passports    # rebuild and diff to zero; exit 1 on any difference
 python -m phase_d.check_tags          # exit 1 if any number lacks a tag
+python -m phase_d.build_replay        # rebuild REPLAY (passports are verified first)
+python -m phase_d.build_replay --check   # rebuild REPLAY and diff to zero; exit 1 on any difference
 ```
 
 ## Rules
@@ -43,6 +45,21 @@ text) are strings; the badge figures are repeated as tagged fields under `badge.
 This limit is deliberate: the tag check stays JSON-only. It is closed downstream. In REPLAY (D2) and the dashboard (D3) no
 displayed number may be taken from text (a badge sentence, an event line, an error message); it must be read from a tagged
 passport field, and an acceptance test enforces that.
+
+## REPLAY (D2)
+
+[replay/index.md](replay/index.md) lists one replay per harness version (`.json` and `.md`). REPLAY reads each record blob,
+rebuilds the entry's timeline (baseline, era lock, attempts, execution and kills, verdict, cost) and cross-checks every value
+it shows against the passport field it displays; a mismatch stops the build. The pre-registered run is the anchor and the
+exploratory versions sit beside it with their D1 badges. The output has no build timestamp and is byte-identical across runs.
+
+Every number in the replay JSON is a tagged passport field carried with a pointer: `ref` (one passport field), `sum_of` (the
+sum of one passport field over the version's run order) or `count_of` (how many passports have a field value). In the
+Markdown, text in code spans is quoted verbatim; outside code spans every number is a tagged value followed by its tag.
+
+Passport schema v2 added the tagged fields REPLAY displays: `attempts[].consulted_count`, `cost.batch_cap`, `cost.operations[]`
+(the cost guard's own log line per sandbox operation, DERIVED), the gate criteria b and d in the badge figures, and the
+pre-registered primary line of harness-v1.3.2 (`badge.figures`, from `reports/corpus-v2.1/results_tables.json`).
 
 ## Ledger
 

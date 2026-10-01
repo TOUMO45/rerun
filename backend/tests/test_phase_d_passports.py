@@ -28,7 +28,7 @@ class CachedSource:
         git = records.GitBlobSource()
         self.dirs = {rs.directory: git.list_dir(rs.directory) for rs in records.RECORD_SETS}
         paths = [p for listing in self.dirs.values() for p in listing if records.ENTRY_FILE.match(p.rsplit("/", 1)[1])]
-        paths += [f["result"] for f in passports.GATE_FILES.values()]
+        paths += [f["result"] for f in passports.GATE_FILES.values()] + [passports.RESULTS_TABLES]
         self.blobs = {p: git.read(p) for p in paths}
 
     def list_dir(self, directory: str) -> list[str]:
@@ -334,9 +334,9 @@ def test_badges_are_per_version_and_use_that_versions_measured_line(built):
                                                 "measured line unchanged.")
     assert b134["text"] == ("EXPLORATORY — did not pass its pre-registered gate. a: 0/4, "
                             "c: 0 citations (7 attempts consulted, 21 refs, 6 reasons recorded).")
-    c = b134["figures"][1]
+    c = b134["figures"][2]
     assert [c[k]["value"] for k in ("citations", "attempts_consulted", "references_consulted", "reasons_recorded")] == [0, 7, 21, 6]
-    assert b133["figures"][1]["searches"]["tag"] == "DERIVED" and len(b133["figures"][1]["searches"]["source"]) == 7
+    assert b133["figures"][2]["searches"]["tag"] == "DERIVED" and len(b133["figures"][2]["searches"]["source"]) == 7
     for record, passport in built:
         badge = passport["badge"]
         assert badge["exploratory"] is (record.harness_tag in (V133, V134))

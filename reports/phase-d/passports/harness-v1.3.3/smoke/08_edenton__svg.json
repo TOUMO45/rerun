@@ -1,5 +1,5 @@
 {
-  "schema": "rerun/phase-d/passport/v1",
+  "schema": "rerun/phase-d/passport/v2",
   "record_id": "harness-v1.3.3/treatment/08@ed4623a2efd97f6eae566b4c8069a594b3af231a589d980434d3c23870c4accd",
   "record": {
     "path": "runs/corpus_v2_batch/harness-v1.3.3/smoke/08_edenton__svg.json",
@@ -75,6 +75,10 @@
         "reason": "not applicable: gate decision PASS"
       },
       "consulted": {
+        "value": null,
+        "reason": "not recorded by harness-v1.3.3"
+      },
+      "consulted_count": {
         "value": null,
         "reason": "not recorded by harness-v1.3.3"
       },
@@ -218,15 +222,69 @@
       "tag": "MEASURED",
       "source_field": "batch.per_entry_cap_usd"
     },
+    "batch_cap": {
+      "value": 6.0,
+      "tag": "MEASURED",
+      "source_field": "batch.total_cap_usd"
+    },
+    "operations": [
+      {
+        "operation": "operation-1",
+        "killed": false,
+        "spend": {
+          "value": 0.3147,
+          "tag": "DERIVED",
+          "source": {
+            "record_id": "harness-v1.3.3/treatment/08@ed4623a2efd97f6eae566b4c8069a594b3af231a589d980434d3c23870c4accd",
+            "field": "events[8].line",
+            "line": "[cost_guard] recorded $0.3147 sandbox spend, $1.6852 remaining today"
+          }
+        },
+        "remaining": {
+          "value": 1.6852,
+          "tag": "DERIVED",
+          "source": {
+            "record_id": "harness-v1.3.3/treatment/08@ed4623a2efd97f6eae566b4c8069a594b3af231a589d980434d3c23870c4accd",
+            "field": "events[8].line",
+            "line": "[cost_guard] recorded $0.3147 sandbox spend, $1.6852 remaining today"
+          }
+        }
+      },
+      {
+        "operation": "operation-2",
+        "killed": false,
+        "spend": {
+          "value": 0.6306,
+          "tag": "DERIVED",
+          "source": {
+            "record_id": "harness-v1.3.3/treatment/08@ed4623a2efd97f6eae566b4c8069a594b3af231a589d980434d3c23870c4accd",
+            "field": "events[22].line",
+            "line": "[cost_guard] recorded $0.6306 sandbox spend, $1.0547 remaining today"
+          }
+        },
+        "remaining": {
+          "value": 1.0547,
+          "tag": "DERIVED",
+          "source": {
+            "record_id": "harness-v1.3.3/treatment/08@ed4623a2efd97f6eae566b4c8069a594b3af231a589d980434d3c23870c4accd",
+            "field": "events[22].line",
+            "line": "[cost_guard] recorded $0.6306 sandbox spend, $1.0547 remaining today"
+          }
+        }
+      }
+    ],
     "cost_events": []
   },
   "badge": {
     "exploratory": true,
     "label": "EXPLORATORY",
     "text": "EXPLORATORY — did not pass its pre-registered gate. a: 1/4 (measured), c: 0 citations in 7 searches.",
+    "gate_passed": false,
     "figures": [
       {
         "criterion": "a",
+        "ok": false,
+        "detail": "1 of 4 reached RUNS_CLEAN / RUNS_AFTER_REPAIR",
         "text": "1/4 (measured)",
         "recovered": {
           "value": 1,
@@ -243,7 +301,26 @@
         "annotation": "the one recovery (entry 11) was later identified as a smoke-limit artefact; measured line unchanged."
       },
       {
+        "criterion": "b",
+        "ok": true,
+        "detail": "2 applied of 4 proposed",
+        "applied": {
+          "value": 2,
+          "tag": "MEASURED",
+          "computed_from": "length of b.applied",
+          "source": "reports/corpus-v2.1/v1.3.3/smoke_gate/smoke_gate_result.json@sha256:a397908ac28c7f28e30c5b11823e342d007590f77c47c339efe8620710b99427"
+        },
+        "proposed": {
+          "value": 4,
+          "tag": "MEASURED",
+          "computed_from": "length of b.proposed",
+          "source": "reports/corpus-v2.1/v1.3.3/smoke_gate/smoke_gate_result.json@sha256:a397908ac28c7f28e30c5b11823e342d007590f77c47c339efe8620710b99427"
+        }
+      },
+      {
         "criterion": "c",
+        "ok": false,
+        "detail": "0 repair attempt(s) with a stored Tavily citation",
         "citations": {
           "value": 0,
           "tag": "MEASURED",
@@ -293,6 +370,17 @@
           ]
         },
         "text": "0 citations in 7 searches"
+      },
+      {
+        "criterion": "d",
+        "ok": true,
+        "detail": "no entry over $2.00",
+        "cost_cap_endings": {
+          "value": 0,
+          "tag": "MEASURED",
+          "computed_from": "number of entries in d.cost_cap_endings",
+          "source": "reports/corpus-v2.1/v1.3.3/smoke_gate/smoke_gate_result.json@sha256:a397908ac28c7f28e30c5b11823e342d007590f77c47c339efe8620710b99427"
+        }
       }
     ],
     "gate_cost": {
@@ -350,5 +438,5 @@
       ]
     }
   ],
-  "passport_hash": "180f082c14876f9b7c531c5a1ef0ac57b5cf9a3a1ef6f64b46d03d58a50e3bd7"
+  "passport_hash": "85376b7555844f0daaca83e337a8f827d240db339b891109d26d4599b67287b6"
 }

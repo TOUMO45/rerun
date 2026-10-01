@@ -2,6 +2,14 @@
 
 One entry per phase of the post-corpus-v2 plan. Numbers are produced by scripts in `scripts/`.
 
+## Phase D2 — REPLAY from committed records, cross-checked against the passports (2026-10-01; offline, no Nebius call)
+`python -m phase_d.build_replay` writes `reports/phase-d/replay/<version>.json`, `<version>.md` and `index.md` for harness-v1.3.2 (the pre-registered anchor, CONTROL and
+TREATMENT separate), v1.3.3 and v1.3.4 (EXPLORATORY badges from D1, verbatim). Per entry: baseline, era lock, each attempt (gate decision, outcome, consulted, cited, reason,
+silent exit), execution and kills with the quoted source line, verdict with its annotations, and cost against the entry cap and the batch cap, split MEASURED / ESTIMATED.
+Every value shown is cross-checked against its passport field (a mismatch stops the build); every number carries a tag and a pointer to the passport field; the output has no
+build timestamp. Passport schema v2 adds the tagged fields REPLAY displays (consulted count, batch cap, per-operation cost lines, gate criteria b and d, the v1.3.2 primary
+line); all 49 passports were regenerated and still verify. Tests: test_phase_d_replay.py.
+
 ## Phase D housekeeping — D-27, ledger lower bound, tag-check scope (2026-10-01; documentation only)
 D-27 registered (the ledger records only completed cost; the spend of a killed step is absent): open, documented only. The ledger line in `SMOKE_GATE_REPORT_v1.3.4.md` is annotated
 "$10.134 is a lower bound (D-27)"; no amount is reconstructed and no DERIVED bound exists (no event line states one). `reports/phase-d/README.md` states that the tag check is
