@@ -1,8 +1,8 @@
 {
-  "harness_tag": "harness-v1.4.1",
-  "written_at": "2026-10-01T19:46:58.388622+00:00",
-  "rule": "option B over changed files only (METHODOLOGY, harness-v1.4.1): an entry whose code files are unchanged since its live verification is carried over; an entry that lists a changed file is re-verified by a live record or the writer stops; a WSL dry run is a smoke test, not verification; a code file changed after its verification invalidates the entry",
-  "carried_over_from": "harness-v1.4.0",
+  "harness_tag": "harness-v1.4.2",
+  "written_at": "2026-10-01T22:27:33.587669+00:00",
+  "rule": "option B over changed files only (METHODOLOGY, harness-v1.4.2): an entry whose code files are unchanged since its live verification is carried over; an entry that lists a changed file is re-verified by a live record or the writer stops; a WSL dry run is a smoke test, not verification; a code file changed after its verification invalidates the entry",
+  "carried_over_from": "harness-v1.4.1",
   "paths": [
     {
       "id": "download_route_git",
@@ -185,53 +185,6 @@
       ]
     },
     {
-      "id": "runner_hooks_on_a_kept_image",
-      "description": "the exit-site hook and the CPU shim installed as setup steps on top of a kept image; the hook prints the exit site of a sys.exit(3) inside a function (re-verified: runner_hooks.py changed in v1.4.1)",
-      "live_nebius": true,
-      "code_files": {
-        "backend/app/services/sandbox.py": "5f77d5bca7cf64c55daabbcf50b3a9d3b5b6240d",
-        "backend/app/services/runner_hooks.py": "71d77cc77028a27a841cfe960c827c0aeab46f21"
-      },
-      "records": [
-        "runs/sandbox_verification/v1.4.1-seal/run1_C_runner_hooks.json"
-      ],
-      "run_ids": [
-        "db8b613b-513f-4ac8-8c1b-e728e2af5fa6"
-      ]
-    },
-    {
-      "id": "exit_hook_gap_and_exit_wrapper",
-      "description": "a bare `raise SystemExit(1)` with the hook installed leaves nothing on stderr (the gap); through the exit wrapper the traceback of the raise is printed and the exit code is kept (python 3.10)",
-      "live_nebius": true,
-      "code_files": {
-        "backend/app/services/sandbox.py": "5f77d5bca7cf64c55daabbcf50b3a9d3b5b6240d",
-        "backend/app/services/runner_hooks.py": "71d77cc77028a27a841cfe960c827c0aeab46f21"
-      },
-      "records": [
-        "runs/sandbox_verification/v1.4.1-seal/run1_W0_hook_alone_sees_nothing.json",
-        "runs/sandbox_verification/v1.4.1-seal/run1_W1_wrapper_prints_the_raise_site.json"
-      ],
-      "run_ids": [
-        "12d1ee01-9ff7-4890-94ae-db041686d571",
-        "426eba31-6374-4b37-9e7c-1868f5d27955"
-      ]
-    },
-    {
-      "id": "exit_wrapper_python36",
-      "description": "the exit wrapper on python:3.6-slim, the oldest sandbox image",
-      "live_nebius": true,
-      "code_files": {
-        "backend/app/services/sandbox.py": "5f77d5bca7cf64c55daabbcf50b3a9d3b5b6240d",
-        "backend/app/services/runner_hooks.py": "71d77cc77028a27a841cfe960c827c0aeab46f21"
-      },
-      "records": [
-        "runs/sandbox_verification/v1.4.1-seal/run1_W2_wrapper_on_python36.json"
-      ],
-      "run_ids": [
-        "d5d46b4b-d4bc-40d2-9f74-d392bea34fae"
-      ]
-    },
-    {
       "id": "additive_apt_layer_on_a_kept_image",
       "description": "an apt layer (`export DEBIAN_FRONTEND=noninteractive && apt-get update && apt-get install -y ...`) on a kept image: only the layer runs, the earlier pip step is not run again, and the package is there",
       "live_nebius": true,
@@ -262,6 +215,70 @@
       "run_ids": [
         "ca36a746-7351-47ec-9350-3a6b8f24f749",
         "79e41928-3727-43b0-a910-b59ea1e287ed"
+      ]
+    },
+    {
+      "id": "runner_hooks_on_a_kept_image",
+      "description": "the exit-site hook and the CPU shim installed as setup steps on top of a kept image; the hook prints the exit site of a sys.exit(3) inside a function (re-verified: runner_hooks.py changed in v1.4.2)",
+      "live_nebius": true,
+      "code_files": {
+        "backend/app/services/sandbox.py": "5f77d5bca7cf64c55daabbcf50b3a9d3b5b6240d",
+        "backend/app/services/runner_hooks.py": "ad351070d592489dfc2ccbfe3df0f84acc5eb217"
+      },
+      "records": [
+        "runs/sandbox_verification/v1.4.2-seal/run1_C_runner_hooks.json"
+      ],
+      "run_ids": [
+        "57fd4610-9fd4-4c11-9dc4-609f07d96c64"
+      ]
+    },
+    {
+      "id": "exit_hook_gap_and_exit_wrapper",
+      "description": "a bare `raise SystemExit(1)` with the hook installed leaves nothing on stderr (the gap); through the exit wrapper the traceback of the raise is printed and the exit code is kept (python 3.10; re-verified)",
+      "live_nebius": true,
+      "code_files": {
+        "backend/app/services/sandbox.py": "5f77d5bca7cf64c55daabbcf50b3a9d3b5b6240d",
+        "backend/app/services/runner_hooks.py": "ad351070d592489dfc2ccbfe3df0f84acc5eb217"
+      },
+      "records": [
+        "runs/sandbox_verification/v1.4.2-seal/run1_W0_hook_alone_sees_nothing.json",
+        "runs/sandbox_verification/v1.4.2-seal/run1_W1_wrapper_prints_the_raise_site.json"
+      ],
+      "run_ids": [
+        "c00f8c5d-9697-45e3-9488-a4236932451b",
+        "b93dd2af-8147-4451-b96e-867589c90109"
+      ]
+    },
+    {
+      "id": "exit_wrapper_python36",
+      "description": "the exit wrapper on python:3.6-slim, the oldest sandbox image (re-verified)",
+      "live_nebius": true,
+      "code_files": {
+        "backend/app/services/sandbox.py": "5f77d5bca7cf64c55daabbcf50b3a9d3b5b6240d",
+        "backend/app/services/runner_hooks.py": "ad351070d592489dfc2ccbfe3df0f84acc5eb217"
+      },
+      "records": [
+        "runs/sandbox_verification/v1.4.2-seal/run1_W2_wrapper_on_python36.json"
+      ],
+      "run_ids": [
+        "0dc34722-9fd0-46a6-8c80-6eff57cd2139"
+      ]
+    },
+    {
+      "id": "resource_evidence_after_a_kill",
+      "description": "the evidence command runs the command unchanged in a subshell, keeps its exit status and prints the sandbox's own limits and kill traces on stderr: a calm run (exit 3) and a process that SIGKILLs itself (exit 137, `Killed`, kill evidenced), both parsed by the harness's own parser",
+      "live_nebius": true,
+      "code_files": {
+        "backend/app/services/sandbox.py": "5f77d5bca7cf64c55daabbcf50b3a9d3b5b6240d",
+        "backend/app/services/runner_hooks.py": "ad351070d592489dfc2ccbfe3df0f84acc5eb217"
+      },
+      "records": [
+        "runs/sandbox_verification/v1.4.2-seal/run2_E0_calm_run_with_evidence.json",
+        "runs/sandbox_verification/v1.4.2-seal/run2_E1a_self_sigkill_with_evidence.json"
+      ],
+      "run_ids": [
+        "27dcff91-bd72-40d2-8769-506835306545",
+        "ea85e4c3-3709-4aa6-bbf0-3d56b5cb2e42"
       ]
     }
   ]

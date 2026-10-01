@@ -1,0 +1,71 @@
+{
+  "written_at": "2026-10-01T22:27:05.451139+00:00",
+  "harness": "harness-v1.4.2-rc",
+  "code_blobs": {
+    "backend/app/services/sandbox.py": "5f77d5bca7cf64c55daabbcf50b3a9d3b5b6240d",
+    "backend/app/services/runner_hooks.py": "ad351070d592489dfc2ccbfe3df0f84acc5eb217"
+  },
+  "ok": true,
+  "evidence": {
+    "exit_status": 137,
+    "mem_total_kb": 4034744,
+    "mem_available_kb": 3846380,
+    "swap_total_kb": 0,
+    "nproc": 4,
+    "cgroup": {},
+    "oom_kill": null,
+    "dmesg": [],
+    "ulimit": [
+      "time(seconds)        unlimited",
+      "file(blocks)         unlimited",
+      "data(kbytes)         unlimited",
+      "stack(kbytes)        8192",
+      "coredump(blocks)     0",
+      "memory(kbytes)       unlimited",
+      "locked memory(kbytes) 8192",
+      "process              15742",
+      "nofiles              1024",
+      "vmemory(kbytes)      unlimited",
+      "locks                unlimited",
+      "rtprio               0"
+    ],
+    "kernel": [
+      "7.0.6",
+      "0"
+    ],
+    "self_cgroup": [
+      "0::/"
+    ]
+  },
+  "limit_quote": "/proc/meminfo MemTotal 4034744 kB (3.85 GiB); nproc 4",
+  "run_id": "ea85e4c3-3709-4aa6-bbf0-3d56b5cb2e42",
+  "cost_usd": 0.0012231199999999998,
+  "steps": [
+    {
+      "phase": "rerun_extract",
+      "command": "tar -xpf .rerun-upload.tar --no-same-owner && rm -f .rerun-upload.tar && python3 .rerun_upload_v1/verify.py && rm -rf .rerun_upload_v1",
+      "exit": 0,
+      "seconds": 0.075997,
+      "cost_usd": 0.00084121
+    },
+    {
+      "phase": "repo_install",
+      "command": "true",
+      "exit": 0,
+      "seconds": 0.001201,
+      "cost_usd": 0.00089184
+    },
+    {
+      "phase": "repo_run",
+      "command": "(\npython3 probe.py\n); rc=$?; { echo \"RERUN_EVIDENCE_BEGIN exit_status=$rc\"; echo \"--ulimit\"; ulimit -a 2>&1 | head -n 30; echo \"--meminfo\"; grep -E \"^(MemTotal|",
+      "exit": 137,
+      "seconds": 0.028196,
+      "cost_usd": 0.00033128
+    }
+  ],
+  "layers": [],
+  "branch_from_image": null,
+  "result_image": null,
+  "stdout": "about to be killed\n",
+  "stderr": "Killed\nRERUN_EVIDENCE_BEGIN exit_status=137\n--ulimit\ntime(seconds)        unlimited\nfile(blocks)         unlimited\ndata(kbytes)         unlimited\nstack(kbytes)        8192\ncoredump(blocks)     0\nmemory(kbytes)       unlimited\nlocked memory(kbytes) 8192\nprocess              15742\nnofiles              1024\nvmemory(kbytes)      unlimited\nlocks                unlimited\nrtprio               0\n--meminfo\nMemTotal:        4034744 kB\nMemAvailable:    3846380 kB\nSwapTotal:             0 kB\n--nproc\n4\n--kernel\n7.0.6\n0\n--selfcgroup\n0::/\n--cgroup\n--dmesg\nRERUN_EVIDENCE_END\n"
+}

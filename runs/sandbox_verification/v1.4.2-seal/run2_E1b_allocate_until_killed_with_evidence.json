@@ -1,0 +1,81 @@
+{
+  "written_at": "2026-10-01T22:27:15.384238+00:00",
+  "harness": "harness-v1.4.2-rc",
+  "code_blobs": {
+    "backend/app/services/sandbox.py": "5f77d5bca7cf64c55daabbcf50b3a9d3b5b6240d",
+    "backend/app/services/runner_hooks.py": "ad351070d592489dfc2ccbfe3df0f84acc5eb217"
+  },
+  "ok": true,
+  "informational": true,
+  "allocated_mb_before_the_end": 3776,
+  "reached_cap": false,
+  "killed": true,
+  "kill_evidenced": true,
+  "evidence": {
+    "exit_status": 137,
+    "mem_total_kb": 4034744,
+    "mem_available_kb": 3860844,
+    "swap_total_kb": 0,
+    "nproc": 4,
+    "cgroup": {},
+    "oom_kill": null,
+    "dmesg": [
+      "[    0.657749] python3 invoked oom-killer: gfp_mask=0x140dca(GFP_HIGHUSER_MOVABLE|__GFP_ZERO|__GFP_COMP), order=0, oom_score_adj=0",
+      "[    0.657770]  oom_kill_process+0xb2/0x1c0",
+      "[    0.657841] oom-kill:constraint=CONSTRAINT_NONE,nodemask=(null),cpuset=/,mems_allowed=0,global_oom,task_memcg=/,task=python3,pid=74,uid=0",
+      "[    0.657848] Out of memory: Killed process 74 (python3) total-vm:3942376kB, anon-rss:3906368kB, file-rss:12kB, shmem-rss:0kB, UID:0 pgtables:7684kB oom_score_adj:0"
+    ],
+    "ulimit": [
+      "time(seconds)        unlimited",
+      "file(blocks)         unlimited",
+      "data(kbytes)         unlimited",
+      "stack(kbytes)        8192",
+      "coredump(blocks)     0",
+      "memory(kbytes)       unlimited",
+      "locked memory(kbytes) 8192",
+      "process              15742",
+      "nofiles              1024",
+      "vmemory(kbytes)      unlimited",
+      "locks                unlimited",
+      "rtprio               0"
+    ],
+    "kernel": [
+      "7.0.6",
+      "0"
+    ],
+    "self_cgroup": [
+      "0::/"
+    ]
+  },
+  "limit_quote": "/proc/meminfo MemTotal 4034744 kB (3.85 GiB); nproc 4; dmesg: [    0.657848] Out of memory: Killed process 74 (python3) total-vm:3942376kB, anon-rss:3906368kB, file-rss:12kB, shmem-rss:0kB, UID:0 pgtables:7684kB oom_score_",
+  "run_id": "7d24dc4d-05f0-4267-9588-88fb4985f1b9",
+  "cost_usd": 0.02522631,
+  "steps": [
+    {
+      "phase": "rerun_extract",
+      "command": "tar -xpf .rerun-upload.tar --no-same-owner && rm -f .rerun-upload.tar && python3 .rerun_upload_v1/verify.py && rm -rf .rerun_upload_v1",
+      "exit": 0,
+      "seconds": 0.073537,
+      "cost_usd": 0.0008166100000000001
+    },
+    {
+      "phase": "repo_install",
+      "command": "true",
+      "exit": 0,
+      "seconds": 0.001332,
+      "cost_usd": 0.0008690900000000001
+    },
+    {
+      "phase": "repo_run",
+      "command": "(\npython3 probe.py\n); rc=$?; { echo \"RERUN_EVIDENCE_BEGIN exit_status=$rc\"; echo \"--ulimit\"; ulimit -a 2>&1 | head -n 30; echo \"--meminfo\"; grep -E \"^(MemTotal|",
+      "exit": 137,
+      "seconds": 0.482402,
+      "cost_usd": 0.02435722
+    }
+  ],
+  "layers": [],
+  "branch_from_image": null,
+  "result_image": null,
+  "stdout": "ALLOCATED_MB 64\nALLOCATED_MB 128\nALLOCATED_MB 192\nALLOCATED_MB 256\nALLOCATED_MB 320\nALLOCATED_MB 384\nALLOCATED_MB 448\nALLOCATED_MB 512\nALLOCATED_MB 576\nALLOCATED_MB 640\nALLOCATED_MB 704\nALLOCATED_MB 768\nALLOCATED_MB 832\nALLOCATED_MB 896\nALLOCATED_MB 960\nALLOCATED_MB 1024\nALLOCATED_MB 1088\nALLOCATED_MB 1152\nALLOCATED_MB 1216\nALLOCATED_MB 1280\nALLOCATED_MB 1344\nALLOCATED_MB 1408\nALLOCATED_MB 1472\nALLOCATED_MB 1536\nALLOCATED_MB 1600\nALLOCATED_MB 1664\nALLOCATED_MB 1728\nALLOCATED_MB 1792\nALLOCATED_MB 1856\nALLOCATED_MB 1920\nALLOCATED_MB 1984\nALLOCATED_MB 2048\nALLOCATED_MB 2112\nALLOCATED_MB 2176\nALLOCATED_MB 2240\nALLOCATED_MB 2304\nALLOCATED_MB 2368\nALLOCATED_MB 2432\nALLOCATED_MB 2496\nALLOCATED_MB 2560\nALLOCATED_MB 2624\nALLOCATED_MB 2688\nALLOCATED_MB 2752\nALLOCATED_MB 2816\nALLOCATED_MB 2880\nALLOCATED_MB 2944\nALLOCATED_MB 3008\nALLOCATED_MB 3072\nALLOCATED_MB 3136\nALLOCATED_MB 3200\nALLOCATED_MB 3264\nALLOCATED_MB 3328\nALLOCATED_MB 3392\nALLOCATED_MB 3456\nALLOCATED_MB 3520\nALLOCATED_MB 3584\nALLOCATED_MB 3648\nALLOCATED_MB 3712\nALLOCATED_MB 3776\n",
+  "stderr": "Killed\nRERUN_EVIDENCE_BEGIN exit_status=137\n--ulimit\ntime(seconds)        unlimited\nfile(blocks)         unlimited\ndata(kbytes)         unlimited\nstack(kbytes)        8192\ncoredump(blocks)     0\nmemory(kbytes)       unlimited\nlocked memory(kbytes) 8192\nprocess              15742\nnofiles              1024\nvmemory(kbytes)      unlimited\nlocks                unlimited\nrtprio               0\n--meminfo\nMemTotal:        4034744 kB\nMemAvailable:    3860844 kB\nSwapTotal:             0 kB\n--nproc\n4\n--kernel\n7.0.6\n0\n--selfcgroup\n0::/\n--cgroup\n--dmesg\n[    0.657749] python3 invoked oom-killer: gfp_mask=0x140dca(GFP_HIGHUSER_MOVABLE|__GFP_ZERO|__GFP_COMP), order=0, oom_score_adj=0\n[    0.657770]  oom_kill_process+0xb2/0x1c0\n[    0.657841] oom-kill:constraint=CONSTRAINT_NONE,nodemask=(null),cpuset=/,mems_allowed=0,global_oom,task_memcg=/,task=python3,pid=74,uid=0\n[    0.657848] Out of memory: Killed process 74 (python3) total-vm:3942376kB, anon-rss:3906368kB, file-rss:12kB, shmem-rss:0kB, UID:0 pgtables:7684kB oom_score_adj:0\nRERUN_EVIDENCE_END\n"
+}

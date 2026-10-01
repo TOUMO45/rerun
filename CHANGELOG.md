@@ -2,6 +2,9 @@
 
 One entry per phase of the post-corpus-v2 plan. Numbers are produced by scripts in `scripts/`.
 
+## harness-v1.4.2 — seal (2026-10-01; live, $0.045032 API-reported)
+Option B over `runner_hooks.py` only: 9 of 9 operations ok (the hooks and the wrapper as in v1.4.1; the evidence command around a calm run, a self-SIGKILL, and an allocation probe). The probe measured what no document gives: a sandbox VM has 3.85 GiB of memory, 4 CPUs and no swap, and a process that holds all of it is killed with exit 137. Every seal record carries its code blobs; the writer checks them. Independent review of the Step 1 diff: 8 findings fixed before the seal (STEP1_REPORT section 8). Ledger $18.5533. Tag `harness-v1.4.2`; report `reports/corpus-v2.1/v1.4.2/seal/SEAL_STATUS.md`.
+
 ## harness-v1.4.2-rc — Step 1 of the v1.4.2 directive (2026-10-01; offline, unsealed, no Nebius call, no spend)
 Four fixes from the v1.4.1 gate: D-37 the adjudicator adopts the candidate that strictly advanced furthest when none passes ("partial progress"); D-39 the CPU shim covers `.cuda()`, `.to("cuda*")` and `torch.device("cuda*")` and records
 the paths that fired; D-38/D-40 exit 137 / -9 is RESOURCE_LIMIT (INDETERMINATE with the limit quoted, one evidence run that reads the sandbox's own limits, no model attempt; the documented limits, none for memory and CPU, are stored on every
