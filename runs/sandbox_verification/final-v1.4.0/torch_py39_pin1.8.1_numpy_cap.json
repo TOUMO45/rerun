@@ -1,0 +1,43 @@
+{
+  "image": "python:3.9-slim",
+  "mode": "pin",
+  "items": [
+    "torch==1.8.1",
+    "numpy"
+  ],
+  "expect": "ok",
+  "install_command": "pip install torch==1.8.1 torchvision torchaudio 'numpy<2' --index-url https://download.pytorch.org/whl/cpu --extra-index-url https://pypi.org/simple || pip install torch==1.8.1 'numpy<2' --index-url https://download.pytorch.org/whl/cpu --extra-index-url https://pypi.org/simple",
+  "reason": "repo pins torch; installed the CPU wheels as a matched set with the same pins",
+  "started_at": "2026-10-01T16:07:31.363538+00:00",
+  "run_id": "9c842528-79bb-496b-b8f3-7677134306b0",
+  "cost_usd": 0.18425007,
+  "succeeded": true,
+  "final_phase": "repo_run",
+  "steps": [
+    {
+      "cmd": "pip install torch==1.8.1 torchvision torchaudio 'numpy<2' --index-url https://download.pytorch.org/whl/cpu --extra-index-url https://pypi.or",
+      "phase": "runner_setup",
+      "exit": 0,
+      "stdout": " \u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501\u2501 1.9/1.9 MB 83.8 MB/s eta 0:00:00\nInstalling collected packages: typing-extensions, pillow, numpy, torch, torchvision, torchaudio\nSuccessfully installed numpy-1.26.4 pillow-11.3.0 torch-1.8.1+cpu torchaudio-0.8.1 torchvision-0.9.1+cpu typing-extensions-4.16.0",
+      "stderr": "WARNING: Running pip as the 'root' user can result in broken permissions and conflicting behaviour with the system package manager. It is recommended to use a virtual environment instead: https://pip.pypa.io/warnings/venv\n\n[notice] A new release of pip is available: 23.0.1 -> 26.0.1\n[notice] To update, run: pip install --upgrade pip",
+      "seconds": 16.6
+    },
+    {
+      "cmd": "python -c '\nimport glob, importlib.util, os, struct, subprocess, sys\nspec = importlib.util.find_spec(\"torch\")\nroot = os.path.join(os.path.di",
+      "phase": "runner_setup",
+      "exit": 0,
+      "stdout": "RERUN_TORCH_OK 1.8.1+cpu",
+      "stderr": "",
+      "seconds": 0.7
+    },
+    {
+      "cmd": "python -c 'import sys, torch, numpy; print(\"IMPORT_OK\", sys.version.split()[0], torch.__version__, numpy.__version__)'",
+      "phase": "repo_run",
+      "exit": 0,
+      "stdout": "IMPORT_OK 3.9.25 1.8.1+cpu 1.26.4",
+      "stderr": "",
+      "seconds": 0.7
+    }
+  ],
+  "ok": true
+}

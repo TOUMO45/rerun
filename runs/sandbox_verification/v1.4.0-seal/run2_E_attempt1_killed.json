@@ -1,0 +1,24 @@
+{
+  "written_at": "2026-10-01",
+  "harness": "harness-v1.4.0-rc",
+  "ok": false,
+  "what": "seal run 2, operation E, first attempt: KILLED. Defect of the seal script, not of the harness: E was funded for 58.8 s (the $0.50 run cap / the guard's $0.0085/s bound), too short for entry 7's apt step plus its pip install of the era lock; the client stopped the pip step and the script did not catch SandboxTimeoutError, so the measured cost of the completed steps (upload/extract, apt) was lost with the exception.",
+  "message": "sandbox execution exceeded 58.8235294117647s wall clock: Operation 01a0f82a-ee6d-76bc-a8f0-f74e11c7246f has timed out",
+  "killed_operation": {
+    "id": "01a0f82a-ee6d-76bc-a8f0-f74e11c7246f",
+    "source": "GET /v1/operations/{id} (free per the Contree MCP cheatsheet), read after the kill",
+    "status": "CANCELLED",
+    "error": "CancelledError(<CancelledReasons.USER: 'Cancelled by user'>)",
+    "image": "81809b90-f48d-4ba3-9ae2-51081ee3cf68",
+    "timeout_given_seconds": 6,
+    "command": "printf '%s\\n' <entry 7's 19-line era lock + gcc> > .rerun-requirements.txt && pip install -r .rerun-requirements.txt"
+  },
+  "kept_image_from_this_attempt": "81809b90-f48d-4ba3-9ae2-51081ee3cf68 (the image the killed pip step ran on: tree + apt step; disposable=false, kept on timeout)",
+  "cost": {
+    "measured_usd": null,
+    "reason_no_measurement": "the completed steps' costs were carried by the exception the script did not catch; the SDK has no call that lists past operations, and the cancelled operation reports no cost",
+    "estimated_upper_bound_usd": 0.4998,
+    "estimated_upper_bound_basis": "the whole operation's funded time, 58.8 s, at the guard's bound $0.0085/s (cost_guard.SANDBOX_COST_RATE_USD_PER_S)",
+    "tag": "ESTIMATED"
+  }
+}

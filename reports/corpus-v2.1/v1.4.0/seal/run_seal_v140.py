@@ -144,31 +144,60 @@ def run_1(api_key: str, project_id: str, guard, wait_seconds: int) -> list[dict]
     return docs
 
 
-def run_2(api_key: str, project_id: str, guard) -> list[dict]:
+def _guarded(name: str, guard, call):
+    """Run one sandbox operation; a timeout is RECORDED (completed steps at their measured cost, the killed step at the guard's bound)
+    instead of escaping with its cost (the defect of run 2's first attempt). Returns the result, or None after writing the record."""
+    from app.services import sandbox
+
+    try:
+        return call()
+    except sandbox.SandboxTimeoutError as exc:
+        recorded = guard.record_killed_operation(exc.completed_cost_usd, exc.killed_seconds, note=f"{name}: {exc.command[:80]}")
+        _record(name, ok=False, killed=True, message=str(exc)[:400], measured_completed_usd=exc.completed_cost_usd,
+                killed_seconds=exc.killed_seconds, estimated_killed_usd=recorded - exc.completed_cost_usd, cost_usd=recorded,
+                cost_tag="MEASURED completed steps + ESTIMATED killed step", run_id=exc.sandbox_id,
+                layers=[{"setup_commands": len(ops), "image": image} for ops, image in getattr(exc, "layers", ())])
+        print(f"{name}: KILLED at its wall clock; ${recorded:.4f} recorded ({exc.completed_cost_usd:.4f} measured)")
+        return None
+
+
+def run_2(api_key: str, project_id: str, guard, op_seconds: float | None = None, start_image: str | None = None) -> list[dict]:
+    """E builds entry 7's recorded environment as a checkpoint (from scratch, or from `start_image`: a kept image that already holds the
+    tree and the apt step, e.g. the one the first attempt left), F reopens E's deepest kept image, applies a one-file overlay and runs."""
     from app.services import intake, sandbox, smoke_exec
 
     plan, entry = entry07_plan()
+    steps = plan.as_shell_steps()
     workdir = Path(tempfile.mkdtemp(prefix="rerun_seal_e07_"))
     try:
         intake.clone_repo_at_commit(entry["repo_url"], workdir, entry["commit_sha"])
         files = {p.relative_to(workdir).as_posix(): p for p in workdir.rglob("*") if p.is_file() and ".git" not in p.relative_to(workdir).parts}
         command = smoke_exec.wrap(entry["command"], SMOKE_SECONDS)
-        seconds = min(600.0, guard.operation_seconds_budget())
-        e = sandbox.run_build_and_execute(api_key=api_key, project_id=project_id, base_image=plan.base_image,
-                                          install_commands=plan.as_shell_steps(), execute_command=command, wall_clock_seconds=seconds,
-                                          upload_files=files, download_source=sandbox.sandbox_limits.DownloadSource.from_repo_url(entry["repo_url"], entry["commit_sha"]),
-                                          checkpoint=sandbox.Checkpoint(keep_layers=True))
+
+        def seconds() -> float:
+            return op_seconds if op_seconds else min(600.0, guard.operation_seconds_budget())
+
+        start_ops = tuple(sandbox.setup_commands(steps)[:1]) if start_image else ()
+        e = _guarded("run2_E_entry07_checkpoint", guard, lambda: sandbox.run_build_and_execute(
+            api_key=api_key, project_id=project_id, base_image=plan.base_image, install_commands=steps, execute_command=command,
+            wall_clock_seconds=seconds(), upload_files=None if start_image else files,
+            download_source=sandbox.sandbox_limits.DownloadSource.from_repo_url(entry["repo_url"], entry["commit_sha"]),
+            checkpoint=sandbox.Checkpoint(start_image=start_image, start_ops=start_ops, keep_layers=True)))
+        if e is None:
+            return []
         guard.record_spend(e.total_cost_usd)
         # In v1.3.4 this environment never completed (repair 3 ended DEP_NOT_ON_PYPI in the install), so E is judged on what a
-        # checkpoint operation must do whatever the repository does: it ran and kept the tree and every setup step that completed.
-        docs = [_record("run2_E_entry07_checkpoint", ok=bool(e.layers) and e.layers[0][0] == (), **_result_doc(e))]
-        env_ops, env_image = e.layers[-1]  # the deepest layer E kept
+        # checkpoint operation must do whatever the repository does: it ran, from the image it was given, and kept every layer it built.
+        started_right = e.branch_from_image == start_image if start_image else bool(e.layers) and e.layers[0][0] == ()
+        docs = [_record("run2_E_entry07_checkpoint", ok=started_right, start_image=start_image, **_result_doc(e))]
+        env_ops, env_image = e.layers[-1] if e.layers else (start_ops, start_image)  # the deepest image E has
         target = sorted(files)[0]
-        seconds = min(600.0, guard.operation_seconds_budget())
-        f = sandbox.run_build_and_execute(api_key=api_key, project_id=project_id, base_image=plan.base_image,
-                                          install_commands=plan.as_shell_steps(), execute_command=command, wall_clock_seconds=seconds,
-                                          checkpoint=sandbox.Checkpoint(start_image=env_image, start_ops=env_ops,
-                                                                        branch_files=((target, files[target].read_bytes(), 0o644),)))
+        f = _guarded("run2_F_reopen_apply_execute", guard, lambda: sandbox.run_build_and_execute(
+            api_key=api_key, project_id=project_id, base_image=plan.base_image, install_commands=steps, execute_command=command,
+            wall_clock_seconds=seconds(),
+            checkpoint=sandbox.Checkpoint(start_image=env_image, start_ops=env_ops, branch_files=((target, files[target].read_bytes(), 0o644),))))
+        if f is None:
+            return docs
         guard.record_spend(f.total_cost_usd)
         same = (f.final.exit_code, f.final.stderr[-300:]) == (e.final.exit_code, e.final.stderr[-300:])
         expected_suffix = tuple(f.setup_commands[len(env_ops):])
@@ -187,6 +216,8 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--go", action="store_true", help="actually run (spends money; needs the owner's seal cap)")
     ap.add_argument("--max-usd", type=float, help="the seal cap the owner wrote in chat")
     ap.add_argument("--wait-seconds", type=int, default=600, help="run 1: delay before reopening the kept image")
+    ap.add_argument("--op-seconds", type=float, help="run 2: fixed wall clock per operation (else derived from the cap at the guard's bound)")
+    ap.add_argument("--e-start-image", help="run 2: start E from this kept image (tree + apt step), e.g. the first attempt's")
     args = ap.parse_args(argv)
     runs = sorted(set(args.run or [1, 2]))
     if 3 in runs:
@@ -218,7 +249,7 @@ def main(argv: list[str] | None = None) -> int:
     if 1 in runs:
         docs += run_1(settings.nebius_api_key, settings.nebius_project_id, guard, args.wait_seconds)
     if 2 in runs:
-        docs += run_2(settings.nebius_api_key, settings.nebius_project_id, guard)
+        docs += run_2(settings.nebius_api_key, settings.nebius_project_id, guard, args.op_seconds, args.e_start_image)
     print(json.dumps([{k: d.get(k) for k in ("ok", "run_id", "cost_usd", "result_image")} for d in docs], indent=2))
     print(f"seal spend ${guard.spent_today_usd:.4f} [MEASURED, sum of operation costs]; all ok: {all(d['ok'] for d in docs)}")
     return 0 if all(d["ok"] for d in docs) else 1
