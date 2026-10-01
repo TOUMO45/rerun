@@ -67,3 +67,11 @@ ESTIMATED], lower bound (D-27).
 Seal -> gate rule (owner): every seal check passed (the killed attempt 1 is superseded by the authorised retry and stays on record);
 measured branch-run cost $0.00054618 <= $0.15; kept images unbilled on available evidence; seal spend <= $1.70. **All hold: the gate
 starts automatically.** `seal_verification.json` written by `scripts/write_seal_verification_v140.py` (12 paths); tag `harness-v1.4.0`.
+
+
+## Annotation (2026-10-01, v1.4.1 Step 1; the text above is unchanged)
+
+Kept-image billing: where this file says "unbilled on available evidence" it now reads **no charge observed on the account balance** (owner's reading at 19:37 local,
+2026-10-01: $49.61 of $50.00, at most $0.39 charged cumulative for the whole account; BILLED, not per gate). Tag: MEASURED in this file reads API-REPORTED (D-36, open:
+`docs/design/D-36.md`; the Token Factory sandboxes page says "Free while in beta", the docs list no storage price). The "docs list only run and import_image as billable"
+sentence is the MCP cheatsheet's Cost column (VM versus Free); the word "billable" is our reading of it (D-36, section 4).

@@ -75,7 +75,10 @@ def test_the_file_is_sealed_and_every_sandbox_touching_file_is_listed():
 def test_the_committed_file_names_only_live_records_that_exist_and_passed():
     """Structure check of the real file (blob currency is checked by preflight at HEAD, not here)."""
     doc = json.loads((ROOT / "seal_verification.json").read_text(encoding="utf-8"))
-    assert doc["harness_tag"] == "harness-v1.3.4" and len(doc["paths"]) >= 11  # v1.3.2: 7; v1.3.3: +NumPy cap, kill path, smoke launcher; v1.3.4: +download-route overlay
+    # v1.3.2: 7 paths; v1.3.3: +NumPy cap, kill path, smoke launcher; v1.3.4: +download-route overlay; v1.4.0: 12 (option B + the checkpoint checks);
+    # v1.4.1: the v1.4.0 entries carried over unchanged + the exit wrapper, additive apt layer and resume checks. The tag is not pinned here:
+    # `check_seal_verification` (above) is what ties every entry to the blobs of HEAD.
+    assert doc["harness_tag"].startswith("harness-v1.") and len(doc["paths"]) >= 11
     for entry in doc["paths"]:
         assert entry["live_nebius"] is True and entry["run_ids"] and entry["code_files"]
         for rec in entry["records"]:

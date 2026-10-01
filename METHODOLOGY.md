@@ -947,3 +947,60 @@ applied in branches; (c) pass, 3 attempts with a stored Tavily citation (#8), th
 Gate spend $3.1943 (incl. $0.1868 ESTIMATED) + upload smoke $0.0049; ledger $14.6495 [$13.6787 MEASURED + $0.9708 ESTIMATED], lower bound
 (D-27). Report with findings: `reports/corpus-v2.1/v1.4.0/gate/GATE_REPORT_v1.4.0.md`. v1.4.0 is documented beside v1.3.3 and v1.3.4 as
 "attempted, did not pass"; the Phase D assets stay as they are.
+
+
+### harness-v1.4.1-rc (2026-10-01; offline, unsealed, no Nebius call in Step 1) and the pre-registration of gate v1.4.1
+
+**Tag note (D-36).** The ledger is the sandbox API's reported operation cost, not account billing: the owner read the account balance at 19:37 local on
+2026-10-01, $49.61 of $50.00, about $0.39 charged, against a ledger of $14.6495 (a factor of about 37). Until D-36 is resolved the tag MEASURED
+reads **API-REPORTED** (the Phase D assets are relabelled: passports, REPLAY, dashboard, README, Devpost answers; earlier sections of this file and
+the earlier reports keep the old word and are read the same way), ESTIMATED and DERIVED are unchanged, and each gate gets one **BILLED** line from the
+owner's balance readings (v1.4.0 gate: at most $0.39 cumulative, an account-level reading, not per gate; the gate runner's result file carries the
+v1.4.1 line as null until the owner reports it). Kept images: where a report says "unbilled on available evidence" it now reads "no charge observed
+on the account balance". Investigation: `docs/design/D-36.md` (open).
+
+**Why.** Reading the harness-v1.4.0 gate records (annotated in `reports/corpus-v2.1/v1.4.0/gate/GATE_REPORT_v1.4.0.md`): #11 and #8 ended by the guard's
+funding rule (a fixed $0.0085 per wall second), #7 by the adjudicator's invalid JSON with a first-candidate fallback and by D-24 seeing only the adopted
+failure, #3 by an exit the hook did not see. Six deterministic fixes, each registered fixed-unvalidated in `candidate_v1.3.3_defects.md` with its test
+(D-30 to D-35); `harness-v1.4.0` (`15d3cdf`) stays byte-identical.
+
+**What changes in a run (TREATMENT; CONTROL and the as-published baseline execution are unchanged).**
+1. D-30: an operation is funded at the rolling rate this entry's completed operations cost per wall second (sum of cost over sum of wall time) x 1.5,
+   floor $0.0030, ceiling $0.0085; no completed operation yet: the ceiling. `operations[].funding` records `rate_used`, the measured rate and the source operations.
+2. D-31: a budget-limited stop never ends the entry while what is left funds one operation (the smoke run + 20 s) AND an environment image holding a setup
+   command is kept: the next operation resumes from that image (at most two resumes per operation); otherwise INDETERMINATE COST_CAP, with the reason.
+3. D-32: the candidate adjudicator re-asks once on an invalid reply (both replies recorded); its fallback takes the first passing run, else the furthest recorded stage.
+4. D-33: D-24, the CPU shim, the exit-site hook and the exit wrapper observe every candidate's failure and fire in that candidate's branch
+   (`time_machine_action` with `on_candidate`).
+5. D-34: an apt package added at repair time is an additive layer on the kept environment image, never a rebuild from the tree image.
+6. D-35: when the exit hook was installed and printed nothing, the entry script runs through the exit wrapper; if that prints nothing too, the record says "exit outside Python".
+
+**What a v1.4.1 record adds** (only when set; v1.4.0 records are unchanged): `operations[].funding`, `resumed_after_operation`, `apt_layers`, `exit_wrapper`;
+`adjudication.replies`, `reasked`, `fallback_basis`; `time_machine_action.on_candidate`, `apt_layer`, `then`, and the wrapper's `applied`, `reason`, `result`.
+
+**Gate v1.4.1, pre-registered here before any v1.4.1 run.** Same four entries (3, 7, 8, 11), in that order, TREATMENT only, same criteria (a)-(e) as the
+v1.4.0 gate, verbatim: (a) at least 2 of 4 end RUNS_CLEAN or RUNS_AFTER_REPAIR; (b) at least 1 source patch applied; (c) at least 1 repair attempt with
+a stored Tavily citation; (d) no entry over $2.00 and the cost guard correct where it fired; (e) torch installed at most once per environment image
+(planner-image baseline outside (e); a record without `operations` fails (e)). Runner: `reports/corpus-v2.1/v1.4.1/gate/run_gate_v141.py`, which LOADS
+the v1.4.0 runner's criteria instead of copying them (`test_v141_gate_runner.py`). Caps (owner, chat, 2026-10-01): fixed entry cap $1.50, gate cap $6.00
+(= 4 x the entry cap; an entry whose full cap no longer fits in what is left is not started), seal at most $1.00, ledger ceiling $25.00 API-reported
+(ledger $14.6495 before Step 2, a lower bound, D-27; worst case seal + gate $7.00 gives $21.6495). The cost guard stays on: the caps are the
+discipline, not the constraint. Hard stop at the gate cap; each entry is reported as it lands; the verdict is honest either way. If the gate fails,
+v1.4.1 is documented beside v1.4.0 as "attempted, did not pass" and Phase D proceeds with all four versions.
+
+**Seal of harness-v1.4.1: option B over CHANGED files only (owner).** Among the sandbox-touching files only `runner_hooks.py` changed (the exit
+wrapper); `sandbox.py`, `sandbox_limits.py`, `runner_env.py` and `smoke_exec.py` are byte-identical to harness-v1.4.0 (D-34 was implemented in the
+orchestrator for that reason). `scripts/write_seal_verification_v141.py` therefore carries over the 11 v1.4.0 entries whose code files are all unchanged
+(it checks each blob against the v1.4.0 record and stops if one changed), replaces the one entry that lists `runner_hooks.py`
+(`runner_hooks_on_a_kept_image`) and adds the v1.4.1 paths. Live checks, `reports/corpus-v2.1/v1.4.1/seal/run_seal_v141.py` (records in
+`runs/sandbox_verification/v1.4.1-seal/`): run 1 A ready image, B one branch run (the measured branch-run cost), C hooks on A's image, W0 a bare
+`raise SystemExit(1)` with the hook alone (nothing on stderr), W1 the same through the wrapper (the raise site), W2 the wrapper on python:3.6-slim; run 2 the
+additive apt layer on a kept image (only the layer runs, gcc is there); run 3 an operation stopped at its limit keeps the layer before the stopped step and a
+new operation reopens it (D-31 on the real service). ESTIMATED cost $0.3637, from the v1.4.0 seal and gate records (A $0.0120, B $0.00054618, C $0.0012
+API-reported; the apt step of #8 operation 11 $0.0775 API-reported; the killed step of K1 at the observed $0.0103 per billed second, D-36), cap $1.00; an
+operation starts only while three times its estimate is left under the cap. Not repeated for v1.4.1 because no file they cover changed: everything else
+in the v1.4.0 seal.
+
+**Seal -> gate (owner's rule, automatic).** The gate starts only if ALL hold: every seal check passed; the measured branch-run cost (op B) is at most $0.15
+API-reported; the seal spend is at most $1.00. Otherwise stop and report. Tag `harness-v1.4.1` only on a passed seal (the seal commit carries
+`seal_verification.json`); until then `harness-v1.4.1-rc` stays and nothing is gated.

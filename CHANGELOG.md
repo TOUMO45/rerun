@@ -2,6 +2,16 @@
 
 One entry per phase of the post-corpus-v2 plan. Numbers are produced by scripts in `scripts/`.
 
+## harness-v1.4.1-rc — Step 1 of the v1.4.1 directive (2026-10-01; offline, unsealed, no Nebius call, no spend)
+Six deterministic fixes from the v1.4.0 gate records, each registered fixed-unvalidated (D-30 to D-35) with its test: the funding rate is the rolling measured rate of the
+entry's own completed operations x 1.5 (floor $0.0030, ceiling $0.0085) and is recorded on every operation; a budget-limited stop resumes from a kept environment image while the
+money left funds one operation; the candidate adjudicator re-asks once on invalid JSON and falls back to the furthest recorded stage; D-24, the CPU shim and the exit hook observe every
+candidate's failure; repair-time apt packages are additive layers on the kept image (no change to `sandbox.py`); an exit wrapper catches the bare `raise SystemExit` the hook cannot see.
+D-36 (open): ledger figures are the sandbox API's reported cost, not account billing (balance reading: at most $0.39 charged against a ledger of $14.6495); the tag MEASURED is
+renamed API-REPORTED in the Phase D assets, with BILLED lines. Gate v1.4.1 pre-registered (same entries, order and criteria; entry cap $1.50, gate cap $6.00); seal = option B over
+changed files only, estimated $0.3637, cap $1.00. Report: `reports/corpus-v2.1/v1.4.1/STEP1_REPORT.md`. `harness-v1.4.0` (`15d3cdf`) stays byte-identical.
+Ledger $14.6495 ($13.6787 API-REPORTED + $0.9708 ESTIMATED, lower bound D-27).
+
 ## harness-v1.4.0 — seal (option B) and gate v1.4.0: attempted, did not pass (2026-10-01; live, owner's caps)
 Seal complete (run 1: branch run $0.00054618 MEASURED, kept image reopened after 600 s at $0.00017; 14 option-B checks; run 2 retry after
 D-29, the seal script's funding defect), tag `harness-v1.4.0` at `15d3cdf`. Gate on entries 3, 7, 8, 11: NOT PASSED, (a) 0 of 4; (b), (c),

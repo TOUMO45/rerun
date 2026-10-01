@@ -52,3 +52,37 @@ check of the billing page): #3 8, #7 6, #8 6, #11 8 (`operations[].kept_images`,
 
 $14.6495 [ESTIMATED: $13.6787 MEASURED + $0.9708 ESTIMATED], lower bound (D-27): before Step 2 $10.1349; seal $0.815528 MEASURED + at most
 $0.4998 ESTIMATED; gate $3.194323 (incl. $0.186755 ESTIMATED); upload smoke $0.004937. Under the owner's ceiling of $16.84.
+
+
+## Annotations (2026-10-01, v1.4.1 Step 1; the text above is unchanged)
+
+Tags: in this report MEASURED reads API-REPORTED (D-36); DERIVED = computed here from the named records; BILLED = the owner's balance reading.
+
+**1. The reading of the records, checked.** The owner's reading was that #8 and #11 ended by the guard's funding rule and not by exhausted budget, #7 by the
+adjudicator's parse failure plus the first-candidate fallback plus D-24's scope, and #3 by an exit the hook cannot see. Against the records:
+- **#11 holds.** Operation 2 was funded 108.2 s (`operations[1].funded_seconds`) from $0.92 left at the guard's $0.0085/s, built the whole era environment (4 kept
+  images, 3 setup commands), was stopped as the smoke launcher was about to start (`killed_step` is the launcher, `killed_seconds` 0.0), and the entry ended with $0.6191
+  of its $1.25 unspent (`cost_guard.remaining_usd`, 49.5 %).
+- **#8 holds in part.** The last operation (11) was funded 44.1 s at the fixed rate from $0.3749 [DERIVED: 44.1 x 0.0085], and the guard's rule is what stopped it.
+  But the budget was mostly spent by then: $1.1422 of the $1.25 cap (91.4 %), $0.1078 left at the end, after two rounds of three candidates. It is therefore not
+  "not by exhausted budget": the funding rule decided the last 44 s of an entry that had used nine tenths of its cap. DERIVED: the v1.4.1 rule would have funded
+  that operation 67.5 s (rolling rate $0.00555/s from the entry's eight completed operations), and with D-34 the operation would have run the apt layer and the failing
+  pip step, not a second torch install.
+- **#7 holds.** Round 1: Ultra's reply was not valid JSON and the fallback chose candidate 1 (package metadata error) although candidate 2 had reached
+  `No module named 'Box2D'` (D-32). Round 2: a candidate's run reached `unable to execute gcc` (quoted in the adjudication's own reasoning), the adjudicator
+  adopted none, D-24 never saw it (D-33). The entry ended BLOCKED with $0.8113 of $1.25 spent: it ended by using its three model attempts, not by its budget.
+- **#3 holds as "an exit the hook did not see".** The record shows the hook installed automatically and printing nothing. It does not show whether the exit was a
+  bare `raise SystemExit` or a process-level exit: D-35's wrapper separates the two (it prints the raise site, or the record says "exit outside Python").
+
+**2. Kept images and billing.** Kept images per entry: #3 8, #7 6, #8 6, #11 8 (`operations[].kept_images`, distinct ids). Where this report says "unbilled on available
+evidence" it now reads **no charge observed on the account balance** (the owner's reading below; the documents list no storage price, D-36).
+
+**3. BILLED line (the gate's own).** Account balance, owner's reading at 19:37 local, 2026-10-01: $49.61 of $50.00, i.e. **at most $0.39 [BILLED] charged,
+cumulative for the whole account, not per gate** (the last operation of this gate ended at 17:11 UTC, about 1 h 26 min before the reading if local time is UTC+1, as the machine reports; the time zone of the reading is an assumption, D-36). The ledger figure above,
+$14.6495, is the sandbox API's reported operation cost, not account billing; the two differ by about 37x and the cause is not established (D-36, open).
+
+**4. What the v1.4.1 funding rule would have done on this gate's operations (DERIVED, counterfactual; from each record's own completed operations and the money the
+recorded guard had, no new spend).** Operations that ended the entries' COST_CAP: #11 operation 2, funded 108.2 s, would be funded 145.9 s at its $1.25 cap
+(185 s at the v1.4.1 cap of $1.50; it needed about 168 s: 108.2 s to reach the smoke run plus its 60 s); #8 operation 11, funded 44.1 s, would be funded 67.5 s.
+Every other operation of the four entries would have been funded more seconds than recorded (the rate is at or near the $0.0030 floor on #3 and #7, whose operations were
+cheap per wall second), so the new rule starves none of them. `reports/corpus-v2.1/v1.4.1/STEP1_REPORT.md` carries the table.
