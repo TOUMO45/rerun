@@ -61,7 +61,7 @@ above the $0.2878 left, and the guard's own bound would fund only 34 s.
 | F | reopen + apply + execute: reopened the same kept image, applied a one-file overlay, ran only the missing pip step: same outcome as E | true | $0.05192514 | `run2_F_reopen_apply_execute.json`, run id `9de6fe80-0d35-4a7f-af19-75cf3e9f79e8` |
 
 Seal spend: $0.815528 [MEASURED: run 1 $0.013848 + option-B checks $0.698525 + run 2 retry $0.103160] + at most $0.4998 [ESTIMATED,
-run 2 attempt 1, not recomputed] = at most $1.3153, under the $1.70 cap. Ledger: $11.4503 [ESTIMATED: $10.6662 MEASURED + $0.7840
+run 2 attempt 1, not recomputed] = at most $1.3153, under the $1.70 cap. Ledger: $11.4502 [ESTIMATED: $10.6662 MEASURED + $0.7840
 ESTIMATED], lower bound (D-27).
 
 Seal -> gate rule (owner): every seal check passed (the killed attempt 1 is superseded by the authorised retry and stays on record);
