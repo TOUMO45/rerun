@@ -188,3 +188,44 @@ def test_on_real_torch_cuda_calls_raise_without_the_shim_and_pass_with_it(tmp_pa
     assert "types cpu cpu cpu True True" in shimmed.stdout and "avail False" in shimmed.stdout and "load cpu" in shimmed.stdout
     assert "forward torch.Size([1, 2])" in shimmed.stdout
     assert {"tensor.cuda", "module.cuda", "torch.device", "tensor.to", "module.to"} <= set(runner_hooks.shim_paths_fired(shimmed.stderr))
+
+
+@pytest.mark.skipif(not REAL_PY or not Path(REAL_PY).exists(), reason="set RERUN_REAL_TORCH_PYTHON to an interpreter with torch (CPU) installed")
+def test_on_real_torch_what_already_worked_on_the_cpu_still_works_with_the_shim(tmp_path):
+    """Found on real torch (WSL, torch 2.14, 2026-10-01): the first proxy class broke `pickle.dumps(torch.device("cpu"))`
+    (PicklingError: attribute lookup device on rerun_cpu_shim failed). The proxy is now named torch.device. Every line below passes on plain torch."""
+    site = tmp_path / "site"
+    site.mkdir()
+    (site / "rerun_cpu_shim.py").write_text(runner_hooks.source_of(runner_hooks.CPU_SHIM), encoding="utf-8")
+    (site / "rerun_cpu_shim.pth").write_text("import rerun_cpu_shim\n", encoding="utf-8")
+    probe = textwrap.dedent("""
+        import copy, pickle, torch
+        d = torch.device("cpu")
+        checks = {
+            "isinstance": isinstance(d, torch.device) and isinstance(torch.zeros(1).device, torch.device),
+            "cpu_index": str(torch.device("cpu", 0)) == "cpu:0",
+            "device_of_device": str(torch.device(torch.device("cpu"))) == "cpu",
+            "pickle": pickle.loads(pickle.dumps(d)) == d,
+            "deepcopy": copy.deepcopy(d) == d,
+            "to_dtype": torch.ones(2).to(torch.float64).dtype == torch.float64,
+            "to_tensor": torch.ones(2).to(torch.zeros(2, dtype=torch.float64)).dtype == torch.float64,
+            "to_cpu_kwargs": torch.ones(2).to("cpu", dtype=torch.float64, non_blocking=True).dtype == torch.float64,
+            "module_to_dtype": torch.nn.Linear(2, 2).to(torch.float64).weight.dtype == torch.float64,
+            "module_to_format": torch.nn.Conv2d(1, 1, 1).to(memory_format=torch.channels_last).weight.dim() == 4,
+            "to_cpu_device": torch.ones(2).to(d).device.type == "cpu",
+            "dataloader": len(list(torch.utils.data.DataLoader(torch.arange(4), batch_size=2))) == 2,
+            "dataparallel": type(torch.nn.DataParallel(torch.nn.Linear(2, 2))).__name__ == "DataParallel",
+            "forward": tuple(torch.nn.Linear(2, 2)(torch.ones(1, 2)).shape) == (1, 2),
+        }
+        print("BAD", sorted(k for k, ok in checks.items() if not ok))
+    """)
+
+    def run(shimmed):
+        boot = f"import site; site.addsitedir({str(site)!r})\n" if shimmed else ""
+        return subprocess.run([REAL_PY, "-c", boot + probe], capture_output=True, text=True, timeout=300, cwd=tmp_path)
+
+    plain = run(False)
+    assert plain.returncode == 0 and "BAD []" in plain.stdout, plain.stderr[-1500:] + plain.stdout
+    shimmed = run(True)
+    assert shimmed.returncode == 0, shimmed.stderr[-1500:]
+    assert "BAD []" in shimmed.stdout, shimmed.stdout  # a name listed here is something the shim broke

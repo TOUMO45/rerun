@@ -170,7 +170,12 @@ def _patch(torch):
                 _fired("torch.device")
             return orig_device(*new_args, **kwargs)
 
-        torch.device = _DeviceMeta("device", (object,), {"__new__": device_new, "__doc__": orig_device.__doc__})
+        # __module__/__qualname__ make the proxy importable as torch.device: a real device pickles as (torch.device, args), and
+        # pickle looks that class up by name (found on REAL torch: without these, pickle.dumps(torch.device("cpu")) raised).
+        torch.device = _DeviceMeta(
+            "device", (object,),
+            {"__new__": device_new, "__doc__": orig_device.__doc__, "__module__": "torch", "__qualname__": "device"},
+        )
 
     step("torch.cuda.is_available() -> False", is_available_patch)
     step("torch.load(map_location='cpu')", load_patch)

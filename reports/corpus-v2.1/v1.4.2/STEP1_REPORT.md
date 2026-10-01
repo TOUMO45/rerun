@@ -44,9 +44,18 @@ An operation starts only while 1.5 x its estimate is left. Seal -> gate (owner's
 ## 5. Real torch
 
 The shim's new paths touch torch internals (`Tensor.to`, `Module.to`, a `torch.device` proxy): they are checked against REAL CPU torch before sealing, offline and free, in a throwaway environment (`RERUN_REAL_TORCH_PYTHON`; the same test is skipped in an
-ordinary run). Result: see the commit that adds the line below.
+ordinary run).
 
-REAL-TORCH RESULT: pending at the time of writing this report (the CPU wheel is a 196 MB download over a slow line; a Windows environment failed to load `c10.dll`, a Linux one in WSL is being installed).
+REAL-TORCH RESULT (offline, no Nebius call, torch 2.14.1+cpu, Linux in WSL, 2026-10-01): **one defect found and fixed.**
+- Plain torch: `.cuda()` on Tensor and Module, `.to("cuda")`, `.to(device=torch.device("cuda"))`, `Module.to("cuda:1")`, `torch.zeros(device=torch.device("cuda"))` and `torch.load(map_location="cuda:0")` all raise (`Torch not compiled with CUDA enabled`).
+  `torch.device("cuda...")` alone does not raise on plain torch (it is only a name).
+- With the shim (loaded through a real site directory and its `.pth` line): the 9 CUDA calls probed all went to the CPU, `torch.load(map_location="cuda:0")` returned a CPU tensor, all seven shim paths were recorded; 19 of 20 CPU-side checks passed.
+- **The defect:** `pickle.dumps(torch.device("cpu"))` raised `PicklingError: Can't pickle <class 'rerun_cpu_shim.device'>`: a real device pickles as `(torch.device, args)`, pickle looks the class up by name, and the proxy class was named after the shim module. Plain torch pickles it.
+  A repository that pickles a device (a checkpoint holding one, a multiprocessing argument) would have failed with the shim and passed without it. **Fix:** the proxy class is created with `__module__ = "torch"` and `__qualname__ = "device"` (`runner_hooks.py`).
+  After the fix: 20 of 20 CPU-side checks pass, 9 of 9 CUDA calls pass.
+- Tests: `test_on_real_torch_cuda_calls_raise_without_the_shim_and_pass_with_it` and the new `test_on_real_torch_what_already_worked_on_the_cpu_still_works_with_the_shim` (14 checks that pass on plain torch: isinstance, `torch.device("cpu", 0)`, pickle, deepcopy, `.to(dtype)`, `.to(tensor)`, `.to("cpu", dtype=..., non_blocking=True)`, `Module.to(memory_format=...)`, DataLoader, DataParallel, forward). Run under WSL with `RERUN_REAL_TORCH_PYTHON=/usr/bin/python3`: 8 passed (the 6 fake-torch tests and both real-torch tests). Negative control: the two proxy-class attributes removed, the new test fails with the `PicklingError`; restored byte for byte, passes.
+- Not covered (stated, unchanged): `torch.zeros(2, device="cuda")` with a plain string given to a factory function, `torch.cuda.*Tensor` types, `torch.set_default_tensor_type`, `torch.load(map_location=...)` of a code path that does not go through `torch.load`. The shim is a CPU-only device story, not a claim that the repository's numbers match a GPU run.
+- The sandbox's torch is whatever the repository installs (often an older release), so this checks the proxy against one current release, not against every release.
 
 ## 6. Found, decisions
 
