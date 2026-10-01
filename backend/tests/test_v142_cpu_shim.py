@@ -172,6 +172,7 @@ def test_on_real_torch_cuda_calls_raise_without_the_shim_and_pass_with_it(tmp_pa
         z = torch.zeros(2, device=torch.device("cuda"))
         m2 = torch.nn.Linear(2, 2).to("cuda")
         print("types", d.type, y.device.type, z.device.type, isinstance(d, torch.device), isinstance(torch.device("cpu"), torch.device))
+        print("index", torch.device("cuda", 0) == torch.zeros(1).device, torch.device("cuda:1") == torch.device("cpu"), torch.device(type="cuda", index=0).type)
         print("avail", torch.cuda.is_available())
         torch.save(x, "t.pt"); print("load", torch.load("t.pt", "cuda:0").device.type if True else "")
         print("forward", m(torch.ones(1, 2)).shape)
@@ -187,6 +188,8 @@ def test_on_real_torch_cuda_calls_raise_without_the_shim_and_pass_with_it(tmp_pa
     assert shimmed.returncode == 0, shimmed.stderr[-1500:]
     assert "types cpu cpu cpu True True" in shimmed.stdout and "avail False" in shimmed.stdout and "load cpu" in shimmed.stdout
     assert "forward torch.Size([1, 2])" in shimmed.stdout
+    # every shimmed device is THE cpu device: no `cpu:0` that would not compare equal to a tensor's own `cpu` (found by the independent review)
+    assert "index True True cpu" in shimmed.stdout
     assert {"tensor.cuda", "module.cuda", "torch.device", "tensor.to", "module.to"} <= set(runner_hooks.shim_paths_fired(shimmed.stderr))
 
 
@@ -199,8 +202,15 @@ def test_on_real_torch_what_already_worked_on_the_cpu_still_works_with_the_shim(
     (site / "rerun_cpu_shim.py").write_text(runner_hooks.source_of(runner_hooks.CPU_SHIM), encoding="utf-8")
     (site / "rerun_cpu_shim.pth").write_text("import rerun_cpu_shim\n", encoding="utf-8")
     probe = textwrap.dedent("""
-        import copy, pickle, torch
+        import argparse, copy, pickle, torch
         d = torch.device("cpu")
+
+        def saved_model():
+            m = torch.nn.Linear(2, 2)
+            m.device = d
+            torch.save(m, "m.pt")
+            return torch.load("m.pt", weights_only=False).device == d
+
         checks = {
             "isinstance": isinstance(d, torch.device) and isinstance(torch.zeros(1).device, torch.device),
             "cpu_index": str(torch.device("cpu", 0)) == "cpu:0",
@@ -216,6 +226,10 @@ def test_on_real_torch_what_already_worked_on_the_cpu_still_works_with_the_shim(
             "dataloader": len(list(torch.utils.data.DataLoader(torch.arange(4), batch_size=2))) == 2,
             "dataparallel": type(torch.nn.DataParallel(torch.nn.Linear(2, 2))).__name__ == "DataParallel",
             "forward": tuple(torch.nn.Linear(2, 2)(torch.ones(1, 2)).shape) == (1, 2),
+            "class_attribute": hasattr(torch.device, "type") and hasattr(torch.device, "index"),
+            "save_namespace_with_device": (torch.save(argparse.Namespace(device=d, lr=0.1), "ns.pt"),
+                                           torch.load("ns.pt", weights_only=False).device == d)[1],
+            "save_module_with_device_attribute": saved_model(),
         }
         print("BAD", sorted(k for k, ok in checks.items() if not ok))
     """)

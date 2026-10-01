@@ -87,7 +87,7 @@ class AdjudicationResult:
     used_templated_fallback: bool = False
 
 
-def templated_certificate_prose(verdict: str, taxonomy_code: str | None, attempts_used: int) -> str:
+def templated_certificate_prose(verdict: str, taxonomy_code: str | None, attempts_used: int, reason: str = "") -> str:
     base = {
         "RUNS_CLEAN": "The repository's command ran to completion in its declared environment, with no changes.",
         "RUNS_AFTER_REPAIR": f"The repository's command ran to completion after {attempts_used} gate-approved change(s).",
@@ -103,6 +103,16 @@ def templated_certificate_prose(verdict: str, taxonomy_code: str | None, attempt
         base = (
             "The Nebius sandbox refused to load or store something the run needed "
             f"({taxonomy_code}); a platform limit is not evidence about the repository's code, so nothing is claimed about it."
+        )
+    elif verdict == "INDETERMINATE" and taxonomy_code == "RESOURCE_LIMIT":
+        base = (
+            "The Nebius sandbox killed the process the run needed (RESOURCE_LIMIT); a platform limit is not evidence about "
+            "the repository's code, so nothing is claimed about it."
+        )
+    elif verdict == "INDETERMINATE" and reason.startswith("EXIT_OUTSIDE_PYTHON"):
+        base = (
+            "The command exited without a Python error, and RERUN's evidence run showed no sandbox kill (EXIT_OUTSIDE_PYTHON); "
+            "RERUN cannot say why it exited, so nothing is claimed about the repository."
         )
     return f"{base} {SCOPE_BOUNDARY_LINE}"
 
@@ -142,11 +152,12 @@ def adjudicate(
     attempts_used: int = 0,
     evidence_summary: str = "",
     cost_guard=None,
+    reason: str = "",
 ) -> AdjudicationResult:
     if client is None or model is None:
         return AdjudicationResult(
             verdict=verdict,
-            certificate_prose=templated_certificate_prose(verdict, taxonomy_code, attempts_used),
+            certificate_prose=templated_certificate_prose(verdict, taxonomy_code, attempts_used, reason),
             was_downgraded=False,
             used_templated_fallback=True,
         )
@@ -170,7 +181,7 @@ def adjudicate(
     except ModelCallError:
         return AdjudicationResult(
             verdict=verdict,
-            certificate_prose=templated_certificate_prose(verdict, taxonomy_code, attempts_used),
+            certificate_prose=templated_certificate_prose(verdict, taxonomy_code, attempts_used, reason),
             was_downgraded=False,
             used_templated_fallback=True,
         )
@@ -184,7 +195,7 @@ def adjudicate(
         # only say the code executes, so fall back to the fixed wording.
         prose = ""
     if not prose:
-        prose = templated_certificate_prose(final_verdict, taxonomy_code, attempts_used)
+        prose = templated_certificate_prose(final_verdict, taxonomy_code, attempts_used, reason)
         used_fallback = True
     else:
         prose = _ensure_scope_line(prose)
@@ -275,23 +286,28 @@ def stage_rank(stage: dict | None) -> tuple:
 
 
 def advance_key(stage: dict | None) -> tuple:
-    """The COARSE order `partial_progress_choice` uses to decide that a run strictly advanced past another (no seconds: a longer run is not
-    progress): (passed, phase, setup steps completed when the failure is in setup, still running when it failed). Larger = further."""
+    """The COARSE order `partial_progress_choice` uses to decide that a run strictly advanced past another: (passed, phase, setup steps
+    completed when the failure is in setup). Larger = further. No seconds and no "still running when it failed" flag: a longer or silent
+    run is not progress (the independent review of v1.4.2-rc found the flag let a silent run beat a quick exit)."""
     if not stage:
-        return (0, -1, 0, 0)
+        return (0, -1, 0)
     if stage.get("exit_code") == 0:
-        return (1, 3, 0, 0)
+        return (1, 3, 0)
     phase = stage.get("phase")
     completed = int(stage.get("setup_completed") or 0) if phase in ("runner_setup", "repo_install") else 0
-    return (0, _PHASE_RANK.get(phase, -1), completed, 1 if stage.get("outcome") == "failed_while_running" else 0)
+    return (0, _PHASE_RANK.get(phase, -1), completed)
 
 
 def partial_progress_choice(current: dict | None, candidates: list[dict]) -> dict | None:
     """harness-v1.4.2-rc (D-37). When no candidate was adopted, the one that got furthest (the recorded stage order: runner setup < install step k <
     the repository's own command < passed) IF it strictly advances past the failure being repaired; ties go to the finer `stage_rank`, then to the
-    lowest number. Returns {"number", "current", "chosen"} or None. A candidate that only moves sideways (the same stage) is never adopted."""
+    lowest number. Returns {"number", "current", "chosen"} or None. A candidate that only moves sideways (the same stage) is never adopted,
+    and neither is a candidate whose run passed (its judgement belongs to the adjudicator)."""
     now = advance_key(current)
-    ahead = [c for c in candidates if advance_key(c.get("stage")) > now]
+    # A run that PASSED is never "partial progress": the adjudicator judges passes, and when it says none (it passes by doing less, the
+    # rules disqualified it) that veto stands. Found by the independent review: without this a vetoed pass was adopted and the entry ended
+    # RUNS_AFTER_REPAIR where v1.4.1 ended BLOCKED.
+    ahead = [c for c in candidates if c.get("exit_code") != 0 and advance_key(c.get("stage")) > now]
     if not ahead:
         return None
     best = max(ahead, key=lambda c: (advance_key(c.get("stage")), stage_rank(c.get("stage")), -c["number"]))
@@ -340,6 +356,17 @@ def adjudicate_candidates(client, model: str | None, failure: str, candidates: l
     harness-v1.4.2-rc (D-37): given `current_stage` (the stage of the failure being repaired), a decision of "none" is replaced by the candidate
     that strictly advanced furthest (`partial_progress_choice`), recorded as adopted_reason "partial progress"."""
     result = _adjudicate(client, model, failure, candidates, cost_guard)
+    if result.chosen is None and candidates:
+        # harness-v1.4.2-rc (D-38, found by the independent review): a candidate whose run the sandbox KILLED is adopted over a "none", so the entry ends
+        # INDETERMINATE (RESOURCE_LIMIT) instead of being repaired on and ending BLOCKED, which the owner's rule rules out whatever the model proposes.
+        killed = sorted((c for c in candidates if c.get("resource_kill")), key=lambda c: c["number"])
+        if killed:
+            from dataclasses import replace
+
+            return replace(
+                result, chosen=killed[0]["number"], adopted_reason="resource kill",
+                reasoning=f"{result.reasoning} | RERUN adopted candidate {killed[0]['number']}: the sandbox killed its run, so the entry ends "
+                          "INDETERMINATE (RESOURCE_LIMIT), not BLOCKED.")
     if result.chosen is None and candidates and current_stage is not None:
         pick = partial_progress_choice(current_stage, candidates)
         if pick is not None:

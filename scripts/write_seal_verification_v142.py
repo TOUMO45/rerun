@@ -75,6 +75,13 @@ def main() -> int:
             rec = json.loads((ROOT / rel).read_text(encoding="utf-8"))
             if not rec.get("ok") or not rec.get("run_id"):
                 raise SystemExit(f"{rel}: not a passing live record (ok={rec.get('ok')}, run_id={rec.get('run_id')})")
+            # The live run recorded the blobs of the files it ran against; an edit between the run and now invalidates it (same rule as a carried-over entry).
+            recorded = rec.get("code_blobs") or {}
+            for f in code_files:
+                if f not in recorded:
+                    raise SystemExit(f"{rel}: the record carries no blob for {f}: it cannot show the file is the one the live run used")
+                if recorded[f] != blob(f):
+                    raise SystemExit(f"{rel}: {f} changed after its live run (record {recorded[f][:10]}, file now {blob(f)[:10]}): the verification is stale")
             run_ids.append(rec["run_id"])
         entries.append({"id": pid, "description": description, "live_nebius": True, "code_files": {f: blob(f) for f in code_files},
                         "records": list(records), "run_ids": run_ids})

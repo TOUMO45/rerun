@@ -128,7 +128,7 @@ No gate has validated any of these: status **fixed-unvalidated**, basis = the na
 their annotation, not a rewrite.
 
 - **D-37 [annotation: fixed-unvalidated]** When no candidate passes, the adjudicator adopts the candidate whose run got furthest by the recorded stage order (runner setup < install step k < the repository's own command < passed),
-  PROVIDED it strictly advances past the failure being repaired (a coarse key: phase, setup steps completed, still running when it failed; seconds are ignored, a longer run is not progress); `adopted_reason` = "partial progress"
+  PROVIDED it strictly advances past the failure being repaired (a coarse key: phase, setup steps completed; seconds and "still running when it failed" are ignored, a longer or silent run is not progress; a run that PASSED is never adopted this way, the adjudicator's veto of a pass stands; a candidate whose run the sandbox killed is adopted over a "none", D-38); `adopted_reason` = "partial progress"
   with the two stages recorded; Ultra's own choice is labelled "adjudicator", RERUN's JSON fallback "fallback: <why>". The adopted candidate's change is applied and its kept image is the next round's environment (the existing
   adoption path). Tests: `backend/tests/test_v142_partial_progress.py` (corpus-v2 #7, harness-v1.4.1 gate rounds 1-3 read from the committed record: Box2D is further than pkg-config; and a pipeline run whose round 2 branches from the
   adopted candidate's image).

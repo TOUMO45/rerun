@@ -1029,7 +1029,7 @@ billed second x 1.5 = $0.0152/s from now on, tagged ESTIMATED with its rate and 
 v1.4.1 gate is the owner's reading ($49.61 -> $49.57; at most $0.43 cumulative; $0.04 between the readings against $3.8588 recorded).
 
 **What changes in a run (TREATMENT; the as-published baseline is unchanged).**
-1. D-37: a "none" from the adjudicator becomes the candidate that strictly advanced furthest past the failure being repaired (coarse stage key; `adopted_reason` "partial progress"); the next round starts from its kept image.
+1. D-37: a "none" from the adjudicator becomes the candidate that strictly advanced furthest past the failure being repaired (coarse stage key; `adopted_reason` "partial progress"); the next round starts from its kept image. A run that passed is never adopted this way (the adjudicator's veto of a pass stands); a candidate whose run the sandbox killed is adopted over a "none" (`adopted_reason` "resource kill") so the entry ends INDETERMINATE, never BLOCKED.
 2. D-39: the CPU shim also covers `.cuda()` on Tensor and Module, `.to("cuda*")`, `torch.device("cuda*")`; each path that acted is recorded (`paths_fired`).
 3. D-38 / D-40: exit 137 / -9 is RESOURCE_LIMIT; the entry ends INDETERMINATE with the limit quoted (read from the sandbox by one evidence run, else the documented limits), never BLOCKED, and no model attempt is spent; the sandbox's
    documented limits (none for memory and CPU) are stored on every operation; a larger instance is not documented and is not used.

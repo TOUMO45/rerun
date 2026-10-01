@@ -1323,10 +1323,13 @@ def _run_stages(
     taxonomy_code: str | None = None
     indeterminate_reason = ""
 
-    def _collect_resource_evidence(role: str, why: str) -> dict:
+    def _collect_resource_evidence(role: str, why: str, phase: str = error_chain.PHASE_REPO_RUN) -> dict:
         """harness-v1.4.2-rc (D-38 / D-40). ONE evidence run per entry (TREATMENT only): the current command (through the exit wrapper if it is on) runs
         again with the sandbox's own limits and kill traces read after it (`runner_hooks.evidence_command`); recorded as attempt 0 / origin time_machine with
-        `time_machine_action` {rule resource_evidence, evidence, kill_evidenced, limit_quote}. Never raises: a run that cannot be made leaves `collected` False."""
+        `time_machine_action` {rule resource_evidence, evidence, kill_evidenced, limit_quote}. Never raises: a run that cannot be made leaves `collected` False
+        and says why (the independent review found three ways it could raise or cost money for nothing: a kill during SETUP, where the sandbox stops before the
+        command and no block can print; an evidence run the entry cannot afford, whose budget stop would then end the entry COST_CAP instead of the kill's
+        verdict; an infrastructure or sandbox error, which would turn a decided RESOURCE_LIMIT into INFRA_ERROR)."""
         if state.resource_evidence is not None:
             return state.resource_evidence
         action = {"rule": "resource_evidence", "matched_error": why[:500], "phase": "repair",
@@ -1336,11 +1339,16 @@ def _run_stages(
         found: dict = {"collected": False, "evidence": None, "kill_evidenced": False, "limit_quote": ""}
         if not deps.repair_enabled:
             found["reason"] = "repair is off for this arm: no extra operation is run"
+        elif phase != error_chain.PHASE_REPO_RUN:
+            found["reason"] = (f"the kill happened in the {phase} phase; the evidence is read after the repository's own command, which the sandbox "
+                               "never reached, so no evidence run was made")
         else:
+            capped_before = state.cost_capped
             try:
                 result = _execute(workdir, smoke=True, role=role, evidence=True)
-            except (CostLimitExceeded, SandboxTimeoutError, tree_integrity.HarnessIntegrityError) as exc:
-                found["reason"] = f"the evidence run did not complete: {str(exc)[:300]}"
+            except Exception as exc:  # noqa: BLE001 - the kill is already decided; a failed evidence run only means no evidence
+                state.cost_capped = capped_before  # an evidence run the entry cannot fund must not end the entry COST_CAP
+                found["reason"] = f"the evidence run did not complete: {type(exc).__name__}: {str(exc)[:300]}"
                 action["stopped"] = found["reason"]
                 attempts.append(AttemptRecord(0, "", "PASS", (), None, "", found["reason"][-2000:], origin="time_machine", time_machine_action=action))
             else:
@@ -1356,12 +1364,13 @@ def _run_stages(
         state.resource_evidence = found
         return found
 
-    def _resource_reason(classification) -> str:
+    def _resource_reason(classification, phase: str = error_chain.PHASE_REPO_RUN) -> str:
         """The INDETERMINATE reason of a RESOURCE_LIMIT: the kill, the limits as the sandbox showed them (else as documented), and that no model attempt was made."""
-        found = _collect_resource_evidence("resource evidence", classification.evidence)
+        found = _collect_resource_evidence("resource evidence", classification.evidence, phase)
         quote = found.get("limit_quote") or resource_limits.quote()
+        no_evidence = f" No evidence was read: {found['reason']}." if not found.get("collected") and found.get("reason") else ""
         return (f"RESOURCE_LIMIT: {classification.evidence}; limits ({quote}) — the sandbox killed the process; not a verdict on the repository, "
-                "and no repair attempt was made.")
+                f"and no repair attempt was made.{no_evidence}")
 
     def _note_failure(attempt_number: int, classification, phase: str = "repo_run") -> str | None:
         """Record a classified failure in the run's error chain. Returns an
@@ -1382,7 +1391,7 @@ def _run_stages(
             phase,
         )
         if classification.code == classifier.TaxonomyCode.RESOURCE_LIMIT:
-            return _resource_reason(classification)
+            return _resource_reason(classification, phase)
         if classification.code in classifier.TaxonomyCode.SANDBOX_CODES:
             return f"{classification.code}: {classification.evidence} — a sandbox-side failure, not a verdict on the repository."
         if phase == error_chain.PHASE_RUNNER_SETUP:
@@ -1409,7 +1418,7 @@ def _run_stages(
                 verdict="INDETERMINATE",
                 taxonomy_code=classification.code,
                 indeterminate_reason=sandbox_reason,
-                attempts=(),
+                attempts=tuple(attempts),  # the baseline-kill evidence run (D-40) is an operation and is recorded, not only quoted
                 build_plan_dict=plan.as_dict(),
                 log_lines=log_lines,
                 deps=deps,
@@ -1783,8 +1792,9 @@ def _run_stages(
                 raise
             printed = (runner_hooks.EXIT_WRAPPER_MARKER in f"{result.final.stderr}\n{result.final.stdout}"
                        or classifier.has_actionable_error(result.final.stderr, result.final.stdout))
-            action["result"] = "the wrapper printed the traceback of the raise" if printed else runner_hooks.OUTSIDE_PYTHON
-            if not printed:
+            action["result"] = ("the wrapped run exited 0" if result.succeeded else
+                                "the wrapper printed the traceback of the raise" if printed else runner_hooks.OUTSIDE_PYTHON)
+            if not printed and not result.succeeded:  # a run that passed has nothing to explain (found by the review: it was sent for evidence)
                 _log(f"[time-machine] the wrapper printed nothing either: {runner_hooks.OUTSIDE_PYTHON}")
                 # harness-v1.4.2-rc (D-38 / D-40): once more, with the sandbox's own evidence: a kill is RESOURCE_LIMIT, anything else stays "exit outside
                 # Python"; either way the entry ends INDETERMINATE and no model attempt is spent on it.
@@ -1793,12 +1803,20 @@ def _run_stages(
                     state.resource_stop = ("RESOURCE_LIMIT", f"RESOURCE_LIMIT: the command exited with code {result.final.exit_code} and printed no error; the "
                                            f"exit hook and the exit wrapper printed nothing and the evidence run shows a kill ({found['limit_quote']}) — the "
                                            "sandbox killed the process; not a verdict on the repository, and no repair attempt was made.")
+                    # The chain gets the kill as a link attributed to the sandbox (the silent exit before it was attributed REPO by default).
+                    state.error_chain.record(0, classifier.TaxonomyCode.RESOURCE_LIMIT, state.resource_stop[1][:500],
+                                             error_chain.attribute(classifier.TaxonomyCode.RESOURCE_LIMIT, found["limit_quote"],
+                                                                   declared_deps=intake_result.declared_dependencies,
+                                                                   python_claim=intake_result.python_version_hint, base_image=plan.base_image))
                 else:
                     seen = found["limit_quote"] or found.get("reason") or "no evidence could be read"
                     state.resource_stop = (runner_hooks.OUTSIDE_PYTHON_REASON_CODE, f"{runner_hooks.OUTSIDE_PYTHON_REASON_CODE}: {runner_hooks.OUTSIDE_PYTHON} — the "
                                            f"command exited with code {result.final.exit_code} and printed no error; the exit-site hook and the exit wrapper printed "
                                            f"nothing and the evidence run shows no kill ({seen}). The exit is not a Python SystemExit and nothing says why; not a "
                                            "verdict on the repository, and no model attempt was spent on it.")
+                    # No chain link is added: the chain's last link is the silent exit, attributed REPO by the classifier's default, and the harness has no
+                    # attribution for "nothing says why". The reason code EXIT_OUTSIDE_PYTHON on the INDETERMINATE verdict is what says so; the summaries
+                    # (compare_batches, run_corpus_v1_batch) read that code and keep the entry out of the repository's column.
             _log(f"[time-machine] re-execution id={result.sandbox_id} exit_code={result.final.exit_code}")
             _record(result.final.exit_code, result.final.stdout[-2000:], result.final.stderr[-2000:], _execution_of(result, True))
             return result
@@ -2562,6 +2580,9 @@ def _run_stages(
                           "exit_code": e["result"].final.exit_code,
                           "outcome": (_execution_of(e["result"], True) or {}).get("outcome", "exited"),
                           "stage": _candidate_stage(e["result"], (_execution_of(e["result"], True) or {}).get("outcome", "exited")),
+                          # harness-v1.4.2-rc (D-38): a candidate whose run the sandbox killed (SIGKILL) ends the entry INDETERMINATE once adopted
+                          "resource_kill": (e["classification"] is not None
+                                            and e["classification"].code == classifier.TaxonomyCode.RESOURCE_LIMIT),
                           "output_tail": f"{e['result'].final.stderr[-1200:]}\n{e['result'].final.stdout[-800:]}",
                           "explanation": e["proposal"].explanation} for e in qualifying],
                         cost_guard=cost_guard,
@@ -2763,6 +2784,7 @@ def _finalize(
         attempts_used=attempts_used,
         evidence_summary=evidence_summary,
         cost_guard=cost_guard,
+        reason=indeterminate_reason,
     )
     if adjudication.was_downgraded:
         _log(f"[adjudicator] downgraded verdict to {adjudication.verdict}: {adjudication.downgrade_reason}")

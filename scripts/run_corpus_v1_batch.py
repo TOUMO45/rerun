@@ -561,10 +561,10 @@ def summarize(records: list[dict]) -> dict:
         })
     our_fault = ("INFRA_ERROR", "INVALID_HARNESS", "UPLOAD_TOO_LARGE")
     # Phase 2: sandbox-side INDETERMINATE (SANDBOX_QUOTA / SANDBOX_INCOMPAT) is not a repository verdict.
-    sandbox_side = lambda row: (row["reason_code"] or "").startswith(("SANDBOX_QUOTA", "SANDBOX_INCOMPAT"))  # noqa: E731
+    sandbox_side = lambda row: (row["reason_code"] or "").startswith(("SANDBOX_QUOTA", "SANDBOX_INCOMPAT", "RESOURCE_LIMIT"))  # noqa: E731
     primary = [row for row in rows if row["category"] == "PRIMARY"]
     measured = [row for row in primary if row["verdict"] not in our_fault
-                and not (row["reason_code"] or "").startswith(("PIPELINE_ERROR", "COST_CAP")) and not sandbox_side(row)]
+                and not (row["reason_code"] or "").startswith(("PIPELINE_ERROR", "COST_CAP", "EXIT_OUTSIDE_PYTHON")) and not sandbox_side(row)]
     failed = [row for row in measured if row["baseline"] == "FAILS"]
     recovered = [row for row in failed if row["verdict"] == "RUNS_AFTER_REPAIR"]
     blocked: dict[str, int] = {}

@@ -46,10 +46,13 @@ def test_a_synthetic_seal_passes_the_batch_drivers_seal_rule(tmp_path, monkeypat
     monkeypatch.setattr(writer, "blob", lambda path: blobs[path])
     monkeypatch.setattr(writer, "NEW", "runs/new")
 
-    def record(rel, run_id):
+    def record(rel, run_id, *, blobs_of_run=None):
         path = tmp_path / rel
         path.parent.mkdir(parents=True, exist_ok=True)
-        path.write_text(json.dumps({"ok": True, "run_id": run_id}), encoding="utf-8")
+        doc = {"ok": True, "run_id": run_id}
+        if blobs_of_run is not None:
+            doc["code_blobs"] = blobs_of_run
+        path.write_text(json.dumps(doc), encoding="utf-8")
 
     old = [{"id": f"old_{i}", "description": "d", "live_nebius": True, "code_files": {f: blobs[f]}, "records": [f"runs/old/{i}.json"], "run_ids": [f"r{i}"]}
            for i, f in enumerate(f for f in drv.SANDBOX_TOUCHING_FILES if not f.endswith("runner_hooks.py"))]
@@ -64,7 +67,7 @@ def test_a_synthetic_seal_passes_the_batch_drivers_seal_rule(tmp_path, monkeypat
                                           for pid, d, files, recs in writer.PATHS])
     for _, _, _, records in writer.PATHS:
         for rel in records:
-            record(rel, f"id-{Path(rel).stem}")
+            record(rel, f"id-{Path(rel).stem}", blobs_of_run={writer.SB: blobs[writer.SB], writer.HOOKS: blobs[writer.HOOKS]})
     assert writer.main() == 0
     doc = json.loads((tmp_path / "seal_verification.json").read_text(encoding="utf-8"))
     assert doc["harness_tag"] == "harness-v1.4.2" and doc["carried_over_from"] == "harness-v1.4.1"
@@ -84,3 +87,28 @@ def test_a_failed_new_record_stops_the_writer(tmp_path, monkeypatch):
     (tmp_path / rel).write_text(json.dumps({"ok": False, "run_id": "x"}), encoding="utf-8")
     with pytest.raises(SystemExit, match="not a passing live record"):
         writer.main()
+
+
+def _writer_with_one_record(tmp_path, monkeypatch, doc):
+    writer = _writer()
+    monkeypatch.setattr(writer, "ROOT", tmp_path)
+    monkeypatch.setattr(writer, "blob", lambda path: f"blob-now-{Path(path).name}")
+    rel = writer.PATHS[0][3][0]
+    (tmp_path / rel).parent.mkdir(parents=True, exist_ok=True)
+    (tmp_path / rel).write_text(json.dumps(doc), encoding="utf-8")
+    return writer
+
+
+def test_a_record_taken_against_an_older_runner_hooks_stops_the_writer(tmp_path, monkeypatch):
+    """The independent review: the live records carried no blob, so an edit of runner_hooks.py between the live seal and the writer was accepted silently."""
+    writer = _writer_with_one_record(tmp_path, monkeypatch, {"ok": True, "run_id": "x", "code_blobs": {
+        "backend/app/services/sandbox.py": "blob-now-sandbox.py", "backend/app/services/runner_hooks.py": "blob-at-the-live-run"}})
+    with pytest.raises(SystemExit, match="runner_hooks.py changed after its live run.*stale"):
+        writer.main()
+
+
+def test_a_record_without_code_blobs_stops_the_writer(tmp_path, monkeypatch):
+    writer = _writer_with_one_record(tmp_path, monkeypatch, {"ok": True, "run_id": "x"})
+    with pytest.raises(SystemExit, match="carries no blob"):
+        writer.main()
+

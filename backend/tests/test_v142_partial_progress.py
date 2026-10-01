@@ -100,7 +100,8 @@ def test_the_stage_order_the_rule_uses():
     run_long = {"phase": "repo_run", "setup_completed": 3, "outcome": "exited", "seconds": 50.0, "exit_code": 1}
     run_alive = {"phase": "repo_run", "setup_completed": 3, "outcome": "failed_while_running", "seconds": 1.0, "exit_code": 1}
     passed = {"phase": "repo_run", "exit_code": 0}
-    assert advance_key(setup0) < advance_key(setup2) < advance_key(run_quick) < advance_key(run_alive) < advance_key(passed)
+    assert advance_key(setup0) < advance_key(setup2) < advance_key(run_quick) < advance_key(passed)
+    assert advance_key(run_quick) == advance_key(run_alive)  # still running when it failed is not progress (independent review)
     assert advance_key(run_quick) == advance_key(run_long)  # a longer run is not progress: the coarse key ignores seconds
     assert partial_progress_choice(run_quick, [{"number": 1, "stage": run_long}]) is None
     assert partial_progress_choice(setup0, [{"number": 1, "stage": setup0}, {"number": 2, "stage": setup2}, {"number": 3, "stage": run_quick}])["number"] == 3

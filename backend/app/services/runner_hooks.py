@@ -155,6 +155,10 @@ def _patch(torch):
             def __subclasscheck__(cls, sub):
                 return issubclass(sub, orig_device)
 
+            def __getattr__(cls, name):
+                # class-level reads (`torch.device.type`) see the real class, as on plain torch (found by the independent review)
+                return getattr(orig_device, name)
+
         def device_new(cls, *args, **kwargs):
             new_args = []
             changed = False
@@ -168,6 +172,8 @@ def _patch(torch):
                 changed = changed or c
             if changed:
                 _fired("torch.device")
+                # one CPU device, whatever index was asked for: a tensor on the CPU reports `cpu`, so `cpu:0` would not compare equal to it
+                return orig_device("cpu")
             return orig_device(*new_args, **kwargs)
 
         # __module__/__qualname__ make the proxy importable as torch.device: a real device pickles as (torch.device, args), and
@@ -366,7 +372,8 @@ HOOKS = {
         CPU_SHIM, "cpu_shim", "GPU_REQUIRED at repair time",
         "covers torch.load (map_location), torch.cuda.is_available(), Tensor.cuda() and Module.cuda() (return self), .to('cuda*') on Tensor and "
         "Module and torch.device('cuda*') (-> cpu); does NOT cover device='cuda' strings given to factory functions (torch.zeros(device='cuda')), "
-        "torch.cuda.*Tensor types or torch.set_default_tensor_type('torch.cuda.FloatTensor')",
+        "torch.cuda.*Tensor types or torch.set_default_tensor_type('torch.cuda.FloatTensor'); torch.device is a proxy class, so "
+        "`type(d) is torch.device` is False for a real device and a `torch.device(...)` call inside a TorchScript function is not supported",
     ),
     EXIT_HOOK: Hook(
         EXIT_HOOK, "exit_site_hook", "a non-zero exit with no traceback (silent exit, D-25)",
@@ -513,12 +520,14 @@ OUTSIDE_PYTHON_REASON_CODE = "EXIT_OUTSIDE_PYTHON"
 # Every read is tolerant (a file the sandbox does not have prints nothing); nothing here changes the repository or the environment.
 _EVIDENCE_SUFFIX = (
     'rc=$?; { echo "RERUN_EVIDENCE_BEGIN exit_status=$rc"; '
-    'echo "--ulimit"; ulimit -a 2>&1 | grep -E "core file size|max memory size|virtual memory|address space"; '
+    'echo "--ulimit"; ulimit -a 2>&1 | head -n 30; '
     'echo "--meminfo"; grep -E "^(MemTotal|MemAvailable|SwapTotal):" /proc/meminfo 2>&1; '
     'echo "--nproc"; nproc 2>&1; '
     'echo "--kernel"; uname -r 2>&1; cat /proc/swaps 2>&1 | tail -n +2; cat /proc/sys/vm/overcommit_memory 2>&1; '
     'echo "--selfcgroup"; cat /proc/self/cgroup 2>&1; '
-    'echo "--cgroup"; for f in /sys/fs/cgroup/memory.max /sys/fs/cgroup/memory.events /sys/fs/cgroup/memory.peak /sys/fs/cgroup/cpu.max '
+    'echo "--cgroup"; cg=/sys/fs/cgroup$(sed -n "s/^0:://p" /proc/self/cgroup 2>/dev/null); cg=${cg%/}; '
+    'for f in "$cg/memory.max" "$cg/memory.events" "$cg/memory.peak" '
+    '/sys/fs/cgroup/memory.max /sys/fs/cgroup/memory.events /sys/fs/cgroup/memory.peak /sys/fs/cgroup/cpu.max '
     '/sys/fs/cgroup/memory/memory.limit_in_bytes /sys/fs/cgroup/memory/memory.max_usage_in_bytes /sys/fs/cgroup/memory/memory.failcnt; do '
     '[ -r "$f" ] && echo "$f=$(tr "\\n" " " < "$f")"; done; '
     'echo "--dmesg"; dmesg 2>&1 | grep -iE "killed process|out of memory|oom-kill|oom_kill" | tail -n 5; '
@@ -545,8 +554,8 @@ def parse_evidence(*texts: str) -> dict | None:
         return int(m.group(1)) if m else None
 
     cgroup = dict(re.findall(r"^(/sys/fs/cgroup/\S+?)=(.*)$", body, re.M))
-    events = next((v for k, v in cgroup.items() if k.endswith("memory.events")), "")
-    oom = re.search(r"\boom_kill (\d+)", events)
+    # the mount root's memory.events and the process's own cgroup's: the larger count counts (the root's is 0 inside a nested cgroup)
+    oom_counts = [int(m.group(1)) for k, v in cgroup.items() if k.endswith("memory.events") for m in [re.search(r"\boom_kill (\d+)", v)] if m]
     section = lambda name: body.split(f"--{name}", 1)[1].split("\n--", 1)[0] if f"--{name}" in body else ""  # noqa: E731
     nproc = re.search(r"\d+", section("nproc"))
     return {
@@ -556,7 +565,7 @@ def parse_evidence(*texts: str) -> dict | None:
         "swap_total_kb": kb("SwapTotal"),
         "nproc": int(nproc.group(0)) if nproc else None,
         "cgroup": {k: v.strip() for k, v in cgroup.items()},
-        "oom_kill": int(oom.group(1)) if oom else None,
+        "oom_kill": max(oom_counts) if oom_counts else None,
         "dmesg": [line.strip() for line in section("dmesg").splitlines() if line.strip()],
         "ulimit": [line.strip() for line in section("ulimit").splitlines() if line.strip()],
         "kernel": [line.strip() for line in section("kernel").splitlines() if line.strip()],

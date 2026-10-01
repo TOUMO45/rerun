@@ -127,3 +127,15 @@ def test_the_allocation_probe_timeout_is_recorded_informational_and_does_not_fai
     stopped = json.loads((seal.OUT / "run2_E1b_allocate_until_killed_with_evidence.json").read_text(encoding="utf-8"))
     assert stopped["killed"] and stopped["informational"] and stopped["ok"] is False and "$0.0152/s" in stopped["cost_tag"]
     assert guard.cost_events and guard.cost_events[-1]["rate_usd_per_s"] == 0.0152  # the D-27 rate
+
+
+def test_every_record_carries_the_blob_of_each_sandbox_touching_file_it_verified(seal):
+    """So the writer can refuse a record whose file was edited after the live run (independent review of v1.4.2-rc)."""
+    import subprocess
+
+    seal._record("probe", ok=True, run_id="r")
+    doc = json.loads((seal.OUT / "probe.json").read_text(encoding="utf-8"))
+    for rel in ("backend/app/services/sandbox.py", "backend/app/services/runner_hooks.py"):
+        expected = subprocess.run(["git", "hash-object", rel], cwd=ROOT, capture_output=True, text=True, check=True).stdout.strip()
+        assert doc["code_blobs"][rel] == expected
+

@@ -70,9 +70,18 @@ def planned_operations(runs: list[int]) -> list[dict]:
     return ops
 
 
+def _code_blobs() -> dict:
+    """The git blob of each sandbox-touching file this seal verifies, taken when the record is written: scripts/write_seal_verification_v142.py refuses a record whose
+    blob is not the file's blob now (the independent review: an edit of runner_hooks.py between the live seal and the writer would otherwise be accepted)."""
+    sys.path.insert(0, str(ROOT / "scripts"))
+    from write_seal_verification import SB, blob
+
+    return {f: blob(f) for f in (SB, "backend/app/services/runner_hooks.py")}
+
+
 def _record(name: str, **fields) -> dict:
     OUT.mkdir(parents=True, exist_ok=True)
-    doc = {"written_at": datetime.now(timezone.utc).isoformat(), "harness": "harness-v1.4.2-rc", **fields}
+    doc = {"written_at": datetime.now(timezone.utc).isoformat(), "harness": "harness-v1.4.2-rc", "code_blobs": _code_blobs(), **fields}
     (OUT / f"{name}.json").write_text(json.dumps(doc, indent=2) + "\n", encoding="utf-8", newline="\n")
     return doc
 

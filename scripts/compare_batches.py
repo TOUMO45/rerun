@@ -20,8 +20,9 @@ Every entry lands in exactly ONE category; the categories are never merged:
                         passed without any repair (non-determinism); in the denominator, never in the numerator
   ENV_ONLY              control failed and no link of its error chain is REPO (runner-side ENV): reported separately,
                         excluded from the rate; `passes in treatment` is shown but is not a repo-fix recovery
-  SANDBOX_SIDE          either arm ended INDETERMINATE for SANDBOX_QUOTA / SANDBOX_INCOMPAT: platform, excluded
-  NOT_MEASURED          a RERUN-side verdict (INFRA_ERROR, INVALID_HARNESS, UPLOAD_TOO_LARGE, PIPELINE_ERROR)
+  SANDBOX_SIDE          either arm ended INDETERMINATE for SANDBOX_QUOTA / SANDBOX_INCOMPAT / RESOURCE_LIMIT: platform, excluded
+  NOT_MEASURED          a RERUN-side verdict (INFRA_ERROR, INVALID_HARNESS, UPLOAD_TOO_LARGE, PIPELINE_ERROR) or the harness could not say
+                        why the process exited (EXIT_OUTSIDE_PYTHON)
 
 Reproducibility Recovery Rate = REPO_RECOVERED / (REPO_RECOVERED + REPO_STILL_FAILING + UNSTABLE_AS_IS), with the
 denominator printed next to it and a 95 % Wilson interval (n is small; the interval is the honest size of the claim).
@@ -45,9 +46,9 @@ from summarize_batch import chain_of  # noqa: E402
 
 PASS = ("RUNS_CLEAN", "RUNS_AFTER_REPAIR")
 NOT_MEASURED_VERDICTS = ("INFRA_ERROR", "INVALID_HARNESS", "UPLOAD_TOO_LARGE")
-SANDBOX_REASONS = ("SANDBOX_QUOTA", "SANDBOX_INCOMPAT")
+SANDBOX_REASONS = ("SANDBOX_QUOTA", "SANDBOX_INCOMPAT", "RESOURCE_LIMIT")
 # RERUN-side reason codes: PIPELINE_ERROR (v1.3.2), COST_CAP (v1.3.3: the spend cap stopped the run).
-NOT_MEASURED_REASONS = ("PIPELINE_ERROR", "COST_CAP")
+NOT_MEASURED_REASONS = ("PIPELINE_ERROR", "COST_CAP", "EXIT_OUTSIDE_PYTHON")
 HOURS_PER_REPAIR_ASSUMPTION = 3  # midpoint of the directive's 2-4 hr/repo range (same constant as BatchLab.tsx)
 CATEGORIES = ("CONTROL_PASS", "REPO_RECOVERED", "REPO_STILL_FAILING", "UNSTABLE_AS_IS", "ENV_ONLY", "SANDBOX_SIDE",
               "NOT_MEASURED")
