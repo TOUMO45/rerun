@@ -112,25 +112,35 @@ class Page:
     def headline(self) -> str:
         h = self.summary["headline"]
         lists = []
-        for key, title in (("gate_entry_runs", "Gate entry-runs"), ("recovered_by_llm_loop", "Recovered by the LLM repair loop"),
-                           ("apparent_recoveries", "Apparent recoveries"), ("apparent_recoveries_annotated_as_artefact", "Annotated as a smoke-limit artefact"),
-                           ("recoveries_by_time_machine_alone", "Recovery-shaped results from the time machine alone"),
+        for key, title in (("gate_entry_runs", "Gate entry-runs"), ("apparent_recoveries", "Apparent recoveries (RUNS_CLEAN or RUNS_AFTER_REPAIR)"),
+                           ("apparent_recoveries_annotated_as_artefact", "Annotated as a smoke-limit artefact"),
+                           ("recoveries_by_time_machine_alone", "Apparent recoveries from the time machine alone"),
+                           ("recoveries_with_applied_model_repair", "Apparent recoveries with an applied model repair (smoke criterion)"),
                            ("with_recorded_model_attempt", "With a recorded model repair attempt")):
             ids = h[key]["count_of"]["records"]
             items = "".join(f"<li>{self.entry_link(r)}</li>" for r in ids) or '<li class="absent">no record meets this condition</li>'
             at = f"hl-{slug(key)}" if ids else "hl-gate-entry-runs"
             lists.append(f'<div id="hl-{slug(key)}"><h4>{title}: {self.num(h[key], at=at)}</h4><p class="why">{q(h[key]["count_of"]["where"])}</p><ul class="ids">{items}</ul></div>')
-        art = h["artefact"][0]
-        name = f"{art['harness_tag'].replace('harness-', '')} entry {int(art['entry'])}"
+        art, smoke = h["artefact"][0], h["smoke_criterion_recovery"][0]
+        art_name = f"{art['harness_tag'].replace('harness-', '')} entry {int(art['entry'])}"
+        smoke_name = f"{smoke['harness_tag'].replace('harness-', '')} entry {int(smoke['entry'])}"
         runs = self.num(h["gate_entry_runs"], at="hl-gate-entry-runs")
+        apparent = self.num(h["apparent_recoveries"], at="hl-apparent-recoveries")
+        rows = ""
+        for v in h["per_version"]:
+            at = f"entries-{slug(v['harness_tag'])}"
+            rows += (f'<tr><th scope="row">{q(v["harness_tag"])}</th><td>{self.num(v["entry_runs"], at=at)}</td><td>{self.num(v["apparent_recoveries"], at=at)}</td>'
+                     f'<td>{self.num(v["indeterminate"], at=at)}</td><td>{self.num(v["blocked"], at=at)}</td><td>{q(v["gate_passed"])}</td></tr>')
         return f'''<section class="headline" id="headline" aria-labelledby="headline-h">
 <h2 id="headline-h">Headline finding</h2>
-<p class="big">{self.num(h["recovered_by_llm_loop"], at="hl-gate-entry-runs")} <span class="of">of</span> {runs}</p>
-<p class="statement">LLM repair loop recovered {self.num(h["recovered_by_llm_loop"], at="hl-gate-entry-runs")} of {runs} gate entry-runs;
-the one apparent recovery ({self.entry_link(art["record_id"], name)}) was a smoke-limit artefact;
-a recorded repair attempt in {self.num(h["with_recorded_model_attempt"], at="hl-with-recorded-model-attempt")} of {runs};
-every recovery-shaped result came from the deterministic time machine.</p>
-<p class="note">Annotation beside the apparent recovery: {q(art["annotation"]["text"])}</p>
+<p class="big">{apparent} <span class="of">of</span> {runs}</p>
+<p class="statement">Over every gate entry-run of the exploratory versions, {apparent} of {runs} ended RUNS_CLEAN or RUNS_AFTER_REPAIR, and no gate passed.
+One of them ({self.entry_link(art["record_id"], art_name)}) was a smoke-limit artefact reached by the time machine alone, with no model attempt in its record.
+The other ({self.entry_link(smoke["record_id"], smoke_name)}) is a smoke-criterion pass: the command ran for the smoke limit without failing, after model-proposed environment changes were adopted ({self.num(h["recoveries_with_applied_model_repair"], at="hl-recoveries-with-applied-model-repair")} such record); it did not run to completion and no result was reproduced.
+A recorded model repair attempt exists in {self.num(h["with_recorded_model_attempt"], at="hl-with-recorded-model-attempt")} of {runs}.</p>
+<p class="note">Annotation beside the first: {q(art["annotation"]["text"])}</p>
+<p class="note">Annotation beside the second: {q(smoke["annotation"]["text"])}</p>
+<div class="scroll"><table class="byversion"><thead><tr><th scope="col">Version</th><th scope="col">Entry-runs</th><th scope="col">Apparent recoveries</th><th scope="col">INDETERMINATE</th><th scope="col">BLOCKED</th><th scope="col">Gate passed</th></tr></thead><tbody>{rows}</tbody></table></div>
 <details><summary>Records behind these counts</summary><div class="cols">{"".join(lists)}</div></details>
 </section>'''
 
@@ -138,15 +148,20 @@ every recovery-shaped result came from the deterministic time machine.</p>
         bits = []
         names = {"recovered": "recovered", "entries": "of entries", "denominator": "of denominator", "applied": "applied", "proposed": "of proposed",
                  "citations": "citations", "searches": "searches", "attempts_consulted": "attempts consulted", "references_consulted": "references consulted",
-                 "reasons_recorded": "reasons recorded", "cost_cap_endings": "cost-cap endings"}
+                 "reasons_recorded": "reasons recorded", "cost_cap_endings": "cost-cap endings", "entries_ok": "entries passing"}
         for key, word in names.items():
             if key in f:
                 bits.append(f"<span class=\"fig\">{word} {self.num(f[key])}</span>")
         verdict = ""
         if "ok" in f:
             verdict = '<span class="res pass">✓ PASS</span>' if f["ok"] else '<span class="res fail">✕ FAIL</span>'
-        line = f'<p class="gate-line">gate line {q(f["detail"])}</p>' if "detail" in f else f'<p class="gate-line">{q(f["label"])} — {q(f["note"])}</p>'
+        line = (f'<p class="gate-line">gate line {q(f["detail"])}</p>' if "detail" in f
+                else f'<p class="gate-line">{q(f["label"])} — {q(f["note"])}</p>' if "label" in f else "")
         note = f'<p class="beside">Annotation beside this figure: {q(f["annotation"])}</p>' if "annotation" in f else ""
+        if "proposed_note" in f:
+            note += f'<p class="gate-line">{q(f["proposed_note"])}</p>'
+        if "per_entry" in f:
+            note += "<ul class=\"src\">" + "".join(f"<li>entry {q(entry)}: {q(detail)}</li>" for entry, detail in f["per_entry"].items()) + "</ul>"
         sources = ""
         derived = [v for v in f.values() if isinstance(v, dict) and v.get("tag") == "DERIVED"]
         if derived:
@@ -185,7 +200,7 @@ every recovery-shaped result came from the deterministic time machine.</p>
 
     def scorecard(self) -> str:
         return ('<section id="scorecard" aria-labelledby="scorecard-h"><h2 id="scorecard-h">Gate scorecard</h2>'
-                '<p class="lede">The pre-registered run is the anchor; control and treatment are separate record sets. The two later versions are exploratory and did not pass their own pre-registered gate.</p>'
+                '<p class="lede">The pre-registered run is the anchor; control and treatment are separate record sets. The later versions are exploratory and none passed its own pre-registered gate.</p>'
                 f'<div class="grid">{"".join(self.version_card(t) for t in VERSIONS)}</div></section>')
 
     def ledger(self) -> str:
@@ -207,20 +222,29 @@ every recovery-shaped result came from the deterministic time machine.</p>
         for k in L["kill_records"]:
             at = f"led-{k['component']}"
             detail = f'stopped through {q(k["via"])}; {q(k["message"])}' if k["via"] else f'error line {q(k["error"])}'
+            estimate = f' · estimate for the killed step {self.num(k["estimated_cost"], usd=True, at=at)}' if "estimated_cost" in k else ""
             kills += (f'<li data-record="{esc(k["record"])}">{q(k["record"])}<br>killed seconds {self.num(k["killed_seconds"], at=at)} · '
-                      f'completed cost {self.num(k["completed_cost"], usd=True, at=at)} · {detail}</li>')
+                      f'completed cost {self.num(k["completed_cost"], usd=True, at=at)}{estimate} · {detail}</li>')
         bl = L["billed"]
         acct = bl["account"]
-        gate_lines = "".join(
-            f'<li id="billed-{slug(g["for_component"])}"><span class="why">{esc(g["name"])}</span> {q(g["harness_tag"])}: '
-            f'<span class="absent">no balance reading <span class="tag {g["tag"]}">{g["tag"]}</span> <span class="why">({q(g["reason"])})</span></span></li>'
-            for g in bl["gates"])
+        gate_lines = ""
+        for g in bl["gates"]:
+            if g["value"] is None:
+                gate_lines += (f'<li id="billed-{slug(g["for_component"])}"><span class="why">{esc(g["name"])}</span> {q(g["harness_tag"])}: '
+                               f'<span class="absent">no balance reading <span class="tag {g["tag"]}">{g["tag"]}</span> <span class="why">({q(g["reason"])})</span></span></li>')
+            else:  # the interval between the owner's two readings that holds this gate
+                gate_lines += (f'<li id="billed-{slug(g["for_component"])}" data-source="owner-balance-reading"><span class="why">{esc(g["name"])}</span> {q(g["harness_tag"])}: '
+                               f'{esc(g["bound"])} {self.num(g, usd=True, at="billed-" + slug(g["for_component"]))} <span class="why">Source: {q(g["owner_reading"]["source"])}</span></li>')
+        reading_lines = "".join(
+            f'<li id="billed-reading-{i}" data-source="owner-balance-reading">reading {q(r["reading"])}: {esc(r["bound"])} {self.num(r, usd=True, at="billed-reading-" + str(i))} '
+            f'<span class="why">Source: {q(r["owner_reading"]["source"])}</span></li>' for i, r in enumerate(bl["readings"]))
         billed = f'''<div class="billed" id="billed">
 <h3 id="billed-h">Account balance reading</h3>
 <p class="note">{q(bl["rule"])}</p>
 <ul class="billed-lines">
 <li id="billed-account" data-source="owner-balance-reading">{esc(acct["label"])}: {esc(acct["bound"])} {self.num(acct, usd=True, at="billed-account")}
 <span class="why">Source: {q(acct["owner_reading"]["source"])} {esc(acct["note"])}</span></li>
+{reading_lines}
 {gate_lines}
 </ul>
 </div>'''
@@ -231,10 +255,11 @@ every recovery-shaped result came from the deterministic time machine.</p>
 Sum of both parts: {self.num(L["total"], usd=True, at="ledger-components")} — {q(L["total"]["note"])}.</p>
 <p class="statement">These ledger figures are the sandbox API's reported operation cost, not account billing. The account balance reading below is a different figure, and the two are not reconciled ({q("D-36")}, open).</p>
 {billed}
-<p class="note">Reported ledger line, quoted: {q(L["reported_line"]["quote"])} in {q(L["reported_line"]["path"])}. The reported figure adds components that were already rounded; the sums shown here are over the full-precision record values. Annotation beside that line: {q(L["lower_bound"]["line"]["quote"])}</p>
+<p class="note">Reported ledger line, quoted: {q(L["reported_line"]["quote"])} in {q(L["reported_line"]["path"])}. The sums shown here are over the full-precision record values and agree with it to the fourth decimal. Annotation beside that line: {q(L["lower_bound"]["line"]["quote"])}</p>
+<details><summary>The ledger as each gate report stated it</summary><ul class="src">{"".join(f'<li>{q(h["harness_tag"])}: {q(h["quote"])} <span class="why">{q(h["path"])}</span></li>' for h in L["reported_history"])}</ul></details>
 <p class="legend"><span class="key"><span class="sw rep"></span>API-REPORTED</span><span class="key"><span class="sw e"></span>ESTIMATED (hatched)</span></p>
 <div id="ledger-components"><table class="ledger"><thead><tr><th scope="col">Component</th><th scope="col">API-reported</th><th scope="col">Estimated</th><th scope="col">Share of the largest component</th><th scope="col">Records</th></tr></thead><tbody>{rows}</tbody></table>
-<h3>Seal kill records with no cost for the killed step</h3>
+<h3>Seal kill records: the killed step's cost is absent or ESTIMATED</h3>
 <ul class="kills">{kills}</ul>
 {lists}
 </div>
@@ -315,15 +340,39 @@ Sum of both parts: {self.num(L["total"], usd=True, at="ledger-components")} — 
         if "era_lock" in s:
             lock = s["era_lock"]
             head = f'<h5>Era lock {q(s["attempt"])}</h5><p>era {q(lock["era_date"])} · Python {q(lock["python"])} · lock ok {q(lock["lock_ok"])} · fallback {q(lock["fallback"])}</p>'
+        elif s["step"] == "rule":
+            head = f'<h5>Rule step {q(s["attempt"])} ({q(s["type"])})</h5><p>{self.rule(s["rule_step"])}</p>'
         else:
             p = s["proposed"]
             delta = " ".join(q(" ".join(str(x[k]) for k in ("op", "package", "version") if x[k])) for x in p["env_delta"]) or '<span class="absent">none</span>'
             head = (f'<h5>Attempt {q(s["attempt"])} ({q(s["type"])})</h5><p>Proposed: diff {self.plain(p["diff_sha256"])} · environment change {delta} · '
                     f'patch notes {self.plain(p["patch_notes"])}</p>')
+        cited = s["cited"]
+        cited_html = (" ".join(q(c["url"]) for c in cited) or '<span class="absent">none</span>') if isinstance(cited, list) else self.num(cited)
+        candidate = ""
+        if "candidate" in s:  # harness-v1.4.x
+            adj = s["adjudication"]
+            adjudication = ""
+            if isinstance(adj, dict) and "reasoning" in adj:
+                adjudication = (f' Adjudication of the round: chosen {q(adj["chosen"])} of {q(adj["qualifying"])}{(" · " + q(adj["adopted_reason"])) if "adopted_reason" in adj else ""}'
+                                f'{(" · re-asked " + q(adj["reasked"])) if "reasked" in adj else ""} — {q(adj["reasoning"])}')
+            on_branch = (f' Rule steps on this branch: {self.rule(s["rule_step"])}' if isinstance(s.get("rule_step"), dict) and "rule" in s["rule_step"] and s["step"] == "attempt" else "")
+            candidate = (f'<p>Candidate {self.plain(s["candidate"])} · chosen {self.plain(s["chosen"])} · branch {self.plain(s["branch"])}.{adjudication}{on_branch}</p>')
         return (f'<li class="step"><div class="step-head">{head}</div>'
                 f'<p>Gate {q(s["gate_decision"])} → <span class="outcome {esc(s["outcome"])}">{q(s["outcome"])}</span> · reject reason {self.plain(s["reject_reason"])}</p>'
-                f'<p>Consulted {self.num(s["consulted_count"])} · cited {self.num(s["cited"])} · reason_no_citation {self.plain(s["reason_no_citation"])} · '
-                f'silent_exit {self.plain(s["silent_exit"])} · exit code {self.num(s["exit_code"])}</p>{self.execution(s["execution"])}</li>')
+                f'<p>Consulted {self.num(s["consulted_count"])} · cited {cited_html} · reason_no_citation {self.plain(s["reason_no_citation"])} · '
+                f'silent_exit {self.plain(s["silent_exit"])} · exit code {self.num(s["exit_code"])}</p>{candidate}{self.execution(s["execution"])}</li>')
+
+    def rule(self, rule_step: Any) -> str:
+        """One deterministic rule step (harness-v1.4.x): the rule and the fields that say what it did, quoted."""
+        if not isinstance(rule_step, dict) or "rule" not in rule_step:
+            return self.plain(rule_step)
+        bits = [f"rule {q(rule_step['rule'])}"]
+        for key in ("matched_error", "hook", "applied", "result", "paths_fired", "kill_evidenced", "limit_quote", "on_candidate", "apt_added", "reason"):
+            if key in rule_step:
+                bits.append(f"{key.replace('_', ' ')} {q(rule_step[key])}")
+        bits += [f"then {self.rule(follow)}" for follow in rule_step.get("then") or []]
+        return " · ".join(bits)
 
     def entry(self, x: dict) -> str:
         c = x["cost"]
@@ -334,6 +383,12 @@ Sum of both parts: {self.num(L["total"], usd=True, at="ledger-components")} — 
             src = op["spend"]["source"]
             ops += (f'<li>{q(op["operation"])}: spend {self.num(op["spend"], usd=True)} · remaining {self.num(op["remaining"], usd=True)}{extra}'
                     f'<br><span class="why">{q(src["line"])} — {q(src["field"])} of {q(src["record_id"])}</span></li>')
+        stored = ""
+        for op in c.get("stored_operations", []):  # harness-v1.4.x: the record's own operation list (a disposal run has no wall or funded seconds)
+            fields = " · ".join(f"{name.replace('_', ' ')} {self.num(op[name], usd=name.startswith('cost'))}" for name in
+                                ("wall_seconds", "sandbox_seconds", "funded_seconds", "cost_usd", "cost_estimated_usd") if name in op)
+            stored += f'<li>stored operation {self.num(op["n"])} {q(op["role"])}: outcome {q(op["outcome"])} · {fields}</li>'
+        stored = f'<h4>Operations as the record stores them</h4><ol class="ops">{stored}</ol>' if stored else ""
         cum = c["batch_cumulative"]
         wt = x["results_tables_sha256"]
         worktree = (f'{q(wt["label"])} {q(wt["value"])} <span class="why">{q(wt["note"])}</span>' if wt["value"] else
@@ -357,6 +412,7 @@ Sum of both parts: {self.num(L["total"], usd=True, at="ledger-components")} — 
 <p>Total {self.num(c["entry_total"], usd=True)} = API-reported {self.num(c["measured"], usd=True)} + estimated {self.num(c["estimated"], usd=True)} · model {self.num(c["model"], usd=True)} ·
 entry cap {self.num(c["per_entry_cap"], usd=True)} · over the entry cap {q(c["over_entry_cap"])}</p>
 <ol class="ops">{ops}</ol>
+{stored}
 <p>Batch so far: API-reported {self.num(cum["measured"], usd=True)} + estimated {self.num(cum["estimated"], usd=True)} of cap {self.num(c["batch_cap"], usd=True)} ·
 over the batch cap {q(cum["over_batch_cap"])}</p>
 </div></details>'''
