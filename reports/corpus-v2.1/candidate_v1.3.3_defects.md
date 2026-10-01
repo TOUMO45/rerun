@@ -87,4 +87,5 @@ HARNESS_INDUCED is decided in Phase B3 with the definition written there; this f
 ## Found by the Phase D record inventory (2026-10-01; offline, from the committed records; documented only, not fixed)
 
 - **D-26** `reason_no_citation` is not recorded on a DECLINED attempt (harness-v1.3.4, entry 3, repair 1: `consulted` holds 3 references, the attempt was DECLINED, and the record has no `reason_no_citation` and no citation). Status: open.
+- **D-27** The ledger records only completed cost; the spend of a killed step is absent (seal-verification kill runs stopped through `client_wait_timeout` store `completed_cost_usd` 0.0 and no cost for the killed step; the first v1.3.3 seal attempt's kill record has no cost field). The ledger total is therefore a lower bound. Related: D-8 (harness-v1.3.2, entry 15). Status: open, documented only; the missing amounts are not reconstructed.
 

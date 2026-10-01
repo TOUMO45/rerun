@@ -39,3 +39,12 @@ operation was stopped first).
 
 The tag check covers JSON numbers. Numbers inside quoted text (error messages, event lines, the badge sentence, annotation
 text) are strings; the badge figures are repeated as tagged fields under `badge.figures` and `badge.gate_cost`.
+
+This limit is deliberate: the tag check stays JSON-only. It is closed downstream. In REPLAY (D2) and the dashboard (D3) no
+displayed number may be taken from text (a badge sentence, an event line, an error message); it must be read from a tagged
+passport field, and an acceptance test enforces that.
+
+## Ledger
+
+The ledger total is a lower bound (D-27): it records only completed cost, and the spend of a killed step is absent wherever
+the cost guard stored no estimate. Missing amounts are not reconstructed.

@@ -2,6 +2,11 @@
 
 One entry per phase of the post-corpus-v2 plan. Numbers are produced by scripts in `scripts/`.
 
+## Phase D housekeeping — D-27, ledger lower bound, tag-check scope (2026-10-01; documentation only)
+D-27 registered (the ledger records only completed cost; the spend of a killed step is absent): open, documented only. The ledger line in `SMOKE_GATE_REPORT_v1.3.4.md` is annotated
+"$10.134 is a lower bound (D-27)"; no amount is reconstructed and no DERIVED bound exists (no event line states one). `reports/phase-d/README.md` states that the tag check is
+JSON-only and that REPLAY and the dashboard may display only numbers read from tagged passport fields.
+
 ## Phase D1 — passports from committed records (2026-10-01; offline, no Nebius call; the sealed harness is untouched)
 `phase_d/` (outside the sealed harness paths) builds one passport per committed run record of harness-v1.3.2 / v1.3.3 / v1.3.4 into `reports/phase-d/passports/`, with
 `reports/phase-d/record_index.md`. Record id = `<harness_tag>/<arm>/<entry>@<sha256 of the committed blob>`; every number is tagged MEASURED, ESTIMATED or DERIVED; a field a
