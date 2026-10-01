@@ -152,12 +152,16 @@ class CostGuard:
                 self.cost_events.append({"kind": "estimated", "usd": round(actual_cost_usd, 6), "note": note})
 
     def operation_seconds_budget(
-        self, rate_usd_per_s: float = SANDBOX_COST_RATE_USD_PER_S, per_operation_cap_usd: float = PER_OPERATION_CAP_USD
+        self, rate_usd_per_s: float = SANDBOX_COST_RATE_USD_PER_S, per_operation_cap_usd: float = PER_OPERATION_CAP_USD,
+        share: int = 1,
     ) -> float:
         """Seconds one sandbox operation may run: the smaller of what the entry has left and the per-operation cap,
-        divided by the cost rate. The caller passes this to the sandbox as the hard wall clock of the operation."""
+        divided by the cost rate. The caller passes this to the sandbox as the hard wall clock of the operation.
+        harness-v1.4.0-rc: `share` operations run at the same time; each gets its share of what is LEFT (the per-operation cap is
+        per operation and is not divided)."""
         self._roll_day_if_needed()
-        fundable = min(max(self.daily_cost_ceiling_usd - self._spent_today_usd, 0.0), per_operation_cap_usd)
+        left = max(self.daily_cost_ceiling_usd - self._spent_today_usd, 0.0)
+        fundable = min(left / max(share, 1), per_operation_cap_usd)
         return fundable / rate_usd_per_s
 
     def record_killed_operation(self, completed_steps_usd: float, killed_seconds: float,

@@ -73,6 +73,7 @@ class _Ultra:
 
 def _repo(tmp_path: Path, files: dict) -> None:
     for name, text in files.items():
+        (tmp_path / name).parent.mkdir(parents=True, exist_ok=True)
         (tmp_path / name).write_text(text, encoding="utf-8", newline="\n")
     subprocess.run(["git", "init", "-q"], cwd=tmp_path, check=True, capture_output=True)
     for k, v in (("core.autocrlf", "false"), ("user.email", "t@e.st"), ("user.name", "t")):
@@ -85,7 +86,7 @@ def _head(tmp_path: Path) -> str:
     return subprocess.run(["git", "rev-parse", "HEAD"], cwd=tmp_path, capture_output=True, text=True, check=True).stdout.strip()
 
 
-def _run(tmp_path, cloud, *, repair=(), adjudicator=None, lock=None, candidates=1, releaser=None, max_attempts=3, entry="main.py",
+def _run(tmp_path, cloud, *, repair=(), adjudicator=None, lock=None, candidates=1, releaser=None, max_attempts=3, entry="main.py", cap=1.25,
          command="python main.py"):
     deps = PipelineDeps(
         recon_client=_Chat([{"entrypoint": entry, "confidence": 0.9}], "recon"), recon_model="r",
@@ -97,7 +98,7 @@ def _run(tmp_path, cloud, *, repair=(), adjudicator=None, lock=None, candidates=
     )
     commit = _head(tmp_path)
     intake = RepoIntake(tmp_path, commit, {}, frozenset(), (), (entry,), None)
-    guard = CostGuard(daily_cost_ceiling_usd=1.25)
+    guard = CostGuard(daily_cost_ceiling_usd=cap)
     result = run_pipeline(repo_url="https://example.com/r", commit_sha=commit, workdir=tmp_path, intake_result=intake, deps=deps,
                           cost_guard=guard, run_id="v140", documented_command=command)
     return result, deps, guard
@@ -250,7 +251,11 @@ def _edit(old: str, new: str, why: str) -> dict:
             "reason_no_citation": "no reference offered", "explanation": why}
 
 
-def test_three_candidates_run_concurrently_in_branches_and_the_adjudicated_one_becomes_the_environment(tmp_path, monkeypatch):
+@pytest.mark.parametrize("cap, concurrent", [(5.0, 3), (1.25, 1)])
+def test_three_candidates_run_in_branches_and_the_adjudicated_one_becomes_the_environment(tmp_path, monkeypatch, cap, concurrent):
+    """With $5 left, each of three concurrent branches is funded for more than the smoke run: they run at the same time. With the
+    owner's proposed $1.25 entry cap, a third of what is left funds less than that (at the guard's $0.0085/s bound): they run one
+    after another, each funded from what is left, and none is killed for running beside the others."""
     _repo(tmp_path, {"main.py": "import numpy\nVALUE = compute()\nprint(VALUE)\n"})
     failure = "Traceback (most recent call last):\n  File \"main.py\", line 2, in <module>\nNameError: name 'compute' is not defined\n"
 
@@ -274,7 +279,7 @@ def test_three_candidates_run_concurrently_in_branches_and_the_adjudicated_one_b
     ], "repair model")
     ultra = _Ultra([{"chosen": 2, "reasoning": "candidate 2 defines the missing function; candidate 1 replaces the computation"}])
     released = []
-    result, _, guard = _run(tmp_path, cloud, repair=repair, adjudicator=ultra, candidates=3,
+    result, _, guard = _run(tmp_path, cloud, repair=repair, adjudicator=ultra, candidates=3, cap=cap,
                             releaser=lambda **kw: released.extend(kw["image_ids"]) or {"released": len(kw["image_ids"]), "cost_usd": 0.002, "seconds": 1.0})
     assert result.verdict == "RUNS_AFTER_REPAIR"
     candidates = [a for a in result.attempts if a.candidate is not None]
@@ -290,7 +295,8 @@ def test_three_candidates_run_concurrently_in_branches_and_the_adjudicated_one_b
     assert "def compute" in (tmp_path / "main.py").read_text(encoding="utf-8") and "VALUE = 1" not in (tmp_path / "main.py").read_text(encoding="utf-8")
     # the three ran as concurrent branches of ONE environment image, with no reinstall
     runs = [op for op in guard.operations if op["candidate"] is not None]
-    assert len(runs) == 3 and {op["concurrent"] for op in runs} == {3}
+    assert len(runs) == 3 and {op["concurrent"] for op in runs} == {concurrent}
+    assert all(op["outcome"] == "completed" for op in runs)
     assert len({op["branch_from_image"] for op in runs}) == 1 and not any(op["torch_installed"] for op in runs)
     for op in guard.operations:
         _fields_ok(op)
@@ -378,3 +384,97 @@ def test_entry_7_d24_under_checkpoints_branches_from_the_kept_tree_and_never_reu
     assert d24_op["start_setup_commands"] == 0 and d24_op["branch_from_image"] in tm_op["kept_images"]
     assert not [s for s in d24_op["rerun_steps"] if s["phase"] == "rerun_extract"]  # the tree was not uploaded again
     assert sum(1 for c in cloud.ran if c.startswith("tar -xpf " + sandbox.UPLOAD_ARCHIVE)) == 2  # baseline + time machine only
+
+
+# --- regressions found by the independent review of harness-v1.4.0-rc ------------------------------------------------
+
+def test_a_non_editable_project_install_gets_the_patch_before_the_setup_steps(tmp_path, monkeypatch):
+    """`pip install .` copies the repository into site-packages: a patch put on top AFTER that step would leave the command running
+    the unpatched installed package. Every patched file therefore goes in right after the tree, before the setup steps."""
+    from app.services.orchestrator import _installs_project_copy
+
+    assert _installs_project_copy("pip install .") and _installs_project_copy("pip install --no-deps .")
+    assert not _installs_project_copy("pip install -e .") and not _installs_project_copy("pip install -r requirements.txt")
+    _repo(tmp_path, {"setup.py": "from setuptools import setup\nsetup(name='pkg', packages=['pkg'])\n",
+                     "main.py": "import pkg.model\n", "pkg/__init__.py": "", "pkg/model.py": "VALUE = broken\n"})
+    failure = "Traceback (most recent call last):\nNameError: name 'broken' is not defined\n"
+    installed = {}
+
+    def behaviour(shell, built, files):
+        if shell == "pip install .":
+            installed["model"] = files.get("pkg/model.py", b"")  # the copy pip makes, as the image holds it at this step
+            return None
+        if shell not in EXEC:
+            return None
+        return (0, "ok", "") if b"VALUE = 1" in installed.get("model", b"") else (1, "", failure)
+
+    cloud = v140_cloud.install(monkeypatch, behaviour)
+    fix = _edit("VALUE = broken\n", "VALUE = 1\n", "define the value")
+    fix["file_edits"][0]["path"] = "pkg/model.py"
+    deps_files = {"setup.py": (tmp_path / "setup.py").read_text(encoding="utf-8")}
+    commit = _head(tmp_path)
+    deps = PipelineDeps(
+        recon_client=_Chat([{"entrypoint": "main.py", "confidence": 0.9}], "recon"), recon_model="r",
+        repair_client=_Chat([fix]), repair_model="super", adjudicator_client=None, adjudicator_model=None,
+        sandbox_api_key="k", sandbox_wall_clock_seconds=600, sandbox_runner=sandbox.run_build_and_execute, tavily_client=None,
+        smoke_seconds=60, max_attempts=1, candidates_per_round=1)
+    guard = CostGuard(daily_cost_ceiling_usd=5)
+    result = run_pipeline(repo_url="https://example.com/r", commit_sha=commit, workdir=tmp_path,
+                          intake_result=RepoIntake(tmp_path, commit, deps_files, frozenset(), (), ("main.py",), None),
+                          deps=deps, cost_guard=guard, run_id="pip-dot", documented_command="python main.py")
+    assert result.verdict == "RUNS_AFTER_REPAIR", result.full_log[-2000:]
+    repair_ops = [op for op in guard.operations if op["role"].startswith("repair")]
+    assert repair_ops and repair_ops[-1]["branch_from_image"] is None  # rebuilt with the patch under the install, not branched
+
+
+def test_a_failed_overlay_check_records_what_the_completed_steps_cost(tmp_path, monkeypatch):
+    _repo(tmp_path, {"main.py": "import numpy\nx = undefined_name\n"})
+
+    def behaviour(shell, built, files):
+        if "apply.py" in shell:
+            return 97, "", "RERUN_BRANCH_MISMATCH 1 file(s): main.py\n"
+        if shell not in EXEC:
+            return None
+        if not any("numpy==1.19.5" in b for b in built):
+            return 1, "", "ModuleNotFoundError: No module named 'numpy'\n"
+        return 1, "", "Traceback (most recent call last):\nNameError: name 'undefined_name' is not defined\n"
+
+    cloud = v140_cloud.install(monkeypatch, behaviour, costs={"pip install": 0.05})
+    edit = _edit("x = undefined_name\n", "x = 1\n", "define it")
+    result, _, guard = _run(tmp_path, cloud, repair=_Chat([edit]), max_attempts=1)
+    assert result.verdict == "INVALID_HARNESS"
+    void = guard.operations[-1]
+    # the operation branched from the environment image (no setup step ran); the failed overlay step's own measured cost ($0.01 in the
+    # fake) is recorded spend, where before it was dropped
+    assert void["outcome"] == "void" and void["cost_usd"] == pytest.approx(0.01) and void["branch_from_image"]
+    assert guard.sandbox_spent_usd == pytest.approx(sum(op["cost_usd"] for op in guard.operations))
+
+
+def test_released_losing_images_are_no_longer_reported_as_kept(tmp_path, monkeypatch):
+    """A losing candidate's result image gets the disposal step; its operation record then no longer lists it as kept."""
+    _repo(tmp_path, {"main.py": "import numpy\nVALUE = compute()\n"})
+
+    def behaviour(shell, built, files):
+        if shell not in EXEC:
+            return None
+        if not any("numpy==1.19.5" in b for b in built):
+            return 1, "", "ModuleNotFoundError: No module named 'numpy'\n"
+        source = files.get("main.py", b"").decode()
+        if "def compute" in source:
+            return 0, "ok", ""
+        if "VALUE = 1" in source:
+            return 1, "", "Traceback (most recent call last):\nTypeError: other\n"
+        return 1, "", "Traceback (most recent call last):\nNameError: name 'compute' is not defined\n"
+
+    cloud = v140_cloud.install(monkeypatch, behaviour)
+    repair = _Chat([_edit("VALUE = compute()\n", "VALUE = 1\n", "constant"),
+                    _edit("import numpy\n", "import numpy\n\n\ndef compute():\n    return 1\n", "define it"),
+                    {"file_edits": None, "env_delta": [], "explanation": "no third fix"}])
+    ultra = _Ultra([{"chosen": 2, "reasoning": "defines the function"}])
+    result, _, guard = _run(tmp_path, cloud, repair=repair, adjudicator=ultra, candidates=3, cap=5.0,
+                            releaser=lambda **kw: {"released": len(kw["image_ids"]), "cost_usd": 0.0, "seconds": 0.0})
+    assert result.verdict == "RUNS_AFTER_REPAIR"
+    loser = next(op for op in guard.operations if op["candidate"] == 1)
+    winner = next(op for op in guard.operations if op["candidate"] == 2)
+    assert loser.get("result_image_released") and loser["result_image"] not in loser["kept_images"]
+    assert winner["result_image"] in winner["kept_images"] and not winner.get("result_image_released")

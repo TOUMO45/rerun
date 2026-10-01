@@ -70,6 +70,9 @@ class Image:
         code, stdout, stderr = 0, "", ""
         if shell.startswith("tar -xpf " + sandbox.BRANCH_ARCHIVE):
             stdout = _apply_branch(files)
+            outcome = cloud.behaviour(shell, self.state["built"], files) if cloud.behaviour is not None else None
+            if outcome is not None:
+                code, stdout, stderr = outcome
         elif shell.startswith("tar -xpf " + sandbox.UPLOAD_ARCHIVE):
             tar = tarfile.open(fileobj=io.BytesIO(files.pop(sandbox.UPLOAD_ARCHIVE)))
             files.update({m.name: tar.extractfile(m).read() for m in tar.getmembers()

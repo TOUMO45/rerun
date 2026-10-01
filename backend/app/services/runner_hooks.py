@@ -54,26 +54,51 @@ def _patch(torch):
         sys.stderr.write("RERUN_CPU_SHIM: not applied (%r)\n" % (exc,))
 
 
-class _Finder(object):
-    def find_spec(self, name, path=None, target=None):
-        if name != _TARGET:
-            return None
+class _Loader(object):
+    """Wraps the real loader of ONE spec: runs it, then patches the module. The real loader object is never modified."""
+
+    def __init__(self, inner, finder):
+        self._inner, self._finder = inner, finder
+
+    def create_module(self, spec):
+        create = getattr(self._inner, "create_module", None)
+        return create(spec) if create is not None else None
+
+    def exec_module(self, module):
+        self._inner.exec_module(module)
+        _patch(module)
+        self._finder.done = True
         try:
-            sys.meta_path.remove(self)
+            sys.meta_path.remove(self._finder)
         except ValueError:
             pass
-        import importlib.util
-        spec = importlib.util.find_spec(name)
+
+    def __getattr__(self, name):
+        return getattr(self._inner, name)
+
+
+class _Finder(object):
+    """Stays in sys.meta_path until torch has actually been executed and patched: a library that only LOOKS for torch first
+    (importlib.util.find_spec("torch"), as transformers / accelerate / lightning do) must not use the shim up."""
+
+    done = False
+
+    def find_spec(self, name, path=None, target=None):
+        if name != _TARGET or self.done:
+            return None
+        others = [f for f in sys.meta_path if f is not self]
+        spec = None
+        for finder in others:
+            find = getattr(finder, "find_spec", None)
+            if find is None:
+                continue
+            spec = find(name, path, target) if target is not None else find(name, path)
+            if spec is not None:
+                break
         loader = getattr(spec, "loader", None)
-        if loader is None or not hasattr(loader, "exec_module"):
+        if spec is None or loader is None or not hasattr(loader, "exec_module"):
             return spec
-        original = loader.exec_module
-
-        def exec_module(module):
-            original(module)
-            _patch(module)
-
-        loader.exec_module = exec_module
+        spec.loader = _Loader(loader, self)
         return spec
 
     def find_module(self, name, path=None):  # Python < 3.4 protocol; never used here
@@ -136,19 +161,39 @@ def _os_exit(code):
 
 os._exit = _os_exit
 
-try:
-    import builtins
-    for _name in ("exit", "quit"):
-        _quitter = getattr(builtins, _name, None)
-        if _quitter is not None:
+def _wrap_quitters():
+    try:
+        import builtins
+        for name in ("exit", "quit"):
+            quitter = getattr(builtins, name, None)
+            if quitter is None or getattr(quitter, "_rerun_wrapped", False):
+                continue
+
             def _make(real, label):
                 def _call(code=None):
                     _report("%s(%r)" % (label, code), _code_of(code), traceback.format_stack()[:-1])
                     return real(code)
+                _call._rerun_wrapped = True
                 return _call
-            setattr(builtins, _name, _make(_quitter, _name))
+            setattr(builtins, name, _make(quitter, name))
+    except Exception:
+        pass
+
+
+# site.main() processes the .pth files BEFORE it defines exit() / quit() (site.setquit): wrap them right after setquit runs.
+# main() looks setquit up by its global name in the site module, so replacing the attribute is enough.
+try:
+    import site as _site
+    _real_setquit = getattr(_site, "setquit", None)
+    if _real_setquit is not None and not getattr(_real_setquit, "_rerun_wrapped", False):
+        def _setquit():
+            _real_setquit()
+            _wrap_quitters()
+        _setquit._rerun_wrapped = True
+        _site.setquit = _setquit
 except Exception:
     pass
+_wrap_quitters()  # if they already exist (the hook imported after start-up)
 '''
 
 _INSTALLER = r'''

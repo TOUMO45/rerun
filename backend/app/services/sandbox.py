@@ -118,8 +118,11 @@ class UploadIntegrityError(RuntimeError):
     """The files extracted inside the sandbox are not the files uploaded
     (post-extraction check). Mapped to INVALID_HARNESS by the orchestrator."""
 
-    def __init__(self, message: str, stderr: str = ""):
+    def __init__(self, message: str, stderr: str = "", completed_cost_usd: float = 0.0, completed_steps: tuple = ()):
         self.stderr = stderr
+        # harness-v1.4.0-rc: the overlay check runs AFTER the setup steps, so what they cost is spend and is carried here.
+        self.completed_cost_usd = completed_cost_usd
+        self.completed_steps = completed_steps
         super().__init__(message)
 
 
@@ -689,8 +692,9 @@ _sleep: Callable[[float], None] = time.sleep  # tests replace it
 
 def release_images(*, api_key: str, project_id: str = "", image_ids: Iterable[str]) -> dict:
     """harness-v1.4.0-rc: the same best-effort disposal `_run_once` applies to every image it does not keep (a trivial disposable run on
-    it), for kept images a later decision no longer needs (the losing candidates' result images). Each disposal is a sandbox run with
-    its own cost, so the measured cost is returned for the caller to record: {"released": n, "cost_usd": total, "seconds": total}."""
+    it), for kept images a later decision no longer needs (the losing candidates' result images). The SDK has no delete call, so whether
+    this frees anything on the platform is NOT known; what is known is that each disposal is a sandbox run with its own cost, returned for
+    the caller to record: {"released": n (disposal runs completed), "cost_usd": total, "seconds": total}."""
     ids = [i for i in image_ids if i]
     if not ids or not api_key:
         return {"released": 0, "cost_usd": 0.0, "seconds": 0.0}
@@ -865,7 +869,13 @@ def _run_once(
                 rerun_steps.append(step)
                 if step.exit_code != 0:
                     what = "post-extraction check" if kind == "extract" else "patch overlay check"
-                    raise UploadIntegrityError(f"{what} failed (exit code {step.exit_code})", stderr=step.stderr[-2000:])
+                    integrity = UploadIntegrityError(
+                        f"{what} failed (exit code {step.exit_code})", stderr=step.stderr[-2000:],
+                        completed_cost_usd=extract_cost + sum(st.cost_usd for st in steps) + _branch_cost(rerun_steps)
+                        + (step.cost_usd if kind == "extract" else 0.0),
+                        completed_steps=tuple(steps))
+                    integrity.rerun_steps = tuple(rerun_steps)
+                    raise integrity
                 if kind == "extract":
                     extract_cost = step.cost_usd
                     extract_seconds = step.elapsed_seconds

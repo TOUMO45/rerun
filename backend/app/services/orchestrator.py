@@ -353,7 +353,22 @@ class PipelineResult:
 
 
 _PROJECT_FILES = ("setup.py", "setup.cfg", "pyproject.toml")
+# harness-v1.4.0-rc: seconds a candidate branch needs beyond the smoke limit (reopening the image, the overlay step, start-up).
+CANDIDATE_START_MARGIN_S = 45.0
 _PIP_PROJECT_RE = re.compile(r"pip3? install[^&|;]*(\s-e\s|\s\.(\s|$|\[)|\s\./)|setup\.py\s+(install|develop)")
+
+
+_PROJECT_INSTALL_RE = re.compile(
+    r"pip3? install(?![^&|;]*\s-e\s)[^&|;]*\s\.(\s|$|\[)|pip3? install(?![^&|;]*\s-e\s)[^&|;]*\s\./(\s|$)"
+    r"|setup\.py\s+(install|build|build_ext|bdist\w*)"
+)
+
+
+def _installs_project_copy(command: str) -> bool:
+    """harness-v1.4.0-rc: True if a setup command installs the repository itself NON-editably (`pip install .`, `pip install
+    --no-deps .`, `setup.py install`, `build_ext`): the installed copy then holds every repository file as it was at that step, so a
+    patch to ANY file must be in the tree before the setup steps, or the command would run the unpatched installed package."""
+    return bool(_PROJECT_INSTALL_RE.search(command))
 
 
 def _setup_reads(command: str, path: str) -> bool:
@@ -935,7 +950,7 @@ def _run_stages(
             operation_seconds = deps.sandbox_wall_clock_seconds
         else:
             # harness-v1.4.0-rc: `share` operations run at the same time (repair candidates); each may use its share of what is left.
-            budget_seconds = cost_guard.operation_seconds_budget() / max(share, 1)
+            budget_seconds = cost_guard.operation_seconds_budget(share=max(share, 1))
             if budget_seconds < MIN_OPERATION_SECONDS:
                 state.cost_capped = (
                     f"${cost_guard.remaining_today_usd:.2f} left funds only {budget_seconds:.0f}s of sandbox time "
@@ -990,7 +1005,8 @@ def _run_stages(
                 path = current_workdir / rel
                 overlay[rel] = path.read_bytes() if path.is_file() else None
             overlay.update(extra_files or {})
-            early = any(_setup_reads(command, rel) for command in cmds for rel in overlay)
+            early = bool(overlay) and (any(_installs_project_copy(command) for command in cmds)
+                                       or any(_setup_reads(command, rel) for command in cmds for rel in overlay))
             start = None if early else _best_layer(use_plan.base_image, cmds)
             fresh = start is None
             if fresh:
@@ -1053,8 +1069,11 @@ def _run_stages(
                 file_modes=modes,
             )
         except UploadIntegrityError as exc:
-            # The bytes extracted in the sandbox are not the bytes uploaded.
-            _record_op("void", exc=exc)
+            # The bytes extracted in the sandbox are not the bytes uploaded (or the patch overlay did not land). What the completed
+            # steps cost is spend (harness-v1.4.0-rc: the overlay check runs after the setup steps).
+            spent = float(getattr(exc, "completed_cost_usd", 0.0) or 0.0)
+            cost_guard.record_spend(spent)
+            _record_op("void", exc=exc, cost_usd=spent)
             raise tree_integrity.HarnessIntegrityError(
                 f"post-extraction check failed in the sandbox: {exc}",
                 {**state.tree_integrity, "status": "post_extraction_mismatch", "sandbox_stderr": exc.stderr},
@@ -1067,10 +1086,10 @@ def _run_stages(
             recorded = cost_guard.record_killed_operation(
                 exc.completed_cost_usd, exc.killed_seconds, note=f"killed after {exc.killed_seconds:.0f}s: {exc.command[:80]}"
             )
+            killed_op = _record_op("killed", exc=exc, cost_usd=recorded, estimated_usd=recorded - exc.completed_cost_usd)
             if checkpoint_mode:
-                op_n = len(cost_guard.operations) + 1
-                _register_layers(use_plan.base_image, getattr(exc, "layers", ()) or (), op_n)
-            _record_op("killed", exc=exc, cost_usd=recorded, estimated_usd=recorded - exc.completed_cost_usd)
+                _register_layers(use_plan.base_image, getattr(exc, "layers", ()) or (), killed_op["n"],
+                                 patched=bool(start and start.get("patched")))
             _log(
                 f"[cost_guard] operation stopped at {operation_seconds:.0f}s; recorded ${recorded:.4f} "
                 f"({exc.completed_cost_usd:.4f} measured + estimate for the killed step), "
@@ -1081,9 +1100,11 @@ def _run_stages(
                 raise OperationBudgetExhausted(state.cost_capped) from exc
             raise
         cost_guard.record_spend(result.total_cost_usd)
-        if checkpoint_mode:
-            _register_layers(use_plan.base_image, result.layers, len(cost_guard.operations) + 1)
         op = _record_op("completed", result=result, cost_usd=result.total_cost_usd)
+        if checkpoint_mode:
+            # Layers built on top of an adopted (patched) image hold that patch too: their lineage is recorded. (Correctness does not
+            # depend on it: every operation re-applies the full overlay of the checkout's changes.)
+            _register_layers(use_plan.base_image, result.layers, op["n"], patched=bool(start and start.get("patched")))
         if checkpoint_mode and op["env_image_id"] and not keep_result:
             with op_lock:
                 state.env_image = {"image": op["env_image_id"], "base_image": use_plan.base_image, "ops": tuple(cmds), "op": op["n"]}
@@ -2088,19 +2109,34 @@ def _run_stages(
                     runnable.append({**cand, "files": files, "plan": cand_plan, "requirements": cand_requirements})
                 if not runnable:
                     continue
+                # Run them at the same time only when each one's share of what is left still funds the smoke run plus start-up and the
+                # overlay; otherwise one after another, each funded from what is left when it starts (a candidate must never be killed
+                # because its siblings ran beside it).
+                needed_seconds = (deps.smoke_seconds or 0) + CANDIDATE_START_MARGIN_S
+                concurrent = len(runnable)
+                if concurrent > 1 and cost_guard.operation_seconds_budget(share=concurrent) < needed_seconds:
+                    concurrent = 1
                 _log(f"[repair {attempt_number}] tamper gate PASS for candidate(s) {[c['number'] for c in runnable]}; running them "
-                     "concurrently, each in its own branch of the environment image")
+                     + ("concurrently" if concurrent > 1 else "one after another (the budget left cannot fund "
+                        f"{len(runnable)} concurrent branches of {needed_seconds:.0f}s each)")
+                     + ", each in its own branch of the environment image")
 
                 def _run_candidate(cand: dict):
                     try:
                         return cand, _execute(workdir, smoke=True, plan_used=cand["plan"], extra_files=cand["files"], keep_result=True,
-                                              share=len(runnable), role=f"repair {attempt_number} candidate {cand['number']}",
+                                              share=concurrent, role=f"repair {attempt_number} candidate {cand['number']}",
                                               candidate=cand["number"]), None
                     except Exception as exc:  # noqa: BLE001 - every candidate's outcome is recorded before anything is raised
                         return cand, None, exc
 
-                with ThreadPoolExecutor(max_workers=len(runnable)) as pool:
+                with ThreadPoolExecutor(max_workers=concurrent) as pool:
                     outcomes = list(pool.map(_run_candidate, runnable))
+                if (concurrent > 1 and state.cost_capped
+                        and cost_guard.operation_seconds_budget() >= needed_seconds):
+                    # A candidate stopped at its SHARE of the budget; the entry itself can still fund a whole operation.
+                    _log(f"[repair {attempt_number}] a candidate stopped at its share of the budget ({state.cost_capped}); "
+                         "the entry still has funding, so the run continues")
+                    state.cost_capped = ""
 
                 fatal = next((exc for _, _, exc in outcomes if exc is not None and not isinstance(exc, CostLimitExceeded)), None)
                 executed: list[dict] = []
@@ -2176,8 +2212,11 @@ def _run_stages(
                     )
                     if result is not None and not result.succeeded and e is not winner:
                         failed_moves.update(env_repair.change_key(c) for c in e["env_changes"])
-                if fatal is not None:
-                    raise fatal
+                with op_lock:
+                    layer_images = {layer["image"] for layer in state.layers}
+                released = [image for image in released if image not in layer_images]  # never a layer a later operation may reopen
+                if adjudication_record is not None:
+                    adjudication_record["released_images"] = released
                 if released and deps.image_releaser is not None:
                     try:
                         outcome = deps.image_releaser(api_key=deps.sandbox_api_key, project_id=deps.sandbox_project_id, image_ids=released)
@@ -2187,15 +2226,25 @@ def _run_stages(
                         cost_guard.record_operation({
                             "role": f"repair {attempt_number}: release candidate images not chosen", "candidate": None, "concurrent": 1,
                             "released_images": released, "released": outcome.get("released"),
+                            "note": "a disposable run on each image, as the sandbox's own cleanup; the SDK has no delete call",
                             "sandbox_seconds": round(float(outcome.get("seconds") or 0.0), 3), "install_seconds": [],
                             "branch_from_image": None, "result_image": None, "image_kept": False, "kept_images": [],
                             "torch_installed": False, "torch_in_start_image": False, "torch_env_key": None,
                             "cost_usd": round(float(outcome.get("cost_usd") or 0.0), 6), "cost_estimated_usd": 0.0, "outcome": "completed",
                         })
-                        _log(f"[checkpoint] released {outcome.get('released')} of {len(released)} candidate image(s) that were not chosen "
-                             f"(${float(outcome.get('cost_usd') or 0.0):.4f} recorded)")
+                        with op_lock:
+                            for op in cost_guard.operations:
+                                if op.get("result_image") in released:
+                                    op["kept_images"] = [i for i in op.get("kept_images", []) if i != op["result_image"]]
+                                    op["image_kept"] = bool(op["kept_images"])
+                                    op["result_image_released"] = True
+                        _log(f"[checkpoint] ran the disposal step on {outcome.get('released')} of {len(released)} candidate image(s) "
+                             f"that were not chosen (${float(outcome.get('cost_usd') or 0.0):.4f} recorded; the SDK has no delete call, "
+                             "so whether this frees storage is not known)")
                     except Exception as exc:  # noqa: BLE001 - best effort, like the sandbox's own cleanup
                         _log(f"[checkpoint] releasing the candidate images that were not chosen failed: {exc}")
+                if fatal is not None:
+                    raise fatal
                 if winner is None:
                     _log(f"[repair {attempt_number}] no candidate adopted; the checkout and the environment image are unchanged")
                     if any(isinstance(e["error"], CostLimitExceeded) for e in executed):

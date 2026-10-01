@@ -154,3 +154,30 @@ def test_hook_sources_are_python36_syntax(name):
     source = runner_hooks.source_of(name)
     compile(source, name, "exec", dont_inherit=True)
     assert "f\"" not in source and "f'" not in source and ":=" not in source  # no f-strings, no walrus (3.6 image)
+
+
+# --- regressions found by the independent review ----------------------------------------------------------------------
+
+def test_the_shim_survives_a_library_that_looks_for_torch_before_importing_it(tmp_path, fake_torch):
+    """transformers / accelerate / lightning call importlib.util.find_spec("torch") first: that must not use the shim up."""
+    proc = _run(_site(tmp_path, runner_hooks.CPU_SHIM), """
+        import importlib.util
+        assert importlib.util.find_spec("torch") is not None
+        assert importlib.util.find_spec("torch") is not None
+        import torch
+        print(torch.load("model.pt"), "cuda", torch.cuda.is_available())
+    """, fake_torch)
+    assert proc.returncode == 0, proc.stderr
+    assert "'map_location': 'cpu'" in proc.stdout and "cuda False" in proc.stdout
+    assert proc.stderr.count("RERUN_CPU_SHIM: injected") == 1
+
+
+def test_the_exit_hook_wraps_exit_and_quit_even_though_site_defines_them_after_the_pth_files(tmp_path):
+    """site.main() processes .pth files BEFORE setquit() defines exit()/quit(): reproduce that order with `python -S`, then run the
+    same steps site.main() runs (addsitedir, then setquit)."""
+    site_dir = _site(tmp_path, runner_hooks.EXIT_HOOK)
+    code = (f"import site, builtins\nassert not hasattr(builtins, 'exit')\nsite.addsitedir({str(site_dir)!r})\n"
+            "site.setquit()\ndef leave():\n    exit(4)\nleave()\n")
+    proc = subprocess.run([sys.executable, "-S", "-c", code], capture_output=True, text=True, timeout=60)
+    assert proc.returncode == 4
+    assert "RERUN_EXIT_HOOK: exit(4) was called" in proc.stderr and re.search(r"in leave", proc.stderr)
