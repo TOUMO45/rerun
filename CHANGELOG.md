@@ -2,6 +2,10 @@
 
 One entry per phase of the post-corpus-v2 plan. Numbers are produced by scripts in `scripts/`.
 
+## Phase D4 — design notes for D-23 and D-25 (2026-10-01; documents only, no code)
+`docs/design/D-23.md` (cached torch layer and per-operation floor, compared) and `docs/design/D-25.md` (harness-injected exit-site hook, with a `-X dev -m trace` fallback): the problem
+as the records show it with record ids, the proposed mechanism, what a validating gate would have to measure, and an ESTIMATED cost of that gate. Both defects stay open.
+
 ## Phase D4 — D-24 fix: post-gate, unvalidated (2026-10-01; tag `harness-v1.3.5-unvalidated`; no Nebius call)
 **post-gate, unvalidated.** The deterministic "missing C compiler -> apt build-essential" rule now also fires on a SYS_LIB_MISSING classification at repair time, before any model
 proposal for that failure (deterministic first, model second). The step is recorded as an attempt of origin `time_machine` with `time_machine_action` = {rule, matched_error,
