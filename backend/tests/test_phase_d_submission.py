@@ -19,6 +19,7 @@ from phase_d import dashboard, replay  # noqa: E402
 DOCS = [
     "docs/submission/demo_script.md",
     "README.md",
+    "docs/submission/devpost_answers.md",
 ]
 TAGGED_DOCS = [d for d in DOCS if d != "docs/submission/criteria_map.md"]
 
@@ -27,7 +28,7 @@ NUMBER = re.compile(r"(?<![A-Za-z0-9_.])\d+(?:\.\d+)?(?![A-Za-z0-9_])")
 TAG = re.compile(r"MEASURED|ESTIMATED|DERIVED")
 TAG_MARK = re.compile(r"\[(?:MEASURED|ESTIMATED|DERIVED)\]")
 # The only allowlist: timeline timestamps (m:ss) and the judging / rating scales.
-ALLOWLIST = (re.compile(r"\b\d:\d\d\b"), re.compile(r"\b5-point\b"), re.compile(r"\b1[–-]10\b"), re.compile(r"/10\b"), re.compile(r"\bout of 10\b"))
+ALLOWLIST = (re.compile(r"\b\d:\d\d\b"), re.compile(r"\b5-point\b"), re.compile(r"\b1[–-]10\b"), re.compile(r"\b\d{1,2}/10\b"), re.compile(r"\bout of 10\b"))
 CODE_SPAN = re.compile(r"(`+).+?\1")
 DEFECT_ID = re.compile(r"\bD-\d+\b")
 LINK_TARGET = re.compile(r"\]\([^)]*\)")
@@ -172,3 +173,19 @@ def test_the_readme_states_the_headline_the_badges_the_ledger_and_the_limits():
     assert "smoke-limit artefact" in text and "0 [MEASURED] of 8 [MEASURED]" in text
     for rel in set(re.findall(r"\]\(((?!https?:)[^)#]+)", text)):
         assert (ROOT / rel).exists(), rel
+
+
+# ---------------------------------------------------------------- Devpost answers
+
+def test_the_devpost_answers_mark_ratings_as_proposed_and_leave_the_owner_question_blank():
+    text = _text("docs/submission/devpost_answers.md")
+    sections = dict(re.findall(r"^## (.+?)\n(.*?)(?=^## |\Z)", text, flags=re.M | re.S))
+    assert len(sections) == 11
+    rated = [name for name, body in sections.items() if re.search(r"\b\d{1,2}/10\b", body)]
+    assert len(rated) == 3 and all("PROPOSED" in sections[name] and "The owner decides." in sections[name] for name in rated)
+    assert sections["How does it compare with other models?"].strip().startswith("Not measured.")
+    assert sections["Prompt-engineered or fine-tuned?"].strip().startswith("Prompt-engineered.")
+    assert sections["Did you use Tavily?"].strip().startswith("**Yes.**") and "never cited" in sections["Did you use Tavily?"]
+    assert sections["Is this a new project or an existing one?"].strip() == "<!-- OWNER TO ANSWER: left blank on purpose -->"
+    recorded = {r["model"] for v in _summary()["stack"]["versions"] for r in v["roles"]}
+    assert set(re.findall(r"nvidia/[A-Za-z0-9._-]+", text)) == recorded
