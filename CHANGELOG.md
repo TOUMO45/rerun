@@ -2,6 +2,9 @@
 
 One entry per phase of the post-corpus-v2 plan. Numbers are produced by scripts in `scripts/`.
 
+## harness-v1.4.2 — gate (2026-10-01/02; live, NOT PASSED: 1 of 4)
+Entries 3, 7, 8, 11: #7 RUNS_AFTER_REPAIR (60 s smoke; D-37 partial progress adopted candidate 2 in round 2), #3 INDETERMINATE EXIT_OUTSIDE_PYTHON, #8 INDETERMINATE COST_CAP at the $1.50 cap (past the GPU error, `compare_psnr`), #11 INDETERMINATE RESOURCE_LIMIT (the evidence run read the kernel's OOM kill on a 3.85 GiB VM). (c) failed: no citations. Gate $3.9350 API-reported, ledger $22.4935, room $2.5065. New D-41: the SDK truncates each output stream at 65,535 bytes and the harness never reads `.truncated`; #3's silent exit is probably a cut-off error (not proven). Report `reports/corpus-v2.1/v1.4.2/gate/GATE_REPORT_v1.4.2.md`. All live work stops; Phase D follows.
+
 ## harness-v1.4.2 — seal (2026-10-01; live, $0.045032 API-reported)
 Option B over `runner_hooks.py` only: 9 of 9 operations ok (the hooks and the wrapper as in v1.4.1; the evidence command around a calm run, a self-SIGKILL, and an allocation probe). The probe measured what no document gives: a sandbox VM has 3.85 GiB of memory, 4 CPUs and no swap, and a process that holds all of it is killed with exit 137. Every seal record carries its code blobs; the writer checks them. Independent review of the Step 1 diff: 8 findings fixed before the seal (STEP1_REPORT section 8). Ledger $18.5533. Tag `harness-v1.4.2`; report `reports/corpus-v2.1/v1.4.2/seal/SEAL_STATUS.md`.
 
