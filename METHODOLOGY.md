@@ -941,3 +941,9 @@ Seal -> gate (owner's rule): after seal run 1 the measured branch-run cost and t
 starts automatically only if ALL hold: every seal check passed; measured branch-run cost <= $0.15; kept images not billed while kept (on
 the evidence above) or billed at <= $0.05 per image per entry; seal spend <= $1.50. Otherwise stop and report. Gate: entries 3, 7, 8, 11 in
 that order, criteria (a)-(e) as pre-registered above, hard stop at $5.00, each entry reported as it lands; an honest verdict either way.
+
+**Gate v1.4.0 result (2026-10-01): NOT PASSED, attempted.** (a) 0 of 4 (#3, #7 BLOCKED; #8, #11 INDETERMINATE COST_CAP); (b) pass, 6 patches
+applied in branches; (c) pass, 3 attempts with a stored Tavily citation (#8), the first in any RERUN gate; (d) pass; (e) pass on all four.
+Gate spend $3.1943 (incl. $0.1868 ESTIMATED) + upload smoke $0.0049; ledger $14.6495 [$13.6787 MEASURED + $0.9708 ESTIMATED], lower bound
+(D-27). Report with findings: `reports/corpus-v2.1/v1.4.0/gate/GATE_REPORT_v1.4.0.md`. v1.4.0 is documented beside v1.3.3 and v1.3.4 as
+"attempted, did not pass"; the Phase D assets stay as they are.

@@ -2,6 +2,12 @@
 
 One entry per phase of the post-corpus-v2 plan. Numbers are produced by scripts in `scripts/`.
 
+## harness-v1.4.0 — seal (option B) and gate v1.4.0: attempted, did not pass (2026-10-01; live, owner's caps)
+Seal complete (run 1: branch run $0.00054618 MEASURED, kept image reopened after 600 s at $0.00017; 14 option-B checks; run 2 retry after
+D-29, the seal script's funding defect), tag `harness-v1.4.0` at `15d3cdf`. Gate on entries 3, 7, 8, 11: NOT PASSED, (a) 0 of 4; (b), (c),
+(d), (e) pass, (c) with the first stored Tavily citations of any gate. Report and findings: `reports/corpus-v2.1/v1.4.0/gate/GATE_REPORT_v1.4.0.md`.
+Phase D assets unchanged. Ledger $14.6495 ($13.6787 MEASURED + $0.9708 ESTIMATED, lower bound D-27).
+
 ## harness-v1.4.0-rc — Step 1 of the v1.4.0 directive (2026-10-01; offline, unsealed, no Nebius call, no spend)
 Root-cause fix of D-23 (the environment was rebuilt in every sandbox operation): operations keep their images (the committed tree, then one
 image per setup step) and later operations reopen the deepest matching one by id and run only the missing steps; every gate-approved change
