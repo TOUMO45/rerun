@@ -911,3 +911,33 @@ must be at least 4 x the fixed entry cap; an entry is never started with less th
 (`reports/corpus-v2.1/v1.4.0/seal/run_seal_v140.py`). Caps: the owner's figures, written in chat before anything runs (proposed shape: seal at most
 $1.50, gate at most $5.00 with $1.25 per entry). If the gate fails, the Phase D assets stay as they are and v1.4.0 is documented as "attempted, did
 not pass" beside the earlier gates.
+
+### Seal of harness-v1.4.0: option B, and the seal -> gate rule (owner decision in chat, 2026-10-01, before any live call)
+
+Caps (owner): seal $1.50, gate $5.00, entry $1.25 (gate = 4 x entry); ledger after this step at most $16.64 (lower bound, D-27).
+The seal rule (`check_seal_verification`) is unchanged in form: every sandbox-touching file must be covered by live verifications made
+against its current blob. What changes is the set of paths re-verified for v1.4.0 (option B): only the paths the four gate entries
+(corpus-v2 #3, #7, #8, #11) exercise, plus the new v1.4.0 paths.
+- Re-verified (`scripts/run_seal_verification_v140.py`): the download route by git on entry 8's own repository; the archive upload route;
+  runner torch on python 3.6 (1.10.2 pin, entry 3), the matched family on 3.10 (entries 8 and 11 baselines), 1.8.1 with the NumPy cap on 3.9
+  (entry 11); the runner-setup phase tag; the kill at the operation limit through both stop paths; the smoke launcher on 3.10 and 3.6.
+- New (`reports/corpus-v2.1/v1.4.0/seal/run_seal_v140.py`): run 1 (ready image with kept layers, one branch run = the measured branch-run
+  cost, the runner hooks on a kept image with a live exit-site check, a kept image reopened after a wait) and run 2 (entry 7's recorded
+  environment as a checkpoint, then reopen + apply + execute). Run 3 only as a repeat of an ambiguous run.
+- NOT re-verified for v1.4.0, because no gate entry uses them: the download route's tarball fallback, torch pins on python 3.8 and the 3.10
+  1.12.1 pin, the patchelf-flag-absent case, and the D-20 download-route overlay (legacy, out of the live flow). A later batch that needs one
+  of them must verify it first.
+- `seal_verification.json` is written by `scripts/write_seal_verification_v140.py` from those records; the tag `harness-v1.4.0` is set only if
+  every check passes; otherwise `harness-v1.4.0-rc` stays and nothing is gated.
+
+Kept-image billing. The SDK reports a cost per run only, and Nebius documents only runs and image imports as billable (Contree MCP
+cheatsheet: list_images, set_tag, upload, download and the other image operations "Free"; `run` and `import_image` "VM"); no document found
+states a storage price or an image retention period. The seal therefore records: the cost of reopening a kept image after a wait (run 1 D)
+next to the same operation run immediately (run 1 B), and every kept image id with its time, so a storage charge, if the account's billing
+page ever shows one, can be matched. Each gate record lists its kept images (`operations[].kept_images`); the gate report gives their count
+per entry so the ledger can bound a storage charge (D-27 style annotation).
+
+Seal -> gate (owner's rule): after seal run 1 the measured branch-run cost and the kept-image evidence are reported with record ids. The gate
+starts automatically only if ALL hold: every seal check passed; measured branch-run cost <= $0.15; kept images not billed while kept (on
+the evidence above) or billed at <= $0.05 per image per entry; seal spend <= $1.50. Otherwise stop and report. Gate: entries 3, 7, 8, 11 in
+that order, criteria (a)-(e) as pre-registered above, hard stop at $5.00, each entry reported as it lands; an honest verdict either way.

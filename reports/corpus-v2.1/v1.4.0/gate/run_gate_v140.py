@@ -35,7 +35,7 @@ ROOT = Path(__file__).resolve().parents[4]
 sys.path.insert(0, str(ROOT / "scripts"))
 sys.path.insert(0, str(ROOT / "backend"))
 
-ENTRIES = (11, 7, 3, 8)  # the v1.3.4 gate's entries and order
+ENTRIES = (3, 7, 8, 11)  # the owner's order for gate v1.4.0 (chat, 2026-10-01); the same four entries as the v1.3.4 gate
 ENTRY_SPEND_LIMIT_USD = 2.0  # criterion (d), pre-registered since the v1.3.3 gate
 PASS = ("RUNS_CLEAN", "RUNS_AFTER_REPAIR")
 
