@@ -20,6 +20,7 @@ DOCS = [
     "docs/submission/demo_script.md",
     "README.md",
     "docs/submission/devpost_answers.md",
+    "docs/submission/description.md",
 ]
 TAGGED_DOCS = [d for d in DOCS if d != "docs/submission/criteria_map.md"]
 
@@ -189,3 +190,16 @@ def test_the_devpost_answers_mark_ratings_as_proposed_and_leave_the_owner_questi
     assert sections["Is this a new project or an existing one?"].strip() == "<!-- OWNER TO ANSWER: left blank on purpose -->"
     recorded = {r["model"] for v in _summary()["stack"]["versions"] for r in v["roles"]}
     assert set(re.findall(r"nvidia/[A-Za-z0-9._-]+", text)) == recorded
+
+
+# ---------------------------------------------------------------- project description
+
+def test_the_description_is_at_most_400_words_and_the_tagline_is_two_sentences():
+    text = _text("docs/submission/description.md")
+    tagline = text.split("## Tagline")[1].split("## Description")[0].strip()
+    description = text.split("## Description")[1].strip()
+    spoken = TAG_MARK.sub(" ", description).replace("**", "")
+    assert len(spoken.split()) <= 400, len(spoken.split())
+    assert len(re.findall(r"[.!?](?:\s|$)", TAG_MARK.sub("", tagline))) == 2
+    assert "0 [MEASURED] of 8 [MEASURED]" in tagline and "0 [MEASURED] of 8 [MEASURED]" in description
+    assert "EXPLORATORY" in description and "lower bound" in description and "smoke-limit artefact" in description
