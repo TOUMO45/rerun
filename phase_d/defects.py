@@ -16,6 +16,7 @@ FIXMAP = "reports/corpus-v2.1/v1.3.3/DEFECT_FIX_MAP.md"
 G133 = "reports/corpus-v2.1/v1.3.3/smoke_gate/SMOKE_GATE_REPORT.md"
 G134 = "reports/corpus-v2.1/v1.3.3/smoke_gate/SMOKE_GATE_REPORT_v1.3.4.md"
 METHODOLOGY = "METHODOLOGY.md"
+D24_TEST = "backend/tests/test_d24_build_essential.py"
 
 FIXED_GATED, FIXED_UNVALIDATED, OPEN = "fixed-and-gated", "fixed-unvalidated", "open"
 STATUSES = (FIXED_GATED, FIXED_UNVALIDATED, OPEN)
@@ -103,7 +104,10 @@ REGISTER: list[dict] = [
          [(FIXMAP, "| D-22 section | fixed |"), (G134, "D-22 (no attempt lost)")]),
     _row("D-23", "Per-repair funding starves entries that pay a torch install each time", OPEN, (DEFECTS, "- **D-23** The per-repair funding rule"),
          [(DEFECTS, NOT_FIXED_134)]),
-    _row("D-24", "The compiler rule fires only on the baseline classification", OPEN, (DEFECTS, "- **D-24** The deterministic"), [(DEFECTS, NOT_FIXED_134)]),
+    _row("D-24", "The compiler rule fires only on the baseline classification", FIXED_UNVALIDATED, (DEFECTS, "- **D-24** The deterministic"),
+         [(D24_TEST, "def test_at_repair_time_the_recorded_gcc_error_adds_build_essential_with_no_model_call"),
+          ("CHANGELOG.md", "post-gate, unvalidated")],
+         "Fixed after the last gate, in a harness version that is not sealed and has run in no gate. The basis is an offline test, not a gate line."),
     _row("D-25", "Model-placed diagnostics cannot locate a deliberate silent exit", OPEN, (DEFECTS, "- **D-25** One round of model-placed diagnostics"),
          [(DEFECTS, NOT_FIXED_134)]),
     _row("D-26", "No reason is recorded when a declined attempt does not cite", OPEN,

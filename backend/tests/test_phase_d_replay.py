@@ -415,10 +415,13 @@ def test_the_defect_register_is_d1_to_d28_with_quoted_sources(summary, source, d
     assert [r["id"] for r in rows] == [f"D-{i}" for i in range(1, 29)]
     assert {r["status"] for r in rows} == {"fixed-and-gated", "fixed-unvalidated", "open"} == set(summary["defects"]["status_rule"])
     status = {r["id"]: r["status"] for r in rows}
-    assert all(status[f"D-{i}"] == "open" for i in (1, 6, 7, 12, 13, 21, 23, 24, 25, 26, 27, 28))  # D-24 is open until D4
+    assert all(status[f"D-{i}"] == "open" for i in (1, 6, 7, 12, 13, 21, 23, 25, 26, 27, 28))  # a partial fix stays open
+    d24 = next(r for r in rows if r["id"] == "D-24")  # fixed post-gate: unvalidated, its basis a test name and not a gate line
+    assert d24["status"] == "fixed-unvalidated" and d24["basis"][0]["path"] == "backend/tests/test_d24_build_essential.py"
+    assert d24["basis"][0]["quote"].startswith("def test_") and not any("smoke_gate" in b["path"] for b in d24["basis"])
     for r in rows:
         for src in [r["registered"]] + r["basis"]:
-            assert src["quote"] in source.read(src["path"]).decode("utf-8").replace("\r\n", "\n"), r["id"]
+            assert src["quote"] in (ROOT / src["path"]).read_bytes().decode("utf-8").replace("\r\n", "\n"), r["id"]
         assert not re.search(r"\d", r["title"] + r["note"]), r["id"]  # no number is displayed from this text
         if r["status"] == "fixed-and-gated":
             assert len(r["basis"]) >= 1 and any("smoke_gate" in b["path"] or b["path"] == "METHODOLOGY.md" for b in r["basis"]), r["id"]

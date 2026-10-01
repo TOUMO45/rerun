@@ -79,5 +79,7 @@ the fix map itself calls partial, or a defect that still shows in practice.
 
 ## Ledger
 
-The ledger total is a lower bound (D-27): it records only completed cost, and the spend of a killed step is absent wherever
-the cost guard stored no estimate. Missing amounts are not reconstructed.
+The ledger is $10.1349 = $9.8507 MEASURED + $0.2842 ESTIMATED: the sum of the full-precision cost fields of the seal-verification
+and gate records (`replay/summary.json`, `ledger`). It is a lower bound (D-27): it records only completed cost, and the spend of a
+killed step is absent wherever the cost guard stored no estimate. Missing amounts are not reconstructed. The gate report's $10.134
+is quoted beside it on the dashboard; that figure is a sum of components that were already rounded.

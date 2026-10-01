@@ -178,6 +178,20 @@ def _chain_kwargs(state: "_RunState | None") -> dict:
     return {"error_chain": tuple(chain.as_list()), "first_repo_error": chain.first_repo_error, "last_error": chain.last_error}
 
 
+_MISSING_COMPILER = re.compile(r"\b(gcc|cc|g\+\+|x86_64-linux-gnu-gcc)\b")
+BUILD_ESSENTIAL_RULE = "missing_compiler_build_essential"
+
+
+def missing_compiler_error(classification) -> str | None:
+    """The error string of a SYS_LIB_MISSING failure that names a missing C compiler, else None. The deterministic
+    "missing compiler -> apt build-essential" rule is keyed on it: at the baseline classification (since harness-v1.1) and,
+    harness-v1.3.5-unvalidated (D-24), on any classification at repair time. Any other SYS_LIB_MISSING does not match."""
+    if classification.code != classifier.TaxonomyCode.SYS_LIB_MISSING:
+        return None
+    evidence = classification.evidence or ""
+    return evidence if _MISSING_COMPILER.search(evidence) else None
+
+
 @dataclass(frozen=True)
 class AttemptRecord:
     attempt_number: int
@@ -212,6 +226,9 @@ class AttemptRecord:
     consulted: tuple[dict, ...] = ()
     reason_no_citation: str = ""
     silent_exit: bool = False
+    # harness-v1.3.5-unvalidated (D-24, post-gate): a deterministic step RERUN took at repair time instead of asking the model
+    # ({"rule", "matched_error", "apt_added", "phase"}). Only serialized when set, so older records are unchanged.
+    time_machine_action: dict | None = None
 
     def as_dict(self) -> dict:
         record = {
@@ -240,6 +257,8 @@ class AttemptRecord:
             record["reason_no_citation"] = self.reason_no_citation
         if self.silent_exit:
             record["silent_exit"] = True
+        if self.time_machine_action is not None:
+            record["time_machine_action"] = self.time_machine_action
         return record
 
 
@@ -1012,6 +1031,57 @@ def _run_stages(
                 failed_moves.add(env_repair.change_key(change))
             return result
 
+        def _auto_build_essential(failed: SandboxRunResult, matched_error: str) -> SandboxRunResult | None:
+            """harness-v1.3.5-unvalidated (D-24, post-gate; no gate has validated it). Deterministic step (no model): the failure
+            being repaired is a SYS_LIB_MISSING that names a missing C compiler, so `build-essential` goes into the apt step and
+            the command is re-executed. Before D-24 the rule only fired on the baseline classification, and a missing compiler
+            found after a repair went to the model (corpus-v2 entry 7 in the v1.3.4 gate: the model proposed `gcc` as a pip
+            package). Returns the re-execution's result, or None if the env gate refuses the step or the budget stops it."""
+            nonlocal plan, current_requirements
+            log = f"{failed.final.stderr}\n{failed.final.stdout}"
+            change = env_repair.EnvChange(
+                op="apt",
+                package="build-essential",
+                justification="deterministic: the failing run could not execute a C compiler",
+                evidence=matched_error,
+            )
+            action = {"rule": BUILD_ESSENTIAL_RULE, "matched_error": matched_error, "apt_added": ["build-essential"], "phase": "repair"}
+            # The same gate a model proposal faces (the evidence must be in the failing run's log, verbatim).
+            violations = env_repair.check_env_delta(
+                (change,), log_text=log, imported_modules=frozenset(), has_requirements_txt=current_requirements is not None,
+                locked_requirements=tuple(current_requirements.splitlines()) if resolved_lock is not None and current_requirements else None,
+                apt_packages=frozenset(plan.apt_install),
+            )
+            if violations:
+                _log(f"[time-machine] build-essential step refused by the env gate: {'; '.join(v.reason for v in violations)}")
+                return None
+            plan, new_requirements = env_repair.apply_env_delta(plan, (change,), current_requirements)
+            if new_requirements is not None:
+                current_requirements = new_requirements
+            _log(f"[time-machine] deterministic step: apt build-essential (matched error: {matched_error}); no model call")
+            state.build_plan_dict = plan.as_dict()
+
+            def _record(exit_code, stdout, stderr, execution=None) -> None:
+                attempts.append(
+                    AttemptRecord(0, "", "PASS", (), exit_code, stdout, stderr, (), (change.as_dict(),), (),
+                                  origin="time_machine", execution=execution, time_machine_action=action)
+                )
+
+            try:
+                result = _execute(workdir, smoke=True)
+            except CostLimitExceeded as exc:
+                _log(f"[time-machine] stopped: daily cost ceiling reached: {exc}")
+                _record(None, "", f"stopped before completion: {exc}"[-2000:])
+                return None
+            except (SandboxTimeoutError, tree_integrity.HarnessIntegrityError) as exc:
+                _record(None, "", str(exc)[-2000:])
+                raise
+            _log(f"[time-machine] re-execution id={result.sandbox_id} exit_code={result.final.exit_code}")
+            _record(result.final.exit_code, result.final.stdout[-2000:], result.final.stderr[-2000:], _execution_of(result, True))
+            if not result.succeeded:
+                failed_moves.add(env_repair.change_key(change))
+            return result
+
         def _with_build_isolation(result: SandboxRunResult) -> SandboxRunResult:
             while not result.succeeded:
                 next_result = _auto_build_isolation(result)
@@ -1043,9 +1113,7 @@ def _run_stages(
                     (current_requirements or "").splitlines(), undeclared, era.date, py_version
                 )
                 apt_added = ()
-                if classification.code == classifier.TaxonomyCode.SYS_LIB_MISSING and re.search(
-                    r"\b(gcc|cc|g\+\+|x86_64-linux-gnu-gcc)\b", classification.evidence
-                ):
+                if missing_compiler_error(classification):
                     # Deterministic known need: a missing C compiler.
                     apt_added = ("build-essential",)
                 tm_record = {
@@ -1149,6 +1217,37 @@ def _run_stages(
                 cost_guard.check_attempt_budget(run_id)
             except CostLimitExceeded:
                 break
+
+            # harness-v1.3.5-unvalidated (D-24, post-gate): deterministic first, model second. A missing C compiler found at
+            # repair time is fixed by RERUN (apt build-essential) before any model proposal for that classification. The step is
+            # recorded as attempt 0 / origin time_machine with `time_machine_action`, and does not use up a model attempt.
+            compiler_error = missing_compiler_error(classification)
+            if compiler_error and "build-essential" not in plan.apt_install:
+                state.stage = "time_machine"
+                step_result = _auto_build_essential(sandbox_result, compiler_error)
+                if state.cost_capped:
+                    break
+                if step_result is not None:
+                    if not step_result.succeeded:
+                        step_result = _with_build_isolation(step_result)
+                    sandbox_result = step_result
+                    if step_result.succeeded:
+                        verdict = "RUNS_AFTER_REPAIR"
+                        break
+                    state.stage = "classifier"
+                    classification = classifier.classify(
+                        step_result.final.exit_code,
+                        step_result.final.stderr,
+                        step_result.final.stdout,
+                        declared_deps=intake_result.declared_dependencies,
+                    )
+                    taxonomy_code = classification.code
+                    _log(f"[classifier] {classification.code}: {classification.evidence}")
+                    sandbox_reason = _note_failure(0, classification, step_result.final.phase)
+                    if sandbox_reason:
+                        verdict, indeterminate_reason = "INDETERMINATE", sandbox_reason
+                        _log(f"[verdict] INDETERMINATE: {sandbox_reason}")
+                        break
 
             state.stage = "repairer"
             target_file = _target_file_for(

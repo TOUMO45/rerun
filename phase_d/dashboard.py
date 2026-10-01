@@ -233,12 +233,12 @@ Sum of both parts: {self.num(L["total"], usd=True, at="ledger-components")} — 
             note = f'<p class="why">{esc(r["note"])}</p>' if r["note"] else ""
             rows += (f'<tr id="defect-{slug(r["id"])}"><th scope="row">{q(r["id"])}</th><td>{esc(r["title"])}{note}</td>'
                      f'<td><span class="status {r["status"]}">{icon[r["status"]]} {r["status"]}</span></td>'
-                     f'<td>{links or "<span class=absent>no passport annotated</span>"}</td>'
+                     f'<td>{links or "<span class=absent>harness-level, no entry passport</span>"}</td>'
                      f'<td><details><summary>quoted basis</summary><ul class="src">{basis}</ul></details></td></tr>')
         return f'''<section id="defects" aria-labelledby="defects-h">
 <h2 id="defects-h">Defect register</h2>
 <ul class="rule">{rule}</ul>
-<div class="scroll"><table class="defects"><thead><tr><th scope="col">Defect</th><th scope="col">What it is</th><th scope="col">Status</th><th scope="col">Passports it annotates</th><th scope="col">Basis</th></tr></thead><tbody>{rows}</tbody></table></div>
+<div class="scroll"><table class="defects"><thead><tr><th scope="col">Defect</th><th scope="col">What it is</th><th scope="col">Status (rule above)</th><th scope="col">Passports it annotates</th><th scope="col">Basis</th></tr></thead><tbody>{rows}</tbody></table></div>
 </section>'''
 
     def execution(self, ex: dict) -> str:

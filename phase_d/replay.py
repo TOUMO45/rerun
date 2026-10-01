@@ -413,8 +413,10 @@ def _records(entries: list[dict], where: str) -> dict:
     return {"value": len(entries), "tag": MEASURED, "count_of": {"where": where, "records": [x["record_id"] for x in entries]}}
 
 
-def _quote_present(source: BlobSource, src: dict) -> None:
-    if src["quote"] not in source.read(src["path"]).decode("utf-8").replace("\r\n", "\n"):
+def _quote_present(root: Path, src: dict) -> None:
+    """Quoted report, test and changelog lines are checked against the file in the checkout (records are read from blobs)."""
+    file = Path(root) / src["path"]
+    if not file.is_file() or src["quote"] not in file.read_bytes().decode("utf-8").replace("\r\n", "\n"):
         raise ReplayError(f"quoted source not found in {src['path']}: {src['quote']!r}")
 
 
@@ -442,12 +444,12 @@ def _headline(docs: dict[str, dict]) -> dict:
     }
 
 
-def _defects(docs: dict[str, dict], source: BlobSource) -> dict:
+def _defects(docs: dict[str, dict], root: Path) -> dict:
     entries = [x for tag in VERSIONS for x in docs[tag]["entries"]]
     rows = []
     for row in register.REGISTER:
         for src in [row["registered"]] + row["basis"]:
-            _quote_present(source, src)
+            _quote_present(root, src)
         if row["status"] not in register.STATUSES:
             raise ReplayError(f"{row['id']}: unknown status {row['status']!r}")
         annotated = [x for x in entries if any(n["id"] == row["id"] for n in x["timeline"][-1]["annotations"])]
@@ -462,9 +464,9 @@ def _defects(docs: dict[str, dict], source: BlobSource) -> dict:
     return {"status_rule": dict(register.STATUS_RULE), "rows": rows}
 
 
-def _ledger(docs: dict[str, dict], source: BlobSource) -> dict:
+def _ledger(docs: dict[str, dict], source: BlobSource, root: Path) -> dict:
     for line in (LEDGER_LINE, LOWER_BOUND_LINE):
-        _quote_present(source, line)
+        _quote_present(root, line)
     components, kills = [], []
     for key, name, tag, directory in SEAL_SETS:
         costed: dict[str, list[str]] = {"cost_usd": [], "completed_cost_usd": []}
@@ -522,8 +524,8 @@ def _ledger(docs: dict[str, dict], source: BlobSource) -> dict:
     }
 
 
-def build_summary(docs: dict[str, dict], source: BlobSource) -> dict:
-    return {"schema": SUMMARY_SCHEMA, "headline": _headline(docs), "defects": _defects(docs, source), "ledger": _ledger(docs, source)}
+def build_summary(docs: dict[str, dict], source: BlobSource, root: Path = ROOT) -> dict:
+    return {"schema": SUMMARY_SCHEMA, "headline": _headline(docs), "defects": _defects(docs, root), "ledger": _ledger(docs, source, root)}
 
 
 # ---------------------------------------------------------------- output files
@@ -688,7 +690,7 @@ def index_markdown(docs: dict[str, dict], files: dict[str, bytes]) -> bytes:
 def expected_files(source: BlobSource | None = None, passports: dict[str, dict] | None = None, root: Path = ROOT) -> dict[str, bytes]:
     source = source or GitBlobSource()
     docs = build_replay(source, passports, root)
-    files: dict[str, bytes] = {f"{REPLAY_DIR}/summary.json": to_json(build_summary(docs, source))}
+    files: dict[str, bytes] = {f"{REPLAY_DIR}/summary.json": to_json(build_summary(docs, source, root))}
     for tag, doc in docs.items():
         files[f"{REPLAY_DIR}/{tag}.json"] = to_json(doc)
         files[f"{REPLAY_DIR}/{tag}.md"] = to_markdown(doc)

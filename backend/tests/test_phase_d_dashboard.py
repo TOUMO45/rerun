@@ -253,7 +253,11 @@ def test_the_defect_register_lists_d1_to_d28_with_a_status_and_passport_links(ro
             href = link.attrs["href"]
             assert (href[1:] in ids) if href.startswith("#") else (ROOT / "reports/phase-d/dashboard" / href).resolve().is_file()
     assert set(status.values()) == {"fixed-and-gated", "fixed-unvalidated", "open"}
-    assert status["D-24"] == "open" and all(status[f"D-{i}"] == "open" for i in (21, 23, 24, 25, 26, 27, 28))
+    assert status["D-24"] == "fixed-unvalidated" and all(status[f"D-{i}"] == "open" for i in (1, 7, 21, 23, 25, 26, 27, 28))
+    d24 = next(r for r in rows if r.attrs["id"] == "defect-d-24")
+    assert "def test_at_repair_time_the_recorded_gcc_error_adds_build_essential_with_no_model_call" in [c.text() for c in _all(d24, "code")]
+    assert "harness-level, no entry passport" in next(r for r in rows if r.attrs["id"] == "defect-d-27").text()
+    assert "Status (rule above)" in [n.text() for n in _all(_by_id(root, "defects"), "th")]
     d28 = next(r for r in rows if r.attrs["id"] == "defect-d-28")
     assert len(_all(d28, "span", "plink")) == 40
 

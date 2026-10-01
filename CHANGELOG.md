@@ -2,6 +2,16 @@
 
 One entry per phase of the post-corpus-v2 plan. Numbers are produced by scripts in `scripts/`.
 
+## Phase D4 — D-24 fix: post-gate, unvalidated (2026-10-01; tag `harness-v1.3.5-unvalidated`; no Nebius call)
+**post-gate, unvalidated.** The deterministic "missing C compiler -> apt build-essential" rule now also fires on a SYS_LIB_MISSING classification at repair time, before any model
+proposal for that failure (deterministic first, model second). The step is recorded as an attempt of origin `time_machine` with `time_machine_action` = {rule, matched_error,
+apt_added, phase}; it passes the same env gate as a model proposal and does not use up a model attempt. The baseline path is unchanged and shares the matcher. Only
+`backend/app/services/orchestrator.py` changed. `harness-v1.3.4` (`10319b3`) stays byte-identical; this change is on `main` as `harness-v1.3.5-unvalidated`, which is not sealed and is
+never used in a gate, seal, passport, REPLAY or dashboard figure. No gate has measured it: nothing here claims a recovery. Tests: test_d24_build_essential.py (entry 7's recorded
+error string from the v1.3.4 gate record, no model call; baseline regression; an unrelated SYS_LIB_MISSING does not fire; the attempt record carries the quoted string).
+Register: D-24 is now `fixed-unvalidated`, its basis the quoted test name. Dashboard wording: "harness-level, no entry passport"; the status column reads "Status (rule above)".
+Ledger from here on: $10.1349 ($9.8507 MEASURED + $0.2842 ESTIMATED, lower bound D-27).
+
 ## Phase D3 — static dashboard from the REPLAY JSON (2026-10-01; offline, no Nebius call)
 `python -m phase_d.build_dashboard` writes `reports/phase-d/dashboard/index.html`: headline card, gate scorecard (pre-registered anchor, CONTROL and TREATMENT separate; the two
 EXPLORATORY versions with their D1 badges above the numbers), cost ledger (MEASURED + ESTIMATED, lower bound D-27, the three seal kill records), defect register D-1..D-28 with
