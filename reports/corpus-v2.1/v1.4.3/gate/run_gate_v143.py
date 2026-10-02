@@ -88,6 +88,24 @@ def sustained_phase(records: list[dict], paths: dict, *, gate_cap_usd: float, sp
     return docs, extra
 
 
+def load_resumed(plan: list[dict], odir: Path, tag: str) -> dict:
+    """`--resume`: the records an interrupted gate already wrote, by corpus name, so that entries are not paid for twice. A record counts only if it is the batch driver's complete
+    output (a `result` with a verdict and no `error`) and says it was written for the same entry and harness tag; anything else is run again. The gate's order and caps are unchanged: a
+    resumed record's spend counts against the gate cap exactly as if the entry had just run."""
+    found = {}
+    for row in plan:
+        path = odir / f"{row['id']:02d}_{row['name']}.json"
+        if not path.is_file():
+            continue
+        try:
+            record = json.loads(path.read_text(encoding="utf-8"))
+        except ValueError:
+            continue
+        if (record.get("result") or {}).get("verdict") and not record.get("error") and (record.get("batch") or {}).get("entry_id") == row["id"] and (record.get("batch") or {}).get("harness_tag") == tag:
+            found[row["name"]] = record
+    return found
+
+
 def _selftest() -> int:
     assert v142._selftest() == 0
     assert evaluate_gate([])["sustained_runs"]["gating"] is False
@@ -102,7 +120,11 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--gate-cap-usd", type=float)
     ap.add_argument("--entry-cap-usd", type=float)
     ap.add_argument("--tag", default="harness-v1.4.3", help="the sealed tag to gate")
+    ap.add_argument("--resume", action="store_true", help="after an interruption: keep the entry records already written in the gate directory, run only the others")
+    ap.add_argument("--log-file", help="write everything this process prints to this file (line-buffered, appended) instead of the console: for a run with no console at all")
     args = ap.parse_args(argv)
+    if args.log_file:
+        sys.stdout = sys.stderr = open(args.log_file, "a", buffering=1, encoding="utf-8", errors="replace")
     if args.selftest:
         return _selftest()
     if args.gate_cap_usd is None or args.entry_cap_usd is None:
@@ -112,7 +134,8 @@ def main(argv: list[str] | None = None) -> int:
     from app.services import gate_budget
 
     try:
-        gate_budget.check_gate_caps(args.gate_cap_usd, args.entry_cap_usd, len(ENTRIES))
+        if not args.resume:  # a resumed gate checks only the entries still to run, below, once the records already written are known
+            gate_budget.check_gate_caps(args.gate_cap_usd, args.entry_cap_usd, len(ENTRIES))
     except gate_budget.GateBudgetError as exc:
         print(f"REFUSED: {exc}", file=sys.stderr)
         return 2
@@ -139,8 +162,26 @@ def main(argv: list[str] | None = None) -> int:
         print("REFUSING TO START: the pre-batch upload smoke test failed", file=sys.stderr)
         return 3
     spent, records, paths = 0.0, [], {}
+    resumed = load_resumed(plan, odir, args.tag) if args.resume else {}
+    if args.resume:
+        already = sum(float(r["cost_guard"]["spent_usd"]) for r in resumed.values())
+        try:
+            gate_budget.check_gate_caps(args.gate_cap_usd - already, args.entry_cap_usd, len(plan) - len(resumed)) if len(plan) > len(resumed) else None
+        except gate_budget.GateBudgetError as exc:
+            print(f"REFUSED: {exc}", file=sys.stderr)
+            return 2
+        print(f"RESUME: {len(resumed)} entry record(s) already written ({', '.join(sorted(resumed)) or 'none'}), ${already:.4f} spent of the ${args.gate_cap_usd} gate cap; "
+              f"{len(plan) - len(resumed)} entr{'y' if len(plan) - len(resumed) == 1 else 'ies'} to run", flush=True)
     for row in plan:
         path = odir / f"{row['id']:02d}_{row['name']}.json"
+        if row["name"] in resumed:
+            record = resumed[row["name"]]
+            records.append(record)
+            paths[row["name"]] = path
+            spent += float(record["cost_guard"]["spent_usd"])
+            print(f"#{row['id']:2} {row['name']} RESUMED from its record {path.name}: {(record.get('result') or {}).get('verdict')} "
+                  f"${record['cost_guard']['spent_usd']:.4f} (gate total ${spent:.4f})", flush=True)
+            continue
         try:
             drv.PER_ENTRY_CAP_USD = gate_budget.entry_cap_for(args.gate_cap_usd, args.entry_cap_usd, spent)
         except gate_budget.GateBudgetError as exc:
@@ -175,6 +216,11 @@ def main(argv: list[str] | None = None) -> int:
             print(f"sustained #{doc.get('entry')} {doc.get('name')}: {doc.get('outcome')}: {doc.get('label')} "
                   f"(${doc.get('cost_usd', 0.0):.4f} API-reported, ${doc.get('cost_estimated_usd', 0.0):.4f} estimated)", flush=True)
     verdict = evaluate_gate(records, sustained)
+    verdict["resumed_entries"] = sorted(resumed)
+    if args.resume:
+        verdict["resumed_note"] = ("the gate's process was interrupted (reports/corpus-v2.1/v1.4.3/gate/INTERRUPTED_ATTEMPT.md); the entries listed were written by the earlier process and are "
+                                   f"not run again; the gate cap of this invocation is ${args.gate_cap_usd} (the pre-registered $7.00 less what the ledger ceiling no longer allows "
+                                   "after the interrupted attempts' spend)")
     if sustained_error:
         verdict["sustained_runs"]["error"] = sustained_error
     verdict["gate_spend"] = {"entries_usd": round(spent, 6), "sustained_runs_usd": round(sustained_cost, 6), "total_usd": round(spent + sustained_cost, 6),
