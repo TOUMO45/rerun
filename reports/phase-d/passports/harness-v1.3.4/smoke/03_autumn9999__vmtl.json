@@ -709,14 +709,22 @@
     },
     {
       "id": "D-41",
-      "text": "Every stored stderr tail of this entry ends mid-progress-bar at the same character; the hook, wrapper and evidence output that come after the program are missing. The sandbox SDK truncates output at 65,535 bytes (indicated by the records, not proven): the \"silent exit\" may be a cut-off error message.",
+      "text": "stderr truncated at 65,535 bytes, D-41. The stored stderr tails of this entry that have their full length end mid-progress-bar and the recorded last error is a fragment of that progress bar, not an error; the hook, wrapper and evidence output that come after the program are missing. The probe re-ran a different record's command (harness-v1.4.2 entry 3, record d41-probe/probe_03_vmtl_op5@51727e649a26a37f0646ec1e0107bf1708cd175c086b75a13c09b0f8b48bc7f2): this record's own stream was not re-run, so that the cut hid the same CUDA error here is an inference from the same command and the same cut point (harness-v1.3.2: a different point of a similar progress bar), not a measurement of this run. The verdict is unchanged.",
       "sources": [
         {
           "path": "reports/corpus-v2.1/candidate_v1.3.3_defects.md",
           "quote": "- **D-41** The sandbox SDK truncates stdout and stderr at 65,535 bytes"
+        },
+        {
+          "path": "reports/corpus-v2.1/candidate_v1.3.3_defects.md",
+          "quote": "- **D-41 [annotation: CONFIRMED by the probe of 2026-10-02]**"
+        },
+        {
+          "path": "reports/corpus-v2.1/candidate_v1.3.3_defects.md",
+          "quote": "- **D-41 [annotation: the entry-3 records of earlier versions are inferred, not probed]**"
         }
       ]
     }
   ],
-  "passport_hash": "110c236a25299a9c5982cff8da775510adbd5b055833a16ce15ab626a04703ba"
+  "passport_hash": "e6b4c3e236412ef675097772ac1c41267e34353181a4fbe66aed91242c8f39f2"
 }

@@ -596,7 +596,7 @@
    "record_id": "harness-v1.4.1/treatment/03@9d1d3bfdca422a190e029f1006e5982a5b75f32861a85926fdff15c75213a274",
    "record_path": "runs/corpus_v2_batch/harness-v1.4.1/gate/03_autumn9999__vmtl.json",
    "passport_path": "reports/phase-d/passports/harness-v1.4.1/gate/03_autumn9999__vmtl.json",
-   "passport_hash": "9fe0a0f295181da38b67fff373e07e42375fc0e6cb81499ff34ac0f083d85a98",
+   "passport_hash": "c62142b42f004638c0f8a9a20d88fa595bc42d3dbde6b4386fac395c638895c5",
    "record_sha256": "9d1d3bfdca422a190e029f1006e5982a5b75f32861a85926fdff15c75213a274",
    "results_tables_sha256": {
     "value": null,
@@ -2194,7 +2194,7 @@
      "annotations": [
       {
        "id": "D-35",
-       "text": "The exit wrapper ran after the hook printed nothing, printed nothing either, and the record says `exit outside Python`; the cause is not established.",
+       "text": "The exit wrapper ran after the hook printed nothing, printed nothing either, and the record says `exit outside Python`; the harness did not establish the cause, and the D-41 annotation beside this verdict says what it was: a cut stream.",
        "sources": [
         {
          "path": "reports/corpus-v2.1/candidate_v1.3.3_defects.md",
@@ -2204,11 +2204,19 @@
       },
       {
        "id": "D-41",
-       "text": "Every stored stderr tail of this entry ends mid-progress-bar at the same character; the hook, wrapper and evidence output that come after the program are missing. The sandbox SDK truncates output at 65,535 bytes (indicated by the records, not proven): the \"silent exit\" may be a cut-off error message.",
+       "text": "stderr truncated at 65,535 bytes, D-41. The stored stderr tails of this entry that have their full length end mid-progress-bar and the recorded last error is a fragment of that progress bar, not an error; the hook, wrapper and evidence output that come after the program are missing. The probe re-ran a different record's command (harness-v1.4.2 entry 3, record d41-probe/probe_03_vmtl_op5@51727e649a26a37f0646ec1e0107bf1708cd175c086b75a13c09b0f8b48bc7f2): this record's own stream was not re-run, so that the cut hid the same CUDA error here is an inference from the same command and the same cut point (harness-v1.3.2: a different point of a similar progress bar), not a measurement of this run. The verdict is unchanged.",
        "sources": [
         {
          "path": "reports/corpus-v2.1/candidate_v1.3.3_defects.md",
          "quote": "- **D-41** The sandbox SDK truncates stdout and stderr at 65,535 bytes"
+        },
+        {
+         "path": "reports/corpus-v2.1/candidate_v1.3.3_defects.md",
+         "quote": "- **D-41 [annotation: CONFIRMED by the probe of 2026-10-02]**"
+        },
+        {
+         "path": "reports/corpus-v2.1/candidate_v1.3.3_defects.md",
+         "quote": "- **D-41 [annotation: the entry-3 records of earlier versions are inferred, not probed]**"
         }
        ]
       }
@@ -11104,7 +11112,7 @@
    "record_id": "harness-v1.4.1/treatment/11@ca83160f9bc7c0a7f143d8f3e73480468ffa41789afe64c8d41f058518ef0ac0",
    "record_path": "runs/corpus_v2_batch/harness-v1.4.1/gate/11_JindongGu__VoteAttack.json",
    "passport_path": "reports/phase-d/passports/harness-v1.4.1/gate/11_JindongGu__VoteAttack.json",
-   "passport_hash": "006440e06e37fdd92f9cacc4fe59baceb30a30f8a62409d86c3fba47295b005c",
+   "passport_hash": "2d98d338433165fc4b734ba1065e662a9923efecba3ae54f5f182459310207d3",
    "record_sha256": "ca83160f9bc7c0a7f143d8f3e73480468ffa41789afe64c8d41f058518ef0ac0",
    "results_tables_sha256": {
     "value": null,
@@ -12831,6 +12839,16 @@
         {
          "path": "reports/corpus-v2.1/candidate_v1.3.3_defects.md",
          "quote": "- **D-38** A kill by signal is classified as a silent exit."
+        }
+       ]
+      },
+      {
+       "id": "D-41",
+       "text": "D-41 checked for this silent-exit record: its stored stderr tail ends at the shell's `Killed` line, the end of the output, so the stream was not cut (the cause of the silent exit is D-38). The recorded last error is a progress line, misread as an error: that is D-38 too, not a cut.",
+       "sources": [
+        {
+         "path": "reports/corpus-v2.1/candidate_v1.3.3_defects.md",
+         "quote": "Not touched: #11 (its stderr ends in `Killed`, inside the cap)"
         }
        ]
       }

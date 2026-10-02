@@ -1,0 +1,1437 @@
+{
+  "schema": "rerun/phase-d/passport/v5",
+  "record_id": "harness-v1.4.3/treatment/11@1d8ee808dca550ddd793c3912ef90976d47e2a755186bc12b2ed96f9a2ea92d9",
+  "record": {
+    "path": "runs/corpus_v2_batch/harness-v1.4.3/gate/11_JindongGu__VoteAttack.json",
+    "sha256": "1d8ee808dca550ddd793c3912ef90976d47e2a755186bc12b2ed96f9a2ea92d9",
+    "record_set": "gate",
+    "hash_basis": "git blob at HEAD (git cat-file blob HEAD:<path>), never the worktree file",
+    "results_tables_sha256": {
+      "value": null,
+      "reason": "not listed in reports/corpus-v2.1/results_tables.json"
+    }
+  },
+  "image_id": {
+    "value": "8fee0bc1-408d-4e9a-b5d7-5c5ac0bd0b93",
+    "source_field": "certificate.baseline.sandbox_id",
+    "base_image": "python:3.10-slim"
+  },
+  "harness_tag": "harness-v1.4.3",
+  "harness_commit": "085d12bf4accb78c8b617f6a1b5df8aab747ee6b",
+  "arm": "treatment",
+  "entry": {
+    "id": "11",
+    "name": "JindongGu__VoteAttack",
+    "repo_url": "https://github.com/JindongGu/VoteAttack",
+    "commit_sha": "bdf8b46bc7b3ce772a6f2c0a6e48514423fd6051",
+    "category": "PRIMARY"
+  },
+  "run": {
+    "started_at": "2026-10-02T14:19:54.176946+00:00",
+    "finished_at": "2026-10-02T14:27:21.625310+00:00"
+  },
+  "verdict": {
+    "verdict": "INDETERMINATE",
+    "taxonomy_code": "RESOURCE_LIMIT",
+    "reason_code": "RESOURCE_LIMIT",
+    "indeterminate_reason": "RESOURCE_LIMIT: exit code 137: the process was killed by SIGKILL (the shell printed 'Killed'); limits (/proc/meminfo MemTotal 4034744 kB (3.85 GiB); nproc 4; dmesg: [   24.032068] Out of memory: Killed process 74 (python) total-vm:5059900kB, anon-rss:3897356kB, file-rss:32kB, shmem-rss:4kB, UID:0 pgtables:8552kB oom_score_a) — the sandbox killed the process; not a verdict on the repository, and no repair attempt was made.",
+    "recovery": false,
+    "first_repo_error": "ModuleNotFoundError: No module named 'tqdm'",
+    "last_error": "exit code 137: the process was killed by SIGKILL (the shell printed 'Killed')"
+  },
+  "baseline": {
+    "result": "FAILS",
+    "exit_code": {
+      "value": 1,
+      "tag": "API-REPORTED",
+      "source_field": "certificate.baseline.exit_code"
+    },
+    "taxonomy_code": "DEP_MISSING",
+    "evidence": "ModuleNotFoundError: No module named 'tqdm'"
+  },
+  "classification_chain": [
+    {
+      "error": "ModuleNotFoundError: No module named 'tqdm'",
+      "class": "DEP_MISSING",
+      "attribution": "REPO",
+      "phase": "repo_run",
+      "cleared_by": "attempt-0"
+    },
+    {
+      "error": "RuntimeError: Attempting to deserialize object on a CUDA device but torch.cuda.is_available() is False. If you are running on a CPU-only machine, please use torch.load with map_location=torch.device('cpu') to map your storages to the CPU.",
+      "class": "GPU_REQUIRED",
+      "attribution": "REPO",
+      "phase": "repo_run",
+      "cleared_by": "attempt-0"
+    },
+    {
+      "error": "exit code 137: the process was killed by SIGKILL (the shell printed 'Killed')",
+      "class": "RESOURCE_LIMIT",
+      "attribution": "SANDBOX_QUOTA",
+      "phase": "repo_run",
+      "cleared_by": {
+        "value": null,
+        "reason": "not cleared by any attempt"
+      }
+    }
+  ],
+  "attempts": [
+    {
+      "attempt": "attempt-0",
+      "type": "time_machine",
+      "gate_decision": "PASS",
+      "outcome": "applied",
+      "reject_reason": {
+        "value": null,
+        "reason": "not applicable: gate decision PASS"
+      },
+      "consulted": {
+        "value": null,
+        "reason": "not present on this attempt in the record"
+      },
+      "consulted_count": {
+        "value": null,
+        "reason": "not present on this attempt in the record"
+      },
+      "cited": [],
+      "reason_no_citation": {
+        "value": null,
+        "reason": "not present on this attempt in the record"
+      },
+      "silent_exit": {
+        "value": null,
+        "reason": "not present on this attempt in the record"
+      },
+      "exit_code": {
+        "value": 1,
+        "tag": "API-REPORTED",
+        "source_field": "result.attempts[0].exit_code"
+      },
+      "change": {
+        "diff_sha256": {
+          "value": null,
+          "reason": "no diff on this attempt"
+        },
+        "patch_notes": {
+          "value": null,
+          "reason": "not present on this attempt in the record"
+        },
+        "env_delta": []
+      },
+      "execution": {
+        "mode": "smoke",
+        "seconds": {
+          "value": 60,
+          "tag": "API-REPORTED",
+          "source_field": "result.attempts[0].execution.seconds"
+        },
+        "outcome": "exited",
+        "funded_seconds": {
+          "value": null,
+          "reason": "no kill recorded for this attempt; the funded limit is not a stored field in harness-v1.4.3"
+        },
+        "wall_seconds": {
+          "value": null,
+          "reason": "no kill recorded for this attempt; the funded limit is not a stored field in harness-v1.4.3"
+        },
+        "killed_by": {
+          "value": null,
+          "reason": "no kill recorded for this attempt; the funded limit is not a stored field in harness-v1.4.3"
+        },
+        "killed_step_seconds": {
+          "value": null,
+          "reason": "no kill recorded for this attempt; the funded limit is not a stored field in harness-v1.4.3"
+        },
+        "image": "b68f137f-33e0-46a1-8328-f43f235d940c",
+        "command": "python main.py  --evaluate --dataset cifar10  --eps 0.031  --model capsnet  --attack vote_attack_FGSM",
+        "output_cut": []
+      },
+      "candidate": {
+        "value": null,
+        "reason": "not a repair candidate"
+      },
+      "chosen": {
+        "value": null,
+        "reason": "no adjudication for this attempt"
+      },
+      "branch": {
+        "value": null,
+        "reason": "no branch run recorded for this attempt"
+      },
+      "adjudication": {
+        "value": null,
+        "reason": "no adjudication recorded for this attempt"
+      },
+      "rule_step": {
+        "value": null,
+        "reason": "not a deterministic rule step"
+      }
+    },
+    {
+      "attempt": "attempt-0-cpu_shim",
+      "type": "time_machine",
+      "gate_decision": "PASS",
+      "outcome": "applied",
+      "reject_reason": {
+        "value": null,
+        "reason": "not applicable: gate decision PASS"
+      },
+      "consulted": {
+        "value": null,
+        "reason": "not present on this attempt in the record"
+      },
+      "consulted_count": {
+        "value": null,
+        "reason": "not present on this attempt in the record"
+      },
+      "cited": [],
+      "reason_no_citation": {
+        "value": null,
+        "reason": "not present on this attempt in the record"
+      },
+      "silent_exit": {
+        "value": null,
+        "reason": "not present on this attempt in the record"
+      },
+      "exit_code": {
+        "value": 137,
+        "tag": "API-REPORTED",
+        "source_field": "result.attempts[1].exit_code"
+      },
+      "change": {
+        "diff_sha256": {
+          "value": null,
+          "reason": "no diff on this attempt"
+        },
+        "patch_notes": {
+          "value": null,
+          "reason": "not present on this attempt in the record"
+        },
+        "env_delta": []
+      },
+      "execution": {
+        "mode": "smoke",
+        "seconds": {
+          "value": 60,
+          "tag": "API-REPORTED",
+          "source_field": "result.attempts[1].execution.seconds"
+        },
+        "outcome": "exited",
+        "funded_seconds": {
+          "value": null,
+          "reason": "no kill recorded for this attempt; the funded limit is not a stored field in harness-v1.4.3"
+        },
+        "wall_seconds": {
+          "value": null,
+          "reason": "no kill recorded for this attempt; the funded limit is not a stored field in harness-v1.4.3"
+        },
+        "killed_by": {
+          "value": null,
+          "reason": "no kill recorded for this attempt; the funded limit is not a stored field in harness-v1.4.3"
+        },
+        "killed_step_seconds": {
+          "value": null,
+          "reason": "no kill recorded for this attempt; the funded limit is not a stored field in harness-v1.4.3"
+        },
+        "image": "6d5632ad-eb1d-4915-bcd8-647aee84aae6",
+        "command": "python main.py  --evaluate --dataset cifar10  --eps 0.031  --model capsnet  --attack vote_attack_FGSM",
+        "output_cut": []
+      },
+      "candidate": {
+        "value": null,
+        "reason": "not a repair candidate"
+      },
+      "chosen": {
+        "value": null,
+        "reason": "no adjudication for this attempt"
+      },
+      "branch": {
+        "value": null,
+        "reason": "no branch run recorded for this attempt"
+      },
+      "adjudication": {
+        "value": null,
+        "reason": "no adjudication recorded for this attempt"
+      },
+      "rule_step": {
+        "rule": "cpu_shim",
+        "matched_error": "RuntimeError: Attempting to deserialize object on a CUDA device but torch.cuda.is_available() is False. If you are running on a CPU-only machine, please use torch.load with map_location=torch.device('cpu') to map your storages to the CPU.",
+        "hook": "cpu_shim",
+        "fires_on": "GPU_REQUIRED at repair time",
+        "phase": "repair",
+        "limit": "covers torch.load (map_location), torch.cuda.is_available(), Tensor.cuda() and Module.cuda() (return self), .to('cuda*') on Tensor and Module and torch.device('cuda*') (-> cpu); does NOT cover device='cuda' strings given to factory functions (torch.zeros(device='cuda')), torch.cuda.*Tensor types or torch.set_default_tensor_type('torch.cuda.FloatTensor'); torch.device is a proxy class, so `type(d) is torch.device` is False for a real device and a `torch.device(...)` call inside a TorchScript function is not supported",
+        "paths_fired": [
+          "cuda.is_available",
+          "torch.load"
+        ]
+      }
+    },
+    {
+      "attempt": "attempt-0-resource_evidence",
+      "type": "time_machine",
+      "gate_decision": "PASS",
+      "outcome": "applied",
+      "reject_reason": {
+        "value": null,
+        "reason": "not applicable: gate decision PASS"
+      },
+      "consulted": {
+        "value": null,
+        "reason": "not present on this attempt in the record"
+      },
+      "consulted_count": {
+        "value": null,
+        "reason": "not present on this attempt in the record"
+      },
+      "cited": [],
+      "reason_no_citation": {
+        "value": null,
+        "reason": "not present on this attempt in the record"
+      },
+      "silent_exit": {
+        "value": null,
+        "reason": "not present on this attempt in the record"
+      },
+      "exit_code": {
+        "value": 137,
+        "tag": "API-REPORTED",
+        "source_field": "result.attempts[2].exit_code"
+      },
+      "change": {
+        "diff_sha256": {
+          "value": null,
+          "reason": "no diff on this attempt"
+        },
+        "patch_notes": {
+          "value": null,
+          "reason": "not present on this attempt in the record"
+        },
+        "env_delta": []
+      },
+      "execution": {
+        "mode": "smoke",
+        "seconds": {
+          "value": 60,
+          "tag": "API-REPORTED",
+          "source_field": "result.attempts[2].execution.seconds"
+        },
+        "outcome": "exited",
+        "funded_seconds": {
+          "value": null,
+          "reason": "no kill recorded for this attempt; the funded limit is not a stored field in harness-v1.4.3"
+        },
+        "wall_seconds": {
+          "value": null,
+          "reason": "no kill recorded for this attempt; the funded limit is not a stored field in harness-v1.4.3"
+        },
+        "killed_by": {
+          "value": null,
+          "reason": "no kill recorded for this attempt; the funded limit is not a stored field in harness-v1.4.3"
+        },
+        "killed_step_seconds": {
+          "value": null,
+          "reason": "no kill recorded for this attempt; the funded limit is not a stored field in harness-v1.4.3"
+        },
+        "image": "6d5632ad-eb1d-4915-bcd8-647aee84aae6",
+        "command": "python main.py  --evaluate --dataset cifar10  --eps 0.031  --model capsnet  --attack vote_attack_FGSM",
+        "output_cut": []
+      },
+      "candidate": {
+        "value": null,
+        "reason": "not a repair candidate"
+      },
+      "chosen": {
+        "value": null,
+        "reason": "no adjudication for this attempt"
+      },
+      "branch": {
+        "value": null,
+        "reason": "no branch run recorded for this attempt"
+      },
+      "adjudication": {
+        "value": null,
+        "reason": "no adjudication recorded for this attempt"
+      },
+      "rule_step": {
+        "rule": "resource_evidence",
+        "matched_error": "exit code 137: the process was killed by SIGKILL (the shell printed 'Killed')",
+        "phase": "repair",
+        "fires_on": "a failure classified RESOURCE_LIMIT, or a silent exit the exit hook and the exit wrapper could not explain (D-38, D-40)",
+        "limit": "reads what the sandbox shows after the command (/proc/meminfo, nproc, cgroup memory files, dmesg, ulimit): none of these is guaranteed to exist or be readable; the run repeats the command, so a kill that depends on timing may not repeat",
+        "evidence": {
+          "exit_status": {
+            "value": 137,
+            "tag": "API-REPORTED"
+          },
+          "mem_total_kb": {
+            "value": 4034744,
+            "tag": "API-REPORTED"
+          },
+          "mem_available_kb": {
+            "value": 3855812,
+            "tag": "API-REPORTED"
+          },
+          "swap_total_kb": {
+            "value": 0,
+            "tag": "API-REPORTED"
+          },
+          "nproc": {
+            "value": 4,
+            "tag": "API-REPORTED"
+          },
+          "cgroup": {},
+          "oom_kill": null,
+          "dmesg": [
+            "[   24.031936] python invoked oom-killer: gfp_mask=0x140dca(GFP_HIGHUSER_MOVABLE|__GFP_ZERO|__GFP_COMP), order=0, oom_score_adj=0",
+            "[   24.031957]  oom_kill_process+0xb2/0x1c0",
+            "[   24.032047] oom-kill:constraint=CONSTRAINT_NONE,nodemask=(null),cpuset=/,mems_allowed=0,global_oom,task_memcg=/,task=python,pid=74,uid=0",
+            "[   24.032068] Out of memory: Killed process 74 (python) total-vm:5059900kB, anon-rss:3897356kB, file-rss:32kB, shmem-rss:4kB, UID:0 pgtables:8552kB oom_score_adj:0"
+          ],
+          "ulimit": [
+            "time(seconds)        unlimited",
+            "file(blocks)         unlimited",
+            "data(kbytes)         unlimited",
+            "stack(kbytes)        8192",
+            "coredump(blocks)     0",
+            "memory(kbytes)       unlimited",
+            "locked memory(kbytes) 8192",
+            "process              15742",
+            "nofiles              1024",
+            "vmemory(kbytes)      unlimited",
+            "locks                unlimited",
+            "rtprio               0"
+          ],
+          "kernel": [
+            "7.0.6",
+            "0"
+          ],
+          "self_cgroup": [
+            "0::/"
+          ]
+        },
+        "kill_evidenced": true,
+        "limit_quote": "/proc/meminfo MemTotal 4034744 kB (3.85 GiB); nproc 4; dmesg: [   24.032068] Out of memory: Killed process 74 (python) total-vm:5059900kB, anon-rss:3897356kB, file-rss:32kB, shmem-rss:4kB, UID:0 pgtables:8552kB oom_score_a"
+      }
+    }
+  ],
+  "time_machine_actions": [
+    {
+      "attempt": "attempt-0",
+      "outcome": "applied",
+      "era": {
+        "date": "2021-05-01",
+        "source": "pinned-commit",
+        "detail": {
+          "note": "no dependency files in the repository"
+        }
+      },
+      "python": {
+        "version": "3.9",
+        "reason": "newest CPython first released ≥180 days before the era date 2021-05-01 (https://devguide.python.org/versions/ (first release dates, retrieved 2026-09-24))",
+        "source": "https://devguide.python.org/versions/ (first release dates, retrieved 2026-09-24)"
+      },
+      "undeclared_imports": [
+        "foolbox",
+        "torch",
+        "torchvision",
+        "tqdm"
+      ],
+      "apt_added": [],
+      "apt_reason": "",
+      "lock": {
+        "ok": true,
+        "lock": [
+          "certifi==2020.12.5",
+          "chardet==4.0.0",
+          "eagerpy==0.29.0",
+          "foolbox==3.3.1",
+          "gitdb==4.0.7",
+          "gitpython==3.1.14",
+          "idna==2.10",
+          "numpy==1.20.2",
+          "pillow==8.2.0",
+          "requests==2.25.1",
+          "scipy==1.6.3",
+          "setuptools==56.0.0",
+          "smmap==4.0.0",
+          "torch==1.8.1",
+          "torchvision==0.9.1",
+          "tqdm==4.60.0",
+          "typing-extensions==3.10.0.0",
+          "urllib3==1.26.4"
+        ],
+        "relaxed": [],
+        "not_on_index": [],
+        "error": ""
+      },
+      "fallback": null
+    }
+  ],
+  "cost": {
+    "value": 0.90323577,
+    "tag": "API-REPORTED",
+    "currency": "USD",
+    "source_field": "cost_guard.spent_usd",
+    "measured": {
+      "value": 0.90323577,
+      "tag": "API-REPORTED",
+      "source_field": "cost_guard.spent_usd"
+    },
+    "estimated": {
+      "value": 0.0,
+      "tag": "ESTIMATED",
+      "source_field": "cost_guard.estimated_sandbox_spent_usd"
+    },
+    "model": {
+      "value": 0.0030874199999999996,
+      "tag": "API-REPORTED",
+      "source_field": "cost_guard.model_spent_usd"
+    },
+    "per_entry_cap": {
+      "value": 1.75,
+      "tag": "API-REPORTED",
+      "source_field": "batch.per_entry_cap_usd"
+    },
+    "batch_cap": {
+      "value": 6.25,
+      "tag": "API-REPORTED",
+      "source_field": "batch.total_cap_usd"
+    },
+    "operations": [
+      {
+        "operation": "operation-1",
+        "killed": false,
+        "spend": {
+          "value": 0.3206,
+          "tag": "DERIVED",
+          "source": {
+            "record_id": "harness-v1.4.3/treatment/11@1d8ee808dca550ddd793c3912ef90976d47e2a755186bc12b2ed96f9a2ea92d9",
+            "field": "events[10].line",
+            "line": "[cost_guard] recorded $0.3206 sandbox spend, $1.4289 remaining today"
+          }
+        },
+        "remaining": {
+          "value": 1.4289,
+          "tag": "DERIVED",
+          "source": {
+            "record_id": "harness-v1.4.3/treatment/11@1d8ee808dca550ddd793c3912ef90976d47e2a755186bc12b2ed96f9a2ea92d9",
+            "field": "events[10].line",
+            "line": "[cost_guard] recorded $0.3206 sandbox spend, $1.4289 remaining today"
+          }
+        }
+      },
+      {
+        "operation": "operation-2",
+        "killed": false,
+        "spend": {
+          "value": 0.3375,
+          "tag": "DERIVED",
+          "source": {
+            "record_id": "harness-v1.4.3/treatment/11@1d8ee808dca550ddd793c3912ef90976d47e2a755186bc12b2ed96f9a2ea92d9",
+            "field": "events[22].line",
+            "line": "[cost_guard] recorded $0.3375 sandbox spend, $1.0914 remaining today"
+          }
+        },
+        "remaining": {
+          "value": 1.0914,
+          "tag": "DERIVED",
+          "source": {
+            "record_id": "harness-v1.4.3/treatment/11@1d8ee808dca550ddd793c3912ef90976d47e2a755186bc12b2ed96f9a2ea92d9",
+            "field": "events[22].line",
+            "line": "[cost_guard] recorded $0.3375 sandbox spend, $1.0914 remaining today"
+          }
+        }
+      },
+      {
+        "operation": "operation-3",
+        "killed": false,
+        "spend": {
+          "value": 0.1229,
+          "tag": "DERIVED",
+          "source": {
+            "record_id": "harness-v1.4.3/treatment/11@1d8ee808dca550ddd793c3912ef90976d47e2a755186bc12b2ed96f9a2ea92d9",
+            "field": "events[32].line",
+            "line": "[cost_guard] recorded $0.1229 sandbox spend, $0.9685 remaining today"
+          }
+        },
+        "remaining": {
+          "value": 0.9685,
+          "tag": "DERIVED",
+          "source": {
+            "record_id": "harness-v1.4.3/treatment/11@1d8ee808dca550ddd793c3912ef90976d47e2a755186bc12b2ed96f9a2ea92d9",
+            "field": "events[32].line",
+            "line": "[cost_guard] recorded $0.1229 sandbox spend, $0.9685 remaining today"
+          }
+        }
+      },
+      {
+        "operation": "operation-4",
+        "killed": false,
+        "spend": {
+          "value": 0.1192,
+          "tag": "DERIVED",
+          "source": {
+            "record_id": "harness-v1.4.3/treatment/11@1d8ee808dca550ddd793c3912ef90976d47e2a755186bc12b2ed96f9a2ea92d9",
+            "field": "events[41].line",
+            "line": "[cost_guard] recorded $0.1192 sandbox spend, $0.8493 remaining today"
+          }
+        },
+        "remaining": {
+          "value": 0.8493,
+          "tag": "DERIVED",
+          "source": {
+            "record_id": "harness-v1.4.3/treatment/11@1d8ee808dca550ddd793c3912ef90976d47e2a755186bc12b2ed96f9a2ea92d9",
+            "field": "events[41].line",
+            "line": "[cost_guard] recorded $0.1192 sandbox spend, $0.8493 remaining today"
+          }
+        }
+      }
+    ],
+    "stored_operations": [
+      {
+        "n": {
+          "value": 1,
+          "tag": "API-REPORTED"
+        },
+        "role": "baseline",
+        "candidate": null,
+        "concurrent": {
+          "value": 1,
+          "tag": "API-REPORTED"
+        },
+        "base_image": "python:3.10-slim",
+        "funded_seconds": {
+          "value": 600.0,
+          "tag": "API-REPORTED"
+        },
+        "wall_seconds": {
+          "value": 77.19,
+          "tag": "API-REPORTED"
+        },
+        "sandbox_seconds": {
+          "value": 31.191,
+          "tag": "API-REPORTED"
+        },
+        "install_seconds": [
+          {
+            "command": "pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cpu --extra-index-url https://pypi.org/simple || pip install torch torchvi",
+            "phase": "runner_setup",
+            "seconds": {
+              "value": 20.54,
+              "tag": "API-REPORTED"
+            },
+            "exit_code": {
+              "value": 0,
+              "tag": "API-REPORTED"
+            },
+            "cost_usd": {
+              "value": 0.290382,
+              "tag": "API-REPORTED"
+            },
+            "torch": true
+          },
+          {
+            "command": "python -c '\nimport glob, importlib.util, os, struct, subprocess, sys\nspec = importlib.util.find_spec(\"torch\")\nroot = os.path.join(os.path.dirname(spec.origin), ",
+            "phase": "runner_setup",
+            "seconds": {
+              "value": 1.441,
+              "tag": "API-REPORTED"
+            },
+            "exit_code": {
+              "value": 0,
+              "tag": "API-REPORTED"
+            },
+            "cost_usd": {
+              "value": 0.015473,
+              "tag": "API-REPORTED"
+            },
+            "torch": false
+          },
+          {
+            "command": "true  # no declared dependency file found; nothing to install",
+            "phase": "repo_install",
+            "seconds": {
+              "value": 0.001,
+              "tag": "API-REPORTED"
+            },
+            "exit_code": {
+              "value": 0,
+              "tag": "API-REPORTED"
+            },
+            "cost_usd": {
+              "value": 6e-05,
+              "tag": "API-REPORTED"
+            },
+            "torch": false
+          }
+        ],
+        "branch_from_image": null,
+        "start_setup_commands": {
+          "value": 0,
+          "tag": "API-REPORTED"
+        },
+        "setup_commands": {
+          "value": 3,
+          "tag": "API-REPORTED"
+        },
+        "torch_in_start_image": false,
+        "torch_installed": true,
+        "torch_env_key": "64c2295c478dd277",
+        "result_image": null,
+        "image_kept": true,
+        "kept_images": [
+          "f823f309-4752-40e4-bc22-aaca6a0636e0",
+          "40f554c6-0a44-47b8-9ace-15c39b88c621",
+          "5adda0cd-17b1-408a-9d5b-1f5f49570359",
+          "8fee0bc1-408d-4e9a-b5d7-5c5ac0bd0b93"
+        ],
+        "env_image_id": "8fee0bc1-408d-4e9a-b5d7-5c5ac0bd0b93",
+        "cost_usd": {
+          "value": 0.320582,
+          "tag": "API-REPORTED"
+        },
+        "cost_estimated_usd": {
+          "value": 0.0,
+          "tag": "API-REPORTED"
+        },
+        "outcome": "completed",
+        "resource_limits": {
+          "memory": "not documented (the only wording is \"Automatic cleanup and resource limits help prevent abuse.\" (docs.tokenfactory.nebius.com/sandboxes/overview) and \"Built-in tracking of CPU time, memory usage, and I/O operations for every execution.\")",
+          "cpu": "not documented",
+          "disk_layer_bytes": {
+            "value": 12884901888,
+            "tag": "API-REPORTED"
+          },
+          "larger_instance": "not documented: the spawn request, the SDK, the CLI and the MCP tools have no memory, CPU, size or GPU parameter; Sandboxes is a beta (access by request, contree@nebius.com); no price page (the product page says free while in beta, D-36)",
+          "source": "docs/design/D-40-resources.md (public Nebius Token Factory / ConTree documentation and contree_sdk 0.3.6, read offline 2026-10-01)"
+        },
+        "exit_code": {
+          "value": 1,
+          "tag": "API-REPORTED"
+        },
+        "max_rss": {
+          "value": 1078512,
+          "tag": "API-REPORTED"
+        },
+        "streams": {
+          "limit_bytes": {
+            "value": 4194304,
+            "tag": "API-REPORTED"
+          },
+          "stdout": {
+            "bytes": {
+              "value": 0,
+              "tag": "API-REPORTED"
+            },
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "truncated": false
+          },
+          "stderr": {
+            "bytes": {
+              "value": 145,
+              "tag": "API-REPORTED"
+            },
+            "sha256": "839c67fb470e6a0c1555d068a824f5f0319307bc4274e9add9b34ac98cfebf16",
+            "truncated": false
+          }
+        },
+        "killed_step": null,
+        "killed_seconds": null,
+        "funding": {
+          "basis": "baseline: the pre-registered wall clock, not budget-limited",
+          "rate_used_usd_per_s": null,
+          "source_operations": []
+        }
+      },
+      {
+        "n": {
+          "value": 2,
+          "tag": "API-REPORTED"
+        },
+        "role": "re-execution",
+        "candidate": null,
+        "concurrent": {
+          "value": 1,
+          "tag": "API-REPORTED"
+        },
+        "base_image": "python:3.9-slim",
+        "funded_seconds": {
+          "value": 229.4,
+          "tag": "API-REPORTED"
+        },
+        "wall_seconds": {
+          "value": 109.35,
+          "tag": "API-REPORTED"
+        },
+        "sandbox_seconds": {
+          "value": 32.982,
+          "tag": "API-REPORTED"
+        },
+        "install_seconds": [
+          {
+            "command": "pip install torch==1.8.1 torchvision==0.9.1 torchaudio 'numpy<2' --index-url https://download.pytorch.org/whl/cpu --extra-index-url https://pypi.org/simple || p",
+            "phase": "runner_setup",
+            "seconds": {
+              "value": 12.334,
+              "tag": "API-REPORTED"
+            },
+            "exit_code": {
+              "value": 0,
+              "tag": "API-REPORTED"
+            },
+            "cost_usd": {
+              "value": 0.207149,
+              "tag": "API-REPORTED"
+            },
+            "torch": true
+          },
+          {
+            "command": "python -c '\nimport glob, importlib.util, os, struct, subprocess, sys\nspec = importlib.util.find_spec(\"torch\")\nroot = os.path.join(os.path.dirname(spec.origin), ",
+            "phase": "runner_setup",
+            "seconds": {
+              "value": 0.728,
+              "tag": "API-REPORTED"
+            },
+            "exit_code": {
+              "value": 0,
+              "tag": "API-REPORTED"
+            },
+            "cost_usd": {
+              "value": 0.007874,
+              "tag": "API-REPORTED"
+            },
+            "torch": false
+          },
+          {
+            "command": "printf '%s\\n' certifi==2020.12.5 chardet==4.0.0 eagerpy==0.29.0 foolbox==3.3.1 gitdb==4.0.7 gitpython==3.1.14 idna==2.10 numpy==1.20.2 pillow==8.2.0 requests==2",
+            "phase": "repo_install",
+            "seconds": {
+              "value": 7.365,
+              "tag": "API-REPORTED"
+            },
+            "exit_code": {
+              "value": 0,
+              "tag": "API-REPORTED"
+            },
+            "cost_usd": {
+              "value": 0.074445,
+              "tag": "API-REPORTED"
+            },
+            "torch": false
+          }
+        ],
+        "branch_from_image": null,
+        "start_setup_commands": {
+          "value": 0,
+          "tag": "API-REPORTED"
+        },
+        "setup_commands": {
+          "value": 3,
+          "tag": "API-REPORTED"
+        },
+        "torch_in_start_image": false,
+        "torch_installed": true,
+        "torch_env_key": "309b497ac4dbbe54",
+        "result_image": null,
+        "image_kept": true,
+        "kept_images": [
+          "5da89a72-8af1-4654-96f8-072c55f7ec71",
+          "8f4f0adb-67dd-4489-a202-c51d115de8ea",
+          "5b12cbd1-e5ff-4429-b196-c52cc71e39b4",
+          "b68f137f-33e0-46a1-8328-f43f235d940c"
+        ],
+        "env_image_id": "b68f137f-33e0-46a1-8328-f43f235d940c",
+        "cost_usd": {
+          "value": 0.337486,
+          "tag": "API-REPORTED"
+        },
+        "cost_estimated_usd": {
+          "value": 0.0,
+          "tag": "API-REPORTED"
+        },
+        "outcome": "completed",
+        "resource_limits": {
+          "memory": "not documented (the only wording is \"Automatic cleanup and resource limits help prevent abuse.\" (docs.tokenfactory.nebius.com/sandboxes/overview) and \"Built-in tracking of CPU time, memory usage, and I/O operations for every execution.\")",
+          "cpu": "not documented",
+          "disk_layer_bytes": {
+            "value": 12884901888,
+            "tag": "API-REPORTED"
+          },
+          "larger_instance": "not documented: the spawn request, the SDK, the CLI and the MCP tools have no memory, CPU, size or GPU parameter; Sandboxes is a beta (access by request, contree@nebius.com); no price page (the product page says free while in beta, D-36)",
+          "source": "docs/design/D-40-resources.md (public Nebius Token Factory / ConTree documentation and contree_sdk 0.3.6, read offline 2026-10-01)"
+        },
+        "exit_code": {
+          "value": 1,
+          "tag": "API-REPORTED"
+        },
+        "max_rss": {
+          "value": 551068,
+          "tag": "API-REPORTED"
+        },
+        "streams": {
+          "limit_bytes": {
+            "value": 4194304,
+            "tag": "API-REPORTED"
+          },
+          "stdout": {
+            "bytes": {
+              "value": 237,
+              "tag": "API-REPORTED"
+            },
+            "sha256": "0c2b0ccef1dfb89388677e3e92684f98c17e05d99d25351dd8df3badb2bced1e",
+            "truncated": false
+          },
+          "stderr": {
+            "bytes": {
+              "value": 15483,
+              "tag": "API-REPORTED"
+            },
+            "sha256": "e889713cf9002ff64bc4551ba46404b6e6ff22aa1c29358f9bf4b2f946c7dcc5",
+            "truncated": false
+          }
+        },
+        "killed_step": null,
+        "killed_seconds": null,
+        "funding": {
+          "rate_used_usd_per_s": {
+            "value": 0.00622973,
+            "tag": "API-REPORTED"
+          },
+          "measured_usd_per_s": {
+            "value": 0.00415315,
+            "tag": "API-REPORTED"
+          },
+          "safety": {
+            "value": 1.5,
+            "tag": "API-REPORTED"
+          },
+          "floor_usd_per_s": {
+            "value": 0.003,
+            "tag": "API-REPORTED"
+          },
+          "ceiling_usd_per_s": {
+            "value": 0.0085,
+            "tag": "API-REPORTED"
+          },
+          "basis": "measured x safety",
+          "source_operations": [
+            {
+              "value": 1,
+              "tag": "API-REPORTED"
+            }
+          ]
+        }
+      },
+      {
+        "n": {
+          "value": 3,
+          "tag": "API-REPORTED"
+        },
+        "role": "time machine: cpu_shim",
+        "candidate": null,
+        "concurrent": {
+          "value": 1,
+          "tag": "API-REPORTED"
+        },
+        "base_image": "python:3.9-slim",
+        "funded_seconds": {
+          "value": 206.2,
+          "tag": "API-REPORTED"
+        },
+        "wall_seconds": {
+          "value": 57.66,
+          "tag": "API-REPORTED"
+        },
+        "sandbox_seconds": {
+          "value": 10.338,
+          "tag": "API-REPORTED"
+        },
+        "install_seconds": [
+          {
+            "command": "python3 -c \"import base64;exec(base64.b64decode('CmltcG9ydCBiYXNlNjQsIG9zLCBzaXRlLCBzeXMKbmFtZSwgc291cmNlID0gc3lzLmFyZ3ZbMV0sIGJhc2U2NC5iNjRkZWNvZGUoc3lzLmFyZ3Z",
+            "phase": "runner_setup",
+            "seconds": {
+              "value": 0.019,
+              "tag": "API-REPORTED"
+            },
+            "exit_code": {
+              "value": 0,
+              "tag": "API-REPORTED"
+            },
+            "cost_usd": {
+              "value": 0.000236,
+              "tag": "API-REPORTED"
+            },
+            "torch": false
+          }
+        ],
+        "branch_from_image": "b68f137f-33e0-46a1-8328-f43f235d940c",
+        "start_setup_commands": {
+          "value": 3,
+          "tag": "API-REPORTED"
+        },
+        "setup_commands": {
+          "value": 4,
+          "tag": "API-REPORTED"
+        },
+        "torch_in_start_image": true,
+        "torch_installed": false,
+        "torch_env_key": "309b497ac4dbbe54",
+        "result_image": null,
+        "image_kept": true,
+        "kept_images": [
+          "6d5632ad-eb1d-4915-bcd8-647aee84aae6"
+        ],
+        "env_image_id": "6d5632ad-eb1d-4915-bcd8-647aee84aae6",
+        "cost_usd": {
+          "value": 0.122909,
+          "tag": "API-REPORTED"
+        },
+        "cost_estimated_usd": {
+          "value": 0.0,
+          "tag": "API-REPORTED"
+        },
+        "outcome": "completed",
+        "resource_limits": {
+          "memory": "not documented (the only wording is \"Automatic cleanup and resource limits help prevent abuse.\" (docs.tokenfactory.nebius.com/sandboxes/overview) and \"Built-in tracking of CPU time, memory usage, and I/O operations for every execution.\")",
+          "cpu": "not documented",
+          "disk_layer_bytes": {
+            "value": 12884901888,
+            "tag": "API-REPORTED"
+          },
+          "larger_instance": "not documented: the spawn request, the SDK, the CLI and the MCP tools have no memory, CPU, size or GPU parameter; Sandboxes is a beta (access by request, contree@nebius.com); no price page (the product page says free while in beta, D-36)",
+          "source": "docs/design/D-40-resources.md (public Nebius Token Factory / ConTree documentation and contree_sdk 0.3.6, read offline 2026-10-01)"
+        },
+        "exit_code": {
+          "value": 137,
+          "tag": "API-REPORTED"
+        },
+        "max_rss": {
+          "value": 3896156,
+          "tag": "API-REPORTED"
+        },
+        "streams": {
+          "limit_bytes": {
+            "value": 4194304,
+            "tag": "API-REPORTED"
+          },
+          "stdout": {
+            "bytes": {
+              "value": 237,
+              "tag": "API-REPORTED"
+            },
+            "sha256": "0c2b0ccef1dfb89388677e3e92684f98c17e05d99d25351dd8df3badb2bced1e",
+            "truncated": false
+          },
+          "stderr": {
+            "bytes": {
+              "value": 31521,
+              "tag": "API-REPORTED"
+            },
+            "sha256": "a86be77b8afa31cf7d2a719c1c2732e4e154de702a54f48b21eecfa67519446c",
+            "truncated": false
+          }
+        },
+        "killed_step": null,
+        "killed_seconds": null,
+        "funding": {
+          "rate_used_usd_per_s": {
+            "value": 0.00529164,
+            "tag": "API-REPORTED"
+          },
+          "measured_usd_per_s": {
+            "value": 0.00352776,
+            "tag": "API-REPORTED"
+          },
+          "safety": {
+            "value": 1.5,
+            "tag": "API-REPORTED"
+          },
+          "floor_usd_per_s": {
+            "value": 0.003,
+            "tag": "API-REPORTED"
+          },
+          "ceiling_usd_per_s": {
+            "value": 0.0085,
+            "tag": "API-REPORTED"
+          },
+          "basis": "measured x safety",
+          "source_operations": [
+            {
+              "value": 1,
+              "tag": "API-REPORTED"
+            },
+            {
+              "value": 2,
+              "tag": "API-REPORTED"
+            }
+          ]
+        }
+      },
+      {
+        "n": {
+          "value": 4,
+          "tag": "API-REPORTED"
+        },
+        "role": "resource evidence",
+        "candidate": null,
+        "concurrent": {
+          "value": 1,
+          "tag": "API-REPORTED"
+        },
+        "base_image": "python:3.9-slim",
+        "funded_seconds": {
+          "value": 201.9,
+          "tag": "API-REPORTED"
+        },
+        "wall_seconds": {
+          "value": 26.74,
+          "tag": "API-REPORTED"
+        },
+        "sandbox_seconds": {
+          "value": 9.968,
+          "tag": "API-REPORTED"
+        },
+        "install_seconds": [],
+        "branch_from_image": "6d5632ad-eb1d-4915-bcd8-647aee84aae6",
+        "start_setup_commands": {
+          "value": 4,
+          "tag": "API-REPORTED"
+        },
+        "setup_commands": {
+          "value": 4,
+          "tag": "API-REPORTED"
+        },
+        "torch_in_start_image": true,
+        "torch_installed": false,
+        "torch_env_key": "309b497ac4dbbe54",
+        "result_image": null,
+        "image_kept": false,
+        "kept_images": [],
+        "env_image_id": "6d5632ad-eb1d-4915-bcd8-647aee84aae6",
+        "cost_usd": {
+          "value": 0.11917,
+          "tag": "API-REPORTED"
+        },
+        "cost_estimated_usd": {
+          "value": 0.0,
+          "tag": "API-REPORTED"
+        },
+        "outcome": "completed",
+        "resource_limits": {
+          "memory": "not documented (the only wording is \"Automatic cleanup and resource limits help prevent abuse.\" (docs.tokenfactory.nebius.com/sandboxes/overview) and \"Built-in tracking of CPU time, memory usage, and I/O operations for every execution.\")",
+          "cpu": "not documented",
+          "disk_layer_bytes": {
+            "value": 12884901888,
+            "tag": "API-REPORTED"
+          },
+          "larger_instance": "not documented: the spawn request, the SDK, the CLI and the MCP tools have no memory, CPU, size or GPU parameter; Sandboxes is a beta (access by request, contree@nebius.com); no price page (the product page says free while in beta, D-36)",
+          "source": "docs/design/D-40-resources.md (public Nebius Token Factory / ConTree documentation and contree_sdk 0.3.6, read offline 2026-10-01)"
+        },
+        "exit_code": {
+          "value": 137,
+          "tag": "API-REPORTED"
+        },
+        "max_rss": {
+          "value": 3898376,
+          "tag": "API-REPORTED"
+        },
+        "streams": {
+          "limit_bytes": {
+            "value": 4194304,
+            "tag": "API-REPORTED"
+          },
+          "stdout": {
+            "bytes": {
+              "value": 237,
+              "tag": "API-REPORTED"
+            },
+            "sha256": "0c2b0ccef1dfb89388677e3e92684f98c17e05d99d25351dd8df3badb2bced1e",
+            "truncated": false
+          },
+          "stderr": {
+            "bytes": {
+              "value": 13301,
+              "tag": "API-REPORTED"
+            },
+            "sha256": "5dd0f6f1230bc18c8c1cf17808d87814ab7b7cf5b22fed5ab25aecf546807d09",
+            "truncated": false
+          }
+        },
+        "killed_step": null,
+        "killed_seconds": null,
+        "funding": {
+          "rate_used_usd_per_s": {
+            "value": 0.00479716,
+            "tag": "API-REPORTED"
+          },
+          "measured_usd_per_s": {
+            "value": 0.0031981,
+            "tag": "API-REPORTED"
+          },
+          "safety": {
+            "value": 1.5,
+            "tag": "API-REPORTED"
+          },
+          "floor_usd_per_s": {
+            "value": 0.003,
+            "tag": "API-REPORTED"
+          },
+          "ceiling_usd_per_s": {
+            "value": 0.0085,
+            "tag": "API-REPORTED"
+          },
+          "basis": "measured x safety",
+          "source_operations": [
+            {
+              "value": 1,
+              "tag": "API-REPORTED"
+            },
+            {
+              "value": 2,
+              "tag": "API-REPORTED"
+            },
+            {
+              "value": 3,
+              "tag": "API-REPORTED"
+            }
+          ]
+        }
+      }
+    ],
+    "cost_events": []
+  },
+  "badge": {
+    "exploratory": true,
+    "label": "EXPLORATORY",
+    "text": "EXPLORATORY — did not pass its pre-registered gate. a: 0/4, c: 7 citations (27 attempts consulted, 81 refs, 17 reasons recorded).",
+    "gate_passed": false,
+    "figures": [
+      {
+        "criterion": "a",
+        "ok": false,
+        "detail": "0 of 4 reached RUNS_CLEAN / RUNS_AFTER_REPAIR",
+        "text": "0/4",
+        "recovered": {
+          "value": 0,
+          "tag": "API-REPORTED",
+          "computed_from": "count of verdicts in ['RUNS_CLEAN', 'RUNS_AFTER_REPAIR']",
+          "source": "reports/corpus-v2.1/v1.4.3/gate/gate_result_harness-v1.4.3.json@sha256:406251df9790daf4f92fc53351946273ed9eaf73fafb33b61077f57f6d710a82"
+        },
+        "entries": {
+          "value": 4,
+          "tag": "API-REPORTED",
+          "computed_from": "count of verdicts",
+          "source": "reports/corpus-v2.1/v1.4.3/gate/gate_result_harness-v1.4.3.json@sha256:406251df9790daf4f92fc53351946273ed9eaf73fafb33b61077f57f6d710a82"
+        }
+      },
+      {
+        "criterion": "b",
+        "ok": true,
+        "detail": "15 applied of 17 proposed",
+        "applied": {
+          "value": 15,
+          "tag": "API-REPORTED",
+          "computed_from": "length of b.applied",
+          "source": "reports/corpus-v2.1/v1.4.3/gate/gate_result_harness-v1.4.3.json@sha256:406251df9790daf4f92fc53351946273ed9eaf73fafb33b61077f57f6d710a82"
+        },
+        "proposed_note": "the gate result stores the proposed count only in its `detail` text (quoted on this figure), not as a field"
+      },
+      {
+        "criterion": "c",
+        "ok": true,
+        "detail": "7 repair attempt(s) with a stored Tavily citation",
+        "citations": {
+          "value": 7,
+          "tag": "API-REPORTED",
+          "computed_from": "length of c.cited",
+          "source": "reports/corpus-v2.1/v1.4.3/gate/gate_result_harness-v1.4.3.json@sha256:406251df9790daf4f92fc53351946273ed9eaf73fafb33b61077f57f6d710a82"
+        },
+        "attempts_consulted": {
+          "value": 27,
+          "tag": "API-REPORTED",
+          "computed_from": "count of result.attempts[*].consulted",
+          "source": [
+            "harness-v1.4.3/treatment/03@b96e812ae4d41f84c3b6ac8bf7d1344da3cfe52f8227d88fd231b59bed4effb3#attempt-1-candidate-1",
+            "harness-v1.4.3/treatment/03@b96e812ae4d41f84c3b6ac8bf7d1344da3cfe52f8227d88fd231b59bed4effb3#attempt-1-candidate-2",
+            "harness-v1.4.3/treatment/03@b96e812ae4d41f84c3b6ac8bf7d1344da3cfe52f8227d88fd231b59bed4effb3#attempt-1-candidate-3",
+            "harness-v1.4.3/treatment/03@b96e812ae4d41f84c3b6ac8bf7d1344da3cfe52f8227d88fd231b59bed4effb3#attempt-2-candidate-2",
+            "harness-v1.4.3/treatment/03@b96e812ae4d41f84c3b6ac8bf7d1344da3cfe52f8227d88fd231b59bed4effb3#attempt-2-candidate-1",
+            "harness-v1.4.3/treatment/03@b96e812ae4d41f84c3b6ac8bf7d1344da3cfe52f8227d88fd231b59bed4effb3#attempt-2-candidate-3",
+            "harness-v1.4.3/treatment/03@b96e812ae4d41f84c3b6ac8bf7d1344da3cfe52f8227d88fd231b59bed4effb3#attempt-3-candidate-1",
+            "harness-v1.4.3/treatment/03@b96e812ae4d41f84c3b6ac8bf7d1344da3cfe52f8227d88fd231b59bed4effb3#attempt-3-candidate-2",
+            "harness-v1.4.3/treatment/03@b96e812ae4d41f84c3b6ac8bf7d1344da3cfe52f8227d88fd231b59bed4effb3#attempt-3-candidate-3",
+            "harness-v1.4.3/treatment/07@84dc19553d251c1da741e2aadeef6e86be1ae86dc96eb8a7ea6c8ea8ea38c74d#attempt-1-candidate-1",
+            "harness-v1.4.3/treatment/07@84dc19553d251c1da741e2aadeef6e86be1ae86dc96eb8a7ea6c8ea8ea38c74d#attempt-1-candidate-2",
+            "harness-v1.4.3/treatment/07@84dc19553d251c1da741e2aadeef6e86be1ae86dc96eb8a7ea6c8ea8ea38c74d#attempt-1-candidate-3",
+            "harness-v1.4.3/treatment/07@84dc19553d251c1da741e2aadeef6e86be1ae86dc96eb8a7ea6c8ea8ea38c74d#attempt-2-candidate-2",
+            "harness-v1.4.3/treatment/07@84dc19553d251c1da741e2aadeef6e86be1ae86dc96eb8a7ea6c8ea8ea38c74d#attempt-2-candidate-1",
+            "harness-v1.4.3/treatment/07@84dc19553d251c1da741e2aadeef6e86be1ae86dc96eb8a7ea6c8ea8ea38c74d#attempt-2-candidate-3",
+            "harness-v1.4.3/treatment/07@84dc19553d251c1da741e2aadeef6e86be1ae86dc96eb8a7ea6c8ea8ea38c74d#attempt-3-candidate-1",
+            "harness-v1.4.3/treatment/07@84dc19553d251c1da741e2aadeef6e86be1ae86dc96eb8a7ea6c8ea8ea38c74d#attempt-3-candidate-3",
+            "harness-v1.4.3/treatment/07@84dc19553d251c1da741e2aadeef6e86be1ae86dc96eb8a7ea6c8ea8ea38c74d#attempt-3-candidate-2",
+            "harness-v1.4.3/treatment/08@c0e918256dc08f20acd5e7a3b58f87b49119328011d11900c71df7a2885edfc6#attempt-1-candidate-1",
+            "harness-v1.4.3/treatment/08@c0e918256dc08f20acd5e7a3b58f87b49119328011d11900c71df7a2885edfc6#attempt-1-candidate-2",
+            "harness-v1.4.3/treatment/08@c0e918256dc08f20acd5e7a3b58f87b49119328011d11900c71df7a2885edfc6#attempt-1-candidate-3",
+            "harness-v1.4.3/treatment/08@c0e918256dc08f20acd5e7a3b58f87b49119328011d11900c71df7a2885edfc6#attempt-2-candidate-1",
+            "harness-v1.4.3/treatment/08@c0e918256dc08f20acd5e7a3b58f87b49119328011d11900c71df7a2885edfc6#attempt-2-candidate-2",
+            "harness-v1.4.3/treatment/08@c0e918256dc08f20acd5e7a3b58f87b49119328011d11900c71df7a2885edfc6#attempt-2-candidate-3",
+            "harness-v1.4.3/treatment/08@c0e918256dc08f20acd5e7a3b58f87b49119328011d11900c71df7a2885edfc6#attempt-3-candidate-2",
+            "harness-v1.4.3/treatment/08@c0e918256dc08f20acd5e7a3b58f87b49119328011d11900c71df7a2885edfc6#attempt-3-candidate-1",
+            "harness-v1.4.3/treatment/08@c0e918256dc08f20acd5e7a3b58f87b49119328011d11900c71df7a2885edfc6#attempt-3-candidate-3"
+          ]
+        },
+        "references_consulted": {
+          "value": 81,
+          "tag": "API-REPORTED",
+          "computed_from": "sum of len(result.attempts[*].consulted)",
+          "source": [
+            "harness-v1.4.3/treatment/03@b96e812ae4d41f84c3b6ac8bf7d1344da3cfe52f8227d88fd231b59bed4effb3#attempt-1-candidate-1",
+            "harness-v1.4.3/treatment/03@b96e812ae4d41f84c3b6ac8bf7d1344da3cfe52f8227d88fd231b59bed4effb3#attempt-1-candidate-2",
+            "harness-v1.4.3/treatment/03@b96e812ae4d41f84c3b6ac8bf7d1344da3cfe52f8227d88fd231b59bed4effb3#attempt-1-candidate-3",
+            "harness-v1.4.3/treatment/03@b96e812ae4d41f84c3b6ac8bf7d1344da3cfe52f8227d88fd231b59bed4effb3#attempt-2-candidate-2",
+            "harness-v1.4.3/treatment/03@b96e812ae4d41f84c3b6ac8bf7d1344da3cfe52f8227d88fd231b59bed4effb3#attempt-2-candidate-1",
+            "harness-v1.4.3/treatment/03@b96e812ae4d41f84c3b6ac8bf7d1344da3cfe52f8227d88fd231b59bed4effb3#attempt-2-candidate-3",
+            "harness-v1.4.3/treatment/03@b96e812ae4d41f84c3b6ac8bf7d1344da3cfe52f8227d88fd231b59bed4effb3#attempt-3-candidate-1",
+            "harness-v1.4.3/treatment/03@b96e812ae4d41f84c3b6ac8bf7d1344da3cfe52f8227d88fd231b59bed4effb3#attempt-3-candidate-2",
+            "harness-v1.4.3/treatment/03@b96e812ae4d41f84c3b6ac8bf7d1344da3cfe52f8227d88fd231b59bed4effb3#attempt-3-candidate-3",
+            "harness-v1.4.3/treatment/07@84dc19553d251c1da741e2aadeef6e86be1ae86dc96eb8a7ea6c8ea8ea38c74d#attempt-1-candidate-1",
+            "harness-v1.4.3/treatment/07@84dc19553d251c1da741e2aadeef6e86be1ae86dc96eb8a7ea6c8ea8ea38c74d#attempt-1-candidate-2",
+            "harness-v1.4.3/treatment/07@84dc19553d251c1da741e2aadeef6e86be1ae86dc96eb8a7ea6c8ea8ea38c74d#attempt-1-candidate-3",
+            "harness-v1.4.3/treatment/07@84dc19553d251c1da741e2aadeef6e86be1ae86dc96eb8a7ea6c8ea8ea38c74d#attempt-2-candidate-2",
+            "harness-v1.4.3/treatment/07@84dc19553d251c1da741e2aadeef6e86be1ae86dc96eb8a7ea6c8ea8ea38c74d#attempt-2-candidate-1",
+            "harness-v1.4.3/treatment/07@84dc19553d251c1da741e2aadeef6e86be1ae86dc96eb8a7ea6c8ea8ea38c74d#attempt-2-candidate-3",
+            "harness-v1.4.3/treatment/07@84dc19553d251c1da741e2aadeef6e86be1ae86dc96eb8a7ea6c8ea8ea38c74d#attempt-3-candidate-1",
+            "harness-v1.4.3/treatment/07@84dc19553d251c1da741e2aadeef6e86be1ae86dc96eb8a7ea6c8ea8ea38c74d#attempt-3-candidate-3",
+            "harness-v1.4.3/treatment/07@84dc19553d251c1da741e2aadeef6e86be1ae86dc96eb8a7ea6c8ea8ea38c74d#attempt-3-candidate-2",
+            "harness-v1.4.3/treatment/08@c0e918256dc08f20acd5e7a3b58f87b49119328011d11900c71df7a2885edfc6#attempt-1-candidate-1",
+            "harness-v1.4.3/treatment/08@c0e918256dc08f20acd5e7a3b58f87b49119328011d11900c71df7a2885edfc6#attempt-1-candidate-2",
+            "harness-v1.4.3/treatment/08@c0e918256dc08f20acd5e7a3b58f87b49119328011d11900c71df7a2885edfc6#attempt-1-candidate-3",
+            "harness-v1.4.3/treatment/08@c0e918256dc08f20acd5e7a3b58f87b49119328011d11900c71df7a2885edfc6#attempt-2-candidate-1",
+            "harness-v1.4.3/treatment/08@c0e918256dc08f20acd5e7a3b58f87b49119328011d11900c71df7a2885edfc6#attempt-2-candidate-2",
+            "harness-v1.4.3/treatment/08@c0e918256dc08f20acd5e7a3b58f87b49119328011d11900c71df7a2885edfc6#attempt-2-candidate-3",
+            "harness-v1.4.3/treatment/08@c0e918256dc08f20acd5e7a3b58f87b49119328011d11900c71df7a2885edfc6#attempt-3-candidate-2",
+            "harness-v1.4.3/treatment/08@c0e918256dc08f20acd5e7a3b58f87b49119328011d11900c71df7a2885edfc6#attempt-3-candidate-1",
+            "harness-v1.4.3/treatment/08@c0e918256dc08f20acd5e7a3b58f87b49119328011d11900c71df7a2885edfc6#attempt-3-candidate-3"
+          ]
+        },
+        "reasons_recorded": {
+          "value": 17,
+          "tag": "API-REPORTED",
+          "computed_from": "count of result.attempts[*].reason_no_citation",
+          "source": [
+            "harness-v1.4.3/treatment/03@b96e812ae4d41f84c3b6ac8bf7d1344da3cfe52f8227d88fd231b59bed4effb3#attempt-1-candidate-2",
+            "harness-v1.4.3/treatment/03@b96e812ae4d41f84c3b6ac8bf7d1344da3cfe52f8227d88fd231b59bed4effb3#attempt-1-candidate-3",
+            "harness-v1.4.3/treatment/03@b96e812ae4d41f84c3b6ac8bf7d1344da3cfe52f8227d88fd231b59bed4effb3#attempt-2-candidate-2",
+            "harness-v1.4.3/treatment/03@b96e812ae4d41f84c3b6ac8bf7d1344da3cfe52f8227d88fd231b59bed4effb3#attempt-2-candidate-1",
+            "harness-v1.4.3/treatment/03@b96e812ae4d41f84c3b6ac8bf7d1344da3cfe52f8227d88fd231b59bed4effb3#attempt-2-candidate-3",
+            "harness-v1.4.3/treatment/03@b96e812ae4d41f84c3b6ac8bf7d1344da3cfe52f8227d88fd231b59bed4effb3#attempt-3-candidate-1",
+            "harness-v1.4.3/treatment/03@b96e812ae4d41f84c3b6ac8bf7d1344da3cfe52f8227d88fd231b59bed4effb3#attempt-3-candidate-2",
+            "harness-v1.4.3/treatment/07@84dc19553d251c1da741e2aadeef6e86be1ae86dc96eb8a7ea6c8ea8ea38c74d#attempt-1-candidate-1",
+            "harness-v1.4.3/treatment/07@84dc19553d251c1da741e2aadeef6e86be1ae86dc96eb8a7ea6c8ea8ea38c74d#attempt-1-candidate-2",
+            "harness-v1.4.3/treatment/07@84dc19553d251c1da741e2aadeef6e86be1ae86dc96eb8a7ea6c8ea8ea38c74d#attempt-1-candidate-3",
+            "harness-v1.4.3/treatment/07@84dc19553d251c1da741e2aadeef6e86be1ae86dc96eb8a7ea6c8ea8ea38c74d#attempt-2-candidate-1",
+            "harness-v1.4.3/treatment/07@84dc19553d251c1da741e2aadeef6e86be1ae86dc96eb8a7ea6c8ea8ea38c74d#attempt-2-candidate-3",
+            "harness-v1.4.3/treatment/07@84dc19553d251c1da741e2aadeef6e86be1ae86dc96eb8a7ea6c8ea8ea38c74d#attempt-3-candidate-1",
+            "harness-v1.4.3/treatment/07@84dc19553d251c1da741e2aadeef6e86be1ae86dc96eb8a7ea6c8ea8ea38c74d#attempt-3-candidate-2",
+            "harness-v1.4.3/treatment/08@c0e918256dc08f20acd5e7a3b58f87b49119328011d11900c71df7a2885edfc6#attempt-1-candidate-2",
+            "harness-v1.4.3/treatment/08@c0e918256dc08f20acd5e7a3b58f87b49119328011d11900c71df7a2885edfc6#attempt-1-candidate-3",
+            "harness-v1.4.3/treatment/08@c0e918256dc08f20acd5e7a3b58f87b49119328011d11900c71df7a2885edfc6#attempt-2-candidate-3"
+          ]
+        },
+        "text": "7 citations (27 attempts consulted, 81 refs, 17 reasons recorded)"
+      },
+      {
+        "criterion": "d",
+        "ok": true,
+        "detail": "no entry over $2.00",
+        "cost_cap_endings": {
+          "value": 0,
+          "tag": "API-REPORTED",
+          "computed_from": "count of records with result.reason_code COST_CAP",
+          "source": [
+            "harness-v1.4.3/treatment/03@b96e812ae4d41f84c3b6ac8bf7d1344da3cfe52f8227d88fd231b59bed4effb3",
+            "harness-v1.4.3/treatment/07@84dc19553d251c1da741e2aadeef6e86be1ae86dc96eb8a7ea6c8ea8ea38c74d",
+            "harness-v1.4.3/treatment/08@c0e918256dc08f20acd5e7a3b58f87b49119328011d11900c71df7a2885edfc6",
+            "harness-v1.4.3/treatment/11@1d8ee808dca550ddd793c3912ef90976d47e2a755186bc12b2ed96f9a2ea92d9"
+          ]
+        }
+      },
+      {
+        "criterion": "e",
+        "ok": true,
+        "entries_ok": {
+          "value": 4,
+          "tag": "API-REPORTED",
+          "computed_from": "count of e.per_entry with ok",
+          "source": "reports/corpus-v2.1/v1.4.3/gate/gate_result_harness-v1.4.3.json@sha256:406251df9790daf4f92fc53351946273ed9eaf73fafb33b61077f57f6d710a82"
+        },
+        "entries": {
+          "value": 4,
+          "tag": "API-REPORTED",
+          "computed_from": "count of e.per_entry",
+          "source": "reports/corpus-v2.1/v1.4.3/gate/gate_result_harness-v1.4.3.json@sha256:406251df9790daf4f92fc53351946273ed9eaf73fafb33b61077f57f6d710a82"
+        },
+        "per_entry": {
+          "3": "1 torch install(s) outside the baseline, each in its own environment image",
+          "7": "0 torch install(s) outside the baseline, each in its own environment image",
+          "8": "0 torch install(s) outside the baseline, each in its own environment image",
+          "11": "1 torch install(s) outside the baseline, each in its own environment image"
+        }
+      }
+    ],
+    "gate_cost": {
+      "value": 3.69455,
+      "tag": "API-REPORTED",
+      "currency": "USD",
+      "computed_from": "sum of cost_guard.spent_usd over the gate records",
+      "source": [
+        "harness-v1.4.3/treatment/03@b96e812ae4d41f84c3b6ac8bf7d1344da3cfe52f8227d88fd231b59bed4effb3",
+        "harness-v1.4.3/treatment/07@84dc19553d251c1da741e2aadeef6e86be1ae86dc96eb8a7ea6c8ea8ea38c74d",
+        "harness-v1.4.3/treatment/08@c0e918256dc08f20acd5e7a3b58f87b49119328011d11900c71df7a2885edfc6",
+        "harness-v1.4.3/treatment/11@1d8ee808dca550ddd793c3912ef90976d47e2a755186bc12b2ed96f9a2ea92d9"
+      ]
+    },
+    "links": {
+      "gate_result": "reports/corpus-v2.1/v1.4.3/gate/gate_result_harness-v1.4.3.json",
+      "gate_report": "reports/corpus-v2.1/v1.4.3/gate/GATE_REPORT_v1.4.3.md",
+      "run_records": [
+        "harness-v1.4.3/treatment/03@b96e812ae4d41f84c3b6ac8bf7d1344da3cfe52f8227d88fd231b59bed4effb3",
+        "harness-v1.4.3/treatment/07@84dc19553d251c1da741e2aadeef6e86be1ae86dc96eb8a7ea6c8ea8ea38c74d",
+        "harness-v1.4.3/treatment/08@c0e918256dc08f20acd5e7a3b58f87b49119328011d11900c71df7a2885edfc6",
+        "harness-v1.4.3/treatment/11@1d8ee808dca550ddd793c3912ef90976d47e2a755186bc12b2ed96f9a2ea92d9"
+      ],
+      "cost_line": {
+        "path": "reports/corpus-v2.1/v1.4.3/gate/GATE_REPORT_v1.4.3.md",
+        "quote": "Gate spend (the four records): **$3.69455**"
+      }
+    }
+  },
+  "superseded_by": {
+    "value": null,
+    "reason": "not superseded"
+  },
+  "annotations": [
+    {
+      "id": "D-38",
+      "text": "The kill after the CPU shim was classified RESOURCE_LIMIT and the entry ended INDETERMINATE with no model attempt, as in the previous gate.",
+      "sources": [
+        {
+          "path": "reports/corpus-v2.1/candidate_v1.3.3_defects.md",
+          "quote": "- **D-38** A kill by signal is classified as a silent exit."
+        }
+      ]
+    },
+    {
+      "id": "D-40",
+      "text": "The API's own peak-memory figure for the step is stored (`operations[].max_rss`, as returned, unit not documented): 3,898,376, against the kernel's anon-rss 3,897,356 kB.",
+      "sources": [
+        {
+          "path": "reports/corpus-v2.1/candidate_v1.3.3_defects.md",
+          "quote": "- **D-40 [annotation: partly fixed further]**"
+        }
+      ]
+    }
+  ],
+  "passport_hash": "ac991f19363d122dc687ef03765cb5d60b1276f33da72a6d68fee916ca143f13"
+}

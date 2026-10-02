@@ -1,4 +1,4 @@
-"""The defect register D-1..D-41 as data, each row with quoted sources from the committed reports.
+"""The defect register D-1..D-43 as data, each row with quoted sources from the committed reports.
 
 Status rule (shown on the dashboard):
   fixed-and-gated    the fix-map status is "fixed" with no open remainder AND a committed gate (or seal) report line states the
@@ -17,6 +17,7 @@ G133 = "reports/corpus-v2.1/v1.3.3/smoke_gate/SMOKE_GATE_REPORT.md"
 G134 = "reports/corpus-v2.1/v1.3.3/smoke_gate/SMOKE_GATE_REPORT_v1.3.4.md"
 G141 = "reports/corpus-v2.1/v1.4.1/gate/GATE_REPORT_v1.4.1.md"
 G142 = "reports/corpus-v2.1/v1.4.2/gate/GATE_REPORT_v1.4.2.md"
+G143 = "reports/corpus-v2.1/v1.4.3/gate/GATE_REPORT_v1.4.3.md"
 SEAL141 = "reports/corpus-v2.1/v1.4.1/seal/SEAL_STATUS.md"
 METHODOLOGY = "METHODOLOGY.md"
 D24_TEST = "backend/tests/test_d24_build_essential.py"
@@ -114,7 +115,8 @@ REGISTER: list[dict] = [
           (G142, "Candidate 3 had the D-33/D-34/D-35 rules fire on its branch (build-essential, exit hook, exit wrapper: $0.5079 together)")],
          "Fixed after the third exploratory gate and labelled unvalidated then; the sealed versions since carry it, and the last gate shows the compiler rule firing live on a candidate's own branch, with no model call."),
     _row("D-25", "Model-placed diagnostics cannot locate a deliberate silent exit", OPEN, (DEFECTS, "- **D-25** One round of model-placed diagnostics"),
-         [(DEFECTS, NOT_FIXED_134)]),
+         [(DEFECTS, NOT_FIXED_134), (DEFECTS, "- **D-25 [annotation: premise withdrawn by the D-41 probe]**")],
+         "Its premise, a deliberate silent exit on the third corpus entry, was a CUDA error behind a cut stream, the defect registered after it. Kept open as a design for a genuine silent exit; no record shows one."),
     _row("D-26", "No reason is recorded when a declined attempt does not cite", OPEN,
          (DEFECTS, "- **D-26** `reason_no_citation` is not recorded on a DECLINED attempt"), [(DEFECTS, PHASE_D)]),
     _row("D-27", "The ledger records only completed cost", OPEN, (DEFECTS, "- **D-27** The ledger records only completed cost"), [(DEFECTS, PHASE_D)],
@@ -142,7 +144,7 @@ REGISTER: list[dict] = [
          "The additive apt layer ran live in the last gate, on two entries."),
     _row("D-35", "The exit-site hook cannot see a bare raise SystemExit", FIXED_UNVALIDATED, (DEFECTS, "- **D-35** The exit-site hook cannot see a bare `raise SystemExit(n)`"),
          [(G141, "**D-35** fired twice (#3, #11) and both times reported \"exit outside Python\"")],
-         "The wrapper fired in the gates and printed nothing each time; the seal shows it printing the raise site on a controlled script. Whether its output on the silent-exit entry was cut off by the truncation defect is not proven, so no gate line shows it working."),
+         "The wrapper fired in the gates and printed nothing each time; the seal shows it printing the raise site on a controlled script. The probe showed that on the silent-exit entry its output was cut off by the truncation defect (confirmed), and the last gate never reached that path again, so no gate line shows it working."),
     _row("D-36", "Ledger figures are API-reported cost, not account billing", OPEN, (DEFECTS, "- **D-36** Ledger figures are the sandbox API's reported operation cost"),
          [(DEFECTS, "Annotation on **D-36** (2026-10-01, the owner's second balance reading)"), (G141, "D-36 stays open")],
          "The balance moved far less than the ledger in both readings; the cause is not established."),
@@ -151,14 +153,24 @@ REGISTER: list[dict] = [
          "Observed once, on one entry: the adoption and its reasons are in the record. The only RUNS_AFTER_REPAIR of the root-cause-line gates followed it."),
     _row("D-38", "A kill by signal was classified as a silent exit", FIXED_GATED, (DEFECTS, "- **D-38** A kill by signal is classified as a silent exit."),
          [(G142, "D-38 / D-40: #11 is a MEMORY kill, evidenced from inside the sandbox (OOM-killer line, 3.85 GiB VM)")]),
-    _row("D-39", "The CPU shim did not cover an explicit .cuda()", FIXED_UNVALIDATED, (DEFECTS, "- **D-39** The CPU shim covers `torch.load` and `torch.cuda.is_available()` only."),
-         [(G142, "D-39 was not exercised live (no `.cuda()`/`.to`/`torch.device` call was reached")],
-         "Checked against real torch offline; no gate reached such a call."),
-    _row("D-40", "The sandbox's resource limits were invisible to the harness", OPEN, (DEFECTS, "- **D-40** Resource classification and evidence."),
-         [(DEFECTS, "**Not done, on purpose:** storing the API's per-step `max_rss`")],
-         "Partly fixed: kills are classified, one evidence run reads the sandbox and one entry's limit is recorded; the API's per-step peak memory is still not stored and the evidence run of the silent-exit entry was blocked by the truncation defect."),
-    _row("D-41", "The sandbox SDK truncates each output stream at a fixed byte limit and the harness does not look", OPEN,
+    _row("D-39", "The CPU shim did not cover an explicit .cuda()", FIXED_GATED, (DEFECTS, "- **D-39** The CPU shim covers `torch.load` and `torch.cuda.is_available()` only."),
+         [(G143, "the first live exercise of the `.cuda()` path, D-39")],
+         "Checked against real torch offline, then observed live on the entry whose explicit call had been hidden by the truncation defect: the shim handled it with no model call."),
+    _row("D-40", "The sandbox's resource limits were invisible to the harness", FIXED_GATED, (DEFECTS, "- **D-40** Resource classification and evidence."),
+         [(G142, "D-38 / D-40: #11 is a MEMORY kill, evidenced from inside the sandbox (OOM-killer line, 3.85 GiB VM)"),
+          (G143, "**The API's peak-memory figure for the step (`max_rss`, stored for the first time in this version)")],
+         "Kills are classified, one evidence run reads the sandbox, and the API's own peak memory per step is stored as returned. The memory limit itself is a platform limit: the SDK has no instance parameter, so the entry ends INDETERMINATE with the kernel line quoted."),
+    _row("D-41", "The sandbox SDK truncates each output stream at a fixed byte limit and the harness does not look", FIXED_GATED,
          (DEFECTS, "- **D-41** The sandbox SDK truncates stdout and stderr at 65,535 bytes"),
-         [(G142, "## D-41 (new, found by this gate, NOT fixed, not yet proven)")],
-         "Found by the last gate; indicated by the records of the silent-exit entry in every version, not proven (no record stores the SDK's `.truncated` flag)."),
+         [(G143, "**D-41 fixed, live.**"), (DEFECTS, "- **D-41 [annotation: CONFIRMED by the probe of 2026-10-02]**"),
+          (DEFECTS, "- **D-41 [annotation: suspected on other records (D6 scan)]**")],
+         "Confirmed by a probe, fixed in the last version (the client asks for a larger limit, the API's flag, the sizes and the hashes are stored, a cut stream with no error is labelled instead of guessed) and observed live on the entry whose CUDA error had been cut off in every earlier version. A stream beyond the new limit would still lose its end; none did. The records of the earlier versions keep what they stored: the probe confirms one record, the silent-exit records of the others are inferred from the same cut point, and the red-team scan flags three more whose stored tails end mid-line in a build log (suspected, not probed); a verdict that rests on a cut stream stays as recorded, with the annotation beside it."),
+    _row("D-42", "A smoke-criterion pass had nothing beside it saying how long the command really ran", FIXED_UNVALIDATED,
+         (DEFECTS, "- **D-42 [new; the sustained-run line, fixed-unvalidated]**"),
+         [(G143, "the sustained-run line (D-42) had nothing to label and made no live run")],
+         "A non-gating line re-executes a smoke pass from its kept image for as long as the gate cap allows and stores the outcome beside the verdict. Its primitive was verified live in the seal; no entry ended with such a verdict in the last gate, so no gate line shows it working."),
+    _row("D-43", "A gate run cannot be resumed and its process can be killed by its environment", OPEN,
+         (DEFECTS, "- **D-43 [new, open]**"),
+         [(G143, "A full restart was impossible")],
+         "The gate process was killed twice (with the session that started it, then by a console control event whose sender is not known). After the fact the runner can resume from complete records and runs without a console, and the resumed gate finished; the cause of the second death is not known, and the spend of the interrupted attempts is only a lower bound."),
 ]

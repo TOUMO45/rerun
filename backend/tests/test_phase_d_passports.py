@@ -18,8 +18,9 @@ if str(ROOT) not in sys.path:
 from phase_d import check_tags, passports, records, verify_passports  # noqa: E402
 from phase_d.build_passports import INDEX, expected_files  # noqa: E402
 
-V132, V133, V134, V140, V141, V142 = "harness-v1.3.2", "harness-v1.3.3", "harness-v1.3.4", "harness-v1.4.0", "harness-v1.4.1", "harness-v1.4.2"
-V14 = (V140, V141, V142)
+V132, V133, V134, V140, V141, V142, V143 = ("harness-v1.3.2", "harness-v1.3.3", "harness-v1.3.4", "harness-v1.4.0", "harness-v1.4.1", "harness-v1.4.2",
+                                          "harness-v1.4.3")
+V14 = (V140, V141, V142, V143)
 
 
 class CachedSource:
@@ -76,14 +77,14 @@ def _passport(built, tag: str, record_set: str, entry: str) -> dict:
 
 # ---------------------------------------------------------------- inventory and record ids
 
-def test_there_are_61_records_with_unique_ids(built):
-    assert len(built) == records.EXPECTED_TOTAL == 61
+def test_there_are_65_records_with_unique_ids(built):
+    assert len(built) == records.EXPECTED_TOTAL == 65
     per_set = {}
     for record, _ in built:
         per_set[(record.harness_tag, record.record_set.name)] = per_set.get((record.harness_tag, record.record_set.name), 0) + 1
     assert per_set == {(V132, "control"): 20, (V132, "control/infra_retries"): 1, (V132, "treatment"): 20, (V133, "smoke"): 4, (V134, "smoke"): 4,
-                       (V140, "gate"): 4, (V141, "gate"): 4, (V142, "gate"): 4}
-    assert len({p["record_id"] for _, p in built}) == 61
+                       (V140, "gate"): 4, (V141, "gate"): 4, (V142, "gate"): 4, (V143, "gate"): 4}
+    assert len({p["record_id"] for _, p in built}) == 65
 
 
 def test_record_id_is_tag_arm_entry_and_the_blob_sha256(built):
@@ -137,7 +138,7 @@ def test_the_build_never_opens_a_record_in_the_worktree(source, monkeypatch):
 
     monkeypatch.setattr(io, "open", guarded)
     monkeypatch.setattr(builtins, "open", guarded)
-    assert len(passports.build_all(source)) == 61
+    assert len(passports.build_all(source)) == 65
 
 
 def test_the_build_makes_no_network_connection(source, monkeypatch):
@@ -146,7 +147,7 @@ def test_the_build_makes_no_network_connection(source, monkeypatch):
 
     monkeypatch.setattr(socket, "socket", refuse)
     monkeypatch.setattr(socket, "create_connection", refuse)
-    assert len(expected_files(source)) == 62
+    assert len(expected_files(source)) == 66
 
 
 # ---------------------------------------------------------------- verifier and tamper detection
@@ -352,7 +353,7 @@ def test_badges_are_per_version_and_use_that_versions_measured_line(built):
     assert b133["figures"][2]["searches"]["tag"] == "DERIVED" and len(b133["figures"][2]["searches"]["source"]) == 7
     for record, passport in built:
         badge = passport["badge"]
-        assert badge["exploratory"] is (record.harness_tag in (V133, V134, V140, V141, V142))
+        assert badge["exploratory"] is (record.harness_tag in (V133, V134, V140, V141, V142, V143))
         assert ("EXPLORATORY" in badge["text"]) is badge["exploratory"]
         if badge["exploratory"]:
             assert badge["links"]["run_records"] and badge["links"]["cost_line"]["quote"] and badge["links"]["gate_result"]
@@ -390,4 +391,4 @@ def test_d28_the_results_tables_hash_is_the_crlf_worktree_hash_and_is_reconciled
         assert field["value"] == hashlib.sha256(record.blob.replace(b"\n", b"\r\n")).hexdigest()
         assert f"| `{record.record_id}` | `{record.sha256}` | `{field['value']}` |" in index
     others = [p["record"]["results_tables_sha256"] for r, p in built if (r, p["record"]["results_tables_sha256"]) not in listed]
-    assert len(others) == 21 and all(o == {"value": None, "reason": "not listed in reports/corpus-v2.1/results_tables.json"} for o in others)
+    assert len(others) == 25 and all(o == {"value": None, "reason": "not listed in reports/corpus-v2.1/results_tables.json"} for o in others)

@@ -1,4 +1,4 @@
-"""Phase D REPLAY: an offline, deterministic replay of harness-v1.3.2 / v1.3.3 / v1.3.4 / v1.4.0 / v1.4.1 / v1.4.2 from committed records.
+"""Phase D REPLAY: an offline, deterministic replay of harness-v1.3.2 / v1.3.3 / v1.3.4 / v1.4.0 / v1.4.1 / v1.4.2 / v1.4.3 from committed records.
 
 REPLAY reads each record blob, rebuilds the entry's timeline (baseline -> era lock -> attempts -> verdict -> cost),
 and cross-checks every value it shows against the passport field it displays. A mismatch is a build failure.
@@ -32,7 +32,7 @@ from .records import ROOT, BlobSource, GitBlobSource, Record, load_records
 #               criterion e on the scorecard; the headline is counted over every exploratory gate entry-run (summary schema v3)
 SCHEMA = "rerun/phase-d/replay/v3"
 REPLAY_DIR = "reports/phase-d/replay"
-VERSIONS = ("harness-v1.3.2", "harness-v1.3.3", "harness-v1.3.4", "harness-v1.4.0", "harness-v1.4.1", "harness-v1.4.2")
+VERSIONS = ("harness-v1.3.2", "harness-v1.3.3", "harness-v1.3.4", "harness-v1.4.0", "harness-v1.4.1", "harness-v1.4.2", "harness-v1.4.3")
 _SKIP = object()
 _PATH = re.compile(r"([^.\[\]]+)|\[(\d+)\]")
 _NUMBER = re.compile(r"\d+(?:\.\d+)?")
@@ -397,7 +397,7 @@ def build_version(tag: str, records: list[Record], passports: dict[str, dict], r
     run_order = sorted(entries, key=lambda x: (x["started_at"], x["record_id"]))
     position = {x["record_id"]: i for i, x in enumerate(run_order)}
     caps = {x["cost"]["batch_cap"]["value"] for x in entries}
-    if len(caps) != 1:
+    if len(caps) != 1 and tag not in CAPS_DIFFER:
         raise ReplayError(f"{tag}: more than one batch cap in the records: {sorted(caps)}")
     for x in entries:
         i = position[x["record_id"]]
@@ -421,7 +421,9 @@ def build_version(tag: str, records: list[Record], passports: dict[str, dict], r
         "scorecard": {"criteria": badge["figures"], "gate_passed": badge.get("gate_passed"), "record_sets": sets},
         "batch": {"cap": first.num("cost.batch_cap"), "run_order": [x["record_id"] for x in run_order],
                   "measured": _sum(run_order, passports, "cost.measured", last, API_REPORTED),
-                  "estimated": _sum(run_order, passports, "cost.estimated", last, ESTIMATED)},
+                  "estimated": _sum(run_order, passports, "cost.estimated", last, ESTIMATED),
+                  **({"caps": {"note": CAPS_DIFFER[tag], "per_record": [{"record_id": x["record_id"], "cap": x["cost"]["batch_cap"]} for x in run_order]}}
+                     if len(caps) != 1 else {})},
         "entries": entries,
     }
 
@@ -449,26 +451,56 @@ SEAL_SETS = (
     ("seal-v140", "Seal verification", "harness-v1.4.0", "runs/sandbox_verification/v1.4.0-seal"),
     ("seal-v141", "Seal verification", "harness-v1.4.1", "runs/sandbox_verification/v1.4.1-seal"),
     ("seal-v142", "Seal verification", "harness-v1.4.2", "runs/sandbox_verification/v1.4.2-seal"),
+    ("probe-d41", "Defect probe: one sandbox operation on a kept image", "harness-v1.4.2", "runs/sandbox_verification/d41-probe"),
+    ("seal-v143-new", "Seal verification: the new output-limit and run-on-image checks", "harness-v1.4.3", "runs/sandbox_verification/v1.4.3-seal/new"),
+    ("seal-v143-v141", "Seal verification, re-run: the checks of the second root-cause version", "harness-v1.4.3", "runs/sandbox_verification/v1.4.3-seal/v141"),
+    ("seal-v143-v142", "Seal verification, re-run: the checks of the third root-cause version", "harness-v1.4.3", "runs/sandbox_verification/v1.4.3-seal/v142"),
+    ("seal-v143-v140", "Seal verification, re-run: the checks of the first root-cause version", "harness-v1.4.3", "runs/sandbox_verification/v1.4.3-seal/v140"),
+    ("seal-v143-final", "Seal verification, re-run: the verifier-script checks", "harness-v1.4.3", "runs/sandbox_verification/v1.4.3-seal/final"),
 )
+# gate attempts that were killed before they wrote a record: their spend is read from the stdout kept in the repository (DERIVED: the cost guard's own log line, quoted)
+G143_DIR = "runs/corpus_v2_batch/harness-v1.4.3"
+INTERRUPTED_SETS = (
+    ("interrupted-gate-attempts-v143", "Gate attempts killed before they wrote a record", "harness-v1.4.3", (
+        {"path": "reports/corpus-v2.1/v1.4.3/gate/interrupted_attempt_20261002_stdout.txt", "kind": "ops", "after": None,
+         "what": "attempt 1, entry 3: sandbox operations recorded before the process was killed"},
+        {"path": f"{G143_DIR}/gate_attempt2a_died_after_upload_smoke_1.txt", "kind": "smoke", "after": None,
+         "what": "attempt 2a: the first pre-batch upload smoke test, before the process died"},
+        {"path": f"{G143_DIR}/gate_attempt2b_stdout_until_it_died.txt", "kind": "ops", "after": "# 8 edenton__svg starting",
+         "what": "attempt 2b, entry 8: sandbox operations recorded before the process died"},
+    )),
+)
+# a gate that ran in more than one process has more than one batch cap in its records: named here, per version, with the reason
+CAPS_DIFFER = {
+    "harness-v1.4.3": "the gate ran in two processes (reports/corpus-v2.1/v1.4.3/gate/INTERRUPTED_ATTEMPT.md): entries 3 and 7 under the pre-registered gate cap, entries 8 and 11 "
+                      "under the lower cap of the resumed invocation (the pre-registered cap less what the ledger ceiling no longer allowed after the interrupted attempts)",
+}
+_LOG_OP = re.compile(r"\[cost_guard\] recorded \$(\d+\.\d+) sandbox spend")
+_LOG_SMOKE = re.compile(r'"cost_usd": (\d+\.\d+(?:e-\d+)?)')
 # the pre-batch upload smoke tests (and one diagnostic probe) are sandbox operations that cost money and sit in the gate folders
 SMOKE_SETS = (
     ("smoke-v140", "Pre-batch upload smoke test", "harness-v1.4.0", "runs/corpus_v2_batch/harness-v1.4.0/gate"),
     ("smoke-v141", "Pre-batch upload smoke tests and probe", "harness-v1.4.1", "runs/corpus_v2_batch/harness-v1.4.1/gate"),
     ("smoke-v142", "Pre-batch upload smoke test", "harness-v1.4.2", "runs/corpus_v2_batch/harness-v1.4.2/gate"),
+    ("smoke-v143", "Pre-batch upload smoke tests (one per gate attempt)", "harness-v1.4.3", "runs/corpus_v2_batch/harness-v1.4.3/gate"),
 )
 LEDGER_ORDER = ["seal-attempt-one-v133", "seal-repeat-v133", "gate-v133", "seal-v134", "gate-v134", "seal-v140-optionb", "seal-v140", "smoke-v140", "gate-v140",
-                "seal-v141", "smoke-v141", "gate-v141", "seal-v142", "smoke-v142", "gate-v142"]
+                "seal-v141", "smoke-v141", "gate-v141", "seal-v142", "smoke-v142", "gate-v142", "probe-d41", "seal-v143-new", "seal-v143-v141", "seal-v143-v142",
+                "seal-v143-v140", "seal-v143-final", "interrupted-gate-attempts-v143", "smoke-v143", "gate-v143"]
 G134_REPORT = GATE_FILES["harness-v1.3.4"]["report"]
 G142_REPORT = GATE_FILES["harness-v1.4.2"]["report"]
-LEDGER_LINE = {"path": G142_REPORT, "quote": "Ledger: **$22.4935** [ESTIMATED: $21.3218 API-REPORTED + $1.1717 ESTIMATED], a lower bound (D-27)"}
-LOWER_BOUND_LINE = {"path": G142_REPORT, "quote": "a lower bound (D-27); ceiling $25.00; room left **$2.5065**"}
+G143_REPORT = GATE_FILES["harness-v1.4.3"]["report"]
+G142_LEDGER_LINE = "Ledger: **$22.4935** [ESTIMATED: $21.3218 API-REPORTED + $1.1717 ESTIMATED], a lower bound (D-27)"
+LEDGER_LINE = {"path": G143_REPORT, "quote": "| **total** | **29.1704** (of which ESTIMATED 1.4762;"}
+LOWER_BOUND_LINE = {"path": G143_REPORT, "quote": "Ceiling $32.00: **room $2.8296**."}
 # the ledger as each gate report stated it (kept: a figure the reports gave stays beside the one rebuilt from the records)
 LEDGER_HISTORY = (
     {"harness_tag": "harness-v1.3.4", "path": G134_REPORT, "quote": "Cumulative on the new ledger: $6.738 + $3.396 = **$10.134** (ceiling ~$11)."},
     {"harness_tag": "harness-v1.4.0", "path": GATE_FILES["harness-v1.4.0"]["report"], "quote": "$14.6495 [ESTIMATED:"},
     {"harness_tag": "harness-v1.4.1", "path": GATE_FILES["harness-v1.4.1"]["report"],
      "quote": "**$18.5083** [ESTIMATED: $17.3366 API-reported (including model $ from the price table) + $1.1717 ESTIMATED], a lower bound (D-27)"},
-    {"harness_tag": "harness-v1.4.2", "path": G142_REPORT, "quote": LEDGER_LINE["quote"]},
+    {"harness_tag": "harness-v1.4.2", "path": G142_REPORT, "quote": G142_LEDGER_LINE},
+    {"harness_tag": "harness-v1.4.3", "path": G143_REPORT, "quote": LEDGER_LINE["quote"]},
 )
 ARTEFACT = "ENTRY-11-SMOKE-LIMIT-ARTEFACT"
 SMOKE_RECOVERY = "SMOKE-CRITERION-RECOVERY"
@@ -494,7 +526,7 @@ BILLED_GATE_INTERVALS = {
     "harness-v1.4.1": {"value": 0.04, "source": "difference of the owner's two readings ($49.61 -> $49.57), the interval that holds the harness-v1.4.1 seal and gate "
                                                 "($3.8588 recorded in the ledger for that interval)"},
 }
-BILLED_PENDING = ("harness-v1.4.2",)
+BILLED_PENDING = ("harness-v1.4.2", "harness-v1.4.3")
 
 
 def _records(entries: list[dict], where: str) -> dict:
@@ -517,7 +549,7 @@ def _has_applied_model_repair(x: dict) -> bool:
 
 
 def _headline(docs: dict[str, dict]) -> dict:
-    """The count over EVERY exploratory gate entry-run (harness-v1.3.3, v1.3.4, v1.4.0, v1.4.1, v1.4.2: 20), not over the first two gates only.
+    """The count over EVERY exploratory gate entry-run (harness-v1.3.3, v1.3.4, v1.4.0, v1.4.1, v1.4.2, v1.4.3: 24), not over the first two gates only.
 
     The records must keep supporting the statement the texts make, so the build stops if they do not: every apparent recovery (verdict RUNS_CLEAN or RUNS_AFTER_REPAIR)
     is exactly one of (a) the smoke-limit artefact (annotated, no model attempt in the record: harness-v1.3.3 #11) or (b) a smoke-criterion recovery (annotated, with an applied
@@ -548,7 +580,7 @@ def _headline(docs: dict[str, dict]) -> dict:
             "blocked": _records([x for x in mine if x["timeline"][-1]["verdict"] == "BLOCKED"], f"{tag} entry-runs with verdict BLOCKED"),
         })
     return {
-        "gate_entry_runs": _records(gate, "entry-runs of the exploratory gates (harness-v1.3.3, v1.3.4, v1.4.0, v1.4.1, v1.4.2)"),
+        "gate_entry_runs": _records(gate, "entry-runs of the exploratory gates (harness-v1.3.3, v1.3.4, v1.4.0, v1.4.1, v1.4.2, v1.4.3)"),
         "apparent_recoveries": _records(recovered, "verdict RUNS_CLEAN or RUNS_AFTER_REPAIR"),
         "apparent_recoveries_annotated_as_artefact": _records(artefacts, "apparent recovery carrying the smoke-limit artefact annotation"),
         "recoveries_by_time_machine_alone": _records(alone, "apparent recovery with no model repair attempt in the record"),
@@ -674,9 +706,40 @@ def _ledger(docs: dict[str, dict], source: BlobSource, root: Path) -> dict:
             "measured": {"value": doc["batch"]["measured"]["value"], "tag": API_REPORTED, "sum_of": {"field": "cost.measured", "records": ids}},
             "estimated": {"value": doc["batch"]["estimated"]["value"], "tag": ESTIMATED, "sum_of": {"field": "cost.estimated", "records": ids}},
         })
+    for key, name, tag, specs in INTERRUPTED_SETS:
+        listed, parts = [], []
+        for spec in specs:
+            blob = source.read(spec["path"])
+            rid = f"{spec['path']}@{hashlib.sha256(blob).hexdigest()}"
+            lines = blob.decode("utf-8").replace("\r\n", "\n").split("\n")
+            start = (next(i for i, line in enumerate(lines) if line.startswith(spec["after"])) + 1) if spec["after"] else 0
+            pattern = _LOG_OP if spec["kind"] == "ops" else _LOG_SMOKE
+            found = 0
+            for i in range(start, len(lines)):
+                match = pattern.search(lines[i])
+                if match is None:
+                    continue
+                found += 1
+                parts.append({"value": float(match.group(1)), "tag": DERIVED, "what": spec["what"],
+                              "source": {"record_id": rid, "field": f"line {i + 1}", "line": lines[i][:400]}})
+                if spec["kind"] == "smoke":
+                    break  # the first smoke test's own result line only
+            if not found:
+                raise ReplayError(f"{spec['path']}: no cost line found for {spec['what']}")
+            listed.append({"record": rid, "path": spec["path"], "cost_field": spec["what"]})
+        components.append({
+            "key": key, "name": name, "kind": "interrupted", "harness_tag": tag, "directory": "reports and runs of the interrupted gate attempts", "records": listed,
+            "measured": {"value": 0.0, "tag": API_REPORTED, "sum_of_records": []},
+            "estimated": {"value": None, "reason": "no estimate: these are the operations the cost guard logged before the process was killed; the operation in flight when it died is unknown"},
+            "derived": {"value": round(sum(x["value"] for x in parts), 10), "tag": DERIVED, "sum_of_parts": parts,
+                        "note": "parsed from the cost guard's own log lines in the stdout kept of the killed processes; a lower bound (the abandoned operations report no cost)"},
+        })
+    for c in components:
+        c.setdefault("derived", {"value": None, "reason": "nothing in this component is parsed from a log"})
     components.sort(key=lambda c: LEDGER_ORDER.index(c["key"]))
     measured = round(sum(c["measured"]["value"] for c in components), 10)
     estimated = round(sum(c["estimated"]["value"] or 0.0 for c in components), 10)
+    derived = round(sum(c["derived"]["value"] or 0.0 for c in components), 10)
     gate_lines = []
     for c in (c for c in components if c["kind"] == "gate"):
         line = {"scope": "gate", "name": c["name"], "harness_tag": c["harness_tag"], "for_component": c["key"], "tag": BILLED}
@@ -701,8 +764,9 @@ def _ledger(docs: dict[str, dict], source: BlobSource, root: Path) -> dict:
         "components": components,
         "measured": {"value": measured, "tag": API_REPORTED, "sum_of_components": "measured"},
         "estimated": {"value": estimated, "tag": ESTIMATED, "sum_of_components": "estimated"},
-        "total": {"value": round(measured + estimated, 10), "tag": ESTIMATED, "sum_of_components": "measured + estimated",
-                  "note": "contains an ESTIMATED component: shown as API-reported + estimated, never as one API-REPORTED figure"},
+        "derived": {"value": derived, "tag": DERIVED, "sum_of_components": "derived"},
+        "total": {"value": round(measured + estimated + derived, 10), "tag": ESTIMATED, "sum_of_components": "measured + estimated + derived",
+                  "note": "contains an ESTIMATED component and a DERIVED one (spend parsed from the log of killed gate attempts): shown as its parts, never as one API-REPORTED figure"},
         "kill_records": kills,
         "billed": billed,
     }
@@ -970,7 +1034,11 @@ def to_markdown(doc: dict) -> bytes:
         lines.append(f"- {code(rs['arm'])} ({code(rs['record_set'])}): {counts}")
     batch = doc["batch"]
     lines += ["", "## Cost against the batch cap", "",
-              f"- API-reported {show(batch['measured'])} + estimated {show(batch['estimated'])} of cap {show(batch['cap'])} (USD)", "", "## Entries", ""]
+              f"- API-reported {show(batch['measured'])} + estimated {show(batch['estimated'])} of cap {show(batch['cap'])} (USD)"]
+    if "caps" in batch:
+        lines.append(f"- the records carry more than one cap: {code(batch['caps']['note'])}")
+        lines += [f"  - {code(c['record_id'])}: cap {show(c['cap'])}" for c in batch["caps"]["per_record"]]
+    lines += ["", "## Entries", ""]
     for x in doc["entries"]:
         lines += _entry_md(x)
     return ("\n".join(lines).rstrip("\n") + "\n").encode("utf-8")

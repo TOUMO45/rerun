@@ -1,5 +1,7 @@
 # D-40 (resources): memory and CPU limits of one Sandboxes microVM, and what RERUN can record about them
 
+> **Added by the Phase D update.** Most numbers in this note are quoted from documentation pages, SDK source lines and earlier readings, not RERUN results; the results are tagged in the register and on the dashboard. Since this note was written the harness stores the API's peak memory per step (`max_rss`, harness-v1.4.3) and the SDK was checked for an instance-size parameter: there is none.
+
 Status: research note, 2026-10-01, offline. No Nebius / Token Factory / ConTree API call, no key, no spend, no sandbox call; nothing committed.
 Trigger: corpus-v2 #11 (JindongGu/VoteAttack) is "Killed" (exit 137) at iteration 1 of 40 in three separate operations (gate v1.4.1 ledger operations 3, 4, 5, each
 about 9.2-9.5 sandbox seconds, outcome `completed`).

@@ -109,13 +109,20 @@ class Page:
 
     # ---------------------------------------------------------------- sections
 
+    def smoke_seconds(self, record_id: str) -> str:
+        """The seconds the command of a smoke-criterion record ran for, as that record stores them (its last smoke execution)."""
+        x = next(e for e in self.docs[record_id.split("/")[0]]["entries"] if e["record_id"] == record_id)
+        mode = lambda e: e["mode"]["value"] if isinstance(e["mode"], dict) else e["mode"]  # noqa: E731
+        ex = [s["execution"] for s in x["timeline"] if s.get("execution") and mode(s["execution"]) == "smoke"][-1]
+        return self.num(ex["seconds"])
+
     def headline(self) -> str:
         h = self.summary["headline"]
         lists = []
-        for key, title in (("gate_entry_runs", "Gate entry-runs"), ("apparent_recoveries", "Apparent recoveries (RUNS_CLEAN or RUNS_AFTER_REPAIR)"),
-                           ("apparent_recoveries_annotated_as_artefact", "Annotated as a smoke-limit artefact"),
-                           ("recoveries_by_time_machine_alone", "Apparent recoveries from the time machine alone"),
-                           ("recoveries_with_applied_model_repair", "Apparent recoveries with an applied model repair (smoke criterion)"),
+        for key, title in (("gate_entry_runs", "Gate entry-runs"), ("apparent_recoveries", "Entry-runs with a RUNS_CLEAN or RUNS_AFTER_REPAIR verdict"),
+                           ("apparent_recoveries_annotated_as_artefact", "RUNS_* verdicts annotated as a smoke-limit artefact"),
+                           ("recoveries_by_time_machine_alone", "RUNS_* verdicts with no model attempt in the record (the time machine alone)"),
+                           ("recoveries_with_applied_model_repair", "RUNS_* verdicts with an applied model repair (smoke criterion)"),
                            ("with_recorded_model_attempt", "With a recorded model repair attempt")):
             ids = h[key]["count_of"]["records"]
             items = "".join(f"<li>{self.entry_link(r)}</li>" for r in ids) or '<li class="absent">no record meets this condition</li>'
@@ -134,13 +141,14 @@ class Page:
         return f'''<section class="headline" id="headline" aria-labelledby="headline-h">
 <h2 id="headline-h">Headline finding</h2>
 <p class="big">{apparent} <span class="of">of</span> {runs}</p>
+<p class="statement owner">{apparent} of {runs} gate entry-runs reached a RUNS_* verdict and no gate passed; one is a measurement artefact ({self.entry_link(art["record_id"], art_name)}, smoke limit), the other a {self.smoke_seconds(smoke["record_id"])} s smoke-criterion pass after model-proposed environment changes were adopted ({self.entry_link(smoke["record_id"], smoke_name)}).</p>
 <p class="statement">Over every gate entry-run of the exploratory versions, {apparent} of {runs} ended RUNS_CLEAN or RUNS_AFTER_REPAIR, and no gate passed.
 One of them ({self.entry_link(art["record_id"], art_name)}) was a smoke-limit artefact reached by the time machine alone, with no model attempt in its record.
 The other ({self.entry_link(smoke["record_id"], smoke_name)}) is a smoke-criterion pass: the command ran for the smoke limit without failing, after model-proposed environment changes were adopted ({self.num(h["recoveries_with_applied_model_repair"], at="hl-recoveries-with-applied-model-repair")} such record); it did not run to completion and no result was reproduced.
 A recorded model repair attempt exists in {self.num(h["with_recorded_model_attempt"], at="hl-with-recorded-model-attempt")} of {runs}.</p>
 <p class="note">Annotation beside the first: {q(art["annotation"]["text"])}</p>
 <p class="note">Annotation beside the second: {q(smoke["annotation"]["text"])}</p>
-<div class="scroll"><table class="byversion"><thead><tr><th scope="col">Version</th><th scope="col">Entry-runs</th><th scope="col">Apparent recoveries</th><th scope="col">INDETERMINATE</th><th scope="col">BLOCKED</th><th scope="col">Gate passed</th></tr></thead><tbody>{rows}</tbody></table></div>
+<div class="scroll"><table class="byversion"><thead><tr><th scope="col">Version</th><th scope="col">Entry-runs</th><th scope="col">RUNS_CLEAN or RUNS_AFTER_REPAIR</th><th scope="col">INDETERMINATE</th><th scope="col">BLOCKED</th><th scope="col">Gate passed</th></tr></thead><tbody>{rows}</tbody></table></div>
 <details><summary>Records behind these counts</summary><div class="cols">{"".join(lists)}</div></details>
 </section>'''
 
@@ -205,13 +213,14 @@ A recorded model repair attempt exists in {self.num(h["with_recorded_model_attem
 
     def ledger(self) -> str:
         L = self.summary["ledger"]
-        top = max((c["measured"]["value"] + (c["estimated"]["value"] or 0.0)) for c in L["components"])
+        top = max((c["measured"]["value"] + (c["estimated"]["value"] or 0.0) + (c["derived"]["value"] or 0.0)) for c in L["components"])
         rows, lists = "", ""
         for c in L["components"]:
             at = f"led-{c['key']}"
             est = self.num(c["estimated"], usd=True, at=at)
+            der = self.num(c["derived"], usd=True, at=at) if c["derived"]["value"] is not None else '<span class="absent">none</span>'
             bar = self.meter(c["measured"]["value"], c["estimated"]["value"], top, "component cost, API-reported and estimated drawn separately")
-            rows += (f'<tr><th scope="row">{esc(c["name"])} {q(c["harness_tag"])}</th><td>{self.num(c["measured"], usd=True, at=at)}</td><td>{est}</td>'
+            rows += (f'<tr><th scope="row">{esc(c["name"])} {q(c["harness_tag"])}</th><td>{self.num(c["measured"], usd=True, at=at)}</td><td>{est}</td><td>{der}</td>'
                      f'<td class="barcell">{bar}</td><td><a href="#{at}">records</a></td></tr>')
             items = ""
             for r in c["records"]:
@@ -250,15 +259,15 @@ A recorded model repair attempt exists in {self.num(h["with_recorded_model_attem
 </div>'''
         return f'''<section id="ledger" aria-labelledby="ledger-h">
 <h2 id="ledger-h">Cost ledger</h2>
-<p class="big money">{self.num(L["measured"], usd=True, at="ledger-components")} <span class="of">+</span> {self.num(L["estimated"], usd=True, at="ledger-components")}</p>
+<p class="big money">{self.num(L["measured"], usd=True, at="ledger-components")} <span class="of">+</span> {self.num(L["estimated"], usd=True, at="ledger-components")} <span class="of">+</span> {self.num(L["derived"], usd=True, at="ledger-components")}</p>
 <p class="statement">Lower bound ({q(L["lower_bound"]["defect"])}): the ledger records only completed cost, so the spend of a killed step is absent wherever no estimate was stored.
-Sum of both parts: {self.num(L["total"], usd=True, at="ledger-components")} — {q(L["total"]["note"])}.</p>
+Sum of the three parts (API-reported, estimated, and derived from the logs of killed gate attempts): {self.num(L["total"], usd=True, at="ledger-components")} — {q(L["total"]["note"])}.</p>
 <p class="statement">These ledger figures are the sandbox API's reported operation cost, not account billing. The account balance reading below is a different figure, and the two are not reconciled ({q("D-36")}, open).</p>
 {billed}
 <p class="note">Reported ledger line, quoted: {q(L["reported_line"]["quote"])} in {q(L["reported_line"]["path"])}. The sums shown here are over the full-precision record values and agree with it to the fourth decimal. Annotation beside that line: {q(L["lower_bound"]["line"]["quote"])}</p>
 <details><summary>The ledger as each gate report stated it</summary><ul class="src">{"".join(f'<li>{q(h["harness_tag"])}: {q(h["quote"])} <span class="why">{q(h["path"])}</span></li>' for h in L["reported_history"])}</ul></details>
 <p class="legend"><span class="key"><span class="sw rep"></span>API-REPORTED</span><span class="key"><span class="sw e"></span>ESTIMATED (hatched)</span></p>
-<div id="ledger-components"><table class="ledger"><thead><tr><th scope="col">Component</th><th scope="col">API-reported</th><th scope="col">Estimated</th><th scope="col">Share of the largest component</th><th scope="col">Records</th></tr></thead><tbody>{rows}</tbody></table>
+<div id="ledger-components"><table class="ledger"><thead><tr><th scope="col">Component</th><th scope="col">API-reported</th><th scope="col">Estimated</th><th scope="col">Derived (parsed from a log)</th><th scope="col">Share of the largest component</th><th scope="col">Records</th></tr></thead><tbody>{rows}</tbody></table>
 <h3>Seal kill records: the killed step's cost is absent or ESTIMATED</h3>
 <ul class="kills">{kills}</ul>
 {lists}
@@ -387,6 +396,12 @@ Sum of both parts: {self.num(L["total"], usd=True, at="ledger-components")} — 
         for op in c.get("stored_operations", []):  # harness-v1.4.x: the record's own operation list (a disposal run has no wall or funded seconds)
             fields = " · ".join(f"{name.replace('_', ' ')} {self.num(op[name], usd=name.startswith('cost'))}" for name in
                                 ("wall_seconds", "sandbox_seconds", "funded_seconds", "cost_usd", "cost_estimated_usd") if name in op)
+            if "streams" in op:  # harness-v1.4.3: what the API said about each stream, and its own peak-memory figure
+                st = op["streams"]
+                fields += (f' · output limit {self.num(st["limit_bytes"])} bytes · stdout {self.num(st["stdout"]["bytes"])} bytes, truncated {q(st["stdout"]["truncated"])}'
+                           f' · stderr {self.num(st["stderr"]["bytes"])} bytes, truncated {q(st["stderr"]["truncated"])}')
+            if "max_rss" in op:
+                fields += f' · max rss as returned {self.num(op["max_rss"])}'
             stored += f'<li>stored operation {self.num(op["n"])} {q(op["role"])}: outcome {q(op["outcome"])} · {fields}</li>'
         stored = f'<h4>Operations as the record stores them</h4><ol class="ops">{stored}</ol>' if stored else ""
         cum = c["batch_cumulative"]

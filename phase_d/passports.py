@@ -1,4 +1,4 @@
-"""Phase D passports: one per committed run record (61), rebuilt deterministically from git blobs.
+"""Phase D passports: one per committed run record (65), rebuilt deterministically from git blobs.
 
 Rules the builder enforces (Phase D directive, decisions of 2026-10-01):
   * a record value is copied, never recomputed or rounded; a correction is an annotation beside it;
@@ -35,7 +35,8 @@ from .records import BlobSource, GitBlobSource, Record, load_records
 #                 (the record's own `operations[]`). The passports of v1.3.2 / v1.3.3 / v1.3.4 stay schema v4 and byte-identical: nothing about them changed.
 SCHEMA = "rerun/phase-d/passport/v4"
 SCHEMA_V14 = "rerun/phase-d/passport/v5"
-V14 = ("harness-v1.4.0", "harness-v1.4.1", "harness-v1.4.2")  # the gates of the root-cause line: candidates, branches, rule steps, stored operations
+V14 = ("harness-v1.4.0", "harness-v1.4.1", "harness-v1.4.2", "harness-v1.4.3")  # the gates of the root-cause line: candidates, branches, rule steps, stored operations
+V143 = ("harness-v1.4.3",)  # the gate that stores the API's truncation flags, sizes and peak memory per operation and the image and command of a smoke run
 HAS_D21_FIELDS = ("harness-v1.3.4", *V14)  # versions whose attempts store consulted / reason_no_citation / silent_exit
 API_REPORTED, ESTIMATED, DERIVED, BILLED = "API-REPORTED", "ESTIMATED", "DERIVED", "BILLED"
 RECORD_TAGS = (API_REPORTED, ESTIMATED, DERIVED)  # the tags a passport or a REPLAY version file may carry
@@ -58,6 +59,9 @@ GATE_FILES = {
     "harness-v1.4.2": {"result": "reports/corpus-v2.1/v1.4.2/gate/gate_result_harness-v1.4.2.json",
                        "report": "reports/corpus-v2.1/v1.4.2/gate/GATE_REPORT_v1.4.2.md",
                        "cost_line": "Gate spend: **$3.9350**"},
+    "harness-v1.4.3": {"result": "reports/corpus-v2.1/v1.4.3/gate/gate_result_harness-v1.4.3.json",
+                       "report": "reports/corpus-v2.1/v1.4.3/gate/GATE_REPORT_v1.4.3.md",
+                       "cost_line": "Gate spend (the four records): **$3.69455**"},
 }
 RESULTS_TABLES = "reports/corpus-v2.1/results_tables.json"
 RECOVERED = ("RUNS_CLEAN", "RUNS_AFTER_REPAIR")
@@ -130,10 +134,50 @@ def _defect(defect: str, text: str, quote: str, path: str = DEFECTS) -> dict:
 D41_QUOTE = "- **D-41** The sandbox SDK truncates stdout and stderr at 65,535 bytes"
 
 
-def _d41() -> dict:
-    return _defect("D-41", "Every stored stderr tail of this entry ends mid-progress-bar at the same character; the hook, wrapper and evidence output that come after the "
-                   "program are missing. The sandbox SDK truncates output at 65,535 bytes (indicated by the records, not proven): the \"silent exit\" may be a cut-off error message.",
-                   D41_QUOTE)
+D41_PROBE_QUOTE = "- **D-41 [annotation: CONFIRMED by the probe of 2026-10-02]**"
+D41_CHECKED_QUOTE = "Not touched: #11 (its stderr ends in `Killed`, inside the cap)"
+D41_FIXED_QUOTE = "- **D-41 [annotation: observed fixed live]**"
+
+
+D41_INFERRED_QUOTE = "- **D-41 [annotation: the entry-3 records of earlier versions are inferred, not probed]**"
+D41_SUSPECT_QUOTE = "- **D-41 [annotation: suspected on other records (D6 scan)]**"
+D41_LIVENESS_QUOTE = "- **D-41 [annotation: checked on a RUNS_AFTER_REPAIR record (D6 scan)]**"
+D41_PROBE_RECORD = "d41-probe/probe_03_vmtl_op5@51727e649a26a37f0646ec1e0107bf1708cd175c086b75a13c09b0f8b48bc7f2"
+
+
+def _d41(probed: bool = False) -> dict:
+    """stderr truncated at 65,535 bytes, D-41: the entry-3 records of every version up to harness-v1.4.2 (the owner's annotation, beside the verdict; the verdict is unchanged).
+
+    Only the harness-v1.4.2 record's own operation was re-run by the probe; for the others the cut is inferred from the same command and the same cut point."""
+    text = ("stderr truncated at 65,535 bytes, D-41. The stored stderr tails of this entry that have their full length end mid-progress-bar and the recorded last error is a "
+            "fragment of that progress bar, not an error; the hook, wrapper and evidence output that come after the program are missing. ")
+    if probed:
+        text += ("The probe of 2026-10-02 re-ran this record's operation 5 on its kept image and found the real stderr at 400,939 bytes while the SDK returned 65,535 and the API's "
+                 f"truncated flag was set: the \"silent exit\" in this record was a CUDA error (`.cuda()` on a CPU-only torch) behind the cut (record {D41_PROBE_RECORD}). The verdict is unchanged.")
+        sources = [_src(DEFECTS, D41_QUOTE), _src(DEFECTS, D41_PROBE_QUOTE)]
+    else:
+        text += (f"The probe re-ran a different record's command (harness-v1.4.2 entry 3, record {D41_PROBE_RECORD}): this record's own stream was not re-run, so that the cut hid the same "
+                 "CUDA error here is an inference from the same command and the same cut point (harness-v1.3.2: a different point of a similar progress bar), not a measurement of this run. The verdict is unchanged.")
+        sources = [_src(DEFECTS, D41_QUOTE), _src(DEFECTS, D41_PROBE_QUOTE), _src(DEFECTS, D41_INFERRED_QUOTE)]
+    return {"id": "D-41", "text": text, "sources": sources}
+
+
+def _d41_suspected(where: str, rests: str) -> dict:
+    """A record whose stored tail ends mid-line inside a long build log: flagged by the D6 scan, not probed (all live work has stopped)."""
+    return _defect("D-41", f"stderr possibly truncated at 65,535 bytes, D-41 (suspected, not probed: all live work has stopped; flagged by `reports/phase-d/d6/truncation_scan.md`). "
+                           f"{where} {rests} The verdict is unchanged.", D41_SUSPECT_QUOTE)
+
+
+def _d41_liveness() -> dict:
+    """A RUNS_AFTER_REPAIR record whose stored tail looks cut: its verdict does not rest on the stream."""
+    return _defect("D-41", "D-41 checked for this record: attempt 0's stored tail ends mid-progress-bar (a dataset download), which looks cut, but this verdict is a smoke-limit one: it rests on "
+                           "the process being alive at the smoke limit, not on its output, so a cut would not change it.", D41_LIVENESS_QUOTE)
+
+
+def _d41_checked() -> dict:
+    """A silent-exit record whose stored stderr tail ends at the end of the output: checked against D-41, not an instance of it."""
+    return _defect("D-41", "D-41 checked for this silent-exit record: its stored stderr tail ends at the shell's `Killed` line, the end of the output, so the stream was not cut "
+                   "(the cause of the silent exit is D-38). The recorded last error is a progress line, misread as an error: that is D-38 too, not a cut.", D41_CHECKED_QUOTE)
 
 
 ANNOTATIONS: dict[tuple[str, str, str], list[dict]] = {
@@ -215,7 +259,7 @@ def _g(defect: str, text: str) -> dict:
 ANNOTATIONS.update({
     ("harness-v1.4.0", "gate", "03"): [
         _g("D-35", "The exit hook was installed automatically and printed nothing; the record does not show whether the exit was a bare `raise SystemExit` or a process-level exit "
-                   "(the exit wrapper that separates the two came in harness-v1.4.1)."), _d41()],
+                   "(the exit wrapper that separates the two came in harness-v1.4.1). The D-41 annotation beside this verdict says what the exit was: a cut stream, not an exit the hook missed."), _d41()],
     ("harness-v1.4.0", "gate", "07"): [
         _g("D-32", "Round 1: the adjudicator's reply was not valid JSON and the fallback chose the first qualifying candidate (a package-metadata error) although another had reached `No module named 'Box2D'`."),
         _g("D-33", "Round 2: a candidate's run reached `unable to execute gcc`, the adjudicator adopted none, and the compiler rule never saw it."),
@@ -230,7 +274,7 @@ ANNOTATIONS.update({
         _g("D-30", "The era operation was funded 108.2 s at the fixed rate and was stopped as the smoke launcher was about to start, with about half of the entry's cap unspent."),
         _g("D-31", "A budget-limited stop ended the entry although the stopped operation had kept every layer it built and the entry could fund another operation.")],
     ("harness-v1.4.1", "gate", "03"): [
-        _g("D-35", "The exit wrapper ran after the hook printed nothing, printed nothing either, and the record says `exit outside Python`; the cause is not established."), _d41()],
+        _g("D-35", "The exit wrapper ran after the hook printed nothing, printed nothing either, and the record says `exit outside Python`; the harness did not establish the cause, and the D-41 annotation beside this verdict says what it was: a cut stream."), _d41()],
     ("harness-v1.4.1", "gate", "07"): [
         _g("D-32", "The adjudicator's invalid JSON reply was re-asked once (round 3) and the second reply was used."),
         _g("D-37", "In all three rounds the one qualifying candidate had moved the failure to a later stage and was refused because the run still failed.")],
@@ -239,10 +283,10 @@ ANNOTATIONS.update({
         _g("D-39", "The run reached an explicit `.cuda()` after `torch.load` and `is_available` were handled and failed with `Torch not compiled with CUDA enabled`.")],
     ("harness-v1.4.1", "gate", "11"): [
         _g("D-35", "The exit wrapper reported `exit outside Python`; the cause is visible in this record: `Killed`, exit 137."),
-        _g("D-38", "A kill by signal after the CPU shim cleared the GPU error was classified as a silent exit and nine candidate patches were asked for.")],
+        _g("D-38", "A kill by signal after the CPU shim cleared the GPU error was classified as a silent exit and nine candidate patches were asked for."), _d41_checked()],
     ("harness-v1.4.2", "gate", "03"): [
         _g("D-40", "The evidence run printed no evidence block; the entry ended INDETERMINATE with reason code EXIT_OUTSIDE_PYTHON and no model attempt."),
-        _g("D-35", "The exit hook, the exit wrapper and the evidence run each printed nothing."), _d41()],
+        _g("D-35", "The exit hook, the exit wrapper and the evidence run each printed nothing: their output came after the program's and was cut with it (D-41)."), _d41(probed=True)],
     ("harness-v1.4.2", "gate", "07"): [
         _g("D-37", "Round 2: Ultra said none and RERUN adopted candidate 2 for partial progress (its run reached `No module named 'Box2D'`); round 3 started from its image."),
         {"id": "SMOKE-CRITERION-RECOVERY",
@@ -255,6 +299,41 @@ ANNOTATIONS.update({
     ("harness-v1.4.2", "gate", "11"): [
         _g("D-38", "The kill after the CPU shim was classified RESOURCE_LIMIT and the entry ended INDETERMINATE with no model attempt."),
         _g("D-40", "One evidence run read the kernel's out-of-memory line and the VM's memory (3.85 GiB): the kill is a sandbox memory limit.")],
+})
+
+_Q.update({
+    "D-41": D41_FIXED_QUOTE,
+    "D-43": "- **D-43 [new, open]**",
+})
+# D6 (red team): records the truncation scan flags beyond the entry-3 records (`phase_d/truncation_scan.py`); suspected, not probed
+ANNOTATIONS.setdefault(("harness-v1.3.2", "treatment", "03"), []).append(_d41())
+ANNOTATIONS.setdefault(("harness-v1.3.2", "treatment", "06"), []).append(_d41_suspected(
+    "Attempts 0 to 3: the stored stderr tails end mid-line inside a pip build log (a `gcc -shared` line of an mpi4py build).",
+    "The BLOCKED DEP_MISSING label may rest on text from before the cut; the build error that follows the cut is not in the record."))
+ANNOTATIONS.setdefault(("harness-v1.3.3", "smoke", "11"), []).append(_d41_liveness())
+ANNOTATIONS.setdefault(("harness-v1.4.0", "gate", "08"), []).append(_d41_suspected(
+    "Attempt 4: the stored stderr tail ends mid-line inside a build log (`INFO: compile options`).",
+    "The verdict INDETERMINATE (COST_CAP) rests on the cost guard, not on this stream; the label SYS_LIB_MISSING (last error `No such file or directory: 'gcc'`) is read from text "
+    "before the cut or from another attempt, and the record does not say which."))
+ANNOTATIONS.setdefault(("harness-v1.4.2", "gate", "08"), []).append(_d41_suspected(
+    "Attempt 3: the stored stderr tail ends mid-line inside a build log (a compiler flag list).",
+    "The verdict INDETERMINATE (COST_CAP) rests on the cost guard, not on this stream; the recorded last error is a complete line from another attempt's stream, which ended at a line end."))
+ANNOTATIONS.update({
+    ("harness-v1.4.3", "gate", "03"): [
+        _g("D-41", "The era run's stderr (399,981 bytes of progress and a traceback) came back whole, the CUDA error the cut had hidden in every earlier version was seen, classified GPU_REQUIRED, and the "
+                   "CPU shim answered it as a rule with no model call; the entry then ended BLOCKED DATA_MISSING on a dataset path that does not exist in the sandbox (an absolute path outside the checkout; whether the repository documents how to obtain it was not examined)."),
+        _defect("D-39", "The `.cuda()` path of the CPU shim fired live (`paths_fired` `torch.load`, `module.cuda`).", "- **D-39 [annotation: observed live]**"),
+        _g("D-43", "The gate process of the first attempt was killed inside this entry (no record); this record is from the second attempt, whose process died inside entry 8.")],
+    ("harness-v1.4.3", "gate", "07"): [
+        _g("D-32", "The adjudicator's first reply was invalid JSON once and the re-ask worked."),
+        _g("D-43", "This record is from the second gate attempt, whose process died inside entry 8 (resumed afterwards).")],
+    ("harness-v1.4.3", "gate", "08"): [
+        _g("D-33", "On a candidate's own branch the compiler rule (D-24) fired with no model call."),
+        _g("D-32", "Round 1: the adjudicator's reply was invalid JSON once and the re-ask worked.")],
+    ("harness-v1.4.3", "gate", "11"): [
+        _g("D-38", "The kill after the CPU shim was classified RESOURCE_LIMIT and the entry ended INDETERMINATE with no model attempt, as in the previous gate."),
+        _defect("D-40", "The API's own peak-memory figure for the step is stored (`operations[].max_rss`, as returned, unit not documented): 3,898,376, against the kernel's anon-rss 3,897,356 kB.",
+                "- **D-40 [annotation: partly fixed further]**")],
 })
 
 for _arm in ("control", "treatment"):
@@ -397,6 +476,14 @@ def _attempt(record: Record, index: int, a: dict, kills: dict[int, dict]) -> dic
     }
     if tag in V14:
         out.update(_extended(a))
+    if tag in V143:
+        # harness-v1.4.3: the smoke run's image (what the sustained-run line would reopen), the command it executed, and the streams the API cut (none: the key is absent then)
+        no_image = "no image recorded for this attempt's command (an operation that patched the tree without keeping its result image, or no smoke run)"
+        out["execution"].update({
+            "image": execution["image"] if execution and execution.get("image") else absent(no_image),
+            "command": execution["command"] if execution and execution.get("command") else absent("no command recorded for this attempt"),
+            "output_cut": list(execution["output_cut"]) if execution and execution.get("output_cut") else [],
+        })
     return out
 
 

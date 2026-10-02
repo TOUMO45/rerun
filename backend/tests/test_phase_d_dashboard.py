@@ -18,13 +18,16 @@ if str(ROOT) not in sys.path:
 from phase_d import build_dashboard, check_dashboard, dashboard, replay  # noqa: E402
 from phase_d.check_dashboard import Node, numbers, parse, problems  # noqa: E402
 
-V132, V133, V134, V140, V141, V142 = replay.VERSIONS
+V132, V133, V134, V140, V141, V142, V143 = replay.VERSIONS
 NUMBER = re.compile(r"\d+(?:\.\d+)?(?:e-?\d+)?")
-HEADLINE = ("Over every gate entry-run of the exploratory versions, 2 of 20 ended RUNS_CLEAN or RUNS_AFTER_REPAIR, and no gate passed. "
+# the owner's confirmed wording (METHODOLOGY, "Owner's answers to the v1.4.2 report"), recomputed over every gate entry-run: the counts come from the records
+HEADLINE_OWNER = ("2 of 24 gate entry-runs reached a RUNS_* verdict and no gate passed; one is a measurement artefact (v1.3.3 entry 11, smoke limit), "
+                  "the other a 60 s smoke-criterion pass after model-proposed environment changes were adopted (v1.4.2 entry 7).")
+HEADLINE = ("Over every gate entry-run of the exploratory versions, 2 of 24 ended RUNS_CLEAN or RUNS_AFTER_REPAIR, and no gate passed. "
             "One of them (v1.3.3 entry 11) was a smoke-limit artefact reached by the time machine alone, with no model attempt in its record. "
             "The other (v1.4.2 entry 7) is a smoke-criterion pass: the command ran for the smoke limit without failing, after model-proposed "
             "environment changes were adopted (1 such record); it did not run to completion and no result was reproduced. "
-            "A recorded model repair attempt exists in 14 of 20.")
+            "A recorded model repair attempt exists in 17 of 24.")
 BROWSERS = (r"C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe", r"C:\Program Files\Microsoft\Edge\Application\msedge.exe",
             r"C:\Program Files\Google\Chrome\Application\chrome.exe", "/usr/bin/chromium", "/usr/bin/google-chrome")
 
@@ -243,35 +246,41 @@ def test_the_scorecard_shows_the_anchor_and_each_gate_criterion(root):
     assert sets == ["control", "control arm, set control/infra_retries", "treatment"]
     for tag, results in ((V133, ["✕ FAIL", "✓ PASS", "✕ FAIL", "✓ PASS"]), (V134, ["✕ FAIL", "✓ PASS", "✕ FAIL", "✓ PASS"]),
                          (V140, ["✕ FAIL", "✓ PASS", "✓ PASS", "✓ PASS", "✓ PASS"]), (V141, ["✕ FAIL", "✓ PASS", "✓ PASS", "✓ PASS", "✓ PASS"]),
-                         (V142, ["✕ FAIL", "✓ PASS", "✕ FAIL", "✓ PASS", "✓ PASS"])):
+                         (V142, ["✕ FAIL", "✓ PASS", "✕ FAIL", "✓ PASS", "✓ PASS"]), (V143, ["✕ FAIL", "✓ PASS", "✓ PASS", "✓ PASS", "✓ PASS"])):
         card = _by_id(root, "v-" + dashboard.slug(tag))
         assert [n.text() for n in _all(card, "span", "res")] == results
         assert [n.text() for n in _all(card, "span", "crit-name")] == [f"Criterion {c}" for c in ("abcd" if tag in (V133, V134) else "abcde")]
     # the one RUNS_AFTER_REPAIR of the last gate is said to be a smoke-criterion verdict, beside the figure
     assert "smoke-criterion verdict" in _by_id(root, "v-" + dashboard.slug(V142)).text()
     assert "smoke-criterion verdict" not in _by_id(root, "v-" + dashboard.slug(V141)).text()
+    assert "smoke-criterion verdict" not in _by_id(root, "v-" + dashboard.slug(V143)).text()  # the last gate had no RUNS_* verdict to annotate
     assert "smoke-limit artefact; measured line unchanged" in _by_id(root, "v-" + dashboard.slug(V133)).text()
 
 
 def test_the_headline_card_states_the_finding_with_tagged_counts(root):
     card = _by_id(root, "headline")
-    statement = next(n for n in _all(card, "p", "statement"))
+    owner, statement = _all(card, "p", "statement")[:2]
+    assert "owner" in owner.classes() and _clean(_text_without_tags(owner)) == HEADLINE_OWNER  # the first thing said, in the owner's own words
     assert _clean(_text_without_tags(statement)) == HEADLINE
-    assert [n.text() for n in _all(next(iter(_all(card, "p", "big"))), "a", "n")] == ["2", "20"]
+    assert [n.text() for n in _all(next(iter(_all(card, "p", "big"))), "a", "n")] == ["2", "24"]
     assert all(n.attrs["data-tag"] == "API-REPORTED" for n in _all(card, "a", "n"))
-    assert len(_all(_by_id(root, "hl-gate-entry-runs"), "li")) == 20 and len(_all(_by_id(root, "hl-with-recorded-model-attempt"), "li")) == 14
+    assert len(_all(_by_id(root, "hl-gate-entry-runs"), "li")) == 24 and len(_all(_by_id(root, "hl-with-recorded-model-attempt"), "li")) == 17
+    # the 60 s in the owner's sentence is the record's own smoke seconds, a tagged number linking to that record
+    seconds = [n for n in _all(owner, "a", "n")][2]
+    assert seconds.text() == "60" and seconds.attrs["data-tag"] == "API-REPORTED" and "harness-v1.4.2/treatment/07@" in seconds.attrs["data-record"]
+    assert "recovered" not in _clean(card.text()).lower().replace("recoveries", "")  # the word never stands without its criterion
     assert len(_all(_by_id(root, "hl-apparent-recoveries"), "li")) == 2 and len(_all(_by_id(root, "hl-recoveries-with-applied-model-repair"), "li")) == 1
     # the per-version table: every version's own count, never merged
     table = next(iter(_all(card, "table", "byversion")))
     rows = [[_clean(c.text()) for c in _all(r, "th") + _all(r, "td")] for r in _all(table, "tr")[1:]]
     assert [(r[0], r[1].split("API")[0], r[2].split("API")[0], r[5]) for r in rows] == [
         ("harness-v1.3.3", "4", "1", "false"), ("harness-v1.3.4", "4", "0", "false"), ("harness-v1.4.0", "4", "0", "false"),
-        ("harness-v1.4.1", "4", "0", "false"), ("harness-v1.4.2", "4", "1", "false")]
+        ("harness-v1.4.1", "4", "0", "false"), ("harness-v1.4.2", "4", "1", "false"), ("harness-v1.4.3", "4", "0", "false")]
 
 
-def test_the_defect_register_lists_d1_to_d41_with_a_status_and_passport_links(root):
+def test_the_defect_register_lists_d1_to_d43_with_a_status_and_passport_links(root):
     rows = [n for n in _all(_by_id(root, "defects"), "tr") if n.attrs.get("id", "").startswith("defect-")]
-    assert [next(iter(_all(r, "code"))).text() for r in rows] == [f"D-{i}" for i in range(1, 42)]
+    assert [next(iter(_all(r, "code"))).text() for r in rows] == [f"D-{i}" for i in range(1, 44)]
     ids = {n.attrs["id"] for n in root.walk() if "id" in n.attrs}
     status = {}
     for r in rows:
@@ -282,8 +291,9 @@ def test_the_defect_register_lists_d1_to_d41_with_a_status_and_passport_links(ro
             assert (href[1:] in ids) if href.startswith("#") else (ROOT / "reports/phase-d/dashboard" / href).resolve().is_file()
     assert set(status.values()) == {"fixed-and-gated", "fixed-unvalidated", "open"}
     assert status["D-24"] == "fixed-and-gated" and status["D-23"] == "fixed-and-gated"  # both re-read against the root-cause gate reports
-    assert all(status[f"D-{i}"] == "open" for i in (1, 7, 21, 25, 26, 27, 28, 36, 40, 41))
-    assert status["D-37"] == "fixed-and-gated" and status["D-39"] == "fixed-unvalidated"
+    assert all(status[f"D-{i}"] == "open" for i in (1, 7, 21, 25, 26, 27, 28, 36, 43))
+    # the last gate observed the D-39, D-40 and D-41 fixes live; the sustained-run line (D-42) made no live run
+    assert status["D-37"] == "fixed-and-gated" and all(status[f"D-{i}"] == "fixed-and-gated" for i in (39, 40, 41)) and status["D-42"] == "fixed-unvalidated"
     d24 = next(r for r in rows if r.attrs["id"] == "defect-d-24")
     assert "def test_at_repair_time_the_recorded_gcc_error_adds_build_essential_with_no_model_call" in [c.text() for c in _all(d24, "code")]
     assert "harness-level, no entry passport" in next(r for r in rows if r.attrs["id"] == "defect-d-27").text()
@@ -291,24 +301,27 @@ def test_the_defect_register_lists_d1_to_d41_with_a_status_and_passport_links(ro
     d28 = next(r for r in rows if r.attrs["id"] == "defect-d-28")
     assert len(_all(d28, "span", "plink")) == 40
     d41 = next(r for r in rows if r.attrs["id"] == "defect-d-41")
-    assert len(_all(d41, "span", "plink")) == 5 and "indicated by the records" in d41.text()  # the entry-3 record of every version, not proven
+    # the entry-3 record of every version (annotated beside its verdict), the one record checked and found not cut, and the last gate's entry 3 where the fix was seen
+    assert len(_all(d41, "span", "plink")) == 12 and "Confirmed by a probe" in d41.text()
 
 
-def test_the_ledger_shows_measured_plus_estimated_as_a_lower_bound_with_the_six_kill_records(root):
+def test_the_ledger_shows_its_three_parts_as_a_lower_bound_with_the_eight_kill_records(root):
     ledger = _by_id(root, "ledger")
     big = next(n for n in _all(ledger, "p", "big"))
-    assert [(n.text(), n.attrs["data-tag"]) for n in _all(big, "a", "n")] == [("$21.3218", "API-REPORTED"), ("$1.1717", "ESTIMATED")]
+    assert [(n.text(), n.attrs["data-tag"]) for n in _all(big, "a", "n")] == [("$26.2069", "API-REPORTED"), ("$1.4761", "ESTIMATED"), ("$1.4874", "DERIVED")]
     text = _clean(ledger.text())
-    assert "Lower bound (D-27)" in text and "a lower bound (D-27); ceiling $25.00; room left **$2.5065**" in text
+    assert "Lower bound (D-27)" in text and "Ceiling $32.00: **room $2.8296**." in text and "Sum of the three parts" in text
+    total = next(n for n in _all(ledger, "a", "n") if n.attrs["data-tag"] == "ESTIMATED" and n.text() == "$29.1704")  # never one API-REPORTED figure
+    assert total.attrs["data-value"].startswith("29.17037")
     assert "agree with it to the fourth decimal" in text and "The ledger as each gate report stated it" in text
     kills = _all(next(n for n in _all(ledger, "ul", "kills")), "li")
-    assert len(kills) == 6
+    assert len(kills) == 8
     seconds = [[n.text() for n in _all(k, "a", "n")][:1] for k in kills]
     # the v1.4.0 seal's first run-2 attempt stored no seconds and no completed cost, only an ESTIMATED upper bound: it is the first number shown
-    assert seconds == [[], ["26.7"], ["26.3"], ["25.8"], ["$0.4998"], ["23.634523099994112"]] and "not recorded" in kills[0].text()
+    assert seconds == [[], ["26.7"], ["26.3"], ["25.8"], ["$0.4998"], ["23.634523099994112"], ["20.029718199992203"], ["25.9"]] and "not recorded" in kills[0].text()
     # a kill whose step has an ESTIMATE shows it beside the API-reported completed cost, tagged separately
-    assert [("estimate for the killed step" in k.text()) for k in kills] == [False, False, False, False, True, True]
-    assert len(_all(_by_id(root, "ledger-components"), "tr")) == 16  # header + fifteen components
+    assert [("estimate for the killed step" in k.text()) for k in kills] == [False, False, False, False, True, True, True, False]
+    assert len(_all(_by_id(root, "ledger-components"), "tr")) == 25  # header + twenty-four components
 
 
 def test_no_bar_merges_api_reported_and_estimated(root):
@@ -328,7 +341,7 @@ def test_no_bar_merges_api_reported_and_estimated(root):
 
 def test_the_entry_drill_down_shows_derived_values_with_their_source_line_and_record_id(root):
     entries = _all(root, "details", "entry")
-    assert len(entries) == 61 and len({e.attrs["data-record"] for e in entries}) == 61
+    assert len(entries) == 65 and len({e.attrs["data-record"] for e in entries}) == 65
     entry = _by_id(root, "e-harness-v1-3-4-smoke-08")
     kill = next(n for n in _all(entry, "div", "kill"))
     derived = [n for n in _all(kill, "a") if n.attrs.get("data-tag") == "DERIVED"]
@@ -378,5 +391,5 @@ def test_the_page_renders_fully_with_the_network_blocked(tmp_path, page):
     if "Evidence dashboard" not in dom:
         pytest.skip("the headless browser did not return a DOM on this machine")
     rendered = parse(dom)
-    assert len(_all(rendered, "details", "entry")) == 61 and len(numbers(rendered)) == len(numbers(parse(page)))
-    assert _clean(_text_without_tags(next(n for n in _all(rendered, "p", "statement")))) == HEADLINE
+    assert len(_all(rendered, "details", "entry")) == 65 and len(numbers(rendered)) == len(numbers(parse(page)))
+    assert _clean(_text_without_tags(_all(rendered, "p", "statement")[1])) == HEADLINE

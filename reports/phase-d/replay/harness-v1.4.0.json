@@ -557,7 +557,7 @@
    "record_id": "harness-v1.4.0/treatment/03@1c098826f374ed7982661bb15e29b8fdcd461d55bfbbee0a9f66afba1ee580ff",
    "record_path": "runs/corpus_v2_batch/harness-v1.4.0/gate/03_autumn9999__vmtl.json",
    "passport_path": "reports/phase-d/passports/harness-v1.4.0/gate/03_autumn9999__vmtl.json",
-   "passport_hash": "34b32479fa2e8cf7acd9a00c9e78e4464110fb42a04d8179261aa28aebaed124",
+   "passport_hash": "3e73bf1e58039646944cf4e0039b0f65a56da4768e8a7c4564fe7ad44ed279af",
    "record_sha256": "1c098826f374ed7982661bb15e29b8fdcd461d55bfbbee0a9f66afba1ee580ff",
    "results_tables_sha256": {
     "value": null,
@@ -2043,7 +2043,7 @@
      "annotations": [
       {
        "id": "D-35",
-       "text": "The exit hook was installed automatically and printed nothing; the record does not show whether the exit was a bare `raise SystemExit` or a process-level exit (the exit wrapper that separates the two came in harness-v1.4.1).",
+       "text": "The exit hook was installed automatically and printed nothing; the record does not show whether the exit was a bare `raise SystemExit` or a process-level exit (the exit wrapper that separates the two came in harness-v1.4.1). The D-41 annotation beside this verdict says what the exit was: a cut stream, not an exit the hook missed.",
        "sources": [
         {
          "path": "reports/corpus-v2.1/candidate_v1.3.3_defects.md",
@@ -2053,11 +2053,19 @@
       },
       {
        "id": "D-41",
-       "text": "Every stored stderr tail of this entry ends mid-progress-bar at the same character; the hook, wrapper and evidence output that come after the program are missing. The sandbox SDK truncates output at 65,535 bytes (indicated by the records, not proven): the \"silent exit\" may be a cut-off error message.",
+       "text": "stderr truncated at 65,535 bytes, D-41. The stored stderr tails of this entry that have their full length end mid-progress-bar and the recorded last error is a fragment of that progress bar, not an error; the hook, wrapper and evidence output that come after the program are missing. The probe re-ran a different record's command (harness-v1.4.2 entry 3, record d41-probe/probe_03_vmtl_op5@51727e649a26a37f0646ec1e0107bf1708cd175c086b75a13c09b0f8b48bc7f2): this record's own stream was not re-run, so that the cut hid the same CUDA error here is an inference from the same command and the same cut point (harness-v1.3.2: a different point of a similar progress bar), not a measurement of this run. The verdict is unchanged.",
        "sources": [
         {
          "path": "reports/corpus-v2.1/candidate_v1.3.3_defects.md",
          "quote": "- **D-41** The sandbox SDK truncates stdout and stderr at 65,535 bytes"
+        },
+        {
+         "path": "reports/corpus-v2.1/candidate_v1.3.3_defects.md",
+         "quote": "- **D-41 [annotation: CONFIRMED by the probe of 2026-10-02]**"
+        },
+        {
+         "path": "reports/corpus-v2.1/candidate_v1.3.3_defects.md",
+         "quote": "- **D-41 [annotation: the entry-3 records of earlier versions are inferred, not probed]**"
         }
        ]
       }
@@ -5840,7 +5848,7 @@
    "record_id": "harness-v1.4.0/treatment/08@f06b3df970e45d8c36e9c74905f79104d9d995b9ac767f92d7bfc316c59b77d9",
    "record_path": "runs/corpus_v2_batch/harness-v1.4.0/gate/08_edenton__svg.json",
    "passport_path": "reports/phase-d/passports/harness-v1.4.0/gate/08_edenton__svg.json",
-   "passport_hash": "ac6519fa3dad7879e0c83ba5a4d923dc42f4d340177a7a8d7ea7440c82ef9374",
+   "passport_hash": "ebcd326b72de7d425ed8f179637ccf421bea2d8a920abbc9eeb163f562e00b0c",
    "record_sha256": "f06b3df970e45d8c36e9c74905f79104d9d995b9ac767f92d7bfc316c59b77d9",
    "results_tables_sha256": {
     "value": null,
@@ -7032,6 +7040,16 @@
         {
          "path": "reports/corpus-v2.1/v1.4.0/gate/GATE_REPORT_v1.4.0.md",
          "quote": "| INDETERMINATE COST_CAP | $1.1422"
+        }
+       ]
+      },
+      {
+       "id": "D-41",
+       "text": "stderr possibly truncated at 65,535 bytes, D-41 (suspected, not probed: all live work has stopped; flagged by `reports/phase-d/d6/truncation_scan.md`). Attempt 4: the stored stderr tail ends mid-line inside a build log (`INFO: compile options`). The verdict INDETERMINATE (COST_CAP) rests on the cost guard, not on this stream; the label SYS_LIB_MISSING (last error `No such file or directory: 'gcc'`) is read from text before the cut or from another attempt, and the record does not say which. The verdict is unchanged.",
+       "sources": [
+        {
+         "path": "reports/corpus-v2.1/candidate_v1.3.3_defects.md",
+         "quote": "- **D-41 [annotation: suspected on other records (D6 scan)]**"
         }
        ]
       }

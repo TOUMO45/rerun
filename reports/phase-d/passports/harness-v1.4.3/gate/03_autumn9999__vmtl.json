@@ -1,0 +1,3583 @@
+{
+  "schema": "rerun/phase-d/passport/v5",
+  "record_id": "harness-v1.4.3/treatment/03@b96e812ae4d41f84c3b6ac8bf7d1344da3cfe52f8227d88fd231b59bed4effb3",
+  "record": {
+    "path": "runs/corpus_v2_batch/harness-v1.4.3/gate/03_autumn9999__vmtl.json",
+    "sha256": "b96e812ae4d41f84c3b6ac8bf7d1344da3cfe52f8227d88fd231b59bed4effb3",
+    "record_set": "gate",
+    "hash_basis": "git blob at HEAD (git cat-file blob HEAD:<path>), never the worktree file",
+    "results_tables_sha256": {
+      "value": null,
+      "reason": "not listed in reports/corpus-v2.1/results_tables.json"
+    }
+  },
+  "image_id": {
+    "value": "ade02606-2d84-461d-876c-6ba164b66b2c",
+    "source_field": "certificate.baseline.sandbox_id",
+    "base_image": "python:3.6-slim"
+  },
+  "harness_tag": "harness-v1.4.3",
+  "harness_commit": "085d12bf4accb78c8b617f6a1b5df8aab747ee6b",
+  "arm": "treatment",
+  "entry": {
+    "id": "03",
+    "name": "autumn9999__vmtl",
+    "repo_url": "https://github.com/autumn9999/vmtl",
+    "commit_sha": "e20022da842cd44c3e9566ee76c2f888e08b8e80",
+    "category": "PRIMARY"
+  },
+  "run": {
+    "started_at": "2026-10-02T12:35:36.913901+00:00",
+    "finished_at": "2026-10-02T12:46:48.291327+00:00"
+  },
+  "verdict": {
+    "verdict": "BLOCKED",
+    "taxonomy_code": "DATA_MISSING",
+    "reason_code": null,
+    "indeterminate_reason": "",
+    "recovery": false,
+    "first_repo_error": "ModuleNotFoundError: No module named 'sklearn'",
+    "last_error": "FileNotFoundError: Caught FileNotFoundError in DataLoader worker process 0."
+  },
+  "baseline": {
+    "result": "FAILS",
+    "exit_code": {
+      "value": 1,
+      "tag": "API-REPORTED",
+      "source_field": "certificate.baseline.exit_code"
+    },
+    "taxonomy_code": "DEP_MISSING",
+    "evidence": "ModuleNotFoundError: No module named 'sklearn'"
+  },
+  "classification_chain": [
+    {
+      "error": "ModuleNotFoundError: No module named 'sklearn'",
+      "class": "DEP_MISSING",
+      "attribution": "REPO",
+      "phase": "repo_run",
+      "cleared_by": "attempt-0"
+    },
+    {
+      "error": "raise AssertionError(\"Torch not compiled with CUDA enabled\")",
+      "class": "GPU_REQUIRED",
+      "attribution": "REPO",
+      "phase": "repo_run",
+      "cleared_by": "attempt-0"
+    },
+    {
+      "error": "FileNotFoundError: Caught FileNotFoundError in DataLoader worker process 0.",
+      "class": "DATA_MISSING",
+      "attribution": "REPO",
+      "phase": "repo_run",
+      "cleared_by": {
+        "value": null,
+        "reason": "not cleared by any attempt"
+      }
+    }
+  ],
+  "attempts": [
+    {
+      "attempt": "attempt-0",
+      "type": "time_machine",
+      "gate_decision": "PASS",
+      "outcome": "applied",
+      "reject_reason": {
+        "value": null,
+        "reason": "not applicable: gate decision PASS"
+      },
+      "consulted": {
+        "value": null,
+        "reason": "not present on this attempt in the record"
+      },
+      "consulted_count": {
+        "value": null,
+        "reason": "not present on this attempt in the record"
+      },
+      "cited": [],
+      "reason_no_citation": {
+        "value": null,
+        "reason": "not present on this attempt in the record"
+      },
+      "silent_exit": {
+        "value": null,
+        "reason": "not present on this attempt in the record"
+      },
+      "exit_code": {
+        "value": 1,
+        "tag": "API-REPORTED",
+        "source_field": "result.attempts[0].exit_code"
+      },
+      "change": {
+        "diff_sha256": {
+          "value": null,
+          "reason": "no diff on this attempt"
+        },
+        "patch_notes": {
+          "value": null,
+          "reason": "not present on this attempt in the record"
+        },
+        "env_delta": []
+      },
+      "execution": {
+        "mode": "smoke",
+        "seconds": {
+          "value": 60,
+          "tag": "API-REPORTED",
+          "source_field": "result.attempts[0].execution.seconds"
+        },
+        "outcome": "exited",
+        "funded_seconds": {
+          "value": null,
+          "reason": "no kill recorded for this attempt; the funded limit is not a stored field in harness-v1.4.3"
+        },
+        "wall_seconds": {
+          "value": null,
+          "reason": "no kill recorded for this attempt; the funded limit is not a stored field in harness-v1.4.3"
+        },
+        "killed_by": {
+          "value": null,
+          "reason": "no kill recorded for this attempt; the funded limit is not a stored field in harness-v1.4.3"
+        },
+        "killed_step_seconds": {
+          "value": null,
+          "reason": "no kill recorded for this attempt; the funded limit is not a stored field in harness-v1.4.3"
+        },
+        "image": "6d772902-3faa-4ef6-9eef-5755fc351e7d",
+        "command": "python feature_vgg16.py #gpu_id #split",
+        "output_cut": []
+      },
+      "candidate": {
+        "value": null,
+        "reason": "not a repair candidate"
+      },
+      "chosen": {
+        "value": null,
+        "reason": "no adjudication for this attempt"
+      },
+      "branch": {
+        "value": null,
+        "reason": "no branch run recorded for this attempt"
+      },
+      "adjudication": {
+        "value": null,
+        "reason": "no adjudication recorded for this attempt"
+      },
+      "rule_step": {
+        "value": null,
+        "reason": "not a deterministic rule step"
+      }
+    },
+    {
+      "attempt": "attempt-0-cpu_shim",
+      "type": "time_machine",
+      "gate_decision": "PASS",
+      "outcome": "applied",
+      "reject_reason": {
+        "value": null,
+        "reason": "not applicable: gate decision PASS"
+      },
+      "consulted": {
+        "value": null,
+        "reason": "not present on this attempt in the record"
+      },
+      "consulted_count": {
+        "value": null,
+        "reason": "not present on this attempt in the record"
+      },
+      "cited": [],
+      "reason_no_citation": {
+        "value": null,
+        "reason": "not present on this attempt in the record"
+      },
+      "silent_exit": {
+        "value": null,
+        "reason": "not present on this attempt in the record"
+      },
+      "exit_code": {
+        "value": 1,
+        "tag": "API-REPORTED",
+        "source_field": "result.attempts[1].exit_code"
+      },
+      "change": {
+        "diff_sha256": {
+          "value": null,
+          "reason": "no diff on this attempt"
+        },
+        "patch_notes": {
+          "value": null,
+          "reason": "not present on this attempt in the record"
+        },
+        "env_delta": []
+      },
+      "execution": {
+        "mode": "smoke",
+        "seconds": {
+          "value": 60,
+          "tag": "API-REPORTED",
+          "source_field": "result.attempts[1].execution.seconds"
+        },
+        "outcome": "exited",
+        "funded_seconds": {
+          "value": null,
+          "reason": "no kill recorded for this attempt; the funded limit is not a stored field in harness-v1.4.3"
+        },
+        "wall_seconds": {
+          "value": null,
+          "reason": "no kill recorded for this attempt; the funded limit is not a stored field in harness-v1.4.3"
+        },
+        "killed_by": {
+          "value": null,
+          "reason": "no kill recorded for this attempt; the funded limit is not a stored field in harness-v1.4.3"
+        },
+        "killed_step_seconds": {
+          "value": null,
+          "reason": "no kill recorded for this attempt; the funded limit is not a stored field in harness-v1.4.3"
+        },
+        "image": "64625e33-ad83-4c45-b6aa-61df3a2cdfc4",
+        "command": "python feature_vgg16.py #gpu_id #split",
+        "output_cut": []
+      },
+      "candidate": {
+        "value": null,
+        "reason": "not a repair candidate"
+      },
+      "chosen": {
+        "value": null,
+        "reason": "no adjudication for this attempt"
+      },
+      "branch": {
+        "value": null,
+        "reason": "no branch run recorded for this attempt"
+      },
+      "adjudication": {
+        "value": null,
+        "reason": "no adjudication recorded for this attempt"
+      },
+      "rule_step": {
+        "rule": "cpu_shim",
+        "matched_error": "raise AssertionError(\"Torch not compiled with CUDA enabled\")",
+        "hook": "cpu_shim",
+        "fires_on": "GPU_REQUIRED at repair time",
+        "phase": "repair",
+        "limit": "covers torch.load (map_location), torch.cuda.is_available(), Tensor.cuda() and Module.cuda() (return self), .to('cuda*') on Tensor and Module and torch.device('cuda*') (-> cpu); does NOT cover device='cuda' strings given to factory functions (torch.zeros(device='cuda')), torch.cuda.*Tensor types or torch.set_default_tensor_type('torch.cuda.FloatTensor'); torch.device is a proxy class, so `type(d) is torch.device` is False for a real device and a `torch.device(...)` call inside a TorchScript function is not supported",
+        "paths_fired": [
+          "torch.load",
+          "module.cuda"
+        ]
+      }
+    },
+    {
+      "attempt": "attempt-1-candidate-1",
+      "type": "model",
+      "gate_decision": "PASS",
+      "outcome": "applied",
+      "reject_reason": {
+        "value": null,
+        "reason": "not applicable: gate decision PASS"
+      },
+      "consulted": [
+        {
+          "ref": "[1]",
+          "title": "FileNotFoundError: Caught FileNotFoundError in DataLoader worker process 0 - data - PyTorch Forums",
+          "url": "https://discuss.pytorch.org/t/filenotfounderror-caught-filenotfounderror-in-dataloader-worker-process-0/158664",
+          "content_sha256": "12d3e6d371a1f6f45b842e58948637ec1709661ff70c0cb27a6247e6e0e47d5a"
+        },
+        {
+          "ref": "[2]",
+          "title": "PyTorch RuntimeError: DataLoader worker (pid(s) ...) exited unexpectedly - Stack Diagnosis",
+          "url": "https://drdroid.io/stack-diagnosis/pytorch-runtimeerror--dataloader-worker--pid-s----exited-unexpectedly",
+          "content_sha256": "9647f9993e8f5cc1c13b71b3f72157329708646e394bf462eb3b3c2330f60f2c"
+        },
+        {
+          "ref": "[3]",
+          "title": "ML Engineering 101: A Thorough Explanation of The Error “DataLoader worker (pid(s) xxx) exited…",
+          "url": "https://medium.com/data-science/ml-engineering-101-a-thorough-explanation-of-the-error-dataloader-worker-pid-s-xxx-exited-f3a6a983911e",
+          "content_sha256": "81fce1039e7754406f19d0e2f512ee37bc67927ed06cf0323a434f35382c8e3f"
+        }
+      ],
+      "consulted_count": {
+        "value": 3,
+        "tag": "API-REPORTED",
+        "computed_from": "length of result.attempts[2].consulted"
+      },
+      "cited": [
+        {
+          "title": "PyTorch RuntimeError: DataLoader worker (pid(s) ...) exited unexpectedly - Stack Diagnosis",
+          "url": "https://drdroid.io/stack-diagnosis/pytorch-runtimeerror--dataloader-worker--pid-s----exited-unexpectedly",
+          "content_sha256": "9647f9993e8f5cc1c13b71b3f72157329708646e394bf462eb3b3c2330f60f2c"
+        }
+      ],
+      "reason_no_citation": {
+        "value": null,
+        "reason": "not present on this attempt in the record"
+      },
+      "silent_exit": {
+        "value": null,
+        "reason": "not present on this attempt in the record"
+      },
+      "exit_code": {
+        "value": 1,
+        "tag": "API-REPORTED",
+        "source_field": "result.attempts[2].exit_code"
+      },
+      "change": {
+        "diff_sha256": "14b2575a61a47d14e201f9dd8d053d57a8c6b1d55a6e461cec6d8a3d8f946df3",
+        "patch_notes": [
+          "train.py: file_edits[1] replaced 1 occurrence",
+          "train.py: file_edits[2] replaced 1 occurrence"
+        ],
+        "env_delta": []
+      },
+      "execution": {
+        "mode": "smoke",
+        "seconds": {
+          "value": 60,
+          "tag": "API-REPORTED",
+          "source_field": "result.attempts[2].execution.seconds"
+        },
+        "outcome": "exited",
+        "funded_seconds": {
+          "value": null,
+          "reason": "no kill recorded for this attempt; the funded limit is not a stored field in harness-v1.4.3"
+        },
+        "wall_seconds": {
+          "value": null,
+          "reason": "no kill recorded for this attempt; the funded limit is not a stored field in harness-v1.4.3"
+        },
+        "killed_by": {
+          "value": null,
+          "reason": "no kill recorded for this attempt; the funded limit is not a stored field in harness-v1.4.3"
+        },
+        "killed_step_seconds": {
+          "value": null,
+          "reason": "no kill recorded for this attempt; the funded limit is not a stored field in harness-v1.4.3"
+        },
+        "image": "55e68564-7653-4dc8-bd1a-7d3c8393afdf",
+        "command": "python feature_vgg16.py #gpu_id #split",
+        "output_cut": []
+      },
+      "candidate": "1",
+      "chosen": false,
+      "branch": {
+        "branch_from_image": "64625e33-ad83-4c45-b6aa-61df3a2cdfc4",
+        "result_image": "55e68564-7653-4dc8-bd1a-7d3c8393afdf",
+        "image_kept": false
+      },
+      "adjudication": {
+        "chosen": null,
+        "model_called": false,
+        "qualifying": [],
+        "reasoning": "no candidate passed the gate and changed the exit outcome",
+        "released_images": {
+          "value": 3,
+          "tag": "API-REPORTED",
+          "computed_from": "length of adjudication.released_images"
+        }
+      },
+      "rule_step": {
+        "value": null,
+        "reason": "not a deterministic rule step"
+      }
+    },
+    {
+      "attempt": "attempt-1-candidate-2",
+      "type": "model",
+      "gate_decision": "PASS",
+      "outcome": "applied",
+      "reject_reason": {
+        "value": null,
+        "reason": "not applicable: gate decision PASS"
+      },
+      "consulted": [
+        {
+          "ref": "[1]",
+          "title": "FileNotFoundError: Caught FileNotFoundError in DataLoader worker process 0 - data - PyTorch Forums",
+          "url": "https://discuss.pytorch.org/t/filenotfounderror-caught-filenotfounderror-in-dataloader-worker-process-0/158664",
+          "content_sha256": "12d3e6d371a1f6f45b842e58948637ec1709661ff70c0cb27a6247e6e0e47d5a"
+        },
+        {
+          "ref": "[2]",
+          "title": "PyTorch RuntimeError: DataLoader worker (pid(s) ...) exited unexpectedly - Stack Diagnosis",
+          "url": "https://drdroid.io/stack-diagnosis/pytorch-runtimeerror--dataloader-worker--pid-s----exited-unexpectedly",
+          "content_sha256": "9647f9993e8f5cc1c13b71b3f72157329708646e394bf462eb3b3c2330f60f2c"
+        },
+        {
+          "ref": "[3]",
+          "title": "ML Engineering 101: A Thorough Explanation of The Error “DataLoader worker (pid(s) xxx) exited…",
+          "url": "https://medium.com/data-science/ml-engineering-101-a-thorough-explanation-of-the-error-dataloader-worker-pid-s-xxx-exited-f3a6a983911e",
+          "content_sha256": "81fce1039e7754406f19d0e2f512ee37bc67927ed06cf0323a434f35382c8e3f"
+        }
+      ],
+      "consulted_count": {
+        "value": 3,
+        "tag": "API-REPORTED",
+        "computed_from": "length of result.attempts[3].consulted"
+      },
+      "cited": [],
+      "reason_no_citation": "The fix is based on local analysis of the file paths and error trace; no external references needed.",
+      "silent_exit": {
+        "value": null,
+        "reason": "not present on this attempt in the record"
+      },
+      "exit_code": {
+        "value": 1,
+        "tag": "API-REPORTED",
+        "source_field": "result.attempts[3].exit_code"
+      },
+      "change": {
+        "diff_sha256": "95bf431bfe0898efc67f4fe05969c7fbc0e163e1779bbea589c065d19327c8bb",
+        "patch_notes": [
+          "train.py: file_edits[1] replaced 1 occurrence"
+        ],
+        "env_delta": []
+      },
+      "execution": {
+        "mode": "smoke",
+        "seconds": {
+          "value": 60,
+          "tag": "API-REPORTED",
+          "source_field": "result.attempts[3].execution.seconds"
+        },
+        "outcome": "exited",
+        "funded_seconds": {
+          "value": null,
+          "reason": "no kill recorded for this attempt; the funded limit is not a stored field in harness-v1.4.3"
+        },
+        "wall_seconds": {
+          "value": null,
+          "reason": "no kill recorded for this attempt; the funded limit is not a stored field in harness-v1.4.3"
+        },
+        "killed_by": {
+          "value": null,
+          "reason": "no kill recorded for this attempt; the funded limit is not a stored field in harness-v1.4.3"
+        },
+        "killed_step_seconds": {
+          "value": null,
+          "reason": "no kill recorded for this attempt; the funded limit is not a stored field in harness-v1.4.3"
+        },
+        "image": "30a0d5e1-5f80-4fa1-a7dc-53de4a40eacc",
+        "command": "python feature_vgg16.py #gpu_id #split",
+        "output_cut": []
+      },
+      "candidate": "2",
+      "chosen": false,
+      "branch": {
+        "branch_from_image": "64625e33-ad83-4c45-b6aa-61df3a2cdfc4",
+        "result_image": "30a0d5e1-5f80-4fa1-a7dc-53de4a40eacc",
+        "image_kept": false
+      },
+      "adjudication": {
+        "chosen": null,
+        "model_called": false,
+        "qualifying": [],
+        "reasoning": "no candidate passed the gate and changed the exit outcome",
+        "released_images": {
+          "value": 3,
+          "tag": "API-REPORTED",
+          "computed_from": "length of adjudication.released_images"
+        }
+      },
+      "rule_step": {
+        "value": null,
+        "reason": "not a deterministic rule step"
+      }
+    },
+    {
+      "attempt": "attempt-1-candidate-3",
+      "type": "model",
+      "gate_decision": "PASS",
+      "outcome": "applied",
+      "reject_reason": {
+        "value": null,
+        "reason": "not applicable: gate decision PASS"
+      },
+      "consulted": [
+        {
+          "ref": "[1]",
+          "title": "FileNotFoundError: Caught FileNotFoundError in DataLoader worker process 0 - data - PyTorch Forums",
+          "url": "https://discuss.pytorch.org/t/filenotfounderror-caught-filenotfounderror-in-dataloader-worker-process-0/158664",
+          "content_sha256": "12d3e6d371a1f6f45b842e58948637ec1709661ff70c0cb27a6247e6e0e47d5a"
+        },
+        {
+          "ref": "[2]",
+          "title": "PyTorch RuntimeError: DataLoader worker (pid(s) ...) exited unexpectedly - Stack Diagnosis",
+          "url": "https://drdroid.io/stack-diagnosis/pytorch-runtimeerror--dataloader-worker--pid-s----exited-unexpectedly",
+          "content_sha256": "9647f9993e8f5cc1c13b71b3f72157329708646e394bf462eb3b3c2330f60f2c"
+        },
+        {
+          "ref": "[3]",
+          "title": "ML Engineering 101: A Thorough Explanation of The Error “DataLoader worker (pid(s) xxx) exited…",
+          "url": "https://medium.com/data-science/ml-engineering-101-a-thorough-explanation-of-the-error-dataloader-worker-pid-s-xxx-exited-f3a6a983911e",
+          "content_sha256": "81fce1039e7754406f19d0e2f512ee37bc67927ed06cf0323a434f35382c8e3f"
+        }
+      ],
+      "consulted_count": {
+        "value": 3,
+        "tag": "API-REPORTED",
+        "computed_from": "length of result.attempts[4].consulted"
+      },
+      "cited": [],
+      "reason_no_citation": "The fix is based on the error traceback showing an absolute path issue; no external references were needed.",
+      "silent_exit": {
+        "value": null,
+        "reason": "not present on this attempt in the record"
+      },
+      "exit_code": {
+        "value": 1,
+        "tag": "API-REPORTED",
+        "source_field": "result.attempts[4].exit_code"
+      },
+      "change": {
+        "diff_sha256": "4b45997fb45199931ac8777929cc8d409eb5543845992d3ff86dfb082c8abc8e",
+        "patch_notes": [
+          "train.py: file_edits[1] replaced 1 occurrence",
+          "train.py: file_edits[2] replaced 1 occurrence"
+        ],
+        "env_delta": []
+      },
+      "execution": {
+        "mode": "smoke",
+        "seconds": {
+          "value": 60,
+          "tag": "API-REPORTED",
+          "source_field": "result.attempts[4].execution.seconds"
+        },
+        "outcome": "exited",
+        "funded_seconds": {
+          "value": null,
+          "reason": "no kill recorded for this attempt; the funded limit is not a stored field in harness-v1.4.3"
+        },
+        "wall_seconds": {
+          "value": null,
+          "reason": "no kill recorded for this attempt; the funded limit is not a stored field in harness-v1.4.3"
+        },
+        "killed_by": {
+          "value": null,
+          "reason": "no kill recorded for this attempt; the funded limit is not a stored field in harness-v1.4.3"
+        },
+        "killed_step_seconds": {
+          "value": null,
+          "reason": "no kill recorded for this attempt; the funded limit is not a stored field in harness-v1.4.3"
+        },
+        "image": "aead9cd4-7a57-4c22-b102-3ccab3957ef7",
+        "command": "python feature_vgg16.py #gpu_id #split",
+        "output_cut": []
+      },
+      "candidate": "3",
+      "chosen": false,
+      "branch": {
+        "branch_from_image": "64625e33-ad83-4c45-b6aa-61df3a2cdfc4",
+        "result_image": "aead9cd4-7a57-4c22-b102-3ccab3957ef7",
+        "image_kept": false
+      },
+      "adjudication": {
+        "chosen": null,
+        "model_called": false,
+        "qualifying": [],
+        "reasoning": "no candidate passed the gate and changed the exit outcome",
+        "released_images": {
+          "value": 3,
+          "tag": "API-REPORTED",
+          "computed_from": "length of adjudication.released_images"
+        }
+      },
+      "rule_step": {
+        "value": null,
+        "reason": "not a deterministic rule step"
+      }
+    },
+    {
+      "attempt": "attempt-2-candidate-2",
+      "type": "model",
+      "gate_decision": "REJECT",
+      "outcome": "rejected",
+      "reject_reason": [
+        {
+          "rule": "UNAPPLICABLE_PATCH",
+          "reason": "file_edits[1].old does not occur in train.py exactly as written. Nearest lines:\n    7: import random\n    8: \n    9: project_path = \"./\"\n   10: from dataset import ImageList, ImageList_test\n   11: \n   12: def experiment(config, num_task):\n   13:     model = config[\"model\"]\n   14:     dset_loaders = config[\"loaders\"]\n   15: \n   16:     num_iter = config[\"num_iter\"]\n   17:     test_interval = config[\"test_interval\"]\n   18: ",
+          "file": ""
+        }
+      ],
+      "consulted": [
+        {
+          "ref": "[1]",
+          "title": "FileNotFoundError: Caught FileNotFoundError in DataLoader worker process 0 - data - PyTorch Forums",
+          "url": "https://discuss.pytorch.org/t/filenotfounderror-caught-filenotfounderror-in-dataloader-worker-process-0/158664",
+          "content_sha256": "12d3e6d371a1f6f45b842e58948637ec1709661ff70c0cb27a6247e6e0e47d5a"
+        },
+        {
+          "ref": "[2]",
+          "title": "ML Engineering 101: A Thorough Explanation of The Error “DataLoader worker (pid(s) xxx) exited…",
+          "url": "https://medium.com/data-science/ml-engineering-101-a-thorough-explanation-of-the-error-dataloader-worker-pid-s-xxx-exited-f3a6a983911e",
+          "content_sha256": "81fce1039e7754406f19d0e2f512ee37bc67927ed06cf0323a434f35382c8e3f"
+        },
+        {
+          "ref": "[3]",
+          "title": "FIX PYTORCH ERROR: Could not find a version that satisfies the requirement torch (from versions:none",
+          "url": "https://www.youtube.com/watch?v=Z-5a2fkOScA",
+          "content_sha256": "86d5907ba5a412edc2e4ca5857a067bac0617095db3441d5d75cc918de313266"
+        }
+      ],
+      "consulted_count": {
+        "value": 3,
+        "tag": "API-REPORTED",
+        "computed_from": "length of result.attempts[5].consulted"
+      },
+      "cited": [],
+      "reason_no_citation": "The fix involves adjusting the project path to be absolute based on the script's location, which does not require external references.",
+      "silent_exit": {
+        "value": null,
+        "reason": "not present on this attempt in the record"
+      },
+      "exit_code": {
+        "value": null,
+        "reason": "no re-execution recorded for this attempt"
+      },
+      "change": {
+        "diff_sha256": "c2480c576062354d03033d0d59285dc7dc4e9e0918c620c2f706922e3c1cf950",
+        "patch_notes": {
+          "value": null,
+          "reason": "not present on this attempt in the record"
+        },
+        "env_delta": []
+      },
+      "execution": {
+        "mode": {
+          "value": null,
+          "reason": "no execution recorded for this attempt"
+        },
+        "seconds": {
+          "value": null,
+          "reason": "no execution recorded for this attempt"
+        },
+        "outcome": {
+          "value": null,
+          "reason": "no execution recorded for this attempt"
+        },
+        "funded_seconds": {
+          "value": null,
+          "reason": "no kill recorded for this attempt; the funded limit is not a stored field in harness-v1.4.3"
+        },
+        "wall_seconds": {
+          "value": null,
+          "reason": "no kill recorded for this attempt; the funded limit is not a stored field in harness-v1.4.3"
+        },
+        "killed_by": {
+          "value": null,
+          "reason": "no kill recorded for this attempt; the funded limit is not a stored field in harness-v1.4.3"
+        },
+        "killed_step_seconds": {
+          "value": null,
+          "reason": "no kill recorded for this attempt; the funded limit is not a stored field in harness-v1.4.3"
+        },
+        "image": {
+          "value": null,
+          "reason": "no image recorded for this attempt's command (an operation that patched the tree without keeping its result image, or no smoke run)"
+        },
+        "command": {
+          "value": null,
+          "reason": "no command recorded for this attempt"
+        },
+        "output_cut": []
+      },
+      "candidate": "2",
+      "chosen": {
+        "value": null,
+        "reason": "no adjudication for this attempt"
+      },
+      "branch": {
+        "value": null,
+        "reason": "no branch run recorded for this attempt"
+      },
+      "adjudication": {
+        "value": null,
+        "reason": "no adjudication recorded for this attempt"
+      },
+      "rule_step": {
+        "value": null,
+        "reason": "not a deterministic rule step"
+      }
+    },
+    {
+      "attempt": "attempt-2-candidate-1",
+      "type": "model",
+      "gate_decision": "PASS",
+      "outcome": "applied",
+      "reject_reason": {
+        "value": null,
+        "reason": "not applicable: gate decision PASS"
+      },
+      "consulted": [
+        {
+          "ref": "[1]",
+          "title": "FileNotFoundError: Caught FileNotFoundError in DataLoader worker process 0 - data - PyTorch Forums",
+          "url": "https://discuss.pytorch.org/t/filenotfounderror-caught-filenotfounderror-in-dataloader-worker-process-0/158664",
+          "content_sha256": "12d3e6d371a1f6f45b842e58948637ec1709661ff70c0cb27a6247e6e0e47d5a"
+        },
+        {
+          "ref": "[2]",
+          "title": "ML Engineering 101: A Thorough Explanation of The Error “DataLoader worker (pid(s) xxx) exited…",
+          "url": "https://medium.com/data-science/ml-engineering-101-a-thorough-explanation-of-the-error-dataloader-worker-pid-s-xxx-exited-f3a6a983911e",
+          "content_sha256": "81fce1039e7754406f19d0e2f512ee37bc67927ed06cf0323a434f35382c8e3f"
+        },
+        {
+          "ref": "[3]",
+          "title": "FIX PYTORCH ERROR: Could not find a version that satisfies the requirement torch (from versions:none",
+          "url": "https://www.youtube.com/watch?v=Z-5a2fkOScA",
+          "content_sha256": "86d5907ba5a412edc2e4ca5857a067bac0617095db3441d5d75cc918de313266"
+        }
+      ],
+      "consulted_count": {
+        "value": 3,
+        "tag": "API-REPORTED",
+        "computed_from": "length of result.attempts[6].consulted"
+      },
+      "cited": [],
+      "reason_no_citation": "The fix is based on the observation that the FileNotFoundError occurs due to incorrect path resolution. Changing project_path to the absolute path of the script's directory ensures that subsequent paths built from it are correct, regardless of the current working directory.",
+      "silent_exit": {
+        "value": null,
+        "reason": "not present on this attempt in the record"
+      },
+      "exit_code": {
+        "value": 1,
+        "tag": "API-REPORTED",
+        "source_field": "result.attempts[6].exit_code"
+      },
+      "change": {
+        "diff_sha256": "59cc5ce650a129f778abded8c3a7a4449a6b729c8119c5df32a004a339305929",
+        "patch_notes": [
+          "train.py: file_edits[1] replaced 1 occurrence"
+        ],
+        "env_delta": []
+      },
+      "execution": {
+        "mode": "smoke",
+        "seconds": {
+          "value": 60,
+          "tag": "API-REPORTED",
+          "source_field": "result.attempts[6].execution.seconds"
+        },
+        "outcome": "exited",
+        "funded_seconds": {
+          "value": null,
+          "reason": "no kill recorded for this attempt; the funded limit is not a stored field in harness-v1.4.3"
+        },
+        "wall_seconds": {
+          "value": null,
+          "reason": "no kill recorded for this attempt; the funded limit is not a stored field in harness-v1.4.3"
+        },
+        "killed_by": {
+          "value": null,
+          "reason": "no kill recorded for this attempt; the funded limit is not a stored field in harness-v1.4.3"
+        },
+        "killed_step_seconds": {
+          "value": null,
+          "reason": "no kill recorded for this attempt; the funded limit is not a stored field in harness-v1.4.3"
+        },
+        "image": "d4460222-55b1-4337-98a2-6dab1dbe867d",
+        "command": "python feature_vgg16.py #gpu_id #split",
+        "output_cut": []
+      },
+      "candidate": "1",
+      "chosen": false,
+      "branch": {
+        "branch_from_image": "64625e33-ad83-4c45-b6aa-61df3a2cdfc4",
+        "result_image": "d4460222-55b1-4337-98a2-6dab1dbe867d",
+        "image_kept": false
+      },
+      "adjudication": {
+        "chosen": null,
+        "model_called": false,
+        "qualifying": [],
+        "reasoning": "no candidate passed the gate and changed the exit outcome",
+        "released_images": {
+          "value": 2,
+          "tag": "API-REPORTED",
+          "computed_from": "length of adjudication.released_images"
+        }
+      },
+      "rule_step": {
+        "value": null,
+        "reason": "not a deterministic rule step"
+      }
+    },
+    {
+      "attempt": "attempt-2-candidate-3",
+      "type": "model",
+      "gate_decision": "PASS",
+      "outcome": "applied",
+      "reject_reason": {
+        "value": null,
+        "reason": "not applicable: gate decision PASS"
+      },
+      "consulted": [
+        {
+          "ref": "[1]",
+          "title": "FileNotFoundError: Caught FileNotFoundError in DataLoader worker process 0 - data - PyTorch Forums",
+          "url": "https://discuss.pytorch.org/t/filenotfounderror-caught-filenotfounderror-in-dataloader-worker-process-0/158664",
+          "content_sha256": "12d3e6d371a1f6f45b842e58948637ec1709661ff70c0cb27a6247e6e0e47d5a"
+        },
+        {
+          "ref": "[2]",
+          "title": "ML Engineering 101: A Thorough Explanation of The Error “DataLoader worker (pid(s) xxx) exited…",
+          "url": "https://medium.com/data-science/ml-engineering-101-a-thorough-explanation-of-the-error-dataloader-worker-pid-s-xxx-exited-f3a6a983911e",
+          "content_sha256": "81fce1039e7754406f19d0e2f512ee37bc67927ed06cf0323a434f35382c8e3f"
+        },
+        {
+          "ref": "[3]",
+          "title": "FIX PYTORCH ERROR: Could not find a version that satisfies the requirement torch (from versions:none",
+          "url": "https://www.youtube.com/watch?v=Z-5a2fkOScA",
+          "content_sha256": "86d5907ba5a412edc2e4ca5857a067bac0617095db3441d5d75cc918de313266"
+        }
+      ],
+      "consulted_count": {
+        "value": 3,
+        "tag": "API-REPORTED",
+        "computed_from": "length of result.attempts[7].consulted"
+      },
+      "cited": [],
+      "reason_no_citation": "The fix is based on the observed error and code inspection; no external references were needed.",
+      "silent_exit": {
+        "value": null,
+        "reason": "not present on this attempt in the record"
+      },
+      "exit_code": {
+        "value": 1,
+        "tag": "API-REPORTED",
+        "source_field": "result.attempts[7].exit_code"
+      },
+      "change": {
+        "diff_sha256": "9e386d4a67da5606585f5aa4265287ebdc7b611cce88f9df80787acec255f704",
+        "patch_notes": [
+          "train.py: file_edits[1] replaced 1 occurrence",
+          "train.py: file_edits[2] replaced 1 occurrence"
+        ],
+        "env_delta": []
+      },
+      "execution": {
+        "mode": "smoke",
+        "seconds": {
+          "value": 60,
+          "tag": "API-REPORTED",
+          "source_field": "result.attempts[7].execution.seconds"
+        },
+        "outcome": "exited",
+        "funded_seconds": {
+          "value": null,
+          "reason": "no kill recorded for this attempt; the funded limit is not a stored field in harness-v1.4.3"
+        },
+        "wall_seconds": {
+          "value": null,
+          "reason": "no kill recorded for this attempt; the funded limit is not a stored field in harness-v1.4.3"
+        },
+        "killed_by": {
+          "value": null,
+          "reason": "no kill recorded for this attempt; the funded limit is not a stored field in harness-v1.4.3"
+        },
+        "killed_step_seconds": {
+          "value": null,
+          "reason": "no kill recorded for this attempt; the funded limit is not a stored field in harness-v1.4.3"
+        },
+        "image": "55b8b159-219a-434c-9b43-e4ff9120563b",
+        "command": "python feature_vgg16.py #gpu_id #split",
+        "output_cut": []
+      },
+      "candidate": "3",
+      "chosen": false,
+      "branch": {
+        "branch_from_image": "64625e33-ad83-4c45-b6aa-61df3a2cdfc4",
+        "result_image": "55b8b159-219a-434c-9b43-e4ff9120563b",
+        "image_kept": false
+      },
+      "adjudication": {
+        "chosen": null,
+        "model_called": false,
+        "qualifying": [],
+        "reasoning": "no candidate passed the gate and changed the exit outcome",
+        "released_images": {
+          "value": 2,
+          "tag": "API-REPORTED",
+          "computed_from": "length of adjudication.released_images"
+        }
+      },
+      "rule_step": {
+        "value": null,
+        "reason": "not a deterministic rule step"
+      }
+    },
+    {
+      "attempt": "attempt-3-candidate-1",
+      "type": "model",
+      "gate_decision": "PASS",
+      "outcome": "applied",
+      "reject_reason": {
+        "value": null,
+        "reason": "not applicable: gate decision PASS"
+      },
+      "consulted": [
+        {
+          "ref": "[1]",
+          "title": "FileNotFoundError: Caught FileNotFoundError in DataLoader worker process 0 - data - PyTorch Forums",
+          "url": "https://discuss.pytorch.org/t/filenotfounderror-caught-filenotfounderror-in-dataloader-worker-process-0/158664",
+          "content_sha256": "12d3e6d371a1f6f45b842e58948637ec1709661ff70c0cb27a6247e6e0e47d5a"
+        },
+        {
+          "ref": "[2]",
+          "title": "PyTorch RuntimeError: DataLoader worker (pid(s) ...) exited unexpectedly - Stack Diagnosis",
+          "url": "https://drdroid.io/stack-diagnosis/pytorch-runtimeerror--dataloader-worker--pid-s----exited-unexpectedly",
+          "content_sha256": "9647f9993e8f5cc1c13b71b3f72157329708646e394bf462eb3b3c2330f60f2c"
+        },
+        {
+          "ref": "[3]",
+          "title": "ML Engineering 101: A Thorough Explanation of The Error “DataLoader worker (pid(s) xxx) exited…",
+          "url": "https://medium.com/data-science/ml-engineering-101-a-thorough-explanation-of-the-error-dataloader-worker-pid-s-xxx-exited-f3a6a983911e",
+          "content_sha256": "81fce1039e7754406f19d0e2f512ee37bc67927ed06cf0323a434f35382c8e3f"
+        }
+      ],
+      "consulted_count": {
+        "value": 3,
+        "tag": "API-REPORTED",
+        "computed_from": "length of result.attempts[8].consulted"
+      },
+      "cited": [],
+      "reason_no_citation": "The fix is based on the error path showing '/Dataset/office-home/images/...' while the code was looking for .txt files in './Dataset/split/office-home/...'. Removing the 'split' directory from the path aligns with the expected image path structure.",
+      "silent_exit": {
+        "value": null,
+        "reason": "not present on this attempt in the record"
+      },
+      "exit_code": {
+        "value": 1,
+        "tag": "API-REPORTED",
+        "source_field": "result.attempts[8].exit_code"
+      },
+      "change": {
+        "diff_sha256": "592e8e437a55d367d26c7e0a1c7b9f9d2d7f67733c22f6860b4e63d8ff61e4b7",
+        "patch_notes": [
+          "train.py: file_edits[1] replaced 1 occurrence"
+        ],
+        "env_delta": []
+      },
+      "execution": {
+        "mode": "smoke",
+        "seconds": {
+          "value": 60,
+          "tag": "API-REPORTED",
+          "source_field": "result.attempts[8].execution.seconds"
+        },
+        "outcome": "exited",
+        "funded_seconds": {
+          "value": null,
+          "reason": "no kill recorded for this attempt; the funded limit is not a stored field in harness-v1.4.3"
+        },
+        "wall_seconds": {
+          "value": null,
+          "reason": "no kill recorded for this attempt; the funded limit is not a stored field in harness-v1.4.3"
+        },
+        "killed_by": {
+          "value": null,
+          "reason": "no kill recorded for this attempt; the funded limit is not a stored field in harness-v1.4.3"
+        },
+        "killed_step_seconds": {
+          "value": null,
+          "reason": "no kill recorded for this attempt; the funded limit is not a stored field in harness-v1.4.3"
+        },
+        "image": "b88ac27b-7ab4-4232-a2c5-105769639060",
+        "command": "python feature_vgg16.py #gpu_id #split",
+        "output_cut": []
+      },
+      "candidate": "1",
+      "chosen": false,
+      "branch": {
+        "branch_from_image": "64625e33-ad83-4c45-b6aa-61df3a2cdfc4",
+        "result_image": "b88ac27b-7ab4-4232-a2c5-105769639060",
+        "image_kept": false
+      },
+      "adjudication": {
+        "chosen": null,
+        "model_called": false,
+        "qualifying": [],
+        "reasoning": "no candidate passed the gate and changed the exit outcome",
+        "released_images": {
+          "value": 3,
+          "tag": "API-REPORTED",
+          "computed_from": "length of adjudication.released_images"
+        }
+      },
+      "rule_step": {
+        "value": null,
+        "reason": "not a deterministic rule step"
+      }
+    },
+    {
+      "attempt": "attempt-3-candidate-2",
+      "type": "model",
+      "gate_decision": "PASS",
+      "outcome": "applied",
+      "reject_reason": {
+        "value": null,
+        "reason": "not applicable: gate decision PASS"
+      },
+      "consulted": [
+        {
+          "ref": "[1]",
+          "title": "FileNotFoundError: Caught FileNotFoundError in DataLoader worker process 0 - data - PyTorch Forums",
+          "url": "https://discuss.pytorch.org/t/filenotfounderror-caught-filenotfounderror-in-dataloader-worker-process-0/158664",
+          "content_sha256": "12d3e6d371a1f6f45b842e58948637ec1709661ff70c0cb27a6247e6e0e47d5a"
+        },
+        {
+          "ref": "[2]",
+          "title": "PyTorch RuntimeError: DataLoader worker (pid(s) ...) exited unexpectedly - Stack Diagnosis",
+          "url": "https://drdroid.io/stack-diagnosis/pytorch-runtimeerror--dataloader-worker--pid-s----exited-unexpectedly",
+          "content_sha256": "9647f9993e8f5cc1c13b71b3f72157329708646e394bf462eb3b3c2330f60f2c"
+        },
+        {
+          "ref": "[3]",
+          "title": "ML Engineering 101: A Thorough Explanation of The Error “DataLoader worker (pid(s) xxx) exited…",
+          "url": "https://medium.com/data-science/ml-engineering-101-a-thorough-explanation-of-the-error-dataloader-worker-pid-s-xxx-exited-f3a6a983911e",
+          "content_sha256": "81fce1039e7754406f19d0e2f512ee37bc67927ed06cf0323a434f35382c8e3f"
+        }
+      ],
+      "consulted_count": {
+        "value": 3,
+        "tag": "API-REPORTED",
+        "computed_from": "length of result.attempts[9].consulted"
+      },
+      "cited": [],
+      "reason_no_citation": "The fix is derived from the error message and the code, requiring no external references.",
+      "silent_exit": {
+        "value": null,
+        "reason": "not present on this attempt in the record"
+      },
+      "exit_code": {
+        "value": 1,
+        "tag": "API-REPORTED",
+        "source_field": "result.attempts[9].exit_code"
+      },
+      "change": {
+        "diff_sha256": "bb6deb00df9c538941e2332590b700313e5116334515051ed2f8d75717dcc3f6",
+        "patch_notes": [
+          "train.py: file_edits[1] replaced 1 occurrence",
+          "train.py: file_edits[2] replaced 1 occurrence"
+        ],
+        "env_delta": []
+      },
+      "execution": {
+        "mode": "smoke",
+        "seconds": {
+          "value": 60,
+          "tag": "API-REPORTED",
+          "source_field": "result.attempts[9].execution.seconds"
+        },
+        "outcome": "exited",
+        "funded_seconds": {
+          "value": null,
+          "reason": "no kill recorded for this attempt; the funded limit is not a stored field in harness-v1.4.3"
+        },
+        "wall_seconds": {
+          "value": null,
+          "reason": "no kill recorded for this attempt; the funded limit is not a stored field in harness-v1.4.3"
+        },
+        "killed_by": {
+          "value": null,
+          "reason": "no kill recorded for this attempt; the funded limit is not a stored field in harness-v1.4.3"
+        },
+        "killed_step_seconds": {
+          "value": null,
+          "reason": "no kill recorded for this attempt; the funded limit is not a stored field in harness-v1.4.3"
+        },
+        "image": "88392c9f-c753-40d4-be56-4cb504d4ed94",
+        "command": "python feature_vgg16.py #gpu_id #split",
+        "output_cut": []
+      },
+      "candidate": "2",
+      "chosen": false,
+      "branch": {
+        "branch_from_image": "64625e33-ad83-4c45-b6aa-61df3a2cdfc4",
+        "result_image": "88392c9f-c753-40d4-be56-4cb504d4ed94",
+        "image_kept": false
+      },
+      "adjudication": {
+        "chosen": null,
+        "model_called": false,
+        "qualifying": [],
+        "reasoning": "no candidate passed the gate and changed the exit outcome",
+        "released_images": {
+          "value": 3,
+          "tag": "API-REPORTED",
+          "computed_from": "length of adjudication.released_images"
+        }
+      },
+      "rule_step": {
+        "value": null,
+        "reason": "not a deterministic rule step"
+      }
+    },
+    {
+      "attempt": "attempt-3-candidate-3",
+      "type": "model",
+      "gate_decision": "PASS",
+      "outcome": "applied",
+      "reject_reason": {
+        "value": null,
+        "reason": "not applicable: gate decision PASS"
+      },
+      "consulted": [
+        {
+          "ref": "[1]",
+          "title": "FileNotFoundError: Caught FileNotFoundError in DataLoader worker process 0 - data - PyTorch Forums",
+          "url": "https://discuss.pytorch.org/t/filenotfounderror-caught-filenotfounderror-in-dataloader-worker-process-0/158664",
+          "content_sha256": "12d3e6d371a1f6f45b842e58948637ec1709661ff70c0cb27a6247e6e0e47d5a"
+        },
+        {
+          "ref": "[2]",
+          "title": "PyTorch RuntimeError: DataLoader worker (pid(s) ...) exited unexpectedly - Stack Diagnosis",
+          "url": "https://drdroid.io/stack-diagnosis/pytorch-runtimeerror--dataloader-worker--pid-s----exited-unexpectedly",
+          "content_sha256": "9647f9993e8f5cc1c13b71b3f72157329708646e394bf462eb3b3c2330f60f2c"
+        },
+        {
+          "ref": "[3]",
+          "title": "ML Engineering 101: A Thorough Explanation of The Error “DataLoader worker (pid(s) xxx) exited…",
+          "url": "https://medium.com/data-science/ml-engineering-101-a-thorough-explanation-of-the-error-dataloader-worker-pid-s-xxx-exited-f3a6a983911e",
+          "content_sha256": "81fce1039e7754406f19d0e2f512ee37bc67927ed06cf0323a434f35382c8e3f"
+        }
+      ],
+      "consulted_count": {
+        "value": 3,
+        "tag": "API-REPORTED",
+        "computed_from": "length of result.attempts[10].consulted"
+      },
+      "cited": [
+        {
+          "title": "PyTorch RuntimeError: DataLoader worker (pid(s) ...) exited unexpectedly - Stack Diagnosis",
+          "url": "https://drdroid.io/stack-diagnosis/pytorch-runtimeerror--dataloader-worker--pid-s----exited-unexpectedly",
+          "content_sha256": "9647f9993e8f5cc1c13b71b3f72157329708646e394bf462eb3b3c2330f60f2c"
+        }
+      ],
+      "reason_no_citation": {
+        "value": null,
+        "reason": "not present on this attempt in the record"
+      },
+      "silent_exit": {
+        "value": null,
+        "reason": "not present on this attempt in the record"
+      },
+      "exit_code": {
+        "value": 1,
+        "tag": "API-REPORTED",
+        "source_field": "result.attempts[10].exit_code"
+      },
+      "change": {
+        "diff_sha256": "14b2575a61a47d14e201f9dd8d053d57a8c6b1d55a6e461cec6d8a3d8f946df3",
+        "patch_notes": [
+          "train.py: file_edits[1] replaced 1 occurrence",
+          "train.py: file_edits[2] replaced 1 occurrence"
+        ],
+        "env_delta": []
+      },
+      "execution": {
+        "mode": "smoke",
+        "seconds": {
+          "value": 60,
+          "tag": "API-REPORTED",
+          "source_field": "result.attempts[10].execution.seconds"
+        },
+        "outcome": "exited",
+        "funded_seconds": {
+          "value": null,
+          "reason": "no kill recorded for this attempt; the funded limit is not a stored field in harness-v1.4.3"
+        },
+        "wall_seconds": {
+          "value": null,
+          "reason": "no kill recorded for this attempt; the funded limit is not a stored field in harness-v1.4.3"
+        },
+        "killed_by": {
+          "value": null,
+          "reason": "no kill recorded for this attempt; the funded limit is not a stored field in harness-v1.4.3"
+        },
+        "killed_step_seconds": {
+          "value": null,
+          "reason": "no kill recorded for this attempt; the funded limit is not a stored field in harness-v1.4.3"
+        },
+        "image": "29ec529a-9ed1-4f82-b17c-56375028ca6a",
+        "command": "python feature_vgg16.py #gpu_id #split",
+        "output_cut": []
+      },
+      "candidate": "3",
+      "chosen": false,
+      "branch": {
+        "branch_from_image": "64625e33-ad83-4c45-b6aa-61df3a2cdfc4",
+        "result_image": "29ec529a-9ed1-4f82-b17c-56375028ca6a",
+        "image_kept": false
+      },
+      "adjudication": {
+        "chosen": null,
+        "model_called": false,
+        "qualifying": [],
+        "reasoning": "no candidate passed the gate and changed the exit outcome",
+        "released_images": {
+          "value": 3,
+          "tag": "API-REPORTED",
+          "computed_from": "length of adjudication.released_images"
+        }
+      },
+      "rule_step": {
+        "value": null,
+        "reason": "not a deterministic rule step"
+      }
+    }
+  ],
+  "time_machine_actions": [
+    {
+      "attempt": "attempt-0",
+      "outcome": "applied",
+      "era": {
+        "date": "2022-09-15",
+        "source": "pinned-commit",
+        "detail": {
+          "note": "no dependency files in the repository"
+        }
+      },
+      "python": {
+        "version": "3.6",
+        "reason": "declared by README (3.6)",
+        "source": "https://devguide.python.org/versions/ (first release dates, retrieved 2026-09-24)"
+      },
+      "undeclared_imports": [
+        "numpy",
+        "pillow",
+        "scikit-learn",
+        "scipy",
+        "torch",
+        "torchvision"
+      ],
+      "apt_added": [],
+      "apt_reason": "",
+      "lock": {
+        "ok": true,
+        "lock": [
+          "future==0.18.2",
+          "joblib==1.1.0",
+          "numpy==1.19.5",
+          "pillow==8.4.0",
+          "scikit-learn==0.24.2",
+          "scipy==1.5.4",
+          "threadpoolctl==3.1.0",
+          "torch==1.5.1",
+          "torchvision==0.6.1"
+        ],
+        "relaxed": [],
+        "not_on_index": [],
+        "error": ""
+      },
+      "fallback": null
+    }
+  ],
+  "cost": {
+    "value": 0.94354533,
+    "tag": "API-REPORTED",
+    "currency": "USD",
+    "source_field": "cost_guard.spent_usd",
+    "measured": {
+      "value": 0.94354533,
+      "tag": "API-REPORTED",
+      "source_field": "cost_guard.spent_usd"
+    },
+    "estimated": {
+      "value": 0.0,
+      "tag": "ESTIMATED",
+      "source_field": "cost_guard.estimated_sandbox_spent_usd"
+    },
+    "model": {
+      "value": 0.09008486000000002,
+      "tag": "API-REPORTED",
+      "source_field": "cost_guard.model_spent_usd"
+    },
+    "per_entry_cap": {
+      "value": 1.75,
+      "tag": "API-REPORTED",
+      "source_field": "batch.per_entry_cap_usd"
+    },
+    "batch_cap": {
+      "value": 7.0,
+      "tag": "API-REPORTED",
+      "source_field": "batch.total_cap_usd"
+    },
+    "operations": [
+      {
+        "operation": "operation-1",
+        "killed": false,
+        "spend": {
+          "value": 0.172,
+          "tag": "DERIVED",
+          "source": {
+            "record_id": "harness-v1.4.3/treatment/03@b96e812ae4d41f84c3b6ac8bf7d1344da3cfe52f8227d88fd231b59bed4effb3",
+            "field": "events[10].line",
+            "line": "[cost_guard] recorded $0.1720 sandbox spend, $1.5773 remaining today"
+          }
+        },
+        "remaining": {
+          "value": 1.5773,
+          "tag": "DERIVED",
+          "source": {
+            "record_id": "harness-v1.4.3/treatment/03@b96e812ae4d41f84c3b6ac8bf7d1344da3cfe52f8227d88fd231b59bed4effb3",
+            "field": "events[10].line",
+            "line": "[cost_guard] recorded $0.1720 sandbox spend, $1.5773 remaining today"
+          }
+        }
+      },
+      {
+        "operation": "operation-2",
+        "killed": false,
+        "spend": {
+          "value": 0.2293,
+          "tag": "DERIVED",
+          "source": {
+            "record_id": "harness-v1.4.3/treatment/03@b96e812ae4d41f84c3b6ac8bf7d1344da3cfe52f8227d88fd231b59bed4effb3",
+            "field": "events[24].line",
+            "line": "[cost_guard] recorded $0.2293 sandbox spend, $1.3481 remaining today"
+          }
+        },
+        "remaining": {
+          "value": 1.3481,
+          "tag": "DERIVED",
+          "source": {
+            "record_id": "harness-v1.4.3/treatment/03@b96e812ae4d41f84c3b6ac8bf7d1344da3cfe52f8227d88fd231b59bed4effb3",
+            "field": "events[24].line",
+            "line": "[cost_guard] recorded $0.2293 sandbox spend, $1.3481 remaining today"
+          }
+        }
+      },
+      {
+        "operation": "operation-3",
+        "killed": false,
+        "spend": {
+          "value": 0.0502,
+          "tag": "DERIVED",
+          "source": {
+            "record_id": "harness-v1.4.3/treatment/03@b96e812ae4d41f84c3b6ac8bf7d1344da3cfe52f8227d88fd231b59bed4effb3",
+            "field": "events[34].line",
+            "line": "[cost_guard] recorded $0.0502 sandbox spend, $1.2979 remaining today"
+          }
+        },
+        "remaining": {
+          "value": 1.2979,
+          "tag": "DERIVED",
+          "source": {
+            "record_id": "harness-v1.4.3/treatment/03@b96e812ae4d41f84c3b6ac8bf7d1344da3cfe52f8227d88fd231b59bed4effb3",
+            "field": "events[34].line",
+            "line": "[cost_guard] recorded $0.0502 sandbox spend, $1.2979 remaining today"
+          }
+        }
+      },
+      {
+        "operation": "operation-4",
+        "killed": false,
+        "spend": {
+          "value": 0.0497,
+          "tag": "DERIVED",
+          "source": {
+            "record_id": "harness-v1.4.3/treatment/03@b96e812ae4d41f84c3b6ac8bf7d1344da3cfe52f8227d88fd231b59bed4effb3",
+            "field": "events[50].line",
+            "line": "[cost_guard] recorded $0.0497 sandbox spend, $1.2292 remaining today"
+          }
+        },
+        "remaining": {
+          "value": 1.2292,
+          "tag": "DERIVED",
+          "source": {
+            "record_id": "harness-v1.4.3/treatment/03@b96e812ae4d41f84c3b6ac8bf7d1344da3cfe52f8227d88fd231b59bed4effb3",
+            "field": "events[50].line",
+            "line": "[cost_guard] recorded $0.0497 sandbox spend, $1.2292 remaining today"
+          }
+        }
+      },
+      {
+        "operation": "operation-5",
+        "killed": false,
+        "spend": {
+          "value": 0.0488,
+          "tag": "DERIVED",
+          "source": {
+            "record_id": "harness-v1.4.3/treatment/03@b96e812ae4d41f84c3b6ac8bf7d1344da3cfe52f8227d88fd231b59bed4effb3",
+            "field": "events[57].line",
+            "line": "[cost_guard] recorded $0.0488 sandbox spend, $1.1804 remaining today"
+          }
+        },
+        "remaining": {
+          "value": 1.1804,
+          "tag": "DERIVED",
+          "source": {
+            "record_id": "harness-v1.4.3/treatment/03@b96e812ae4d41f84c3b6ac8bf7d1344da3cfe52f8227d88fd231b59bed4effb3",
+            "field": "events[57].line",
+            "line": "[cost_guard] recorded $0.0488 sandbox spend, $1.1804 remaining today"
+          }
+        }
+      },
+      {
+        "operation": "operation-6",
+        "killed": false,
+        "spend": {
+          "value": 0.0505,
+          "tag": "DERIVED",
+          "source": {
+            "record_id": "harness-v1.4.3/treatment/03@b96e812ae4d41f84c3b6ac8bf7d1344da3cfe52f8227d88fd231b59bed4effb3",
+            "field": "events[64].line",
+            "line": "[cost_guard] recorded $0.0505 sandbox spend, $1.1299 remaining today"
+          }
+        },
+        "remaining": {
+          "value": 1.1299,
+          "tag": "DERIVED",
+          "source": {
+            "record_id": "harness-v1.4.3/treatment/03@b96e812ae4d41f84c3b6ac8bf7d1344da3cfe52f8227d88fd231b59bed4effb3",
+            "field": "events[64].line",
+            "line": "[cost_guard] recorded $0.0505 sandbox spend, $1.1299 remaining today"
+          }
+        }
+      },
+      {
+        "operation": "operation-7",
+        "killed": false,
+        "spend": {
+          "value": 0.051,
+          "tag": "DERIVED",
+          "source": {
+            "record_id": "harness-v1.4.3/treatment/03@b96e812ae4d41f84c3b6ac8bf7d1344da3cfe52f8227d88fd231b59bed4effb3",
+            "field": "events[101].line",
+            "line": "[cost_guard] recorded $0.0510 sandbox spend, $1.0397 remaining today"
+          }
+        },
+        "remaining": {
+          "value": 1.0397,
+          "tag": "DERIVED",
+          "source": {
+            "record_id": "harness-v1.4.3/treatment/03@b96e812ae4d41f84c3b6ac8bf7d1344da3cfe52f8227d88fd231b59bed4effb3",
+            "field": "events[101].line",
+            "line": "[cost_guard] recorded $0.0510 sandbox spend, $1.0397 remaining today"
+          }
+        }
+      },
+      {
+        "operation": "operation-8",
+        "killed": false,
+        "spend": {
+          "value": 0.0497,
+          "tag": "DERIVED",
+          "source": {
+            "record_id": "harness-v1.4.3/treatment/03@b96e812ae4d41f84c3b6ac8bf7d1344da3cfe52f8227d88fd231b59bed4effb3",
+            "field": "events[103].line",
+            "line": "[cost_guard] recorded $0.0497 sandbox spend, $0.9900 remaining today"
+          }
+        },
+        "remaining": {
+          "value": 0.99,
+          "tag": "DERIVED",
+          "source": {
+            "record_id": "harness-v1.4.3/treatment/03@b96e812ae4d41f84c3b6ac8bf7d1344da3cfe52f8227d88fd231b59bed4effb3",
+            "field": "events[103].line",
+            "line": "[cost_guard] recorded $0.0497 sandbox spend, $0.9900 remaining today"
+          }
+        }
+      },
+      {
+        "operation": "operation-9",
+        "killed": false,
+        "spend": {
+          "value": 0.0513,
+          "tag": "DERIVED",
+          "source": {
+            "record_id": "harness-v1.4.3/treatment/03@b96e812ae4d41f84c3b6ac8bf7d1344da3cfe52f8227d88fd231b59bed4effb3",
+            "field": "events[129].line",
+            "line": "[cost_guard] recorded $0.0513 sandbox spend, $0.9091 remaining today"
+          }
+        },
+        "remaining": {
+          "value": 0.9091,
+          "tag": "DERIVED",
+          "source": {
+            "record_id": "harness-v1.4.3/treatment/03@b96e812ae4d41f84c3b6ac8bf7d1344da3cfe52f8227d88fd231b59bed4effb3",
+            "field": "events[129].line",
+            "line": "[cost_guard] recorded $0.0513 sandbox spend, $0.9091 remaining today"
+          }
+        }
+      },
+      {
+        "operation": "operation-10",
+        "killed": false,
+        "spend": {
+          "value": 0.0509,
+          "tag": "DERIVED",
+          "source": {
+            "record_id": "harness-v1.4.3/treatment/03@b96e812ae4d41f84c3b6ac8bf7d1344da3cfe52f8227d88fd231b59bed4effb3",
+            "field": "events[136].line",
+            "line": "[cost_guard] recorded $0.0509 sandbox spend, $0.8582 remaining today"
+          }
+        },
+        "remaining": {
+          "value": 0.8582,
+          "tag": "DERIVED",
+          "source": {
+            "record_id": "harness-v1.4.3/treatment/03@b96e812ae4d41f84c3b6ac8bf7d1344da3cfe52f8227d88fd231b59bed4effb3",
+            "field": "events[136].line",
+            "line": "[cost_guard] recorded $0.0509 sandbox spend, $0.8582 remaining today"
+          }
+        }
+      },
+      {
+        "operation": "operation-11",
+        "killed": false,
+        "spend": {
+          "value": 0.0497,
+          "tag": "DERIVED",
+          "source": {
+            "record_id": "harness-v1.4.3/treatment/03@b96e812ae4d41f84c3b6ac8bf7d1344da3cfe52f8227d88fd231b59bed4effb3",
+            "field": "events[143].line",
+            "line": "[cost_guard] recorded $0.0497 sandbox spend, $0.8086 remaining today"
+          }
+        },
+        "remaining": {
+          "value": 0.8086,
+          "tag": "DERIVED",
+          "source": {
+            "record_id": "harness-v1.4.3/treatment/03@b96e812ae4d41f84c3b6ac8bf7d1344da3cfe52f8227d88fd231b59bed4effb3",
+            "field": "events[143].line",
+            "line": "[cost_guard] recorded $0.0497 sandbox spend, $0.8086 remaining today"
+          }
+        }
+      }
+    ],
+    "stored_operations": [
+      {
+        "n": {
+          "value": 1,
+          "tag": "API-REPORTED"
+        },
+        "role": "baseline",
+        "candidate": null,
+        "concurrent": {
+          "value": 1,
+          "tag": "API-REPORTED"
+        },
+        "base_image": "python:3.6-slim",
+        "funded_seconds": {
+          "value": 600.0,
+          "tag": "API-REPORTED"
+        },
+        "wall_seconds": {
+          "value": 85.03,
+          "tag": "API-REPORTED"
+        },
+        "sandbox_seconds": {
+          "value": 16.569,
+          "tag": "API-REPORTED"
+        },
+        "install_seconds": [
+          {
+            "command": "pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cpu --extra-index-url https://pypi.org/simple || pip install torch torchvi",
+            "phase": "runner_setup",
+            "seconds": {
+              "value": 14.014,
+              "tag": "API-REPORTED"
+            },
+            "exit_code": {
+              "value": 0,
+              "tag": "API-REPORTED"
+            },
+            "cost_usd": {
+              "value": 0.145614,
+              "tag": "API-REPORTED"
+            },
+            "torch": true
+          },
+          {
+            "command": "python -c '\nimport glob, importlib.util, os, struct, subprocess, sys\nspec = importlib.util.find_spec(\"torch\")\nroot = os.path.join(os.path.dirname(spec.origin), ",
+            "phase": "runner_setup",
+            "seconds": {
+              "value": 1.452,
+              "tag": "API-REPORTED"
+            },
+            "exit_code": {
+              "value": 0,
+              "tag": "API-REPORTED"
+            },
+            "cost_usd": {
+              "value": 0.016618,
+              "tag": "API-REPORTED"
+            },
+            "torch": false
+          },
+          {
+            "command": "true  # no declared dependency file found; nothing to install",
+            "phase": "repo_install",
+            "seconds": {
+              "value": 0.001,
+              "tag": "API-REPORTED"
+            },
+            "exit_code": {
+              "value": 0,
+              "tag": "API-REPORTED"
+            },
+            "cost_usd": {
+              "value": 4.9e-05,
+              "tag": "API-REPORTED"
+            },
+            "torch": false
+          }
+        ],
+        "branch_from_image": null,
+        "start_setup_commands": {
+          "value": 0,
+          "tag": "API-REPORTED"
+        },
+        "setup_commands": {
+          "value": 3,
+          "tag": "API-REPORTED"
+        },
+        "torch_in_start_image": false,
+        "torch_installed": true,
+        "torch_env_key": "1f0889c4370bfdff",
+        "result_image": null,
+        "image_kept": true,
+        "kept_images": [
+          "68880d23-d652-4d28-b640-77864451559b",
+          "4d9b1fa5-0fd3-464b-9c9c-cb779099246d",
+          "2b7d0a2a-00ee-4896-b4f6-fbb42ed2a7a3",
+          "ade02606-2d84-461d-876c-6ba164b66b2c"
+        ],
+        "env_image_id": "ade02606-2d84-461d-876c-6ba164b66b2c",
+        "cost_usd": {
+          "value": 0.172043,
+          "tag": "API-REPORTED"
+        },
+        "cost_estimated_usd": {
+          "value": 0.0,
+          "tag": "API-REPORTED"
+        },
+        "outcome": "completed",
+        "resource_limits": {
+          "memory": "not documented (the only wording is \"Automatic cleanup and resource limits help prevent abuse.\" (docs.tokenfactory.nebius.com/sandboxes/overview) and \"Built-in tracking of CPU time, memory usage, and I/O operations for every execution.\")",
+          "cpu": "not documented",
+          "disk_layer_bytes": {
+            "value": 12884901888,
+            "tag": "API-REPORTED"
+          },
+          "larger_instance": "not documented: the spawn request, the SDK, the CLI and the MCP tools have no memory, CPU, size or GPU parameter; Sandboxes is a beta (access by request, contree@nebius.com); no price page (the product page says free while in beta, D-36)",
+          "source": "docs/design/D-40-resources.md (public Nebius Token Factory / ConTree documentation and contree_sdk 0.3.6, read offline 2026-10-01)"
+        },
+        "exit_code": {
+          "value": 1,
+          "tag": "API-REPORTED"
+        },
+        "max_rss": {
+          "value": 636388,
+          "tag": "API-REPORTED"
+        },
+        "streams": {
+          "limit_bytes": {
+            "value": 4194304,
+            "tag": "API-REPORTED"
+          },
+          "stdout": {
+            "bytes": {
+              "value": 0,
+              "tag": "API-REPORTED"
+            },
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "truncated": false
+          },
+          "stderr": {
+            "bytes": {
+              "value": 295,
+              "tag": "API-REPORTED"
+            },
+            "sha256": "b940c8c8d5fd27f58e0e53c2b3c60626b6372ba01865b33f41bdf49b76b93097",
+            "truncated": false
+          }
+        },
+        "killed_step": null,
+        "killed_seconds": null,
+        "funding": {
+          "basis": "baseline: the pre-registered wall clock, not budget-limited",
+          "rate_used_usd_per_s": null,
+          "source_operations": []
+        }
+      },
+      {
+        "n": {
+          "value": 2,
+          "tag": "API-REPORTED"
+        },
+        "role": "re-execution",
+        "candidate": null,
+        "concurrent": {
+          "value": 1,
+          "tag": "API-REPORTED"
+        },
+        "base_image": "python:3.6-slim",
+        "funded_seconds": {
+          "value": 519.7,
+          "tag": "API-REPORTED"
+        },
+        "wall_seconds": {
+          "value": 47.6,
+          "tag": "API-REPORTED"
+        },
+        "sandbox_seconds": {
+          "value": 21.98,
+          "tag": "API-REPORTED"
+        },
+        "install_seconds": [
+          {
+            "command": "pip install torch==1.5.1 torchvision==0.6.1 torchaudio 'numpy<2' --index-url https://download.pytorch.org/whl/cpu --extra-index-url https://pypi.org/simple || p",
+            "phase": "runner_setup",
+            "seconds": {
+              "value": 11.589,
+              "tag": "API-REPORTED"
+            },
+            "exit_code": {
+              "value": 0,
+              "tag": "API-REPORTED"
+            },
+            "cost_usd": {
+              "value": 0.118017,
+              "tag": "API-REPORTED"
+            },
+            "torch": true
+          },
+          {
+            "command": "python -c '\nimport glob, importlib.util, os, struct, subprocess, sys\nspec = importlib.util.find_spec(\"torch\")\nroot = os.path.join(os.path.dirname(spec.origin), ",
+            "phase": "runner_setup",
+            "seconds": {
+              "value": 0.689,
+              "tag": "API-REPORTED"
+            },
+            "exit_code": {
+              "value": 0,
+              "tag": "API-REPORTED"
+            },
+            "cost_usd": {
+              "value": 0.00738,
+              "tag": "API-REPORTED"
+            },
+            "torch": false
+          },
+          {
+            "command": "printf '%s\\n' future==0.18.2 joblib==1.1.0 numpy==1.19.5 pillow==8.4.0 scikit-learn==0.24.2 scipy==1.5.4 threadpoolctl==3.1.0 torch==1.5.1 torchvision==0.6.1 > ",
+            "phase": "repo_install",
+            "seconds": {
+              "value": 5.576,
+              "tag": "API-REPORTED"
+            },
+            "exit_code": {
+              "value": 0,
+              "tag": "API-REPORTED"
+            },
+            "cost_usd": {
+              "value": 0.056459,
+              "tag": "API-REPORTED"
+            },
+            "torch": false
+          }
+        ],
+        "branch_from_image": "68880d23-d652-4d28-b640-77864451559b",
+        "start_setup_commands": {
+          "value": 0,
+          "tag": "API-REPORTED"
+        },
+        "setup_commands": {
+          "value": 3,
+          "tag": "API-REPORTED"
+        },
+        "torch_in_start_image": false,
+        "torch_installed": true,
+        "torch_env_key": "8663b4ff93c00d1d",
+        "result_image": null,
+        "image_kept": true,
+        "kept_images": [
+          "8d2e0463-4f66-4e8e-841b-c4b159cdd269",
+          "0d89dc6e-2e7c-489a-b597-309515ec3307",
+          "6d772902-3faa-4ef6-9eef-5755fc351e7d"
+        ],
+        "env_image_id": "6d772902-3faa-4ef6-9eef-5755fc351e7d",
+        "cost_usd": {
+          "value": 0.229256,
+          "tag": "API-REPORTED"
+        },
+        "cost_estimated_usd": {
+          "value": 0.0,
+          "tag": "API-REPORTED"
+        },
+        "outcome": "completed",
+        "resource_limits": {
+          "memory": "not documented (the only wording is \"Automatic cleanup and resource limits help prevent abuse.\" (docs.tokenfactory.nebius.com/sandboxes/overview) and \"Built-in tracking of CPU time, memory usage, and I/O operations for every execution.\")",
+          "cpu": "not documented",
+          "disk_layer_bytes": {
+            "value": 12884901888,
+            "tag": "API-REPORTED"
+          },
+          "larger_instance": "not documented: the spawn request, the SDK, the CLI and the MCP tools have no memory, CPU, size or GPU parameter; Sandboxes is a beta (access by request, contree@nebius.com); no price page (the product page says free while in beta, D-36)",
+          "source": "docs/design/D-40-resources.md (public Nebius Token Factory / ConTree documentation and contree_sdk 0.3.6, read offline 2026-10-01)"
+        },
+        "exit_code": {
+          "value": 1,
+          "tag": "API-REPORTED"
+        },
+        "max_rss": {
+          "value": 1227592,
+          "tag": "API-REPORTED"
+        },
+        "streams": {
+          "limit_bytes": {
+            "value": 4194304,
+            "tag": "API-REPORTED"
+          },
+          "stdout": {
+            "bytes": {
+              "value": 0,
+              "tag": "API-REPORTED"
+            },
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "truncated": false
+          },
+          "stderr": {
+            "bytes": {
+              "value": 399981,
+              "tag": "API-REPORTED"
+            },
+            "sha256": "c7ba94e9d3b84c861480c01f2868bbabf91395a56b6055e1ee1ae6ff1f3387f9",
+            "truncated": false
+          }
+        },
+        "killed_step": null,
+        "killed_seconds": null,
+        "funding": {
+          "rate_used_usd_per_s": {
+            "value": 0.00303498,
+            "tag": "API-REPORTED"
+          },
+          "measured_usd_per_s": {
+            "value": 0.00202332,
+            "tag": "API-REPORTED"
+          },
+          "safety": {
+            "value": 1.5,
+            "tag": "API-REPORTED"
+          },
+          "floor_usd_per_s": {
+            "value": 0.003,
+            "tag": "API-REPORTED"
+          },
+          "ceiling_usd_per_s": {
+            "value": 0.0085,
+            "tag": "API-REPORTED"
+          },
+          "basis": "measured x safety",
+          "source_operations": [
+            {
+              "value": 1,
+              "tag": "API-REPORTED"
+            }
+          ]
+        }
+      },
+      {
+        "n": {
+          "value": 3,
+          "tag": "API-REPORTED"
+        },
+        "role": "time machine: cpu_shim",
+        "candidate": null,
+        "concurrent": {
+          "value": 1,
+          "tag": "API-REPORTED"
+        },
+        "base_image": "python:3.6-slim",
+        "funded_seconds": {
+          "value": 297.0,
+          "tag": "API-REPORTED"
+        },
+        "wall_seconds": {
+          "value": 10.77,
+          "tag": "API-REPORTED"
+        },
+        "sandbox_seconds": {
+          "value": 4.4,
+          "tag": "API-REPORTED"
+        },
+        "install_seconds": [
+          {
+            "command": "python3 -c \"import base64;exec(base64.b64decode('CmltcG9ydCBiYXNlNjQsIG9zLCBzaXRlLCBzeXMKbmFtZSwgc291cmNlID0gc3lzLmFyZ3ZbMV0sIGJhc2U2NC5iNjRkZWNvZGUoc3lzLmFyZ3Z",
+            "phase": "runner_setup",
+            "seconds": {
+              "value": 0.025,
+              "tag": "API-REPORTED"
+            },
+            "exit_code": {
+              "value": 0,
+              "tag": "API-REPORTED"
+            },
+            "cost_usd": {
+              "value": 0.000296,
+              "tag": "API-REPORTED"
+            },
+            "torch": false
+          }
+        ],
+        "branch_from_image": "6d772902-3faa-4ef6-9eef-5755fc351e7d",
+        "start_setup_commands": {
+          "value": 3,
+          "tag": "API-REPORTED"
+        },
+        "setup_commands": {
+          "value": 4,
+          "tag": "API-REPORTED"
+        },
+        "torch_in_start_image": true,
+        "torch_installed": false,
+        "torch_env_key": "8663b4ff93c00d1d",
+        "result_image": null,
+        "image_kept": true,
+        "kept_images": [
+          "64625e33-ad83-4c45-b6aa-61df3a2cdfc4"
+        ],
+        "env_image_id": "64625e33-ad83-4c45-b6aa-61df3a2cdfc4",
+        "cost_usd": {
+          "value": 0.050187,
+          "tag": "API-REPORTED"
+        },
+        "cost_estimated_usd": {
+          "value": 0.0,
+          "tag": "API-REPORTED"
+        },
+        "outcome": "completed",
+        "resource_limits": {
+          "memory": "not documented (the only wording is \"Automatic cleanup and resource limits help prevent abuse.\" (docs.tokenfactory.nebius.com/sandboxes/overview) and \"Built-in tracking of CPU time, memory usage, and I/O operations for every execution.\")",
+          "cpu": "not documented",
+          "disk_layer_bytes": {
+            "value": 12884901888,
+            "tag": "API-REPORTED"
+          },
+          "larger_instance": "not documented: the spawn request, the SDK, the CLI and the MCP tools have no memory, CPU, size or GPU parameter; Sandboxes is a beta (access by request, contree@nebius.com); no price page (the product page says free while in beta, D-36)",
+          "source": "docs/design/D-40-resources.md (public Nebius Token Factory / ConTree documentation and contree_sdk 0.3.6, read offline 2026-10-01)"
+        },
+        "exit_code": {
+          "value": 1,
+          "tag": "API-REPORTED"
+        },
+        "max_rss": {
+          "value": 1227592,
+          "tag": "API-REPORTED"
+        },
+        "streams": {
+          "limit_bytes": {
+            "value": 4194304,
+            "tag": "API-REPORTED"
+          },
+          "stdout": {
+            "bytes": {
+              "value": 0,
+              "tag": "API-REPORTED"
+            },
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "truncated": false
+          },
+          "stderr": {
+            "bytes": {
+              "value": 400941,
+              "tag": "API-REPORTED"
+            },
+            "sha256": "22f9133e438b251df962efee9f4f55bf16ac34ad638781bb14e332d960baffca",
+            "truncated": false
+          }
+        },
+        "killed_step": null,
+        "killed_seconds": null,
+        "funding": {
+          "rate_used_usd_per_s": {
+            "value": 0.00453855,
+            "tag": "API-REPORTED"
+          },
+          "measured_usd_per_s": {
+            "value": 0.0030257,
+            "tag": "API-REPORTED"
+          },
+          "safety": {
+            "value": 1.5,
+            "tag": "API-REPORTED"
+          },
+          "floor_usd_per_s": {
+            "value": 0.003,
+            "tag": "API-REPORTED"
+          },
+          "ceiling_usd_per_s": {
+            "value": 0.0085,
+            "tag": "API-REPORTED"
+          },
+          "basis": "measured x safety",
+          "source_operations": [
+            {
+              "value": 1,
+              "tag": "API-REPORTED"
+            },
+            {
+              "value": 2,
+              "tag": "API-REPORTED"
+            }
+          ]
+        }
+      },
+      {
+        "n": {
+          "value": 4,
+          "tag": "API-REPORTED"
+        },
+        "role": "repair 1 candidate 1",
+        "candidate": {
+          "value": 1,
+          "tag": "API-REPORTED"
+        },
+        "concurrent": {
+          "value": 1,
+          "tag": "API-REPORTED"
+        },
+        "base_image": "python:3.6-slim",
+        "funded_seconds": {
+          "value": 270.8,
+          "tag": "API-REPORTED"
+        },
+        "wall_seconds": {
+          "value": 14.06,
+          "tag": "API-REPORTED"
+        },
+        "sandbox_seconds": {
+          "value": 4.349,
+          "tag": "API-REPORTED"
+        },
+        "install_seconds": [],
+        "branch_from_image": "64625e33-ad83-4c45-b6aa-61df3a2cdfc4",
+        "start_setup_commands": {
+          "value": 4,
+          "tag": "API-REPORTED"
+        },
+        "setup_commands": {
+          "value": 4,
+          "tag": "API-REPORTED"
+        },
+        "torch_in_start_image": true,
+        "torch_installed": false,
+        "torch_env_key": "8663b4ff93c00d1d",
+        "result_image": "55e68564-7653-4dc8-bd1a-7d3c8393afdf",
+        "image_kept": false,
+        "kept_images": [],
+        "env_image_id": "64625e33-ad83-4c45-b6aa-61df3a2cdfc4",
+        "cost_usd": {
+          "value": 0.049691,
+          "tag": "API-REPORTED"
+        },
+        "cost_estimated_usd": {
+          "value": 0.0,
+          "tag": "API-REPORTED"
+        },
+        "outcome": "completed",
+        "resource_limits": {
+          "memory": "not documented (the only wording is \"Automatic cleanup and resource limits help prevent abuse.\" (docs.tokenfactory.nebius.com/sandboxes/overview) and \"Built-in tracking of CPU time, memory usage, and I/O operations for every execution.\")",
+          "cpu": "not documented",
+          "disk_layer_bytes": {
+            "value": 12884901888,
+            "tag": "API-REPORTED"
+          },
+          "larger_instance": "not documented: the spawn request, the SDK, the CLI and the MCP tools have no memory, CPU, size or GPU parameter; Sandboxes is a beta (access by request, contree@nebius.com); no price page (the product page says free while in beta, D-36)",
+          "source": "docs/design/D-40-resources.md (public Nebius Token Factory / ConTree documentation and contree_sdk 0.3.6, read offline 2026-10-01)"
+        },
+        "exit_code": {
+          "value": 1,
+          "tag": "API-REPORTED"
+        },
+        "max_rss": {
+          "value": 1227804,
+          "tag": "API-REPORTED"
+        },
+        "streams": {
+          "limit_bytes": {
+            "value": 4194304,
+            "tag": "API-REPORTED"
+          },
+          "stdout": {
+            "bytes": {
+              "value": 0,
+              "tag": "API-REPORTED"
+            },
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "truncated": false
+          },
+          "stderr": {
+            "bytes": {
+              "value": 400941,
+              "tag": "API-REPORTED"
+            },
+            "sha256": "22f9133e438b251df962efee9f4f55bf16ac34ad638781bb14e332d960baffca",
+            "truncated": false
+          }
+        },
+        "killed_step": null,
+        "killed_seconds": null,
+        "funding": {
+          "rate_used_usd_per_s": {
+            "value": 0.00472266,
+            "tag": "API-REPORTED"
+          },
+          "measured_usd_per_s": {
+            "value": 0.00314844,
+            "tag": "API-REPORTED"
+          },
+          "safety": {
+            "value": 1.5,
+            "tag": "API-REPORTED"
+          },
+          "floor_usd_per_s": {
+            "value": 0.003,
+            "tag": "API-REPORTED"
+          },
+          "ceiling_usd_per_s": {
+            "value": 0.0085,
+            "tag": "API-REPORTED"
+          },
+          "basis": "measured x safety",
+          "source_operations": [
+            {
+              "value": 1,
+              "tag": "API-REPORTED"
+            },
+            {
+              "value": 2,
+              "tag": "API-REPORTED"
+            },
+            {
+              "value": 3,
+              "tag": "API-REPORTED"
+            }
+          ]
+        },
+        "result_image_released": true
+      },
+      {
+        "n": {
+          "value": 5,
+          "tag": "API-REPORTED"
+        },
+        "role": "repair 1 candidate 2",
+        "candidate": {
+          "value": 2,
+          "tag": "API-REPORTED"
+        },
+        "concurrent": {
+          "value": 1,
+          "tag": "API-REPORTED"
+        },
+        "base_image": "python:3.6-slim",
+        "funded_seconds": {
+          "value": 257.5,
+          "tag": "API-REPORTED"
+        },
+        "wall_seconds": {
+          "value": 11.83,
+          "tag": "API-REPORTED"
+        },
+        "sandbox_seconds": {
+          "value": 4.26,
+          "tag": "API-REPORTED"
+        },
+        "install_seconds": [],
+        "branch_from_image": "64625e33-ad83-4c45-b6aa-61df3a2cdfc4",
+        "start_setup_commands": {
+          "value": 4,
+          "tag": "API-REPORTED"
+        },
+        "setup_commands": {
+          "value": 4,
+          "tag": "API-REPORTED"
+        },
+        "torch_in_start_image": true,
+        "torch_installed": false,
+        "torch_env_key": "8663b4ff93c00d1d",
+        "result_image": "30a0d5e1-5f80-4fa1-a7dc-53de4a40eacc",
+        "image_kept": false,
+        "kept_images": [],
+        "env_image_id": "64625e33-ad83-4c45-b6aa-61df3a2cdfc4",
+        "cost_usd": {
+          "value": 0.048804,
+          "tag": "API-REPORTED"
+        },
+        "cost_estimated_usd": {
+          "value": 0.0,
+          "tag": "API-REPORTED"
+        },
+        "outcome": "completed",
+        "resource_limits": {
+          "memory": "not documented (the only wording is \"Automatic cleanup and resource limits help prevent abuse.\" (docs.tokenfactory.nebius.com/sandboxes/overview) and \"Built-in tracking of CPU time, memory usage, and I/O operations for every execution.\")",
+          "cpu": "not documented",
+          "disk_layer_bytes": {
+            "value": 12884901888,
+            "tag": "API-REPORTED"
+          },
+          "larger_instance": "not documented: the spawn request, the SDK, the CLI and the MCP tools have no memory, CPU, size or GPU parameter; Sandboxes is a beta (access by request, contree@nebius.com); no price page (the product page says free while in beta, D-36)",
+          "source": "docs/design/D-40-resources.md (public Nebius Token Factory / ConTree documentation and contree_sdk 0.3.6, read offline 2026-10-01)"
+        },
+        "exit_code": {
+          "value": 1,
+          "tag": "API-REPORTED"
+        },
+        "max_rss": {
+          "value": 1227804,
+          "tag": "API-REPORTED"
+        },
+        "streams": {
+          "limit_bytes": {
+            "value": 4194304,
+            "tag": "API-REPORTED"
+          },
+          "stdout": {
+            "bytes": {
+              "value": 0,
+              "tag": "API-REPORTED"
+            },
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "truncated": false
+          },
+          "stderr": {
+            "bytes": {
+              "value": 400941,
+              "tag": "API-REPORTED"
+            },
+            "sha256": "22f9133e438b251df962efee9f4f55bf16ac34ad638781bb14e332d960baffca",
+            "truncated": false
+          }
+        },
+        "killed_step": null,
+        "killed_seconds": null,
+        "funding": {
+          "rate_used_usd_per_s": {
+            "value": 0.00477433,
+            "tag": "API-REPORTED"
+          },
+          "measured_usd_per_s": {
+            "value": 0.00318288,
+            "tag": "API-REPORTED"
+          },
+          "safety": {
+            "value": 1.5,
+            "tag": "API-REPORTED"
+          },
+          "floor_usd_per_s": {
+            "value": 0.003,
+            "tag": "API-REPORTED"
+          },
+          "ceiling_usd_per_s": {
+            "value": 0.0085,
+            "tag": "API-REPORTED"
+          },
+          "basis": "measured x safety",
+          "source_operations": [
+            {
+              "value": 1,
+              "tag": "API-REPORTED"
+            },
+            {
+              "value": 2,
+              "tag": "API-REPORTED"
+            },
+            {
+              "value": 3,
+              "tag": "API-REPORTED"
+            },
+            {
+              "value": 4,
+              "tag": "API-REPORTED"
+            }
+          ]
+        },
+        "result_image_released": true
+      },
+      {
+        "n": {
+          "value": 6,
+          "tag": "API-REPORTED"
+        },
+        "role": "repair 1 candidate 3",
+        "candidate": {
+          "value": 3,
+          "tag": "API-REPORTED"
+        },
+        "concurrent": {
+          "value": 1,
+          "tag": "API-REPORTED"
+        },
+        "base_image": "python:3.6-slim",
+        "funded_seconds": {
+          "value": 242.2,
+          "tag": "API-REPORTED"
+        },
+        "wall_seconds": {
+          "value": 13.75,
+          "tag": "API-REPORTED"
+        },
+        "sandbox_seconds": {
+          "value": 4.43,
+          "tag": "API-REPORTED"
+        },
+        "install_seconds": [],
+        "branch_from_image": "64625e33-ad83-4c45-b6aa-61df3a2cdfc4",
+        "start_setup_commands": {
+          "value": 4,
+          "tag": "API-REPORTED"
+        },
+        "setup_commands": {
+          "value": 4,
+          "tag": "API-REPORTED"
+        },
+        "torch_in_start_image": true,
+        "torch_installed": false,
+        "torch_env_key": "8663b4ff93c00d1d",
+        "result_image": "aead9cd4-7a57-4c22-b102-3ccab3957ef7",
+        "image_kept": false,
+        "kept_images": [],
+        "env_image_id": "64625e33-ad83-4c45-b6aa-61df3a2cdfc4",
+        "cost_usd": {
+          "value": 0.050505,
+          "tag": "API-REPORTED"
+        },
+        "cost_estimated_usd": {
+          "value": 0.0,
+          "tag": "API-REPORTED"
+        },
+        "outcome": "completed",
+        "resource_limits": {
+          "memory": "not documented (the only wording is \"Automatic cleanup and resource limits help prevent abuse.\" (docs.tokenfactory.nebius.com/sandboxes/overview) and \"Built-in tracking of CPU time, memory usage, and I/O operations for every execution.\")",
+          "cpu": "not documented",
+          "disk_layer_bytes": {
+            "value": 12884901888,
+            "tag": "API-REPORTED"
+          },
+          "larger_instance": "not documented: the spawn request, the SDK, the CLI and the MCP tools have no memory, CPU, size or GPU parameter; Sandboxes is a beta (access by request, contree@nebius.com); no price page (the product page says free while in beta, D-36)",
+          "source": "docs/design/D-40-resources.md (public Nebius Token Factory / ConTree documentation and contree_sdk 0.3.6, read offline 2026-10-01)"
+        },
+        "exit_code": {
+          "value": 1,
+          "tag": "API-REPORTED"
+        },
+        "max_rss": {
+          "value": 1227804,
+          "tag": "API-REPORTED"
+        },
+        "streams": {
+          "limit_bytes": {
+            "value": 4194304,
+            "tag": "API-REPORTED"
+          },
+          "stdout": {
+            "bytes": {
+              "value": 0,
+              "tag": "API-REPORTED"
+            },
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "truncated": false
+          },
+          "stderr": {
+            "bytes": {
+              "value": 400941,
+              "tag": "API-REPORTED"
+            },
+            "sha256": "22f9133e438b251df962efee9f4f55bf16ac34ad638781bb14e332d960baffca",
+            "truncated": false
+          }
+        },
+        "killed_step": null,
+        "killed_seconds": null,
+        "funding": {
+          "rate_used_usd_per_s": {
+            "value": 0.00487313,
+            "tag": "API-REPORTED"
+          },
+          "measured_usd_per_s": {
+            "value": 0.00324875,
+            "tag": "API-REPORTED"
+          },
+          "safety": {
+            "value": 1.5,
+            "tag": "API-REPORTED"
+          },
+          "floor_usd_per_s": {
+            "value": 0.003,
+            "tag": "API-REPORTED"
+          },
+          "ceiling_usd_per_s": {
+            "value": 0.0085,
+            "tag": "API-REPORTED"
+          },
+          "basis": "measured x safety",
+          "source_operations": [
+            {
+              "value": 1,
+              "tag": "API-REPORTED"
+            },
+            {
+              "value": 2,
+              "tag": "API-REPORTED"
+            },
+            {
+              "value": 3,
+              "tag": "API-REPORTED"
+            },
+            {
+              "value": 4,
+              "tag": "API-REPORTED"
+            },
+            {
+              "value": 5,
+              "tag": "API-REPORTED"
+            }
+          ]
+        },
+        "result_image_released": true
+      },
+      {
+        "n": {
+          "value": 7,
+          "tag": "API-REPORTED"
+        },
+        "role": "repair 1: release candidate images not chosen",
+        "candidate": null,
+        "concurrent": {
+          "value": 1,
+          "tag": "API-REPORTED"
+        },
+        "released_images": [
+          "55e68564-7653-4dc8-bd1a-7d3c8393afdf",
+          "30a0d5e1-5f80-4fa1-a7dc-53de4a40eacc",
+          "aead9cd4-7a57-4c22-b102-3ccab3957ef7"
+        ],
+        "released": {
+          "value": 3,
+          "tag": "API-REPORTED"
+        },
+        "note": "a disposable run on each image, as the sandbox's own cleanup; the SDK has no delete call",
+        "sandbox_seconds": {
+          "value": 0.003,
+          "tag": "API-REPORTED"
+        },
+        "install_seconds": [],
+        "branch_from_image": null,
+        "result_image": null,
+        "image_kept": false,
+        "kept_images": [],
+        "torch_installed": false,
+        "torch_in_start_image": false,
+        "torch_env_key": null,
+        "cost_usd": {
+          "value": 0.000161,
+          "tag": "API-REPORTED"
+        },
+        "cost_estimated_usd": {
+          "value": 0.0,
+          "tag": "API-REPORTED"
+        },
+        "outcome": "completed"
+      },
+      {
+        "n": {
+          "value": 8,
+          "tag": "API-REPORTED"
+        },
+        "role": "repair 2 candidate 3",
+        "candidate": {
+          "value": 3,
+          "tag": "API-REPORTED"
+        },
+        "concurrent": {
+          "value": 2,
+          "tag": "API-REPORTED"
+        },
+        "base_image": "python:3.6-slim",
+        "funded_seconds": {
+          "value": 110.8,
+          "tag": "API-REPORTED"
+        },
+        "wall_seconds": {
+          "value": 12.29,
+          "tag": "API-REPORTED"
+        },
+        "sandbox_seconds": {
+          "value": 4.476,
+          "tag": "API-REPORTED"
+        },
+        "install_seconds": [],
+        "branch_from_image": "64625e33-ad83-4c45-b6aa-61df3a2cdfc4",
+        "start_setup_commands": {
+          "value": 4,
+          "tag": "API-REPORTED"
+        },
+        "setup_commands": {
+          "value": 4,
+          "tag": "API-REPORTED"
+        },
+        "torch_in_start_image": true,
+        "torch_installed": false,
+        "torch_env_key": "8663b4ff93c00d1d",
+        "result_image": "55b8b159-219a-434c-9b43-e4ff9120563b",
+        "image_kept": false,
+        "kept_images": [],
+        "env_image_id": "64625e33-ad83-4c45-b6aa-61df3a2cdfc4",
+        "cost_usd": {
+          "value": 0.050959,
+          "tag": "API-REPORTED"
+        },
+        "cost_estimated_usd": {
+          "value": 0.0,
+          "tag": "API-REPORTED"
+        },
+        "outcome": "completed",
+        "resource_limits": {
+          "memory": "not documented (the only wording is \"Automatic cleanup and resource limits help prevent abuse.\" (docs.tokenfactory.nebius.com/sandboxes/overview) and \"Built-in tracking of CPU time, memory usage, and I/O operations for every execution.\")",
+          "cpu": "not documented",
+          "disk_layer_bytes": {
+            "value": 12884901888,
+            "tag": "API-REPORTED"
+          },
+          "larger_instance": "not documented: the spawn request, the SDK, the CLI and the MCP tools have no memory, CPU, size or GPU parameter; Sandboxes is a beta (access by request, contree@nebius.com); no price page (the product page says free while in beta, D-36)",
+          "source": "docs/design/D-40-resources.md (public Nebius Token Factory / ConTree documentation and contree_sdk 0.3.6, read offline 2026-10-01)"
+        },
+        "exit_code": {
+          "value": 1,
+          "tag": "API-REPORTED"
+        },
+        "max_rss": {
+          "value": 1227668,
+          "tag": "API-REPORTED"
+        },
+        "streams": {
+          "limit_bytes": {
+            "value": 4194304,
+            "tag": "API-REPORTED"
+          },
+          "stdout": {
+            "bytes": {
+              "value": 0,
+              "tag": "API-REPORTED"
+            },
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "truncated": false
+          },
+          "stderr": {
+            "bytes": {
+              "value": 400941,
+              "tag": "API-REPORTED"
+            },
+            "sha256": "22f9133e438b251df962efee9f4f55bf16ac34ad638781bb14e332d960baffca",
+            "truncated": false
+          }
+        },
+        "killed_step": null,
+        "killed_seconds": null,
+        "funding": {
+          "rate_used_usd_per_s": {
+            "value": 0.00492094,
+            "tag": "API-REPORTED"
+          },
+          "measured_usd_per_s": {
+            "value": 0.00328063,
+            "tag": "API-REPORTED"
+          },
+          "safety": {
+            "value": 1.5,
+            "tag": "API-REPORTED"
+          },
+          "floor_usd_per_s": {
+            "value": 0.003,
+            "tag": "API-REPORTED"
+          },
+          "ceiling_usd_per_s": {
+            "value": 0.0085,
+            "tag": "API-REPORTED"
+          },
+          "basis": "measured x safety",
+          "source_operations": [
+            {
+              "value": 1,
+              "tag": "API-REPORTED"
+            },
+            {
+              "value": 2,
+              "tag": "API-REPORTED"
+            },
+            {
+              "value": 3,
+              "tag": "API-REPORTED"
+            },
+            {
+              "value": 4,
+              "tag": "API-REPORTED"
+            },
+            {
+              "value": 5,
+              "tag": "API-REPORTED"
+            },
+            {
+              "value": 6,
+              "tag": "API-REPORTED"
+            }
+          ]
+        },
+        "result_image_released": true
+      },
+      {
+        "n": {
+          "value": 9,
+          "tag": "API-REPORTED"
+        },
+        "role": "repair 2 candidate 1",
+        "candidate": {
+          "value": 1,
+          "tag": "API-REPORTED"
+        },
+        "concurrent": {
+          "value": 2,
+          "tag": "API-REPORTED"
+        },
+        "base_image": "python:3.6-slim",
+        "funded_seconds": {
+          "value": 110.8,
+          "tag": "API-REPORTED"
+        },
+        "wall_seconds": {
+          "value": 13.62,
+          "tag": "API-REPORTED"
+        },
+        "sandbox_seconds": {
+          "value": 4.351,
+          "tag": "API-REPORTED"
+        },
+        "install_seconds": [],
+        "branch_from_image": "64625e33-ad83-4c45-b6aa-61df3a2cdfc4",
+        "start_setup_commands": {
+          "value": 4,
+          "tag": "API-REPORTED"
+        },
+        "setup_commands": {
+          "value": 4,
+          "tag": "API-REPORTED"
+        },
+        "torch_in_start_image": true,
+        "torch_installed": false,
+        "torch_env_key": "8663b4ff93c00d1d",
+        "result_image": "d4460222-55b1-4337-98a2-6dab1dbe867d",
+        "image_kept": false,
+        "kept_images": [],
+        "env_image_id": "64625e33-ad83-4c45-b6aa-61df3a2cdfc4",
+        "cost_usd": {
+          "value": 0.04971,
+          "tag": "API-REPORTED"
+        },
+        "cost_estimated_usd": {
+          "value": 0.0,
+          "tag": "API-REPORTED"
+        },
+        "outcome": "completed",
+        "resource_limits": {
+          "memory": "not documented (the only wording is \"Automatic cleanup and resource limits help prevent abuse.\" (docs.tokenfactory.nebius.com/sandboxes/overview) and \"Built-in tracking of CPU time, memory usage, and I/O operations for every execution.\")",
+          "cpu": "not documented",
+          "disk_layer_bytes": {
+            "value": 12884901888,
+            "tag": "API-REPORTED"
+          },
+          "larger_instance": "not documented: the spawn request, the SDK, the CLI and the MCP tools have no memory, CPU, size or GPU parameter; Sandboxes is a beta (access by request, contree@nebius.com); no price page (the product page says free while in beta, D-36)",
+          "source": "docs/design/D-40-resources.md (public Nebius Token Factory / ConTree documentation and contree_sdk 0.3.6, read offline 2026-10-01)"
+        },
+        "exit_code": {
+          "value": 1,
+          "tag": "API-REPORTED"
+        },
+        "max_rss": {
+          "value": 1227808,
+          "tag": "API-REPORTED"
+        },
+        "streams": {
+          "limit_bytes": {
+            "value": 4194304,
+            "tag": "API-REPORTED"
+          },
+          "stdout": {
+            "bytes": {
+              "value": 0,
+              "tag": "API-REPORTED"
+            },
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "truncated": false
+          },
+          "stderr": {
+            "bytes": {
+              "value": 400941,
+              "tag": "API-REPORTED"
+            },
+            "sha256": "22f9133e438b251df962efee9f4f55bf16ac34ad638781bb14e332d960baffca",
+            "truncated": false
+          }
+        },
+        "killed_step": null,
+        "killed_seconds": null,
+        "funding": {
+          "rate_used_usd_per_s": {
+            "value": 0.00492094,
+            "tag": "API-REPORTED"
+          },
+          "measured_usd_per_s": {
+            "value": 0.00328063,
+            "tag": "API-REPORTED"
+          },
+          "safety": {
+            "value": 1.5,
+            "tag": "API-REPORTED"
+          },
+          "floor_usd_per_s": {
+            "value": 0.003,
+            "tag": "API-REPORTED"
+          },
+          "ceiling_usd_per_s": {
+            "value": 0.0085,
+            "tag": "API-REPORTED"
+          },
+          "basis": "measured x safety",
+          "source_operations": [
+            {
+              "value": 1,
+              "tag": "API-REPORTED"
+            },
+            {
+              "value": 2,
+              "tag": "API-REPORTED"
+            },
+            {
+              "value": 3,
+              "tag": "API-REPORTED"
+            },
+            {
+              "value": 4,
+              "tag": "API-REPORTED"
+            },
+            {
+              "value": 5,
+              "tag": "API-REPORTED"
+            },
+            {
+              "value": 6,
+              "tag": "API-REPORTED"
+            }
+          ]
+        },
+        "result_image_released": true
+      },
+      {
+        "n": {
+          "value": 10,
+          "tag": "API-REPORTED"
+        },
+        "role": "repair 2: release candidate images not chosen",
+        "candidate": null,
+        "concurrent": {
+          "value": 1,
+          "tag": "API-REPORTED"
+        },
+        "released_images": [
+          "d4460222-55b1-4337-98a2-6dab1dbe867d",
+          "55b8b159-219a-434c-9b43-e4ff9120563b"
+        ],
+        "released": {
+          "value": 2,
+          "tag": "API-REPORTED"
+        },
+        "note": "a disposable run on each image, as the sandbox's own cleanup; the SDK has no delete call",
+        "sandbox_seconds": {
+          "value": 0.002,
+          "tag": "API-REPORTED"
+        },
+        "install_seconds": [],
+        "branch_from_image": null,
+        "result_image": null,
+        "image_kept": false,
+        "kept_images": [],
+        "torch_installed": false,
+        "torch_in_start_image": false,
+        "torch_env_key": null,
+        "cost_usd": {
+          "value": 0.00012,
+          "tag": "API-REPORTED"
+        },
+        "cost_estimated_usd": {
+          "value": 0.0,
+          "tag": "API-REPORTED"
+        },
+        "outcome": "completed"
+      },
+      {
+        "n": {
+          "value": 11,
+          "tag": "API-REPORTED"
+        },
+        "role": "repair 3 candidate 1",
+        "candidate": {
+          "value": 1,
+          "tag": "API-REPORTED"
+        },
+        "concurrent": {
+          "value": 1,
+          "tag": "API-REPORTED"
+        },
+        "base_image": "python:3.6-slim",
+        "funded_seconds": {
+          "value": 190.8,
+          "tag": "API-REPORTED"
+        },
+        "wall_seconds": {
+          "value": 16.47,
+          "tag": "API-REPORTED"
+        },
+        "sandbox_seconds": {
+          "value": 4.506,
+          "tag": "API-REPORTED"
+        },
+        "install_seconds": [],
+        "branch_from_image": "64625e33-ad83-4c45-b6aa-61df3a2cdfc4",
+        "start_setup_commands": {
+          "value": 4,
+          "tag": "API-REPORTED"
+        },
+        "setup_commands": {
+          "value": 4,
+          "tag": "API-REPORTED"
+        },
+        "torch_in_start_image": true,
+        "torch_installed": false,
+        "torch_env_key": "8663b4ff93c00d1d",
+        "result_image": "b88ac27b-7ab4-4232-a2c5-105769639060",
+        "image_kept": false,
+        "kept_images": [],
+        "env_image_id": "64625e33-ad83-4c45-b6aa-61df3a2cdfc4",
+        "cost_usd": {
+          "value": 0.051262,
+          "tag": "API-REPORTED"
+        },
+        "cost_estimated_usd": {
+          "value": 0.0,
+          "tag": "API-REPORTED"
+        },
+        "outcome": "completed",
+        "resource_limits": {
+          "memory": "not documented (the only wording is \"Automatic cleanup and resource limits help prevent abuse.\" (docs.tokenfactory.nebius.com/sandboxes/overview) and \"Built-in tracking of CPU time, memory usage, and I/O operations for every execution.\")",
+          "cpu": "not documented",
+          "disk_layer_bytes": {
+            "value": 12884901888,
+            "tag": "API-REPORTED"
+          },
+          "larger_instance": "not documented: the spawn request, the SDK, the CLI and the MCP tools have no memory, CPU, size or GPU parameter; Sandboxes is a beta (access by request, contree@nebius.com); no price page (the product page says free while in beta, D-36)",
+          "source": "docs/design/D-40-resources.md (public Nebius Token Factory / ConTree documentation and contree_sdk 0.3.6, read offline 2026-10-01)"
+        },
+        "exit_code": {
+          "value": 1,
+          "tag": "API-REPORTED"
+        },
+        "max_rss": {
+          "value": 1227884,
+          "tag": "API-REPORTED"
+        },
+        "streams": {
+          "limit_bytes": {
+            "value": 4194304,
+            "tag": "API-REPORTED"
+          },
+          "stdout": {
+            "bytes": {
+              "value": 0,
+              "tag": "API-REPORTED"
+            },
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "truncated": false
+          },
+          "stderr": {
+            "bytes": {
+              "value": 400941,
+              "tag": "API-REPORTED"
+            },
+            "sha256": "22f9133e438b251df962efee9f4f55bf16ac34ad638781bb14e332d960baffca",
+            "truncated": false
+          }
+        },
+        "killed_step": null,
+        "killed_seconds": null,
+        "funding": {
+          "rate_used_usd_per_s": {
+            "value": 0.00503342,
+            "tag": "API-REPORTED"
+          },
+          "measured_usd_per_s": {
+            "value": 0.00335561,
+            "tag": "API-REPORTED"
+          },
+          "safety": {
+            "value": 1.5,
+            "tag": "API-REPORTED"
+          },
+          "floor_usd_per_s": {
+            "value": 0.003,
+            "tag": "API-REPORTED"
+          },
+          "ceiling_usd_per_s": {
+            "value": 0.0085,
+            "tag": "API-REPORTED"
+          },
+          "basis": "measured x safety",
+          "source_operations": [
+            {
+              "value": 1,
+              "tag": "API-REPORTED"
+            },
+            {
+              "value": 2,
+              "tag": "API-REPORTED"
+            },
+            {
+              "value": 3,
+              "tag": "API-REPORTED"
+            },
+            {
+              "value": 4,
+              "tag": "API-REPORTED"
+            },
+            {
+              "value": 5,
+              "tag": "API-REPORTED"
+            },
+            {
+              "value": 6,
+              "tag": "API-REPORTED"
+            },
+            {
+              "value": 8,
+              "tag": "API-REPORTED"
+            },
+            {
+              "value": 9,
+              "tag": "API-REPORTED"
+            }
+          ]
+        },
+        "result_image_released": true
+      },
+      {
+        "n": {
+          "value": 12,
+          "tag": "API-REPORTED"
+        },
+        "role": "repair 3 candidate 2",
+        "candidate": {
+          "value": 2,
+          "tag": "API-REPORTED"
+        },
+        "concurrent": {
+          "value": 1,
+          "tag": "API-REPORTED"
+        },
+        "base_image": "python:3.6-slim",
+        "funded_seconds": {
+          "value": 181.6,
+          "tag": "API-REPORTED"
+        },
+        "wall_seconds": {
+          "value": 13.39,
+          "tag": "API-REPORTED"
+        },
+        "sandbox_seconds": {
+          "value": 4.469,
+          "tag": "API-REPORTED"
+        },
+        "install_seconds": [],
+        "branch_from_image": "64625e33-ad83-4c45-b6aa-61df3a2cdfc4",
+        "start_setup_commands": {
+          "value": 4,
+          "tag": "API-REPORTED"
+        },
+        "setup_commands": {
+          "value": 4,
+          "tag": "API-REPORTED"
+        },
+        "torch_in_start_image": true,
+        "torch_installed": false,
+        "torch_env_key": "8663b4ff93c00d1d",
+        "result_image": "88392c9f-c753-40d4-be56-4cb504d4ed94",
+        "image_kept": false,
+        "kept_images": [],
+        "env_image_id": "64625e33-ad83-4c45-b6aa-61df3a2cdfc4",
+        "cost_usd": {
+          "value": 0.05089,
+          "tag": "API-REPORTED"
+        },
+        "cost_estimated_usd": {
+          "value": 0.0,
+          "tag": "API-REPORTED"
+        },
+        "outcome": "completed",
+        "resource_limits": {
+          "memory": "not documented (the only wording is \"Automatic cleanup and resource limits help prevent abuse.\" (docs.tokenfactory.nebius.com/sandboxes/overview) and \"Built-in tracking of CPU time, memory usage, and I/O operations for every execution.\")",
+          "cpu": "not documented",
+          "disk_layer_bytes": {
+            "value": 12884901888,
+            "tag": "API-REPORTED"
+          },
+          "larger_instance": "not documented: the spawn request, the SDK, the CLI and the MCP tools have no memory, CPU, size or GPU parameter; Sandboxes is a beta (access by request, contree@nebius.com); no price page (the product page says free while in beta, D-36)",
+          "source": "docs/design/D-40-resources.md (public Nebius Token Factory / ConTree documentation and contree_sdk 0.3.6, read offline 2026-10-01)"
+        },
+        "exit_code": {
+          "value": 1,
+          "tag": "API-REPORTED"
+        },
+        "max_rss": {
+          "value": 1227660,
+          "tag": "API-REPORTED"
+        },
+        "streams": {
+          "limit_bytes": {
+            "value": 4194304,
+            "tag": "API-REPORTED"
+          },
+          "stdout": {
+            "bytes": {
+              "value": 0,
+              "tag": "API-REPORTED"
+            },
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "truncated": false
+          },
+          "stderr": {
+            "bytes": {
+              "value": 400941,
+              "tag": "API-REPORTED"
+            },
+            "sha256": "22f9133e438b251df962efee9f4f55bf16ac34ad638781bb14e332d960baffca",
+            "truncated": false
+          }
+        },
+        "killed_step": null,
+        "killed_seconds": null,
+        "funding": {
+          "rate_used_usd_per_s": {
+            "value": 0.00500677,
+            "tag": "API-REPORTED"
+          },
+          "measured_usd_per_s": {
+            "value": 0.00333784,
+            "tag": "API-REPORTED"
+          },
+          "safety": {
+            "value": 1.5,
+            "tag": "API-REPORTED"
+          },
+          "floor_usd_per_s": {
+            "value": 0.003,
+            "tag": "API-REPORTED"
+          },
+          "ceiling_usd_per_s": {
+            "value": 0.0085,
+            "tag": "API-REPORTED"
+          },
+          "basis": "measured x safety",
+          "source_operations": [
+            {
+              "value": 1,
+              "tag": "API-REPORTED"
+            },
+            {
+              "value": 2,
+              "tag": "API-REPORTED"
+            },
+            {
+              "value": 3,
+              "tag": "API-REPORTED"
+            },
+            {
+              "value": 4,
+              "tag": "API-REPORTED"
+            },
+            {
+              "value": 5,
+              "tag": "API-REPORTED"
+            },
+            {
+              "value": 6,
+              "tag": "API-REPORTED"
+            },
+            {
+              "value": 8,
+              "tag": "API-REPORTED"
+            },
+            {
+              "value": 9,
+              "tag": "API-REPORTED"
+            },
+            {
+              "value": 11,
+              "tag": "API-REPORTED"
+            }
+          ]
+        },
+        "result_image_released": true
+      },
+      {
+        "n": {
+          "value": 13,
+          "tag": "API-REPORTED"
+        },
+        "role": "repair 3 candidate 3",
+        "candidate": {
+          "value": 3,
+          "tag": "API-REPORTED"
+        },
+        "concurrent": {
+          "value": 1,
+          "tag": "API-REPORTED"
+        },
+        "base_image": "python:3.6-slim",
+        "funded_seconds": {
+          "value": 170.1,
+          "tag": "API-REPORTED"
+        },
+        "wall_seconds": {
+          "value": 12.58,
+          "tag": "API-REPORTED"
+        },
+        "sandbox_seconds": {
+          "value": 4.349,
+          "tag": "API-REPORTED"
+        },
+        "install_seconds": [],
+        "branch_from_image": "64625e33-ad83-4c45-b6aa-61df3a2cdfc4",
+        "start_setup_commands": {
+          "value": 4,
+          "tag": "API-REPORTED"
+        },
+        "setup_commands": {
+          "value": 4,
+          "tag": "API-REPORTED"
+        },
+        "torch_in_start_image": true,
+        "torch_installed": false,
+        "torch_env_key": "8663b4ff93c00d1d",
+        "result_image": "29ec529a-9ed1-4f82-b17c-56375028ca6a",
+        "image_kept": false,
+        "kept_images": [],
+        "env_image_id": "64625e33-ad83-4c45-b6aa-61df3a2cdfc4",
+        "cost_usd": {
+          "value": 0.049693,
+          "tag": "API-REPORTED"
+        },
+        "cost_estimated_usd": {
+          "value": 0.0,
+          "tag": "API-REPORTED"
+        },
+        "outcome": "completed",
+        "resource_limits": {
+          "memory": "not documented (the only wording is \"Automatic cleanup and resource limits help prevent abuse.\" (docs.tokenfactory.nebius.com/sandboxes/overview) and \"Built-in tracking of CPU time, memory usage, and I/O operations for every execution.\")",
+          "cpu": "not documented",
+          "disk_layer_bytes": {
+            "value": 12884901888,
+            "tag": "API-REPORTED"
+          },
+          "larger_instance": "not documented: the spawn request, the SDK, the CLI and the MCP tools have no memory, CPU, size or GPU parameter; Sandboxes is a beta (access by request, contree@nebius.com); no price page (the product page says free while in beta, D-36)",
+          "source": "docs/design/D-40-resources.md (public Nebius Token Factory / ConTree documentation and contree_sdk 0.3.6, read offline 2026-10-01)"
+        },
+        "exit_code": {
+          "value": 1,
+          "tag": "API-REPORTED"
+        },
+        "max_rss": {
+          "value": 1227676,
+          "tag": "API-REPORTED"
+        },
+        "streams": {
+          "limit_bytes": {
+            "value": 4194304,
+            "tag": "API-REPORTED"
+          },
+          "stdout": {
+            "bytes": {
+              "value": 0,
+              "tag": "API-REPORTED"
+            },
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "truncated": false
+          },
+          "stderr": {
+            "bytes": {
+              "value": 400941,
+              "tag": "API-REPORTED"
+            },
+            "sha256": "22f9133e438b251df962efee9f4f55bf16ac34ad638781bb14e332d960baffca",
+            "truncated": false
+          }
+        },
+        "killed_step": null,
+        "killed_seconds": null,
+        "funding": {
+          "rate_used_usd_per_s": {
+            "value": 0.00504569,
+            "tag": "API-REPORTED"
+          },
+          "measured_usd_per_s": {
+            "value": 0.00336379,
+            "tag": "API-REPORTED"
+          },
+          "safety": {
+            "value": 1.5,
+            "tag": "API-REPORTED"
+          },
+          "floor_usd_per_s": {
+            "value": 0.003,
+            "tag": "API-REPORTED"
+          },
+          "ceiling_usd_per_s": {
+            "value": 0.0085,
+            "tag": "API-REPORTED"
+          },
+          "basis": "measured x safety",
+          "source_operations": [
+            {
+              "value": 1,
+              "tag": "API-REPORTED"
+            },
+            {
+              "value": 2,
+              "tag": "API-REPORTED"
+            },
+            {
+              "value": 3,
+              "tag": "API-REPORTED"
+            },
+            {
+              "value": 4,
+              "tag": "API-REPORTED"
+            },
+            {
+              "value": 5,
+              "tag": "API-REPORTED"
+            },
+            {
+              "value": 6,
+              "tag": "API-REPORTED"
+            },
+            {
+              "value": 8,
+              "tag": "API-REPORTED"
+            },
+            {
+              "value": 9,
+              "tag": "API-REPORTED"
+            },
+            {
+              "value": 11,
+              "tag": "API-REPORTED"
+            },
+            {
+              "value": 12,
+              "tag": "API-REPORTED"
+            }
+          ]
+        },
+        "result_image_released": true
+      },
+      {
+        "n": {
+          "value": 14,
+          "tag": "API-REPORTED"
+        },
+        "role": "repair 3: release candidate images not chosen",
+        "candidate": null,
+        "concurrent": {
+          "value": 1,
+          "tag": "API-REPORTED"
+        },
+        "released_images": [
+          "b88ac27b-7ab4-4232-a2c5-105769639060",
+          "88392c9f-c753-40d4-be56-4cb504d4ed94",
+          "29ec529a-9ed1-4f82-b17c-56375028ca6a"
+        ],
+        "released": {
+          "value": 3,
+          "tag": "API-REPORTED"
+        },
+        "note": "a disposable run on each image, as the sandbox's own cleanup; the SDK has no delete call",
+        "sandbox_seconds": {
+          "value": 0.003,
+          "tag": "API-REPORTED"
+        },
+        "install_seconds": [],
+        "branch_from_image": null,
+        "result_image": null,
+        "image_kept": false,
+        "kept_images": [],
+        "torch_installed": false,
+        "torch_in_start_image": false,
+        "torch_env_key": null,
+        "cost_usd": {
+          "value": 0.000179,
+          "tag": "API-REPORTED"
+        },
+        "cost_estimated_usd": {
+          "value": 0.0,
+          "tag": "API-REPORTED"
+        },
+        "outcome": "completed"
+      }
+    ],
+    "cost_events": []
+  },
+  "badge": {
+    "exploratory": true,
+    "label": "EXPLORATORY",
+    "text": "EXPLORATORY — did not pass its pre-registered gate. a: 0/4, c: 7 citations (27 attempts consulted, 81 refs, 17 reasons recorded).",
+    "gate_passed": false,
+    "figures": [
+      {
+        "criterion": "a",
+        "ok": false,
+        "detail": "0 of 4 reached RUNS_CLEAN / RUNS_AFTER_REPAIR",
+        "text": "0/4",
+        "recovered": {
+          "value": 0,
+          "tag": "API-REPORTED",
+          "computed_from": "count of verdicts in ['RUNS_CLEAN', 'RUNS_AFTER_REPAIR']",
+          "source": "reports/corpus-v2.1/v1.4.3/gate/gate_result_harness-v1.4.3.json@sha256:406251df9790daf4f92fc53351946273ed9eaf73fafb33b61077f57f6d710a82"
+        },
+        "entries": {
+          "value": 4,
+          "tag": "API-REPORTED",
+          "computed_from": "count of verdicts",
+          "source": "reports/corpus-v2.1/v1.4.3/gate/gate_result_harness-v1.4.3.json@sha256:406251df9790daf4f92fc53351946273ed9eaf73fafb33b61077f57f6d710a82"
+        }
+      },
+      {
+        "criterion": "b",
+        "ok": true,
+        "detail": "15 applied of 17 proposed",
+        "applied": {
+          "value": 15,
+          "tag": "API-REPORTED",
+          "computed_from": "length of b.applied",
+          "source": "reports/corpus-v2.1/v1.4.3/gate/gate_result_harness-v1.4.3.json@sha256:406251df9790daf4f92fc53351946273ed9eaf73fafb33b61077f57f6d710a82"
+        },
+        "proposed_note": "the gate result stores the proposed count only in its `detail` text (quoted on this figure), not as a field"
+      },
+      {
+        "criterion": "c",
+        "ok": true,
+        "detail": "7 repair attempt(s) with a stored Tavily citation",
+        "citations": {
+          "value": 7,
+          "tag": "API-REPORTED",
+          "computed_from": "length of c.cited",
+          "source": "reports/corpus-v2.1/v1.4.3/gate/gate_result_harness-v1.4.3.json@sha256:406251df9790daf4f92fc53351946273ed9eaf73fafb33b61077f57f6d710a82"
+        },
+        "attempts_consulted": {
+          "value": 27,
+          "tag": "API-REPORTED",
+          "computed_from": "count of result.attempts[*].consulted",
+          "source": [
+            "harness-v1.4.3/treatment/03@b96e812ae4d41f84c3b6ac8bf7d1344da3cfe52f8227d88fd231b59bed4effb3#attempt-1-candidate-1",
+            "harness-v1.4.3/treatment/03@b96e812ae4d41f84c3b6ac8bf7d1344da3cfe52f8227d88fd231b59bed4effb3#attempt-1-candidate-2",
+            "harness-v1.4.3/treatment/03@b96e812ae4d41f84c3b6ac8bf7d1344da3cfe52f8227d88fd231b59bed4effb3#attempt-1-candidate-3",
+            "harness-v1.4.3/treatment/03@b96e812ae4d41f84c3b6ac8bf7d1344da3cfe52f8227d88fd231b59bed4effb3#attempt-2-candidate-2",
+            "harness-v1.4.3/treatment/03@b96e812ae4d41f84c3b6ac8bf7d1344da3cfe52f8227d88fd231b59bed4effb3#attempt-2-candidate-1",
+            "harness-v1.4.3/treatment/03@b96e812ae4d41f84c3b6ac8bf7d1344da3cfe52f8227d88fd231b59bed4effb3#attempt-2-candidate-3",
+            "harness-v1.4.3/treatment/03@b96e812ae4d41f84c3b6ac8bf7d1344da3cfe52f8227d88fd231b59bed4effb3#attempt-3-candidate-1",
+            "harness-v1.4.3/treatment/03@b96e812ae4d41f84c3b6ac8bf7d1344da3cfe52f8227d88fd231b59bed4effb3#attempt-3-candidate-2",
+            "harness-v1.4.3/treatment/03@b96e812ae4d41f84c3b6ac8bf7d1344da3cfe52f8227d88fd231b59bed4effb3#attempt-3-candidate-3",
+            "harness-v1.4.3/treatment/07@84dc19553d251c1da741e2aadeef6e86be1ae86dc96eb8a7ea6c8ea8ea38c74d#attempt-1-candidate-1",
+            "harness-v1.4.3/treatment/07@84dc19553d251c1da741e2aadeef6e86be1ae86dc96eb8a7ea6c8ea8ea38c74d#attempt-1-candidate-2",
+            "harness-v1.4.3/treatment/07@84dc19553d251c1da741e2aadeef6e86be1ae86dc96eb8a7ea6c8ea8ea38c74d#attempt-1-candidate-3",
+            "harness-v1.4.3/treatment/07@84dc19553d251c1da741e2aadeef6e86be1ae86dc96eb8a7ea6c8ea8ea38c74d#attempt-2-candidate-2",
+            "harness-v1.4.3/treatment/07@84dc19553d251c1da741e2aadeef6e86be1ae86dc96eb8a7ea6c8ea8ea38c74d#attempt-2-candidate-1",
+            "harness-v1.4.3/treatment/07@84dc19553d251c1da741e2aadeef6e86be1ae86dc96eb8a7ea6c8ea8ea38c74d#attempt-2-candidate-3",
+            "harness-v1.4.3/treatment/07@84dc19553d251c1da741e2aadeef6e86be1ae86dc96eb8a7ea6c8ea8ea38c74d#attempt-3-candidate-1",
+            "harness-v1.4.3/treatment/07@84dc19553d251c1da741e2aadeef6e86be1ae86dc96eb8a7ea6c8ea8ea38c74d#attempt-3-candidate-3",
+            "harness-v1.4.3/treatment/07@84dc19553d251c1da741e2aadeef6e86be1ae86dc96eb8a7ea6c8ea8ea38c74d#attempt-3-candidate-2",
+            "harness-v1.4.3/treatment/08@c0e918256dc08f20acd5e7a3b58f87b49119328011d11900c71df7a2885edfc6#attempt-1-candidate-1",
+            "harness-v1.4.3/treatment/08@c0e918256dc08f20acd5e7a3b58f87b49119328011d11900c71df7a2885edfc6#attempt-1-candidate-2",
+            "harness-v1.4.3/treatment/08@c0e918256dc08f20acd5e7a3b58f87b49119328011d11900c71df7a2885edfc6#attempt-1-candidate-3",
+            "harness-v1.4.3/treatment/08@c0e918256dc08f20acd5e7a3b58f87b49119328011d11900c71df7a2885edfc6#attempt-2-candidate-1",
+            "harness-v1.4.3/treatment/08@c0e918256dc08f20acd5e7a3b58f87b49119328011d11900c71df7a2885edfc6#attempt-2-candidate-2",
+            "harness-v1.4.3/treatment/08@c0e918256dc08f20acd5e7a3b58f87b49119328011d11900c71df7a2885edfc6#attempt-2-candidate-3",
+            "harness-v1.4.3/treatment/08@c0e918256dc08f20acd5e7a3b58f87b49119328011d11900c71df7a2885edfc6#attempt-3-candidate-2",
+            "harness-v1.4.3/treatment/08@c0e918256dc08f20acd5e7a3b58f87b49119328011d11900c71df7a2885edfc6#attempt-3-candidate-1",
+            "harness-v1.4.3/treatment/08@c0e918256dc08f20acd5e7a3b58f87b49119328011d11900c71df7a2885edfc6#attempt-3-candidate-3"
+          ]
+        },
+        "references_consulted": {
+          "value": 81,
+          "tag": "API-REPORTED",
+          "computed_from": "sum of len(result.attempts[*].consulted)",
+          "source": [
+            "harness-v1.4.3/treatment/03@b96e812ae4d41f84c3b6ac8bf7d1344da3cfe52f8227d88fd231b59bed4effb3#attempt-1-candidate-1",
+            "harness-v1.4.3/treatment/03@b96e812ae4d41f84c3b6ac8bf7d1344da3cfe52f8227d88fd231b59bed4effb3#attempt-1-candidate-2",
+            "harness-v1.4.3/treatment/03@b96e812ae4d41f84c3b6ac8bf7d1344da3cfe52f8227d88fd231b59bed4effb3#attempt-1-candidate-3",
+            "harness-v1.4.3/treatment/03@b96e812ae4d41f84c3b6ac8bf7d1344da3cfe52f8227d88fd231b59bed4effb3#attempt-2-candidate-2",
+            "harness-v1.4.3/treatment/03@b96e812ae4d41f84c3b6ac8bf7d1344da3cfe52f8227d88fd231b59bed4effb3#attempt-2-candidate-1",
+            "harness-v1.4.3/treatment/03@b96e812ae4d41f84c3b6ac8bf7d1344da3cfe52f8227d88fd231b59bed4effb3#attempt-2-candidate-3",
+            "harness-v1.4.3/treatment/03@b96e812ae4d41f84c3b6ac8bf7d1344da3cfe52f8227d88fd231b59bed4effb3#attempt-3-candidate-1",
+            "harness-v1.4.3/treatment/03@b96e812ae4d41f84c3b6ac8bf7d1344da3cfe52f8227d88fd231b59bed4effb3#attempt-3-candidate-2",
+            "harness-v1.4.3/treatment/03@b96e812ae4d41f84c3b6ac8bf7d1344da3cfe52f8227d88fd231b59bed4effb3#attempt-3-candidate-3",
+            "harness-v1.4.3/treatment/07@84dc19553d251c1da741e2aadeef6e86be1ae86dc96eb8a7ea6c8ea8ea38c74d#attempt-1-candidate-1",
+            "harness-v1.4.3/treatment/07@84dc19553d251c1da741e2aadeef6e86be1ae86dc96eb8a7ea6c8ea8ea38c74d#attempt-1-candidate-2",
+            "harness-v1.4.3/treatment/07@84dc19553d251c1da741e2aadeef6e86be1ae86dc96eb8a7ea6c8ea8ea38c74d#attempt-1-candidate-3",
+            "harness-v1.4.3/treatment/07@84dc19553d251c1da741e2aadeef6e86be1ae86dc96eb8a7ea6c8ea8ea38c74d#attempt-2-candidate-2",
+            "harness-v1.4.3/treatment/07@84dc19553d251c1da741e2aadeef6e86be1ae86dc96eb8a7ea6c8ea8ea38c74d#attempt-2-candidate-1",
+            "harness-v1.4.3/treatment/07@84dc19553d251c1da741e2aadeef6e86be1ae86dc96eb8a7ea6c8ea8ea38c74d#attempt-2-candidate-3",
+            "harness-v1.4.3/treatment/07@84dc19553d251c1da741e2aadeef6e86be1ae86dc96eb8a7ea6c8ea8ea38c74d#attempt-3-candidate-1",
+            "harness-v1.4.3/treatment/07@84dc19553d251c1da741e2aadeef6e86be1ae86dc96eb8a7ea6c8ea8ea38c74d#attempt-3-candidate-3",
+            "harness-v1.4.3/treatment/07@84dc19553d251c1da741e2aadeef6e86be1ae86dc96eb8a7ea6c8ea8ea38c74d#attempt-3-candidate-2",
+            "harness-v1.4.3/treatment/08@c0e918256dc08f20acd5e7a3b58f87b49119328011d11900c71df7a2885edfc6#attempt-1-candidate-1",
+            "harness-v1.4.3/treatment/08@c0e918256dc08f20acd5e7a3b58f87b49119328011d11900c71df7a2885edfc6#attempt-1-candidate-2",
+            "harness-v1.4.3/treatment/08@c0e918256dc08f20acd5e7a3b58f87b49119328011d11900c71df7a2885edfc6#attempt-1-candidate-3",
+            "harness-v1.4.3/treatment/08@c0e918256dc08f20acd5e7a3b58f87b49119328011d11900c71df7a2885edfc6#attempt-2-candidate-1",
+            "harness-v1.4.3/treatment/08@c0e918256dc08f20acd5e7a3b58f87b49119328011d11900c71df7a2885edfc6#attempt-2-candidate-2",
+            "harness-v1.4.3/treatment/08@c0e918256dc08f20acd5e7a3b58f87b49119328011d11900c71df7a2885edfc6#attempt-2-candidate-3",
+            "harness-v1.4.3/treatment/08@c0e918256dc08f20acd5e7a3b58f87b49119328011d11900c71df7a2885edfc6#attempt-3-candidate-2",
+            "harness-v1.4.3/treatment/08@c0e918256dc08f20acd5e7a3b58f87b49119328011d11900c71df7a2885edfc6#attempt-3-candidate-1",
+            "harness-v1.4.3/treatment/08@c0e918256dc08f20acd5e7a3b58f87b49119328011d11900c71df7a2885edfc6#attempt-3-candidate-3"
+          ]
+        },
+        "reasons_recorded": {
+          "value": 17,
+          "tag": "API-REPORTED",
+          "computed_from": "count of result.attempts[*].reason_no_citation",
+          "source": [
+            "harness-v1.4.3/treatment/03@b96e812ae4d41f84c3b6ac8bf7d1344da3cfe52f8227d88fd231b59bed4effb3#attempt-1-candidate-2",
+            "harness-v1.4.3/treatment/03@b96e812ae4d41f84c3b6ac8bf7d1344da3cfe52f8227d88fd231b59bed4effb3#attempt-1-candidate-3",
+            "harness-v1.4.3/treatment/03@b96e812ae4d41f84c3b6ac8bf7d1344da3cfe52f8227d88fd231b59bed4effb3#attempt-2-candidate-2",
+            "harness-v1.4.3/treatment/03@b96e812ae4d41f84c3b6ac8bf7d1344da3cfe52f8227d88fd231b59bed4effb3#attempt-2-candidate-1",
+            "harness-v1.4.3/treatment/03@b96e812ae4d41f84c3b6ac8bf7d1344da3cfe52f8227d88fd231b59bed4effb3#attempt-2-candidate-3",
+            "harness-v1.4.3/treatment/03@b96e812ae4d41f84c3b6ac8bf7d1344da3cfe52f8227d88fd231b59bed4effb3#attempt-3-candidate-1",
+            "harness-v1.4.3/treatment/03@b96e812ae4d41f84c3b6ac8bf7d1344da3cfe52f8227d88fd231b59bed4effb3#attempt-3-candidate-2",
+            "harness-v1.4.3/treatment/07@84dc19553d251c1da741e2aadeef6e86be1ae86dc96eb8a7ea6c8ea8ea38c74d#attempt-1-candidate-1",
+            "harness-v1.4.3/treatment/07@84dc19553d251c1da741e2aadeef6e86be1ae86dc96eb8a7ea6c8ea8ea38c74d#attempt-1-candidate-2",
+            "harness-v1.4.3/treatment/07@84dc19553d251c1da741e2aadeef6e86be1ae86dc96eb8a7ea6c8ea8ea38c74d#attempt-1-candidate-3",
+            "harness-v1.4.3/treatment/07@84dc19553d251c1da741e2aadeef6e86be1ae86dc96eb8a7ea6c8ea8ea38c74d#attempt-2-candidate-1",
+            "harness-v1.4.3/treatment/07@84dc19553d251c1da741e2aadeef6e86be1ae86dc96eb8a7ea6c8ea8ea38c74d#attempt-2-candidate-3",
+            "harness-v1.4.3/treatment/07@84dc19553d251c1da741e2aadeef6e86be1ae86dc96eb8a7ea6c8ea8ea38c74d#attempt-3-candidate-1",
+            "harness-v1.4.3/treatment/07@84dc19553d251c1da741e2aadeef6e86be1ae86dc96eb8a7ea6c8ea8ea38c74d#attempt-3-candidate-2",
+            "harness-v1.4.3/treatment/08@c0e918256dc08f20acd5e7a3b58f87b49119328011d11900c71df7a2885edfc6#attempt-1-candidate-2",
+            "harness-v1.4.3/treatment/08@c0e918256dc08f20acd5e7a3b58f87b49119328011d11900c71df7a2885edfc6#attempt-1-candidate-3",
+            "harness-v1.4.3/treatment/08@c0e918256dc08f20acd5e7a3b58f87b49119328011d11900c71df7a2885edfc6#attempt-2-candidate-3"
+          ]
+        },
+        "text": "7 citations (27 attempts consulted, 81 refs, 17 reasons recorded)"
+      },
+      {
+        "criterion": "d",
+        "ok": true,
+        "detail": "no entry over $2.00",
+        "cost_cap_endings": {
+          "value": 0,
+          "tag": "API-REPORTED",
+          "computed_from": "count of records with result.reason_code COST_CAP",
+          "source": [
+            "harness-v1.4.3/treatment/03@b96e812ae4d41f84c3b6ac8bf7d1344da3cfe52f8227d88fd231b59bed4effb3",
+            "harness-v1.4.3/treatment/07@84dc19553d251c1da741e2aadeef6e86be1ae86dc96eb8a7ea6c8ea8ea38c74d",
+            "harness-v1.4.3/treatment/08@c0e918256dc08f20acd5e7a3b58f87b49119328011d11900c71df7a2885edfc6",
+            "harness-v1.4.3/treatment/11@1d8ee808dca550ddd793c3912ef90976d47e2a755186bc12b2ed96f9a2ea92d9"
+          ]
+        }
+      },
+      {
+        "criterion": "e",
+        "ok": true,
+        "entries_ok": {
+          "value": 4,
+          "tag": "API-REPORTED",
+          "computed_from": "count of e.per_entry with ok",
+          "source": "reports/corpus-v2.1/v1.4.3/gate/gate_result_harness-v1.4.3.json@sha256:406251df9790daf4f92fc53351946273ed9eaf73fafb33b61077f57f6d710a82"
+        },
+        "entries": {
+          "value": 4,
+          "tag": "API-REPORTED",
+          "computed_from": "count of e.per_entry",
+          "source": "reports/corpus-v2.1/v1.4.3/gate/gate_result_harness-v1.4.3.json@sha256:406251df9790daf4f92fc53351946273ed9eaf73fafb33b61077f57f6d710a82"
+        },
+        "per_entry": {
+          "3": "1 torch install(s) outside the baseline, each in its own environment image",
+          "7": "0 torch install(s) outside the baseline, each in its own environment image",
+          "8": "0 torch install(s) outside the baseline, each in its own environment image",
+          "11": "1 torch install(s) outside the baseline, each in its own environment image"
+        }
+      }
+    ],
+    "gate_cost": {
+      "value": 3.69455,
+      "tag": "API-REPORTED",
+      "currency": "USD",
+      "computed_from": "sum of cost_guard.spent_usd over the gate records",
+      "source": [
+        "harness-v1.4.3/treatment/03@b96e812ae4d41f84c3b6ac8bf7d1344da3cfe52f8227d88fd231b59bed4effb3",
+        "harness-v1.4.3/treatment/07@84dc19553d251c1da741e2aadeef6e86be1ae86dc96eb8a7ea6c8ea8ea38c74d",
+        "harness-v1.4.3/treatment/08@c0e918256dc08f20acd5e7a3b58f87b49119328011d11900c71df7a2885edfc6",
+        "harness-v1.4.3/treatment/11@1d8ee808dca550ddd793c3912ef90976d47e2a755186bc12b2ed96f9a2ea92d9"
+      ]
+    },
+    "links": {
+      "gate_result": "reports/corpus-v2.1/v1.4.3/gate/gate_result_harness-v1.4.3.json",
+      "gate_report": "reports/corpus-v2.1/v1.4.3/gate/GATE_REPORT_v1.4.3.md",
+      "run_records": [
+        "harness-v1.4.3/treatment/03@b96e812ae4d41f84c3b6ac8bf7d1344da3cfe52f8227d88fd231b59bed4effb3",
+        "harness-v1.4.3/treatment/07@84dc19553d251c1da741e2aadeef6e86be1ae86dc96eb8a7ea6c8ea8ea38c74d",
+        "harness-v1.4.3/treatment/08@c0e918256dc08f20acd5e7a3b58f87b49119328011d11900c71df7a2885edfc6",
+        "harness-v1.4.3/treatment/11@1d8ee808dca550ddd793c3912ef90976d47e2a755186bc12b2ed96f9a2ea92d9"
+      ],
+      "cost_line": {
+        "path": "reports/corpus-v2.1/v1.4.3/gate/GATE_REPORT_v1.4.3.md",
+        "quote": "Gate spend (the four records): **$3.69455**"
+      }
+    }
+  },
+  "superseded_by": {
+    "value": null,
+    "reason": "not superseded"
+  },
+  "annotations": [
+    {
+      "id": "D-41",
+      "text": "The era run's stderr (399,981 bytes of progress and a traceback) came back whole, the CUDA error the cut had hidden in every earlier version was seen, classified GPU_REQUIRED, and the CPU shim answered it as a rule with no model call; the entry then ended BLOCKED DATA_MISSING on a dataset path that does not exist in the sandbox (an absolute path outside the checkout; whether the repository documents how to obtain it was not examined).",
+      "sources": [
+        {
+          "path": "reports/corpus-v2.1/candidate_v1.3.3_defects.md",
+          "quote": "- **D-41 [annotation: observed fixed live]**"
+        }
+      ]
+    },
+    {
+      "id": "D-39",
+      "text": "The `.cuda()` path of the CPU shim fired live (`paths_fired` `torch.load`, `module.cuda`).",
+      "sources": [
+        {
+          "path": "reports/corpus-v2.1/candidate_v1.3.3_defects.md",
+          "quote": "- **D-39 [annotation: observed live]**"
+        }
+      ]
+    },
+    {
+      "id": "D-43",
+      "text": "The gate process of the first attempt was killed inside this entry (no record); this record is from the second attempt, whose process died inside entry 8.",
+      "sources": [
+        {
+          "path": "reports/corpus-v2.1/candidate_v1.3.3_defects.md",
+          "quote": "- **D-43 [new, open]**"
+        }
+      ]
+    }
+  ],
+  "passport_hash": "f8c75ddf611e112def0906bb5a807c0726b77b4b863b99a29a437d018025a92d"
+}

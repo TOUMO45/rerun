@@ -168,11 +168,11 @@ def test_the_readme_states_the_headline_the_badges_the_ledger_and_the_limits():
     for part in ("total", "measured", "estimated"):
         assert f"${ledger[part]['value']:.4f}" in text
     assert "lower bound" in text and "D-27" in text
-    for defect in ("D-21", "D-25", "D-26", "D-27", "D-28", "D-36", "D-40", "D-41"):
+    for defect in ("D-21", "D-25", "D-26", "D-27", "D-28", "D-36", "D-40", "D-41", "D-42", "D-43"):
         assert defect in text.split("## Known limits")[1], defect
     for status, count in summary["inventory"]["defects_by_status"].items():
         assert f"`{status}`: {count['value']} [API-REPORTED]" in text
-    assert "smoke-limit artefact" in text and "2 [API-REPORTED] of 20 [API-REPORTED]" in text and "smoke-criterion pass" in text
+    assert "smoke-limit artefact" in text and "2 [API-REPORTED] of 24 [API-REPORTED]" in text and "smoke-criterion pass" in text
     for rel in set(re.findall(r"\]\(((?!https?:)[^)#]+)", text)):
         assert (ROOT / rel).exists(), rel
 
@@ -203,7 +203,7 @@ def test_the_description_is_at_most_400_words_and_the_tagline_is_two_sentences()
     spoken = TAG_MARK.sub(" ", description).replace("**", "")
     assert len(spoken.split()) <= 400, len(spoken.split())
     assert len(re.findall(r"[.!?](?:\s|$)", TAG_MARK.sub("", tagline))) == 2
-    assert "2 [API-REPORTED] of 20 [API-REPORTED]" in tagline and "2 [API-REPORTED] of 20 [API-REPORTED]" in description
+    assert "2 [API-REPORTED] of 24 [API-REPORTED]" in tagline and "2 [API-REPORTED] of 24 [API-REPORTED]" in description
     assert "EXPLORATORY" in description and "lower bound" in description and "smoke-limit artefact" in description
     assert "smoke-criterion pass" in description and "not a rate" in description and "D-41" in description
 

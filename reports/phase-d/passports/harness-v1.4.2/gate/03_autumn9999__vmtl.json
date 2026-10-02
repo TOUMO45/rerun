@@ -1442,7 +1442,7 @@
     },
     {
       "id": "D-35",
-      "text": "The exit hook, the exit wrapper and the evidence run each printed nothing.",
+      "text": "The exit hook, the exit wrapper and the evidence run each printed nothing: their output came after the program's and was cut with it (D-41).",
       "sources": [
         {
           "path": "reports/corpus-v2.1/candidate_v1.3.3_defects.md",
@@ -1452,14 +1452,18 @@
     },
     {
       "id": "D-41",
-      "text": "Every stored stderr tail of this entry ends mid-progress-bar at the same character; the hook, wrapper and evidence output that come after the program are missing. The sandbox SDK truncates output at 65,535 bytes (indicated by the records, not proven): the \"silent exit\" may be a cut-off error message.",
+      "text": "stderr truncated at 65,535 bytes, D-41. The stored stderr tails of this entry that have their full length end mid-progress-bar and the recorded last error is a fragment of that progress bar, not an error; the hook, wrapper and evidence output that come after the program are missing. The probe of 2026-10-02 re-ran this record's operation 5 on its kept image and found the real stderr at 400,939 bytes while the SDK returned 65,535 and the API's truncated flag was set: the \"silent exit\" in this record was a CUDA error (`.cuda()` on a CPU-only torch) behind the cut (record d41-probe/probe_03_vmtl_op5@51727e649a26a37f0646ec1e0107bf1708cd175c086b75a13c09b0f8b48bc7f2). The verdict is unchanged.",
       "sources": [
         {
           "path": "reports/corpus-v2.1/candidate_v1.3.3_defects.md",
           "quote": "- **D-41** The sandbox SDK truncates stdout and stderr at 65,535 bytes"
+        },
+        {
+          "path": "reports/corpus-v2.1/candidate_v1.3.3_defects.md",
+          "quote": "- **D-41 [annotation: CONFIRMED by the probe of 2026-10-02]**"
         }
       ]
     }
   ],
-  "passport_hash": "334cca158c1ebce3ef3c71b7d5dbdd82d47dabaa34c141d2a4bc035837f681b5"
+  "passport_hash": "2d66a515ae3fdd2120b0e464c280901347803bd8b310bcc955d03a71b759037b"
 }
