@@ -24,9 +24,17 @@ def _writer():
     return module
 
 
-def test_with_the_real_files_only_the_three_hooks_entries_of_v141_need_re_verification():
+def _tag_blob(tag: str):
+    """`git hash-object` of a file as it was at `tag`: these two tests describe the state of their own version, not of the worktree, which moves on."""
+    import subprocess
+
+    return lambda path: subprocess.run(["git", "rev-parse", f"{tag}:{path}"], cwd=ROOT, capture_output=True, text=True, check=True).stdout.strip()
+
+
+def test_with_the_real_files_only_the_three_hooks_entries_of_v141_need_re_verification(monkeypatch):
     """The v1.4.1 tag's seal_verification.json against the current files: runner_hooks.py changed again (shim, evidence), nothing else sandbox-touching did."""
     writer = _writer()
+    monkeypatch.setattr(writer, "blob", _tag_blob("harness-v1.4.2"))  # the files as they were at harness-v1.4.2
     previous = writer.previous_entries()
     listing_hooks = {e["id"] for e in previous if writer.HOOKS in e["code_files"]}
     assert listing_hooks == HOOK_ENTRIES and len(previous) == 16

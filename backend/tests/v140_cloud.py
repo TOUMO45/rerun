@@ -12,19 +12,40 @@ import datetime
 import io
 import json
 import tarfile
+import types
 import uuid as uuidlib
 
 from app.services import sandbox
 
 
+SDK_DEFAULT_OUTPUT_LIMIT = 65535  # contree_sdk ContreeConfig.default_truncate_output_at (v0.3.6)
+
+
+def _cut(text: str, limit: int) -> tuple[str, bool]:
+    """The START of the stream up to `limit` bytes, as the API returns it, and whether it cut anything (harness-v1.4.3-rc, D-41)."""
+    data = text.encode("utf-8")
+    if len(data) <= limit:
+        return text, False
+    return data[:limit].decode("utf-8", "ignore"), True
+
+
 class Result:
-    def __init__(self, code, stdout="", stderr="", cost=0.01, seconds=2.0):
+    def __init__(self, code, stdout="", stderr="", cost=0.01, seconds=2.0, limit=None, timed_out=False, max_rss=None):
         self.exit_code, self.stdout, self.stderr, self.cost = code, stdout, stderr, cost
         self.elapsed_time = datetime.timedelta(seconds=seconds)
+        if limit is not None or timed_out or max_rss is not None:
+            # a real result carries the raw API record: each stream's `truncated` flag and the step's `timed_out`
+            out_cut = err_cut = False
+            if limit is not None:
+                self.stdout, out_cut = _cut(stdout, limit)
+                self.stderr, err_cut = _cut(stderr, limit)
+            raw = types.SimpleNamespace(stdout=types.SimpleNamespace(truncated=out_cut), stderr=types.SimpleNamespace(truncated=err_cut),
+                                        state=types.SimpleNamespace(timed_out=timed_out), resources=types.SimpleNamespace(max_rss=max_rss))
+            self._raw = types.SimpleNamespace(result=raw)
 
 
 class FakeCloud:
-    def __init__(self, behaviour=None, costs: dict | None = None, seconds: dict | None = None):
+    def __init__(self, behaviour=None, costs: dict | None = None, seconds: dict | None = None, stops: tuple = ()):
         self.images: dict[str, dict] = {}
         self.ran: list[str] = []
         self.reopened: list[str] = []
@@ -32,6 +53,9 @@ class FakeCloud:
         self.behaviour = behaviour
         self.costs = costs or {}
         self.seconds = seconds or {}
+        self.output_limit = None  # set when the runner builds its client: what ContreeConfig asked for (None = no client yet)
+        self.max_rss = None  # the peak-memory figure the fake API returns for every step (None: the raw result has no usable figure)
+        self.stops = tuple(stops)  # a command containing one of these is stopped by the sandbox at its limit: a normal result with state.timed_out (D-17)
 
     def new_image(self, built: tuple, files: dict) -> "Image":
         image_id = str(uuidlib.uuid4())
@@ -83,8 +107,11 @@ class Image:
                 code, stdout, stderr = outcome
         cost = next((c for key, c in cloud.costs.items() if key in shell), 0.01)
         seconds = next((s for key, s in cloud.seconds.items() if key in shell), 2.0)
+        stopped = any(key in shell for key in cloud.stops)
+        if stopped:
+            code, stdout, stderr = -1, "", ""
         out = Image(cloud, None) if disposable else cloud.new_image((*self.state["built"], shell), files)
-        out.result = Result(code, stdout=stdout, stderr=stderr, cost=cost, seconds=seconds)
+        out.result = Result(code, stdout=stdout, stderr=stderr, cost=cost, seconds=seconds, limit=cloud.output_limit, timed_out=stopped, max_rss=cloud.max_rss)
         out.exit_code = code
         return out
 
@@ -119,6 +146,8 @@ def install(monkeypatch, behaviour=None, **kwargs) -> FakeCloud:
     class _Client:
         def __init__(self, config=None):
             self.images = _Images()
+            # the real client applies `default_truncate_output_at` to every run; the SDK's own default is 65,535 bytes
+            cloud.output_limit = getattr(config, "default_truncate_output_at", SDK_DEFAULT_OUTPUT_LIMIT)
 
     monkeypatch.setattr(sandbox, "ContreeSync", _Client)
     return cloud

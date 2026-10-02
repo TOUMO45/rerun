@@ -44,7 +44,7 @@ import io
 import json
 import tarfile
 import time
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from pathlib import Path
 from typing import Callable, Iterable, Protocol
 
@@ -370,6 +370,15 @@ class _ResultLike(Protocol):
     def cost(self) -> float: ...
 
 
+# harness-v1.4.3-rc (D-41): the SDK cuts each output stream of a run at `ContreeConfig.default_truncate_output_at`, 65,535 bytes by default, and
+# keeps the START of the stream: everything printed after that point is lost, the traceback and the evidence block included. Found by the
+# probe of 2026-10-02 (corpus-v2 #3: 400,939 bytes of stderr, 65,535 returned, the raw API result's `truncated` flag set, a CUDA error behind
+# the cut; runs/sandbox_verification/d41-probe). Every client this module builds now asks for the limit below; the flag is read per stream
+# and stored with the step; a stream that still exceeds the limit is labelled, never read as "printed no error". 4 MiB, not more: the classifier scans a
+# failed run's streams several times (measured offline: 5.6 s for classify + has_actionable_error on 8 MiB of ordinary log lines, 0.3 s on 8 MiB of progress ticks).
+OUTPUT_LIMIT_BYTES = 4 * 1024 * 1024
+
+
 @dataclass(frozen=True)
 class StepResult:
     command: str
@@ -385,6 +394,26 @@ class StepResult:
     # harness-v1.3.3: the sandbox itself stopped this step at its time limit (`state.timed_out` of the API result, which the SDK does not
     # surface). Found live 2026-09-30: a 300 s step given a 25 s limit came back in ~28 s as a NORMAL result, not as an exception.
     timed_out: bool = False
+    # harness-v1.4.3-rc (D-41): the API's own `truncated` flag of each stream (raw result `stdout.truncated` / `stderr.truncated`; the SDK's
+    # `ContreeResult.truncated` is their OR and nothing else reads them). False for a duck-typed fake that carries no raw result.
+    stdout_truncated: bool = False
+    stderr_truncated: bool = False
+    # harness-v1.4.3-rc (D-40): the API's own peak-memory figure for the step (`resources.max_rss` of the raw result), as returned: its unit is not documented, so it is
+    # stored and never converted. None for a duck-typed fake that carries no raw result.
+    max_rss: int | None = None
+
+    @property
+    def truncated(self) -> bool:
+        return self.stdout_truncated or self.stderr_truncated
+
+    def streams(self) -> dict:
+        """What the record stores about this step's output: for each stream the size and sha-256 of what the SDK returned and whether the API
+        said it cut the stream. A stream with `truncated` true is the START of a longer one (the tail was not returned)."""
+        def one(text: str, truncated: bool) -> dict:
+            data = text.encode("utf-8")
+            return {"bytes": len(data), "sha256": hashlib.sha256(data).hexdigest(), "truncated": truncated}
+
+        return {"limit_bytes": OUTPUT_LIMIT_BYTES, "stdout": one(self.stdout, self.stdout_truncated), "stderr": one(self.stderr, self.stderr_truncated)}
 
 
 @dataclass(frozen=True)
@@ -452,6 +481,9 @@ def step_result_from_image(image, command: str, phase: str = "repo_run") -> Step
         cost_usd=result.cost,
         phase=phase,
         timed_out=_server_timed_out(result),
+        stdout_truncated=_stream_truncated(result, "stdout"),
+        stderr_truncated=_stream_truncated(result, "stderr"),
+        max_rss=_max_rss(result),
     )
 
 
@@ -459,6 +491,18 @@ def _server_timed_out(result) -> bool:
     """`state.timed_out` of the raw API result behind a ContreeResult (False for duck-typed fakes that have none)."""
     state = getattr(getattr(getattr(result, "_raw", None), "result", None), "state", None)
     return getattr(state, "timed_out", False) is True
+
+
+def _max_rss(result) -> int | None:
+    """`resources.max_rss` of the raw API result behind a ContreeResult, as returned (None when the result carries none). harness-v1.4.3-rc (D-40)."""
+    value = getattr(getattr(getattr(getattr(result, "_raw", None), "result", None), "resources", None), "max_rss", None)
+    return value if isinstance(value, int) and not isinstance(value, bool) else None
+
+
+def _stream_truncated(result, stream: str) -> bool:
+    """`truncated` of one stream of the raw API result behind a ContreeResult (False for duck-typed fakes that have none). harness-v1.4.3-rc (D-41)."""
+    description = getattr(getattr(getattr(result, "_raw", None), "result", None), stream, None)
+    return getattr(description, "truncated", False) is True
 
 
 
@@ -690,6 +734,27 @@ def run_build_and_execute(
 _sleep: Callable[[float], None] = time.sleep  # tests replace it
 
 
+def run_on_image(*, api_key: str, project_id: str = "", image_id: str, command: str, timeout_seconds: float) -> StepResult:
+    """harness-v1.4.3-rc (D-42, the sustained-run line): ONE disposable run of `command` on a kept image, reopened by its id (strict: the API
+    confirms the image exists), for at most `timeout_seconds`. Nothing is built, uploaded or kept; nothing is retried (a long run is not repeated
+    behind the caller's back). Returns the StepResult, whose `timed_out` is set when the SANDBOX stopped the step at the limit (the API returns the
+    killed step's output and real cost as a normal result, D-17); a client-side wait timeout raises SandboxTimeoutError, like any other step."""
+    if not api_key:
+        raise SandboxCredentialsError("NEBIUS_API_KEY is not set — cannot open a Token Factory Sandbox.")
+    client = ContreeSync(
+        config=ContreeConfig(auth=IAMAuth(token=api_key, project_id=project_id), transport_timeout=timeouts.sandbox_transport_timeout(0),
+                             operation_timeout=timeouts.SANDBOX_OPERATION_S, default_truncate_output_at=OUTPUT_LIMIT_BYTES)
+    )
+    started = time.monotonic()
+    try:
+        image = client.images.use(image_id, strict=True)
+        executed = image.run(shell=command, timeout=timeout_seconds, disposable=True, preserve_env=False).wait()
+    except OperationTimedOutError as exc:
+        raise SandboxTimeoutError(f"sandbox execution exceeded {timeout_seconds}s wall clock: {exc}", command=command, completed_cost_usd=0.0,
+                                  killed_seconds=time.monotonic() - started) from exc
+    return step_result_from_image(executed, command, "repo_run")
+
+
 def release_images(*, api_key: str, project_id: str = "", image_ids: Iterable[str]) -> dict:
     """harness-v1.4.0-rc: the same best-effort disposal `_run_once` applies to every image it does not keep (a trivial disposable run on
     it), for kept images a later decision no longer needs (the losing candidates' result images). The SDK has no delete call, so whether
@@ -741,6 +806,7 @@ def _run_once(
             transport_timeout=timeouts.sandbox_transport_timeout(
                 (len(archive) if archive is not None else 0) + (len(branch_archive) if branch_archive is not None else 0)),
             operation_timeout=timeouts.SANDBOX_OPERATION_S,
+            default_truncate_output_at=OUTPUT_LIMIT_BYTES,  # harness-v1.4.3-rc (D-41): the SDK default of 65,535 bytes cut #3's traceback
         )
     )
     start_image = checkpoint.start_image if checkpoint is not None else None
@@ -897,8 +963,7 @@ def _run_once(
 
         if extract_cost and steps:
             first = steps[0]
-            steps[0] = StepResult(first.command, first.exit_code, first.stdout, first.stderr,
-                                  first.elapsed_seconds, first.cost_usd + extract_cost, first.phase)
+            steps[0] = replace(first, cost_usd=first.cost_usd + extract_cost)
         sandbox_id = str(last_image_uuid) if last_image_uuid is not None else None
         keep_on_exit = True
         return SandboxRunResult(

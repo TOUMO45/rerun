@@ -114,6 +114,11 @@ def templated_certificate_prose(verdict: str, taxonomy_code: str | None, attempt
             "The command exited without a Python error, and RERUN's evidence run showed no sandbox kill (EXIT_OUTSIDE_PYTHON); "
             "RERUN cannot say why it exited, so nothing is claimed about the repository."
         )
+    elif verdict == "INDETERMINATE" and reason.startswith("OUTPUT_TRUNCATED"):
+        base = (
+            "The command failed and the sandbox API returned only the start of its output, with no error in it (OUTPUT_TRUNCATED); "
+            "what the command printed last was not returned, so nothing is claimed about the repository."
+        )
     return f"{base} {SCOPE_BOUNDARY_LINE}"
 
 

@@ -77,6 +77,7 @@ from app.services.cost_guard import (
 from app.services.intake import RepoIntake, read_text_capped
 from app.services.model_client import NebiusChatClient
 from app.services.sandbox import (
+    OUTPUT_LIMIT_BYTES,
     Checkpoint,
     SandboxCredentialsError,
     SandboxError,
@@ -165,6 +166,42 @@ def is_our_fault(reason_code: str | None) -> bool:
     if not reason_code:
         return False
     return reason_code.split(":", 1)[0] in OUR_FAULT_CODES
+
+
+# harness-v1.4.3-rc (D-41): the API cut a failed command's output and the part it returned says nothing: the absence of an error text is then not evidence.
+OUTPUT_TRUNCATED_REASON_CODE = "OUTPUT_TRUNCATED"
+
+
+def output_cut_without_error(result) -> str | None:
+    """The INDETERMINATE reason when `result` failed, the API returned only the START of a stream of its last step (the step's `truncated` flag) and that start holds no
+    error text, else None. Before v1.4.3 every stream was cut at 65,535 bytes and nobody read the flag: corpus-v2 #3's CUDA traceback sat behind 400,939 bytes of
+    progress output and the run ended EXIT_OUTSIDE_PYTHON in every version (D-41). A failure whose error IS in the returned part is classified as before."""
+    steps = getattr(result, "steps", ())
+    if not steps or result.succeeded:
+        return None
+    final = steps[-1]
+    if not getattr(final, "truncated", False) or classifier.has_actionable_error(final.stderr, final.stdout):
+        return None
+    cut = [name for name in ("stdout", "stderr") if getattr(final, f"{name}_truncated", False)]
+    sizes = ", ".join(f"{name} {len(getattr(final, name).encode('utf-8'))} bytes returned" for name in cut)
+    return (f"{OUTPUT_TRUNCATED_REASON_CODE}: the command exited with code {final.exit_code} and the API returned only the start of its {' and '.join(cut)} stream "
+            f"({sizes}; RERUN asks for up to {OUTPUT_LIMIT_BYTES} bytes), with no error text in it; what the command printed last, a traceback or an evidence block, was "
+            "not returned. The stream was cut, so the absence of an error says nothing: not a verdict on the repository, and no model attempt was spent on it.")
+
+
+def command_image(result) -> str | None:
+    """harness-v1.4.3-rc (D-42): the kept image the operation's command ran on, when that image holds everything the command needs (the tree, the applied changes and
+    the environment), else None: the result image when it was kept; otherwise the layer holding every setup command, unless a patch overlay ran on top of it (that
+    layer lacks the patch) or the operation started from an image that already held them all. The sustained-run line reopens this image."""
+    if getattr(result, "result_image", None):
+        return result.result_image
+    if any(s.phase == "rerun_branch" for s in getattr(result, "rerun_steps", ())):
+        return None
+    setup = tuple(getattr(result, "setup_commands", ()))
+    layer = next((image for ops, image in getattr(result, "layers", ()) if tuple(ops) == setup), None)
+    if layer is None and getattr(result, "branch_from_image", None) and not getattr(result, "ran_setup", ()):
+        layer = result.branch_from_image
+    return layer
 
 
 @dataclass
@@ -911,7 +948,9 @@ def _run_stages(
     def _execution_of(result: SandboxRunResult, smoke: bool) -> dict | None:
         if not (smoke and deps.smoke_seconds):
             return None
-        return smoke_exec.execution_record(deps.smoke_seconds, result.final.exit_code, result.final.stdout, result.final.stderr)
+        record = smoke_exec.execution_record(deps.smoke_seconds, result.final.exit_code, result.final.stdout, result.final.stderr)
+        image = command_image(result)  # harness-v1.4.3-rc (D-42): the image the sustained-run line reopens for a RUNS_* entry
+        return {**record, "image": image} if image else record
 
     op_lock = threading.Lock()
 
@@ -1027,6 +1066,10 @@ def _run_stages(
             "outcome": outcome,
             "resource_limits": resource_limits.record(),
             "exit_code": result.final.exit_code if result is not None and result.steps else None,
+            # harness-v1.4.3-rc (D-40): the largest peak-memory figure the API returned for any step of the operation, as returned (unit not documented)
+            "max_rss": max((s.max_rss for s in steps if getattr(s, "max_rss", None) is not None), default=None),
+            # harness-v1.4.3-rc (D-41): size, sha-256 and the API's truncated flag of each stream of the last step (what classification read)
+            **({"streams": result.final.streams()} if result is not None and result.steps and hasattr(result.final, "streams") else {}),
             "killed_step": (getattr(exc, "command", "") or "")[:160] if outcome == "killed" else None,
             "killed_seconds": round(getattr(exc, "killed_seconds", 0.0) or 0.0, 1) if outcome == "killed" else None,
         }
@@ -1356,7 +1399,8 @@ def _run_stages(
                 found.update(collected=parsed is not None, evidence=parsed, kill_evidenced=runner_hooks.kill_evidenced(parsed),
                              limit_quote=runner_hooks.limit_quote(parsed), exit_code=result.final.exit_code)
                 if parsed is None:
-                    found["reason"] = "the run printed no evidence block"
+                    found["reason"] = ("the run's output was cut by the API and the evidence block, printed last, was not returned"
+                                       if getattr(result.final, "truncated", False) else "the run printed no evidence block")
                 action.update(evidence=parsed, kill_evidenced=found["kill_evidenced"], limit_quote=found["limit_quote"])
                 _log(f"[time-machine] resource evidence: kill evidenced={found['kill_evidenced']}; {found['limit_quote'] or found.get('reason', '')}")
                 attempts.append(AttemptRecord(0, "", "PASS", (), result.final.exit_code, result.final.stdout[-2000:], result.final.stderr[-2000:],
@@ -1792,9 +1836,13 @@ def _run_stages(
                 raise
             printed = (runner_hooks.EXIT_WRAPPER_MARKER in f"{result.final.stderr}\n{result.final.stdout}"
                        or classifier.has_actionable_error(result.final.stderr, result.final.stdout))
+            unseen = None if printed else output_cut_without_error(result)
             action["result"] = ("the wrapped run exited 0" if result.succeeded else
-                                "the wrapper printed the traceback of the raise" if printed else runner_hooks.OUTSIDE_PYTHON)
-            if not printed and not result.succeeded:  # a run that passed has nothing to explain (found by the review: it was sent for evidence)
+                                "the wrapper printed the traceback of the raise" if printed else
+                                OUTPUT_TRUNCATED_REASON_CODE if unseen else runner_hooks.OUTSIDE_PYTHON)
+            if unseen:  # harness-v1.4.3-rc (D-41): the wrapper's traceback prints last, so a cut stream proves nothing about it
+                state.resource_stop = (OUTPUT_TRUNCATED_REASON_CODE, unseen)
+            elif not printed and not result.succeeded:  # a run that passed has nothing to explain (found by the review: it was sent for evidence)
                 _log(f"[time-machine] the wrapper printed nothing either: {runner_hooks.OUTSIDE_PYTHON}")
                 # harness-v1.4.2-rc (D-38 / D-40): once more, with the sandbox's own evidence: a kill is RESOURCE_LIMIT, anything else stays "exit outside
                 # Python"; either way the entry ends INDETERMINATE and no model attempt is spent on it.
@@ -1835,6 +1883,12 @@ def _run_stages(
             # attempt 0 / origin time_machine with `time_machine_action`, and none uses up a model attempt.
             stop_run = False
             while True:
+                unseen = output_cut_without_error(sandbox_result)
+                if unseen:  # harness-v1.4.3-rc (D-41): no hook, wrapper, evidence run or model attempt reads a missing error as "no error"
+                    verdict, indeterminate_reason = "INDETERMINATE", unseen
+                    _log(f"[verdict] INDETERMINATE: {unseen}")
+                    stop_run = True
+                    break
                 compiler_error = missing_compiler_error(classification)
                 if compiler_error and "build-essential" not in plan.apt_install:
                     state.stage = "time_machine"
@@ -2463,7 +2517,8 @@ def _run_stages(
                         output = f"{result.final.stderr}\n{result.final.stdout}"
                         installed = hooks_installed | {runner_hooks.hook_of_command(c) for c in cand["extras"]}
                         silent = (not classifier.has_actionable_error(result.final.stderr, result.final.stdout)
-                                  and cls.code != classifier.TaxonomyCode.RESOURCE_LIMIT)  # a SIGKILL is not a silent exit (D-38)
+                                  and cls.code != classifier.TaxonomyCode.RESOURCE_LIMIT  # a SIGKILL is not a silent exit (D-38)
+                                  and not getattr(result.final, "truncated", False))  # nor is a stream the API cut (D-41)
                         compiler = missing_compiler_error(cls)
                         action: dict | None = None
                         if compiler and "build-essential" not in cand["plan"].apt_install:
