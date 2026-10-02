@@ -98,6 +98,9 @@ def test_the_last_gate_reports_spend_table_and_criteria_rows_are_the_figures_of_
     assert f"{figures['b']['applied']['value']} applied of" in row("b")
     assert f"pass: {figures['c']['citations']['value']} attempts" in row("c")
     assert f"largest entry ${max(totals):.4f}" in row("d") and max(totals) <= 2.0 and figures["d"]["ok"] is True
+    share = int(re.search(r"the largest used (\d+) % of it", text).group(1))
+    cap = doc["entries"][0]["cost"]["per_entry_cap"]["value"]
+    assert share == round(100 * max(totals) / cap) and f"every entry ran with the ${cap} cap" in text  # the sentence the tamper experiment changed (T4)
     assert (figures["a"]["ok"], figures["b"]["ok"], figures["c"]["ok"], figures["d"]["ok"], figures["e"]["ok"]) == (False, True, True, True, True)
     assert "**FAIL" in row("a") and all("pass" in row(c) for c in "bcde")
 

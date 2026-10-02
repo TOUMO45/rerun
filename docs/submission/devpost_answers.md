@@ -25,7 +25,7 @@ Evidence for:
 Evidence against:
 - No gate passed: 2 [API-REPORTED] of 24 [API-REPORTED] gate entry-runs ended RUNS_CLEAN or RUNS_AFTER_REPAIR, one a smoke-limit artefact and one that smoke-criterion pass, and 0 [API-REPORTED] of 16 [API-REPORTED] repositories reached RUNS_AFTER_REPAIR on the pre-registered run.
 - It cited a source in some gates and not in others: 7 [API-REPORTED] citations in the last gate, and 0 [API-REPORTED] in the one before it although 51 [API-REPORTED] references were offered (D-21).
-- It proposed installing a C compiler as a Python package (D-24) and, before the harness forbade it, patched blindly on a silent exit (D-19).
+- It proposed installing a C compiler as a Python package (D-24) and, before the harness forbade it, patched with no error text to go on (D-19); that text had been cut off by the SDK (D-41), so this counts against the harness, not against the model.
 
 This rates one repairer model on one small corpus under a strict gate. It is not a general rating of Nemotron, and the other two roles were not scored separately: not measured. If the owner counts the one smoke-criterion pass in the repairer's favour, 5/10 is as defensible from the same records.
 

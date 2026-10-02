@@ -2,6 +2,10 @@
 
 One entry per phase of the post-corpus-v2 plan. Numbers are produced by scripts in `scripts/`.
 
+## Phase D update for harness-v1.4.3 and D6 red team (2026-10-02; offline)
+65 passports, REPLAY for seven versions, the dashboard and the five submission texts rebuilt; register D-1..D-43 (D-39, D-40, D-41 fixed-and-gated, D-42 fixed-unvalidated, D-43 open). Headline by the owner's rule: 2 of 24 gate entry-runs reached a RUNS_* verdict, no gate passed. Ledger $29.1704 = $26.2069 API-reported + $1.4761 estimated + $1.4874 derived (parsed from the logs of the killed gate attempts), a lower bound; BILLED for the last two gates awaited.
+D6 (`reports/phase-d/D6_RED_TEAM.md`): findings fixed or documented in six attacks; `phase_d.truncation_scan` lists the 11 records that may rest on a cut stream, each with a D-41 annotation (probed, inferred or suspected) and no changed verdict; new tests compare the gate reports' figures with the rebuilt ones; the repair loop is stated to have worked blind on entry 3 before the last version.
+
 ## harness-v1.4.3 - gate (2026-10-02; live, NOT PASSED: 0 of 4)
 Entries 3, 7, 8, 11: #3 BLOCKED DATA_MISSING (the CUDA error that the 65,535-byte cut had hidden in every version was seen, the CPU shim fired, then a dataset path that does not exist in the sandbox), #7 and #8 BLOCKED RUNTIME_ERROR_OTHER, #11 INDETERMINATE RESOURCE_LIMIT (OOM again). (b), (c) (7 citations), (d), (e) pass. Gate $3.69455; ledger $29.1704 (lower bound), room $2.8296 under the $32.00 ceiling. The gate process was killed twice by its environment and finished as a resumed run (INTERRUPTED_ATTEMPT.md); no stream of any record was cut; no RUNS_* entry, so no sustained run. Report `reports/corpus-v2.1/v1.4.3/gate/GATE_REPORT_v1.4.3.md`. All live work stops for good; Phase D and the D6 red team follow.
 
