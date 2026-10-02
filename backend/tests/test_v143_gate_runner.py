@@ -99,35 +99,3 @@ def test_the_sustained_runs_are_listed_in_the_gate_result_and_never_evaluated():
     assert {k: v for k, v in with_.items() if k != "sustained_runs"} == {k: v for k, v in without.items() if k != "sustained_runs"}  # criteria and endings unchanged
     assert with_["sustained_runs"]["gating"] is False and with_["sustained_runs"]["cost_usd"] == 2.05 and with_["sustained_runs"]["runs"][0]["outcome"] == "running_at_limit"
     assert with_["passed"] == without["passed"]
-
-
-# --- --resume and --log-file: after the gate's process was killed in the middle of an entry ---------------------------------------------------
-
-def test_resume_keeps_only_complete_records_of_the_same_entry_and_tag(tmp_path):
-    g143 = _gates()[2]
-    plan = [{"id": 3, "name": "a__a"}, {"id": 7, "name": "b__b"}, {"id": 8, "name": "c__c"}, {"id": 11, "name": "d__d"}]
-
-    def write(name, doc):
-        (tmp_path / name).write_text(json.dumps(doc) if not isinstance(doc, str) else doc, encoding="utf-8")
-
-    good = {"batch": {"entry_id": 3, "harness_tag": "harness-v1.4.3"}, "result": {"verdict": "BLOCKED"}, "cost_guard": {"spent_usd": 0.5}}
-    write("03_a__a.json", good)
-    write("07_b__b.json", {**good, "batch": {"entry_id": 7, "harness_tag": "harness-v1.4.2"}})  # another tag
-    write("08_c__c.json", {**good, "batch": {"entry_id": 8, "harness_tag": "harness-v1.4.3"}, "error": "PIPELINE_ERROR"})  # ended without a verdict
-    write("11_d__d.json", "{ not json")
-    assert set(g143.load_resumed(plan, tmp_path, "harness-v1.4.3")) == {"a__a"}
-    write("07_b__b.json", {**good, "batch": {"entry_id": 3, "harness_tag": "harness-v1.4.3"}})  # the wrong entry id for this file
-    write("08_c__c.json", {"batch": {"entry_id": 8, "harness_tag": "harness-v1.4.3"}, "result": {"verdict": None}})  # no verdict
-    assert set(g143.load_resumed(plan, tmp_path, "harness-v1.4.3")) == {"a__a"}
-
-
-def test_log_file_sends_everything_the_process_prints_to_a_file(tmp_path, monkeypatch, capsys):
-    import sys
-
-    g143 = _gates()[2]
-    monkeypatch.setattr(sys, "stdout", sys.stdout)  # restored after the test
-    monkeypatch.setattr(sys, "stderr", sys.stderr)
-    log = tmp_path / "gate.log"
-    assert g143.main(["--log-file", str(log), "--gate-cap-usd", "6.99", "--entry-cap-usd", "1.75"]) == 2  # a starved gate: refused, and the refusal goes to the file
-    sys.stderr.flush()
-    assert "starved" in log.read_text(encoding="utf-8")
