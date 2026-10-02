@@ -2,6 +2,9 @@
 
 One entry per phase of the post-corpus-v2 plan. Numbers are produced by scripts in `scripts/`.
 
+## harness-v1.4.3 - gate (2026-10-02; live, NOT PASSED: 0 of 4)
+Entries 3, 7, 8, 11: #3 BLOCKED DATA_MISSING (the CUDA error that the 65,535-byte cut had hidden in every version was seen, the CPU shim fired, then the repository's dataset is missing), #7 and #8 BLOCKED RUNTIME_ERROR_OTHER, #11 INDETERMINATE RESOURCE_LIMIT (OOM again). (b), (c) (7 citations), (d), (e) pass. Gate $3.6945; ledger $29.1703 (lower bound), room $2.8297 under the $32.00 ceiling. The gate process was killed twice by its environment and finished as a resumed run (INTERRUPTED_ATTEMPT.md); no stream of any record was cut; no RUNS_* entry, so no sustained run. Report `reports/corpus-v2.1/v1.4.3/gate/GATE_REPORT_v1.4.3.md`. All live work stops for good; Phase D and the D6 red team follow.
+
 ## harness-v1.4.3 - seal (2026-10-02; live, $1.4307 recorded)
 All 17 earlier seal entries re-verified against the new `sandbox.py` plus two new ones (19 paths, 34 live run ids), five stages, every check ok; $1.1262 API-reported + $0.3045 ESTIMATED (K1 stopped step), cap $1.50, branch run $0.00053. New live checks: a 200,075-byte stderr comes back whole, a 5 MiB stream is cut at exactly 4 MiB with the flag set, a cut inside a multi-byte character returns without an exception, `run_on_image` works. Ledger $23.9728 (lower bound), ceiling $32.00. Tag `harness-v1.4.3`; report `reports/corpus-v2.1/v1.4.3/seal/SEAL_STATUS.md`.
 
