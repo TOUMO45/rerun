@@ -70,10 +70,15 @@ def sustained_phase(records: list[dict], paths: dict, *, gate_cap_usd: float, sp
 
     run = run or sustained_run.run_sustained
     todo = [r for r in records if sustained_run.final_run_of(r) is not None]
+    # the share is among the runs that will spend: those whose smoke run was alive at its limit (the others cost nothing and take none of the money)
+    needing_ids = {id(r) for r in todo if sustained_run.final_run_of(r)["kind"] == "smoke_alive"}
+    still_to_run = len(needing_ids)
     docs, extra = [], 0.0
-    for i, record in enumerate(todo):
+    for record in todo:
         remaining = gate_cap_usd - spent_usd - extra
-        doc = run(record, api_key=api_key, project_id=project_id, remaining_usd=remaining, entries_left=len(todo) - i)
+        doc = run(record, api_key=api_key, project_id=project_id, remaining_usd=remaining, entries_left=max(still_to_run, 1))
+        if id(record) in needing_ids:
+            still_to_run -= 1
         if doc is None:
             continue
         extra += float(doc.get("cost_usd") or 0.0) + float(doc.get("cost_estimated_usd") or 0.0)
@@ -155,17 +160,23 @@ def main(argv: list[str] | None = None) -> int:
         if record.get("error"):
             print(f"STOP: entry #{row['id']} ended without a verdict: {record['error']}", flush=True)
             break
-    sustained, sustained_cost = [], 0.0
+    sustained, sustained_cost, sustained_error = [], 0.0, None
     if records:
         from app.config import get_settings
 
         settings = get_settings()
-        sustained, sustained_cost = sustained_phase(records, paths, gate_cap_usd=args.gate_cap_usd, spent_usd=spent, odir=odir,
-                                                    api_key=settings.nebius_api_key, project_id=settings.nebius_project_id)
+        try:
+            sustained, sustained_cost = sustained_phase(records, paths, gate_cap_usd=args.gate_cap_usd, spent_usd=spent, odir=odir,
+                                                        api_key=settings.nebius_api_key, project_id=settings.nebius_project_id)
+        except Exception as exc:  # noqa: BLE001 - a failed non-gating line must never lose the gate result after four paid entries
+            sustained_error = f"{type(exc).__name__}: {str(exc)[:300]}"
+            print(f"sustained-run phase failed: {sustained_error}", flush=True)
         for doc in sustained:
             print(f"sustained #{doc.get('entry')} {doc.get('name')}: {doc.get('outcome')}: {doc.get('label')} "
                   f"(${doc.get('cost_usd', 0.0):.4f} API-reported, ${doc.get('cost_estimated_usd', 0.0):.4f} estimated)", flush=True)
     verdict = evaluate_gate(records, sustained)
+    if sustained_error:
+        verdict["sustained_runs"]["error"] = sustained_error
     verdict["gate_spend"] = {"entries_usd": round(spent, 6), "sustained_runs_usd": round(sustained_cost, 6), "total_usd": round(spent + sustained_cost, 6),
                              "cap_usd": args.gate_cap_usd, "note": "entries: cost guard figures per record (API-reported plus the estimate of a killed step); sustained runs as listed"}
     out = Path(__file__).with_name(f"gate_result_{args.tag}.json")

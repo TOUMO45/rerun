@@ -35,8 +35,9 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[4]
-sys.path.insert(0, str(ROOT / "backend"))
-sys.path.insert(0, str(ROOT / "scripts"))
+REPO_ROOT = ROOT  # where the code, the git repository and the earlier seals' records are; ROOT is only what the records of THIS seal are written relative to (tests move it)
+sys.path.insert(0, str(REPO_ROOT / "backend"))
+sys.path.insert(0, str(REPO_ROOT / "scripts"))
 OUT = ROOT / "runs" / "sandbox_verification" / "v1.4.3-seal"
 MAX_SEAL_USD = 1.50
 RC_TAG = "harness-v1.4.3-rc"
@@ -44,7 +45,7 @@ HARNESS_PATHS = ("backend/app", "backend/pyproject.toml", "scripts", "frontend/s
 SANDBOX_FILES = ("backend/app/services/sandbox.py", "backend/app/services/sandbox_limits.py", "backend/app/services/runner_env.py",
                  "backend/app/services/smoke_exec.py", "backend/app/services/runner_hooks.py")
 STAGES = ("new", "v141", "v142", "v140", "final")
-KILL_OP_SECONDS = 15.0  # K1's operation limit (v1.4.1 used 30 s): its killed step is ESTIMATED at $0.0152/s, so a shorter clock keeps the estimate small
+KILL_OP_SECONDS = 25.0  # K1's operation limit (v1.4.1 used 30 s; its killed step ran 23.6 s of them, so about 6 s went to the extract and the pip step: a shorter clock could stop it during pip)
 MARKER = "FINAL_TRACEBACK_MARKER AssertionError: Torch not compiled with CUDA enabled"
 TICK = "\r17.8%"
 # The progress writer: no backslash in the embedded source (chr(13), chr(10)), the last line printed with print() so it ends in a newline.
@@ -56,8 +57,17 @@ EMIT = (b"import sys\n"
         b"print('stdout-line')\n"
         b"sys.exit(code)\n")
 
+# A stream of U+2588 (three bytes each in UTF-8): 4 MiB = 4,194,304 bytes is 1 byte past a multiple of 3, so the API's cut lands INSIDE a character. The SDK's own default decoding is a
+# strict .decode() that raises inside `.wait()` for such a stream (the independent review of the rc found it); the harness asks for bytes and decodes with replacement.
+EMIT_GLYPH = (b"import sys\n"
+              b"count = int(sys.argv[1])\n"
+              b"sys.stderr.buffer.write((chr(0x2588) * count).encode('utf-8'))\n"
+              b"sys.stderr.buffer.flush()\n"
+              b"sys.exit(1)\n")
+GLYPH_COUNT = 1_500_000  # 4,500,000 bytes
+
 # ESTIMATED cost of the new checks: a small operation costs about $0.002-0.012 (v1.4.2 seal records); S2 moves 9 MiB; S4 is stopped after 3 s.
-NEW_ESTIMATES = {"S1": 0.015, "S2": 0.03, "S3": 0.03, "S4": 0.06}
+NEW_ESTIMATES = {"S1": 0.015, "S2": 0.03, "S2b": 0.03, "S3": 0.03, "S4": 0.06}
 
 
 def expected_stderr(total: int) -> str:
@@ -66,14 +76,14 @@ def expected_stderr(total: int) -> str:
 
 
 def _load(rel: str, name: str):
-    spec = importlib.util.spec_from_file_location(name, ROOT / rel)
+    spec = importlib.util.spec_from_file_location(name, REPO_ROOT / rel)
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
     return module
 
 
 def _git(*args: str) -> str:
-    return subprocess.run(["git", *args], cwd=ROOT, capture_output=True, text=True, check=True).stdout.strip()
+    return subprocess.run(["git", *args], cwd=REPO_ROOT, capture_output=True, text=True, check=True).stdout.strip()
 
 
 def blobs() -> dict:
@@ -82,6 +92,10 @@ def blobs() -> dict:
 
 def precondition(git=_git) -> dict:
     """The seal runs against the release candidate and nothing else: HEAD's harness paths are byte-identical to the rc tag, and clean. Returns what to record."""
+    try:
+        git("rev-parse", "--verify", f"refs/tags/{RC_TAG}^{{commit}}")
+    except subprocess.CalledProcessError as exc:
+        raise SystemExit(f"REFUSED: the tag {RC_TAG} does not exist: tag the release candidate commit first") from exc
     changed = git("diff", "--name-only", RC_TAG, "HEAD", "--", *HARNESS_PATHS)
     dirty = git("status", "--porcelain", "--", *HARNESS_PATHS)
     if changed or dirty:
@@ -91,7 +105,7 @@ def precondition(git=_git) -> dict:
 
 def previous_cost(rel: str) -> float:
     """The API-reported cost of the same check in an earlier seal's record (planning only)."""
-    rec = json.loads((ROOT / rel).read_text(encoding="utf-8"))
+    rec = json.loads((REPO_ROOT / rel).read_text(encoding="utf-8"))
     value = rec.get("cost_usd", rec.get("completed_cost_usd", 0.0))
     return float(value) if isinstance(value, (int, float)) else 0.0
 
@@ -109,8 +123,8 @@ def plan() -> list[dict]:
                                                              "run2_E_entry07_checkpoint", "run2_F_reopen_apply_execute"))):
         for name in names:
             rows.append({"stage": stage, "op": name, "usd": previous_cost(f"runs/sandbox_verification/{directory}/{name}.json"), "source": f"{directory} record, API-reported"})
-    for path in sorted((ROOT / "runs" / "sandbox_verification" / "final-v1.4.0").glob("*.json")):
-        rows.append({"stage": "final", "op": path.stem, "usd": previous_cost(str(path.relative_to(ROOT))), "source": "final-v1.4.0 record (a stopped step's cost is not in it)"})
+    for path in sorted((REPO_ROOT / "runs" / "sandbox_verification" / "final-v1.4.0").glob("*.json")):
+        rows.append({"stage": "final", "op": path.stem, "usd": previous_cost(str(path.relative_to(REPO_ROOT))), "source": "final-v1.4.0 record (a stopped step's cost is not in it)"})
     return rows
 
 
@@ -158,6 +172,16 @@ def run_new(api_key: str, project_id: str, guard, blobs_now: dict) -> list[dict]
     docs.append(_record("new", "S2_stream_over_the_limit_flagged", blobs_now, ok=ok2, requested_bytes=total2, returned_bytes=got2, limit_bytes=sandbox.OUTPUT_LIMIT_BYTES,
                         harness_reason=reason, **_result_doc(s2)))
 
+    glyph = sandbox.run_build_and_execute(api_key=api_key, project_id=project_id, base_image="python:3.10-slim", install_commands=["true"], wall_clock_seconds=60,
+                                          upload_files={"emit_glyph.py": EMIT_GLYPH}, execute_command=f"python3 emit_glyph.py {GLYPH_COUNT}")
+    guard.record_spend(glyph.total_cost_usd)
+    returned = glyph.final.stderr.encode("utf-8")
+    ok2b = (glyph.final.exit_code == 1 and glyph.final.stderr_truncated is True and glyph.final.stderr.endswith("\ufffd")  # the half character became U+FFFD, no exception
+            and glyph.final.streams()["stderr"]["truncated"] is True)
+    docs.append(_record("new", "S2b_cut_inside_a_multibyte_character", blobs_now, ok=ok2b, glyph_bytes=GLYPH_COUNT * 3, returned_chars=len(glyph.final.stderr),
+                        returned_bytes_after_replacement=len(returned), ends_with_replacement_character=glyph.final.stderr.endswith("\ufffd"),
+                        harness_reason=orchestrator.output_cut_without_error(glyph), **_result_doc(glyph)))
+
     kept = run(execute_command=f"python3 emit.py 1000 0", checkpoint=sandbox.Checkpoint(keep_layers=True, keep_result=True))
     image = kept.result_image
     step = sandbox.run_on_image(api_key=api_key, project_id=project_id, image_id=image, command=f"python3 emit.py 3000 0", timeout_seconds=30)
@@ -189,7 +213,8 @@ def _redirect(module, stage: str, blobs_now: dict) -> None:
     original = module._record
 
     def record(name, **fields):
-        return original(name, **{"code_blobs": blobs_now, **fields})
+        # the record is this seal's: its provenance says so (the earlier script's own tag would name a release candidate that is not the one being sealed)
+        return original(name, **{"code_blobs": blobs_now, "harness": RC_TAG, **fields})
 
     module._record = record
 
@@ -215,14 +240,14 @@ def run_v142(api_key, project_id, guard, blobs_now):
 
     e0, _ = op("E0", "E0_calm_run_with_evidence", mod.CALM_EXIT)
     if e0 is None:
-        return docs
+        return [*docs, {"ok": False, "note": "E0 was stopped at its operation clock (its own failing record is in the stage directory)"}]
     guard.record_spend(e0.total_cost_usd)
     ev0 = runner_hooks.parse_evidence(e0.final.stderr, e0.final.stdout)
     docs.append(mod._record("run2_E0_calm_run_with_evidence", ok=e0.final.exit_code == 3 and ev0 is not None and ev0["exit_status"] == 3 and bool(ev0["mem_total_kb"])
                             and not runner_hooks.kill_evidenced(ev0), evidence=ev0, limit_quote=runner_hooks.limit_quote(ev0), **mod._result_doc(e0)))
     e1a, _ = op("E1a", "E1a_self_sigkill_with_evidence", mod.SELF_KILL)
     if e1a is None:
-        return docs
+        return [*docs, {"ok": False, "note": "E1a was stopped at its operation clock (its own failing record is in the stage directory)"}]
     guard.record_spend(e1a.total_cost_usd)
     ev1 = runner_hooks.parse_evidence(e1a.final.stderr, e1a.final.stdout)
     killed = e1a.final.exit_code == 137 and ev1 is not None and runner_hooks.kill_evidenced(ev1)
@@ -240,10 +265,15 @@ def run_v140(api_key, project_id, guard, blobs_now, wait_seconds: int = 600):
 def run_final(api_key, project_id, guard, blobs_now):
     """The 14 verifier-script checks of the v1.4.0 seal, in its order, each in its own process through scripts/verify_*.py; the stage's cost is each record's own."""
     mod = _load("scripts/run_seal_verification_v140.py", "run_seal_verification_v140")
-    mod.OUT = f"runs/sandbox_verification/v1.4.3-seal/final"
+    mod.OUT = (OUT / "final").relative_to(ROOT).as_posix()  # the earlier script writes under its own root: the same place in production
     (ROOT / mod.OUT).mkdir(parents=True, exist_ok=True)
     docs = []
     for record, argv, env, what in mod.PLAN:
+        done = ROOT / mod.OUT / record
+        if done.is_file() and json.loads(done.read_text(encoding="utf-8")).get("ok") is True:
+            print(f"-> {record}: already passed in an earlier invocation, not run again", flush=True)
+            docs.append({"ok": True, "cost_usd": 0.0, "run_id": json.loads(done.read_text(encoding="utf-8")).get("run_id"), "skipped": True})
+            continue
         expected = previous_cost(f"runs/sandbox_verification/final-v1.4.0/{record}")
         if guard.remaining_today_usd < expected:  # the same check's cost in the v1.4.0 seal: do not start what the cap cannot cover
             raise SystemExit(f"STOP: ${guard.remaining_today_usd:.4f} left under the seal cap, below the ${expected:.4f} this check cost in the v1.4.0 seal; {record} is not started")
@@ -275,20 +305,68 @@ RUNNERS = {"new": run_new, "v141": run_v141, "v142": run_v142, "v140": run_v140,
 
 
 def _load_summary(blobs_now: dict, state: dict) -> dict:
+    """The summary of earlier invocations of this seal. It belongs to a release candidate (its rc commit and the blobs of the five files), not to a HEAD: data commits between
+    invocations (partial records) are fine, since `precondition` already requires the harness paths to equal the rc tag."""
     path = OUT / "SEAL_RUN.json"
     if not path.is_file():
         return {**state, "blobs": blobs_now, "stages": {}, "started_at": datetime.now(timezone.utc).isoformat()}
     summary = json.loads(path.read_text(encoding="utf-8"))
-    if summary.get("blobs") != blobs_now or summary.get("head") != state["head"]:
-        raise SystemExit("REFUSED: SEAL_RUN.json belongs to another commit or other blobs of the sandbox-touching files; archive it and start the seal over")
+    if summary.get("blobs") != blobs_now or summary.get("rc_commit") != state["rc_commit"]:
+        raise SystemExit("REFUSED: SEAL_RUN.json belongs to another release candidate or other blobs of the sandbox-touching files; archive it and start the seal over")
     return summary
+
+
+def stage_records(stage: str) -> list[dict]:
+    """The records a stage left in its directory (every `*.json`), loaded."""
+    directory = OUT / stage
+    return [json.loads(p.read_text(encoding="utf-8")) for p in sorted(directory.glob("*.json"))] if directory.is_dir() else []
+
+
+def execute_stages(stages: list[str], summary: dict, guard, blobs_now: dict, *, api_key: str, project_id: str, wait_seconds: int, cap: float,
+                   explicit: bool = False, runners: dict | None = None) -> int:
+    """Run the stages in order and write SEAL_RUN.json after EACH, whatever happened in it: a stage that raised (the cap's refusal to start a check, an uncaught stop) is recorded
+    with the money it spent so far and ok false, a stage's cost is cumulative over its attempts, and a stage is ok only if the docs it returned passed AND no record it left in its
+    directory says otherwise (a stopped operation writes its own failing record and the older stage code returned early without a failing doc). Stages already ok are skipped on a
+    resume unless named with --stage."""
+    runners = runners or RUNNERS
+    for stage in stages:
+        if summary["stages"].get(stage, {}).get("ok") and not explicit:
+            print(f"=== stage {stage}: already passed ({summary['stages'][stage].get('cost_usd', 0.0):.4f} spent), skipped ===", flush=True)
+            continue
+        before, error, docs = guard.spent_today_usd, None, []
+        print(f"=== stage {stage} ===", flush=True)
+        extra = (wait_seconds,) if stage == "v140" else ()
+        try:
+            docs = runners[stage](api_key, project_id, guard, blobs_now, *extra)
+        except BaseException as exc:  # noqa: BLE001 - SystemExit included: the partial spend must be written down
+            error = exc
+        spent = guard.spent_today_usd - before
+        moved = blobs() != blobs_now
+        required = [d for d in docs if not d.get("informational")]
+        bad = [r for r in stage_records(stage) if r.get("ok") is not True and not r.get("informational")]
+        ok = error is None and not moved and bool(required) and all(d.get("ok") for d in required) and not bad
+        previous = summary["stages"].get(stage, {})
+        summary["stages"][stage] = {"ok": ok, "cost_usd": round(previous.get("cost_usd", 0.0) + spent, 6), "attempts": previous.get("attempts", 0) + 1,
+                                    "finished_at": datetime.now(timezone.utc).isoformat(),
+                                    "records": sorted(p.relative_to(ROOT).as_posix() for p in (OUT / stage).glob("*.json")),
+                                    **({"stopped_by": f"{type(error).__name__}: {str(error)[:300]}"} if error is not None else {}),
+                                    **({"failing_records": len(bad)} if bad else {}), **({"blobs_changed_while_running": True} if moved else {})}
+        OUT.mkdir(parents=True, exist_ok=True)
+        (OUT / "SEAL_RUN.json").write_text(json.dumps(summary, indent=2) + "\n", encoding="utf-8", newline="\n")
+        total = sum(s.get("cost_usd", 0.0) for s in summary["stages"].values())
+        print(f"stage {stage}: ok={ok} ${spent:.4f}; seal total ${total:.4f} of ${cap}", flush=True)
+        if not ok:
+            why = f"stopped by {type(error).__name__}: {error}" if error is not None else "a check did not pass" if not moved else "a sandbox-touching file changed while it ran"
+            print(f"STOP: stage {stage}: {why}; nothing further is run", file=sys.stderr)
+            return 1
+    return 0 if all(summary["stages"].get(s, {}).get("ok") for s in STAGES) else 1
 
 
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--go", action="store_true", help="actually run (spends money; needs the owner's seal cap)")
     ap.add_argument("--max-usd", type=float, help="the seal cap (at most $1.50)")
-    ap.add_argument("--stage", action="append", choices=STAGES, help="run only this stage (repeatable); default: all, in order")
+    ap.add_argument("--stage", action="append", choices=STAGES, help="run only this stage (repeatable), even if it already passed; default: every stage that has not passed, in order")
     ap.add_argument("--wait-seconds", type=int, default=600, help="v140 stage: delay before the kept image is reopened")
     args = ap.parse_args(argv)
     stages = [s for s in STAGES if not args.stage or s in args.stage]
@@ -314,27 +392,11 @@ def main(argv: list[str] | None = None) -> int:
     guard = CostGuard(daily_cost_ceiling_usd=args.max_usd)
     guard.record_spend(prior)
     print(f"seal cap ${args.max_usd}; already spent in earlier invocations ${prior:.4f}")
-    for stage in stages:
-        before = guard.spent_today_usd
-        print(f"=== stage {stage} ===", flush=True)
-        extra = (args.wait_seconds,) if stage == "v140" else ()
-        docs = RUNNERS[stage](settings.nebius_api_key, settings.nebius_project_id, guard, blobs_now, *extra)
-        if blobs() != blobs_now:
-            print("STOP: a sandbox-touching file changed while the stage ran; nothing is recorded", file=sys.stderr)
-            return 1
-        required = [d for d in docs if not d.get("informational")]
-        ok = bool(required) and all(d.get("ok") for d in required)
-        summary["stages"][stage] = {"ok": ok, "cost_usd": round(guard.spent_today_usd - before, 6), "finished_at": datetime.now(timezone.utc).isoformat(),
-                                    "records": sorted(p.relative_to(ROOT).as_posix() for p in (OUT / stage).glob("*.json"))}
-        OUT.mkdir(parents=True, exist_ok=True)
-        (OUT / "SEAL_RUN.json").write_text(json.dumps(summary, indent=2) + "\n", encoding="utf-8", newline="\n")
-        print(f"stage {stage}: ok={ok} ${guard.spent_today_usd - before:.4f}; seal total ${guard.spent_today_usd:.4f} of ${args.max_usd}", flush=True)
-        if not ok:
-            print(f"STOP: stage {stage} did not pass; nothing further is run", file=sys.stderr)
-            return 1
-    done = all(summary["stages"].get(s, {}).get("ok") for s in STAGES)
-    print(f"seal spend ${guard.spent_today_usd:.4f} [sum of operation costs: API-reported, plus the estimate of any stopped step]; all stages ok: {done}")
-    return 0 if done else 1
+    code = execute_stages(stages, summary, guard, blobs_now, api_key=settings.nebius_api_key, project_id=settings.nebius_project_id,
+                          wait_seconds=args.wait_seconds, cap=args.max_usd, explicit=bool(args.stage))
+    total = sum(s.get("cost_usd", 0.0) for s in summary["stages"].values())
+    print(f"seal spend ${total:.4f} [sum of operation costs: API-reported, plus the estimate of any stopped step]; all stages ok: {code == 0}")
+    return code
 
 
 if __name__ == "__main__":

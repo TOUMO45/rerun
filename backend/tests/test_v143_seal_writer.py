@@ -57,6 +57,7 @@ def _synthetic(tmp_path, monkeypatch, *, drop_stage=None, stale=None, failing=No
     writer = _writer()
     blobs = {f: f"blob-{Path(f).name}" for f in drv.SANDBOX_TOUCHING_FILES}
     previous = writer.previous_entries()  # the real v1.4.2 entries (ids, descriptions, code files), read from the tag before ROOT moves
+    monkeypatch.setattr(writer, "check_release_candidate", lambda run, git=None: None)  # tested on its own below
     monkeypatch.setattr(writer, "ROOT", tmp_path)
     monkeypatch.setattr(writer, "blob", lambda path: blobs[path])
     monkeypatch.setattr(writer, "previous_entries", lambda: previous)
@@ -136,3 +137,32 @@ def test_without_the_live_seal_the_writer_refuses(tmp_path, monkeypatch):
     monkeypatch.setattr(writer, "blob", lambda path: "b")
     with pytest.raises(SystemExit, match="SEAL_RUN.json is missing"):
         writer.main()
+
+
+def test_the_writer_checks_the_live_seal_ran_against_the_release_candidate_and_the_harness_paths_are_still_its(monkeypatch):
+    import subprocess
+
+    writer = _writer()
+    answers = {("rev-parse", "--verify"): "rc-sha", ("diff", "--name-only"): ""}
+    git = lambda *args: next(v for k, v in answers.items() if args[: len(k)] == k)  # noqa: E731
+    writer.check_release_candidate({"rc_commit": "rc-sha"}, git)
+    with pytest.raises(SystemExit, match="ran against"):
+        writer.check_release_candidate({"rc_commit": "another"}, git)
+    answers[("diff", "--name-only")] = "scripts/run_corpus_v1_batch.py"
+    with pytest.raises(SystemExit, match="harness paths differ"):
+        writer.check_release_candidate({"rc_commit": "rc-sha"}, git)
+
+    def missing(*args):
+        raise subprocess.CalledProcessError(128, ["git", *args])
+
+    with pytest.raises(SystemExit, match="does not exist"):
+        writer.check_release_candidate({"rc_commit": "rc-sha"}, missing)
+
+
+def test_main_checks_the_release_candidate_before_it_writes_anything(tmp_path, monkeypatch):
+    writer, _ = _synthetic(tmp_path, monkeypatch)
+    calls = []
+    monkeypatch.setattr(writer, "check_release_candidate", lambda run, git=None: calls.append(run.get("rc_commit")) or (_ for _ in ()).throw(SystemExit("not the release candidate")))
+    with pytest.raises(SystemExit, match="not the release candidate"):
+        writer.main()
+    assert calls == ["rc"] and not (tmp_path / "seal_verification.json").exists()

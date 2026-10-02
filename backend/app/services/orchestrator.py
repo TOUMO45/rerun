@@ -950,7 +950,18 @@ def _run_stages(
             return None
         record = smoke_exec.execution_record(deps.smoke_seconds, result.final.exit_code, result.final.stdout, result.final.stderr)
         image = command_image(result)  # harness-v1.4.3-rc (D-42): the image the sustained-run line reopens for a RUNS_* entry
-        return {**record, "image": image} if image else record
+        if image:
+            record = {**record, "image": image}
+        if getattr(result, "base_command", ""):
+            record = {**record, "command": result.base_command}  # the command the smoke run executed: the sustained run re-executes THIS one
+        cut = [name for name in ("stdout", "stderr") if getattr(result.final, f"{name}_truncated", False)]
+        if cut:
+            # the stored tails of a cut stream are the end of what the API RETURNED, not of what the command printed (harness-v1.4.3-rc, D-41)
+            record = {**record, "output_cut": cut}
+            if record["outcome"] == "exited" and result.final.exit_code == 0 and "stdout" in cut:
+                # the launcher prints its ALIVE line last on stdout: a cut stdout without it cannot tell "finished by itself" from "still running at the limit"
+                record = {**record, "outcome": "alive_or_exited_unknown"}
+        return record
 
     op_lock = threading.Lock()
 
@@ -1306,6 +1317,8 @@ def _run_stages(
                 state.cost_capped = f"{reason}; not resumed: {why}"
                 raise OperationBudgetExhausted(state.cost_capped) from exc
             raise
+        if isinstance(result, SandboxRunResult):
+            result = replace(result, base_command=use_plan.execute_command)  # harness-v1.4.3-rc (D-42): what THIS plan ran (a model's env delta may change it)
         cost_guard.record_spend(result.total_cost_usd)
         op = _record_op("completed", result=result, cost_usd=result.total_cost_usd)
         if checkpoint_mode:
@@ -2584,6 +2597,7 @@ def _run_stages(
                             printed = (runner_hooks.EXIT_WRAPPER_MARKER in f"{again.final.stderr}\n{again.final.stdout}"
                                        or classifier.has_actionable_error(again.final.stderr, again.final.stdout))
                             action["result"] = ("the wrapper printed the traceback of the raise" if printed
+                                                else OUTPUT_TRUNCATED_REASON_CODE if output_cut_without_error(again)
                                                 else runner_hooks.OUTSIDE_PYTHON)
                         cand = {**cand, "actions": [*cand["actions"], action]}
                         result = again
@@ -2784,6 +2798,11 @@ def _run_stages(
 
         if verdict is None and state.cost_capped:
             verdict, indeterminate_reason = "INDETERMINATE", _cost_cap_reason(state.cost_capped)
+            _log(f"[verdict] INDETERMINATE: {indeterminate_reason}")
+        elif verdict is None and output_cut_without_error(sandbox_result):
+            # harness-v1.4.3-rc (D-41): the loop-top check covers every failure a further attempt would have read; the LAST attempt's result (and a repair-off arm's baseline) end here
+            indeterminate_reason = output_cut_without_error(sandbox_result)
+            verdict = "INDETERMINATE"
             _log(f"[verdict] INDETERMINATE: {indeterminate_reason}")
         elif verdict is None:
             verdict = "BLOCKED"

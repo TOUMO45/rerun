@@ -232,3 +232,127 @@ def test_a_cut_stream_from_the_evidence_run_is_said_not_read_as_no_evidence_bloc
     assert "the run's output was cut by the API" in result.indeterminate_reason and "printed no evidence block" not in result.indeterminate_reason
     evidence_op = next(op for op in guard.operations if op["role"] == "exit wrapper with evidence")
     assert evidence_op["streams"]["stderr"]["truncated"] is True
+
+
+# --- review findings: the last attempt, a cut ALIVE line, the command a smoke run executed ---------------------------------------------
+
+def test_a_failure_that_no_further_attempt_reads_is_still_read_with_the_same_rule(tmp_path, monkeypatch):
+    """The independent review: the loop-top check never saw the result of the LAST attempt (or a repair-off arm's baseline), which went to BLOCKED from a cut stream."""
+    from test_v140_pipeline import _Chat
+
+    monkeypatch.setattr(sandbox, "OUTPUT_LIMIT_BYTES", 4000)
+    _repo(tmp_path, {"main.py": "print('x')\n"})
+    cloud = v140_cloud.install(monkeypatch, lambda shell, built, files: (1, "", _progress(2000)) if shell in EXEC else None)  # 12 KB of ticks, no error: cut at 4,000
+    result, deps, guard = _run(tmp_path, cloud, repair=_Chat([], "repair model"), max_attempts=0)  # no attempt follows the baseline: the repair-off shape
+    assert result.verdict == "INDETERMINATE" and result.indeterminate_reason.startswith("OUTPUT_TRUNCATED: ")
+    uncut = v140_cloud.install(monkeypatch, lambda shell, built, files: (1, "", "") if shell in EXEC else None)  # the same silent exit, nothing cut
+    other, _, _ = _run(tmp_path, uncut, repair=_Chat([], "repair model"), max_attempts=0)
+    assert other.verdict == "BLOCKED"  # unchanged: an uncut silent exit is a silent exit
+
+
+def test_a_cut_stdout_hides_the_alive_line_so_the_smoke_outcome_says_unknown_and_the_sustained_line_still_applies(tmp_path, monkeypatch):
+    """The launcher prints RERUN_SMOKE_ALIVE last on stdout. Cut, a run that was still running read as 'exited' and the sustained line said 'finished by itself'."""
+    from app.services import sustained_run
+
+    monkeypatch.setattr(sandbox, "OUTPUT_LIMIT_BYTES", 4000)
+    _repo(tmp_path, {"main.py": "import torch\nimport sklearn\nmodel = torch.nn.Linear(1, 1).cuda()\n"})
+    big_stdout = "epoch 1 loss 0.5\n" * 600 + ALIVE  # about 10 KB, the ALIVE line last
+
+    def behaviour(shell, built, files):
+        if shell not in EXEC:
+            return None
+        if not any("numpy==1.19.5" in b for b in built):
+            return 1, "", SKLEARN_MISSING
+        if SHIM not in built:
+            return 1, "", _real_traceback()
+        return 0, big_stdout, ""
+
+    cloud = v140_cloud.install(monkeypatch, behaviour)
+    result, _, guard = _run(tmp_path, cloud)
+    assert result.verdict == "RUNS_AFTER_REPAIR"
+    execution = result.attempts[-1].execution
+    assert execution["outcome"] == "alive_or_exited_unknown" and execution["output_cut"] == ["stdout"] and "RERUN_SMOKE_ALIVE" not in big_stdout[:4000]
+    record = {"result": {"verdict": result.verdict, "attempts": [a.as_dict() for a in result.attempts]}, "corpus_entry": {"name": "x", "command": "python main.py"}}
+    assert sustained_run.final_run_of(record)["kind"] == "smoke_alive"
+
+
+def test_a_cut_stream_is_marked_on_the_attempt_so_its_tail_is_not_taken_for_the_end_of_the_output(tmp_path, monkeypatch):
+    monkeypatch.setattr(sandbox, "OUTPUT_LIMIT_BYTES", 4000)
+    cloud = _cloud_3(monkeypatch, tmp_path, stderr=_real_traceback() + _progress(3000))
+    result, _, _ = _run(tmp_path, cloud)
+    era = next(a for a in result.attempts if a.execution and a.execution.get("output_cut"))
+    assert era.execution["output_cut"] == ["stderr"]
+    clean = [a for a in result.attempts if a.execution and "output_cut" not in a.execution]
+    assert clean  # the attempts whose streams were not cut carry no such key
+
+
+def test_the_smoke_attempt_records_the_command_it_executed_and_a_model_changed_command_is_what_the_sustained_run_uses(tmp_path, monkeypatch):
+    """A model's environment delta may change the plan's command (a gated `command` op, non-scale flags only). The sustained line re-executes what the smoke run executed."""
+    from app.services import smoke_exec, sustained_run
+    from test_v140_pipeline import _Chat, _Ultra
+
+    _repo(tmp_path, {"main.py": "import numpy\nVALUE = compute()\n"})
+    name_error = "Traceback (most recent call last):\n  File \"main.py\", line 2, in <module>\nNameError: name 'compute' is not defined\n"
+    changed = "python main.py --verbose"
+    changed_smoke = smoke_exec.wrap(changed, 60)
+
+    def behaviour(shell, built, files):
+        if shell not in EXEC and shell != changed_smoke:
+            return None
+        if not any("numpy==1.19.5" in b for b in built):
+            return 1, "", "ModuleNotFoundError: No module named 'numpy'\n"
+        return (0, ALIVE, "") if shell == changed_smoke else (1, "", name_error)
+
+    cloud = v140_cloud.install(monkeypatch, behaviour)
+    delta = {"file_edits": None, "cited_sources": [], "reason_no_citation": "none offered", "explanation": "more output shows the failing call",
+             "env_delta": [{"op": "command", "command": changed, "justification": "a non-scale flag", "evidence": "NameError: name 'compute' is not defined"}]}
+    decline = {"file_edits": None, "env_delta": [], "explanation": "no second idea"}
+    result, _, _ = _run(tmp_path, cloud, repair=_Chat([delta, decline], "repair model"), adjudicator=_Ultra([{"chosen": 1, "reasoning": "candidate 1 runs"}]),
+                        candidates=2, max_attempts=1, cap=5.0)
+    assert result.verdict == "RUNS_AFTER_REPAIR"
+    final = next(a for a in result.attempts if a.chosen)
+    assert final.execution["command"] == changed and final.execution["image"] in cloud.images
+    record = {"batch": {"entry_id": 3}, "result": {"verdict": result.verdict, "attempts": [a.as_dict() for a in result.attempts]},
+              "corpus_entry": {"name": "x", "command": "python main.py"}}
+    calls = []
+
+    def fake_runner(**kw):
+        calls.append(kw["command"])
+        return sandbox.StepResult(kw["command"], 0, "done\n", "", 120.0, 1.0)
+
+    doc = sustained_run.run_sustained(record, api_key="k", remaining_usd=5.0, entries_left=1, runner=fake_runner)
+    assert calls == [changed] and doc["command_differs_from_documented"] is True and "smoke run executed" in doc["command_source"]
+    assert doc["command"] == changed
+
+
+def test_the_command_of_an_ordinary_smoke_attempt_is_the_documented_one(tmp_path, monkeypatch):
+    cloud = _cloud_3(monkeypatch, tmp_path)
+    result, _, _ = _run(tmp_path, cloud)
+    assert result.attempts[-1].execution["command"] == "python main.py"
+
+
+def test_a_candidates_exit_wrapper_run_whose_stream_was_cut_is_recorded_as_output_truncated_not_as_exit_outside_python(tmp_path, monkeypatch):
+    """The main-line copy of this record was fixed in the release candidate; the candidate branch had its own copy (found by the independent review)."""
+    from test_v140_pipeline import _Ultra
+    from test_v141_exit_wrapper import _is_wrapped
+
+    monkeypatch.setattr(sandbox, "OUTPUT_LIMIT_BYTES", 4000)
+    _repo(tmp_path, {"main.py": "import numpy\nVALUE = compute()\nprint(VALUE)\n"})
+
+    def behaviour(shell, built, files):
+        if shell not in EXEC and not _is_wrapped(shell):
+            return None
+        if not any("numpy==1.19.5" in b for b in built):
+            return 1, "", "ModuleNotFoundError: No module named 'numpy'\n"
+        if any(f"VALUE = {n}" in files.get("main.py", b"").decode() for n in (1, 2)):
+            return (1, "", _progress(2000)) if _is_wrapped(shell) else (1, "", "")  # silent, until the wrapper's run prints 12 KB of ticks (cut at 4,000)
+        return 1, "", "Traceback (most recent call last):\n  File \"main.py\", line 2, in <module>\nNameError: name 'compute' is not defined\n"
+
+    cloud = v140_cloud.install(monkeypatch, behaviour)
+    result, _, _ = _run(tmp_path, cloud, repair=_two_edits(), adjudicator=_Ultra([{"chosen": None, "reasoning": "neither run says why it exited"}]), candidates=2, max_attempts=1, cap=5.0)
+    steps = []  # the first step of a candidate's rules is the record itself, the later ones are under `then`
+    for a in result.attempts:
+        if a.candidate == 1 and a.time_machine_action:
+            steps += [{k: v for k, v in a.time_machine_action.items() if k != "then"}, *a.time_machine_action.get("then", [])]
+    wrapper_actions = [s for s in steps if s.get("rule") == "exit_wrapper"]
+    assert [s["rule"] for s in steps][:2] == ["exit_site_hook", "exit_wrapper"] and wrapper_actions[-1]["result"] == "OUTPUT_TRUNCATED"

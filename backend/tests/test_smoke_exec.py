@@ -117,5 +117,6 @@ def test_the_orchestrator_wraps_only_repair_reexecutions_never_the_baseline(tmp_
     assert result.verdict == "RUNS_AFTER_REPAIR", result.full_log
     assert "base64" not in calls[0] and "train.py" in calls[0]  # the as-published baseline run is not wrapped
     assert "base64" in calls[1] and "import base64" in calls[1]  # the repair re-execution ran under the launcher
-    assert result.attempts[-1].execution == {"mode": "smoke", "seconds": smoke_exec.DEFAULT_SECONDS, "outcome": "alive_at_limit"}
+    # harness-v1.4.3-rc (D-42): the record also names the command the smoke run executed (the plan's, before the launcher)
+    assert result.attempts[-1].execution == {"mode": "smoke", "seconds": smoke_exec.DEFAULT_SECONDS, "outcome": "alive_at_limit", "command": "python train.py"}
     assert result.certificate()["diffs"][-1]["execution"]["outcome"] == "alive_at_limit"  # and the passport carries it

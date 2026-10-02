@@ -42,10 +42,13 @@ def final_run_of(record: dict) -> dict | None:
         final = next((a for a in reversed(attempts) if a.get("exit_code") == 0 and a.get("execution")), None)
     execution = (final or {}).get("execution") or {}
     if not final or not execution:
-        return {"kind": "baseline_complete", "attempt_number": None, "execution": None, "image": None}
-    kind = "smoke_alive" if execution.get("outcome") == "alive_at_limit" else "smoke_exited"
+        if result.get("verdict") == "RUNS_CLEAN":
+            return {"kind": "baseline_complete", "attempt_number": None, "execution": None, "image": None, "command": None}
+        return {"kind": "no_smoke_record", "attempt_number": None, "execution": None, "image": None, "command": None}
+    # `alive_or_exited_unknown`: the smoke launcher's ALIVE line is printed last on stdout and the API cut stdout, so "finished by itself" cannot be told from "still running"
+    kind = "smoke_alive" if execution.get("outcome") in ("alive_at_limit", "alive_or_exited_unknown") else "smoke_exited"
     return {"kind": kind, "attempt_number": final.get("attempt_number"), "candidate": final.get("candidate"), "execution": execution,
-            "image": execution.get("image")}
+            "image": execution.get("image"), "command": execution.get("command")}
 
 
 def funded_seconds(remaining_usd: float, entries_left: int) -> int:
@@ -59,7 +62,7 @@ def _tail(text: str) -> str:
 
 
 def _classification(step) -> dict | None:
-    if step.exit_code == 0:
+    if step.exit_code == 0 or step.timed_out:  # a step the sandbox stopped has an exit code of the stop (-1, 137): nothing to classify
         return None
     c = classifier.classify(step.exit_code, step.stderr, step.stdout)
     return {"code": c.code, "evidence": (c.evidence or "")[:300]}
@@ -70,8 +73,10 @@ def outcome_of(step, *, funded: int, requested: int = SUSTAINED_SECONDS) -> tupl
     seconds = round(step.elapsed_seconds)
     limited = " (funding-limited: the gate cap left less than requested)" if funded < requested else ""
     if step.timed_out:
-        return "running_at_limit", (f"sustained run: still running when the sandbox stopped it at its {funded} s limit ({requested} s requested{limited}); "
-                                    "it had not failed by then; this is not completion")
+        printed = classifier.has_actionable_error(step.stderr, step.stdout)
+        note = ("it had printed an error text and was still running (see the recorded tail)" if printed else "it had not failed by then")
+        return "running_at_limit", (f"sustained run: still running when the sandbox stopped it at its {funded} s limit ({requested} s requested{limited}); {note}; "
+                                    "this is not completion")
     if step.exit_code == 0:
         return "completed", f"sustained run: the command ran to completion in {seconds} s (exit code 0)"
     cls = _classification(step)
@@ -87,7 +92,9 @@ def run_sustained(record: dict, *, api_key: str, project_id: str = "", remaining
     if final is None:
         return None
     entry = record.get("corpus_entry") or {}
-    command = entry.get("command") or ""
+    # What the smoke run executed (the plan's command at that attempt: a model's environment delta may have changed it); the corpus entry's text only when the record names none.
+    command = final.get("command") or entry.get("command") or ""
+    documented = entry.get("command") or ""
     doc: dict = {
         "record_kind": "sustained run (harness-v1.4.3, D-42, non-gating): the final smoke command re-executed from its kept image",
         "entry": (record.get("batch") or {}).get("entry_id"),
@@ -95,12 +102,18 @@ def run_sustained(record: dict, *, api_key: str, project_id: str = "", remaining
         "verdict_of_record": (record.get("result") or {}).get("verdict"),
         "smoke_final": final,
         "command": command,
+        "command_source": "the command the smoke run executed (the record's execution.command)" if final.get("command")
+                          else "the corpus entry's documented command (the record names no executed command)",
+        "command_differs_from_documented": bool(final.get("command")) and final.get("command") != documented,
         "requested_seconds": requested,
         "rate_usd_per_s": FUNDING_RATE_USD_PER_S,
         "ran": False,
     }
     if final["kind"] == "baseline_complete":
         return {**doc, "outcome": "not_needed", "label": "no smoke artefact: the as-published baseline command ran to completion"}
+    if final["kind"] == "no_smoke_record":
+        return {**doc, "outcome": "not_run", "reason": "the record has a RUNS_* verdict but no passing attempt with a smoke record",
+                "label": "sustained run not made: the record names no passing smoke run to re-execute; the verdict stands unlabelled"}
     if final["kind"] == "smoke_exited":
         return {**doc, "outcome": "not_needed", "label": "no smoke artefact: the command finished by itself (exit code 0) inside the smoke window"}
     if not final["image"]:

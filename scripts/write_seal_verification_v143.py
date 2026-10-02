@@ -34,12 +34,20 @@ MOVED = {"runs/sandbox_verification/final-v1.4.0/": f"{NEW}/final/", "runs/sandb
 
 NEW_PATHS = [
     ("output_limit_raised_and_truncation_flag_read", "a failing command that writes 200,000 bytes on stderr gets the whole stream back with the API's `truncated` flag false and its size and "
-     "hash recorded; one that writes 5 MiB gets exactly the 4 MiB limit the client asked for, with the flag true and its last line NOT returned, and the harness labels it OUTPUT_TRUNCATED (D-41)",
-     [SB], [f"{NEW}/new/S1_200kb_stderr_whole.json", f"{NEW}/new/S2_stream_over_the_limit_flagged.json"]),
+     "hash recorded; one that writes 5 MiB gets exactly the 4 MiB limit the client asked for, with the flag true and its last line NOT returned, and the harness labels it OUTPUT_TRUNCATED; a stream whose cut falls inside a multi-byte character comes back without an exception, the half character replaced (D-41)",
+     [SB], [f"{NEW}/new/S1_200kb_stderr_whole.json", f"{NEW}/new/S2_stream_over_the_limit_flagged.json", f"{NEW}/new/S2b_cut_inside_a_multibyte_character.json"]),
     ("run_on_image_for_the_sustained_run", "`run_on_image` reopens a kept image by its id and runs one command once, disposable; given a 3 s limit for a 20 s command the record shows the stop path "
      "the API took (the server's result with `timed_out`, or the client's wait) (D-42)",
      [SB], [f"{NEW}/new/S3_run_on_image_reopens_a_kept_image.json", f"{NEW}/new/S4_run_on_image_stopped_at_its_limit.json"]),
 ]
+
+
+HARNESS_PATHS = ("backend/app", "backend/pyproject.toml", "scripts", "frontend/src", ".gitattributes")
+RC_TAG = "harness-v1.4.3-rc"
+
+
+def _git(*args: str) -> str:
+    return subprocess.run(["git", *args], cwd=ROOT, capture_output=True, text=True, check=True).stdout.strip()
 
 
 def previous_entries() -> list[dict]:
@@ -75,9 +83,25 @@ def seal_run(blobs_now: dict) -> dict:
     return doc
 
 
+def check_release_candidate(run: dict, git=None) -> None:
+    """The live seal ran against the tag harness-v1.4.3-rc, and the harness paths are still exactly that tag's (data commits since are fine). The blob check above covers the five
+    sandbox-touching files; this covers every other harness file the seal's claims rest on."""
+    git = git or _git
+    try:
+        rc = git("rev-parse", "--verify", f"refs/tags/{RC_TAG}^{{commit}}")
+    except subprocess.CalledProcessError as exc:
+        raise SystemExit(f"the tag {RC_TAG} does not exist") from exc
+    if run.get("rc_commit") != rc:
+        raise SystemExit(f"SEAL_RUN.json ran against {str(run.get('rc_commit'))[:10]}, the tag {RC_TAG} is {rc[:10]}")
+    changed = git("diff", "--name-only", RC_TAG, "HEAD", "--", *HARNESS_PATHS)
+    if changed:
+        raise SystemExit(f"the harness paths differ from {RC_TAG}: {changed.splitlines()[:5]}")
+
+
 def main() -> int:
     blobs_now = {f: blob(f) for f in SANDBOX_FILES}
     run = seal_run(blobs_now)
+    check_release_candidate(run)
     plan = [(e["id"], e["description"], list(e["code_files"]), records_of(e)) for e in previous_entries()] + NEW_PATHS
     entries = []
     for pid, description, code_files, records in plan:

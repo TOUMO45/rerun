@@ -409,7 +409,9 @@ _LOG_NOISE_RE = re.compile(
     r"|^\[?(?:INFO|DEBUG)\]?[: ]"  # python logging at INFO/DEBUG
     r"|^\d{4}-\d{2}-\d{2} [\d:,.]+ - \S+ - (?:INFO|DEBUG|WARNING) - ",
 )
-_PROGRESS_RE = re.compile(r"\d+(?:\.\d+)?%.*\d+(?:\.\d+)?%|\d+%\|[^|]*\||^\s*\d+(?:\.\d+)?%\s*$")
+# harness-v1.4.3-rc: the digit runs are bounded. `\d+` made the search quadratic on one very long run of digits (8,000 digits: 1.2 s, 32,000: 19.5 s, measured), and the
+# output limit that the sandbox client now asks for (4 MiB, was 65,535 bytes) lets such a line reach it. No real progress value has more than 12 digits.
+_PROGRESS_RE = re.compile(r"\d{1,12}(?:\.\d{1,12})?%.*\d{1,12}(?:\.\d{1,12})?%|\d{1,12}%\|[^|]*\||^\s*\d{1,12}(?:\.\d{1,12})?%\s*$")
 
 
 def denoise(text: str) -> str:

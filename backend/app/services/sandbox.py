@@ -40,6 +40,7 @@ run against the live API.
 from __future__ import annotations
 
 import hashlib
+import inspect
 import io
 import json
 import tarfile
@@ -373,7 +374,8 @@ class _ResultLike(Protocol):
 # harness-v1.4.3-rc (D-41): the SDK cuts each output stream of a run at `ContreeConfig.default_truncate_output_at`, 65,535 bytes by default, and
 # keeps the START of the stream: everything printed after that point is lost, the traceback and the evidence block included. Found by the
 # probe of 2026-10-02 (corpus-v2 #3: 400,939 bytes of stderr, 65,535 returned, the raw API result's `truncated` flag set, a CUDA error behind
-# the cut; runs/sandbox_verification/d41-probe). Every client this module builds now asks for the limit below; the flag is read per stream
+# the cut; runs/sandbox_verification/d41-probe). Every client that runs a command whose output is read now asks for the limit below (the cleanup and release runs
+# discard theirs); the flag is read per stream
 # and stored with the step; a stream that still exceeds the limit is labelled, never read as "printed no error". 4 MiB, not more: the classifier scans a
 # failed run's streams several times (measured offline: 5.6 s for classify + has_actionable_error on 8 MiB of ordinary log lines, 0.3 s on 8 MiB of progress ticks).
 OUTPUT_LIMIT_BYTES = 4 * 1024 * 1024
@@ -442,6 +444,9 @@ class SandboxRunResult:
     rerun_steps: tuple[StepResult, ...] = ()
     setup_commands: tuple[str, ...] = ()
     ran_setup: tuple[str, ...] = ()
+    # harness-v1.4.3-rc (D-42): the command the plan of this operation ran (before the smoke launcher, the exit wrapper and the evidence suffix are put around it), set by
+    # the caller: a model's environment delta may change a plan's command, so what the sustained-run line re-executes is what THIS run executed, not the corpus entry's text.
+    base_command: str = ""
 
     @property
     def final(self) -> StepResult:
@@ -463,6 +468,23 @@ class SandboxRunResult:
         return self.final.exit_code == 0
 
 
+def _text(value) -> str:
+    """A returned stream as text. harness-v1.4.3-rc (D-41): the SDK decodes a stream with a strict `.decode()` when it is asked for text, which raises inside `.wait()` (the finished
+    step's result and cost are lost) when the API's cut falls inside a multi-byte character; every real run is therefore asked for bytes (`_byte_streams`) and decoded here."""
+    if isinstance(value, (bytes, bytearray)):
+        return bytes(value).decode("utf-8", "replace")
+    return value or ""
+
+
+def _byte_streams(image) -> dict:
+    """`stdout=bytes, stderr=bytes` for `image.run(...)` when the SDK's `run` takes them (the real one does; a test double with the older signature does not)."""
+    try:
+        params = inspect.signature(image.run).parameters
+    except (TypeError, ValueError):
+        return {}
+    return {"stdout": bytes, "stderr": bytes} if "stdout" in params and "stderr" in params else {}
+
+
 def step_result_from_image(image, command: str, phase: str = "repo_run") -> StepResult:
     """Map a completed contree_sdk image's `.result` onto our own
     dataclass, so the rest of the codebase never touches the SDK's types
@@ -475,8 +497,8 @@ def step_result_from_image(image, command: str, phase: str = "repo_run") -> Step
     return StepResult(
         command=command,
         exit_code=result.exit_code,
-        stdout=result.stdout or "",
-        stderr=result.stderr or "",
+        stdout=_text(result.stdout),
+        stderr=_text(result.stderr),
         elapsed_seconds=result.elapsed_time.total_seconds(),
         cost_usd=result.cost,
         phase=phase,
@@ -748,7 +770,7 @@ def run_on_image(*, api_key: str, project_id: str = "", image_id: str, command: 
     started = time.monotonic()
     try:
         image = client.images.use(image_id, strict=True)
-        executed = image.run(shell=command, timeout=timeout_seconds, disposable=True, preserve_env=False).wait()
+        executed = image.run(shell=command, timeout=timeout_seconds, disposable=True, preserve_env=False, **_byte_streams(image)).wait()
     except OperationTimedOutError as exc:
         raise SandboxTimeoutError(f"sandbox execution exceeded {timeout_seconds}s wall clock: {exc}", command=command, completed_cost_usd=0.0,
                                   killed_seconds=time.monotonic() - started) from exc
@@ -903,6 +925,7 @@ def _run_once(
                 timeout=remaining,
                 disposable=is_last,
                 preserve_env=not is_last,
+                **_byte_streams(current),
             ).wait()
             if kind == "extract":
                 phase = "rerun_extract"

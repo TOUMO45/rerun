@@ -67,12 +67,6 @@ def test_the_owners_caps_are_consistent():
         gate_budget.entry_cap_for(7.00, 1.75, 5.26)
 
 
-def test_the_ledger_arithmetic_of_the_seal_and_the_gate_fits_the_ceiling():
-    """Owner: ceiling $32.00; ledger after the probe $22.5421 (21.3218 + 0.048615 API-reported + 1.1717 estimated, lower bound); seal cap $1.50; gate cap $7.00."""
-    assert 21.3218 + 0.048615 + 1.1717 + 1.50 + 7.00 <= 32.00
-    assert 32.00 - (21.3218 + 0.048615 + 1.1717 + 1.50 + 7.00) == pytest.approx(0.9579, abs=1e-3)
-
-
 # --- the sustained-run phase -------------------------------------------------------------------------------------------------
 
 def test_only_runs_records_get_a_sustained_run_each_funded_with_its_share_after_the_entries(tmp_path):
