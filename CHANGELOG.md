@@ -2,6 +2,9 @@
 
 One entry per phase of the post-corpus-v2 plan. Numbers are produced by scripts in `scripts/`.
 
+## harness-v1.4.3 - seal (2026-10-02; live, $1.4307 recorded)
+All 17 earlier seal entries re-verified against the new `sandbox.py` plus two new ones (19 paths, 34 live run ids), five stages, every check ok; $1.1262 API-reported + $0.3045 ESTIMATED (K1 stopped step), cap $1.50, branch run $0.00053. New live checks: a 200,075-byte stderr comes back whole, a 5 MiB stream is cut at exactly 4 MiB with the flag set, a cut inside a multi-byte character returns without an exception, `run_on_image` works. Ledger $23.9728 (lower bound), ceiling $32.00. Tag `harness-v1.4.3`; report `reports/corpus-v2.1/v1.4.3/seal/SEAL_STATUS.md`.
+
 ## harness-v1.4.3-rc — D-41 probe and Step 1 of the v1.4.3 directive (2026-10-02; offline except the probe, unsealed)
 Owner's answers to the v1.4.2 report: v1.4.2 accepted; headline wording and the replacement rule ("state the verdict class and the criterion it met, never a rate, never the word recovered without the criterion beside it"); spend ceiling raised to $32.00; D-41 probe first, then v1.4.3 as the final gate, then Phase D and D6 without waiting.
 **Probe (cap $0.05, cost $0.048615 API-reported): D-41 confirmed.** #3's real stderr is 400,939 bytes, the SDK returned 65,535, the raw `truncated` flag was true, and the cut-off tail is `AssertionError: Torch not compiled with CUDA enabled` at `.cuda()`: #3's "silent exit" in every version was a CUDA error the harness never saw, and the CPU shim never ran on it. Record `d41-probe/probe_03_vmtl_op5@51727e64...`.

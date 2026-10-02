@@ -1,22 +1,34 @@
 {
-  "harness_tag": "harness-v1.4.2",
-  "written_at": "2026-10-01T22:27:33.587669+00:00",
-  "rule": "option B over changed files only (METHODOLOGY, harness-v1.4.2): an entry whose code files are unchanged since its live verification is carried over; an entry that lists a changed file is re-verified by a live record or the writer stops; a WSL dry run is a smoke test, not verification; a code file changed after its verification invalidates the entry",
-  "carried_over_from": "harness-v1.4.1",
+  "harness_tag": "harness-v1.4.3",
+  "written_at": "2026-10-02T11:34:40.279892+00:00",
+  "rule": "option B over changed files (METHODOLOGY, harness-v1.4.3): sandbox.py changed and every entry lists it, so every entry is re-verified by a live record of this seal; a WSL dry run is a smoke test, not verification; a code file changed after its verification invalidates the entry",
+  "reverified_from": "harness-v1.4.2",
+  "seal_run": {
+    "head": "aba23912d3fa560cf0d78e99d3e061432a238e8d",
+    "rc_commit": "aba23912d3fa560cf0d78e99d3e061432a238e8d",
+    "started_at": "2026-10-02T11:11:05.098447+00:00",
+    "stage_costs_usd": {
+      "new": 0.00468,
+      "v141": 0.411419,
+      "v142": 0.019551,
+      "v140": 0.290733,
+      "final": 0.704296
+    }
+  },
   "paths": [
     {
       "id": "download_route_git",
       "description": "in-sandbox download (git) of corpus-v2 entry 8's own repository (143 MB) + manifest verify",
       "live_nebius": true,
       "code_files": {
-        "backend/app/services/sandbox.py": "5f77d5bca7cf64c55daabbcf50b3a9d3b5b6240d",
+        "backend/app/services/sandbox.py": "465c8cdc714536fd06a5534ee2fee02c813f87dc",
         "backend/app/services/sandbox_limits.py": "bfb04105b708bb400c1174ad498fb64bb3c0661b"
       },
       "records": [
-        "runs/sandbox_verification/final-v1.4.0/download_git_entry8_py310.json"
+        "runs/sandbox_verification/v1.4.3-seal/final/download_git_entry8_py310.json"
       ],
       "run_ids": [
-        "5e038ede-bd62-4bfa-846d-1165bd390490"
+        "dc1616a0-1add-47db-a14f-bd6bb64bcfcb"
       ]
     },
     {
@@ -24,13 +36,13 @@
       "description": "the normal one-tar upload + extraction + manifest verify (exec-bit comparison) + modes",
       "live_nebius": true,
       "code_files": {
-        "backend/app/services/sandbox.py": "5f77d5bca7cf64c55daabbcf50b3a9d3b5b6240d"
+        "backend/app/services/sandbox.py": "465c8cdc714536fd06a5534ee2fee02c813f87dc"
       },
       "records": [
-        "runs/sandbox_verification/final-v1.4.0/upload_archive_exec_bit_py36.json"
+        "runs/sandbox_verification/v1.4.3-seal/final/upload_archive_exec_bit_py36.json"
       ],
       "run_ids": [
-        "4f266552-dcd2-457e-9f74-6347582f93fc"
+        "597a4bac-d2f3-4eda-b384-37115fc4cc5c"
       ]
     },
     {
@@ -38,15 +50,15 @@
       "description": "runner torch install + patchelf + import, python 3.6 old pin (entry 3's era torch)",
       "live_nebius": true,
       "code_files": {
-        "backend/app/services/sandbox.py": "5f77d5bca7cf64c55daabbcf50b3a9d3b5b6240d",
+        "backend/app/services/sandbox.py": "465c8cdc714536fd06a5534ee2fee02c813f87dc",
         "backend/app/services/sandbox_limits.py": "bfb04105b708bb400c1174ad498fb64bb3c0661b",
         "backend/app/services/runner_env.py": "350c6846f22ed01eca4768132051993e47173b03"
       },
       "records": [
-        "runs/sandbox_verification/final-v1.4.0/torch_py36_pin1.10.2.json"
+        "runs/sandbox_verification/v1.4.3-seal/final/torch_py36_pin1.10.2.json"
       ],
       "run_ids": [
-        "fddc8027-8412-4ff1-b7eb-06991e5322e3"
+        "5de4e435-0723-4cc2-81cf-f0a0bf72c33a"
       ]
     },
     {
@@ -54,14 +66,14 @@
       "description": "an undeclared `import torchvision` gets the matched torch family (entries 8 and 11 baselines)",
       "live_nebius": true,
       "code_files": {
-        "backend/app/services/sandbox.py": "5f77d5bca7cf64c55daabbcf50b3a9d3b5b6240d",
+        "backend/app/services/sandbox.py": "465c8cdc714536fd06a5534ee2fee02c813f87dc",
         "backend/app/services/runner_env.py": "350c6846f22ed01eca4768132051993e47173b03"
       },
       "records": [
-        "runs/sandbox_verification/final-v1.4.0/torch_py310_imports_torchvision.json"
+        "runs/sandbox_verification/v1.4.3-seal/final/torch_py310_imports_torchvision.json"
       ],
       "run_ids": [
-        "721c6cd2-779d-4996-95e4-0b5459262156"
+        "5a9a1b7a-beb8-4b5f-b993-b7dccc1f29ed"
       ]
     },
     {
@@ -69,14 +81,14 @@
       "description": "torch < 2.3 with numpy<2 on Python 3.9 (entry 11's era torch)",
       "live_nebius": true,
       "code_files": {
-        "backend/app/services/sandbox.py": "5f77d5bca7cf64c55daabbcf50b3a9d3b5b6240d",
+        "backend/app/services/sandbox.py": "465c8cdc714536fd06a5534ee2fee02c813f87dc",
         "backend/app/services/runner_env.py": "350c6846f22ed01eca4768132051993e47173b03"
       },
       "records": [
-        "runs/sandbox_verification/final-v1.4.0/torch_py39_pin1.8.1_numpy_cap.json"
+        "runs/sandbox_verification/v1.4.3-seal/final/torch_py39_pin1.8.1_numpy_cap.json"
       ],
       "run_ids": [
-        "9c842528-79bb-496b-b8f3-7677134306b0"
+        "5bb89bcb-f526-4539-b2c3-d050bb6ea735"
       ]
     },
     {
@@ -84,14 +96,14 @@
       "description": "a failing runner op is tagged phase=runner_setup and no repo command runs",
       "live_nebius": true,
       "code_files": {
-        "backend/app/services/sandbox.py": "5f77d5bca7cf64c55daabbcf50b3a9d3b5b6240d",
+        "backend/app/services/sandbox.py": "465c8cdc714536fd06a5534ee2fee02c813f87dc",
         "backend/app/services/runner_env.py": "350c6846f22ed01eca4768132051993e47173b03"
       },
       "records": [
-        "runs/sandbox_verification/final-v1.4.0/phase_runner_setup_failure_py310.json"
+        "runs/sandbox_verification/v1.4.3-seal/final/phase_runner_setup_failure_py310.json"
       ],
       "run_ids": [
-        "83701a46-2aea-475c-b723-840948fb0531"
+        "605b6575-4c1c-4f81-b6e0-10f996370f1e"
       ]
     },
     {
@@ -99,14 +111,14 @@
       "description": "a step stopped at its operation limit, through both stop paths",
       "live_nebius": true,
       "code_files": {
-        "backend/app/services/sandbox.py": "5f77d5bca7cf64c55daabbcf50b3a9d3b5b6240d"
+        "backend/app/services/sandbox.py": "465c8cdc714536fd06a5534ee2fee02c813f87dc"
       },
       "records": [
-        "runs/sandbox_verification/final-v1.4.0/kill_at_operation_limit_py310.json",
-        "runs/sandbox_verification/final-v1.4.0/kill_at_operation_limit_py310_extra1.json"
+        "runs/sandbox_verification/v1.4.3-seal/final/kill_at_operation_limit_py310.json",
+        "runs/sandbox_verification/v1.4.3-seal/final/kill_at_operation_limit_py310_extra1.json"
       ],
       "run_ids": [
-        "01a0f83b-305b-736f-8092-a60bbaa1aef9",
+        "01a0fc63-a777-76aa-96ba-002c24a6dcce",
         "dbfbe818-36d4-349f-9354-e97b3fa7be59"
       ]
     },
@@ -115,16 +127,16 @@
       "description": "the smoke launcher on Python 3.10 and 3.6 (its own exit now silent for the exit-site hook)",
       "live_nebius": true,
       "code_files": {
-        "backend/app/services/sandbox.py": "5f77d5bca7cf64c55daabbcf50b3a9d3b5b6240d",
+        "backend/app/services/sandbox.py": "465c8cdc714536fd06a5534ee2fee02c813f87dc",
         "backend/app/services/smoke_exec.py": "ec61fd0bc3bb39a90da8945310bf3c7e392bcb36"
       },
       "records": [
-        "runs/sandbox_verification/final-v1.4.0/smoke_alive_py310.json",
-        "runs/sandbox_verification/final-v1.4.0/smoke_exits_ok_py310.json",
-        "runs/sandbox_verification/final-v1.4.0/smoke_fails_py310.json",
-        "runs/sandbox_verification/final-v1.4.0/smoke_silent_py310.json",
-        "runs/sandbox_verification/final-v1.4.0/smoke_alive_py36.json",
-        "runs/sandbox_verification/final-v1.4.0/smoke_fails_py36.json"
+        "runs/sandbox_verification/v1.4.3-seal/final/smoke_alive_py310.json",
+        "runs/sandbox_verification/v1.4.3-seal/final/smoke_exits_ok_py310.json",
+        "runs/sandbox_verification/v1.4.3-seal/final/smoke_fails_py310.json",
+        "runs/sandbox_verification/v1.4.3-seal/final/smoke_silent_py310.json",
+        "runs/sandbox_verification/v1.4.3-seal/final/smoke_alive_py36.json",
+        "runs/sandbox_verification/v1.4.3-seal/final/smoke_fails_py36.json"
       ],
       "run_ids": [
         "dbfbe818-36d4-349f-9354-e97b3fa7be59",
@@ -140,16 +152,16 @@
       "description": "a checkpoint keeps the tree and setup layers; a later operation reopens the deepest layer by id, runs no setup step again, applies the branch overlay and runs the command; its result image is kept",
       "live_nebius": true,
       "code_files": {
-        "backend/app/services/sandbox.py": "5f77d5bca7cf64c55daabbcf50b3a9d3b5b6240d",
+        "backend/app/services/sandbox.py": "465c8cdc714536fd06a5534ee2fee02c813f87dc",
         "backend/app/services/sandbox_limits.py": "bfb04105b708bb400c1174ad498fb64bb3c0661b"
       },
       "records": [
-        "runs/sandbox_verification/v1.4.0-seal/run1_A_ready_image.json",
-        "runs/sandbox_verification/v1.4.0-seal/run1_B_branch_run.json"
+        "runs/sandbox_verification/v1.4.3-seal/v140/run1_A_ready_image.json",
+        "runs/sandbox_verification/v1.4.3-seal/v140/run1_B_branch_run.json"
       ],
       "run_ids": [
-        "a531213a-6059-49d8-b7f6-92a9e1be33b6",
-        "b96a5e01-99d9-44ec-93d7-4df3ba249104"
+        "5f1b22be-44d7-49ff-a918-5374719ffea8",
+        "4d15e641-217f-4144-8cb4-87df93a1bb95"
       ]
     },
     {
@@ -157,13 +169,13 @@
       "description": "a kept result image reopened after a wait still holds the patched tree",
       "live_nebius": true,
       "code_files": {
-        "backend/app/services/sandbox.py": "5f77d5bca7cf64c55daabbcf50b3a9d3b5b6240d"
+        "backend/app/services/sandbox.py": "465c8cdc714536fd06a5534ee2fee02c813f87dc"
       },
       "records": [
-        "runs/sandbox_verification/v1.4.0-seal/run1_D_reopen_kept_image.json"
+        "runs/sandbox_verification/v1.4.3-seal/v140/run1_D_reopen_kept_image.json"
       ],
       "run_ids": [
-        "b96a5e01-99d9-44ec-93d7-4df3ba249104"
+        "4d15e641-217f-4144-8cb4-87df93a1bb95"
       ]
     },
     {
@@ -171,17 +183,17 @@
       "description": "corpus-v2 entry 7's recorded environment built as a checkpoint, then reopen + apply + execute from its deepest kept layer (only the setup steps the layer lacks run again)",
       "live_nebius": true,
       "code_files": {
-        "backend/app/services/sandbox.py": "5f77d5bca7cf64c55daabbcf50b3a9d3b5b6240d",
+        "backend/app/services/sandbox.py": "465c8cdc714536fd06a5534ee2fee02c813f87dc",
         "backend/app/services/sandbox_limits.py": "bfb04105b708bb400c1174ad498fb64bb3c0661b",
         "backend/app/services/smoke_exec.py": "ec61fd0bc3bb39a90da8945310bf3c7e392bcb36"
       },
       "records": [
-        "runs/sandbox_verification/v1.4.0-seal/run2_E_entry07_checkpoint.json",
-        "runs/sandbox_verification/v1.4.0-seal/run2_F_reopen_apply_execute.json"
+        "runs/sandbox_verification/v1.4.3-seal/v140/run2_E_entry07_checkpoint.json",
+        "runs/sandbox_verification/v1.4.3-seal/v140/run2_F_reopen_apply_execute.json"
       ],
       "run_ids": [
-        "feb3c11f-5906-41ea-8efb-3f7b4e6069d5",
-        "9de6fe80-0d35-4a7f-af19-75cf3e9f79e8"
+        "02e55d8d-b052-4c12-bad1-d8e5172d7175",
+        "79828b41-44ee-4658-bccc-ed4171f98b50"
       ]
     },
     {
@@ -189,16 +201,16 @@
       "description": "an apt layer (`export DEBIAN_FRONTEND=noninteractive && apt-get update && apt-get install -y ...`) on a kept image: only the layer runs, the earlier pip step is not run again, and the package is there",
       "live_nebius": true,
       "code_files": {
-        "backend/app/services/sandbox.py": "5f77d5bca7cf64c55daabbcf50b3a9d3b5b6240d",
+        "backend/app/services/sandbox.py": "465c8cdc714536fd06a5534ee2fee02c813f87dc",
         "backend/app/services/sandbox_limits.py": "bfb04105b708bb400c1174ad498fb64bb3c0661b"
       },
       "records": [
-        "runs/sandbox_verification/v1.4.1-seal/run2_L1_image_without_a_compiler.json",
-        "runs/sandbox_verification/v1.4.1-seal/run2_L2_additive_apt_layer.json"
+        "runs/sandbox_verification/v1.4.3-seal/v141/run2_L1_image_without_a_compiler.json",
+        "runs/sandbox_verification/v1.4.3-seal/v141/run2_L2_additive_apt_layer.json"
       ],
       "run_ids": [
-        "ec037001-f757-4b38-95d4-44f1b530c8a7",
-        "64e98434-bcc9-4558-82f0-7ca73151793c"
+        "9b5e09f8-92ff-4beb-b8b3-1e7b8ec2094a",
+        "902a74a2-242a-4d8a-83dd-598c37ad9dbb"
       ]
     },
     {
@@ -206,15 +218,15 @@
       "description": "an operation stopped at its limit keeps the layer built before the stopped step; a new operation reopens that layer by id and runs only the rest",
       "live_nebius": true,
       "code_files": {
-        "backend/app/services/sandbox.py": "5f77d5bca7cf64c55daabbcf50b3a9d3b5b6240d"
+        "backend/app/services/sandbox.py": "465c8cdc714536fd06a5534ee2fee02c813f87dc"
       },
       "records": [
-        "runs/sandbox_verification/v1.4.1-seal/run3_K1_operation_stopped_at_its_limit.json",
-        "runs/sandbox_verification/v1.4.1-seal/run3_K2_resume_from_the_kept_layer.json"
+        "runs/sandbox_verification/v1.4.3-seal/v141/run3_K1_operation_stopped_at_its_limit.json",
+        "runs/sandbox_verification/v1.4.3-seal/v141/run3_K2_resume_from_the_kept_layer.json"
       ],
       "run_ids": [
-        "ca36a746-7351-47ec-9350-3a6b8f24f749",
-        "79e41928-3727-43b0-a910-b59ea1e287ed"
+        "fbc4cd07-3cb8-42d4-8590-d6dfd79803d4",
+        "e70f0e35-a510-46ae-9946-5b8c261901bc"
       ]
     },
     {
@@ -222,14 +234,14 @@
       "description": "the exit-site hook and the CPU shim installed as setup steps on top of a kept image; the hook prints the exit site of a sys.exit(3) inside a function (re-verified: runner_hooks.py changed in v1.4.2)",
       "live_nebius": true,
       "code_files": {
-        "backend/app/services/sandbox.py": "5f77d5bca7cf64c55daabbcf50b3a9d3b5b6240d",
+        "backend/app/services/sandbox.py": "465c8cdc714536fd06a5534ee2fee02c813f87dc",
         "backend/app/services/runner_hooks.py": "ad351070d592489dfc2ccbfe3df0f84acc5eb217"
       },
       "records": [
-        "runs/sandbox_verification/v1.4.2-seal/run1_C_runner_hooks.json"
+        "runs/sandbox_verification/v1.4.3-seal/v142/run1_C_runner_hooks.json"
       ],
       "run_ids": [
-        "57fd4610-9fd4-4c11-9dc4-609f07d96c64"
+        "7fed15fd-789d-4c1e-8567-ee8ca5130a27"
       ]
     },
     {
@@ -237,16 +249,16 @@
       "description": "a bare `raise SystemExit(1)` with the hook installed leaves nothing on stderr (the gap); through the exit wrapper the traceback of the raise is printed and the exit code is kept (python 3.10; re-verified)",
       "live_nebius": true,
       "code_files": {
-        "backend/app/services/sandbox.py": "5f77d5bca7cf64c55daabbcf50b3a9d3b5b6240d",
+        "backend/app/services/sandbox.py": "465c8cdc714536fd06a5534ee2fee02c813f87dc",
         "backend/app/services/runner_hooks.py": "ad351070d592489dfc2ccbfe3df0f84acc5eb217"
       },
       "records": [
-        "runs/sandbox_verification/v1.4.2-seal/run1_W0_hook_alone_sees_nothing.json",
-        "runs/sandbox_verification/v1.4.2-seal/run1_W1_wrapper_prints_the_raise_site.json"
+        "runs/sandbox_verification/v1.4.3-seal/v142/run1_W0_hook_alone_sees_nothing.json",
+        "runs/sandbox_verification/v1.4.3-seal/v142/run1_W1_wrapper_prints_the_raise_site.json"
       ],
       "run_ids": [
-        "c00f8c5d-9697-45e3-9488-a4236932451b",
-        "b93dd2af-8147-4451-b96e-867589c90109"
+        "62603fc2-0fef-42ac-bbc6-35fdd07be0db",
+        "109e827e-a138-4070-95a8-99c9f06dde0c"
       ]
     },
     {
@@ -254,14 +266,14 @@
       "description": "the exit wrapper on python:3.6-slim, the oldest sandbox image (re-verified)",
       "live_nebius": true,
       "code_files": {
-        "backend/app/services/sandbox.py": "5f77d5bca7cf64c55daabbcf50b3a9d3b5b6240d",
+        "backend/app/services/sandbox.py": "465c8cdc714536fd06a5534ee2fee02c813f87dc",
         "backend/app/services/runner_hooks.py": "ad351070d592489dfc2ccbfe3df0f84acc5eb217"
       },
       "records": [
-        "runs/sandbox_verification/v1.4.2-seal/run1_W2_wrapper_on_python36.json"
+        "runs/sandbox_verification/v1.4.3-seal/v142/run1_W2_wrapper_on_python36.json"
       ],
       "run_ids": [
-        "0dc34722-9fd0-46a6-8c80-6eff57cd2139"
+        "fdad17de-db99-4a72-ad4a-50496d8efa06"
       ]
     },
     {
@@ -269,16 +281,50 @@
       "description": "the evidence command runs the command unchanged in a subshell, keeps its exit status and prints the sandbox's own limits and kill traces on stderr: a calm run (exit 3) and a process that SIGKILLs itself (exit 137, `Killed`, kill evidenced), both parsed by the harness's own parser",
       "live_nebius": true,
       "code_files": {
-        "backend/app/services/sandbox.py": "5f77d5bca7cf64c55daabbcf50b3a9d3b5b6240d",
+        "backend/app/services/sandbox.py": "465c8cdc714536fd06a5534ee2fee02c813f87dc",
         "backend/app/services/runner_hooks.py": "ad351070d592489dfc2ccbfe3df0f84acc5eb217"
       },
       "records": [
-        "runs/sandbox_verification/v1.4.2-seal/run2_E0_calm_run_with_evidence.json",
-        "runs/sandbox_verification/v1.4.2-seal/run2_E1a_self_sigkill_with_evidence.json"
+        "runs/sandbox_verification/v1.4.3-seal/v142/run2_E0_calm_run_with_evidence.json",
+        "runs/sandbox_verification/v1.4.3-seal/v142/run2_E1a_self_sigkill_with_evidence.json"
       ],
       "run_ids": [
-        "27dcff91-bd72-40d2-8769-506835306545",
-        "ea85e4c3-3709-4aa6-bbf0-3d56b5cb2e42"
+        "9c75c995-e744-4d38-80d1-f93e781f7947",
+        "9560ab76-e51f-4134-8306-ccce70d3e15c"
+      ]
+    },
+    {
+      "id": "output_limit_raised_and_truncation_flag_read",
+      "description": "a failing command that writes 200,000 bytes on stderr gets the whole stream back with the API's `truncated` flag false and its size and hash recorded; one that writes 5 MiB gets exactly the 4 MiB limit the client asked for, with the flag true and its last line NOT returned, and the harness labels it OUTPUT_TRUNCATED; a stream whose cut falls inside a multi-byte character comes back without an exception, the half character replaced (D-41)",
+      "live_nebius": true,
+      "code_files": {
+        "backend/app/services/sandbox.py": "465c8cdc714536fd06a5534ee2fee02c813f87dc"
+      },
+      "records": [
+        "runs/sandbox_verification/v1.4.3-seal/new/S1_200kb_stderr_whole.json",
+        "runs/sandbox_verification/v1.4.3-seal/new/S2_stream_over_the_limit_flagged.json",
+        "runs/sandbox_verification/v1.4.3-seal/new/S2b_cut_inside_a_multibyte_character.json"
+      ],
+      "run_ids": [
+        "74812ca1-8b35-4d36-9d09-91e4e744f331",
+        "bc3ea21b-5924-4bf0-b5c8-7a083da05800",
+        "2e3d5a44-4480-4f17-a96a-fd378d88bca5"
+      ]
+    },
+    {
+      "id": "run_on_image_for_the_sustained_run",
+      "description": "`run_on_image` reopens a kept image by its id and runs one command once, disposable; given a 3 s limit for a 20 s command the record shows the stop path the API took (the server's result with `timed_out`, or the client's wait) (D-42)",
+      "live_nebius": true,
+      "code_files": {
+        "backend/app/services/sandbox.py": "465c8cdc714536fd06a5534ee2fee02c813f87dc"
+      },
+      "records": [
+        "runs/sandbox_verification/v1.4.3-seal/new/S3_run_on_image_reopens_a_kept_image.json",
+        "runs/sandbox_verification/v1.4.3-seal/new/S4_run_on_image_stopped_at_its_limit.json"
+      ],
+      "run_ids": [
+        "2bede5cf-8dd6-4b47-86b4-c1210280c4e5",
+        "2bede5cf-8dd6-4b47-86b4-c1210280c4e5"
       ]
     }
   ]
