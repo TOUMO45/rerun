@@ -174,8 +174,8 @@ def build_report(round_no: int, rounds: dict[int, list[dict]], *, billed: str = 
             f"Histogram, ending, every earlier record of the DEV and gate entries (all versions, both arms of v1.3.2): {dict((history if history is not None else historical_histogram()).most_common())}.", "",
             "## Deterministic rules that fired (no model call)", ""]
     for r in sorted(records, key=lambda r: (r.get("batch") or {}).get("entry_id")):
-        fired = rules_fired(r)
-        out.append(f"- #{(r.get('batch') or {}).get('entry_id')}: " + ("; ".join(fired) if fired else "none"))
+        counted = collections.Counter(rules_fired(r))
+        out.append(f"- #{(r.get('batch') or {}).get('entry_id')}: " + ("; ".join(f"{name}" + (f" x{n}" if n > 1 else "") for name, n in counted.items()) if counted else "none"))
     out += ["", "## What the model contributed", "", "| id | calls by model | model attempts | env-delta ops | patches proposed | declined | rejected | citations | origin of the passing attempt |", "|---|---|---|---|---|---|---|---|---|"]
     for r in sorted(records, key=lambda r: (r.get("batch") or {}).get("entry_id")):
         m = model_contribution(r)
