@@ -127,6 +127,54 @@ export interface ResolvedSource {
   cpython_tags?: string[];
 }
 
+/** harness-v1.6 outcome ladder: how far the run got, read off the stored
+ * record (verdict, error_chain, attempts) — never from a model. */
+export interface OutcomeLevels {
+  /** The chain's first failure was cleared by some attempt. */
+  first_error_cleared: boolean;
+  /** The `origin` of the attempt that cleared it ("time_machine", "model", a rule name), or null when unexplained. */
+  first_error_cleared_by: string | null;
+  /** The run got past the environment (dependencies, system libraries, the interpreter, the mirrors). */
+  env_resolved: boolean;
+  /** The verdict says the repository's command completed. */
+  entrypoint_runs: boolean;
+}
+
+/** One Tavily hit for a blocker's "where to get it" lookup. */
+export interface BlockerSourceHit {
+  title: string;
+  url: string;
+}
+
+/** The Tavily lookup for what a human must supply: `sources` is null when the
+ * lookup ran but found nothing (or was skipped); `reason` says why. */
+export interface BlockerSources {
+  query: string;
+  sources: BlockerSourceHit[] | null;
+  reason: string | null;
+}
+
+/** Who can remove a blocker: RERUN's own rules, a model proposal (gated),
+ * a human, or the platform. */
+export type BlockerFixableBy = "deterministic" | "model" | "human" | "platform";
+
+/** harness-v1.6 blocker report: what is in the way of the repository running,
+ * derived from the LAST link of the error chain. Null when nothing blocks
+ * (RUNS_* verdicts) or nothing was classified. */
+export interface Blocker {
+  /** A TaxonomyCode, e.g. "DATA_MISSING". */
+  class: string;
+  /** The taxonomy family of the class ("Dependencies", "Data", ...), or null. */
+  family: string | null;
+  phase: string;
+  attribution: "REPO" | "ENV" | "SANDBOX_QUOTA" | "PLATFORM" | string;
+  /** The link's error line, at most 300 characters. */
+  evidence: string;
+  fixable_by: BlockerFixableBy | null;
+  what_a_human_must_supply: string | null;
+  sources: BlockerSources | null;
+}
+
 export interface CertificateOut {
   run_id: string;
   verdict: Verdict;
@@ -145,6 +193,10 @@ export interface CertificateOut {
   /** v3: proof the uploaded files were the committed tree. */
   tree_integrity?: { status: string; tree_sha?: string; files_checked?: number; mismatched?: string[]; not_in_commit?: string[] } | null;
   corpus_hash?: string | null;
+  /** harness-v1.6; absent on certificates served before it. */
+  outcome_levels?: OutcomeLevels | null;
+  /** harness-v1.6; absent on certificates served before it, null when nothing blocks. */
+  blocker?: Blocker | null;
 }
 
 export interface Baseline {
