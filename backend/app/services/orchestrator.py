@@ -864,6 +864,10 @@ def _with_blocker_sources(result: PipelineResult, deps: PipelineDeps, repo_url: 
     """harness-v1.6 (item S): after the verdict, one Tavily search for a DATA_MISSING blocker, stored on the result. It
     runs after every finalizer so the verdict is already fixed; it can neither change a verdict nor raise (a failed
     search is stored as its reason)."""
+    if result.verdict != "BLOCKED":
+        # v1.6 review, defect 9: only a BLOCKED run has a blocker a person must act on; an INDETERMINATE one (cost cap,
+        # invalid harness, a platform stop) carries a chain but no claim, and no search is spent on it.
+        return result
     sources = tavily.dataset_sources(getattr(deps, "tavily_client", None), repo_url, result.blocker)
     if sources is None:
         return result

@@ -23,9 +23,12 @@ INDETERMINATE decided before execution, a pipeline error).
 
 from __future__ import annotations
 
+import logging
 import re
 
 from app.services.classifier import TaxonomyCode
+
+logger = logging.getLogger(__name__)
 
 EVIDENCE_MAX_CHARS = 300
 
@@ -37,6 +40,7 @@ PLATFORM = "platform"
 # Templates. `{package}`, `{path}`, `{module}` and `{limit}` are filled from the evidence line; when the regex finds
 # nothing the generic wording in `_FALLBACK` is used, so the sentence never carries an empty hole or angle brackets.
 _RELEASE = "nothing, if the era lock resolves it; otherwise the exact release of {package} the authors used"
+_RELEASE_API = "nothing, if the era lock or a removed-API row resolves it; otherwise the release of {package} the authors used (older or newer)"
 _FALLBACK = {"package": "the package", "path": "the path the code opens", "module": "the module", "limit": "the limit"}
 
 # One row per TaxonomyCode: (fixable_by, what_a_human_must_supply). GPU_REQUIRED's sentence depends on the evidence
@@ -46,15 +50,15 @@ TABLE: dict[str, tuple[str, str]] = {
     TaxonomyCode.DEP_YANKED: (DETERMINISTIC, _RELEASE),
     TaxonomyCode.DEP_UNPINNED_CONFLICT: (DETERMINISTIC, _RELEASE),
     TaxonomyCode.DEP_NOT_ON_PYPI: (DETERMINISTIC, _RELEASE),
-    TaxonomyCode.API_REMOVED: (DETERMINISTIC, _RELEASE),
+    TaxonomyCode.API_REMOVED: (DETERMINISTIC, _RELEASE_API),
     TaxonomyCode.PY_VERSION_INCOMPAT: (DETERMINISTIC, "nothing, if the interpreter policy resolves it; otherwise the Python version the authors used"),
     TaxonomyCode.SYS_LIB_MISSING: (DETERMINISTIC, "nothing, if the apt rule resolves it; otherwise the system package that provides {package}"),
-    TaxonomyCode.DEP_BUILD_FAILED: (DETERMINISTIC, "the build dependencies of {package}, or a wheel for this platform"),
+    TaxonomyCode.DEP_BUILD_FAILED: (DETERMINISTIC, "nothing, if the apt rule adds the build dependencies; otherwise a wheel of {package} for this platform"),
     TaxonomyCode.DATA_MISSING: (HUMAN, "the dataset the repository expects at {path}, obtained as its README describes"),
     TaxonomyCode.DATA_CREDENTIALS: (HUMAN, "the credentials (an API key, token or login) the download step asks for"),
     TaxonomyCode.GPU_REQUIRED: (HUMAN, "a CUDA device, or the CPU shim where the call is a plain .cuda()"),
     TaxonomyCode.HARDCODED_PATH: (MODEL, "nothing: the repairer proposes a relative path at {path} and the tamper gate decides"),
-    TaxonomyCode.ENTRYPOINT_UNCLEAR: (HUMAN, "the command to run: the README does not name one"),
+    TaxonomyCode.ENTRYPOINT_UNCLEAR: (HUMAN, "the command to run: the README does not name one unambiguously"),
     TaxonomyCode.NETWORK_BLOCKED: (PLATFORM, "an egress rule for the host the code reaches, or the file it downloads"),
     TaxonomyCode.RUNTIME_ERROR_OTHER: (MODEL, "a code change; the repairer proposes one and the tamper gate decides"),
     TaxonomyCode.APT_MIRROR_GONE: (PLATFORM, "a base image whose distribution is still on the mirrors"),
@@ -68,8 +72,10 @@ TABLE: dict[str, tuple[str, str]] = {
 # is a programming error and raises.
 _HISTORICAL: dict[str, str] = {"DEP_YANKED_GONE": TaxonomyCode.DEP_YANKED}
 
-# GPU_REQUIRED: the operation has no CPU implementation at all, so no shim can stand in for the device.
-_NO_CPU_KERNEL = re.compile(r"is not implemented on the CPU|accelerator", re.IGNORECASE)
+# GPU_REQUIRED: the operation has no CPU implementation at all, so no shim can stand in for the device. "Cannot access
+# accelerator device when none is available" is NOT that (v1.6 review, defect 5): it says no GPU is present, and the
+# CPU shim may still answer it, so it gets the general sentence.
+_NO_CPU_KERNEL = re.compile(r"is not implemented on the CPU", re.IGNORECASE)
 _GPU_NO_CPU_SENTENCE = "a CUDA device: the operation has no CPU implementation"
 
 # Placeholder extraction. Each list is tried in order; the first match wins.
@@ -135,7 +141,7 @@ def _api_removed_sentence(evidence: str) -> str:
     """API_REMOVED names the MODULE whose name moved; the release wanted is that module's distribution."""
     module = _first(_MODULE_RES, evidence)
     package = module.split(".")[0] if module else None
-    return _RELEASE.replace("{package}", package or _FALLBACK["package"])
+    return _RELEASE_API.replace("{package}", package or _FALLBACK["package"])
 
 
 def report(result: dict) -> dict | None:
@@ -150,7 +156,16 @@ def report(result: dict) -> dict | None:
     link = chain[-1]
     code = link.get("class") or ""
     evidence = (link.get("error") or "")[:EVIDENCE_MAX_CHARS]
-    fixable_by, template = TABLE[_HISTORICAL.get(code, code)]  # no default: an unknown class is a programming error, not a blank row
+    row = TABLE.get(_HISTORICAL.get(code, code))
+    if row is None:
+        # A class this table does not know (a record written by a harness this code has never seen). report() sits
+        # behind certificate() and the API's computed field, so one odd stored row must not fail every read: the
+        # record says plainly that nothing is known about the class, and the gap is logged. Completeness over
+        # TaxonomyCode.ALL is asserted by a test, never here.
+        logger.warning("blocker: no table row for class %r; the report carries None for its fields", code)
+        return {"class": code, "family": None, "phase": link.get("phase"), "attribution": link.get("attribution"),
+                "evidence": evidence, "fixable_by": None, "what_a_human_must_supply": None, "sources": None}
+    fixable_by, template = row
     if code == TaxonomyCode.GPU_REQUIRED:
         sentence = _gpu_sentence(evidence)
     elif code == TaxonomyCode.API_REMOVED:

@@ -167,8 +167,11 @@ def test_blocker_every_taxonomy_code_has_a_row_and_no_default():
     for code in TaxonomyCode.ALL:
         fixable_by, sentence = blocker.TABLE[code]
         assert fixable_by in (blocker.DETERMINISTIC, blocker.MODEL, blocker.HUMAN, blocker.PLATFORM) and sentence
-    with pytest.raises(KeyError):
-        _report("NOT_A_CODE", "x")
+    # v1.6 review, defect 8: an unknown class is a guarded row (None fields, a logged warning), never an exception
+    # behind certificate() and the API: completeness is this test's job, not report()'s.
+    unknown = _report("NOT_A_CODE", "x")
+    assert unknown["class"] == "NOT_A_CODE" and unknown["evidence"] == "x"
+    assert unknown["family"] is None and unknown["fixable_by"] is None and unknown["what_a_human_must_supply"] is None
     # the one historical class older records carry reads as the row of what it became
     report = _report("DEP_YANKED_GONE", "ERROR: No matching distribution found for foo==1")
     assert report["class"] == "DEP_YANKED_GONE" and report["family"] == "Dependencies" and report["fixable_by"] == "deterministic"
@@ -201,9 +204,9 @@ def test_blocker_evidence_is_capped_at_300_chars():
     ("DEP_NOT_ON_PYPI", "ERROR: Could not find a version that satisfies the requirement dassl (from versions: none)", "deterministic",
      "nothing, if the era lock resolves it; otherwise the exact release of dassl the authors used"),
     ("API_REMOVED", "ImportError: cannot import name 'zero_gradients' from 'torch.autograd.gradcheck' (/usr/local/lib/python3.10/site-packages/torch/autograd/gradcheck.py)",
-     "deterministic", "nothing, if the era lock resolves it; otherwise the exact release of torch the authors used"),
+     "deterministic", "nothing, if the era lock or a removed-API row resolves it; otherwise the release of torch the authors used (older or newer)"),
     ("API_REMOVED", "AttributeError: module 'tensorflow' has no attribute 'get_variable'", "deterministic",
-     "nothing, if the era lock resolves it; otherwise the exact release of tensorflow the authors used"),
+     "nothing, if the era lock or a removed-API row resolves it; otherwise the release of tensorflow the authors used (older or newer)"),
     ("PY_VERSION_INCOMPAT", "ERROR: Package 'foo' requires a different Python: 3.12.1 not in '<3.10,>=3.8'", "deterministic",
      "nothing, if the interpreter policy resolves it; otherwise the Python version the authors used"),
     ("SYS_LIB_MISSING", "ImportError: libGL.so.1: cannot open shared object file: No such file or directory", "deterministic",
@@ -213,9 +216,9 @@ def test_blocker_evidence_is_capped_at_300_chars():
     ("SYS_LIB_MISSING", "ERROR: Cannot find command 'git' - do you have 'git' installed and in your PATH?", "deterministic",
      "nothing, if the apt rule resolves it; otherwise the system package that provides git"),
     ("DEP_BUILD_FAILED", "ERROR: Failed building wheel for pycocotools", "deterministic",
-     "the build dependencies of pycocotools, or a wheel for this platform"),
+     "nothing, if the apt rule adds the build dependencies; otherwise a wheel of pycocotools for this platform"),
     ("DEP_BUILD_FAILED", "ERROR: Failed to build installable wheels for some pyproject.toml based projects (pygame)", "deterministic",
-     "the build dependencies of pygame, or a wheel for this platform"),
+     "nothing, if the apt rule adds the build dependencies; otherwise a wheel of pygame for this platform"),
     ("DATA_MISSING", "FileNotFoundError: [Errno 2] No such file or directory: 'data/train.csv'", "human",
      "the dataset the repository expects at data/train.csv, obtained as its README describes"),
     ("DATA_MISSING", "AssertionError: Please download the dataset first", "human",
@@ -227,10 +230,10 @@ def test_blocker_evidence_is_capped_at_300_chars():
     ("GPU_REQUIRED", "NotImplementedError: \"upsample_bilinear2d_out_frame\" is not implemented on the CPU", "human",
      "a CUDA device: the operation has no CPU implementation"),
     ("GPU_REQUIRED", "RuntimeError: Cannot access accelerator device when none is available.", "human",
-     "a CUDA device: the operation has no CPU implementation"),
+     "a CUDA device, or the CPU shim where the call is a plain .cuda()"),
     ("HARDCODED_PATH", "FileNotFoundError: [Errno 2] No such file or directory: '/home/jsmith/data/train.csv'", "model",
      "nothing: the repairer proposes a relative path at /home/jsmith/data/train.csv and the tamper gate decides"),
-    ("ENTRYPOINT_UNCLEAR", "ENTRYPOINT_UNCLEAR: recon confidence 0.3", "human", "the command to run: the README does not name one"),
+    ("ENTRYPOINT_UNCLEAR", "ENTRYPOINT_UNCLEAR: recon confidence 0.3", "human", "the command to run: the README does not name one unambiguously"),
     ("NETWORK_BLOCKED", "socket.gaierror: [Errno -3] Temporary failure in name resolution", "platform",
      "an egress rule for the host the code reaches, or the file it downloads"),
     ("RUNTIME_ERROR_OTHER", "ZeroDivisionError: division by zero", "model",
@@ -486,3 +489,179 @@ def test_a_data_missing_run_stores_the_dataset_lookup_on_its_blocker_outside_the
     assert result2.blocker["sources"] == {"query": "omarfoq fedem dataset download Download cifar10 dataset!!", "sources": None,
                                           "reason": "no Tavily client configured"}
     assert result2.reproduction_passport_hash == result.reproduction_passport_hash or result2.timestamp != result.timestamp
+
+
+# --- v1.6 review fixes (one test per defect; each failed on e13d9d5) ------------------------------------------------
+
+def test_fix1_a_single_package_404_under_the_pool_is_not_a_gone_mirror():
+    from app.services import classifier
+
+    transient = ("E: Failed to fetch http://deb.debian.org/debian/pool/main/g/git/git_2.39.2-1.1_amd64.deb  404  Not Found "
+                 "[IP: 151.101.2.132 80]\nE: Unable to fetch some archives, maybe run apt-get update or try with --fix-missing?\n")
+    assert classifier.classify(100, transient).code != "APT_MIRROR_GONE"
+    # DEV #16: the EOL security mirror's pool 404 is still the gone mirror
+    eol = ("E: Failed to fetch http://security.debian.org/debian-security/pool/updates/main/g/glibc/"
+           "libc-devtools_2.31-13%2bdeb11u14_amd64.deb  404  Not Found\n")
+    assert classifier.classify(100, eol).code == "APT_MIRROR_GONE"
+    assert classifier.classify(100, "E: Failed to fetch http://archive.debian.org/debian/pool/main/x/x_1.deb  404  Not Found").code == "APT_MIRROR_GONE"
+    assert classifier.classify(100, "Err:2 http://deb.debian.org/debian stretch Release\n  404  Not Found [IP: 1.2.3.4 80]\n").code != "APT_MIRROR_GONE"
+    assert classifier.classify(100, "E: Failed to fetch http://deb.debian.org/debian/dists/stretch/main/binary-amd64/Packages  404  Not Found").code == "APT_MIRROR_GONE"
+
+
+def test_fix1_a_pip_failure_after_the_apt_line_wins_over_the_mirror():
+    from app.services import classifier
+
+    text = ("E: The repository 'http://deb.debian.org/debian stretch Release' does not have a Release file.\n"
+            "Collecting foo\nERROR: Could not find a version that satisfies the requirement foo==9 (from versions: 1.0)\n")
+    assert classifier.classify(1, text).code == "DEP_YANKED"
+    # the other order: the apt failure is the later one and stands
+    text = ("ERROR: Could not find a version that satisfies the requirement foo==9 (from versions: 1.0)\n"
+            "E: The repository 'http://deb.debian.org/debian stretch Release' does not have a Release file.\n")
+    assert classifier.classify(1, text).code == "APT_MIRROR_GONE"
+
+
+def test_fix2_a_build_pip_recovered_from_does_not_mask_the_runtime_failure():
+    from app.services import classifier
+
+    stderr = ("  error: subprocess-exited-with-error\n      ModuleNotFoundError: No module named 'Cython'\n"
+              "  ERROR: Failed building wheel for pycocotools\n"
+              "Traceback (most recent call last):\nFileNotFoundError: [Errno 2] No such file or directory: 'data/coco/annotations.json'\n")
+    stdout = "Successfully installed pycocotools-2.0.4\n"
+    c = classifier.classify(1, stderr, stdout, declared_deps=frozenset())
+    assert c.code == "DATA_MISSING" and "annotations.json" in c.evidence
+    # without the Successfully installed line, a failure printed AFTER the block still wins (pip went on)
+    c = classifier.classify(1, stderr, "", declared_deps=frozenset())
+    assert c.code == "DATA_MISSING"
+    # a failure printed INSIDE the block is the build's own
+    inside = ("  error: subprocess-exited-with-error\n      FileNotFoundError: [Errno 2] No such file or directory: 'README.md'\n"
+              "  ERROR: Failed building wheel for foo\n")
+    assert classifier.classify(1, inside).code == "DEP_BUILD_FAILED"
+
+
+def test_fix2_an_unresolvable_setup_requires_is_the_dependency_class_not_the_wrapper():
+    from app.services import classifier
+
+    text = ("  error: subprocess-exited-with-error\n"
+            "      ERROR: Could not find a version that satisfies the requirement numpy==1.11.0 (from versions: 1.21.0, 1.22.0)\n"
+            "      ERROR: No matching distribution found for numpy==1.11.0\n"
+            "  ERROR: Failed building wheel for foo\n")
+    assert classifier.classify(1, text).code == "DEP_YANKED"
+    text = text.replace("(from versions: 1.21.0, 1.22.0)", "(from versions: none)")
+    assert classifier.classify(1, text).code == "DEP_NOT_ON_PYPI"
+
+
+def test_fix2_build_evidence_is_the_blocks_own_exception_not_a_later_one():
+    from app.services import classifier
+
+    text = ("  error: subprocess-exited-with-error\n      ValueError: bad setup.cfg\n"
+            "  ERROR: Failed building wheel for foo\n"
+            "  error: subprocess-exited-with-error\n      TypeError: unexpected keyword\n"
+            "  ERROR: Failed building wheel for bar\n")
+    c = classifier.classify(1, text)
+    assert c.code == "DEP_BUILD_FAILED" and c.evidence == "ValueError: bad setup.cfg"
+
+
+@pytest.mark.parametrize("stderr", [
+    "Traceback (most recent call last):\n  File \"train.py\", line 9, in <module>\n    dtype = torch.cuda.FloatTensor if args.cuda else torch.FloatTensor\n"
+    "FileNotFoundError: [Errno 2] No such file or directory: 'data/x.npy'",
+    "UserWarning: torch.cuda.FloatTensor as a tensor type is deprecated; use torch.set_default_dtype\nValueError: bad",
+    "    torch.set_default_tensor_type(torch.cuda.FloatTensor)\nKeyError: 'x'",
+])
+def test_fix3_a_cuda_tensor_type_echoed_in_a_traceback_or_a_warning_is_not_gpu_required(stderr):
+    from app.services import classifier
+
+    assert classifier.classify(1, stderr).code != "GPU_REQUIRED"
+    assert classifier.classify(1, "TypeError: torch.cuda.FloatTensor constructor received an invalid combination").code == "GPU_REQUIRED"
+    assert classifier.classify(1, "RuntimeError: invalid type: set_default_tensor_type(torch.cuda.FloatTensor)").code == "GPU_REQUIRED"
+
+
+@pytest.mark.parametrize("stderr", [
+    "AssertionError: dataset must be one of ['cifar10', 'mnist']",
+    "AssertionError: unknown dataset cifar100",
+    "AssertionError: data path must be absolute",
+])
+def test_fix4_an_argument_check_naming_the_dataset_is_not_missing_data(stderr):
+    from app.services import classifier
+
+    assert classifier.classify(1, stderr).code != "DATA_MISSING"
+    for guard in ("AssertionError: Download cifar10 dataset!!", "AssertionError: dataset not found at ./data",
+                  "AssertionError: data dir does not exist", "AssertionError: please prepare the dataset"):
+        assert classifier.classify(1, guard).code == "DATA_MISSING"
+
+
+def test_fix5_no_accelerator_present_is_the_general_gpu_sentence():
+    report = _report("GPU_REQUIRED", "RuntimeError: Cannot access accelerator device when none is available.")
+    assert report["what_a_human_must_supply"] == "a CUDA device, or the CPU shim where the call is a plain .cuda()"
+    assert _report("GPU_REQUIRED", "NotImplementedError: x is not implemented on the CPU")["what_a_human_must_supply"] == (
+        "a CUDA device: the operation has no CPU implementation")
+
+
+def test_fix6_a_flaky_runs_clean_record_is_not_read_as_cleared():
+    result = {"verdict": "RUNS_CLEAN", "error_chain": [_link("DEP_MISSING")], "attempts": [{"attempt_number": 0, "origin": "time_machine", "exit_code": 0}]}
+    levels = outcome_levels.compute(result)
+    assert levels["first_error_cleared"] is False and levels["first_error_cleared_by"] is None and levels["entrypoint_runs"] is True
+    assert outcome_levels.compute({**result, "verdict": "RUNS_AFTER_REPAIR"})["first_error_cleared"] is True
+
+
+def test_fix7_the_attempt_that_passed_is_named_among_those_sharing_its_number():
+    attempts = [{"attempt_number": 0, "origin": "time_machine", "exit_code": None, "gate_decision": "DECLINED"},
+                {"attempt_number": 0, "origin": "time_machine", "exit_code": 1, "time_machine_action": {"rule": "build-essential"}},
+                {"attempt_number": 0, "origin": "cpu_shim_step", "exit_code": 0}]
+    result = {"verdict": "RUNS_AFTER_REPAIR", "error_chain": [_link("GPU_REQUIRED", cleared_by=0)], "attempts": attempts}
+    assert outcome_levels.compute(result)["first_error_cleared_by"] == "cpu_shim_step"
+    # none passed: the last with that number
+    result["attempts"] = attempts[:2]
+    assert outcome_levels.compute(result)["first_error_cleared_by"] == "time_machine"
+    result["attempts"] = []
+    assert outcome_levels.compute(result)["first_error_cleared_by"] is None
+
+
+def test_fix8_an_unknown_class_in_a_stored_record_does_not_break_the_certificate_or_the_api(caplog):
+    import logging
+
+    from app.schemas import CertificateOut
+
+    chain = [{"error": "x", "class": "FUTURE_CODE", "attribution": "REPO", "phase": "repo_run", "cleared_by": None}]
+    with caplog.at_level(logging.WARNING, logger="app.services.blocker"):
+        report = blocker.report({"verdict": "BLOCKED", "error_chain": chain})
+    assert report["class"] == "FUTURE_CODE" and report["fixable_by"] is None and report["family"] is None
+    assert any("FUTURE_CODE" in r.getMessage() for r in caplog.records)
+    out = CertificateOut(run_id="r", verdict="BLOCKED", certificate_prose="", full_log="", build_plan={}, diffs=[],
+                         reproduction_passport_hash="", timestamp="t", error_chain=chain)
+    assert out.model_dump()["blocker"]["class"] == "FUTURE_CODE"
+
+
+def test_fix9_the_dataset_lookup_runs_only_for_a_blocked_verdict(tmp_path):
+    from app.services import orchestrator
+
+    class _Search:
+        def __init__(self):
+            self.calls = 0
+
+        def search(self, *a, **kw):
+            self.calls += 1
+            return {"results": [{"title": "t", "url": "https://example.com/d"}]}
+
+    chain = ({"error": "FileNotFoundError: [Errno 2] No such file or directory: 'data/x.npy'", "class": "DATA_MISSING",
+              "attribution": "REPO", "phase": "repo_run", "cleared_by": None},)
+    base = dict(taxonomy_code="DATA_MISSING", indeterminate_reason="", attempts=(), build_plan=None, full_log="", certificate_prose="",
+                reproduction_passport_hash="", timestamp="t", repo_url="https://github.com/o/r", commit_sha="a" * 40, error_chain=chain)
+    search = _Search()
+    deps = PipelineDeps(recon_client=None, recon_model="r", repair_client=None, repair_model="p", adjudicator_client=None,
+                        adjudicator_model=None, sandbox_api_key="k", sandbox_wall_clock_seconds=1, sandbox_runner=lambda **kw: None,
+                        tavily_client=search)
+    indeterminate = PipelineResult(verdict="INDETERMINATE", **{**base, "indeterminate_reason": "COST_CAP: stopped"})
+    out = orchestrator._with_blocker_sources(indeterminate, deps, "https://github.com/o/r", None)
+    assert search.calls == 0 and out.blocker_sources is None
+    blocked = PipelineResult(verdict="BLOCKED", **base)
+    out = orchestrator._with_blocker_sources(blocked, deps, "https://github.com/o/r", None)
+    assert search.calls == 1 and out.blocker_sources and out.blocker_sources["sources"]
+
+
+def test_fix10_table_wording():
+    assert blocker.TABLE["DEP_BUILD_FAILED"][0] == "deterministic"
+    assert _report("DEP_BUILD_FAILED", "ERROR: Failed building wheel for pygame")["what_a_human_must_supply"] == (
+        "nothing, if the apt rule adds the build dependencies; otherwise a wheel of pygame for this platform")
+    assert blocker.TABLE["ENTRYPOINT_UNCLEAR"][1] == "the command to run: the README does not name one unambiguously"
+    assert _report("API_REMOVED", "AttributeError: module 'numpy' has no attribute 'float'")["what_a_human_must_supply"] == (
+        "nothing, if the era lock or a removed-API row resolves it; otherwise the release of numpy the authors used (older or newer)")

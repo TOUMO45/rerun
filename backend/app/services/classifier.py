@@ -230,16 +230,23 @@ _RULES: tuple[_Rule, ...] = (
     ),
     # --- The base image's distribution left the apt mirrors (harness-v1.6) --
     # Checked before both SYS_LIB_MISSING rules: an `apt-get update` that 404s
-    # on every index means every apt install after it fails too, and the
-    # "missing tool" that follows is a consequence of the mirror, not a
-    # repository dependency. apt prints "404  Not Found [IP: ...]" (two
-    # spaces) for each index it could not fetch.
+    # on an INDEX (InRelease / Release / Packages) means every apt install
+    # after it fails too, and the "missing tool" that follows is a consequence
+    # of the mirror, not a repository dependency. A 404 on one package file
+    # under deb.debian.org/debian/pool/ is NOT this: it is a stale index that
+    # `apt-get update` fixes (v1.6 review, defect 1), and the rule must not end
+    # the run INDETERMINATE for it. The exception is a pool 404 on
+    # security.debian.org / archive.debian.org / a `/debian-security/` path:
+    # those are the EOL mirrors (DEV #16, bullseye's updates moved away) and
+    # no update brings the file back.
     _Rule(
         TaxonomyCode.APT_MIRROR_GONE,
         _p(
-            r"E: Failed to fetch https?://\S+(debian|ubuntu)\S* .*404",
             r"E: The repository '.*' (no longer has a Release file|does not have a Release file)",
-            r"404  Not Found \[IP:",
+            # Anchored on the URL scheme: a bare `\S+/` is quadratic on a long run of non-space characters (D-41's bounded-digits lesson).
+            r"https?://\S+/(InRelease|Release|Packages\S*)\s+404",
+            r"E: Failed to fetch https?://(security\.debian\.org|archive\.debian\.org)\S*\s+404",
+            r"E: Failed to fetch https?://\S*/debian-security/\S*\s+404",
         ),
     ),
     # --- Missing system binary (a system dependency, never DATA_MISSING) --
@@ -366,8 +373,11 @@ _RULES: tuple[_Rule, ...] = (
             # ways of asking for CUDA tensors by type (`set_default_tensor_type(torch.cuda.FloatTensor)`, `torch.cuda.FloatTensor(...)`).
             r"Cannot access accelerator device when none is available",
             r"is not implemented on the CPU",
-            r"set_default_tensor_type\(torch\.cuda",
-            r"torch\.cuda\.\w+Tensor",
+            # An exception prefix is required on the same line (v1.6 review, defect 3): the bare name also appears in
+            # source lines a traceback echoes (`dtype = torch.cuda.FloatTensor if args.cuda else ...`) and in
+            # deprecation warnings (`UserWarning: torch.cuda.FloatTensor ... is deprecated`), neither of which is the failure.
+            r"(TypeError|RuntimeError|AssertionError|AttributeError):.*set_default_tensor_type\(torch\.cuda",
+            r"(TypeError|RuntimeError|AssertionError|AttributeError):.*torch\.cuda\.\w+Tensor",
         ),
     ),
     _Rule(
@@ -400,7 +410,10 @@ _RULES: tuple[_Rule, ...] = (
             # harness-v1.6: a repository's own guard for its data ("AssertionError: please download the dataset first",
             # "AssertionError: data dir not found"), and a missing file raised inside a DataLoader worker, which torch
             # re-raises with its own prefix so the FileNotFoundError line sits in the worker's trace.
-            r"AssertionError:.*\b(download|dataset|data (dir|path|folder))\b",
+            # Guard phrasing only (v1.6 review, defect 4): "download" anywhere, or a data word together with a
+            # not-there word; `AssertionError: dataset must be one of [...]` (argument validation) is not missing data.
+            r"AssertionError:(?=.*\bdownload)",
+            r"AssertionError:(?=.*\b(dataset|data (dir|path|folder))\b)(?=.*\b(not found|does not exist|missing|please|first|prepare)\b)",
             r"Caught FileNotFoundError in DataLoader worker",
         ),
     ),
@@ -411,7 +424,17 @@ _RULES: tuple[_Rule, ...] = (
 # no-build-isolation repair keys on it), a missing compiler or header (SYS_LIB_MISSING: the build-essential rule keys on
 # it), the wrong interpreter (PY_VERSION_INCOMPAT). Any other rule after it in `_RULES` (data, GPU, network, paths) is a
 # runtime matter and does not explain a build, so the wrapper wins over those.
-_BUILD_INNER_CAUSES = frozenset({TaxonomyCode.DEP_MISSING, TaxonomyCode.SYS_LIB_MISSING, TaxonomyCode.PY_VERSION_INCOMPAT})
+# DEP_YANKED / DEP_NOT_ON_PYPI (v1.6 review, defect 2): a build whose setup_requires cannot be resolved prints pip's
+# "Could not find a version that satisfies" inside the wrapper, and the deterministic dep_resolver path keys on those.
+_BUILD_INNER_CAUSES = frozenset({TaxonomyCode.DEP_MISSING, TaxonomyCode.SYS_LIB_MISSING, TaxonomyCode.PY_VERSION_INCOMPAT,
+                                 TaxonomyCode.DEP_YANKED, TaxonomyCode.DEP_NOT_ON_PYPI})
+# The codes a pip failure AFTER an apt 404 line carries (v1.6 review, defect 1): when one of them matches later in the
+# output than the apt line, the later failure is the one the run ended on and it wins over APT_MIRROR_GONE.
+_DEP_CODES = frozenset({TaxonomyCode.DEP_UNPINNED_CONFLICT, TaxonomyCode.DEP_BUILD_FAILED, TaxonomyCode.DEP_NOT_ON_PYPI,
+                        TaxonomyCode.DEP_YANKED, TaxonomyCode.DEP_MISSING, TaxonomyCode.API_REMOVED})
+_PIP_BLOCK_END_RE = re.compile(r"^\s*(ERROR: |Successfully installed\b)", re.MULTILINE)
+_SUCCESSFULLY_INSTALLED_RE = re.compile(r"^Successfully installed\b", re.MULTILINE)
+_BUILD_WRAPPER_PATTERNS = next(r.patterns for r in _RULES if r.code == TaxonomyCode.DEP_BUILD_FAILED)
 
 
 def _undeclared_module(match: re.Match, declared_deps: frozenset[str] | None) -> bool:
@@ -457,6 +480,38 @@ def _last_exception_line(text: str) -> str:
         if stripped and _EXCEPTION_LINE_RE.match(stripped):
             found = stripped
     return found
+
+
+def _build_wrapper_span(text: str) -> tuple[int, int] | None:
+    """(start, end) of pip's failed-build block in `text`: from the first wrapper line to the end of the last one, or None
+    when no wrapper pattern matches. Everything the build printed sits inside it; what the command printed after it is
+    outside it."""
+    matches = [m for p in _BUILD_WRAPPER_PATTERNS for m in p.finditer(text)]
+    if not matches:
+        return None
+    start = min(m.start() for m in matches)
+    last_end = max(m.end() for m in matches)
+    line_end = text.find("\n", last_end)
+    return start, (line_end if line_end != -1 else len(text))
+
+
+def _build_evidence(text: str, start: int) -> str:
+    """The build's own exception line: the last one between the wrapper match at `start` and the next `ERROR:` /
+    `Successfully installed` line (pip's summary of that build), so an exception a LATER build or the command printed is
+    never quoted as this build's cause."""
+    after = text[start:]
+    first_line_end = after.find("\n")
+    rest_from = first_line_end + 1 if first_line_end != -1 else len(after)
+    boundary = _PIP_BLOCK_END_RE.search(after, rest_from)
+    return _last_exception_line(after[: boundary.start() if boundary else len(after)])
+
+
+def _search_outside(pattern: re.Pattern, text: str, masked: tuple[int, int] | None) -> re.Match | None:
+    """The first match of `pattern` in `text` that does not START inside `masked`."""
+    for match in pattern.finditer(text):
+        if masked is None or not (masked[0] <= match.start() <= masked[1]):
+            return match
+    return None
 
 
 def _evidence_line(text: str, match: re.Match) -> str:
@@ -513,16 +568,37 @@ def classify(
     stderr, stdout = denoise(stderr), denoise(stdout)
     combined = f"{stderr}\n{stdout}"
 
-    # harness-v1.6: a matched DEP_BUILD_FAILED wrapper, held back while the rules that can name the build's inner cause
-    # (`_BUILD_INNER_CAUSES`) are still to be checked; returned if none of them matches.
+    # harness-v1.6: pip's failed-build wrapper (DEP_BUILD_FAILED) names no cause and pip may go on after it (another sdist
+    # version, or `Successfully installed`). So: when a `Successfully installed` line follows the block, the block is
+    # not the failure at all and nothing inside it may match any rule (`masked`); otherwise the wrapper is held back
+    # (`build_wrapper`) while the rules that can name the build's inner cause (`_BUILD_INNER_CAUSES`, matched anywhere)
+    # and every other rule (matched only AFTER the block: a runtime failure the command printed later) are checked.
+    build_span = _build_wrapper_span(combined)
+    masked = build_span if build_span and _SUCCESSFULLY_INSTALLED_RE.search(combined, build_span[1]) else None
     build_wrapper: Classification | None = None
+    # While the wrapper is held: `build_inner` = the first inner-cause rule matching inside the block (it names why the
+    # build died); `build_later` = the first rule of any kind matching AFTER the block (what the command printed next,
+    # which is what the run ended on and wins over both).
+    build_inner: Classification | None = None
+    build_later: Classification | None = None
+    # v1.6 review, defect 1: an APT_MIRROR_GONE match is held back while the DEP_* rules are checked; a DEP_* failure
+    # that occurs LATER in the output than the apt line is the one the run ended on and wins.
+    apt_hold: tuple[Classification, int] | None = None
     for rule in _RULES:
-        if build_wrapper is not None and rule.code not in _BUILD_INNER_CAUSES:
-            continue
+        if build_wrapper is not None and build_later is not None:
+            break
         for pattern in rule.patterns:
-            match = pattern.search(combined)
+            match = _search_outside(pattern, combined, masked)
             if not match:
                 continue
+            if build_wrapper is not None and match.start() <= build_span[1]:
+                if rule.code not in _BUILD_INNER_CAUSES or build_inner is not None:
+                    continue  # inside the failed build's block: the build is the failure, not what it printed
+                after = _search_outside(pattern, combined, (0, build_span[1]))
+                if after is not None:  # the same rule also matches after the block: that later match is the one that counts
+                    match = after
+            if apt_hold is not None and rule.code in _DEP_CODES and match.start() <= apt_hold[1]:
+                continue  # before the apt line: the apt failure is the later one
             if rule.code == TaxonomyCode.DEP_MISSING and not _undeclared_module(
                 match, declared_deps
             ):
@@ -544,14 +620,27 @@ def classify(
                 # The wrapper line ("Encountered error while generating package metadata") names no cause. When the build's
                 # own output holds a Python exception line, THAT is the evidence (harness-v1.1's rule: the exception, never
                 # the pip notice); the wrapper's pattern stays recorded as what matched.
-                inner = _last_exception_line(combined)
+                inner = _build_evidence(combined, build_span[0])  # from the block's FIRST line, whichever pattern matched
                 if inner:
                     classification = Classification(rule.code, classification.family, inner[:500], pattern.pattern)
                 build_wrapper = classification
                 break
+            if rule.code == TaxonomyCode.APT_MIRROR_GONE:
+                apt_hold = (classification, match.start())
+                break
+            if apt_hold is not None and rule.code not in _DEP_CODES:
+                return apt_hold[0]  # the DEP_* rules found nothing later than the apt line: the apt failure stands
+            if build_wrapper is not None:
+                if match.start() > build_span[1]:
+                    build_later = classification
+                else:
+                    build_inner = classification
+                break
             return classification
+    if apt_hold is not None:
+        return apt_hold[0]
     if build_wrapper is not None:
-        return build_wrapper
+        return build_later or build_inner or build_wrapper
 
     return Classification(
         code=TaxonomyCode.RUNTIME_ERROR_OTHER,

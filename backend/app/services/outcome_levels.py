@@ -52,16 +52,22 @@ def compute(result: dict) -> dict:
     first_error_cleared_by: str | None = None
     if chain:
         cleared_by = chain[0].get("cleared_by")
-        if cleared_by is None and entrypoint_runs and len(chain) == 1:
+        if cleared_by is None and verdict == "RUNS_AFTER_REPAIR" and len(chain) == 1:
             # Records written before harness-v1.6 keep `cleared_by: None` on the one failure the run then passed without
             # (error_chain.clear_last did not exist): the verdict says it was cleared; the attempt that passed says by whom.
+            # Only RUNS_AFTER_REPAIR (v1.6 review, defect 6): a RUNS_CLEAN record whose as-is rerun passed (a flaky
+            # repository) cleared nothing.
             passed = [a for a in attempts if a.get("exit_code") == 0]
             cleared_by = passed[-1].get("attempt_number") if passed else None
             first_error_cleared = True
         else:
             first_error_cleared = cleared_by is not None
         if first_error_cleared and cleared_by is not None:
-            attempt = next((a for a in attempts if a.get("attempt_number") == cleared_by), None)
+            # Several attempts share a number (the time machine and every deterministic step are attempt 0, v1.6 review,
+            # defect 7): the one that PASSED cleared the failure; failing that, the last with that number.
+            numbered = [a for a in attempts if a.get("attempt_number") == cleared_by]
+            passed = [a for a in numbered if a.get("exit_code") == 0]
+            attempt = passed[-1] if passed else (numbered[-1] if numbered else None)
             first_error_cleared_by = attempt.get("origin") if attempt is not None else None
 
     env_resolved = entrypoint_runs or (bool(chain) and chain[-1].get("class") not in ENVIRONMENT_CLASSES)
