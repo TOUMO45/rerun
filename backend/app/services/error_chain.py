@@ -6,13 +6,14 @@ PURE. Every classified failure a run sees, in order, each with an attribution:
                   a Python-version failure under a version the repo accepts, ...)
   ENV             RERUN's runner caused it (a package the repo DOES declare that we
                   failed to install; torch, which the runner provides by policy; a
-                  Python version the repo never claimed; runner network policy)
+                  Python version the repo never claimed; runner network policy; a
+                  base image whose distribution left the apt mirrors, APT_MIRROR_GONE)
   SANDBOX_QUOTA   a Nebius infrastructure limit (upload rejected, fs delta, disk full)
   PLATFORM        the platform refuses to load a valid artifact (SANDBOX_INCOMPAT)
 
-A link is `{error, class, attribution, cleared_by}`; `cleared_by` is the repair
-attempt after which the run no longer failed this way (None for the last link, or
-if the error was never seen to clear).
+A link is `{error, class, attribution, phase, cleared_by}`; `cleared_by` is the repair
+attempt after which the run no longer failed this way: a different error followed it, or
+(harness-v1.6, `clear_last`) the run passed. None if the error was never seen to clear.
 
 `first_repo_error` = the first link attributed REPO, whether or not a later repair
 cleared it. `last_error` = the last link, kept for debugging. ENV / SANDBOX_* / PLATFORM
@@ -124,6 +125,11 @@ def attribute(
         return PLATFORM
     if code == "NETWORK_BLOCKED":
         return ENV  # runner network policy, not a repo property
+    if code == "APT_MIRROR_GONE":
+        # harness-v1.6: the base image RERUN chose has a distribution the apt mirrors no longer serve (an archived
+        # Debian release). The repository cannot fix which image it runs on; the orchestrator ends the run
+        # INDETERMINATE on this code (`_note_failure`), never BLOCKED.
+        return ENV
     if code == "PY_VERSION_INCOMPAT" or is_python_incompat(evidence):
         accepted = claim_accepts(python_claim, python_minor(base_image))
         return REPO if accepted else ENV  # accepted -> repo code breaks on a claimed version; else we chose it
@@ -157,6 +163,14 @@ class ErrorChain:
         if self.links and self.links[-1]["cleared_by"] is None:
             self.links[-1]["cleared_by"] = attempt_number
         self.links.append({"error": error, "class": code, "attribution": attribution, "phase": phase, "cleared_by": None})
+
+    def clear_last(self, attempt_number: int) -> None:
+        """harness-v1.6: the run PASSED after `attempt_number`, so the last failure is no longer the failure. Before v1.6 a
+        link was only marked cleared when a different error followed it, and a RUNS_AFTER_REPAIR record kept `cleared_by:
+        None` on the failure the repair had just cleared (every stored record up to harness-v1.5.2 reads that way; the outcome
+        ladder, outcome_levels.py, reads those older records through the verdict instead)."""
+        if self.links and self.links[-1]["cleared_by"] is None:
+            self.links[-1]["cleared_by"] = attempt_number
 
     def as_list(self) -> list[dict]:
         return [dict(link) for link in self.links]

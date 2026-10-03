@@ -16,6 +16,7 @@ plus a small helper so both call sites agree on the code string.
 from __future__ import annotations
 
 import re
+import sys
 from dataclasses import dataclass, field
 
 
@@ -28,8 +29,20 @@ class TaxonomyCode:
     # live run labelled a never-published package "yanked"):
     DEP_YANKED = "DEP_YANKED"  # the package is on the index; the requested version is not installable
     DEP_NOT_ON_PYPI = "DEP_NOT_ON_PYPI"  # the index has no installable distribution for the name at all
+    # harness-v1.6: a third-party package installed, but a newer release than the authors used no longer has the
+    # name the code imports or calls (`cannot import name 'compare_psnr' from 'skimage.measure'`, `module 'numpy'
+    # has no attribute 'float'`). Until v1.6 these fell through to RUNTIME_ERROR_OTHER and were repaired by editing
+    # code, when the deterministic fix is the era lock (the release the authors had).
+    API_REMOVED = "API_REMOVED"
+    # harness-v1.6: pip could not BUILD a declared package from source (a metadata/wheel build failure), as opposed to
+    # not finding it (DEP_NOT_ON_PYPI / DEP_YANKED) or a resolver conflict.
+    DEP_BUILD_FAILED = "DEP_BUILD_FAILED"
     PY_VERSION_INCOMPAT = "PY_VERSION_INCOMPAT"
     SYS_LIB_MISSING = "SYS_LIB_MISSING"
+    # harness-v1.6: the base image's distribution has left the apt mirrors (an archived Debian release answers 404 /
+    # "no longer has a Release file"). RERUN chose the image, so this is never the repository's fault: attribution
+    # ENV, verdict INDETERMINATE (see error_chain.attribute and the orchestrator's `_note_failure`).
+    APT_MIRROR_GONE = "APT_MIRROR_GONE"
     DATA_MISSING = "DATA_MISSING"
     DATA_CREDENTIALS = "DATA_CREDENTIALS"
     ENTRYPOINT_UNCLEAR = "ENTRYPOINT_UNCLEAR"
@@ -49,8 +62,11 @@ class TaxonomyCode:
         DEP_MISSING: "Dependencies",
         DEP_YANKED: "Dependencies",
         DEP_NOT_ON_PYPI: "Dependencies",
+        API_REMOVED: "Dependencies",
+        DEP_BUILD_FAILED: "Dependencies",
         PY_VERSION_INCOMPAT: "Environment",
         SYS_LIB_MISSING: "Environment",
+        APT_MIRROR_GONE: "Environment",
         DATA_MISSING: "Data",
         DATA_CREDENTIALS: "Data",
         ENTRYPOINT_UNCLEAR: "Documentation",
@@ -118,6 +134,17 @@ ENV_FIRST_CODES = frozenset(
         "DEP_YANKED",
         "DEP_NOT_ON_PYPI",
         "PY_VERSION_INCOMPAT",
+        # harness-v1.6. API_REMOVED: the name the code imports existed in the release the authors used, so the era
+        # lock (time machine, attempt 0) is the deterministic fix; a code edit that renames the call is the model's
+        # guess at what the authors meant. DEP_BUILD_FAILED: a source build that fails needs the era's wheel, its
+        # build dependencies or a compiler, never a change to the repository's Python.
+        "API_REMOVED",
+        "DEP_BUILD_FAILED",
+        # APT_MIRROR_GONE is deliberately listed too: it IS an environment failure and no code edit can touch it.
+        # In practice the orchestrator ends the run INDETERMINATE before any repair layer is chosen (the base image
+        # itself is what is gone, and the time machine only moves packages, not the distribution), so the layer is
+        # only ever read by code paths that report, not repair.
+        "APT_MIRROR_GONE",
     }
 )
 
@@ -125,6 +152,21 @@ ENV_FIRST_CODES = frozenset(
 def repair_layer_for(code: str) -> str:
     """'env' for environment-family codes, else 'code'."""
     return "env" if code in ENV_FIRST_CODES else "code"
+
+
+# harness-v1.6: top-level names that are part of this interpreter's standard library. An `ImportError: cannot import
+# name` / `AttributeError: module ... has no attribute` on one of these is a Python-version matter (error_chain's
+# PY_INCOMPAT_PATTERNS handle the documented cases) or a code bug, never a third-party API that moved. The set is the
+# interpreter's own list, not a hand-written one, so it cannot drift from what Python ships. The sandbox may run an
+# OLDER interpreter than this backend, where modules Python has since removed (distutils and imp in 3.12, the PEP 594
+# "dead batteries" in 3.13) were still standard: those are added by name, so a line about them is never read as a
+# third-party API change either.
+_REMOVED_STDLIB = frozenset({
+    "distutils", "imp", "asynchat", "asyncore", "smtpd", "aifc", "audioop", "cgi", "cgitb", "chunk", "crypt",
+    "imghdr", "mailcap", "msilib", "nis", "nntplib", "ossaudiodev", "pipes", "sndhdr", "spwd", "sunau", "telnetlib",
+    "uu", "xdrlib", "lib2to3", "binhex", "formatter", "parser", "symbol", "macpath",
+})
+STDLIB_MODULE_NAMES: frozenset[str] = frozenset(sys.stdlib_module_names) | _REMOVED_STDLIB
 
 
 # System executables a build or run step commonly shells out to. A bare
@@ -186,6 +228,20 @@ _RULES: tuple[_Rule, ...] = (
             r"authentication (required|failed)",
         ),
     ),
+    # --- The base image's distribution left the apt mirrors (harness-v1.6) --
+    # Checked before both SYS_LIB_MISSING rules: an `apt-get update` that 404s
+    # on every index means every apt install after it fails too, and the
+    # "missing tool" that follows is a consequence of the mirror, not a
+    # repository dependency. apt prints "404  Not Found [IP: ...]" (two
+    # spaces) for each index it could not fetch.
+    _Rule(
+        TaxonomyCode.APT_MIRROR_GONE,
+        _p(
+            r"E: Failed to fetch https?://\S+(debian|ubuntu)\S* .*404",
+            r"E: The repository '.*' (no longer has a Release file|does not have a Release file)",
+            r"404  Not Found \[IP:",
+        ),
+    ),
     # --- Missing system binary (a system dependency, never DATA_MISSING) --
     # Checked before every other rule: when a tool pip or a script shells out
     # to is absent, whatever fails downstream of it is a consequence.
@@ -215,6 +271,21 @@ _RULES: tuple[_Rule, ...] = (
             r"versions? have conflicting dependencies",
         ),
     ),
+    # harness-v1.6: pip found the package but could not build it (a source
+    # distribution whose metadata or wheel build died). Checked before the
+    # NOT_ON_PYPI / YANKED rules because a failed build log also carries a
+    # trailing "ERROR: Failed to build ..." summary and never a "from
+    # versions:" line, so nothing is taken from them; checked after the
+    # resolver-conflict rule because a conflict is reported before any build.
+    _Rule(
+        TaxonomyCode.DEP_BUILD_FAILED,
+        _p(
+            r"Encountered error while generating package metadata",
+            r"error: subprocess-exited-with-error",
+            r"Failed building wheel for",
+            r"ERROR: Failed to build installable wheels",
+        ),
+    ),
     # Order matters: pip prints "(from versions: none)" and then "No matching
     # distribution found for X" for a name the index has nothing for, so the
     # NOT_ON_PYPI signals are checked first. Caveat, stated honestly: "none"
@@ -241,6 +312,21 @@ _RULES: tuple[_Rule, ...] = (
         _p(
             r"ModuleNotFoundError:\s*No module named ['\"]([\w.\-]+)['\"]",
             r"ImportError:\s*No module named ['\"]?([\w.\-]+)['\"]?",
+        ),
+    ),
+    # harness-v1.6: a name that moved out of a third-party package. Group 1
+    # of each pattern is the MODULE (checked by `_third_party_module`: not
+    # the standard library, not the repository's own code); the second group
+    # is the name, kept for the evidence line only. Checked after DEP_MISSING
+    # (a package that is not installed at all is the more basic fact) and
+    # before the Environment rules. A `torch._C` attribute starting with
+    # `_cuda_` is left to the GPU_REQUIRED rule below (harness-v1.5.1, F3):
+    # a CPU-only torch lacks it in EVERY release, so no era has it.
+    _Rule(
+        TaxonomyCode.API_REMOVED,
+        _p(
+            r"ImportError: cannot import name '(?P<name>\w+)' from '(?P<module>[\w.]+)'",
+            r"AttributeError: module '(?P<module>[\w.]+)' has no attribute '(?P<name>(?!_cuda_)\w+)'",
         ),
     ),
     # --- Environment ---------------------------------------------------
@@ -276,6 +362,12 @@ _RULES: tuple[_Rule, ...] = (
             r"CUDA[- ]capable device is not detected",
             r"AssertionError:.*[Cc][Uu][Dd][Aa]",
             r"RuntimeError:.*CUDA (error|driver)",
+            # harness-v1.6: torch >= 2.x phrases the same fact as "accelerator"; an op with no CPU kernel; the two legacy
+            # ways of asking for CUDA tensors by type (`set_default_tensor_type(torch.cuda.FloatTensor)`, `torch.cuda.FloatTensor(...)`).
+            r"Cannot access accelerator device when none is available",
+            r"is not implemented on the CPU",
+            r"set_default_tensor_type\(torch\.cuda",
+            r"torch\.cuda\.\w+Tensor",
         ),
     ),
     _Rule(
@@ -305,9 +397,21 @@ _RULES: tuple[_Rule, ...] = (
             r"No such file or directory",
             r"404 Client Error(?!.*pypi\.org)",
             r"URLError.*data",
+            # harness-v1.6: a repository's own guard for its data ("AssertionError: please download the dataset first",
+            # "AssertionError: data dir not found"), and a missing file raised inside a DataLoader worker, which torch
+            # re-raises with its own prefix so the FileNotFoundError line sits in the worker's trace.
+            r"AssertionError:.*\b(download|dataset|data (dir|path|folder))\b",
+            r"Caught FileNotFoundError in DataLoader worker",
         ),
     ),
 )
+
+# harness-v1.6: DEP_BUILD_FAILED is the generic wrapper pip prints around a failed source build. When the build log also
+# shows WHY the build died, that inner cause is the classification: an undeclared build-time module (DEP_MISSING: the
+# no-build-isolation repair keys on it), a missing compiler or header (SYS_LIB_MISSING: the build-essential rule keys on
+# it), the wrong interpreter (PY_VERSION_INCOMPAT). Any other rule after it in `_RULES` (data, GPU, network, paths) is a
+# runtime matter and does not explain a build, so the wrapper wins over those.
+_BUILD_INNER_CAUSES = frozenset({TaxonomyCode.DEP_MISSING, TaxonomyCode.SYS_LIB_MISSING, TaxonomyCode.PY_VERSION_INCOMPAT})
 
 
 def _undeclared_module(match: re.Match, declared_deps: frozenset[str] | None) -> bool:
@@ -330,6 +434,31 @@ def _undeclared_module(match: re.Match, declared_deps: frozenset[str] | None) ->
     return not any(c.replace("_", "-") in normalized_declared for c in candidates)
 
 
+def _third_party_module(match: re.Match, repo_modules: frozenset[str] | None) -> bool:
+    """True if the module named in an API_REMOVED match (`module` group) is a third-party package: its top-level
+    name is neither in the standard library nor one of the repository's own modules.
+
+    `repo_modules` is the set dep_scan.internal_module_names builds from the tree (lower-cased). When the caller
+    cannot supply it (None), the repository's modules are unknown and only the standard library is excluded: the
+    same "best effort, default to the rule" stance `_undeclared_module` takes for declared_deps.
+    """
+    module = match.group("module") if "module" in match.groupdict() else ""
+    top_level = module.split(".")[0]
+    if not top_level or top_level in STDLIB_MODULE_NAMES:
+        return False
+    return repo_modules is None or top_level.lower() not in repo_modules
+
+
+def _last_exception_line(text: str) -> str:
+    """The last `SomeError: message` line of `text` (stripped of pip's indentation), or "" when there is none."""
+    found = ""
+    for line in text.splitlines():
+        stripped = line.strip()
+        if stripped and _EXCEPTION_LINE_RE.match(stripped):
+            found = stripped
+    return found
+
+
 def _evidence_line(text: str, match: re.Match) -> str:
     """The whole log line containing the match — not just the matched
     phrase. The live TTPT run recorded evidence as "No matching distribution
@@ -350,12 +479,18 @@ def classify(
     stderr: str,
     stdout: str = "",
     declared_deps: frozenset[str] | None = None,
+    repo_modules: frozenset[str] | None = None,
 ) -> Classification:
     """Classify a failed sandbox execution into a taxonomy code.
 
     Precondition: exit_code != 0. A zero exit code is a caller bug, not a
     classification question — callers must handle RUNS_CLEAN before ever
     reaching here.
+
+    `repo_modules` (harness-v1.6): the repository's own importable names
+    (dep_scan.internal_module_names, lower-cased), so an `ImportError: cannot
+    import name` from one of them is a code bug and not API_REMOVED. None =
+    unknown: only the standard library is excluded.
     """
     if exit_code == 0:
         raise ValueError("classify() must only be called on a non-zero exit code")
@@ -378,7 +513,12 @@ def classify(
     stderr, stdout = denoise(stderr), denoise(stdout)
     combined = f"{stderr}\n{stdout}"
 
+    # harness-v1.6: a matched DEP_BUILD_FAILED wrapper, held back while the rules that can name the build's inner cause
+    # (`_BUILD_INNER_CAUSES`) are still to be checked; returned if none of them matches.
+    build_wrapper: Classification | None = None
     for rule in _RULES:
+        if build_wrapper is not None and rule.code not in _BUILD_INNER_CAUSES:
+            continue
         for pattern in rule.patterns:
             match = pattern.search(combined)
             if not match:
@@ -389,13 +529,29 @@ def classify(
                 # Declared but still failed to import: not our rule's story,
                 # keep scanning other rules / fall through to the catch-all.
                 continue
+            if rule.code == TaxonomyCode.API_REMOVED and not _third_party_module(match, repo_modules):
+                # The standard library or the repository's own module: a Python-version matter or a code bug, which
+                # the later rules / the catch-all describe; never "a third-party API moved".
+                continue
             evidence = _evidence_line(combined, match)
-            return Classification(
+            classification = Classification(
                 code=rule.code,
                 family=TaxonomyCode.FAMILY[rule.code],
                 evidence=evidence[:500],
                 matched_pattern=pattern.pattern,
             )
+            if rule.code == TaxonomyCode.DEP_BUILD_FAILED:
+                # The wrapper line ("Encountered error while generating package metadata") names no cause. When the build's
+                # own output holds a Python exception line, THAT is the evidence (harness-v1.1's rule: the exception, never
+                # the pip notice); the wrapper's pattern stays recorded as what matched.
+                inner = _last_exception_line(combined)
+                if inner:
+                    classification = Classification(rule.code, classification.family, inner[:500], pattern.pattern)
+                build_wrapper = classification
+                break
+            return classification
+    if build_wrapper is not None:
+        return build_wrapper
 
     return Classification(
         code=TaxonomyCode.RUNTIME_ERROR_OTHER,

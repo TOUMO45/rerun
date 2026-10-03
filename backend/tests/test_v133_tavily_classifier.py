@@ -26,7 +26,8 @@ GET_VARIABLE = "AttributeError: module 'tensorflow' has no attribute 'get_variab
 def test_entry_12_a_benign_tensorflow_warning_is_not_classified_as_the_failure():
     stderr = f"{TF_WARNING}\nTraceback (most recent call last):\n  File \"SimplE.py\", line 20, in <module>\n{GET_VARIABLE}\n"
     c = classifier.classify(1, stderr)
-    assert c.code == classifier.TaxonomyCode.RUNTIME_ERROR_OTHER and c.evidence == GET_VARIABLE
+    # harness-v1.6: the removed TensorFlow 1.x API is API_REMOVED (was RUNTIME_ERROR_OTHER); the evidence is still the exception line, never the warning
+    assert c.code == classifier.TaxonomyCode.API_REMOVED and c.evidence == GET_VARIABLE
 
 
 def test_entry_12_before_the_fix_the_same_text_was_sys_lib_missing():

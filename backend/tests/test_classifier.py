@@ -13,7 +13,7 @@ from __future__ import annotations
 
 import pytest
 
-from app.services.classifier import Classification, TaxonomyCode, classify
+from app.services.classifier import STDLIB_MODULE_NAMES, Classification, TaxonomyCode, classify, repair_layer_for
 
 
 def _code(stderr: str, **kwargs) -> str:
@@ -324,3 +324,222 @@ def test_missing_system_binary_negative_control_data_files_stay_data_missing(std
 )
 def test_missing_repo_local_script_is_not_sys_lib_missing(stderr):
     assert _code(stderr) != TaxonomyCode.SYS_LIB_MISSING
+
+
+# --- harness-v1.6 (C): API_REMOVED, APT_MIRROR_GONE, DEP_BUILD_FAILED, widened DATA_MISSING / GPU_REQUIRED ----
+
+
+
+@pytest.mark.parametrize(
+    "stderr",
+    [
+        "ImportError: cannot import name 'zero_gradients' from 'torch.autograd.gradcheck' "
+        "(/usr/local/lib/python3.10/site-packages/torch/autograd/gradcheck.py)",
+        "AttributeError: module 'tensorflow' has no attribute 'get_variable'",
+        "ImportError: cannot import name 'compare_psnr' from 'skimage.measure' "
+        "(/usr/local/lib/python3.10/site-packages/skimage/measure/__init__.py)",
+        "AttributeError: module 'numpy' has no attribute 'float'",
+    ],
+)
+def test_api_removed_positive(stderr):
+    result = classify(exit_code=1, stderr=f"Traceback (most recent call last):\n  File \"train.py\", line 3\n{stderr}")
+    assert result.code == TaxonomyCode.API_REMOVED and result.family == "Dependencies"
+    assert result.evidence == stderr
+
+
+def test_api_removed_positive_when_repo_modules_are_unknown():
+    # None = the caller could not list the repository's modules: only the standard library is excluded.
+    assert _code("AttributeError: module 'numpy' has no attribute 'float'", repo_modules=None) == TaxonomyCode.API_REMOVED
+
+
+@pytest.mark.parametrize(
+    "stderr, repo_modules",
+    [
+        ("ImportError: cannot import name 'utils' from 'models' (/work/models/__init__.py)", frozenset({"models", "train"})),
+        ("AttributeError: module 'os' has no attribute 'foo'", None),
+        ("AttributeError: 'NoneType' object has no attribute 'shape'", None),
+        # a removed-from-recent-Python stdlib module is still the standard library on the sandbox's older interpreter
+        ("ImportError: cannot import name 'StrictVersion' from 'distutils.version'", None),
+        ("ImportError: cannot import name 'Iterable' from 'collections' (/usr/local/lib/python3.11/collections/__init__.py)", None),
+        # the repository's own package, whatever the case of the directory name
+        ("ImportError: cannot import name 'Net' from 'MyRepo.models'", frozenset({"myrepo", "models"})),
+    ],
+)
+def test_api_removed_negative_control(stderr, repo_modules):
+    assert _code(stderr, repo_modules=repo_modules) != TaxonomyCode.API_REMOVED
+
+
+def test_api_removed_is_checked_after_dep_missing_and_before_the_environment_rules():
+    # A package that is not installed at all is the more basic fact than a name that moved inside another one.
+    both = "ModuleNotFoundError: No module named 'dassl'\nAttributeError: module 'numpy' has no attribute 'float'"
+    assert _code(both, declared_deps=frozenset()) == TaxonomyCode.DEP_MISSING
+    # ... but the moved name beats a Python-version line further down the log.
+    both = "AttributeError: module 'numpy' has no attribute 'float'\nERROR: Package 'x' requires a different Python: 3.12"
+    assert _code(both) == TaxonomyCode.API_REMOVED
+
+
+def test_stdlib_names_cover_removed_modules_the_sandbox_interpreter_still_ships():
+    for name in ("os", "collections", "distutils", "imp", "asyncore", "cgi"):
+        assert name in STDLIB_MODULE_NAMES
+    assert "numpy" not in STDLIB_MODULE_NAMES and "torch" not in STDLIB_MODULE_NAMES
+
+
+_APT_404 = (
+    "Ign:1 http://deb.debian.org/debian stretch InRelease\n"
+    "Err:2 http://deb.debian.org/debian stretch Release\n"
+    "  404  Not Found [IP: 151.101.2.132 80]\n"
+    "Reading package lists...\n"
+    "E: The repository 'http://deb.debian.org/debian stretch Release' does not have a Release file.\n"
+)
+
+
+@pytest.mark.parametrize(
+    "stderr",
+    [
+        _APT_404,
+        "E: Failed to fetch http://security.debian.org/debian-security/dists/buster/updates/main/binary-amd64/Packages  404  Not Found",
+        "E: Failed to fetch http://archive.ubuntu.com/ubuntu/dists/eoan/main/binary-amd64/Packages 404 Not Found [IP: 91.189.91.38 80]",
+        "E: The repository 'http://deb.debian.org/debian buster-updates Release' no longer has a Release file.",
+    ],
+)
+def test_apt_mirror_gone_positive(stderr):
+    result = classify(exit_code=100, stderr=stderr)
+    assert result.code == TaxonomyCode.APT_MIRROR_GONE and result.family == "Environment"
+
+
+def test_apt_mirror_gone_beats_the_missing_binary_that_follows_it():
+    # The git RERUN's fetch step could not apt-install is a CONSEQUENCE of the mirror, not a repository dependency.
+    stderr = _APT_404 + "E: Unable to locate package git\nERROR: Cannot find command 'git' - do you have 'git' installed and in your PATH?\n"
+    assert _code(stderr) == TaxonomyCode.APT_MIRROR_GONE
+
+
+@pytest.mark.parametrize(
+    "stderr",
+    [
+        # a 404 from a data host, not an apt index
+        "requests.exceptions.HTTPError: 404 Client Error: Not Found for url: https://data.example.com/x.zip",
+        # an apt index that is reachable but lacks the package: not the mirror's absence
+        "E: Unable to locate package libfoo-dev",
+        # a plain fetch failure with no 404 (a network block, say)
+        "E: Failed to fetch http://deb.debian.org/debian/dists/bookworm/InRelease  Temporary failure resolving 'deb.debian.org'",
+    ],
+)
+def test_apt_mirror_gone_negative_control(stderr):
+    assert _code(stderr) != TaxonomyCode.APT_MIRROR_GONE
+
+
+_BUILD_FAILED = (
+    "  × Encountered error while generating package metadata.\n"
+    "  ╰─> See above for output.\n"
+    "ERROR: Failed to build installable wheels for some pyproject.toml based projects (pycocotools)\n"
+)
+
+
+@pytest.mark.parametrize(
+    "stderr",
+    [
+        _BUILD_FAILED,
+        "  error: subprocess-exited-with-error\n  × python setup.py bdist_wheel did not run successfully.",
+        "  ERROR: Failed building wheel for pygame\nERROR: Could not build wheels for pygame, which is required to install pyproject.toml-based projects",
+    ],
+)
+def test_dep_build_failed_positive(stderr):
+    result = classify(exit_code=1, stderr=stderr)
+    assert result.code == TaxonomyCode.DEP_BUILD_FAILED and result.family == "Dependencies"
+
+
+def test_dep_build_failed_negative_control():
+    # pip could not FIND the package: the not-on-PyPI / yanked rules, not a build failure.
+    assert _code(_NEVER_ON_PYPI) == TaxonomyCode.DEP_NOT_ON_PYPI
+    assert _code(_VERSION_GONE) == TaxonomyCode.DEP_YANKED
+    # a resolver conflict is reported before any build and wins
+    conflict = "ERROR: Cannot install a and b because these package versions have conflicting dependencies.\n" + _BUILD_FAILED
+    assert _code(conflict) == TaxonomyCode.DEP_UNPINNED_CONFLICT
+
+
+@pytest.mark.parametrize(
+    "inner, code",
+    [
+        ("      ModuleNotFoundError: No module named 'numpy'\n", TaxonomyCode.DEP_MISSING),
+        ("  error: command 'gcc' failed: No such file or directory\n", TaxonomyCode.SYS_LIB_MISSING),
+        ("  fatal error: Python.h: No such file or directory\n", TaxonomyCode.SYS_LIB_MISSING),
+        ("  ERROR: Package 'foo' requires a different Python: 3.12.1 not in '<3.10,>=3.8'\n", TaxonomyCode.PY_VERSION_INCOMPAT),
+    ],
+)
+def test_dep_build_failed_yields_to_the_builds_inner_cause(inner, code):
+    """The wrapper pip prints around a failed build names no cause; when the log shows one that an existing deterministic rule
+    keys on (an undeclared build-time module: no-build-isolation; a missing compiler: build-essential; the interpreter), that
+    inner cause is the classification, exactly as before v1.6."""
+    log = "  error: subprocess-exited-with-error\n" + inner + "ERROR: Failed building wheel for foo\n"
+    assert _code(log, declared_deps=frozenset()) == code
+
+
+def test_dep_build_failed_wins_over_runtime_rules_inside_the_build_log():
+    # A setup.py reading a file that is not there is a BUILD failure, not missing data.
+    log = ("  error: subprocess-exited-with-error\n      FileNotFoundError: [Errno 2] No such file or directory: 'README.md'\n"
+           "ERROR: Failed building wheel for foo\n")
+    assert _code(log) == TaxonomyCode.DEP_BUILD_FAILED
+
+
+@pytest.mark.parametrize(
+    "stderr",
+    [
+        "AssertionError: Please download the dataset first",
+        "AssertionError: data dir ./data/cifar does not exist",
+        "AssertionError: DATASET not found, run prepare.sh",
+        "RuntimeError: Caught FileNotFoundError in DataLoader worker process 0.",
+    ],
+)
+def test_data_missing_widened_positive(stderr):
+    assert _code(stderr) == TaxonomyCode.DATA_MISSING
+
+
+@pytest.mark.parametrize(
+    "stderr",
+    [
+        "AssertionError: expected shape (3, 4) but got (4, 3)",
+        "AssertionError: batch size must be even",  # no data word
+        "RuntimeError: Caught RuntimeError in DataLoader worker process 0.",
+    ],
+)
+def test_data_missing_widened_negative_control(stderr):
+    assert _code(stderr) != TaxonomyCode.DATA_MISSING
+
+
+@pytest.mark.parametrize(
+    "stderr",
+    [
+        "RuntimeError: Cannot access accelerator device when none is available.",
+        "NotImplementedError: \"upsample_bilinear2d_out_frame\" is not implemented on the CPU",
+        "torch.set_default_tensor_type(torch.cuda.FloatTensor)\nRuntimeError: type torch.cuda.FloatTensor not available",
+        "TypeError: torch.cuda.FloatTensor constructor received an invalid combination of arguments",
+    ],
+)
+def test_gpu_required_widened_positive(stderr):
+    assert _code(stderr) == TaxonomyCode.GPU_REQUIRED
+
+
+@pytest.mark.parametrize(
+    "stderr",
+    [
+        "torch.set_default_tensor_type(torch.FloatTensor)\nValueError: bad",
+        "NotImplementedError: this loss is not implemented for this backend",
+        "RuntimeError: Cannot access attribute 'device' of None",
+    ],
+)
+def test_gpu_required_widened_negative_control(stderr):
+    assert _code(stderr) != TaxonomyCode.GPU_REQUIRED
+
+
+def test_new_codes_are_in_the_taxonomy_with_their_families():
+    assert TaxonomyCode.FAMILY[TaxonomyCode.API_REMOVED] == "Dependencies"
+    assert TaxonomyCode.FAMILY[TaxonomyCode.DEP_BUILD_FAILED] == "Dependencies"
+    assert TaxonomyCode.FAMILY[TaxonomyCode.APT_MIRROR_GONE] == "Environment"
+    for code in ("API_REMOVED", "DEP_BUILD_FAILED", "APT_MIRROR_GONE"):
+        assert code in TaxonomyCode.ALL
+    assert len(TaxonomyCode.ALL) == 19
+
+
+@pytest.mark.parametrize("code, layer", [("API_REMOVED", "env"), ("DEP_BUILD_FAILED", "env"), ("APT_MIRROR_GONE", "env")])
+def test_new_codes_repair_in_the_environment_layer_first(code, layer):
+    assert repair_layer_for(code) == layer

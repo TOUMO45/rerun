@@ -18,8 +18,9 @@ Every entry lands in exactly ONE category; the categories are never merged:
   REPO_STILL_FAILING    control failed with a REPO-attributed error, treatment did not pass             -> denominator only
   UNSTABLE_AS_IS        control failed with a REPO-attributed error but treatment ended RUNS_CLEAN, i.e. the as-is run
                         passed without any repair (non-determinism); in the denominator, never in the numerator
-  ENV_ONLY              control failed and no link of its error chain is REPO (runner-side ENV): reported separately,
-                        excluded from the rate; `passes in treatment` is shown but is not a repo-fix recovery
+  ENV_ONLY              control failed and no link of its error chain is REPO (runner-side ENV, incl. an APT_MIRROR_GONE
+                        stop, harness-v1.6): reported separately, excluded from the rate; `passes in treatment` is shown
+                        but is not a repo-fix recovery
   SANDBOX_SIDE          either arm ended INDETERMINATE for SANDBOX_QUOTA / SANDBOX_INCOMPAT / RESOURCE_LIMIT: platform, excluded
   NOT_MEASURED          a RERUN-side verdict (INFRA_ERROR, INVALID_HARNESS, UPLOAD_TOO_LARGE, PIPELINE_ERROR) or the harness could not say
                         why the process exited (EXIT_OUTSIDE_PYTHON), or the API cut the output that would have said (OUTPUT_TRUNCATED, harness-v1.4.3)

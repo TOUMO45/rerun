@@ -109,6 +109,12 @@ def templated_certificate_prose(verdict: str, taxonomy_code: str | None, attempt
             "The Nebius sandbox killed the process the run needed (RESOURCE_LIMIT); a platform limit is not evidence about "
             "the repository's code, so nothing is claimed about it."
         )
+    elif verdict == "INDETERMINATE" and taxonomy_code == "APT_MIRROR_GONE":
+        # harness-v1.6: the base image RERUN chose has left the apt mirrors; the repository had no say in that image.
+        base = (
+            "The base image's distribution is no longer served by the apt mirrors (APT_MIRROR_GONE); RERUN chose that image, "
+            "so this is not evidence about the repository's code and nothing is claimed about it."
+        )
     elif verdict == "INDETERMINATE" and reason.startswith("EXIT_OUTSIDE_PYTHON"):
         base = (
             "The command exited without a Python error, and RERUN's evidence run showed no sandbox kill (EXIT_OUTSIDE_PYTHON); "

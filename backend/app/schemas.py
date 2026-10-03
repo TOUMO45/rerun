@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from datetime import datetime
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, computed_field
 
 
 class RunCreate(BaseModel):
@@ -57,6 +57,25 @@ class CertificateOut(BaseModel):
     error_chain: list | None = None
     first_repo_error: str | None = None
     last_error: str | None = None
+
+    # harness-v1.6: read off the stored fields above at response time (no column, no migration): the same pure
+    # functions the orchestrator's certificate() uses, so the API and the downloaded certificate agree.
+    @computed_field  # type: ignore[prop-decorator]
+    @property
+    def outcome_levels(self) -> dict:
+        from app.services import outcome_levels
+
+        return outcome_levels.compute(self._record())
+
+    @computed_field  # type: ignore[prop-decorator]
+    @property
+    def blocker(self) -> dict | None:
+        from app.services import blocker
+
+        return blocker.report(self._record())
+
+    def _record(self) -> dict:
+        return {"verdict": self.verdict, "error_chain": self.error_chain or [], "attempts": self.diffs or []}
 
 
 class HealthOut(BaseModel):

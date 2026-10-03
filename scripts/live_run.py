@@ -216,6 +216,9 @@ def main(argv: list[str] | None = None) -> int:
             "error_traceback": result.error_traceback,
             "attempts": [a.as_dict() for a in result.attempts],
             "certificate_prose": result.certificate_prose,
+            # harness-v1.6: the outcome ladder and the blocker report, read off the fields above (outcome_levels.py, blocker.py)
+            "outcome_levels": result.outcome_levels,
+            "blocker": result.blocker,
         }
         # Exactly the downloadable-certificate shape Certificate.tsx exports
         # and scripts/verify_passport.py checks.

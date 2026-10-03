@@ -232,7 +232,8 @@ def test_fix_text_that_appears_in_reference_2_is_cited_as_2_even_when_the_model_
 
 def test_a_missing_cited_sources_field_is_re_asked_once_in_the_same_attempt(tmp_path):
     result, repair = _pipeline(tmp_path, {"train.py": UTILS}, [dict(FIX2), {**FIX2, "cited_sources": [2]}], [_fail(ERR), _ok()], search=_Search(), max_attempts=1)
-    assert result.verdict == "RUNS_AFTER_REPAIR" and len(result.attempts) == 1
+    # harness-v1.6: ERR is API_REMOVED, so the era lock is tried first (declined here: the lock is off) and one MODEL attempt follows
+    assert result.verdict == "RUNS_AFTER_REPAIR" and len([a for a in result.attempts if a.origin == "model"]) == 1
     assert len(repair.calls) == 2 and "cited_sources" in json.dumps(repair.calls[1]) and "is missing" in json.dumps(repair.calls[1])
     assert [c["cited_via"] for c in result.attempts[-1].tavily_sources] == ["model_declared"]
 
@@ -265,10 +266,11 @@ def test_an_attempt_whose_reexecution_is_void_is_recorded_with_its_patch_before_
     void = UploadIntegrityError("post-extraction check failed (exit code 97)", stderr="RERUN_UPLOAD_MISMATCH 1 file(s): train.py (content)\n")
     result, _ = _pipeline(tmp_path, {"train.py": UTILS}, [{**FIX2, "cited_sources": [2]}], [_fail(ERR), void], search=_Search(), max_attempts=1)
     assert result.verdict == tree_integrity.INVALID_HARNESS
-    assert len(result.attempts) == 1
-    attempt = result.attempts[0]
+    model_attempts = [a for a in result.attempts if a.origin == "model"]  # harness-v1.6: a declined era-lock attempt 0 precedes it (ERR is API_REMOVED)
+    assert len(model_attempts) == 1
+    attempt = model_attempts[0]
     assert attempt.gate_decision == "PASS" and "peak_signal_noise_ratio" in attempt.diff_text and attempt.exit_code is None
     assert "run void (INVALID_HARNESS)" in attempt.stderr_tail and "train.py (content)" in attempt.stderr_tail
     assert [c["url"] for c in attempt.tavily_sources] == [REFS[1]["url"]] and attempt.patch_notes
     cert = result.certificate()
-    assert cert["diffs"][0]["diff_text"] == attempt.diff_text and verify_certificate(cert)
+    assert cert["diffs"][-1]["diff_text"] == attempt.diff_text and verify_certificate(cert)
