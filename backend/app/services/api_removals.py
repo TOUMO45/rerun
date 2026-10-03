@@ -32,9 +32,69 @@ class Removal:
     why: str
     # None: the exact release and its Pythons come from the torch wheel snapshot; otherwise (release, Pythons that can install it) from the package's own wheel listing.
     fixed: tuple[str, tuple[str, ...]] | None = None
-    # Packages the fixed release needs pinned beside it when the repository has not pinned them itself: (package, release by Python minor, default). TensorFlow 1.15.5's generated
-    # protocol-buffer code fails to import under protobuf >= 3.21 ("Descriptors cannot be created directly"), and an unpinned resolve takes the newest protobuf the Python allows.
-    companions: tuple[tuple[str, dict[str, str], str], ...] = ()
+    # Packages the fixed release needs pinned beside it (see Companion).
+    companions: tuple["Companion", ...] = ()
+    # Other distributions that provide the same import and would conflict with the pinned release (`tensorflow-gpu`, `tensorflow-cpu` in a lock written for TensorFlow 2): when the
+    # requirements or the lock hold one, it is REMOVED (the pinned release provides the import); it is never pinned to the old family (PyPI has no tensorflow-cpu 1.15.5).
+    aliases: tuple[str, ...] = ()
+
+
+@dataclass(frozen=True)
+class Companion:
+    """A package pinned beside the rule's release. `mode`:
+      "ensure"             pin it unless the repository's requirements / era lock already pin it with `==` to a release below `ok_below` (TensorFlow 1.15.5's generated protocol-buffer
+                           code fails to import under protobuf >= 3.21, "Descriptors cannot be created directly", and an unpinned resolve takes the newest protobuf the Python allows);
+      "replace_if_present" pin it only if the requirements / lock hold it, unless that pin is `==` and below `ok_below` (when given): the requirements or the era lock pin it to the
+                           release of the NEWER family and the older release cannot be installed beside that. DEV entry 12, harness-v1.5.1 round 2: an era lock for TensorFlow 2.1 holds
+                           `tensorboard==2.1.0` and `tensorflow-estimator==2.1.0`, and pip answered `Cannot install ... tensorboard==2.1.0 ... conflicting dependencies`. TensorFlow 1.15.5
+                           requires gast==0.2.2, numpy<1.19, protobuf>=3.6.1, tensorboard>=1.15.0,<1.16.0 and tensorflow-estimator==1.15.1 (PyPI metadata retrieved 2026-10-03).
+    `by_python` overrides `release` for a Python minor. A name absent from the requirements is never added in mode "replace_if_present": pip resolves it from the new release's own metadata."""
+    package: str
+    release: str
+    mode: str = "replace_if_present"
+    by_python: tuple[tuple[str, str], ...] = ()
+    ok_below: str = ""
+
+    def __post_init__(self) -> None:
+        if self.mode not in ("ensure", "replace_if_present"):
+            raise ValueError(f"unknown companion mode {self.mode!r}")
+
+
+_PIN = re.compile(r"^\s*([A-Za-z0-9][A-Za-z0-9._-]*)(?:\[[^\]]*\])?\s*==\s*([0-9][^\s;#,]*)")
+
+
+def _name(line: str) -> str:
+    match = re.match(r"^\s*([A-Za-z0-9][A-Za-z0-9._-]*)", line)
+    return re.sub(r"[-_.]+", "-", match.group(1)).lower() if match else ""
+
+
+def _norm(name: str) -> str:
+    return re.sub(r"[-_.]+", "-", name).lower()
+
+
+def _exact_pin(lines: list[str], package: str):
+    """The `==` release some line pins `package` to (a packaging Version), or None (absent, unpinned, a range, or no `packaging`)."""
+    try:
+        from packaging.version import Version
+    except Exception:  # noqa: BLE001
+        return None
+    for line in lines:
+        found = _PIN.match(line)
+        if found and _norm(found.group(1)) == _norm(package):
+            try:
+                return Version(found.group(2))
+            except Exception:  # noqa: BLE001
+                continue
+    return None
+
+
+def _limit(below: str):
+    try:
+        from packaging.version import Version
+
+        return Version(below)
+    except Exception:  # noqa: BLE001
+        return None
 
 
 RULES: tuple[Removal, ...] = (
@@ -51,9 +111,16 @@ RULES: tuple[Removal, ...] = (
         pattern=re.compile(r"module 'tensorflow(?:_core)?(?:\._api\.v2)?(?:\.\w+)?' has no attribute '(?:get_variable|Saver)'"),
         package="tensorflow",
         bound="<2",
-        why="the TensorFlow 1.x graph API (get_variable, placeholder, Session, train.Saver, ...) is not in TensorFlow 2",
+        why="the TensorFlow 1.x graph API (get_variable, Saver, ...) is not in TensorFlow 2",
         fixed=("1.15.5", ("3.7", "3.6")),
-        companions=(("protobuf", {"3.6": "3.19.6"}, "3.20.3"),),
+        companions=(
+            Companion("protobuf", "3.20.3", "ensure", (("3.6", "3.19.6"),), ok_below="3.21"),
+            Companion("tensorboard", "1.15.0", "replace_if_present"),
+            Companion("tensorflow-estimator", "1.15.1", "replace_if_present"),
+            Companion("gast", "0.2.2", "replace_if_present"),
+            Companion("numpy", "1.18.5", "replace_if_present", ok_below="1.19"),
+        ),
+        aliases=("tensorflow-gpu", "tensorflow-cpu"),
     ),
 )
 
@@ -67,9 +134,28 @@ def match(text: str) -> tuple[Removal, str] | None:
     return None
 
 
-def companion_pins(rule: Removal, python: str) -> tuple[tuple[str, str], ...]:
-    """(package, release) of the companions to pin beside the rule's package on `python`."""
-    return tuple((name, by_python.get(python, default)) for name, by_python, default in rule.companions)
+def companion_actions(rule: Removal, python: str, requirement_lines: list[str]) -> list[tuple[str, str, str | None]]:
+    """What to do beside the rule's own pin, given the requirements / era lock (their lines; [] if there are none): [("pin", package, release) | ("remove", alias, None)], in order.
+    Pure."""
+    held = {_name(line) for line in requirement_lines}
+    out: list[tuple[str, str, str | None]] = []
+    for alias in rule.aliases:
+        if _norm(alias) in held:
+            out.append(("remove", alias, None))
+    for c in rule.companions:
+        present = _norm(c.package) in held
+        exact, limit = _exact_pin(requirement_lines, c.package), (_limit(c.ok_below) if c.ok_below else None)
+        release = dict(c.by_python).get(python, c.release)
+        if c.mode == "ensure":
+            # a protobuf the release can import: pinned (==) below the limit; absent, unpinned, a range or pinned above the limit is replaced by the pin
+            if not (exact is not None and limit is not None and exact < limit):
+                out.append(("pin", c.package, release))
+        elif present:
+            # replace_if_present: with a limit, only an exact pin at or above it is swapped (an unpinned or ranged line is left to pip, which resolves it under the new release's own
+            # requirement); without one, whatever pins it is swapped
+            if limit is None or (exact is not None and exact >= limit):
+                out.append(("pin", c.package, release))
+    return out
 
 
 def plan(rule: Removal, python: str) -> tuple[str, str | None, str] | None:

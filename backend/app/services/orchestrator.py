@@ -1668,12 +1668,12 @@ def _run_stages(
             justification = f"deterministic: {reason}"[:300]
             changes = ((env_repair.EnvChange(op="python", version=move, justification=justification, evidence=evidence),) if move else ()) + (
                 env_repair.EnvChange(op="pin", package=rule.package, version=release, justification=justification, evidence=evidence),)
-            # companions the release needs beside it (TensorFlow 1.15.5: protobuf < 3.21), unless the repository's own requirements or the era lock already pin them
-            held = {env_repair._requirement_name(line) for line in (current_requirements or "").splitlines()}
-            for name, version in api_removals.companion_pins(rule, python_after):
-                if env_repair._norm(name) not in held:
-                    changes += (env_repair.EnvChange(op="pin", package=name, version=version, justification=f"deterministic: {rule.package}=={release} needs {name}=={version}"[:300],
-                                                     evidence=evidence),)
+            # what the release needs beside it, given the repository's requirements / the era lock: packages pinned to a release it cannot be installed with are swapped, a
+            # protobuf it cannot import with is replaced, `tensorflow-gpu` / `-cpu` are removed (api_removals.companion_actions)
+            for op, name, version in api_removals.companion_actions(rule, python_after, (current_requirements or "").splitlines()):
+                changes += (env_repair.EnvChange(op=op, package=name, version=version,
+                                                 justification=(f"deterministic: {rule.package}=={release} cannot be installed beside {name}" if op == "remove"
+                                                                else f"deterministic: {rule.package}=={release} needs {name}=={version}")[:300], evidence=evidence),)
             if any(env_repair.change_key(c) in failed_moves for c in changes):
                 _log(f"[time-machine] {rule.rule}: this change was applied before and failed; the step is not taken")
                 return None
@@ -1690,7 +1690,7 @@ def _run_stages(
             if new_requirements is not None:
                 current_requirements = new_requirements
             action.update(pinned=release, python=python_after or None, python_changed=bool(move), reason=reason,
-                          companions=[{"package": c.package, "version": c.version} for c in changes if c.package not in (None, rule.package)])
+                          companions=[{"op": c.op, "package": c.package, "version": c.version} for c in changes if c.package not in (None, rule.package)])
             _log(f"[time-machine] deterministic step: {rule.rule} (matched: {evidence}); {reason}; no model call")
             state.build_plan_dict = plan.as_dict()
 
@@ -1715,8 +1715,8 @@ def _run_stages(
                 _record(None, "", str(exc)[-2000:])
                 raise
             _log(f"[time-machine] re-execution id={result.sandbox_id} exit_code={result.final.exit_code}")
-            if not result.succeeded and result.final.phase == error_chain.PHASE_RUNNER_SETUP:
-                _put_back("the changed environment failed in RERUN's own setup step, before the repository's command ran")
+            if not result.succeeded and result.final.phase in (error_chain.PHASE_RUNNER_SETUP, error_chain.PHASE_REPO_INSTALL):
+                _put_back("the changed environment failed in a setup step (" + result.final.phase + "), before the repository's command ran")
                 _record(result.final.exit_code, result.final.stdout[-2000:], result.final.stderr[-2000:], None)
                 return None
             _record(result.final.exit_code, result.final.stdout[-2000:], result.final.stderr[-2000:], _execution_of(result, True))

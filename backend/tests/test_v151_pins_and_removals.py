@@ -280,9 +280,10 @@ def test_review_f2_tensorflow_1_15_5_comes_with_a_protobuf_it_can_import(tmp_pat
     pins = [(c["package"], c["version"]) for c in result.attempts[-1].env_delta if c["op"] == "pin"]
     assert pins == [("tensorflow", "1.15.5"), ("protobuf", "3.20.3")]
     assert any("protobuf==3.20.3" in cmd for cmd in plans[1]["install_commands"])
-    assert result.attempts[-1].as_dict()["time_machine_action"]["companions"] == [{"package": "protobuf", "version": "3.20.3"}]
-    assert api_removals.companion_pins(api_removals.RULES[1], "3.6") == (("protobuf", "3.19.6"),)  # the last protobuf that installs on Python 3.6
-    assert api_removals.companion_pins(api_removals.RULES[0], "3.9") == ()
+    assert result.attempts[-1].as_dict()["time_machine_action"]["companions"] == [{"op": "pin", "package": "protobuf", "version": "3.20.3"}]
+    assert api_removals.companion_actions(api_removals.RULES[1], "3.6", []) == [("pin", "protobuf", "3.19.6")]  # the last protobuf that installs on Python 3.6
+    assert api_removals.companion_actions(api_removals.RULES[1], "3.7", []) == [("pin", "protobuf", "3.20.3")]
+    assert api_removals.companion_actions(api_removals.RULES[0], "3.9", ["torchvision==0.9.1"]) == []
 
 
 def test_review_f2_a_requirements_file_that_already_pins_protobuf_keeps_its_pin(tmp_path):
@@ -309,7 +310,7 @@ def test_review_f2_a_step_that_breaks_the_setup_is_put_back_and_the_model_repair
     assert not left and len(repair.calls) == 1, "the model must be asked about the original failure"
     assert result.verdict == "RUNS_AFTER_REPAIR" and result.indeterminate_reason == ""
     step = next(a for a in result.attempts if a.time_machine_action and a.time_machine_action["rule"].startswith("removed_api"))
-    assert "put_back" in step.time_machine_action and "own setup step" in step.time_machine_action["put_back"]
+    assert "put_back" in step.time_machine_action and "setup step (runner_setup)" in step.time_machine_action["put_back"]
     assert plans[2]["base_image"] == plans[0]["base_image"]  # the model repair runs on the plan as it was, not on the broken one
     assert not any("torch==1.8.1" in cmd for cmd in plans[2]["install_commands"])
 
@@ -336,3 +337,130 @@ def test_review_f2_when_the_removal_step_is_refused_the_other_deterministic_step
     assert not left and repair.calls == [] and result.verdict == "RUNS_AFTER_REPAIR"
     rules = [a.time_machine_action["rule"] for a in result.attempts if a.time_machine_action]
     assert rules == ["missing_compiler_build_essential"]
+
+
+# ------------------------------------------------------------------------------------------------------------------ DEV round 2 (harness-v1.5.1) -> harness-v1.5.2
+
+ROUND2 = ROOT / "runs" / "corpus_v2_batch" / "harness-v1.5.1" / "dev"
+
+
+def _round2_12() -> dict:
+    return json.loads(next(ROUND2.glob("12_*.json")).read_text(encoding="utf-8"))
+
+
+def _install_failure(stderr):
+    return SandboxRunResult(steps=(StepResult("pip install -r .rerun-requirements.txt", 1, "", stderr, 1.0, 0.01, phase="repo_install"),))
+
+
+def test_round2_entry_12s_recorded_conflict_is_the_one_the_tensorflow_row_now_removes():
+    """DEV #12, round 2: the F2 step pinned tensorflow 1.15.5 on top of an era lock written for TensorFlow 2.1; pip answered with the conflict below, and the model's own tries
+    (tensorflow-estimator 1.15.0, then unpinning) kept failing the same way."""
+    record = _round2_12()
+    step = next(a for a in record["result"]["attempts"] if a.get("time_machine_action", {}).get("rule") == "removed_api_tensorflow_v1_graph_api")
+    assert "tensorboard==2.1.0 because these package versions have conflicting dependencies" in step["stderr_tail"]
+    assert [(c["op"], c["package"], c["version"]) for c in step["env_delta"]] == [("pin", "tensorflow", "1.15.5")]  # round 2 pinned tensorflow alone
+    later = " ".join(a["stderr_tail"] for a in record["result"]["attempts"])
+    assert "tensorflow-estimator==2.1.0 because these package versions have conflicting dependencies" in later
+
+
+def test_round2_the_tensorflow_row_swaps_the_locked_tensorflow_2_companions_for_the_1_15_family(tmp_path):
+    """The lock is the one RERUN compiled for DEV #12 (read from its committed round-2 record, not retyped): TensorFlow 2.1 with tensorboard 2.1.0 and tensorflow-estimator 2.1.0."""
+    record = _round2_12()
+    lock = next(a["time_machine"]["lock"]["lock"] for a in record["result"]["attempts"] if a.get("time_machine"))
+    assert "tensorboard==2.1.0" in lock and "tensorflow-estimator==2.1.0" in lock and "tensorflow==2.1.0" in lock
+    stderr = "AttributeError: module 'tensorflow' has no attribute 'get_variable'\n"
+    result, repair, plans, left = _pipeline(tmp_path, [_fail(stderr), _ok()], files={"train.py": "import tensorflow\n"}, dependency_files={"requirements.txt": "\n".join(lock) + "\n"})
+    assert not left and repair.calls == [] and result.verdict == "RUNS_AFTER_REPAIR"
+    pins = sorted((c["package"], c["version"]) for c in result.attempts[-1].env_delta if c["op"] == "pin")
+    # numpy 1.18.1 (< 1.19) and protobuf 3.11.3 (< 3.21) are already acceptable to TensorFlow 1.15.5: kept; gast is swapped for the pin it needs (a no-op here)
+    assert pins == [("gast", "0.2.2"), ("tensorboard", "1.15.0"), ("tensorflow", "1.15.5"), ("tensorflow-estimator", "1.15.1")]
+    commands = " ".join(plans[1]["install_commands"])
+    assert "tensorboard==1.15.0" in commands and "tensorflow-estimator==1.15.1" in commands and "protobuf==3.11.3" in commands and "numpy==1.18.1" in commands
+    assert "tensorboard==2.1.0" not in commands and "tensorflow-estimator==2.1.0" not in commands and "tensorflow==2.1.0" not in commands
+
+
+def test_round2_without_a_lock_the_family_is_not_added_only_protobuf_is(tmp_path):
+    stderr = "AttributeError: module 'tensorflow' has no attribute 'get_variable'\n"
+    result, _, plans, _ = _pipeline(tmp_path, [_fail(stderr), _ok()], files={"train.py": "import tensorflow\n"})
+    pins = sorted((c["package"], c["version"]) for c in result.attempts[-1].env_delta if c["op"] == "pin")
+    assert pins == [("protobuf", "3.20.3"), ("tensorflow", "1.15.5")]  # pip resolves tensorboard / estimator itself from the new tensorflow's requirements
+
+
+def test_round2_a_step_that_breaks_the_repo_install_is_put_back_too(tmp_path):
+    """In round 2 the conflict surfaced in the repository's install step (phase repo_install), not RERUN's own setup step: the put-back did not apply, the model then repaired
+    from the broken plan and every candidate hit the same conflict. Any setup-phase failure after the step puts the plan back."""
+    stderr = "AttributeError: module 'tensorflow' has no attribute 'get_variable'\n"
+    conflict = "ERROR: Cannot install -r .rerun-requirements.txt (line 29) and tensorboard==2.1.0 because these package versions have conflicting dependencies.\nERROR: ResolutionImpossible\n"
+    fix = {"cannot_fix": True, "explanation": "nothing", "cited_sources": [], "reason_no_citation": "none offered"}
+    result, repair, plans, left = _pipeline(tmp_path, [_fail(stderr), _install_failure(conflict)], files={"train.py": "import tensorflow\n"}, replies=[fix], max_attempts=1)
+    step = next(a for a in result.attempts if a.time_machine_action and a.time_machine_action["rule"].startswith("removed_api"))
+    assert "put_back" in step.time_machine_action and "repo_install" in step.time_machine_action["put_back"]
+    assert not left and len(repair.calls) >= 1  # the model was asked about the original failure
+    assert result.indeterminate_reason == ""
+
+
+# ------------------------------------------------------------------------------------------------------------------ the second independent review (harness-v1.5.2 delta)
+
+def test_review2_companion_actions_are_pure_and_follow_the_requirements():
+    tf = api_removals.RULES[1]
+    act = api_removals.companion_actions
+    # a TensorFlow-2 lock: the family is swapped, a protobuf below 3.21 and a numpy below 1.19 stay
+    lock = ["absl-py==0.9.0", "gast==0.2.2", "numpy==1.18.1", "protobuf==3.11.3", "tensorboard==2.1.0", "tensorflow==2.1.0", "tensorflow-estimator==2.1.0"]
+    assert act(tf, "3.7", lock) == [("pin", "tensorboard", "1.15.0"), ("pin", "tensorflow-estimator", "1.15.1"), ("pin", "gast", "0.2.2")]
+    # a late-2020 lock: gast 0.3.3 and numpy 1.19.5 cannot sit beside TensorFlow 1.15.5
+    late = ["gast==0.3.3", "numpy==1.19.5", "protobuf==3.13.0", "tensorboard==2.3.0", "tensorflow==2.3.0", "tensorflow-estimator==2.3.0"]
+    assert sorted(a[1] for a in act(tf, "3.7", late)) == ["gast", "numpy", "tensorboard", "tensorflow-estimator"]
+    assert ("pin", "numpy", "1.18.5") in act(tf, "3.7", late)
+    # protobuf: absent -> pinned; present but not pinned / pinned at or above 3.21 -> replaced; pinned below 3.21 -> kept
+    assert act(tf, "3.7", []) == [("pin", "protobuf", "3.20.3")]
+    assert act(tf, "3.7", ["protobuf>=3.6"]) == [("pin", "protobuf", "3.20.3")]
+    assert act(tf, "3.7", ["numpy", "numpy>=1.16"]) == [("pin", "protobuf", "3.20.3")]  # an unpinned or ranged numpy is left to pip: TensorFlow 1.15.5 itself requires numpy<1.19
+    assert act(tf, "3.7", ["protobuf==4.24.4"]) == [("pin", "protobuf", "3.20.3")]
+    assert act(tf, "3.7", ["Protobuf==3.19.0"]) == []
+    # names are compared the way pip does (case, underscores, dots)
+    assert act(tf, "3.7", ["TensorFlow_Estimator==2.1.0"]) == [("pin", "protobuf", "3.20.3"), ("pin", "tensorflow-estimator", "1.15.1")] or \
+        ("pin", "tensorflow-estimator", "1.15.1") in act(tf, "3.7", ["TensorFlow_Estimator==2.1.0"])
+    # a TensorFlow-GPU / -CPU lock: the alias is removed, never pinned to the old family
+    gpu = act(tf, "3.7", ["tensorflow-gpu==2.1.0", "tensorboard==2.1.0"])
+    assert gpu[0] == ("remove", "tensorflow-gpu", None) and ("pin", "tensorboard", "1.15.0") in gpu and not any(a[1] == "tensorflow-gpu" and a[0] == "pin" for a in gpu)
+    assert act(api_removals.RULES[0], "3.9", ["torch==1.9.0"]) == []  # the torch row has no companions
+
+
+def test_review2_an_unknown_companion_mode_is_refused():
+    with pytest.raises(ValueError):
+        api_removals.Companion("x", "1", "add_if_absent")
+
+
+def test_review2_a_tensorflow_gpu_lock_loses_the_alias_and_gets_the_pin_beside_the_family(tmp_path):
+    stderr = "AttributeError: module 'tensorflow' has no attribute 'get_variable'\n"
+    lock = "gast==0.2.2\nnumpy==1.18.1\nprotobuf==3.11.3\ntensorboard==2.1.0\ntensorflow-gpu==2.1.0\ntensorflow-estimator==2.1.0\n"
+    result, repair, plans, left = _pipeline(tmp_path, [_fail(stderr), _ok()], files={"train.py": "import tensorflow\n"}, dependency_files={"requirements.txt": lock})
+    assert not left and repair.calls == [] and result.verdict == "RUNS_AFTER_REPAIR"
+    ops = sorted((c["op"], c["package"]) for c in result.attempts[-1].env_delta)
+    assert ("remove", "tensorflow-gpu") in ops and ("pin", "tensorflow") in ops and ("pin", "tensorboard") in ops and ("pin", "tensorflow-estimator") in ops
+    commands = " ".join(plans[1]["install_commands"])
+    assert "tensorflow-gpu" not in commands and "tensorflow==1.15.5" in commands and "tensorboard==1.15.0" in commands
+    assert {"op": "remove", "package": "tensorflow-gpu", "version": None} in result.attempts[-1].as_dict()["time_machine_action"]["companions"]
+
+
+def test_review2_an_unpinned_protobuf_in_a_plain_requirements_file_is_replaced_not_trusted(tmp_path):
+    stderr = "AttributeError: module 'tensorflow' has no attribute 'get_variable'\n"
+    result, _, plans, _ = _pipeline(tmp_path, [_fail(stderr), _ok()], files={"train.py": "import tensorflow\n"},
+                                    dependency_files={"requirements.txt": "tensorflow>=2.0\nprotobuf>=3.6\nnumpy\n"})
+    pins = sorted((c["package"], c["version"]) for c in result.attempts[-1].env_delta if c["op"] == "pin")
+    assert ("protobuf", "3.20.3") in pins and ("tensorflow", "1.15.5") in pins
+    commands = " ".join(plans[1]["install_commands"])
+    assert "protobuf==3.20.3" in commands and "protobuf>=3.6" not in commands
+
+
+def test_review2_after_a_put_back_the_recorded_build_plan_and_the_requirements_are_the_originals(tmp_path):
+    stderr = "AttributeError: module 'tensorflow' has no attribute 'get_variable'\n"
+    conflict = "ERROR: Cannot install -r .rerun-requirements.txt (line 29) and tensorboard==2.1.0 because these package versions have conflicting dependencies.\n"
+    fix = {"cannot_fix": True, "explanation": "nothing", "cited_sources": [], "reason_no_citation": "none offered"}
+    original = "tensorflow>=2.0\nnumpy\n"
+    result, repair, plans, left = _pipeline(tmp_path, [_fail(stderr), _install_failure(conflict)], files={"train.py": "import tensorflow\n"},
+                                            dependency_files={"requirements.txt": original}, replies=[fix], max_attempts=1)
+    assert not left
+    final_plan = result.build_plan
+    assert "1.15.5" not in " ".join(final_plan["install_commands"]) and final_plan["base_image"] == plans[0]["base_image"]
+    assert " ".join(final_plan["install_commands"]) == " ".join(plans[0]["install_commands"])  # the plan the model repaired from is the plan the run began with
