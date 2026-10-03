@@ -4,7 +4,7 @@ Protocol: METHODOLOGY.md "harness-v1.5 dev/test protocol". Tag `harness-v1.5.0` 
 
 - **DEV count (smoke level, D2): 1 of 8** entries with a RUNS_* verdict; kinds: {'smoke_alive': 1} (`smoke_alive` = a 60 s smoke pass that nothing has confirmed; no sustained check in DEV).
 - Adds something over earlier rounds (D4): **yes** — count 1 exceeds the best earlier count 0.
-- Cost [API-REPORTED]: $5.4316; [ESTIMATED] (killed steps): $0.1327; round total $5.5643. BILLED: AWAITED (the owner reads the account balance and reports it in chat).
+- Cost [API-REPORTED]: $5.4316; [ESTIMATED] (killed steps): $0.1327; round total $5.5643. BILLED: BILLED reading $48.29 on 2026-10-03 (owner's screenshot), covering everything since the $49.57 reading after the v1.4.1 gate, so round 1 is not separable; $1.28 billed over an interval that the API-reported ledger puts at $16.23 (reports/dev/BILLED_READINGS.md).
 - Ledger after this round (lower bound, D-27): $34.7400 (base $29.1704 + v1.5 DEV spend $5.5696); ceiling $75.00; DEV total $5.5696 of $40.00. Guard for another round: OK.
 
 ## Verdict per entry

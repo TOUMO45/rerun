@@ -271,6 +271,8 @@ _RULES: tuple[_Rule, ...] = (
             r"torch\.cuda\.is_available\(\)\s*is\s*False",
             r"No CUDA GPUs are available",
             r"Torch not compiled with CUDA enabled",
+            # harness-v1.5.1 (F3, corpus-v2 entry 14): a CPU-only torch has no `torch._C._cuda_*` functions, so a call into one raises this instead of the line above
+            r"module 'torch\._C' has no attribute '_cuda_\w+'",
             r"CUDA[- ]capable device is not detected",
             r"AssertionError:.*[Cc][Uu][Dd][Aa]",
             r"RuntimeError:.*CUDA (error|driver)",

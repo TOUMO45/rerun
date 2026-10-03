@@ -41,6 +41,7 @@ from pathlib import Path
 
 from app.services import (
     adjudicator,
+    api_removals,
     classifier,
     dep_resolver,
     env_repair,
@@ -66,6 +67,7 @@ from app.services import (
     sandbox_limits,
     smoke_exec,
     timeouts,
+    torch_wheels,
 )
 from app.services.cost_guard import (
     MIN_OPERATION_SECONDS,
@@ -927,6 +929,8 @@ def _run_stages(
     state.stage = "planner"
     # Python policy: 3.10 unless the repo declares otherwise; the reason is logged and kept in the plan notes.
     python_choice = python_policy.resolve_from_repo(workdir)
+    # harness-v1.5.1 (F1): the interpreter follows the repository's torch pin (a pin the chosen Python has no wheel for failed the runner's own setup, no repair attempt).
+    python_choice = torch_wheels.python_for_pin(python_choice, torch_wheels.torch_pin(intake_result.dependency_files.values()))
     # A repo that declares nothing gets the operator-configured default image (NEBIUS_SANDBOX_IMAGE; the
     # sealed default is python:3.10-slim, and the batch driver's preflight refuses any other value).
     plan_image = python_choice.image if python_choice.is_declared else deps.default_sandbox_image
@@ -1637,6 +1641,91 @@ def _run_stages(
                 failed_moves.add(env_repair.change_key(change))
             return result
 
+        removals_applied: set[str] = set()
+
+        def _auto_api_removal(failed: SandboxRunResult, rule: api_removals.Removal, evidence: str) -> SandboxRunResult | None:
+            """harness-v1.5.1 (F2, failure class: the code uses an API a newer release removed). Deterministic step (no model): the failing run's log names a removed API
+            that api_removals knows (torch's `zero_gradients`, TensorFlow 1's graph API), so the package is pinned to the one release that still has it and, when the current
+            Python cannot install that release, the Python moves to one that can; the command is re-executed. The same env gate a model proposal faces checks it (the evidence
+            is the matched log text, verbatim). Once per rule per run. Returns the re-execution's result, or None if no release fits, the gate refuses, the budget stops it, or
+            the changed environment could not even be set up: then the build plan and the requirements are put back exactly as they were, so the model repairs the ORIGINAL
+            failure and the step can never leave the run worse off than not taking it (the independent review: a companion pin such as `torchvision==0.10.0` conflicts with
+            the older torch, and a failed setup would otherwise end the entry INDETERMINATE with no model attempt)."""
+            nonlocal plan, current_requirements
+            removals_applied.add(rule.rule)
+            log = f"{failed.final.stderr}\n{failed.final.stdout}"
+            current = re.match(r"^python:(\d+\.\d+)-slim$", plan.base_image)
+            chosen = api_removals.plan(rule, current.group(1) if current else "")
+            action = {"rule": rule.rule, "matched_error": evidence, "package": rule.package, "bound": rule.bound, "phase": "repair"}
+            if chosen is None:
+                _log(f"[time-machine] {rule.rule}: no release of {rule.package}{rule.bound} has a wheel for a Python image; the step is not taken")
+                return None
+            release, move, reason = chosen
+            if move and resolved_lock is not None:
+                _log(f"[time-machine] {rule.rule}: needs Python {move} but the era lock was compiled for another interpreter; the step is not taken")
+                return None
+            python_after = move or (current.group(1) if current else "")
+            justification = f"deterministic: {reason}"[:300]
+            changes = ((env_repair.EnvChange(op="python", version=move, justification=justification, evidence=evidence),) if move else ()) + (
+                env_repair.EnvChange(op="pin", package=rule.package, version=release, justification=justification, evidence=evidence),)
+            # companions the release needs beside it (TensorFlow 1.15.5: protobuf < 3.21), unless the repository's own requirements or the era lock already pin them
+            held = {env_repair._requirement_name(line) for line in (current_requirements or "").splitlines()}
+            for name, version in api_removals.companion_pins(rule, python_after):
+                if env_repair._norm(name) not in held:
+                    changes += (env_repair.EnvChange(op="pin", package=name, version=version, justification=f"deterministic: {rule.package}=={release} needs {name}=={version}"[:300],
+                                                     evidence=evidence),)
+            if any(env_repair.change_key(c) in failed_moves for c in changes):
+                _log(f"[time-machine] {rule.rule}: this change was applied before and failed; the step is not taken")
+                return None
+            violations = env_repair.check_env_delta(
+                changes, log_text=log, imported_modules=frozenset(), has_requirements_txt=current_requirements is not None,
+                locked_requirements=tuple(current_requirements.splitlines()) if resolved_lock is not None and current_requirements else None,
+                repo_internal_modules=_internal_modules(), apt_packages=frozenset(plan.apt_install),
+            )
+            if violations:
+                _log(f"[time-machine] {rule.rule}: step refused by the env gate: {'; '.join(v.reason for v in violations)}")
+                return None
+            plan_before, requirements_before, plan_dict_before = plan, current_requirements, state.build_plan_dict
+            plan, new_requirements = env_repair.apply_env_delta(plan, changes, current_requirements)
+            if new_requirements is not None:
+                current_requirements = new_requirements
+            action.update(pinned=release, python=python_after or None, python_changed=bool(move), reason=reason,
+                          companions=[{"package": c.package, "version": c.version} for c in changes if c.package not in (None, rule.package)])
+            _log(f"[time-machine] deterministic step: {rule.rule} (matched: {evidence}); {reason}; no model call")
+            state.build_plan_dict = plan.as_dict()
+
+            def _record(exit_code, stdout, stderr, execution=None) -> None:
+                attempts.append(AttemptRecord(0, "", "PASS", (), exit_code, stdout, stderr, (), tuple(c.as_dict() for c in changes), (),
+                                              origin="time_machine", execution=execution, time_machine_action=action))
+
+            def _put_back(why: str) -> None:
+                nonlocal plan, current_requirements
+                plan, current_requirements, state.build_plan_dict = plan_before, requirements_before, plan_dict_before
+                action["put_back"] = why
+                _log(f"[time-machine] {rule.rule}: {why}; the build plan is put back as it was and the failure goes on to the repair model")
+
+            try:
+                result = _execute(workdir, smoke=True, role=f"time machine: {rule.rule}")
+            except CostLimitExceeded as exc:
+                _log(f"[time-machine] stopped: daily cost ceiling reached: {exc}")
+                _put_back("the budget stopped the re-execution")
+                _record(None, "", f"stopped before completion: {exc}"[-2000:])
+                return None
+            except (SandboxTimeoutError, tree_integrity.HarnessIntegrityError) as exc:
+                _record(None, "", str(exc)[-2000:])
+                raise
+            _log(f"[time-machine] re-execution id={result.sandbox_id} exit_code={result.final.exit_code}")
+            if not result.succeeded and result.final.phase == error_chain.PHASE_RUNNER_SETUP:
+                _put_back("the changed environment failed in RERUN's own setup step, before the repository's command ran")
+                _record(result.final.exit_code, result.final.stdout[-2000:], result.final.stderr[-2000:], None)
+                return None
+            _record(result.final.exit_code, result.final.stdout[-2000:], result.final.stderr[-2000:], _execution_of(result, True))
+            if not result.succeeded and rule.pattern.search(f"{result.final.stderr}\n{result.final.stdout}"):
+                # the same API is still missing: this change did not help. (A DIFFERENT later error does not poison the change for the model.)
+                for c in changes:
+                    failed_moves.add(env_repair.change_key(c))
+            return result
+
         def _with_build_isolation(result: SandboxRunResult) -> SandboxRunResult:
             while not result.succeeded:
                 next_result = _auto_build_isolation(result)
@@ -1903,7 +1992,13 @@ def _run_stages(
                     stop_run = True
                     break
                 compiler_error = missing_compiler_error(classification)
-                if compiler_error and "build-essential" not in plan.apt_install:
+                removal_hit = api_removals.match(f"{sandbox_result.final.stderr}\n{sandbox_result.final.stdout}")  # harness-v1.5.1 (F2)
+                if removal_hit and removal_hit[0].rule not in removals_applied:
+                    state.stage = "time_machine"
+                    step_result = _auto_api_removal(sandbox_result, *removal_hit)
+                    if step_result is None and not state.cost_capped:
+                        continue  # not taken (the rule is marked, so it cannot come back): the other deterministic steps still get their turn for this same failure
+                elif compiler_error and "build-essential" not in plan.apt_install:
                     state.stage = "time_machine"
                     step_result = _auto_build_essential(sandbox_result, compiler_error)
                 elif (hooks_ok and classification.code == classifier.TaxonomyCode.GPU_REQUIRED

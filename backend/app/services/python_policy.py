@@ -53,12 +53,12 @@ class PythonChoice:
         return self.source != "default"
 
 
-def _satisfying(spec: str) -> str | None:
-    """First minor in PREFERENCE that satisfies the specifier / exact version, else None."""
+def satisfying_minors(spec: str) -> tuple[str, ...]:
+    """Every minor (with a python:X-slim image) that satisfies the specifier / exact version, in the order of PREFERENCE; empty if none or unparseable."""
     text = spec.strip().strip("'\"")
     if re.fullmatch(r"3\.\d{1,2}(\.\d+)?(\.\*)?", text):
         minor = ".".join(text.split(".")[:2])
-        return minor if minor in SUPPORTED else None
+        return (minor,) if minor in SUPPORTED else ()
     # poetry / npm-style carets and tildes: ^3.8 -> >=3.8,<4 ; ~3.8 -> >=3.8,<3.9
     caret = re.fullmatch(r"\^\s*(3\.\d+)(\.\d+)*", text)
     if caret:
@@ -70,9 +70,14 @@ def _satisfying(spec: str) -> str | None:
         from packaging.specifiers import SpecifierSet
 
         specs = SpecifierSet(text)
-    except Exception:  # noqa: BLE001 - unparseable -> not a usable declaration
-        return None
-    return next((v for v in PREFERENCE if specs.contains(v, prereleases=True)), None)
+    except Exception:  # noqa: BLE001 - unparseable (or packaging missing) -> not a usable declaration
+        return ()
+    return tuple(v for v in PREFERENCE if specs.contains(v, prereleases=True))
+
+
+def _satisfying(spec: str) -> str | None:
+    """First minor in PREFERENCE that satisfies the specifier / exact version, else None."""
+    return next(iter(satisfying_minors(spec)), None)
 
 
 def _from_python_version_file(text: str) -> str | None:

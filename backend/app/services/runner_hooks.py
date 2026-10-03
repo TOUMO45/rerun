@@ -183,7 +183,16 @@ def _patch(torch):
             {"__new__": device_new, "__doc__": orig_device.__doc__, "__module__": "torch", "__qualname__": "device"},
         )
 
+    # 6. torch.cuda.set_device(...) does nothing (harness-v1.5.1, F3; corpus-v2 entry 14: the CPU wheel has no torch._C._cuda_setDevice, so the call raised
+    #    AttributeError before the first tensor was made).
+    def set_device_patch():
+        def set_device(device):
+            _fired("cuda.set_device")
+
+        torch.cuda.set_device = set_device
+
     step("torch.cuda.is_available() -> False", is_available_patch)
+    step("torch.cuda.set_device(...) does nothing", set_device_patch)
     step("torch.load(map_location='cpu')", load_patch)
     step("Tensor.cuda() returns the tensor", tensor_cuda_patch)
     step("Module.cuda() returns the module", module_cuda_patch)
@@ -370,8 +379,10 @@ class Hook:
 HOOKS = {
     CPU_SHIM: Hook(
         CPU_SHIM, "cpu_shim", "GPU_REQUIRED at repair time",
-        "covers torch.load (map_location), torch.cuda.is_available(), Tensor.cuda() and Module.cuda() (return self), .to('cuda*') on Tensor and "
+        "covers torch.load (map_location), torch.cuda.is_available(), torch.cuda.set_device() (does nothing: harness-v1.5.1), Tensor.cuda() and Module.cuda() "
+        "(return self), .to('cuda*') on Tensor and "
         "Module and torch.device('cuda*') (-> cpu); does NOT cover device='cuda' strings given to factory functions (torch.zeros(device='cuda')), "
+        "the other torch.cuda.* functions (current_device, synchronize, ...), "
         "torch.cuda.*Tensor types or torch.set_default_tensor_type('torch.cuda.FloatTensor'); torch.device is a proxy class, so "
         "`type(d) is torch.device` is False for a real device and a `torch.device(...)` call inside a TorchScript function is not supported",
     ),
@@ -388,7 +399,7 @@ _SHIM_PATH_RE = re.compile(r"^RERUN_CPU_SHIM_PATH: (\S+)", re.MULTILINE)
 
 def shim_paths_fired(*texts: str) -> list[str]:
     """The CPU shim paths that acted, in order of first appearance, from a run's output (`RERUN_CPU_SHIM_PATH: <path>`, one line per path per
-    process): cuda.is_available, torch.load, tensor.cuda, module.cuda, tensor.to, module.to, torch.device (harness-v1.4.2-rc, D-39)."""
+    process): cuda.is_available, cuda.set_device (harness-v1.5.1), torch.load, tensor.cuda, module.cuda, tensor.to, module.to, torch.device (harness-v1.4.2-rc, D-39)."""
     seen: list[str] = []
     for text in texts:
         for path in _SHIM_PATH_RE.findall(text or ""):
