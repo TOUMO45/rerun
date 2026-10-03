@@ -7,10 +7,10 @@ RERUN answers that in minutes, for about a dollar, with evidence: it clones the 
 **What a certificate shows (harness-v1.6):**
 
 - **An outcome ladder** read off stored fields: was the as-published failure cleared, and by what (the deterministic time machine, a rule, or a model proposal); did the environment stop being the blocker; does the entrypoint run (60 s smoke; only the TEST phase's 600 s run confirms it).
-- **The blocker**: its class, the quoted evidence line, who can remove it (deterministic / model / human / platform), what a human must supply ("the dataset the repository expects at `data/cifar-10-batches-py`, obtained as its README describes"), and, for a missing dataset, where to get it (one Tavily search, stored with its query).
+- **The blocker**: its class, the quoted evidence line, who can remove it (deterministic / model / human / platform), what a human must supply (for example: "the dataset the repository expects at <path>, obtained as its README describes"), and, for a missing dataset, where to get it (one Tavily search, stored with its query).
 - **The repair trail**: every model proposal with the gate's decision, the environment and era lock, the cost, the sandbox streams' sizes and hashes.
 
-**What the committed records show** (`reports/dev/levels/levels.md`, counted offline from the DEV and gate records; the TEST set is sealed until the freeze):
+**What the committed records show** (`reports/dev/levels/levels.md`, counted offline from the DEV and gate records, every cell a count of stored fields [API-REPORTED]; the TEST set is sealed until the freeze):
 
 | | first error cleared | environment resolved | entrypoint runs (smoke) |
 |---|---|---|---|
