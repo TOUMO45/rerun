@@ -1,0 +1,74 @@
+{
+  "written_at": "2026-10-03T15:33:02.754207+00:00",
+  "harness": "harness-v1.5.1-rc",
+  "code_blobs": {
+    "backend/app/services/sandbox.py": "465c8cdc714536fd06a5534ee2fee02c813f87dc",
+    "backend/app/services/sandbox_limits.py": "bfb04105b708bb400c1174ad498fb64bb3c0661b",
+    "backend/app/services/runner_env.py": "350c6846f22ed01eca4768132051993e47173b03",
+    "backend/app/services/smoke_exec.py": "ec61fd0bc3bb39a90da8945310bf3c7e392bcb36",
+    "backend/app/services/runner_hooks.py": "e902a339ba299c4027f062c90f0e66cf5659bd5a"
+  },
+  "ok": true,
+  "evidence": {
+    "exit_status": 3,
+    "mem_total_kb": 4034744,
+    "mem_available_kb": 3850256,
+    "swap_total_kb": 0,
+    "nproc": 4,
+    "cgroup": {},
+    "oom_kill": null,
+    "dmesg": [],
+    "ulimit": [
+      "time(seconds)        unlimited",
+      "file(blocks)         unlimited",
+      "data(kbytes)         unlimited",
+      "stack(kbytes)        8192",
+      "coredump(blocks)     0",
+      "memory(kbytes)       unlimited",
+      "locked memory(kbytes) 8192",
+      "process              15742",
+      "nofiles              1024",
+      "vmemory(kbytes)      unlimited",
+      "locks                unlimited",
+      "rtprio               0"
+    ],
+    "kernel": [
+      "7.0.6",
+      "0"
+    ],
+    "self_cgroup": [
+      "0::/"
+    ]
+  },
+  "limit_quote": "/proc/meminfo MemTotal 4034744 kB (3.85 GiB); nproc 4",
+  "run_id": "9f0eaeb8-95f9-487a-8d5f-2e01af1cb539",
+  "cost_usd": 0.0012119799999999999,
+  "steps": [
+    {
+      "phase": "rerun_extract",
+      "command": "tar -xpf .rerun-upload.tar --no-same-owner && rm -f .rerun-upload.tar && python3 .rerun_upload_v1/verify.py && rm -rf .rerun_upload_v1",
+      "exit": 0,
+      "seconds": 0.07336,
+      "cost_usd": 0.0008148599999999999
+    },
+    {
+      "phase": "repo_install",
+      "command": "true",
+      "exit": 0,
+      "seconds": 0.001158,
+      "cost_usd": 0.0008758599999999999
+    },
+    {
+      "phase": "repo_run",
+      "command": "(\npython3 probe.py\n); rc=$?; { echo \"RERUN_EVIDENCE_BEGIN exit_status=$rc\"; echo \"--ulimit\"; ulimit -a 2>&1 | head -n 30; echo \"--meminfo\"; grep -E \"^(MemTotal|",
+      "exit": 3,
+      "seconds": 0.028692,
+      "cost_usd": 0.00033612
+    }
+  ],
+  "layers": [],
+  "branch_from_image": null,
+  "result_image": null,
+  "stdout": "calm run\n",
+  "stderr": "RERUN_EVIDENCE_BEGIN exit_status=3\n--ulimit\ntime(seconds)        unlimited\nfile(blocks)         unlimited\ndata(kbytes)         unlimited\nstack(kbytes)        8192\ncoredump(blocks)     0\nmemory(kbytes)       unlimited\nlocked memory(kbytes) 8192\nprocess              15742\nnofiles              1024\nvmemory(kbytes)      unlimited\nlocks                unlimited\nrtprio               0\n--meminfo\nMemTotal:        4034744 kB\nMemAvailable:    3850256 kB\nSwapTotal:             0 kB\n--nproc\n4\n--kernel\n7.0.6\n0\n--selfcgroup\n0::/\n--cgroup\n--dmesg\nRERUN_EVIDENCE_END\n"
+}

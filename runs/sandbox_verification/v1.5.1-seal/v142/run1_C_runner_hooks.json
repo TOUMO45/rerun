@@ -1,0 +1,58 @@
+{
+  "written_at": "2026-10-03T15:32:09.248021+00:00",
+  "harness": "harness-v1.5.1-rc",
+  "code_blobs": {
+    "backend/app/services/sandbox.py": "465c8cdc714536fd06a5534ee2fee02c813f87dc",
+    "backend/app/services/sandbox_limits.py": "bfb04105b708bb400c1174ad498fb64bb3c0661b",
+    "backend/app/services/runner_env.py": "350c6846f22ed01eca4768132051993e47173b03",
+    "backend/app/services/smoke_exec.py": "ec61fd0bc3bb39a90da8945310bf3c7e392bcb36",
+    "backend/app/services/runner_hooks.py": "e902a339ba299c4027f062c90f0e66cf5659bd5a"
+  },
+  "ok": true,
+  "run_id": "894a58d1-9f50-46e7-b303-21ffff742df5",
+  "cost_usd": 0.00115206,
+  "steps": [
+    {
+      "phase": "rerun_branch",
+      "command": "tar -xpf .rerun-branch.tar --no-same-owner && rm -f .rerun-branch.tar && python3 .rerun_branch_v1/apply.py && rm -rf .rerun_branch_v1",
+      "exit": 0,
+      "seconds": 0.03318,
+      "cost_usd": 0.00040086000000000006
+    },
+    {
+      "phase": "runner_setup",
+      "command": "python3 -c \"import base64;exec(base64.b64decode('CmltcG9ydCBiYXNlNjQsIG9zLCBzaXRlLCBzeXMKbmFtZSwgc291cmNlID0gc3lzLmFyZ3ZbMV0sIGJhc2U2NC5iNjRkZWNvZGUoc3lzLmFyZ3Z",
+      "exit": 0,
+      "seconds": 0.019479,
+      "cost_usd": 0.00024427
+    },
+    {
+      "phase": "runner_setup",
+      "command": "python3 -c \"import base64;exec(base64.b64decode('CmltcG9ydCBiYXNlNjQsIG9zLCBzaXRlLCBzeXMKbmFtZSwgc291cmNlID0gc3lzLmFyZ3ZbMV0sIGJhc2U2NC5iNjRkZWNvZGUoc3lzLmFyZ3Z",
+      "exit": 0,
+      "seconds": 0.02184,
+      "cost_usd": 0.00026788
+    },
+    {
+      "phase": "repo_run",
+      "command": "python3 exit_probe.py",
+      "exit": 3,
+      "seconds": 0.018975,
+      "cost_usd": 0.00023905
+    }
+  ],
+  "layers": [
+    {
+      "setup_commands": 2,
+      "image": "8566e5d3-ddd7-4654-9662-227d3e6ad136"
+    },
+    {
+      "setup_commands": 3,
+      "image": "441313fc-e2b3-4348-9cf2-8b596e44d405"
+    }
+  ],
+  "branch_from_image": "af8d455c-a475-4e0e-99a1-f7e898e79eb5",
+  "result_image": null,
+  "stdout": "",
+  "stderr": "RERUN_EXIT_HOOK: sys.exit(3) was called; the exit site (most recent call last):\n  File \"//exit_probe.py\", line 6, in <module>\n    leave()\n  File \"//exit_probe.py\", line 4, in leave\n    sys.exit(3)\nSystemExit: 3\n"
+}
