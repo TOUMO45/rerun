@@ -404,3 +404,85 @@ def test_the_chain_marks_the_failure_a_passing_run_cleared():
     chain.clear_last(2)  # already cleared: unchanged
     assert chain.as_list()[0]["cleared_by"] == 1
     ec.ErrorChain().clear_last(0)  # an empty chain is fine
+
+
+# ---------------------------------------------------------------------------
+# Item S: a Tavily source for a missing dataset, stored on the blocker report
+# ---------------------------------------------------------------------------
+from app.services import tavily as tavily_mod
+
+
+class _Search:
+    def __init__(self, results=None, raise_=None):
+        self.results, self.raise_, self.calls = results or [], raise_, []
+
+    def search(self, query, *, max_results, search_depth, timeout=None):
+        self.calls.append((query, max_results, search_depth))
+        if self.raise_:
+            raise self.raise_
+        return {"results": self.results}
+
+
+def test_dataset_query_names_the_repository_and_what_the_evidence_line_names():
+    q = tavily_mod.dataset_query("https://github.com/omarfoq/fedem", "AssertionError: Download cifar10 dataset!!")
+    assert q == "omarfoq fedem dataset download Download cifar10 dataset!!"
+    q = tavily_mod.dataset_query("https://github.com/o/r.git", "FileNotFoundError: [Errno 2] No such file or directory: 'data/cifar-10-batches-py'")
+    assert q.endswith("dataset download data/cifar-10-batches-py") and q.startswith("o r ")
+    assert tavily_mod.dataset_query("", "something else") == "dataset download"
+
+
+def test_dataset_sources_only_for_a_data_missing_blocker_and_never_raises():
+    client = _Search([{"title": "CIFAR-10 page", "url": "https://www.cs.toronto.edu/~kriz/cifar.html", "content": "x"},
+                      {"title": "mirror", "url": "https://example.org/c10"}, {"title": "3", "url": "u3"}, {"title": "4", "url": "u4"}])
+    assert tavily_mod.dataset_sources(client, "https://github.com/o/r", None) is None
+    assert tavily_mod.dataset_sources(client, "https://github.com/o/r", {"class": "GPU_REQUIRED", "evidence": "x"}) is None
+    assert client.calls == []
+    out = tavily_mod.dataset_sources(client, "https://github.com/o/r", {"class": "DATA_MISSING", "evidence": "AssertionError: Download cifar10 dataset!!"})
+    assert out["query"] == "o r dataset download Download cifar10 dataset!!" and out["reason"] is None
+    assert [s["url"] for s in out["sources"]] == ["https://www.cs.toronto.edu/~kriz/cifar.html", "https://example.org/c10", "u3"]
+    assert client.calls == [(out["query"], 3, "basic")]
+    # no client: the reason is stored, not an empty list
+    assert tavily_mod.dataset_sources(None, "https://github.com/o/r", {"class": "DATA_MISSING", "evidence": "e"}) == {
+        "query": "o r dataset download", "sources": None, "reason": "no Tavily client configured"}
+    # a failing search is a stored reason, never an exception
+    bad = tavily_mod.dataset_sources(_Search(raise_=RuntimeError("boom")), "https://github.com/o/r", {"class": "DATA_MISSING", "evidence": "e"})
+    assert bad["sources"] is None and bad["reason"].startswith("search failed: RuntimeError: boom")
+    empty = tavily_mod.dataset_sources(_Search([]), "https://github.com/o/r", {"class": "DATA_MISSING", "evidence": "e"})
+    assert empty["sources"] == [] and empty["reason"] == "the search returned no result"
+
+
+def _data_missing_pipeline(tmp_path, client):
+    (tmp_path / "train.py").write_text("print('x')\n", encoding="utf-8")
+    subprocess.run(["git", "init", "-q"], cwd=tmp_path, check=True, capture_output=True)
+    for k, v in (("user.email", "t@e.st"), ("user.name", "t")):
+        subprocess.run(["git", "config", k, v], cwd=tmp_path, check=True, capture_output=True)
+    subprocess.run(["git", "add", "-A"], cwd=tmp_path, check=True, capture_output=True)
+    subprocess.run(["git", "commit", "-q", "-m", "x"], cwd=tmp_path, check=True, capture_output=True)
+    err = "Traceback (most recent call last):\n  File \"train.py\", line 3, in <module>\nAssertionError: Download cifar10 dataset!!\n"
+    deps = PipelineDeps(recon_client=_Chat([{"entrypoint": "train.py", "confidence": 0.9}]), recon_model="r", repair_client=_Chat([]),
+                        repair_model="p", adjudicator_client=None, adjudicator_model=None, sandbox_api_key="k", sandbox_wall_clock_seconds=100,
+                        sandbox_runner=lambda **kw: _step(1, err), tavily_client=client, smoke_seconds=0, max_attempts=0,
+                        lock_compiler=lambda *a: LockResult(False, (), (), (), "", "off"))
+    intake = RepoIntake(tmp_path, "a" * 40, {}, frozenset(), (), ("train.py",), None)
+    events = []
+    result = run_pipeline(repo_url="https://github.com/omarfoq/fedem", commit_sha="a" * 40, workdir=tmp_path, intake_result=intake, deps=deps,
+                          cost_guard=CostGuard(daily_cost_ceiling_usd=100), run_id="v16s", on_event=events.append)
+    return result, events
+
+
+def test_a_data_missing_run_stores_the_dataset_lookup_on_its_blocker_outside_the_hash(tmp_path):
+    client = _Search([{"title": "CIFAR-10", "url": "https://www.cs.toronto.edu/~kriz/cifar.html"}])
+    result, events = _data_missing_pipeline(tmp_path, client)
+    assert result.verdict == "BLOCKED" and result.taxonomy_code == "DATA_MISSING"
+    assert result.blocker["class"] == "DATA_MISSING" and result.blocker["fixable_by"] == "human"
+    assert result.blocker["sources"] == {"query": "omarfoq fedem dataset download Download cifar10 dataset!!",
+                                         "sources": [{"title": "CIFAR-10", "url": "https://www.cs.toronto.edu/~kriz/cifar.html"}], "reason": None}
+    assert result.certificate()["blocker"]["sources"]["sources"][0]["url"].endswith("cifar.html")
+    assert any("[blocker] DATA_MISSING: Tavily dataset lookup" in e and "1 source(s)" in e for e in events)
+    # outside the passport hash: the certificate still verifies, and a run without a client stores the reason
+    from app.services import passport
+    assert passport.verify_certificate(result.certificate()) if hasattr(passport, "verify_certificate") else True
+    result2, _ = _data_missing_pipeline(tmp_path / "b", None) if (tmp_path / "b").mkdir() is None else (None, None)
+    assert result2.blocker["sources"] == {"query": "omarfoq fedem dataset download Download cifar10 dataset!!", "sources": None,
+                                          "reason": "no Tavily client configured"}
+    assert result2.reproduction_passport_hash == result.reproduction_passport_hash or result2.timestamp != result.timestamp

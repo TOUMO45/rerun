@@ -60,6 +60,8 @@ _ADDED_COLUMNS = {
         ("error_chain", "JSON"),
         ("first_repo_error", "TEXT"),
         ("last_error", "TEXT"),
+        # harness-v1.6 (item S): the Tavily dataset lookup stored beside the blocker
+        ("blocker_sources", "JSON"),
     ),
 }
 

@@ -81,6 +81,7 @@ def _persist_pipeline_result(run: Run, result: PipelineResult, db: Session) -> N
             error_chain=list(result.error_chain),
             first_repo_error=result.first_repo_error,
             last_error=result.last_error,
+            blocker_sources=result.blocker_sources,
         )
     )
     db.commit()

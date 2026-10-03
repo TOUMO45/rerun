@@ -92,5 +92,7 @@ class Certificate(Base):
     error_chain: Mapped[list | None] = mapped_column(JSON, nullable=True)
     first_repo_error: Mapped[str | None] = mapped_column(Text, nullable=True)
     last_error: Mapped[str | None] = mapped_column(Text, nullable=True)
+    # harness-v1.6 (item S): the stored Tavily lookup for a DATA_MISSING blocker; outside the passport hash.
+    blocker_sources: Mapped[dict | None] = mapped_column(JSON, nullable=True)
 
     run: Mapped[Run] = relationship(back_populates="certificate")

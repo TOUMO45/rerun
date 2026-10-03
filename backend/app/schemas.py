@@ -57,6 +57,7 @@ class CertificateOut(BaseModel):
     error_chain: list | None = None
     first_repo_error: str | None = None
     last_error: str | None = None
+    blocker_sources: dict | None = None
 
     # harness-v1.6: read off the stored fields above at response time (no column, no migration): the same pure
     # functions the orchestrator's certificate() uses, so the API and the downloaded certificate agree.
@@ -72,7 +73,8 @@ class CertificateOut(BaseModel):
     def blocker(self) -> dict | None:
         from app.services import blocker
 
-        return blocker.report(self._record())
+        out = blocker.report(self._record())
+        return {**out, "sources": self.blocker_sources} if out is not None else None
 
     def _record(self) -> dict:
         return {"verdict": self.verdict, "error_chain": self.error_chain or [], "attempts": self.diffs or []}

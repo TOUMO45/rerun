@@ -24,6 +24,7 @@ persisting the `PipelineResult` it returns.
 
 from __future__ import annotations
 
+import dataclasses
 import hashlib
 import json
 import os
@@ -412,6 +413,9 @@ class PipelineResult:
     error_chain: tuple[dict, ...] = ()
     first_repo_error: str | None = None
     last_error: str | None = None
+    # harness-v1.6 (item S): the Tavily lookup for a DATA_MISSING blocker (`tavily.dataset_sources`), stored because it
+    # is not derivable from the record; None when the blocker is not DATA_MISSING. Outside the passport hash.
+    blocker_sources: dict | None = None
 
     @property
     def repair_mode(self) -> str:
@@ -420,8 +424,12 @@ class PipelineResult:
         return "model_assisted" if any(a.origin == "model" for a in self.attempts) else "deterministic"
 
     def derived(self) -> dict:
-        """harness-v1.6: `{"outcome_levels", "blocker"}`, read off the verdict record (see `derived_record`)."""
-        return derived_record(self.verdict, list(self.error_chain), [a.as_dict() for a in self.attempts])
+        """harness-v1.6: `{"outcome_levels", "blocker"}`, read off the verdict record (see `derived_record`), with the
+        stored Tavily lookup (`blocker_sources`) placed on `blocker["sources"]` when there is a blocker."""
+        out = derived_record(self.verdict, list(self.error_chain), [a.as_dict() for a in self.attempts])
+        if out["blocker"] is not None:
+            out["blocker"] = {**out["blocker"], "sources": self.blocker_sources}
+        return out
 
     @property
     def outcome_levels(self) -> dict:
@@ -845,6 +853,31 @@ def run_pipeline(
     """
     state = _RunState()
     state.corpus_hash = corpus_hash
+    return _with_blocker_sources(
+        _run_pipeline_stages(repo_url=repo_url, commit_sha=commit_sha, workdir=workdir, intake_result=intake_result, deps=deps,
+                             cost_guard=cost_guard, run_id=run_id, on_event=on_event, documented_command=documented_command,
+                             state=state),
+        deps, repo_url, on_event)
+
+
+def _with_blocker_sources(result: PipelineResult, deps: PipelineDeps, repo_url: str, on_event) -> PipelineResult:
+    """harness-v1.6 (item S): after the verdict, one Tavily search for a DATA_MISSING blocker, stored on the result. It
+    runs after every finalizer so the verdict is already fixed; it can neither change a verdict nor raise (a failed
+    search is stored as its reason)."""
+    sources = tavily.dataset_sources(getattr(deps, "tavily_client", None), repo_url, result.blocker)
+    if sources is None:
+        return result
+    if on_event is not None:
+        n = len(sources["sources"] or [])
+        on_event(f"[blocker] DATA_MISSING: Tavily dataset lookup '{sources['query']}' -> {n} source(s)"
+                 + (f" ({sources['reason']})" if sources.get("reason") else ""))
+    return dataclasses.replace(result, blocker_sources=sources)
+
+
+def _run_pipeline_stages(
+    *, repo_url: str, commit_sha: str, workdir: Path, intake_result: RepoIntake, deps: PipelineDeps, cost_guard: CostGuard,
+    run_id: str, on_event, documented_command: str | None, state: "_RunState",
+) -> PipelineResult:
     try:
         return _run_stages(
             repo_url=repo_url,
