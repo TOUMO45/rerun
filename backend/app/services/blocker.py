@@ -17,7 +17,7 @@ Why a fixed table and not prose from a model: the certificate is read by someone
 same class must always say the same thing. Every TaxonomyCode has a row (a test asserts it); there is no default row,
 so a code added to the taxonomy without a row fails loudly instead of printing nothing.
 
-`report()` is None for a RUNS_CLEAN verdict (nothing blocks) and for an empty chain (nothing was classified: an
+`report()` is None for a RUNS_CLEAN or RUNS_AFTER_REPAIR verdict (nothing blocks) and for an empty chain (nothing was classified: an
 INDETERMINATE decided before execution, a pipeline error).
 """
 
@@ -140,7 +140,9 @@ def _api_removed_sentence(evidence: str) -> str:
 
 def report(result: dict) -> dict | None:
     """The blocker record for one stored result dict, or None when nothing blocks (see the module docstring)."""
-    if result.get("verdict") == "RUNS_CLEAN":
+    if result.get("verdict") in ("RUNS_CLEAN", "RUNS_AFTER_REPAIR"):
+        # Nothing blocks a run that ended RUNS_*: the failure its chain ends on was cleared (the ladder's
+        # `first_error_cleared_by` says by what). A blocker here would describe something no longer in the way.
         return None
     chain = list(result.get("error_chain") or ())
     if not chain:

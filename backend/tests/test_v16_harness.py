@@ -157,6 +157,7 @@ def _report(cls, error, verdict="BLOCKED", attribution="REPO", phase="repo_run")
 
 def test_blocker_is_none_for_runs_clean_and_for_an_empty_chain():
     assert blocker.report({"verdict": "RUNS_CLEAN", "error_chain": [_link("DEP_MISSING", cleared_by=0)]}) is None
+    assert blocker.report({"verdict": "RUNS_AFTER_REPAIR", "error_chain": [_link("DEP_MISSING", cleared_by=0)]}) is None
     assert blocker.report({"verdict": "INDETERMINATE", "error_chain": []}) is None
     assert blocker.report({"verdict": "BLOCKED"}) is None
 
@@ -353,8 +354,8 @@ def test_an_api_removed_failure_no_row_covers_takes_the_era_lock_first(tmp_path)
     assert result.verdict == "RUNS_AFTER_REPAIR" and repair.calls == [] and not left
     assert [a.origin for a in result.attempts] == ["time_machine"] and "scikit-image==0.15.0" in " ".join(plans[1]["install_commands"])
     assert result.outcome_levels == {"first_error_cleared": True, "first_error_cleared_by": "time_machine", "env_resolved": True, "entrypoint_runs": True}
-    # the blocker report is None only for RUNS_CLEAN or an empty chain: here it documents the (cleared) last failure
-    assert result.blocker["class"] == "API_REMOVED" and result.blocker["fixable_by"] == "deterministic"
+    # nothing blocks a run that ended RUNS_*; the ladder above says what cleared the failure
+    assert result.blocker is None  # nothing blocks a run that ended RUNS_AFTER_REPAIR; the ladder says what cleared it
     assert result.error_chain[-1]["cleared_by"] == 0  # the era environment cleared it (error_chain.clear_last)
 
 
