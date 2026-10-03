@@ -8,14 +8,14 @@ blocker is not a dependency or system-library error (the environment stopped bei
 |---|---|---|---|---|---|---|
 | harness-v1.3.2 | control | 12 | 0 () | 3 | 0 | DEP_MISSING@repo_run: 7, RUNTIME_ERROR_OTHER@repo_run: 3, DEP_UNPINNED_CONFLICT@runner_setup: 1, DEP_YANKED@runner_setup: 1 |
 | harness-v1.3.2 | treatment | 12 | 7 (time_machine: 6, model: 1) | 8 | 0 | RUNTIME_ERROR_OTHER@repo_run: 4, RUNTIME_ERROR_OTHER@repo_install: 3, DEP_UNPINNED_CONFLICT@runner_setup: 1, DEP_YANKED@runner_setup: 1, RUNTIME_ERROR_OTHER@runner_setup: 1, DEP_YANKED@repo_install: 1, DEP_MISSING@repo_run: 1 |
-| harness-v1.3.3 | smoke | 4 | 3 (time_machine: 3) | 4 | 1 | RUNTIME_ERROR_OTHER@repo_run: 2, RUNTIME_ERROR_OTHER@repo_install: 1 |
+| harness-v1.3.3 | smoke | 4 | 4 (time_machine: 4) | 4 | 1 | RUNTIME_ERROR_OTHER@repo_run: 2, RUNTIME_ERROR_OTHER@repo_install: 1 |
 | harness-v1.3.4 | smoke | 4 | 3 (time_machine: 3) | 2 | 0 | RUNTIME_ERROR_OTHER@repo_run: 2, DEP_NOT_ON_PYPI@repo_install: 1, DEP_MISSING@repo_run: 1 |
 | harness-v1.4.0 | gate | 4 | 3 (time_machine: 3) | 2 | 0 | RUNTIME_ERROR_OTHER@repo_run: 1, RUNTIME_ERROR_OTHER@repo_install: 1, SYS_LIB_MISSING@repo_install: 1, DEP_MISSING@repo_run: 1 |
 | harness-v1.4.1 | gate | 4 | 4 (time_machine: 4) | 3 | 0 | RUNTIME_ERROR_OTHER@repo_run: 2, SYS_LIB_MISSING@repo_install: 1, GPU_REQUIRED@repo_run: 1 |
 | harness-v1.4.2 | gate | 4 | 4 (time_machine: 4) | 4 | 1 | RUNTIME_ERROR_OTHER@repo_run: 2, RESOURCE_LIMIT@repo_run: 1 |
 | harness-v1.4.3 | gate | 4 | 4 (time_machine: 4) | 4 | 0 | DATA_MISSING@repo_run: 1, RUNTIME_ERROR_OTHER@repo_install: 1, RUNTIME_ERROR_OTHER@repo_run: 1, RESOURCE_LIMIT@repo_run: 1 |
 | harness-v1.5.0 | dev | 8 | 5 (time_machine: 3, model: 2) | 6 | 1 | RUNTIME_ERROR_OTHER@repo_run: 4, DEP_UNPINNED_CONFLICT@runner_setup: 1, DEP_YANKED@runner_setup: 1, RUNTIME_ERROR_OTHER@repo_install: 1 |
-| harness-v1.5.1 | dev | 8 | 6 (time_machine: 5, model: 1) | 7 | 2 | RUNTIME_ERROR_OTHER@repo_run: 4, DEP_UNPINNED_CONFLICT@runner_setup: 1, RUNTIME_ERROR_OTHER@repo_install: 1 |
+| harness-v1.5.1 | dev | 8 | 7 (time_machine: 6, model: 1) | 7 | 2 | RUNTIME_ERROR_OTHER@repo_run: 4, DEP_UNPINNED_CONFLICT@runner_setup: 1, RUNTIME_ERROR_OTHER@repo_install: 1 |
 
 ## Per record
 
@@ -59,7 +59,7 @@ blocker is not a dependency or system-library error (the environment stopped bei
 | 09 | harness-v1.5.1 | dev | INDETERMINATE | SYS_LIB_MISSING@repo_install | time_machine | yes | RUNTIME_ERROR_OTHER@repo_run (REPO) | `AssertionError: Download cifar10 dataset!!` |
 | 11 | harness-v1.3.2 | control | BLOCKED | DEP_MISSING@repo_run | - | no | DEP_MISSING@repo_run (REPO) | `ModuleNotFoundError: No module named 'tqdm'` |
 | 11 | harness-v1.3.2 | treatment | INDETERMINATE | DEP_MISSING@repo_run | time_machine | yes | RUNTIME_ERROR_OTHER@runner_setup (ENV) | `subprocess.CalledProcessError: Command '['/usr/local/bin/python', '-c', "import torch; print('RERUN_TORCH_OK', torch.__version__)"]' returne` |
-| 11 | harness-v1.3.3 | smoke | RUNS_AFTER_REPAIR | DEP_MISSING@repo_run | - | yes | DEP_MISSING@repo_run (REPO) | `ModuleNotFoundError: No module named 'tqdm'` |
+| 11 | harness-v1.3.3 | smoke | RUNS_AFTER_REPAIR | DEP_MISSING@repo_run | time_machine | yes | DEP_MISSING@repo_run (REPO) | `ModuleNotFoundError: No module named 'tqdm'` |
 | 11 | harness-v1.3.4 | smoke | INDETERMINATE | DEP_MISSING@repo_run | time_machine | yes | RUNTIME_ERROR_OTHER@repo_run (REPO) | `UnboundLocalError: local variable 'torch' referenced before assignment` |
 | 11 | harness-v1.4.0 | gate | INDETERMINATE | DEP_MISSING@repo_run | - | no | DEP_MISSING@repo_run (REPO) | `ModuleNotFoundError: No module named 'tqdm'` |
 | 11 | harness-v1.4.1 | gate | BLOCKED | DEP_MISSING@repo_run | time_machine | yes | RUNTIME_ERROR_OTHER@repo_run (REPO) | `170499072it [00:20, 8225019.15it/s]` |
@@ -84,4 +84,4 @@ blocker is not a dependency or system-library error (the environment stopped bei
 | 17 | harness-v1.3.2 | control | BLOCKED | RUNTIME_ERROR_OTHER@repo_run | - | yes | RUNTIME_ERROR_OTHER@repo_run (REPO) | `ImportError: cannot import name 'zero_gradients' from 'torch.autograd.gradcheck' (/usr/local/lib/python3.10/site-packages/torch/autograd/gra` |
 | 17 | harness-v1.3.2 | treatment | BLOCKED | RUNTIME_ERROR_OTHER@repo_run | - | yes | RUNTIME_ERROR_OTHER@repo_run (REPO) | `ImportError: cannot import name 'zero_gradients' from 'torch.autograd.gradcheck' (/usr/local/lib/python3.10/site-packages/torch/autograd/gra` |
 | 17 | harness-v1.5.0 | dev | INDETERMINATE | RUNTIME_ERROR_OTHER@repo_run | - | yes | RUNTIME_ERROR_OTHER@repo_run (REPO) | `ImportError: cannot import name 'zero_gradients' from 'torch.autograd.gradcheck' (/usr/local/lib/python3.10/site-packages/torch/autograd/gra` |
-| 17 | harness-v1.5.1 | dev | RUNS_AFTER_REPAIR | RUNTIME_ERROR_OTHER@repo_run | - | yes | RUNTIME_ERROR_OTHER@repo_run (REPO) | `ImportError: cannot import name 'zero_gradients' from 'torch.autograd.gradcheck' (/usr/local/lib/python3.10/site-packages/torch/autograd/gra` |
+| 17 | harness-v1.5.1 | dev | RUNS_AFTER_REPAIR | RUNTIME_ERROR_OTHER@repo_run | time_machine | yes | RUNTIME_ERROR_OTHER@repo_run (REPO) | `ImportError: cannot import name 'zero_gradients' from 'torch.autograd.gradcheck' (/usr/local/lib/python3.10/site-packages/torch/autograd/gra` |
