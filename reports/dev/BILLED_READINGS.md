@@ -8,7 +8,8 @@ readings.
 |---|---|---|---|---|
 | (earlier) | 2026-10-01 19:37 local | account at most $0.39 cumulative | | before the v1.4.1 gate |
 | after the v1.4.1 gate | 2026-10-01 | $49.57 | $0.04 | at most $0.43 cumulative: a $50.00 start is inferred from these readings, not stated |
-| **this reading** | **2026-10-03, after DEV round 1 and before round 2** (owner's screenshot, chat) | **$48.29** | **$1.28** | at most **$1.71 cumulative** if the account started at $50.00 |
+| after DEV round 1 | **2026-10-03, after DEV round 1 and before round 2** (owner's screenshot, chat) | **$48.29** | **$1.28** | at most **$1.71 cumulative** if the account started at $50.00 |
+| **this reading** | **2026-10-03 19:07 local, after DEV round 2 and before round 3** (owner's screenshot, chat) | **$47.96** | **$0.33** | at most **$2.04 cumulative** if the account started at $50.00; the interval holds round 2 only ($6.9561 API-reported + estimates) |
 
 ## What the $48.29 covers, and what it does not say
 
@@ -20,4 +21,12 @@ interval in which the account balance fell $1.28. The API-reported ceilings of t
 binding limits because they are the owner's. Sandboxes are described as free while in beta (D-36), which fits a billed figure that is a small fraction of the reported one but proves nothing
 about what will be billed later.
 
-Next reading wanted: after DEV round 2 (and at the freeze, and after the TEST phase).
+## The round-2 interval, the only one so far that holds exactly one paid activity
+
+Round 2 ($6.9561 API-reported + estimates, of which model calls $0.5444 API-reported) was billed $0.33. The ratio is DERIVED and for scale only; it is consistent with sandboxes being free in beta and model calls being billed (D-36).
+
+## Budget re-anchoring (owner, 2026-10-03, after this reading)
+
+Ledger ceiling $100.00 API-reported (the figure rule B4 names), and a BILLED floor of $20.00: no live work starts when the latest reading is below it. METHODOLOGY, "DEV round 2, BILLED reading, and the budget re-anchoring".
+
+Next reading wanted: after DEV round 3 (and at the freeze, and after the TEST phase).

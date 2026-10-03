@@ -5,6 +5,8 @@ Protocol: METHODOLOGY.md "harness-v1.5 dev/test protocol". Tag `harness-v1.5.1` 
 - **DEV count (smoke level, D2): 2 of 8** entries with a RUNS_* verdict; kinds: {'smoke_alive': 2} (`smoke_alive` = a 60 s smoke pass that nothing has confirmed; no sustained check in DEV).
 - Adds something over earlier rounds (D4): **yes** — count 2 exceeds the best earlier count 1.
 - Cost [API-REPORTED]: $6.3323; [ESTIMATED] (killed steps): $0.6237; round total $6.9561. BILLED: AWAITED (the owner reads the account balance and reports it in chat; the last reading, $48.29, was taken before this round).
+
+> Annotation, 2026-10-03 19:07 local: the owner's reading after this round is **$47.96 [BILLED]**, $0.33 below the $48.29 reading before it; the interval holds this round only (`reports/dev/BILLED_READINGS.md`). The guard line above is as computed under the $75.00 ceiling; the owner then wrote $100.00 (METHODOLOGY, "DEV round 2, BILLED reading, and the budget re-anchoring").
 - Ledger after this round (lower bound, D-27): $41.7207 (base $29.1704 + v1.5 DEV spend $12.5503); ceiling $75.00; DEV total $12.5503 of $40.00. Guard for another round: REFUSED — RESERVE: ledger $41.7207 + the round's central estimate $7.39 + the TEST reserve $26.11 passes the $75.00 ledger ceiling (the TEST phase could not be paid for).
 
 ## Verdict per entry
