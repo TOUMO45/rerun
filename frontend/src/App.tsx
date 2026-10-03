@@ -4,6 +4,7 @@ import { Intake } from "./screens/Intake";
 import { RunTimeline } from "./screens/RunTimeline";
 import { Certificate } from "./screens/Certificate";
 import { BatchLab } from "./screens/BatchLab";
+import { Gallery } from "./screens/Gallery";
 
 export default function App() {
   return (
@@ -13,6 +14,7 @@ export default function App() {
         <Route path="/runs/:runId" element={<RunTimeline />} />
         <Route path="/runs/:runId/certificate" element={<Certificate />} />
         <Route path="/batch" element={<BatchLab />} />
+        <Route path="/gallery" element={<Gallery />} />
       </Routes>
     </Shell>
   );

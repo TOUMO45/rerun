@@ -49,8 +49,29 @@ export interface RunOut {
   taxonomy_code: string | null;
   indeterminate_reason: string | null;
   attempts_used: number;
+  /** DEMO mode: the committed record this run replays (repo-relative path); null for a live run. */
+  demo_source?: string | null;
   created_at: string;
   updated_at: string;
+}
+
+/** One row of `GET /runs` — cheap, no certificate body. */
+export interface RunListItem {
+  id: string;
+  repo_url: string;
+  commit_sha: string | null;
+  status: string;
+  verdict: Verdict | null;
+  taxonomy_code: string | null;
+  demo_source: string | null;
+  created_at: string;
+}
+
+export interface RunListOut {
+  runs: RunListItem[];
+  total: number;
+  limit: number;
+  offset: number;
 }
 
 export interface TavilySource {
@@ -247,6 +268,7 @@ export const api = {
   createRun: (repo_url: string) =>
     request<RunOut>("/runs", { method: "POST", body: JSON.stringify({ repo_url }) }),
   getRun: (id: string) => request<RunOut>(`/runs/${id}`),
+  listRuns: () => request<RunListOut>("/runs"),
   executeRun: (id: string) => request<RunOut>(`/runs/${id}/execute`, { method: "POST" }),
   getCertificate: (id: string) => request<CertificateOut>(`/runs/${id}/certificate`),
   getBatchResults: () => request<BatchResults>("/batch/results"),

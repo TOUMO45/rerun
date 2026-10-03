@@ -5,10 +5,12 @@ import { api, ApiError, streamRun } from "../api";
 import { VerdictBadge } from "../components/VerdictBadge";
 import { RepairAttemptCard } from "../components/RepairAttemptCard";
 import { buildTimelineItems, extractLatestSandboxId, extractWallClockSeconds, parseLogLine } from "../lib/timeline";
+import { DemoBanner, useDemoMode } from "../components/DemoBanner";
 
 export function RunTimeline() {
   const { runId } = useParams<{ runId: string }>();
   const queryClient = useQueryClient();
+  const demoMode = useDemoMode();
   const [hasStarted, setHasStarted] = useState(false);
   const [liveLines, setLiveLines] = useState<string[]>([]);
   const [streamError, setStreamError] = useState<string | null>(null);
@@ -114,12 +116,20 @@ export function RunTimeline() {
 
       {!isDone && !hasStarted && !isExecutingElsewhere && (
         <div className="rounded-sm border border-border bg-surface px-5 py-6 text-center">
+          {demoMode && (
+            <div className="mb-4 text-left">
+              <DemoBanner />
+            </div>
+          )}
           <p className="mb-4 font-mono text-sm text-text-secondary">
-            Intake complete. Ready to build the environment and execute.
+            {demoMode
+              ? "Intake complete. Execution is off in demo mode — the backend refuses to start the pipeline."
+              : "Intake complete. Ready to build the environment and execute."}
           </p>
           <button
             onClick={() => setHasStarted(true)}
-            className="rounded-sm bg-signal px-5 py-2.5 font-mono text-sm font-medium text-bg transition-opacity hover:opacity-90"
+            disabled={demoMode}
+            className="rounded-sm bg-signal px-5 py-2.5 font-mono text-sm font-medium text-bg transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40"
           >
             Start execution run
           </button>

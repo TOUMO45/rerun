@@ -87,6 +87,11 @@ export function Certificate() {
           <p className="mt-1 font-mono text-xs text-text-secondary">
             commit {run.commit_sha?.slice(0, 12) ?? "unknown"} · {new Date(cert.timestamp).toLocaleString()}
           </p>
+          {run.demo_source && (
+            <p className="mt-1 break-all font-mono text-[11px] text-text-secondary">
+              replayed from the committed record <span className="text-text-primary/80">{run.demo_source}</span>
+            </p>
+          )}
         </div>
         <VerdictBadge verdict={cert.verdict} size="lg" />
       </div>

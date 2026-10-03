@@ -94,7 +94,13 @@ class Settings(BaseSettings):
     # `backend-data` volume, mounted at /app/data (the container's cwd is
     # always /app). See db.py's module docstring for why this matters.
     database_url: str = "sqlite:///./data/rerun.db"
+    # DEMO / REPLAY mode: no live execution; on startup the committed run records under
+    # `<repo root>/runs/corpus_v2_batch` are seeded into the DB (services/demo_seed.py) and
+    # `POST /runs/{id}/execute` answers 409. `demo_root` overrides where the repository root
+    # (the directory holding `runs/` and `reports/`) is looked for; default: three levels
+    # above the `app` package, which is the checkout when run from backend/.
     demo_mode: bool = False
+    demo_root: str = ""
     daily_cost_ceiling_usd: float = 25.0
     max_attempts_per_run: int = 3
     # harness-v1.4.0-rc: repair candidates per failure (each runs in its own branch of the checkpoint image; 1 = harness-v1.3.x semantics).

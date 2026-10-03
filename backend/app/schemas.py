@@ -32,8 +32,32 @@ class RunOut(BaseModel):
     taxonomy_code: str | None
     indeterminate_reason: str | None
     attempts_used: int
+    # DEMO mode: the committed record this run replays (repository-relative path); null for a live run.
+    demo_source: str | None = None
     created_at: datetime
     updated_at: datetime
+
+
+class RunListItem(BaseModel):
+    """One row of `GET /runs`: cheap (no certificate body), enough for the Gallery."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    id: str
+    repo_url: str
+    commit_sha: str | None
+    status: str
+    verdict: str | None
+    taxonomy_code: str | None
+    demo_source: str | None
+    created_at: datetime
+
+
+class RunListOut(BaseModel):
+    runs: list[RunListItem]
+    total: int
+    limit: int
+    offset: int
 
 
 class CertificateOut(BaseModel):
