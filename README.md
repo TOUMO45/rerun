@@ -1,12 +1,14 @@
 # RERUN
 
+## What it is
+
 **Does a paper's code still run? If not, how far does it get, what stops it, and what would a human have to supply?**
 
-RERUN answers that in minutes, for about a dollar, with evidence: it clones the repository at its pinned commit, rebuilds the environment of the paper's era with deterministic rules, runs the documented command in a Nebius Token Factory sandbox, classifies what stopped it, lets NVIDIA Nemotron propose a repair that a deterministic tamper gate decides, and signs a passport that anyone can verify offline. Every number it reports carries a tag (API-REPORTED, ESTIMATED, DERIVED; BILLED for the owner's account-balance readings) and traces to a committed record.
+RERUN answers that in minutes, for about a dollar, with evidence: it clones the repository at its pinned commit, rebuilds the environment of the paper's era with deterministic rules, runs the documented command in a Nebius Token Factory sandbox, classifies what stopped it, lets NVIDIA Nemotron propose a repair that a deterministic tamper gate decides, and signs a passport that anyone can verify offline. Every number it reports carries a tag and traces to a committed record: API-REPORTED (formerly MEASURED) is a stored field of a committed record, or a count or sum of such fields, and for a dollar figure the sandbox API's reported operation cost, not account billing; ESTIMATED; DERIVED; BILLED for the owner's account-balance readings.
 
 **What a certificate shows (harness-v1.6):**
 
-- **An outcome ladder** read off stored fields: was the as-published failure cleared, and by what (the deterministic time machine, a rule, or a model proposal); did the environment stop being the blocker; does the entrypoint run (60 s smoke; only the TEST phase's 600 s run confirms it).
+- **An outcome ladder** read off stored fields: was the as-published failure cleared, and by what (the deterministic time machine, a rule, or a model proposal); did the environment stop being the blocker; does the entrypoint run (a smoke run; only the TEST phase's sustained run confirms it).
 - **The blocker**: its class, the quoted evidence line, who can remove it (deterministic / model / human / platform), what a human must supply (for example: "the dataset the repository expects at <path>, obtained as its README describes"), and, for a missing dataset, where to get it (one Tavily search, stored with its query).
 - **The repair trail**: every model proposal with the gate's decision, the environment and era lock, the cost, the sandbox streams' sizes and hashes.
 
@@ -14,17 +16,19 @@ RERUN answers that in minutes, for about a dollar, with evidence: it clones the 
 
 | | first error cleared | environment resolved | entrypoint runs (smoke) |
 |---|---|---|---|
-| Pre-registered run, CONTROL (no repair), 12 entries | 0 | 3 | 0 |
-| Pre-registered run, TREATMENT, 12 entries | **7** (time machine 6, model 1) | **8** | 0 |
-| DEV round 2 at harness-v1.5.1, 8 entries | **7** (time machine 6, model 1) | **7** | 2 |
+| Pre-registered run, CONTROL (no repair), 12 entries [API-REPORTED] | 0 | 3 | 0 |
+| Pre-registered run, TREATMENT, 12 entries [API-REPORTED] | **7** (time machine 6, model 1) | **8** | 0 |
+| DEV round 2 at harness-v1.5.1, 8 entries [API-REPORTED] | **7** (time machine 6, model 1) | **7** | 2 |
 
 The deterministic time machine does most of the work. The model's repairs, under a gate that refuses code that does less, added little on this corpus, and that is measured and reported, not hidden: no pre-registered gate passed (next section). What then blocks a run is named in the records' own words: a dataset the repository tells the user to download, a GPU-only operation on a CPU sandbox, an API a newer release removed, an end-of-life apt mirror, a source build that fails. harness-v1.6 makes the classifier name each of these (`API_REMOVED`, `APT_MIRROR_GONE`, `DEP_BUILD_FAILED`, widened `DATA_MISSING` and `GPU_REQUIRED`), replay-tested on the recorded failures.
 
-**Try it without a key.** `docker compose -f docker-compose.yml -f docker-compose.demo.yml up --build`, then open the Gallery: the committed audits replay from their records, every certificate carries the ladder and the blocker, and live execution is refused (HTTP 409) so a demo can never spend. A live run needs `NEBIUS_API_KEY` and `TAVILY_API_KEY` (`.env.example`).
+**Try it without a key.** `docker compose -f docker-compose.yml -f docker-compose.demo.yml up --build`, then open the Gallery: the committed audits replay from their records, every certificate carries the ladder and the blocker, and live execution is refused with an HTTP conflict status, so a demo can never spend. A live run needs `NEBIUS_API_KEY` and `TAVILY_API_KEY` (`.env.example`).
 
-Track: Coding and Agentic Engineering. Models: Nemotron 3 Nano (recon), Super (planner, repairer), Ultra (adjudicator), through Nebius Token Factory; every execution in a Token Factory sandbox; Tavily at runtime for repair context and for dataset sources.
+Track: Coding and Agentic Engineering. Models: NVIDIA Nemotron Nano (recon), Super (planner, repairer), Ultra (adjudicator), through Nebius Token Factory; every execution in a Token Factory sandbox; Tavily at runtime for repair context and for dataset sources.
 
-## The measured result (pre-registered gates, through harness-v1.5)
+## The measured result
+
+The pre-registered gates, through harness-v1.5.
 
 **2 [API-REPORTED] of 24 [API-REPORTED] gate entry-runs reached a RUNS_* verdict and no gate passed; one is a measurement artefact (harness-v1.3.3, entry `11`, smoke limit), the other a 60 [API-REPORTED] s smoke-criterion pass after model-proposed environment changes were adopted (harness-v1.4.2, entry `07`).**
 Over every gate entry-run of the exploratory versions, 2 [API-REPORTED] of 24 [API-REPORTED] ended RUNS_CLEAN or RUNS_AFTER_REPAIR, and no gate passed.
