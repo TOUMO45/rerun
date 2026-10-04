@@ -1,0 +1,693 @@
+{
+  "run_kind": "live end-to-end run",
+  "dev_run": false,
+  "dry_run": null,
+  "batch": {
+    "harness_tag": "harness-v1.6.0",
+    "harness_commit": "b0b7d92473d02e1003599ec8b10d7df4c5e2566b",
+    "head_commit": "90a0834cfca584e97415c703d9788d78c7d2c23d",
+    "corpus": "corpus-v2",
+    "prereg_sha256": "ae5a722249156e058d3d360bdc63fa8224140d0688f1daa307ecfa93a98c7284",
+    "corpus_hash": "7df090bea7013974f9f10fb8959ab0162734b51c83a80f744f9c310ce694fbdc",
+    "arm": "treatment",
+    "total_cap_usd": 12.0,
+    "already_spent_usd": 0.0,
+    "entry_id": 17,
+    "category": "PRIMARY",
+    "rules_matched": [],
+    "per_entry_cap_usd": 1.5,
+    "dev_round": 4,
+    "protocol": "harness-v1.5 dev/test: DEV round"
+  },
+  "started_at": "2026-10-04T13:29:55.235861+00:00",
+  "corpus_entry": {
+    "name": "Haichao-Zhang__FeatureScatter",
+    "repo_url": "https://github.com/Haichao-Zhang/FeatureScatter",
+    "commit_sha": "77e9140d5112ace5ba60301c224868257434b3e6",
+    "command": "sh ./fs_train.sh",
+    "command_source": "README.md line 27"
+  },
+  "config": {
+    "models": {
+      "recon": "nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B",
+      "planner": "nvidia/nemotron-3-super-120b-a12b",
+      "repairer": "nvidia/nemotron-3-super-120b-a12b",
+      "adjudicator": "nvidia/Nemotron-3-Ultra-550b-a55b"
+    },
+    "sandbox_backend": "token_factory",
+    "sandbox_image_default": "python:3.10-slim",
+    "sandbox_wall_clock_seconds": 600.0,
+    "arm": "treatment",
+    "repair_enabled": true,
+    "max_attempts": 3,
+    "candidates_per_round": 3,
+    "tavily_configured": true,
+    "cost_cap_usd": 1.5
+  },
+  "intake": {
+    "duration_s": 3.14,
+    "resolved_sha": "77e9140d5112ace5ba60301c224868257434b3e6",
+    "dependency_files": [
+      "setup.py"
+    ],
+    "declared_dependencies": [
+      "scipy",
+      "torch",
+      "torchvision",
+      "tqdm"
+    ],
+    "entrypoint_candidates": [],
+    "notebook_paths": []
+  },
+  "pipeline_duration_s": 206.4,
+  "repair_mode": "deterministic",
+  "tree_integrity": {
+    "status": "verified",
+    "tree_sha": "609e1335f27715f9ab89fe1963e949d38986d1f9",
+    "files_checked": 11,
+    "excluded_patched": []
+  },
+  "result": {
+    "verdict": "RUNS_AFTER_REPAIR",
+    "taxonomy_code": "API_REMOVED",
+    "indeterminate_reason": "",
+    "reason_code": null,
+    "error_chain": [
+      {
+        "error": "ImportError: cannot import name 'zero_gradients' from 'torch.autograd.gradcheck' (/usr/local/lib/python3.10/site-packages/torch/autograd/gradcheck.py)",
+        "class": "API_REMOVED",
+        "attribution": "REPO",
+        "phase": "repo_run",
+        "cleared_by": 0
+      }
+    ],
+    "first_repo_error": "ImportError: cannot import name 'zero_gradients' from 'torch.autograd.gradcheck' (/usr/local/lib/python3.10/site-packages/torch/autograd/gradcheck.py)",
+    "last_error": "ImportError: cannot import name 'zero_gradients' from 'torch.autograd.gradcheck' (/usr/local/lib/python3.10/site-packages/torch/autograd/gradcheck.py)",
+    "error_traceback": "",
+    "attempts": [
+      {
+        "attempt_number": 0,
+        "diff_text": "",
+        "gate_decision": "PASS",
+        "gate_violations": [],
+        "exit_code": 0,
+        "stdout_tail": "------------cifar10---------\n==> Preparing data..\nDownloading https://cave.cs.toronto.edu/kriz/cifar-10-python.tar.gz to ./data/cifar-10-python.tar.gz\nRERUN_SMOKE_ALIVE: still running after 60s with output and no traceback; stopped by RERUN (smoke execution)\n",
+        "stderr_tail": "\u2588\u2588\u2588\u2588\u258b | 147730432/170498071 [00:53<00:10, 2140716.11it/s]\r 87%|\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u258b | 147945472/170498071 [00:53<00:10, 2136663.99it/s]\r 87%|\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u258b | 148160512/170498071 [00:53<00:10, 2138327.15it/s]\r 87%|\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u258b | 148376576/170498071 [00:53<00:10, 2141839.64it/s]\r 87%|\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u258b | 148596736/170498071 [00:53<00:10, 2159461.37it/s]\r 87%|\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u258b | 148812800/170498071 [00:54<00:10, 2156444.53it/s]\r 87%|\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u258b | 149028864/170498071 [00:54<00:09, 2156655.59it/s]\r 88%|\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u258a | 149244928/170498071 [00:54<00:09, 2155330.31it/s]\r 88%|\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u258a | 149460992/170498071 [00:54<00:09, 2156145.74it/s]\r 88%|\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u258a | 149678080/170498071 [00:54<00:09, 2160471.78it/s]\r 88%|\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u258a | 149894144/170498071 [00:54<00:09, 2157469.23it/s]\r 88%|\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u258a | 150110208/170498071 [00:54<00:09, 2142318.15it/s]\r 88%|\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u258a | 150325248/170498071 [00:54<00:09, 2113286.46it/s]\r 88%|\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u258a | 150537216/170498071 [00:54<00:09, 2083282.29it/s]\r 88%|\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u258a | 150746112/170498071 [00:54<00:09, 2076421.89it/s]\r 89%|\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u258a | 150953984/170498071 [00:55<00:09, 2069638.55it/s]\r 89%|\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u258a | 151161856/170498071 [00:55<00:09, 2064871.18it/s]\r 89%|\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2589 | 151368704/170498071 [00:55<00:09, 2057546.22it/s]\r 89%|\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2589 | 151576576/170498071 [00:55<00:09, 2056622.75it/s]\r 89%|\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2589 | 151784448/170498071 [00:55<00:09, 2055616.56it/s]\r 89%|\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2589 | 151992320/170498071 [00:55<00:09, 2044823.08it/s]\r 89%|\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2589 | 152197120/170498071 [00:55<00:09, 2031405.14it/s]\r 89%|\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2589 | 152400896/170498071 [00:55<00:09, 1998346.95it/s]\r 90%|\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2589 | 152601600/170498071 [00:55<00:09, 1987745.05it/s]\r 90%|\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2589 | 152801280/170498071 [00:56<00:08, 1977866.86it/s]\r 90%|\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2589 | 153000960/170498071 [00:56<00:08, 1967632.93it/s]\r 90%|\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2589 | 153200640/170498071 [00:56<00:08, 1964340.37it/s]\r 90%|\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2589 | 153400320/170498071 [00:56<00:08, 1959045.62it/s]\r 90%|\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588 | 153601024/170498071 [00:56<00:08, 1960234.20it/s]\r 90%|\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588 | 153800704/170498071 [00:56<00:08, 1957852.14it/s]",
+        "tavily_sources": [],
+        "env_delta": [
+          {
+            "command": null,
+            "op": "python",
+            "package": null,
+            "version": "3.9",
+            "git_url": null,
+            "commit": null,
+            "justification": "deterministic: torch.autograd.gradcheck.zero_gradients was removed in torch 1.9; torch<1.9 -> torch==1.8.1 on Python 3.9 (Python 3.10 cannot install it)",
+            "evidence": "cannot import name 'zero_gradients' from 'torch.autograd.gradcheck'"
+          },
+          {
+            "command": null,
+            "op": "pin",
+            "package": "torch",
+            "version": "1.8.1",
+            "git_url": null,
+            "commit": null,
+            "justification": "deterministic: torch.autograd.gradcheck.zero_gradients was removed in torch 1.9; torch<1.9 -> torch==1.8.1 on Python 3.9 (Python 3.10 cannot install it)",
+            "evidence": "cannot import name 'zero_gradients' from 'torch.autograd.gradcheck'"
+          }
+        ],
+        "resolved_sources": [],
+        "origin": "time_machine",
+        "time_machine": null,
+        "execution": {
+          "mode": "smoke",
+          "seconds": 60,
+          "outcome": "alive_at_limit",
+          "image": "416ae0fd-a808-48f1-bc03-748622c49e99",
+          "command": "sh ./fs_train.sh"
+        },
+        "time_machine_action": {
+          "rule": "removed_api_torch_zero_gradients",
+          "matched_error": "cannot import name 'zero_gradients' from 'torch.autograd.gradcheck'",
+          "package": "torch",
+          "bound": "<1.9",
+          "phase": "repair",
+          "pinned": "1.8.1",
+          "python": "3.9",
+          "python_changed": true,
+          "reason": "torch.autograd.gradcheck.zero_gradients was removed in torch 1.9; torch<1.9 -> torch==1.8.1 on Python 3.9 (Python 3.10 cannot install it)",
+          "companions": []
+        }
+      }
+    ],
+    "certificate_prose": "The run log shows the environment was built from python:3.9-slim and the execution completed in 21.4 seconds with torch installed, returning exit code 0. The taxonomy code API_REMOVED indicates an API removal issue was addressed during the time-machine re-execution. Verifies that the artifact executes. Does not verify the paper's numerical results.",
+    "outcome_levels": {
+      "first_error_cleared": true,
+      "first_error_cleared_by": "time_machine",
+      "env_resolved": true,
+      "entrypoint_runs": true
+    },
+    "blocker": null
+  },
+  "certificate": {
+    "repo_url": "https://github.com/Haichao-Zhang/FeatureScatter",
+    "commit_sha": "77e9140d5112ace5ba60301c224868257434b3e6",
+    "build_plan": {
+      "base_image": "python:3.9-slim",
+      "apt_install": [],
+      "install_commands": [
+        "pip install .",
+        "pip install torch==1.8.1"
+      ],
+      "execute_command": "sh ./fs_train.sh",
+      "notes": [
+        "execute command is the repository's documented command (corpus ground truth)",
+        "base image python:3.10-slim: no usable Python declaration; RERUN default 3.10 (declared but not satisfiable by an available image: README '3.5')",
+        "env delta: python 3.9 \u2014 deterministic: torch.autograd.gradcheck.zero_gradients was removed in torch 1.9; torch<1.9 -> torch==1.8.1 on Python 3.9 (Python 3.10 cannot install it)",
+        "env delta: pin torch \u2014 deterministic: torch.autograd.gradcheck.zero_gradients was removed in torch 1.9; torch<1.9 -> torch==1.8.1 on Python 3.9 (Python 3.10 cannot install it)"
+      ]
+    },
+    "full_log": "[intake] cloned https://github.com/Haichao-Zhang/FeatureScatter@77e9140d5112ace5ba60301c224868257434b3e6\n[recon] calling Nemotron Nano\n[recon] ENTRYPOINT_UNCLEAR: no runnable entrypoint discoverable in recon: no candidate scripts found (no train.py/main.py/run.py-style file, and no file with a __main__ guard) \u2014 proceeding with the documented command: sh ./fs_train.sh\n[python] python:3.10-slim (default): no usable Python declaration; RERUN default 3.10 (declared but not satisfiable by an available image: README '3.5')\n[planner] build plan: {'base_image': 'python:3.10-slim', 'apt_install': [], 'install_commands': ['pip install .'], 'execute_command': 'sh ./fs_train.sh', 'notes': [\"execute command is the repository's documented command (corpus ground truth)\", \"base image python:3.10-slim: no usable Python declaration; RERUN default 3.10 (declared but not satisfiable by an available image: README '3.5')\"]}\n[integrity] verified 11 file(s) against tree 609e1335f27715f9ab89fe1963e949d38986d1f9\n[runner] torch: repo pins torch, torchvision; installed the CPU wheels as a matched set with the same pins\n[checkpoint] baseline: no kept image holds this environment yet; building it from python:3.10-slim and keeping every layer\n[sandbox] starting build+execute (wall_clock_seconds=600)\n[operation 1] baseline: completed; 27.9s of sandbox time; torch installed; branch_from_image=None; result_image=None; 4 image(s) kept\n[cost_guard] recorded $0.2879 sandbox spend, $1.2119 remaining today\n[sandbox] id=bbf35a97-1997-40f1-b37a-30700267f54c exit_code=1\n[baseline] as-is run: FAILS (exit code 1)\n[classifier] API_REMOVED: ImportError: cannot import name 'zero_gradients' from 'torch.autograd.gradcheck' (/usr/local/lib/python3.10/site-packages/torch/autograd/gradcheck.py)\n[time-machine] skipped ahead of the removed-API rule for API_REMOVED: the rule's recorded release goes first\n[time-machine] deterministic step: removed_api_torch_zero_gradients (matched: cannot import name 'zero_gradients' from 'torch.autograd.gradcheck'); torch.autograd.gradcheck.zero_gradients was removed in torch 1.9; torch<1.9 -> torch==1.8.1 on Python 3.9 (Python 3.10 cannot install it); no model call\n[smoke] re-execution of the documented command under a 60s smoke limit\n[integrity] verified 11 file(s) against tree 609e1335f27715f9ab89fe1963e949d38986d1f9\n[runner] torch: repo pins torch, torchvision; installed the CPU wheels as a matched set with the same pins\n[checkpoint] time machine: removed_api_torch_zero_gradients: no kept image holds this environment yet; building it from python:3.9-slim and keeping every layer\n[sandbox] starting build+execute (wall_clock_seconds=184)\n[operation 2] time machine: removed_api_torch_zero_gradients: completed; 21.4s of sandbox time; torch installed; branch_from_image=None; result_image=None; 5 image(s) kept\n[cost_guard] recorded $0.2182 sandbox spend, $0.9937 remaining today\n[time-machine] re-execution id=416ae0fd-a808-48f1-bc03-748622c49e99 exit_code=0",
+    "diffs": [
+      {
+        "attempt_number": 0,
+        "diff_text": "",
+        "gate_decision": "PASS",
+        "gate_violations": [],
+        "exit_code": 0,
+        "stdout_tail": "------------cifar10---------\n==> Preparing data..\nDownloading https://cave.cs.toronto.edu/kriz/cifar-10-python.tar.gz to ./data/cifar-10-python.tar.gz\nRERUN_SMOKE_ALIVE: still running after 60s with output and no traceback; stopped by RERUN (smoke execution)\n",
+        "stderr_tail": "\u2588\u2588\u2588\u2588\u258b | 147730432/170498071 [00:53<00:10, 2140716.11it/s]\r 87%|\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u258b | 147945472/170498071 [00:53<00:10, 2136663.99it/s]\r 87%|\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u258b | 148160512/170498071 [00:53<00:10, 2138327.15it/s]\r 87%|\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u258b | 148376576/170498071 [00:53<00:10, 2141839.64it/s]\r 87%|\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u258b | 148596736/170498071 [00:53<00:10, 2159461.37it/s]\r 87%|\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u258b | 148812800/170498071 [00:54<00:10, 2156444.53it/s]\r 87%|\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u258b | 149028864/170498071 [00:54<00:09, 2156655.59it/s]\r 88%|\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u258a | 149244928/170498071 [00:54<00:09, 2155330.31it/s]\r 88%|\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u258a | 149460992/170498071 [00:54<00:09, 2156145.74it/s]\r 88%|\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u258a | 149678080/170498071 [00:54<00:09, 2160471.78it/s]\r 88%|\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u258a | 149894144/170498071 [00:54<00:09, 2157469.23it/s]\r 88%|\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u258a | 150110208/170498071 [00:54<00:09, 2142318.15it/s]\r 88%|\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u258a | 150325248/170498071 [00:54<00:09, 2113286.46it/s]\r 88%|\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u258a | 150537216/170498071 [00:54<00:09, 2083282.29it/s]\r 88%|\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u258a | 150746112/170498071 [00:54<00:09, 2076421.89it/s]\r 89%|\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u258a | 150953984/170498071 [00:55<00:09, 2069638.55it/s]\r 89%|\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u258a | 151161856/170498071 [00:55<00:09, 2064871.18it/s]\r 89%|\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2589 | 151368704/170498071 [00:55<00:09, 2057546.22it/s]\r 89%|\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2589 | 151576576/170498071 [00:55<00:09, 2056622.75it/s]\r 89%|\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2589 | 151784448/170498071 [00:55<00:09, 2055616.56it/s]\r 89%|\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2589 | 151992320/170498071 [00:55<00:09, 2044823.08it/s]\r 89%|\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2589 | 152197120/170498071 [00:55<00:09, 2031405.14it/s]\r 89%|\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2589 | 152400896/170498071 [00:55<00:09, 1998346.95it/s]\r 90%|\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2589 | 152601600/170498071 [00:55<00:09, 1987745.05it/s]\r 90%|\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2589 | 152801280/170498071 [00:56<00:08, 1977866.86it/s]\r 90%|\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2589 | 153000960/170498071 [00:56<00:08, 1967632.93it/s]\r 90%|\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2589 | 153200640/170498071 [00:56<00:08, 1964340.37it/s]\r 90%|\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2589 | 153400320/170498071 [00:56<00:08, 1959045.62it/s]\r 90%|\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588 | 153601024/170498071 [00:56<00:08, 1960234.20it/s]\r 90%|\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588\u2588 | 153800704/170498071 [00:56<00:08, 1957852.14it/s]",
+        "tavily_sources": [],
+        "env_delta": [
+          {
+            "command": null,
+            "op": "python",
+            "package": null,
+            "version": "3.9",
+            "git_url": null,
+            "commit": null,
+            "justification": "deterministic: torch.autograd.gradcheck.zero_gradients was removed in torch 1.9; torch<1.9 -> torch==1.8.1 on Python 3.9 (Python 3.10 cannot install it)",
+            "evidence": "cannot import name 'zero_gradients' from 'torch.autograd.gradcheck'"
+          },
+          {
+            "command": null,
+            "op": "pin",
+            "package": "torch",
+            "version": "1.8.1",
+            "git_url": null,
+            "commit": null,
+            "justification": "deterministic: torch.autograd.gradcheck.zero_gradients was removed in torch 1.9; torch<1.9 -> torch==1.8.1 on Python 3.9 (Python 3.10 cannot install it)",
+            "evidence": "cannot import name 'zero_gradients' from 'torch.autograd.gradcheck'"
+          }
+        ],
+        "resolved_sources": [],
+        "origin": "time_machine",
+        "time_machine": null,
+        "execution": {
+          "mode": "smoke",
+          "seconds": 60,
+          "outcome": "alive_at_limit",
+          "image": "416ae0fd-a808-48f1-bc03-748622c49e99",
+          "command": "sh ./fs_train.sh"
+        },
+        "time_machine_action": {
+          "rule": "removed_api_torch_zero_gradients",
+          "matched_error": "cannot import name 'zero_gradients' from 'torch.autograd.gradcheck'",
+          "package": "torch",
+          "bound": "<1.9",
+          "phase": "repair",
+          "pinned": "1.8.1",
+          "python": "3.9",
+          "python_changed": true,
+          "reason": "torch.autograd.gradcheck.zero_gradients was removed in torch 1.9; torch<1.9 -> torch==1.8.1 on Python 3.9 (Python 3.10 cannot install it)",
+          "companions": []
+        }
+      }
+    ],
+    "verdict": "RUNS_AFTER_REPAIR",
+    "timestamp": "2026-10-04T13:33:24.783705+00:00",
+    "bundle_version": 4,
+    "baseline": {
+      "result": "FAILS",
+      "exit_code": 1,
+      "base_image": "python:3.10-slim",
+      "install_commands": [
+        "pip install ."
+      ],
+      "execute_command": "sh ./fs_train.sh",
+      "sandbox_id": "bbf35a97-1997-40f1-b37a-30700267f54c",
+      "taxonomy_code": "API_REMOVED",
+      "evidence": "ImportError: cannot import name 'zero_gradients' from 'torch.autograd.gradcheck' (/usr/local/lib/python3.10/site-packages/torch/autograd/gradcheck.py)"
+    },
+    "recovery": true,
+    "tree_integrity": {
+      "status": "verified",
+      "tree_sha": "609e1335f27715f9ab89fe1963e949d38986d1f9",
+      "files_checked": 11,
+      "excluded_patched": []
+    },
+    "corpus_hash": "7df090bea7013974f9f10fb8959ab0162734b51c83a80f744f9c310ce694fbdc",
+    "taxonomy_code": "API_REMOVED",
+    "indeterminate_reason": "",
+    "error_chain": [
+      {
+        "error": "ImportError: cannot import name 'zero_gradients' from 'torch.autograd.gradcheck' (/usr/local/lib/python3.10/site-packages/torch/autograd/gradcheck.py)",
+        "class": "API_REMOVED",
+        "attribution": "REPO",
+        "phase": "repo_run",
+        "cleared_by": 0
+      }
+    ],
+    "first_repo_error": "ImportError: cannot import name 'zero_gradients' from 'torch.autograd.gradcheck' (/usr/local/lib/python3.10/site-packages/torch/autograd/gradcheck.py)",
+    "last_error": "ImportError: cannot import name 'zero_gradients' from 'torch.autograd.gradcheck' (/usr/local/lib/python3.10/site-packages/torch/autograd/gradcheck.py)",
+    "outcome_levels": {
+      "first_error_cleared": true,
+      "first_error_cleared_by": "time_machine",
+      "env_resolved": true,
+      "entrypoint_runs": true
+    },
+    "blocker": null,
+    "reproduction_passport_hash": "20204d0c35c1712653390ca4d718c81341c4aa6c2f6136ee325cd6ba0d0bfb39"
+  },
+  "finished_at": "2026-10-04T13:33:24.800982+00:00",
+  "events": [
+    {
+      "t_s": 0.0,
+      "at": "2026-10-04T13:29:58.379583+00:00",
+      "line": "[intake] cloned https://github.com/Haichao-Zhang/FeatureScatter@77e9140d5112ace5ba60301c224868257434b3e6"
+    },
+    {
+      "t_s": 0.0,
+      "at": "2026-10-04T13:29:58.379640+00:00",
+      "line": "[recon] calling Nemotron Nano"
+    },
+    {
+      "t_s": 0.0,
+      "at": "2026-10-04T13:29:58.379669+00:00",
+      "line": "[recon] ENTRYPOINT_UNCLEAR: no runnable entrypoint discoverable in recon: no candidate scripts found (no train.py/main.py/run.py-style file, and no file with a __main__ guard) \u2014 proceeding with the documented command: sh ./fs_train.sh"
+    },
+    {
+      "t_s": 0.01,
+      "at": "2026-10-04T13:29:58.394058+00:00",
+      "line": "[python] python:3.10-slim (default): no usable Python declaration; RERUN default 3.10 (declared but not satisfiable by an available image: README '3.5')"
+    },
+    {
+      "t_s": 3.12,
+      "at": "2026-10-04T13:30:01.499173+00:00",
+      "line": "[planner] build plan: {'base_image': 'python:3.10-slim', 'apt_install': [], 'install_commands': ['pip install .'], 'execute_command': 'sh ./fs_train.sh', 'notes': [\"execute command is the repository's documented command (corpus ground truth)\", \"base image python:3.10-slim: no usable Python declaration; RERUN default 3.10 (declared but not satisfiable by an available image: README '3.5')\"]}"
+    },
+    {
+      "t_s": 3.2,
+      "at": "2026-10-04T13:30:01.583676+00:00",
+      "line": "[integrity] verified 11 file(s) against tree 609e1335f27715f9ab89fe1963e949d38986d1f9"
+    },
+    {
+      "t_s": 3.21,
+      "at": "2026-10-04T13:30:01.589928+00:00",
+      "line": "[runner] torch: repo pins torch, torchvision; installed the CPU wheels as a matched set with the same pins"
+    },
+    {
+      "t_s": 3.21,
+      "at": "2026-10-04T13:30:01.591395+00:00",
+      "line": "[checkpoint] baseline: no kept image holds this environment yet; building it from python:3.10-slim and keeping every layer"
+    },
+    {
+      "t_s": 3.21,
+      "at": "2026-10-04T13:30:01.591655+00:00",
+      "line": "[sandbox] starting build+execute (wall_clock_seconds=600)"
+    },
+    {
+      "t_s": 68.89,
+      "at": "2026-10-04T13:31:07.269611+00:00",
+      "line": "[operation 1] baseline: completed; 27.9s of sandbox time; torch installed; branch_from_image=None; result_image=None; 4 image(s) kept"
+    },
+    {
+      "t_s": 68.89,
+      "at": "2026-10-04T13:31:07.269666+00:00",
+      "line": "[cost_guard] recorded $0.2879 sandbox spend, $1.2119 remaining today"
+    },
+    {
+      "t_s": 68.89,
+      "at": "2026-10-04T13:31:07.269698+00:00",
+      "line": "[sandbox] id=bbf35a97-1997-40f1-b37a-30700267f54c exit_code=1"
+    },
+    {
+      "t_s": 68.89,
+      "at": "2026-10-04T13:31:07.269713+00:00",
+      "line": "[baseline] as-is run: FAILS (exit code 1)"
+    },
+    {
+      "t_s": 68.89,
+      "at": "2026-10-04T13:31:07.271092+00:00",
+      "line": "[classifier] API_REMOVED: ImportError: cannot import name 'zero_gradients' from 'torch.autograd.gradcheck' (/usr/local/lib/python3.10/site-packages/torch/autograd/gradcheck.py)"
+    },
+    {
+      "t_s": 68.89,
+      "at": "2026-10-04T13:31:07.271149+00:00",
+      "line": "[time-machine] skipped ahead of the removed-API rule for API_REMOVED: the rule's recorded release goes first"
+    },
+    {
+      "t_s": 68.91,
+      "at": "2026-10-04T13:31:07.293556+00:00",
+      "line": "[time-machine] deterministic step: removed_api_torch_zero_gradients (matched: cannot import name 'zero_gradients' from 'torch.autograd.gradcheck'); torch.autograd.gradcheck.zero_gradients was removed in torch 1.9; torch<1.9 -> torch==1.8.1 on Python 3.9 (Python 3.10 cannot install it); no model call"
+    },
+    {
+      "t_s": 68.92,
+      "at": "2026-10-04T13:31:07.298338+00:00",
+      "line": "[smoke] re-execution of the documented command under a 60s smoke limit"
+    },
+    {
+      "t_s": 68.98,
+      "at": "2026-10-04T13:31:07.360365+00:00",
+      "line": "[integrity] verified 11 file(s) against tree 609e1335f27715f9ab89fe1963e949d38986d1f9"
+    },
+    {
+      "t_s": 68.99,
+      "at": "2026-10-04T13:31:07.366042+00:00",
+      "line": "[runner] torch: repo pins torch, torchvision; installed the CPU wheels as a matched set with the same pins"
+    },
+    {
+      "t_s": 68.99,
+      "at": "2026-10-04T13:31:07.367273+00:00",
+      "line": "[checkpoint] time machine: removed_api_torch_zero_gradients: no kept image holds this environment yet; building it from python:3.9-slim and keeping every layer"
+    },
+    {
+      "t_s": 68.99,
+      "at": "2026-10-04T13:31:07.367350+00:00",
+      "line": "[sandbox] starting build+execute (wall_clock_seconds=184)"
+    },
+    {
+      "t_s": 204.37,
+      "at": "2026-10-04T13:33:22.747107+00:00",
+      "line": "[operation 2] time machine: removed_api_torch_zero_gradients: completed; 21.4s of sandbox time; torch installed; branch_from_image=None; result_image=None; 5 image(s) kept"
+    },
+    {
+      "t_s": 204.37,
+      "at": "2026-10-04T13:33:22.747176+00:00",
+      "line": "[cost_guard] recorded $0.2182 sandbox spend, $0.9937 remaining today"
+    },
+    {
+      "t_s": 204.37,
+      "at": "2026-10-04T13:33:22.747230+00:00",
+      "line": "[time-machine] re-execution id=416ae0fd-a808-48f1-bc03-748622c49e99 exit_code=0"
+    }
+  ],
+  "model_calls": [
+    {
+      "model": "nvidia/nemotron-3-super-120b-a12b",
+      "started_at": "2026-10-04T13:29:58.619755+00:00",
+      "latency_s": 2.88,
+      "finish_reason": "stop",
+      "content_is_none": false,
+      "has_reasoning": true,
+      "usage": {
+        "completion_tokens": 137,
+        "prompt_tokens": 280,
+        "total_tokens": 417,
+        "completion_tokens_details": {
+          "accepted_prediction_tokens": null,
+          "audio_tokens": null,
+          "reasoning_tokens": 127,
+          "rejected_prediction_tokens": null,
+          "text_tokens": null
+        },
+        "prompt_tokens_details": {
+          "audio_tokens": null,
+          "cache_write_tokens": null,
+          "cached_tokens": 0,
+          "image_tokens": null,
+          "text_tokens": null,
+          "created_cache_tokens": 0,
+          "multimodal_tokens": null
+        },
+        "prompt_cache_hit_tokens": 0,
+        "prompt_cache_miss_tokens": 280
+      }
+    },
+    {
+      "model": "nvidia/Nemotron-3-Ultra-550b-a55b",
+      "started_at": "2026-10-04T13:33:22.748878+00:00",
+      "latency_s": 2.03,
+      "finish_reason": "stop",
+      "content_is_none": false,
+      "has_reasoning": true,
+      "usage": {
+        "completion_tokens": 553,
+        "prompt_tokens": 723,
+        "total_tokens": 1276,
+        "completion_tokens_details": {
+          "accepted_prediction_tokens": null,
+          "audio_tokens": null,
+          "reasoning_tokens": 440,
+          "rejected_prediction_tokens": null,
+          "text_tokens": null
+        },
+        "prompt_tokens_details": {
+          "audio_tokens": null,
+          "cache_write_tokens": null,
+          "cached_tokens": 0,
+          "image_tokens": null,
+          "text_tokens": null,
+          "multimodal_tokens": null
+        },
+        "prompt_cache_hit_tokens": 0,
+        "prompt_cache_miss_tokens": 723
+      }
+    }
+  ],
+  "cost_guard": {
+    "spent_usd": 0.5086884,
+    "model_spent_usd": 0.0025893,
+    "sandbox_spent_usd": 0.5060991,
+    "estimated_sandbox_spent_usd": 0.0,
+    "cost_events": [],
+    "remaining_usd": 0.9913116,
+    "model_usage": [
+      {
+        "model": "nvidia/nemotron-3-super-120b-a12b",
+        "prompt_tokens": 280,
+        "completion_tokens": 137,
+        "cost_usd": 0.00020730000000000002
+      },
+      {
+        "model": "nvidia/Nemotron-3-Ultra-550b-a55b",
+        "prompt_tokens": 723,
+        "completion_tokens": 553,
+        "cost_usd": 0.002382
+      }
+    ],
+    "prices_usd_per_1m": {
+      "nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B": [
+        0.06,
+        0.24
+      ],
+      "nvidia/nemotron-3-super-120b-a12b": [
+        0.3,
+        0.9
+      ],
+      "nvidia/Nemotron-3-Ultra-550b-a55b": [
+        1.0,
+        3.0
+      ]
+    },
+    "prices_source": "https://api.tokenfactory.nebius.com/v1/models?verbose=true (pricing field)",
+    "prices_retrieved": "2026-09-24"
+  },
+  "operations": [
+    {
+      "n": 1,
+      "role": "baseline",
+      "candidate": null,
+      "concurrent": 1,
+      "base_image": "python:3.10-slim",
+      "funded_seconds": 600.0,
+      "wall_seconds": 65.68,
+      "sandbox_seconds": 27.91,
+      "install_seconds": [
+        {
+          "command": "pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cpu --extra-index-url https://pypi.org/simple || pip install torch torchvi",
+          "phase": "runner_setup",
+          "seconds": 19.979,
+          "exit_code": 0,
+          "cost_usd": 0.206017,
+          "torch": true
+        },
+        {
+          "command": "python -c '\nimport glob, importlib.util, os, struct, subprocess, sys\nspec = importlib.util.find_spec(\"torch\")\nroot = os.path.join(os.path.dirname(spec.origin), ",
+          "phase": "runner_setup",
+          "seconds": 1.479,
+          "exit_code": 0,
+          "cost_usd": 0.015853,
+          "torch": false
+        },
+        {
+          "command": "pip install .",
+          "phase": "repo_install",
+          "seconds": 3.928,
+          "exit_code": 0,
+          "cost_usd": 0.040122,
+          "torch": false
+        }
+      ],
+      "rerun_steps": [
+        {
+          "phase": "rerun_extract",
+          "seconds": 0.075,
+          "cost_usd": 0.00083
+        }
+      ],
+      "branch_from_image": null,
+      "start_setup_commands": 0,
+      "setup_commands": 3,
+      "torch_in_start_image": false,
+      "torch_installed": true,
+      "torch_env_key": "64c2295c478dd277",
+      "result_image": null,
+      "image_kept": true,
+      "kept_images": [
+        "d6210045-137f-4889-b5fa-628a0b687c21",
+        "f1ae0889-f886-4799-bfbd-4995e1718c8b",
+        "79d05c10-abb3-48b1-9f89-6711c051129d",
+        "bbf35a97-1997-40f1-b37a-30700267f54c"
+      ],
+      "env_image_id": "bbf35a97-1997-40f1-b37a-30700267f54c",
+      "cost_usd": 0.287942,
+      "cost_estimated_usd": 0.0,
+      "outcome": "completed",
+      "resource_limits": {
+        "memory": "not documented (the only wording is \"Automatic cleanup and resource limits help prevent abuse.\" (docs.tokenfactory.nebius.com/sandboxes/overview) and \"Built-in tracking of CPU time, memory usage, and I/O operations for every execution.\")",
+        "cpu": "not documented",
+        "disk_layer_bytes": 12884901888,
+        "larger_instance": "not documented: the spawn request, the SDK, the CLI and the MCP tools have no memory, CPU, size or GPU parameter; Sandboxes is a beta (access by request, contree@nebius.com); no price page (the product page says free while in beta, D-36)",
+        "source": "docs/design/D-40-resources.md (public Nebius Token Factory / ConTree documentation and contree_sdk 0.3.6, read offline 2026-10-01)"
+      },
+      "exit_code": 1,
+      "max_rss": 1078512,
+      "streams": {
+        "limit_bytes": 4194304,
+        "stdout": {
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "truncated": false
+        },
+        "stderr": {
+          "bytes": 286,
+          "sha256": "d5b6e408eae3efab24d4ae7c5fe26b96418481051cf57269415f668aec7f3330",
+          "truncated": false
+        }
+      },
+      "killed_step": null,
+      "killed_seconds": null,
+      "funding": {
+        "basis": "baseline: the pre-registered wall clock, not budget-limited",
+        "rate_used_usd_per_s": null,
+        "source_operations": []
+      }
+    },
+    {
+      "n": 2,
+      "role": "time machine: removed_api_torch_zero_gradients",
+      "candidate": null,
+      "concurrent": 1,
+      "base_image": "python:3.9-slim",
+      "funded_seconds": 184.3,
+      "wall_seconds": 135.38,
+      "sandbox_seconds": 21.359,
+      "install_seconds": [
+        {
+          "command": "pip install torch==1.8.1 torchvision torchaudio 'numpy<2' --index-url https://download.pytorch.org/whl/cpu --extra-index-url https://pypi.org/simple || pip inst",
+          "phase": "runner_setup",
+          "seconds": 15.934,
+          "exit_code": 0,
+          "cost_usd": 0.163061,
+          "torch": true
+        },
+        {
+          "command": "python -c '\nimport glob, importlib.util, os, struct, subprocess, sys\nspec = importlib.util.find_spec(\"torch\")\nroot = os.path.join(os.path.dirname(spec.origin), ",
+          "phase": "runner_setup",
+          "seconds": 0.7,
+          "exit_code": 0,
+          "cost_usd": 0.007595,
+          "torch": false
+        },
+        {
+          "command": "pip install torch==1.8.1",
+          "phase": "repo_install",
+          "seconds": 0.363,
+          "exit_code": 0,
+          "cost_usd": 0.003857,
+          "torch": false
+        },
+        {
+          "command": "pip install .",
+          "phase": "repo_install",
+          "seconds": 4.208,
+          "exit_code": 0,
+          "cost_usd": 0.042935,
+          "torch": false
+        }
+      ],
+      "rerun_steps": [
+        {
+          "phase": "rerun_extract",
+          "seconds": 0.089,
+          "cost_usd": 0.000966
+        }
+      ],
+      "branch_from_image": null,
+      "start_setup_commands": 0,
+      "setup_commands": 4,
+      "torch_in_start_image": false,
+      "torch_installed": true,
+      "torch_env_key": "c7d0b2ed9fa0e80c",
+      "result_image": null,
+      "image_kept": true,
+      "kept_images": [
+        "74f659a1-52b5-4f4f-b7f3-09a3addbde63",
+        "eba0fd6a-1d54-4d27-ad80-84a419d0239e",
+        "4abd4da8-591b-44ec-a969-f5a9b25fefb4",
+        "26c6cf76-0e9e-48e0-842b-fce1e9c5d36b",
+        "416ae0fd-a808-48f1-bc03-748622c49e99"
+      ],
+      "env_image_id": "416ae0fd-a808-48f1-bc03-748622c49e99",
+      "cost_usd": 0.218157,
+      "cost_estimated_usd": 0.0,
+      "outcome": "completed",
+      "resource_limits": {
+        "memory": "not documented (the only wording is \"Automatic cleanup and resource limits help prevent abuse.\" (docs.tokenfactory.nebius.com/sandboxes/overview) and \"Built-in tracking of CPU time, memory usage, and I/O operations for every execution.\")",
+        "cpu": "not documented",
+        "disk_layer_bytes": 12884901888,
+        "larger_instance": "not documented: the spawn request, the SDK, the CLI and the MCP tools have no memory, CPU, size or GPU parameter; Sandboxes is a beta (access by request, contree@nebius.com); no price page (the product page says free while in beta, D-36)",
+        "source": "docs/design/D-40-resources.md (public Nebius Token Factory / ConTree documentation and contree_sdk 0.3.6, read offline 2026-10-01)"
+      },
+      "exit_code": 0,
+      "max_rss": 551752,
+      "streams": {
+        "limit_bytes": 4194304,
+        "stdout": {
+          "bytes": 259,
+          "sha256": "dc3d86448fc2b71d44c3c154db20fccdc5d3efe9ec79bfc309f40c434f4a9e6a",
+          "truncated": false
+        },
+        "stderr": {
+          "bytes": 42424,
+          "sha256": "16042058b2018843de7a15ea64cda18bcdb1f38f62247967c378fc0fdba4882e",
+          "truncated": false
+        }
+      },
+      "killed_step": null,
+      "killed_seconds": null,
+      "funding": {
+        "rate_used_usd_per_s": 0.00657602,
+        "measured_usd_per_s": 0.00438401,
+        "safety": 1.5,
+        "floor_usd_per_s": 0.003,
+        "ceiling_usd_per_s": 0.0085,
+        "basis": "measured x safety",
+        "source_operations": [
+          1
+        ]
+      }
+    }
+  ]
+}

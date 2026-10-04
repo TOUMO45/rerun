@@ -1,0 +1,1077 @@
+{
+  "run_kind": "live end-to-end run",
+  "dev_run": false,
+  "dry_run": null,
+  "batch": {
+    "harness_tag": "harness-v1.6.0",
+    "harness_commit": "b0b7d92473d02e1003599ec8b10d7df4c5e2566b",
+    "head_commit": "90a0834cfca584e97415c703d9788d78c7d2c23d",
+    "corpus": "corpus-v2",
+    "prereg_sha256": "ae5a722249156e058d3d360bdc63fa8224140d0688f1daa307ecfa93a98c7284",
+    "corpus_hash": "7df090bea7013974f9f10fb8959ab0162734b51c83a80f744f9c310ce694fbdc",
+    "arm": "treatment",
+    "total_cap_usd": 12.0,
+    "already_spent_usd": 0.0,
+    "entry_id": 12,
+    "category": "PRIMARY",
+    "rules_matched": [],
+    "per_entry_cap_usd": 1.5,
+    "dev_round": 4,
+    "protocol": "harness-v1.5 dev/test: DEV round"
+  },
+  "started_at": "2026-10-04T13:07:32.975644+00:00",
+  "corpus_entry": {
+    "name": "Mehran-k__SimplE",
+    "repo_url": "https://github.com/Mehran-k/SimplE",
+    "commit_sha": "29108230b63920afa38067b1aff8b8d53d07ed01",
+    "command": "python main.py -m SimplE_ignr -d wn18",
+    "command_source": "readme.md line 24"
+  },
+  "config": {
+    "models": {
+      "recon": "nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B",
+      "planner": "nvidia/nemotron-3-super-120b-a12b",
+      "repairer": "nvidia/nemotron-3-super-120b-a12b",
+      "adjudicator": "nvidia/Nemotron-3-Ultra-550b-a55b"
+    },
+    "sandbox_backend": "token_factory",
+    "sandbox_image_default": "python:3.10-slim",
+    "sandbox_wall_clock_seconds": 600.0,
+    "arm": "treatment",
+    "repair_enabled": true,
+    "max_attempts": 3,
+    "candidates_per_round": 3,
+    "tavily_configured": true,
+    "cost_cap_usd": 1.5
+  },
+  "intake": {
+    "duration_s": 16.89,
+    "resolved_sha": "29108230b63920afa38067b1aff8b8d53d07ed01",
+    "dependency_files": [],
+    "declared_dependencies": [],
+    "entrypoint_candidates": [
+      "main.py"
+    ],
+    "notebook_paths": []
+  },
+  "pipeline_duration_s": 217.74,
+  "repair_mode": "deterministic",
+  "tree_integrity": {
+    "status": "verified",
+    "tree_sha": "3f980c0f4b96107a7a73b14aa1c9075ff5deede8",
+    "files_checked": 21,
+    "excluded_patched": []
+  },
+  "result": {
+    "verdict": "RUNS_AFTER_REPAIR",
+    "taxonomy_code": "API_REMOVED",
+    "indeterminate_reason": "",
+    "reason_code": null,
+    "error_chain": [
+      {
+        "error": "ModuleNotFoundError: No module named 'tensorflow'",
+        "class": "DEP_MISSING",
+        "attribution": "REPO",
+        "phase": "repo_run",
+        "cleared_by": 0
+      },
+      {
+        "error": "AttributeError: module 'tensorflow' has no attribute 'get_variable'",
+        "class": "API_REMOVED",
+        "attribution": "REPO",
+        "phase": "repo_run",
+        "cleared_by": 0
+      }
+    ],
+    "first_repo_error": "ModuleNotFoundError: No module named 'tensorflow'",
+    "last_error": "AttributeError: module 'tensorflow' has no attribute 'get_variable'",
+    "error_traceback": "",
+    "attempts": [
+      {
+        "attempt_number": 0,
+        "diff_text": "",
+        "gate_decision": "PASS",
+        "gate_violations": [],
+        "exit_code": 1,
+        "stdout_tail": "Training SimplE_ignr on wn18 with emb_size = 200, learning rate = 0.1 neg_ratio = 1 alpha = 0.001\n",
+        "stderr_tail": "2026-10-04 13:09:42.355821: W tensorflow/stream_executor/platform/default/dso_loader.cc:55] Could not load dynamic library 'libnvinfer.so.6'; dlerror: libnvinfer.so.6: cannot open shared object file: No such file or directory\n2026-10-04 13:09:42.356369: W tensorflow/stream_executor/platform/default/dso_loader.cc:55] Could not load dynamic library 'libnvinfer_plugin.so.6'; dlerror: libnvinfer_plugin.so.6: cannot open shared object file: No such file or directory\n2026-10-04 13:09:42.356396: W tensorflow/compiler/tf2tensorrt/utils/py_utils.cc:30] Cannot dlopen some TensorRT libraries. If you would like to use Nvidia GPU with TensorRT, please make sure the missing libraries mentioned above are installed properly.\nTraceback (most recent call last):\n  File \"main.py\", line 38, in <module>\n    tt.train_earlystop_test()\n  File \"/trainer_tester.py\", line 60, in train_earlystop_test\n    self.train()\n  File \"/trainer_tester.py\", line 17, in train\n    self.model.setup_weights()\n  File \"/simplE_ignr.py\", line 12, in setup_weights\n    self.rel_emb      = tf.get_variable(name=\"rel_emb\",      initializer=tf.random_uniform(shape=[self.num_rel, self.params.emb_size], minval=-sqrt_size, maxval=sqrt_size, dtype=tf.float64))\nAttributeError: module 'tensorflow' has no attribute 'get_variable'\n",
+        "tavily_sources": [],
+        "env_delta": [],
+        "resolved_sources": [],
+        "origin": "time_machine",
+        "time_machine": {
+          "era": {
+            "date": "2020-02-11",
+            "source": "pinned-commit",
+            "detail": {
+              "note": "no dependency files in the repository"
+            }
+          },
+          "python": {
+            "version": "3.7",
+            "reason": "newest CPython first released \u2265180 days before the era date 2020-02-11 (https://devguide.python.org/versions/ (first release dates, retrieved 2026-09-24))",
+            "source": "https://devguide.python.org/versions/ (first release dates, retrieved 2026-09-24)"
+          },
+          "undeclared_imports": [
+            "numpy",
+            "tensorflow"
+          ],
+          "batch_scan": {
+            "install": [
+              "numpy",
+              "tensorflow"
+            ],
+            "internal_excluded": [
+              "TransE",
+              "complEx",
+              "params",
+              "reader",
+              "simplE_avg",
+              "simplE_ignr",
+              "tensor_factorizer",
+              "trainer_tester"
+            ],
+            "optional_skipped": [],
+            "python2_only_skipped": [],
+            "already_declared": [],
+            "import_mappings": []
+          },
+          "import_mappings": [],
+          "apt_added": [],
+          "apt_reason": "",
+          "lock": {
+            "ok": true,
+            "lock": [
+              "absl-py==0.9.0",
+              "astor==0.8.1",
+              "cachetools==4.0.0",
+              "certifi==2019.11.28",
+              "chardet==3.0.4",
+              "gast==0.2.2",
+              "google-auth==1.11.0",
+              "google-auth-oauthlib==0.4.1",
+              "google-pasta==0.1.8",
+              "grpcio==1.27.1",
+              "h5py==2.10.0",
+              "idna==2.8",
+              "keras-applications==1.0.8",
+              "keras-preprocessing==1.1.0",
+              "markdown==3.2",
+              "numpy==1.18.1",
+              "oauthlib==3.1.0",
+              "opt-einsum==3.1.0",
+              "protobuf==3.11.3",
+              "pyasn1==0.4.8",
+              "pyasn1-modules==0.2.8",
+              "requests==2.22.0",
+              "requests-oauthlib==1.3.0",
+              "rsa==4.0",
+              "scipy==1.4.1",
+              "setuptools==45.2.0",
+              "six==1.14.0",
+              "tensorboard==2.1.0",
+              "tensorflow==2.1.0",
+              "tensorflow-estimator==2.1.0",
+              "termcolor==1.1.0",
+              "urllib3==1.25.8",
+              "werkzeug==1.0.0",
+              "wheel==0.34.2",
+              "wrapt==1.11.2"
+            ],
+            "inputs": [
+              "numpy",
+              "tensorflow"
+            ],
+            "not_on_index": [],
+            "relaxed": [],
+            "command": "pip compile - --no-header --no-annotate --quiet --exclude-newer 2020-02-12T00:00:00Z --python-version 3.7 --python-platform x86_64-unknown-linux-gnu --python C:\\Users\\E16\\AppData\\Roaming\\uv\\python\\cpython-3.8.20-windows-x86_64-none\\python.exe",
+            "error": ""
+          }
+        },
+        "execution": {
+          "mode": "smoke",
+          "seconds": 60,
+          "outcome": "exited",
+          "image": "1e165260-5140-414c-a931-b40b00ea8ef0",
+          "command": "python main.py -m SimplE_ignr -d wn18"
+        }
+      },
+      {
+        "attempt_number": 0,
+        "diff_text": "",
+        "gate_decision": "PASS",
+        "gate_violations": [],
+        "exit_code": 0,
+        "stdout_tail": "Training SimplE_ignr on wn18 with emb_size = 200, learning rate = 0.1 neg_ratio = 1 alpha = 0.001\nLoss in iteration 1 = 387092.7311718297\nLoss in iteration 2 = 302204.4621847954\nLoss in iteration 3 = 245008.04064645022\nLoss in iteration 4 = 236888.54178258777\nLoss in iteration 5 = 234228.13786109912\nLoss in iteration 6 = 232523.83054659562\nLoss in iteration 7 = 231655.6422293233\nLoss in iteration 8 = 230398.64650658984\nLoss in iteration 9 = 229088.01400312717\nLoss in iteration 10 = 228145.21406359095\nLoss in iteration 11 = 227004.59869353383\nLoss in iteration 12 = 226336.3010909489\nLoss in iteration 13 = 225356.43306864117\nRERUN_SMOKE_ALIVE: still running after 60s with output and no traceback; stopped by RERUN (smoke execution)\n",
+        "stderr_tail": "NING:tensorflow:From /tensor_factorizer.py:28: The name tf.train.Saver is deprecated. Please use tf.compat.v1.train.Saver instead.\n\nWARNING:tensorflow:From /tensor_factorizer.py:48: The name tf.placeholder is deprecated. Please use tf.compat.v1.placeholder instead.\n\nWARNING:tensorflow:From /tensor_factorizer.py:67: The name tf.train.AdagradOptimizer is deprecated. Please use tf.compat.v1.train.AdagradOptimizer instead.\n\nWARNING:tensorflow:From /usr/local/lib/python3.7/site-packages/tensorflow_core/python/ops/math_grad.py:1424: where (from tensorflow.python.ops.array_ops) is deprecated and will be removed in a future version.\nInstructions for updating:\nUse tf.where in 2.0, which has the same broadcast rule as np.where\nWARNING:tensorflow:From /usr/local/lib/python3.7/site-packages/tensorflow_core/python/training/adagrad.py:76: calling Constant.__init__ (from tensorflow.python.ops.init_ops) with dtype is deprecated and will be removed in a future version.\nInstructions for updating:\nCall initializer instance with the dtype argument instead of passing it to the constructor\nWARNING:tensorflow:From /tensor_factorizer.py:31: The name tf.Session is deprecated. Please use tf.compat.v1.Session instead.\n\n2026-10-04 13:10:24.694788: I tensorflow/core/platform/cpu_feature_guard.cc:142] Your CPU supports instructions that this TensorFlow binary was not compiled to use: AVX2 AVX512F FMA\n2026-10-04 13:10:24.716577: I tensorflow/core/platform/profile_utils/cpu_utils.cc:94] CPU Frequency: 2397245000 Hz\n2026-10-04 13:10:24.717582: I tensorflow/compiler/xla/service/service.cc:168] XLA service 0x5555583b2700 initialized for platform Host (this does not guarantee that XLA will be used). Devices:\n2026-10-04 13:10:24.717624: I tensorflow/compiler/xla/service/service.cc:176]   StreamExecutor device (0): Host, Default Version\nWARNING:tensorflow:From /tensor_factorizer.py:32: The name tf.global_variables_initializer is deprecated. Please use tf.compat.v1.global_variables_initializer instead.\n\n",
+        "tavily_sources": [],
+        "env_delta": [
+          {
+            "command": null,
+            "op": "pin",
+            "package": "tensorflow",
+            "version": "1.15.5",
+            "git_url": null,
+            "commit": null,
+            "justification": "deterministic: the TensorFlow 1.x graph API (get_variable, Saver, ...) is not in TensorFlow 2; tensorflow<2 -> tensorflow==1.15.5 (Python 3.7 installs it)",
+            "evidence": "module 'tensorflow' has no attribute 'get_variable'"
+          },
+          {
+            "command": null,
+            "op": "pin",
+            "package": "tensorboard",
+            "version": "1.15.0",
+            "git_url": null,
+            "commit": null,
+            "justification": "deterministic: tensorflow==1.15.5 needs tensorboard==1.15.0",
+            "evidence": "module 'tensorflow' has no attribute 'get_variable'"
+          },
+          {
+            "command": null,
+            "op": "pin",
+            "package": "tensorflow-estimator",
+            "version": "1.15.1",
+            "git_url": null,
+            "commit": null,
+            "justification": "deterministic: tensorflow==1.15.5 needs tensorflow-estimator==1.15.1",
+            "evidence": "module 'tensorflow' has no attribute 'get_variable'"
+          },
+          {
+            "command": null,
+            "op": "pin",
+            "package": "gast",
+            "version": "0.2.2",
+            "git_url": null,
+            "commit": null,
+            "justification": "deterministic: tensorflow==1.15.5 needs gast==0.2.2",
+            "evidence": "module 'tensorflow' has no attribute 'get_variable'"
+          }
+        ],
+        "resolved_sources": [],
+        "origin": "time_machine",
+        "time_machine": null,
+        "execution": {
+          "mode": "smoke",
+          "seconds": 60,
+          "outcome": "alive_at_limit",
+          "image": "5b2fdd0c-3c15-45e1-84ce-497ca494c0e0",
+          "command": "python main.py -m SimplE_ignr -d wn18"
+        },
+        "time_machine_action": {
+          "rule": "removed_api_tensorflow_v1_graph_api",
+          "matched_error": "module 'tensorflow' has no attribute 'get_variable'",
+          "package": "tensorflow",
+          "bound": "<2",
+          "phase": "repair",
+          "pinned": "1.15.5",
+          "python": "3.7",
+          "python_changed": false,
+          "reason": "the TensorFlow 1.x graph API (get_variable, Saver, ...) is not in TensorFlow 2; tensorflow<2 -> tensorflow==1.15.5 (Python 3.7 installs it)",
+          "companions": [
+            {
+              "op": "pin",
+              "package": "tensorboard",
+              "version": "1.15.0"
+            },
+            {
+              "op": "pin",
+              "package": "tensorflow-estimator",
+              "version": "1.15.1"
+            },
+            {
+              "op": "pin",
+              "package": "gast",
+              "version": "0.2.2"
+            }
+          ]
+        }
+      }
+    ],
+    "certificate_prose": "The run log shows the time machine operation for removed_api_tensorflow_v1_graph_api completed successfully with exit_code=0 after 17.8 seconds of sandbox time. The checkpoint indicates the code branched from a base image and executed without reinstall, finishing with a recorded sandbox spend. The execution completed without errors, confirming the artifact runs after repair. Verifies that the artifact executes. Does not verify the paper's numerical results.",
+    "outcome_levels": {
+      "first_error_cleared": true,
+      "first_error_cleared_by": "time_machine",
+      "env_resolved": true,
+      "entrypoint_runs": true
+    },
+    "blocker": null
+  },
+  "certificate": {
+    "repo_url": "https://github.com/Mehran-k/SimplE",
+    "commit_sha": "29108230b63920afa38067b1aff8b8d53d07ed01",
+    "build_plan": {
+      "base_image": "python:3.7-slim",
+      "apt_install": [],
+      "install_commands": [
+        "printf '%s\\n' absl-py==0.9.0 astor==0.8.1 cachetools==4.0.0 certifi==2019.11.28 chardet==3.0.4 gast==0.2.2 google-auth==1.11.0 google-auth-oauthlib==0.4.1 google-pasta==0.1.8 grpcio==1.27.1 h5py==2.10.0 idna==2.8 keras-applications==1.0.8 keras-preprocessing==1.1.0 markdown==3.2 numpy==1.18.1 oauthlib==3.1.0 opt-einsum==3.1.0 protobuf==3.11.3 pyasn1==0.4.8 pyasn1-modules==0.2.8 requests==2.22.0 requests-oauthlib==1.3.0 rsa==4.0 scipy==1.4.1 setuptools==45.2.0 six==1.14.0 tensorboard==1.15.0 tensorflow==1.15.5 tensorflow-estimator==1.15.1 termcolor==1.1.0 urllib3==1.25.8 werkzeug==1.0.0 wheel==0.34.2 wrapt==1.11.2 > .rerun-requirements.txt && pip install -r .rerun-requirements.txt"
+      ],
+      "execute_command": "python main.py -m SimplE_ignr -d wn18",
+      "notes": [
+        "execute command is the repository's documented command (corpus ground truth)",
+        "base image python:3.10-slim: no usable Python declaration; RERUN default 3.10",
+        "time machine: python 3.7, 35 locked package(s)",
+        "env delta: pin tensorflow \u2014 deterministic: the TensorFlow 1.x graph API (get_variable, Saver, ...) is not in TensorFlow 2; tensorflow<2 -> tensorflow==1.15.5 (Python 3.7 installs it)",
+        "env delta: pin tensorboard \u2014 deterministic: tensorflow==1.15.5 needs tensorboard==1.15.0",
+        "env delta: pin tensorflow-estimator \u2014 deterministic: tensorflow==1.15.5 needs tensorflow-estimator==1.15.1",
+        "env delta: pin gast \u2014 deterministic: tensorflow==1.15.5 needs gast==0.2.2"
+      ]
+    },
+    "full_log": "[intake] cloned https://github.com/Mehran-k/SimplE@29108230b63920afa38067b1aff8b8d53d07ed01\n[recon] calling Nemotron Nano\n[recon] entrypoint=main.py confidence=0.80\n[python] python:3.10-slim (default): no usable Python declaration; RERUN default 3.10\n[planner] build plan: {'base_image': 'python:3.10-slim', 'apt_install': [], 'install_commands': ['true  # no declared dependency file found; nothing to install'], 'execute_command': 'python main.py -m SimplE_ignr -d wn18', 'notes': [\"execute command is the repository's documented command (corpus ground truth)\", 'base image python:3.10-slim: no usable Python declaration; RERUN default 3.10']}\n[integrity] verified 21 file(s) against tree 3f980c0f4b96107a7a73b14aa1c9075ff5deede8\n[checkpoint] baseline: no kept image holds this environment yet; building it from python:3.10-slim and keeping every layer\n[sandbox] starting build+execute (wall_clock_seconds=600)\n[operation 1] baseline: completed; 0.2s of sandbox time; no torch install; branch_from_image=None; result_image=None; 2 image(s) kept\n[cost_guard] recorded $0.0026 sandbox spend, $1.4969 remaining today\n[sandbox] id=9bbe794c-ec2c-4dfa-bb7e-ab08849ab0d1 exit_code=1\n[baseline] as-is run: FAILS (exit code 1)\n[classifier] DEP_MISSING: ModuleNotFoundError: No module named 'tensorflow'\n[era] 2020-02-11 from pinned-commit {'note': 'no dependency files in the repository'}\n[time-machine] era 2020-02-11 (pinned-commit) -> python 3.7; locked 35 package(s) with uv --exclude-newer; not on the index: none\n[smoke] re-execution of the documented command under a 60s smoke limit\n[integrity] verified 21 file(s) against tree 3f980c0f4b96107a7a73b14aa1c9075ff5deede8\n[checkpoint] re-execution: no kept image holds this environment yet; building it from python:3.7-slim and keeping every layer\n[sandbox] starting build+execute (wall_clock_seconds=499)\n[operation 2] re-execution: completed; 24.3s of sandbox time; no torch install; branch_from_image=None; result_image=None; 2 image(s) kept\n[cost_guard] recorded $0.2519 sandbox spend, $1.2450 remaining today\n[time-machine] re-execution id=1e165260-5140-414c-a931-b40b00ea8ef0 exit_code=1\n[classifier] API_REMOVED: AttributeError: module 'tensorflow' has no attribute 'get_variable'\n[time-machine] deterministic step: removed_api_tensorflow_v1_graph_api (matched: module 'tensorflow' has no attribute 'get_variable'); the TensorFlow 1.x graph API (get_variable, Saver, ...) is not in TensorFlow 2; tensorflow<2 -> tensorflow==1.15.5 (Python 3.7 installs it); no model call\n[smoke] re-execution of the documented command under a 60s smoke limit\n[integrity] verified 21 file(s) against tree 3f980c0f4b96107a7a73b14aa1c9075ff5deede8\n[checkpoint] time machine: removed_api_tensorflow_v1_graph_api: branching from image 81cc3a21-a57a-456e-84ca-7f77fa43e97b (0 of 1 setup command(s) already in it, kept by operation 2); no reinstall of what it contains\n[sandbox] starting build+execute (wall_clock_seconds=336)\n[operation 3] time machine: removed_api_tensorflow_v1_graph_api: completed; 17.8s of sandbox time; no torch install; branch_from_image=81cc3a21-a57a-456e-84ca-7f77fa43e97b; result_image=None; 1 image(s) kept\n[cost_guard] recorded $0.1806 sandbox spend, $1.0644 remaining today\n[time-machine] re-execution id=5b2fdd0c-3c15-45e1-84ce-497ca494c0e0 exit_code=0",
+    "diffs": [
+      {
+        "attempt_number": 0,
+        "diff_text": "",
+        "gate_decision": "PASS",
+        "gate_violations": [],
+        "exit_code": 1,
+        "stdout_tail": "Training SimplE_ignr on wn18 with emb_size = 200, learning rate = 0.1 neg_ratio = 1 alpha = 0.001\n",
+        "stderr_tail": "2026-10-04 13:09:42.355821: W tensorflow/stream_executor/platform/default/dso_loader.cc:55] Could not load dynamic library 'libnvinfer.so.6'; dlerror: libnvinfer.so.6: cannot open shared object file: No such file or directory\n2026-10-04 13:09:42.356369: W tensorflow/stream_executor/platform/default/dso_loader.cc:55] Could not load dynamic library 'libnvinfer_plugin.so.6'; dlerror: libnvinfer_plugin.so.6: cannot open shared object file: No such file or directory\n2026-10-04 13:09:42.356396: W tensorflow/compiler/tf2tensorrt/utils/py_utils.cc:30] Cannot dlopen some TensorRT libraries. If you would like to use Nvidia GPU with TensorRT, please make sure the missing libraries mentioned above are installed properly.\nTraceback (most recent call last):\n  File \"main.py\", line 38, in <module>\n    tt.train_earlystop_test()\n  File \"/trainer_tester.py\", line 60, in train_earlystop_test\n    self.train()\n  File \"/trainer_tester.py\", line 17, in train\n    self.model.setup_weights()\n  File \"/simplE_ignr.py\", line 12, in setup_weights\n    self.rel_emb      = tf.get_variable(name=\"rel_emb\",      initializer=tf.random_uniform(shape=[self.num_rel, self.params.emb_size], minval=-sqrt_size, maxval=sqrt_size, dtype=tf.float64))\nAttributeError: module 'tensorflow' has no attribute 'get_variable'\n",
+        "tavily_sources": [],
+        "env_delta": [],
+        "resolved_sources": [],
+        "origin": "time_machine",
+        "time_machine": {
+          "era": {
+            "date": "2020-02-11",
+            "source": "pinned-commit",
+            "detail": {
+              "note": "no dependency files in the repository"
+            }
+          },
+          "python": {
+            "version": "3.7",
+            "reason": "newest CPython first released \u2265180 days before the era date 2020-02-11 (https://devguide.python.org/versions/ (first release dates, retrieved 2026-09-24))",
+            "source": "https://devguide.python.org/versions/ (first release dates, retrieved 2026-09-24)"
+          },
+          "undeclared_imports": [
+            "numpy",
+            "tensorflow"
+          ],
+          "batch_scan": {
+            "install": [
+              "numpy",
+              "tensorflow"
+            ],
+            "internal_excluded": [
+              "TransE",
+              "complEx",
+              "params",
+              "reader",
+              "simplE_avg",
+              "simplE_ignr",
+              "tensor_factorizer",
+              "trainer_tester"
+            ],
+            "optional_skipped": [],
+            "python2_only_skipped": [],
+            "already_declared": [],
+            "import_mappings": []
+          },
+          "import_mappings": [],
+          "apt_added": [],
+          "apt_reason": "",
+          "lock": {
+            "ok": true,
+            "lock": [
+              "absl-py==0.9.0",
+              "astor==0.8.1",
+              "cachetools==4.0.0",
+              "certifi==2019.11.28",
+              "chardet==3.0.4",
+              "gast==0.2.2",
+              "google-auth==1.11.0",
+              "google-auth-oauthlib==0.4.1",
+              "google-pasta==0.1.8",
+              "grpcio==1.27.1",
+              "h5py==2.10.0",
+              "idna==2.8",
+              "keras-applications==1.0.8",
+              "keras-preprocessing==1.1.0",
+              "markdown==3.2",
+              "numpy==1.18.1",
+              "oauthlib==3.1.0",
+              "opt-einsum==3.1.0",
+              "protobuf==3.11.3",
+              "pyasn1==0.4.8",
+              "pyasn1-modules==0.2.8",
+              "requests==2.22.0",
+              "requests-oauthlib==1.3.0",
+              "rsa==4.0",
+              "scipy==1.4.1",
+              "setuptools==45.2.0",
+              "six==1.14.0",
+              "tensorboard==2.1.0",
+              "tensorflow==2.1.0",
+              "tensorflow-estimator==2.1.0",
+              "termcolor==1.1.0",
+              "urllib3==1.25.8",
+              "werkzeug==1.0.0",
+              "wheel==0.34.2",
+              "wrapt==1.11.2"
+            ],
+            "inputs": [
+              "numpy",
+              "tensorflow"
+            ],
+            "not_on_index": [],
+            "relaxed": [],
+            "command": "pip compile - --no-header --no-annotate --quiet --exclude-newer 2020-02-12T00:00:00Z --python-version 3.7 --python-platform x86_64-unknown-linux-gnu --python C:\\Users\\E16\\AppData\\Roaming\\uv\\python\\cpython-3.8.20-windows-x86_64-none\\python.exe",
+            "error": ""
+          }
+        },
+        "execution": {
+          "mode": "smoke",
+          "seconds": 60,
+          "outcome": "exited",
+          "image": "1e165260-5140-414c-a931-b40b00ea8ef0",
+          "command": "python main.py -m SimplE_ignr -d wn18"
+        }
+      },
+      {
+        "attempt_number": 0,
+        "diff_text": "",
+        "gate_decision": "PASS",
+        "gate_violations": [],
+        "exit_code": 0,
+        "stdout_tail": "Training SimplE_ignr on wn18 with emb_size = 200, learning rate = 0.1 neg_ratio = 1 alpha = 0.001\nLoss in iteration 1 = 387092.7311718297\nLoss in iteration 2 = 302204.4621847954\nLoss in iteration 3 = 245008.04064645022\nLoss in iteration 4 = 236888.54178258777\nLoss in iteration 5 = 234228.13786109912\nLoss in iteration 6 = 232523.83054659562\nLoss in iteration 7 = 231655.6422293233\nLoss in iteration 8 = 230398.64650658984\nLoss in iteration 9 = 229088.01400312717\nLoss in iteration 10 = 228145.21406359095\nLoss in iteration 11 = 227004.59869353383\nLoss in iteration 12 = 226336.3010909489\nLoss in iteration 13 = 225356.43306864117\nRERUN_SMOKE_ALIVE: still running after 60s with output and no traceback; stopped by RERUN (smoke execution)\n",
+        "stderr_tail": "NING:tensorflow:From /tensor_factorizer.py:28: The name tf.train.Saver is deprecated. Please use tf.compat.v1.train.Saver instead.\n\nWARNING:tensorflow:From /tensor_factorizer.py:48: The name tf.placeholder is deprecated. Please use tf.compat.v1.placeholder instead.\n\nWARNING:tensorflow:From /tensor_factorizer.py:67: The name tf.train.AdagradOptimizer is deprecated. Please use tf.compat.v1.train.AdagradOptimizer instead.\n\nWARNING:tensorflow:From /usr/local/lib/python3.7/site-packages/tensorflow_core/python/ops/math_grad.py:1424: where (from tensorflow.python.ops.array_ops) is deprecated and will be removed in a future version.\nInstructions for updating:\nUse tf.where in 2.0, which has the same broadcast rule as np.where\nWARNING:tensorflow:From /usr/local/lib/python3.7/site-packages/tensorflow_core/python/training/adagrad.py:76: calling Constant.__init__ (from tensorflow.python.ops.init_ops) with dtype is deprecated and will be removed in a future version.\nInstructions for updating:\nCall initializer instance with the dtype argument instead of passing it to the constructor\nWARNING:tensorflow:From /tensor_factorizer.py:31: The name tf.Session is deprecated. Please use tf.compat.v1.Session instead.\n\n2026-10-04 13:10:24.694788: I tensorflow/core/platform/cpu_feature_guard.cc:142] Your CPU supports instructions that this TensorFlow binary was not compiled to use: AVX2 AVX512F FMA\n2026-10-04 13:10:24.716577: I tensorflow/core/platform/profile_utils/cpu_utils.cc:94] CPU Frequency: 2397245000 Hz\n2026-10-04 13:10:24.717582: I tensorflow/compiler/xla/service/service.cc:168] XLA service 0x5555583b2700 initialized for platform Host (this does not guarantee that XLA will be used). Devices:\n2026-10-04 13:10:24.717624: I tensorflow/compiler/xla/service/service.cc:176]   StreamExecutor device (0): Host, Default Version\nWARNING:tensorflow:From /tensor_factorizer.py:32: The name tf.global_variables_initializer is deprecated. Please use tf.compat.v1.global_variables_initializer instead.\n\n",
+        "tavily_sources": [],
+        "env_delta": [
+          {
+            "command": null,
+            "op": "pin",
+            "package": "tensorflow",
+            "version": "1.15.5",
+            "git_url": null,
+            "commit": null,
+            "justification": "deterministic: the TensorFlow 1.x graph API (get_variable, Saver, ...) is not in TensorFlow 2; tensorflow<2 -> tensorflow==1.15.5 (Python 3.7 installs it)",
+            "evidence": "module 'tensorflow' has no attribute 'get_variable'"
+          },
+          {
+            "command": null,
+            "op": "pin",
+            "package": "tensorboard",
+            "version": "1.15.0",
+            "git_url": null,
+            "commit": null,
+            "justification": "deterministic: tensorflow==1.15.5 needs tensorboard==1.15.0",
+            "evidence": "module 'tensorflow' has no attribute 'get_variable'"
+          },
+          {
+            "command": null,
+            "op": "pin",
+            "package": "tensorflow-estimator",
+            "version": "1.15.1",
+            "git_url": null,
+            "commit": null,
+            "justification": "deterministic: tensorflow==1.15.5 needs tensorflow-estimator==1.15.1",
+            "evidence": "module 'tensorflow' has no attribute 'get_variable'"
+          },
+          {
+            "command": null,
+            "op": "pin",
+            "package": "gast",
+            "version": "0.2.2",
+            "git_url": null,
+            "commit": null,
+            "justification": "deterministic: tensorflow==1.15.5 needs gast==0.2.2",
+            "evidence": "module 'tensorflow' has no attribute 'get_variable'"
+          }
+        ],
+        "resolved_sources": [],
+        "origin": "time_machine",
+        "time_machine": null,
+        "execution": {
+          "mode": "smoke",
+          "seconds": 60,
+          "outcome": "alive_at_limit",
+          "image": "5b2fdd0c-3c15-45e1-84ce-497ca494c0e0",
+          "command": "python main.py -m SimplE_ignr -d wn18"
+        },
+        "time_machine_action": {
+          "rule": "removed_api_tensorflow_v1_graph_api",
+          "matched_error": "module 'tensorflow' has no attribute 'get_variable'",
+          "package": "tensorflow",
+          "bound": "<2",
+          "phase": "repair",
+          "pinned": "1.15.5",
+          "python": "3.7",
+          "python_changed": false,
+          "reason": "the TensorFlow 1.x graph API (get_variable, Saver, ...) is not in TensorFlow 2; tensorflow<2 -> tensorflow==1.15.5 (Python 3.7 installs it)",
+          "companions": [
+            {
+              "op": "pin",
+              "package": "tensorboard",
+              "version": "1.15.0"
+            },
+            {
+              "op": "pin",
+              "package": "tensorflow-estimator",
+              "version": "1.15.1"
+            },
+            {
+              "op": "pin",
+              "package": "gast",
+              "version": "0.2.2"
+            }
+          ]
+        }
+      }
+    ],
+    "verdict": "RUNS_AFTER_REPAIR",
+    "timestamp": "2026-10-04T13:11:27.609015+00:00",
+    "bundle_version": 4,
+    "baseline": {
+      "result": "FAILS",
+      "exit_code": 1,
+      "base_image": "python:3.10-slim",
+      "install_commands": [
+        "true  # no declared dependency file found; nothing to install"
+      ],
+      "execute_command": "python main.py -m SimplE_ignr -d wn18",
+      "sandbox_id": "9bbe794c-ec2c-4dfa-bb7e-ab08849ab0d1",
+      "taxonomy_code": "DEP_MISSING",
+      "evidence": "ModuleNotFoundError: No module named 'tensorflow'"
+    },
+    "recovery": true,
+    "tree_integrity": {
+      "status": "verified",
+      "tree_sha": "3f980c0f4b96107a7a73b14aa1c9075ff5deede8",
+      "files_checked": 21,
+      "excluded_patched": []
+    },
+    "corpus_hash": "7df090bea7013974f9f10fb8959ab0162734b51c83a80f744f9c310ce694fbdc",
+    "taxonomy_code": "API_REMOVED",
+    "indeterminate_reason": "",
+    "error_chain": [
+      {
+        "error": "ModuleNotFoundError: No module named 'tensorflow'",
+        "class": "DEP_MISSING",
+        "attribution": "REPO",
+        "phase": "repo_run",
+        "cleared_by": 0
+      },
+      {
+        "error": "AttributeError: module 'tensorflow' has no attribute 'get_variable'",
+        "class": "API_REMOVED",
+        "attribution": "REPO",
+        "phase": "repo_run",
+        "cleared_by": 0
+      }
+    ],
+    "first_repo_error": "ModuleNotFoundError: No module named 'tensorflow'",
+    "last_error": "AttributeError: module 'tensorflow' has no attribute 'get_variable'",
+    "outcome_levels": {
+      "first_error_cleared": true,
+      "first_error_cleared_by": "time_machine",
+      "env_resolved": true,
+      "entrypoint_runs": true
+    },
+    "blocker": null,
+    "reproduction_passport_hash": "ce2ba9bfdacd459c341bbff07a6d591df64ff48848888f67f661042e23a42dcf"
+  },
+  "finished_at": "2026-10-04T13:11:27.640068+00:00",
+  "events": [
+    {
+      "t_s": 0.0,
+      "at": "2026-10-04T13:07:49.868382+00:00",
+      "line": "[intake] cloned https://github.com/Mehran-k/SimplE@29108230b63920afa38067b1aff8b8d53d07ed01"
+    },
+    {
+      "t_s": 0.01,
+      "at": "2026-10-04T13:07:49.874419+00:00",
+      "line": "[recon] calling Nemotron Nano"
+    },
+    {
+      "t_s": 11.71,
+      "at": "2026-10-04T13:08:01.582580+00:00",
+      "line": "[recon] entrypoint=main.py confidence=0.80"
+    },
+    {
+      "t_s": 11.72,
+      "at": "2026-10-04T13:08:01.586253+00:00",
+      "line": "[python] python:3.10-slim (default): no usable Python declaration; RERUN default 3.10"
+    },
+    {
+      "t_s": 12.81,
+      "at": "2026-10-04T13:08:02.675699+00:00",
+      "line": "[planner] build plan: {'base_image': 'python:3.10-slim', 'apt_install': [], 'install_commands': ['true  # no declared dependency file found; nothing to install'], 'execute_command': 'python main.py -m SimplE_ignr -d wn18', 'notes': [\"execute command is the repository's documented command (corpus ground truth)\", 'base image python:3.10-slim: no usable Python declaration; RERUN default 3.10']}"
+    },
+    {
+      "t_s": 12.98,
+      "at": "2026-10-04T13:08:02.847158+00:00",
+      "line": "[integrity] verified 21 file(s) against tree 3f980c0f4b96107a7a73b14aa1c9075ff5deede8"
+    },
+    {
+      "t_s": 12.99,
+      "at": "2026-10-04T13:08:02.853854+00:00",
+      "line": "[checkpoint] baseline: no kept image holds this environment yet; building it from python:3.10-slim and keeping every layer"
+    },
+    {
+      "t_s": 12.99,
+      "at": "2026-10-04T13:08:02.854067+00:00",
+      "line": "[sandbox] starting build+execute (wall_clock_seconds=600)"
+    },
+    {
+      "t_s": 38.41,
+      "at": "2026-10-04T13:08:28.279773+00:00",
+      "line": "[operation 1] baseline: completed; 0.2s of sandbox time; no torch install; branch_from_image=None; result_image=None; 2 image(s) kept"
+    },
+    {
+      "t_s": 38.41,
+      "at": "2026-10-04T13:08:28.279832+00:00",
+      "line": "[cost_guard] recorded $0.0026 sandbox spend, $1.4969 remaining today"
+    },
+    {
+      "t_s": 38.41,
+      "at": "2026-10-04T13:08:28.279870+00:00",
+      "line": "[sandbox] id=9bbe794c-ec2c-4dfa-bb7e-ab08849ab0d1 exit_code=1"
+    },
+    {
+      "t_s": 38.41,
+      "at": "2026-10-04T13:08:28.279886+00:00",
+      "line": "[baseline] as-is run: FAILS (exit code 1)"
+    },
+    {
+      "t_s": 38.42,
+      "at": "2026-10-04T13:08:28.285715+00:00",
+      "line": "[classifier] DEP_MISSING: ModuleNotFoundError: No module named 'tensorflow'"
+    },
+    {
+      "t_s": 38.45,
+      "at": "2026-10-04T13:08:28.322453+00:00",
+      "line": "[era] 2020-02-11 from pinned-commit {'note': 'no dependency files in the repository'}"
+    },
+    {
+      "t_s": 39.07,
+      "at": "2026-10-04T13:08:28.938625+00:00",
+      "line": "[time-machine] era 2020-02-11 (pinned-commit) -> python 3.7; locked 35 package(s) with uv --exclude-newer; not on the index: none"
+    },
+    {
+      "t_s": 39.08,
+      "at": "2026-10-04T13:08:28.945387+00:00",
+      "line": "[smoke] re-execution of the documented command under a 60s smoke limit"
+    },
+    {
+      "t_s": 39.2,
+      "at": "2026-10-04T13:08:29.065278+00:00",
+      "line": "[integrity] verified 21 file(s) against tree 3f980c0f4b96107a7a73b14aa1c9075ff5deede8"
+    },
+    {
+      "t_s": 39.2,
+      "at": "2026-10-04T13:08:29.072742+00:00",
+      "line": "[checkpoint] re-execution: no kept image holds this environment yet; building it from python:3.7-slim and keeping every layer"
+    },
+    {
+      "t_s": 39.2,
+      "at": "2026-10-04T13:08:29.072821+00:00",
+      "line": "[sandbox] starting build+execute (wall_clock_seconds=499)"
+    },
+    {
+      "t_s": 116.72,
+      "at": "2026-10-04T13:09:46.590004+00:00",
+      "line": "[operation 2] re-execution: completed; 24.3s of sandbox time; no torch install; branch_from_image=None; result_image=None; 2 image(s) kept"
+    },
+    {
+      "t_s": 116.72,
+      "at": "2026-10-04T13:09:46.590081+00:00",
+      "line": "[cost_guard] recorded $0.2519 sandbox spend, $1.2450 remaining today"
+    },
+    {
+      "t_s": 116.72,
+      "at": "2026-10-04T13:09:46.590141+00:00",
+      "line": "[time-machine] re-execution id=1e165260-5140-414c-a931-b40b00ea8ef0 exit_code=1"
+    },
+    {
+      "t_s": 116.72,
+      "at": "2026-10-04T13:09:46.591380+00:00",
+      "line": "[classifier] API_REMOVED: AttributeError: module 'tensorflow' has no attribute 'get_variable'"
+    },
+    {
+      "t_s": 116.75,
+      "at": "2026-10-04T13:09:46.619096+00:00",
+      "line": "[time-machine] deterministic step: removed_api_tensorflow_v1_graph_api (matched: module 'tensorflow' has no attribute 'get_variable'); the TensorFlow 1.x graph API (get_variable, Saver, ...) is not in TensorFlow 2; tensorflow<2 -> tensorflow==1.15.5 (Python 3.7 installs it); no model call"
+    },
+    {
+      "t_s": 116.76,
+      "at": "2026-10-04T13:09:46.625553+00:00",
+      "line": "[smoke] re-execution of the documented command under a 60s smoke limit"
+    },
+    {
+      "t_s": 116.88,
+      "at": "2026-10-04T13:09:46.743637+00:00",
+      "line": "[integrity] verified 21 file(s) against tree 3f980c0f4b96107a7a73b14aa1c9075ff5deede8"
+    },
+    {
+      "t_s": 116.88,
+      "at": "2026-10-04T13:09:46.751817+00:00",
+      "line": "[checkpoint] time machine: removed_api_tensorflow_v1_graph_api: branching from image 81cc3a21-a57a-456e-84ca-7f77fa43e97b (0 of 1 setup command(s) already in it, kept by operation 2); no reinstall of what it contains"
+    },
+    {
+      "t_s": 116.88,
+      "at": "2026-10-04T13:09:46.751849+00:00",
+      "line": "[sandbox] starting build+execute (wall_clock_seconds=336)"
+    },
+    {
+      "t_s": 215.97,
+      "at": "2026-10-04T13:11:25.842656+00:00",
+      "line": "[operation 3] time machine: removed_api_tensorflow_v1_graph_api: completed; 17.8s of sandbox time; no torch install; branch_from_image=81cc3a21-a57a-456e-84ca-7f77fa43e97b; result_image=None; 1 image(s) kept"
+    },
+    {
+      "t_s": 215.97,
+      "at": "2026-10-04T13:11:25.842712+00:00",
+      "line": "[cost_guard] recorded $0.1806 sandbox spend, $1.0644 remaining today"
+    },
+    {
+      "t_s": 215.97,
+      "at": "2026-10-04T13:11:25.842753+00:00",
+      "line": "[time-machine] re-execution id=5b2fdd0c-3c15-45e1-84ce-497ca494c0e0 exit_code=0"
+    }
+  ],
+  "model_calls": [
+    {
+      "model": "nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B",
+      "started_at": "2026-10-04T13:07:50.067908+00:00",
+      "latency_s": 11.51,
+      "finish_reason": "stop",
+      "content_is_none": false,
+      "has_reasoning": true,
+      "usage": {
+        "completion_tokens": 1256,
+        "prompt_tokens": 1028,
+        "total_tokens": 2284,
+        "completion_tokens_details": null,
+        "prompt_tokens_details": null
+      }
+    },
+    {
+      "model": "nvidia/nemotron-3-super-120b-a12b",
+      "started_at": "2026-10-04T13:08:01.587456+00:00",
+      "latency_s": 1.09,
+      "finish_reason": "stop",
+      "content_is_none": false,
+      "has_reasoning": true,
+      "usage": {
+        "completion_tokens": 48,
+        "prompt_tokens": 270,
+        "total_tokens": 318,
+        "completion_tokens_details": {
+          "accepted_prediction_tokens": null,
+          "audio_tokens": null,
+          "reasoning_tokens": 38,
+          "rejected_prediction_tokens": null,
+          "text_tokens": null
+        },
+        "prompt_tokens_details": {
+          "audio_tokens": null,
+          "cache_write_tokens": null,
+          "cached_tokens": 0,
+          "image_tokens": null,
+          "text_tokens": null,
+          "created_cache_tokens": 0,
+          "multimodal_tokens": null
+        },
+        "prompt_cache_hit_tokens": 0,
+        "prompt_cache_miss_tokens": 270
+      }
+    },
+    {
+      "model": "nvidia/Nemotron-3-Ultra-550b-a55b",
+      "started_at": "2026-10-04T13:11:25.844380+00:00",
+      "latency_s": 1.76,
+      "finish_reason": "stop",
+      "content_is_none": false,
+      "has_reasoning": true,
+      "usage": {
+        "completion_tokens": 422,
+        "prompt_tokens": 794,
+        "total_tokens": 1216,
+        "completion_tokens_details": {
+          "accepted_prediction_tokens": null,
+          "audio_tokens": null,
+          "reasoning_tokens": 300,
+          "rejected_prediction_tokens": null,
+          "text_tokens": null
+        },
+        "prompt_tokens_details": {
+          "audio_tokens": null,
+          "cache_write_tokens": null,
+          "cached_tokens": 0,
+          "image_tokens": null,
+          "text_tokens": null,
+          "multimodal_tokens": null
+        },
+        "prompt_cache_hit_tokens": 0,
+        "prompt_cache_miss_tokens": 794
+      }
+    }
+  ],
+  "cost_guard": {
+    "spent_usd": 0.43763128,
+    "model_spent_usd": 0.00254732,
+    "sandbox_spent_usd": 0.43508396000000005,
+    "estimated_sandbox_spent_usd": 0.0,
+    "cost_events": [],
+    "remaining_usd": 1.06236872,
+    "model_usage": [
+      {
+        "model": "nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B",
+        "prompt_tokens": 1028,
+        "completion_tokens": 1256,
+        "cost_usd": 0.00036312
+      },
+      {
+        "model": "nvidia/nemotron-3-super-120b-a12b",
+        "prompt_tokens": 270,
+        "completion_tokens": 48,
+        "cost_usd": 0.0001242
+      },
+      {
+        "model": "nvidia/Nemotron-3-Ultra-550b-a55b",
+        "prompt_tokens": 794,
+        "completion_tokens": 422,
+        "cost_usd": 0.00206
+      }
+    ],
+    "prices_usd_per_1m": {
+      "nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B": [
+        0.06,
+        0.24
+      ],
+      "nvidia/nemotron-3-super-120b-a12b": [
+        0.3,
+        0.9
+      ],
+      "nvidia/Nemotron-3-Ultra-550b-a55b": [
+        1.0,
+        3.0
+      ]
+    },
+    "prices_source": "https://api.tokenfactory.nebius.com/v1/models?verbose=true (pricing field)",
+    "prices_retrieved": "2026-09-24"
+  },
+  "operations": [
+    {
+      "n": 1,
+      "role": "baseline",
+      "candidate": null,
+      "concurrent": 1,
+      "base_image": "python:3.10-slim",
+      "funded_seconds": 600.0,
+      "wall_seconds": 25.43,
+      "sandbox_seconds": 0.212,
+      "install_seconds": [
+        {
+          "command": "true  # no declared dependency file found; nothing to install",
+          "phase": "repo_install",
+          "seconds": 0.001,
+          "exit_code": 0,
+          "cost_usd": 0.00243,
+          "torch": false
+        }
+      ],
+      "rerun_steps": [
+        {
+          "phase": "rerun_extract",
+          "seconds": 0.193,
+          "cost_usd": 0.00238
+        }
+      ],
+      "branch_from_image": null,
+      "start_setup_commands": 0,
+      "setup_commands": 1,
+      "torch_in_start_image": false,
+      "torch_installed": false,
+      "torch_env_key": null,
+      "result_image": null,
+      "image_kept": true,
+      "kept_images": [
+        "2db52ce4-bc98-42e5-9ce8-e8bb99a38216",
+        "9bbe794c-ec2c-4dfa-bb7e-ab08849ab0d1"
+      ],
+      "env_image_id": "9bbe794c-ec2c-4dfa-bb7e-ab08849ab0d1",
+      "cost_usd": 0.002649,
+      "cost_estimated_usd": 0.0,
+      "outcome": "completed",
+      "resource_limits": {
+        "memory": "not documented (the only wording is \"Automatic cleanup and resource limits help prevent abuse.\" (docs.tokenfactory.nebius.com/sandboxes/overview) and \"Built-in tracking of CPU time, memory usage, and I/O operations for every execution.\")",
+        "cpu": "not documented",
+        "disk_layer_bytes": 12884901888,
+        "larger_instance": "not documented: the spawn request, the SDK, the CLI and the MCP tools have no memory, CPU, size or GPU parameter; Sandboxes is a beta (access by request, contree@nebius.com); no price page (the product page says free while in beta, D-36)",
+        "source": "docs/design/D-40-resources.md (public Nebius Token Factory / ConTree documentation and contree_sdk 0.3.6, read offline 2026-10-01)"
+      },
+      "exit_code": 1,
+      "max_rss": 9772,
+      "streams": {
+        "limit_bytes": 4194304,
+        "stdout": {
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "truncated": false
+        },
+        "stderr": {
+          "bytes": 401,
+          "sha256": "3b5deff4db797d2531074c7d88858b6ee151ccdae33ba87608fe42928117aeba",
+          "truncated": false
+        }
+      },
+      "killed_step": null,
+      "killed_seconds": null,
+      "funding": {
+        "basis": "baseline: the pre-registered wall clock, not budget-limited",
+        "rate_used_usd_per_s": null,
+        "source_operations": []
+      }
+    },
+    {
+      "n": 2,
+      "role": "re-execution",
+      "candidate": null,
+      "concurrent": 1,
+      "base_image": "python:3.7-slim",
+      "funded_seconds": 499.0,
+      "wall_seconds": 77.52,
+      "sandbox_seconds": 24.342,
+      "install_seconds": [
+        {
+          "command": "printf '%s\\n' absl-py==0.9.0 astor==0.8.1 cachetools==4.0.0 certifi==2019.11.28 chardet==3.0.4 gast==0.2.2 google-auth==1.11.0 google-auth-oauthlib==0.4.1 googl",
+          "phase": "repo_install",
+          "seconds": 22.455,
+          "exit_code": 0,
+          "cost_usd": 0.233423,
+          "torch": false
+        }
+      ],
+      "rerun_steps": [
+        {
+          "phase": "rerun_extract",
+          "seconds": 0.172,
+          "cost_usd": 0.002156
+        }
+      ],
+      "branch_from_image": null,
+      "start_setup_commands": 0,
+      "setup_commands": 1,
+      "torch_in_start_image": false,
+      "torch_installed": false,
+      "torch_env_key": null,
+      "result_image": null,
+      "image_kept": true,
+      "kept_images": [
+        "81cc3a21-a57a-456e-84ca-7f77fa43e97b",
+        "1e165260-5140-414c-a931-b40b00ea8ef0"
+      ],
+      "env_image_id": "1e165260-5140-414c-a931-b40b00ea8ef0",
+      "cost_usd": 0.25185,
+      "cost_estimated_usd": 0.0,
+      "outcome": "completed",
+      "resource_limits": {
+        "memory": "not documented (the only wording is \"Automatic cleanup and resource limits help prevent abuse.\" (docs.tokenfactory.nebius.com/sandboxes/overview) and \"Built-in tracking of CPU time, memory usage, and I/O operations for every execution.\")",
+        "cpu": "not documented",
+        "disk_layer_bytes": 12884901888,
+        "larger_instance": "not documented: the spawn request, the SDK, the CLI and the MCP tools have no memory, CPU, size or GPU parameter; Sandboxes is a beta (access by request, contree@nebius.com); no price page (the product page says free while in beta, D-36)",
+        "source": "docs/design/D-40-resources.md (public Nebius Token Factory / ConTree documentation and contree_sdk 0.3.6, read offline 2026-10-01)"
+      },
+      "exit_code": 1,
+      "max_rss": 1343340,
+      "streams": {
+        "limit_bytes": 4194304,
+        "stdout": {
+          "bytes": 98,
+          "sha256": "9c3396a2b9bddcfeb282b3ec69fabbea70da7e3bdfa726e357d92d01d05441a8",
+          "truncated": false
+        },
+        "stderr": {
+          "bytes": 1291,
+          "sha256": "e911fc2827256f39ccbd540fd923db79f0ea026212075430284ec1cfb3f14aaa",
+          "truncated": false
+        }
+      },
+      "killed_step": null,
+      "killed_seconds": null,
+      "funding": {
+        "rate_used_usd_per_s": 0.003,
+        "measured_usd_per_s": 0.00010417,
+        "safety": 1.5,
+        "floor_usd_per_s": 0.003,
+        "ceiling_usd_per_s": 0.0085,
+        "basis": "floor",
+        "source_operations": [
+          1
+        ]
+      }
+    },
+    {
+      "n": 3,
+      "role": "time machine: removed_api_tensorflow_v1_graph_api",
+      "candidate": null,
+      "concurrent": 1,
+      "base_image": "python:3.7-slim",
+      "funded_seconds": 335.8,
+      "wall_seconds": 99.09,
+      "sandbox_seconds": 17.837,
+      "install_seconds": [
+        {
+          "command": "printf '%s\\n' absl-py==0.9.0 astor==0.8.1 cachetools==4.0.0 certifi==2019.11.28 chardet==3.0.4 gast==0.2.2 google-auth==1.11.0 google-auth-oauthlib==0.4.1 googl",
+          "phase": "repo_install",
+          "seconds": 17.774,
+          "exit_code": 0,
+          "cost_usd": 0.179906,
+          "torch": false
+        }
+      ],
+      "rerun_steps": [],
+      "branch_from_image": "81cc3a21-a57a-456e-84ca-7f77fa43e97b",
+      "start_setup_commands": 0,
+      "setup_commands": 1,
+      "torch_in_start_image": false,
+      "torch_installed": false,
+      "torch_env_key": null,
+      "result_image": null,
+      "image_kept": true,
+      "kept_images": [
+        "5b2fdd0c-3c15-45e1-84ce-497ca494c0e0"
+      ],
+      "env_image_id": "5b2fdd0c-3c15-45e1-84ce-497ca494c0e0",
+      "cost_usd": 0.180584,
+      "cost_estimated_usd": 0.0,
+      "outcome": "completed",
+      "resource_limits": {
+        "memory": "not documented (the only wording is \"Automatic cleanup and resource limits help prevent abuse.\" (docs.tokenfactory.nebius.com/sandboxes/overview) and \"Built-in tracking of CPU time, memory usage, and I/O operations for every execution.\")",
+        "cpu": "not documented",
+        "disk_layer_bytes": 12884901888,
+        "larger_instance": "not documented: the spawn request, the SDK, the CLI and the MCP tools have no memory, CPU, size or GPU parameter; Sandboxes is a beta (access by request, contree@nebius.com); no price page (the product page says free while in beta, D-36)",
+        "source": "docs/design/D-40-resources.md (public Nebius Token Factory / ConTree documentation and contree_sdk 0.3.6, read offline 2026-10-01)"
+      },
+      "exit_code": 0,
+      "max_rss": 433652,
+      "streams": {
+        "limit_bytes": 4194304,
+        "stdout": {
+          "bytes": 739,
+          "sha256": "e0d2d83b739ee210d2f7ef4943321098ca543310dcab4bdf140c2b9694f511c7",
+          "truncated": false
+        },
+        "stderr": {
+          "bytes": 2259,
+          "sha256": "46f27ed35a2a7a78ae12486ea7995d25bc7f01eacccff0681021023c3b3977e9",
+          "truncated": false
+        }
+      },
+      "killed_step": null,
+      "killed_seconds": null,
+      "funding": {
+        "rate_used_usd_per_s": 0.0037081,
+        "measured_usd_per_s": 0.00247206,
+        "safety": 1.5,
+        "floor_usd_per_s": 0.003,
+        "ceiling_usd_per_s": 0.0085,
+        "basis": "measured x safety",
+        "source_operations": [
+          1,
+          2
+        ]
+      }
+    }
+  ]
+}
