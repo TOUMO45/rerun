@@ -38,7 +38,9 @@ TQDM_MISSING = "Traceback (most recent call last):\n  File \"main.py\", line 3, 
 SKLEARN_MISSING = "Traceback (most recent call last):\n  File \"main.py\", line 2, in <module>\nModuleNotFoundError: No module named 'sklearn'\n"
 SHIM = runner_hooks.install_command(runner_hooks.CPU_SHIM)
 HOOK = runner_hooks.install_command(runner_hooks.EXIT_HOOK)
-EXEC = {"python main.py", smoke_exec.wrap("python main.py", 60)}  # the documented command, as-published and smoke-wrapped
+# the documented command, as-published and smoke-wrapped; harness-v1.7 (R1 c): a re-execution after the memory hook carries the memory environment
+EXEC = {"python main.py", smoke_exec.wrap("python main.py", 60), runner_env.with_memory_env("python main.py"),
+        smoke_exec.wrap(runner_env.with_memory_env("python main.py"), 60)}
 
 
 class _Chat:

@@ -57,14 +57,16 @@ def test_apt_mirror_gone_is_a_runner_side_reason_code():
 
 def test_apt_mirror_gone_at_the_baseline_ends_indeterminate_with_no_repair_attempt(tmp_path):
     """The apt step runs in the repository's install phase (the plan's apt_install is prepended to its install commands), so
-    the runner-setup invariant does not cover it: the stop is decided on the CODE, in `_note_failure`, like the sandbox classes."""
+    the runner-setup invariant does not cover it: the stop is decided on the CODE, in `_note_failure`, like the sandbox classes.
+    harness-v1.7 (R4): the apt-archive rule gets ONE deterministic try first; when the mirrors are still gone the stop is the same, and
+    no model attempt is ever made."""
     step = StepResult("apt-get update && apt-get install -y git", 100, "", APT_404, 1.0, 0.0, phase=ec.PHASE_REPO_INSTALL)
-    result = _chain_test_module()._run(tmp_path, [SandboxRunResult(steps=(step,))], repair=[
+    result = _chain_test_module()._run(tmp_path, [SandboxRunResult(steps=(step,)), SandboxRunResult(steps=(step,))], repair=[
         {"explanation": "decline", "diff": "", "env_changes": []}])
     assert result.verdict == "INDETERMINATE" and result.taxonomy_code == "APT_MIRROR_GONE"
     assert reason_code_of(result.indeterminate_reason) == "APT_MIRROR_GONE"
-    assert result.attempts == ()  # no time-machine step, no model attempt
-    assert [(l["class"], l["attribution"], l["phase"]) for l in result.error_chain] == [("APT_MIRROR_GONE", "ENV", "repo_install")]
+    assert [(a.origin, (a.time_machine_action or {}).get("rule")) for a in result.attempts] == [("time_machine", "apt_archive")]  # no model attempt
+    assert [(l["class"], l["attribution"], l["phase"]) for l in result.error_chain] == [("APT_MIRROR_GONE", "ENV", "repo_install")]  # the same failure again is not a new link
     assert result.first_repo_error is None
     assert verify_certificate(result.certificate())
 
@@ -73,8 +75,8 @@ def test_apt_mirror_gone_after_a_repair_ends_indeterminate_not_blocked(tmp_path)
     fix = {"explanation": "add foo", "diff": "", "env_changes": [{"op": "add", "package": "foo", "version": "1.0",
                                                                    "justification": "needed", "evidence": "No module named 'foo'"}]}
     m = _chain_test_module()
-    result = m._run(tmp_path, [m._res(1, "ModuleNotFoundError: No module named 'foo'"), m._res(100, APT_404)],
-                    repair=[fix], declared=frozenset())
+    result = m._run(tmp_path, [m._res(1, "ModuleNotFoundError: No module named 'foo'"), m._res(100, APT_404), m._res(100, APT_404)],
+                    repair=[fix], declared=frozenset())  # harness-v1.7 (R4): the third result is the apt-archive step's re-execution
     assert result.verdict == "INDETERMINATE" and result.taxonomy_code == "APT_MIRROR_GONE"
     chain = result.error_chain
     assert chain[0]["attribution"] == "REPO" and chain[0]["cleared_by"] == 0 and chain[-1]["attribution"] == "ENV"

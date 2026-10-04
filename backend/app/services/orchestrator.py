@@ -1553,11 +1553,13 @@ def _run_stages(
         return (f"RESOURCE_LIMIT: {classification.evidence}; limits ({quote}) — the sandbox killed the process; not a verdict on the repository, "
                 f"and no repair attempt was made.{no_evidence}")
 
-    def _note_failure(attempt_number: int, classification, phase: str = "repo_run", *, record: bool = True) -> str | None:
+    def _note_failure(attempt_number: int, classification, phase: str = "repo_run", *, record: bool = True, may_defer: bool = True) -> str | None:
         """Record a classified failure in the run's error chain. Returns an
         INDETERMINATE reason if the failure is sandbox-side (a limit or a platform
         refusal): no repair can fix it and it is not evidence about the code.
-        `record=False` (harness-v1.7): the link is already in the chain; only the stop is decided."""
+        `record=False` (harness-v1.7): the link is already in the chain; only the stop is decided. `may_defer` (harness-v1.7): a deterministic
+        pass is still ahead (the loop at the top of a model attempt), so a v1.7 rule may take the failure first; False after the LAST model
+        attempt, where a deferred stop would otherwise end the run BLOCKED (found by the v1.4.2 kill tests)."""
         if record:
             state.error_chain.record(
                 attempt_number,
@@ -1573,13 +1575,13 @@ def _run_stages(
                 ),
                 phase,
             )
-        if classification.code == classifier.TaxonomyCode.RESOURCE_LIMIT and _memory_rule_next() is not None:
+        if classification.code == classifier.TaxonomyCode.RESOURCE_LIMIT and may_defer and _memory_rule_next() is not None:
             return None  # harness-v1.7 (R1): the memory hook, then resource_adapt, get their turn (the deterministic loop) before the stop below
         if classification.code == classifier.TaxonomyCode.RESOURCE_LIMIT:
             return _resource_reason(classification, phase)
         if classification.code in classifier.TaxonomyCode.SANDBOX_CODES:
             return f"{classification.code}: {classification.evidence} — a sandbox-side failure, not a verdict on the repository."
-        if classification.code == classifier.TaxonomyCode.APT_MIRROR_GONE and deps.repair_enabled and not state.apt_archive:
+        if classification.code == classifier.TaxonomyCode.APT_MIRROR_GONE and may_defer and deps.repair_enabled and not state.apt_archive:
             return None  # harness-v1.7 (R4): the apt-archive rule gets one try (the deterministic loop) before the stop below
         if classification.code == classifier.TaxonomyCode.APT_MIRROR_GONE:
             # harness-v1.6: ENV attribution alone does not end a run (a declared package the runner failed to install is ENV
@@ -1658,7 +1660,7 @@ def _run_stages(
             state.baseline["evidence"] = classification.evidence
         if not same_as_baseline:
             _log(f"[classifier] {classification.code}: {classification.evidence}")
-        sandbox_reason = _note_failure(0, classification, sandbox_result.final.phase, record=not same_as_baseline)
+        sandbox_reason = _note_failure(0, classification, sandbox_result.final.phase, record=not same_as_baseline, may_defer=deps.max_attempts >= 1)
         if sandbox_reason:
             _log(f"[verdict] INDETERMINATE: {sandbox_reason}")
             return _finalize(
@@ -1915,6 +1917,11 @@ def _run_stages(
 
         # --- Time machine (attempt 0): the repo's own era, deterministically --
         era_first = classifier.repair_layer_for(classification.code) == "env"
+        if era_first and classification.code == classifier.TaxonomyCode.APT_MIRROR_GONE:
+            # harness-v1.7 (R4): with the mirrors gone every install fails, so the era lock would spend an operation for nothing; the apt-archive
+            # step goes first (the deterministic loop). v1.6 stopped here, with no time machine either.
+            era_first = False
+            _log("[time-machine] skipped ahead of the apt-archive rule: nothing installs while the mirrors are gone")
         if era_first and classification.code == classifier.TaxonomyCode.API_REMOVED and api_removals.match(
                 f"{sandbox_result.final.stderr}\n{sandbox_result.final.stdout}"):
             # harness-v1.6: an API_REMOVED failure that a removed-API row (api_removals, F2) covers keeps the order validated at
@@ -2048,7 +2055,7 @@ def _run_stages(
                             )
                             taxonomy_code = classification.code
                             _log(f"[classifier] {classification.code}: {classification.evidence}")
-                            sandbox_reason = _note_failure(0, classification, tm_result.final.phase)
+                            sandbox_reason = _note_failure(0, classification, tm_result.final.phase, may_defer=deps.max_attempts >= 1)
                             if sandbox_reason:
                                 verdict, indeterminate_reason = "INDETERMINATE", sandbox_reason
                                 _log(f"[verdict] INDETERMINATE: {sandbox_reason}")
@@ -3216,7 +3223,7 @@ def _run_stages(
             taxonomy_code = classification.code
             sandbox_result = rerun_result
             _log(f"[classifier] {classification.code}: {classification.evidence}")
-            sandbox_reason = _note_failure(attempt_number, classification, rerun_result.final.phase)
+            sandbox_reason = _note_failure(attempt_number, classification, rerun_result.final.phase, may_defer=attempt_number < deps.max_attempts)
             if sandbox_reason:
                 verdict, indeterminate_reason = "INDETERMINATE", sandbox_reason
                 _log(f"[verdict] INDETERMINATE: {sandbox_reason}")
