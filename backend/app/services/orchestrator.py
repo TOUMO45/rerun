@@ -249,6 +249,10 @@ class _RunState:
     # stop decided by it: (reason code, INDETERMINATE reason) for RESOURCE_LIMIT or EXIT_OUTSIDE_PYTHON. No model attempt follows a stop.
     resource_evidence: dict | None = None
     resource_stop: tuple | None = None
+    # harness-v1.7 (R5, companion_relax): torch-family pins the runner replaced at repair time ({package: version}), applied by runner_env.plan_torch_setup.
+    torch_overrides: dict = field(default_factory=dict)
+    # harness-v1.7 (R4, apt_archive): every apt command of the run is preceded by runner_env.apt_archive_step() from here on.
+    apt_archive: bool = False
 
 
 def _cost_cap_reason(message: str) -> str:
@@ -1271,7 +1275,8 @@ def _run_stages(
         torch_setup = None
         if _accepts_kwarg(deps.sandbox_runner, "torch_setup"):
             torch_setup = runner_env.plan_torch_setup(
-                [*use_plan.as_shell_steps(), *intake_result.dependency_files.values()], current_workdir
+                [*use_plan.as_shell_steps(), *intake_result.dependency_files.values()], current_workdir,
+                overrides=state.torch_overrides or None,  # harness-v1.7 (R5): never on the baseline (no override exists before it)
             )
             if torch_setup is not None:
                 _log(f"[runner] torch: {torch_setup.reason}")
@@ -1281,6 +1286,8 @@ def _run_stages(
             runner_kwargs["runner_extras"] = extras
         # harness-v1.4.1-rc (D-34): apt packages added at repair time are additive layers inside the setup list, not part of its first step.
         steps = _sandbox_steps(use_plan, extra_apt_layers)
+        if state.apt_archive:  # harness-v1.7 (R4): the apt-archive step goes in front of every apt command (never on the baseline: nothing sets it before)
+            steps = tuple(runner_env.with_apt_archive(command) for command in steps)
         cmds = setup_commands(steps, torch_setup, extras)
         # harness-v1.4.0-rc (D-23): TREATMENT operations reuse kept images instead of rebuilding the environment every time.
         checkpoint_mode = deps.repair_enabled and _declares_kwarg(deps.sandbox_runner, "checkpoint")
@@ -1511,28 +1518,32 @@ def _run_stages(
         return (f"RESOURCE_LIMIT: {classification.evidence}; limits ({quote}) — the sandbox killed the process; not a verdict on the repository, "
                 f"and no repair attempt was made.{no_evidence}")
 
-    def _note_failure(attempt_number: int, classification, phase: str = "repo_run") -> str | None:
+    def _note_failure(attempt_number: int, classification, phase: str = "repo_run", *, record: bool = True) -> str | None:
         """Record a classified failure in the run's error chain. Returns an
         INDETERMINATE reason if the failure is sandbox-side (a limit or a platform
-        refusal): no repair can fix it and it is not evidence about the code."""
-        state.error_chain.record(
-            attempt_number,
-            classification.code,
-            classification.evidence,
-            error_chain.attribute(
+        refusal): no repair can fix it and it is not evidence about the code.
+        `record=False` (harness-v1.7): the link is already in the chain; only the stop is decided."""
+        if record:
+            state.error_chain.record(
+                attempt_number,
                 classification.code,
                 classification.evidence,
-                declared_deps=intake_result.declared_dependencies,
-                python_claim=intake_result.python_version_hint,
-                base_image=plan.base_image,
-                phase=phase,
-            ),
-            phase,
-        )
+                error_chain.attribute(
+                    classification.code,
+                    classification.evidence,
+                    declared_deps=intake_result.declared_dependencies,
+                    python_claim=intake_result.python_version_hint,
+                    base_image=plan.base_image,
+                    phase=phase,
+                ),
+                phase,
+            )
         if classification.code == classifier.TaxonomyCode.RESOURCE_LIMIT:
             return _resource_reason(classification, phase)
         if classification.code in classifier.TaxonomyCode.SANDBOX_CODES:
             return f"{classification.code}: {classification.evidence} — a sandbox-side failure, not a verdict on the repository."
+        if classification.code == classifier.TaxonomyCode.APT_MIRROR_GONE and deps.repair_enabled and not state.apt_archive:
+            return None  # harness-v1.7 (R4): the apt-archive rule gets one try (the deterministic loop) before the stop below
         if classification.code == classifier.TaxonomyCode.APT_MIRROR_GONE:
             # harness-v1.6: ENV attribution alone does not end a run (a declared package the runner failed to install is ENV
             # too, and the time machine may still fix it); the INDETERMINATE stop is decided here, by the code, exactly as
@@ -1554,6 +1565,46 @@ def _run_stages(
             internal_modules_cache.append(dep_scan.internal_module_names(workdir))
         return internal_modules_cache[0]
 
+    baseline_result = sandbox_result
+    # harness-v1.7 (R5, companion_relax): the runner's torch-family install failed because the repository pins torch and torchvision exactly, to
+    # releases that cannot be installed together (DEV #5: torch==1.2.0 with torchvision==0.5.0, which requires torch 1.4.0). Deterministic, in the
+    # TREATMENT arm only, once, before the RUNNER_SETUP_FAILED stop: the torch pin is kept and torchvision becomes the release made for it
+    # (runner_env.companion_swap, a dated snapshot of PyPI's metadata). The as-published failure stays the baseline's and the chain's first link.
+    if not sandbox_result.succeeded and deps.repair_enabled and sandbox_result.final.phase == error_chain.PHASE_RUNNER_SETUP \
+            and _accepts_kwarg(deps.sandbox_runner, "torch_setup"):
+        baseline_cls = classifier.classify(sandbox_result.final.exit_code, sandbox_result.final.stderr, sandbox_result.final.stdout,
+                                           declared_deps=intake_result.declared_dependencies, repo_modules=_internal_modules())
+        swap = None
+        if baseline_cls.code == classifier.TaxonomyCode.DEP_UNPINNED_CONFLICT:
+            baseline_torch = runner_env.plan_torch_setup([*plan.as_shell_steps(), *intake_result.dependency_files.values()], workdir)
+            swap = runner_env.companion_swap(baseline_torch.specs) if baseline_torch is not None else None
+        if swap is not None:
+            state.baseline["taxonomy_code"] = baseline_cls.code
+            state.baseline["evidence"] = baseline_cls.evidence
+            _log(f"[classifier] {baseline_cls.code}: {baseline_cls.evidence}")
+            _note_failure(0, baseline_cls, sandbox_result.final.phase)  # the as-published failure is the chain's first link; its stop is deferred
+            state.torch_overrides = {swap.package: swap.replacement}
+            relax_action = {"rule": "companion_relax", "matched_error": baseline_cls.evidence[:500], "phase": "repair",
+                            "fires_on": "DEP_UNPINNED_CONFLICT in the runner's torch-family install, exact torch and torchvision pins that cannot coexist",
+                            **swap.as_dict()}
+            _log(f"[time-machine] deterministic step: companion_relax ({swap.package} {swap.pinned} -> {swap.replacement}, "
+                 f"{swap.primary}=={swap.primary_version} kept: {swap.as_dict()['reason']}); no model call")
+            try:
+                relaxed = _execute(workdir, smoke=True, role="time machine: companion_relax")
+            except CostLimitExceeded as exc:
+                _log(f"[time-machine] stopped: {exc}")
+                attempts.append(AttemptRecord(0, "", "PASS", (), None, "", f"stopped before completion: {exc}"[-2000:], origin="time_machine",
+                                              time_machine_action=relax_action))
+            else:
+                _log(f"[time-machine] re-execution id={relaxed.sandbox_id} exit_code={relaxed.final.exit_code}")
+                attempts.append(AttemptRecord(0, "", "PASS", (), relaxed.final.exit_code, relaxed.final.stdout[-2000:], relaxed.final.stderr[-2000:],
+                                              origin="time_machine", execution=_execution_of(relaxed, True), time_machine_action=relax_action))
+                sandbox_result = relaxed
+                taxonomy_code = baseline_cls.code
+                if relaxed.succeeded:
+                    state.error_chain.clear_last(0)
+                    verdict = "RUNS_AFTER_REPAIR"
+
     if not sandbox_result.succeeded:
         state.stage = "classifier"
         classification = classifier.classify(
@@ -1564,10 +1615,13 @@ def _run_stages(
             repo_modules=_internal_modules(),
         )
         taxonomy_code = classification.code
-        state.baseline["taxonomy_code"] = classification.code
-        state.baseline["evidence"] = classification.evidence
-        _log(f"[classifier] {classification.code}: {classification.evidence}")
-        sandbox_reason = _note_failure(0, classification, sandbox_result.final.phase)
+        same_as_baseline = sandbox_result is baseline_result and state.baseline.get("taxonomy_code") is not None
+        if state.baseline.get("taxonomy_code") is None:  # harness-v1.7 (R5): a step before this block may have recorded the baseline already
+            state.baseline["taxonomy_code"] = classification.code
+            state.baseline["evidence"] = classification.evidence
+        if not same_as_baseline:
+            _log(f"[classifier] {classification.code}: {classification.evidence}")
+        sandbox_reason = _note_failure(0, classification, sandbox_result.final.phase, record=not same_as_baseline)
         if sandbox_reason:
             _log(f"[verdict] INDETERMINATE: {sandbox_reason}")
             return _finalize(
@@ -2009,6 +2063,38 @@ def _run_stages(
 
         wrapper_tried = False
 
+        def _auto_apt_archive(matched: str) -> SandboxRunResult | None:
+            """harness-v1.7 (R4). Deterministic step (no model): the base image's Debian release has left the mirrors (APT_MIRROR_GONE). From here on
+            every apt command is preceded by runner_env.apt_archive_step() (only an end-of-life codename is rewritten), recorded in the build plan's
+            notes; then re-execute. Attempt 0 / origin time_machine, once per run. None if the budget stops it."""
+            nonlocal plan
+            state.apt_archive = True
+            note = ("apt_archive (harness-v1.7, R4): apt sources of an end-of-life Debian release rewritten to its archive before every apt command: "
+                    + "; ".join(f"{codename}: {', '.join(lines)}" for codename, lines in sorted(runner_env.EOL_APT_SOURCES.items())))
+            plan = replace(plan, notes=(*plan.notes, note))
+            action = {"rule": "apt_archive", "matched_error": matched[:500], "phase": "repair", "fires_on": "APT_MIRROR_GONE at repair time",
+                      "step": runner_env.apt_archive_step(), "sources": {k: list(v) for k, v in sorted(runner_env.EOL_APT_SOURCES.items())},
+                      "limit": "only the codenames in runner_env.EOL_APT_SOURCES are rewritten; a live release is left alone"}
+            _log(f"[time-machine] deterministic step: apt_archive (matched: {matched[:200]}); no model call")
+
+            def _record(exit_code, stdout, stderr, execution=None) -> None:
+                attempts.append(AttemptRecord(0, "", "PASS", (), exit_code, stdout, stderr, origin="time_machine",
+                                              execution=execution, time_machine_action=action))
+
+            try:
+                result = _execute(workdir, smoke=True, role="time machine: apt_archive")
+            except CostLimitExceeded as exc:
+                _log(f"[time-machine] stopped: {exc}")
+                _record(None, "", f"stopped before completion: {exc}"[-2000:])
+                return None
+            except (SandboxTimeoutError, tree_integrity.HarnessIntegrityError) as exc:
+                _record(None, "", str(exc)[-2000:])
+                raise
+            action["rewrote"] = runner_env.apt_archive_rewrote(result.final.stderr, result.final.stdout)
+            _log(f"[time-machine] re-execution id={result.sandbox_id} exit_code={result.final.exit_code}")
+            _record(result.final.exit_code, result.final.stdout[-2000:], result.final.stderr[-2000:], _execution_of(result, True))
+            return result
+
         def _auto_exit_wrapper(failed: SandboxRunResult) -> SandboxRunResult | None:
             """harness-v1.4.1-rc (D-35). Deterministic step (no model): the exit-site hook was installed and printed nothing, so the entry
             script now runs through RERUN's wrapper (runpy.run_path inside a try/except SystemExit that prints the traceback and re-raises
@@ -2098,7 +2184,10 @@ def _run_stages(
                     break
                 compiler_error = missing_compiler_error(classification)
                 removal_hit = api_removals.match(f"{sandbox_result.final.stderr}\n{sandbox_result.final.stdout}")  # harness-v1.5.1 (F2)
-                if removal_hit and removal_hit[0].rule not in removals_applied:
+                if classification.code == classifier.TaxonomyCode.APT_MIRROR_GONE and not state.apt_archive:
+                    state.stage = "time_machine"  # harness-v1.7 (R4): nothing else can install while the mirrors are gone
+                    step_result = _auto_apt_archive(classification.evidence or classification.code)
+                elif removal_hit and removal_hit[0].rule not in removals_applied:
                     state.stage = "time_machine"
                     step_result = _auto_api_removal(sandbox_result, *removal_hit)
                     if step_result is None and not state.cost_capped:

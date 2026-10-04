@@ -135,7 +135,88 @@ def torch_older_than_2_3(spec: str) -> bool:
     return False
 
 
-def plan_torch_setup(texts: Iterable[str], workdir: Path | None) -> TorchSetup | None:
+# --- harness-v1.7 (R4, apt_archive): an end-of-life Debian release on the base image ------------------------------------------------------------
+# DEV #16 (python:3.6-slim) and DEV #9 round 3 (python:3.7-slim) are Debian 11 "bullseye" images: their apt sources still name security.debian.org,
+# which no longer serves bullseye's files (`E: Failed to fetch http://security.debian.org/debian-security/pool/... 404`, APT_MIRROR_GONE). At
+# repair time, once, every apt command of the run is preceded by one RERUN-owned shell step that reads VERSION_CODENAME from /etc/os-release and,
+# ONLY for a codename in EOL_APT_SOURCES, rewrites /etc/apt/sources.list to that release's suites on its official archive, drops every other
+# source file, and turns off the Release-file expiry check (archived Release files are past their Valid-Until date). A live release is left alone.
+# The same Debian release's packages: no version changes. The suites are the ones the v1.7 probe saw served (runs/sandbox_verification/v1.7-probes/).
+EOL_APT_SOURCES: dict[str, tuple[str, ...]] = {
+    "stretch": ("deb http://archive.debian.org/debian stretch main",),
+    "buster": ("deb http://archive.debian.org/debian buster main",),
+    "bullseye": ("deb http://archive.debian.org/debian bullseye main",),
+}
+APT_ARCHIVE_MARKER = "RERUN_APT_ARCHIVE"
+_APT_COMMAND = re.compile(r"(?<![\w-])apt(?:-get)?\s[^\n;&|]*?\b(?:update|install)\b")
+
+
+def apt_archive_step() -> str:
+    """The POSIX-sh step (Debian images run it as root). Prints `RERUN_APT_ARCHIVE <codename>` to stderr when it rewrote, nothing otherwise; never fails."""
+    cases = []
+    for codename, lines in sorted(EOL_APT_SOURCES.items()):
+        body = "".join(f"{line}\\n" for line in lines)
+        cases.append(f"{codename}) printf '{body}' > /etc/apt/sources.list; rm -f /etc/apt/sources.list.d/*.list /etc/apt/sources.list.d/*.sources; "
+                     f"echo 'Acquire::Check-Valid-Until \"false\";' > /etc/apt/apt.conf.d/99rerun-archive; echo \"{APT_ARCHIVE_MARKER} $VERSION_CODENAME\" >&2;;")
+    return ("if [ -r /etc/os-release ]; then . /etc/os-release; case \"$VERSION_CODENAME\" in " + " ".join(cases) + " *) ;; esac; fi")
+
+
+def apt_archive_rewrote(*texts: str) -> list[str]:
+    """The codenames the apt-archive step rewrote, from a run's output (`RERUN_APT_ARCHIVE <codename>` lines), sorted, each once."""
+    return sorted({m for text in texts for m in re.findall(APT_ARCHIVE_MARKER + r" (\w+)", text or "")})
+
+
+def with_apt_archive(command: str) -> str:
+    """`command` preceded by the apt-archive step when it runs apt (update or install), else unchanged."""
+    return f"{apt_archive_step()}\n{command}" if _APT_COMMAND.search(command or "") else command
+
+
+@dataclass(frozen=True)
+class CompanionSwap:
+    """harness-v1.7 (R5, companion_relax): the repository pins torch and torchvision exactly, to releases that cannot be installed together (the
+    torchvision release requires another torch). The torch pin is kept (it decides the numerics); the torchvision pin becomes the release made for
+    that torch (torch_companions_data, a dated snapshot of PyPI's metadata, never read at run time)."""
+    package: str
+    pinned: str
+    replacement: str
+    primary: str
+    primary_version: str
+    pinned_requires: str
+
+    def as_dict(self) -> dict:
+        from app.services import torch_companions_data as data
+
+        return {"package": self.package, "from": self.pinned, "to": self.replacement, "kept": f"{self.primary}=={self.primary_version}",
+                "reason": f"{self.package} {self.pinned} requires {self.primary}=={self.pinned_requires}; the repository pins "
+                          f"{self.primary}=={self.primary_version}, whose {self.package} is {self.replacement}",
+                "table": {"source": data.SOURCE, "retrieved": data.RETRIEVED}}
+
+
+_EXACT = re.compile(r"^==\s*(\d+(?:\.\d+)*)$")
+
+
+def companion_swap(specs: Iterable[str]) -> CompanionSwap | None:
+    """The swap for a torch-family requirement set whose exact torch and torchvision pins cannot coexist, else None. Only exact pins (`==X`) are
+    read: a range is the resolver's to settle. None when the table does not know either release, or when the pins already agree."""
+    from app.services import torch_companions_data as data
+
+    pins = {}
+    for spec in specs:
+        name = _spec_base(spec)
+        m = _EXACT.match(spec[len(name):].strip())
+        if m:
+            pins[name] = m.group(1)
+    torch_v, vision_v = pins.get("torch"), pins.get("torchvision")
+    if not torch_v or not vision_v:
+        return None
+    requires = data.TORCHVISION_REQUIRES_TORCH.get(vision_v)
+    replacement = data.TORCHVISION_FOR_TORCH.get(torch_v)
+    if requires is None or replacement is None or requires == torch_v or replacement == vision_v:
+        return None
+    return CompanionSwap("torchvision", vision_v, replacement, "torch", torch_v, requires)
+
+
+def plan_torch_setup(texts: Iterable[str], workdir: Path | None, overrides: dict[str, str] | None = None) -> TorchSetup | None:
     """None if the repo does not use torch. `texts` = the plan's install commands + the repo's requirement
     files (current copy). If ANY of torch/torchvision/torchaudio is imported or declared, the whole family is
     installed as one matched set (attempt 1, entry 4: the repo imported torchvision, the runner installed only
@@ -147,9 +228,15 @@ def plan_torch_setup(texts: Iterable[str], workdir: Path | None) -> TorchSetup |
     used = set(pins) | imported
     if not used:
         return None
+    for name, version in (overrides or {}).items():  # harness-v1.7 (R5): a companion pin relaxed at repair time (CompanionSwap)
+        if name in pins:
+            pins[name] = f"=={version}"
     specs = tuple(f"{name}{pins.get(name, '')}" for name in TORCH_FAMILY)
     needed = tuple(name for name in TORCH_FAMILY if name in used or name == "torch")
-    if pins:
+    if overrides:
+        reason = (f"repo pins {', '.join(pins)}; installed the CPU wheels as a matched set with the same pins except "
+                  + ", ".join(f"{n}=={v} (companion relaxed)" for n, v in overrides.items()))
+    elif pins:
         reason = f"repo pins {', '.join(pins)}; installed the CPU wheels as a matched set with the same pins"
     else:
         reason = f"repo imports {', '.join(sorted(imported))} without declaring it; runner provides the newest matched CPU wheels"
