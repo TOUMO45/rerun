@@ -9,7 +9,8 @@ readings.
 | (earlier) | 2026-10-01 19:37 local | account at most $0.39 cumulative | | before the v1.4.1 gate |
 | after the v1.4.1 gate | 2026-10-01 | $49.57 | $0.04 | at most $0.43 cumulative: a $50.00 start is inferred from these readings, not stated |
 | after DEV round 1 | **2026-10-03, after DEV round 1 and before round 2** (owner's screenshot, chat) | **$48.29** | **$1.28** | at most **$1.71 cumulative** if the account started at $50.00 |
-| **this reading** | **2026-10-03 19:07 local, after DEV round 2 and before round 3** (owner's screenshot, chat) | **$47.96** | **$0.33** | at most **$2.04 cumulative** if the account started at $50.00; the interval holds round 2 only ($6.9561 API-reported + estimates) |
+| after DEV round 2 | **2026-10-03 19:07 local, after DEV round 2 and before round 3** (owner's screenshot, chat) | **$47.96** | **$0.33** | at most **$2.04 cumulative** if the account started at $50.00; the interval holds round 2 only ($6.9561 API-reported + estimates) |
+| **this reading** | **2026-10-04 13:50 local, after DEV round 3, about one minute into round 4** (owner's screenshot, chat) | **$47.61** | **$0.35** | at most **$2.39 cumulative**; the interval holds round 3 ($5.8532 API-reported) and the first minute of round 4 |
 
 ## What the $48.29 covers, and what it does not say
 
@@ -29,4 +30,6 @@ Round 2 ($6.9561 API-reported + estimates, of which model calls $0.5444 API-repo
 
 Ledger ceiling $100.00 API-reported (the figure rule B4 names), and a BILLED floor of $20.00: no live work starts when the latest reading is below it. METHODOLOGY, "DEV round 2, BILLED reading, and the budget re-anchoring".
 
-Next reading wanted: after DEV round 3 (and at the freeze, and after the TEST phase).
+Round 3 ($5.8532 API-reported, model calls included) was billed $0.35: the second interval that holds one round, consistent with the first (round 2: $6.9561 → $0.33).
+
+Next reading wanted: after DEV round 4 (and at the freeze, and after the TEST phase).

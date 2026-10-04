@@ -5,6 +5,10 @@ Protocol: METHODOLOGY.md "harness-v1.5 dev/test protocol". Tag `harness-v1.5.2` 
 - **DEV count (smoke level, D2): 3 of 8** entries with a RUNS_* verdict; kinds: {'smoke_alive': 3} (`smoke_alive` = a 60 s smoke pass that nothing has confirmed; no sustained check in DEV).
 - Adds something over earlier rounds (D4): **yes** — count 3 exceeds the best earlier count 2.
 - Cost [API-REPORTED]: $5.8532; [ESTIMATED] (killed steps): $0.0000; round total $5.8532. BILLED: AWAITED (the owner reads the account balance and reports it in chat).
+
+> Annotation, 2026-10-04 13:50 local: the owner's reading after this round is **$47.61 [BILLED]**, $0.35 below the $47.96 reading after round 2. The reading was taken about one minute into round 4 (its first entry was building its baseline image), so at most a few cents of round 4 are inside the $0.35 (`reports/dev/BILLED_READINGS.md`).
+>
+> Annotation, same date, entry #14: its RUNS_AFTER_REPAIR follows a **model patch that passed the tamper gate** and changes the algorithm's numerics: `torch.lu(x, pivot=False)` became `torch.linalg.lu_factor(x)`, which pivots; the repository's code relies on no pivoting (it takes `triu` of the factor). The gate refuses a patch that makes the code do less; it does not check numerical equivalence. The verdict stands as recorded (a 60 s smoke pass after a gated repair); it is not a reproduction of the paper's computation, and the certificate's diff shows exactly what changed. Logged as candidate defect D-44 (a gate-passed patch may change what the code computes), to be registered in the Phase D update.
 - Ledger after this round (lower bound, D-27): $47.5792 (base $29.1704 + v1.5 DEV spend $18.4088); ceiling $75.00; DEV total $18.4088 of $40.00. Guard for another round: REFUSED — RESERVE: ledger $47.5792 + the round's central estimate $7.39 + the TEST reserve $26.11 passes the $75.00 ledger ceiling (the TEST phase could not be paid for).
 
 ## Verdict per entry
