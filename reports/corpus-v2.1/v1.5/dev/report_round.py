@@ -2,7 +2,7 @@
 
     backend/.venv/Scripts/python.exe reports/corpus-v2.1/v1.5/dev/report_round.py --round N [--out reports/dev/ROUND_N.md]
 
-Reads only the DEV round records written by run_dev_round.py (runs/corpus_v2_batch/harness-v1.5.*/dev/NN_name.json) and, for the historical histogram, the records of DEV and
+Reads only the DEV round records written by run_dev_round.py (runs/corpus_v2_batch/harness-v*/dev/NN_name.json: every DEV round, whatever its tag) and, for the historical histogram, the records of DEV and
 gate entries of every earlier version (devtest/firewall.py refuses a TEST record before it is opened). Every figure is read from a record; nothing is estimated here except what
 is labelled ESTIMATED (a killed step's cost, from the record's own estimate). The BILLED line stays AWAITED until the owner gives a balance reading.
 """
@@ -32,7 +32,7 @@ _TORCH = re.compile(r"^\[runner\] torch: ")
 def dev_records(runs_root: Path, round_no: int | None = None) -> dict[int, list[dict]]:
     """{round: [records]} for every DEV round on disk (the entry records, not the infra_retries); `round_no` keeps one round."""
     out: dict[int, list[dict]] = {}
-    for tagdir in sorted((runs_root / "corpus_v2_batch").glob("harness-v1.5*")):
+    for tagdir in sorted((runs_root / "corpus_v2_batch").glob("harness-v*")):
         dev = tagdir / "dev"
         files = sorted(p for p in dev.glob("[0-9][0-9]_*.json") if firewall.may_read_record(p) and firewall.entry_id_of(p) in firewall.DEV_ENTRIES)
         if not files:
@@ -112,7 +112,7 @@ def historical_histogram() -> collections.Counter:
     """Verdict codes of the historical records of DEV and gate entries, every version (TEST records are never opened)."""
     counts: collections.Counter = collections.Counter()
     for p in firewall.analysis_records(ROOT / "runs" / "corpus_v2_batch"):
-        if "infra_retries" in p.parts or "harness-v1.5" in p.as_posix():
+        if "infra_retries" in p.parts or "dev" in p.parts:  # a DEV round record (any tag) is this program's, not history
             continue
         rec = json.loads(firewall.read_record_text(p))
         verdict = (rec.get("result") or {}).get("verdict")
@@ -135,6 +135,46 @@ def adds_something(rounds: dict[int, list[dict]], n: int) -> tuple[bool, str]:
     if new:
         return True, f"entries {sorted(new)} reach RUNS_* for the first time"
     return False, f"count {len(mine)} does not exceed the best earlier count {best} and no entry reaches RUNS_* for the first time"
+
+
+def _cell(text) -> str:
+    return str(text if text is not None else "").replace("|", "\\|").replace("\n", " ")[:160]
+
+
+def ladder_and_blocker(records: list[dict]) -> list[str]:
+    """The harness-v1.6 sections (METHODOLOGY "harness-v1.6 — PRE-REGISTRATION", L and B): the ladder and the blocker as the record stores them (`result.outcome_levels`,
+    `result.blocker`). A record written before harness-v1.6 stores neither; the section says so instead of recomputing."""
+    stored = [r for r in records if isinstance((r.get("result") or {}).get("outcome_levels"), dict)]
+    if not stored:
+        return ["## Outcome ladder and blocker", "", "Not stored: the records of this round predate harness-v1.6 (`reports/dev/levels/levels.md` recomputes the ladder offline).", ""]
+    order = sorted(records, key=lambda r: (r.get("batch") or {}).get("entry_id"))
+    lv = [((r.get("result") or {}).get("outcome_levels") or {}) for r in order]
+    by = collections.Counter(x.get("first_error_cleared_by") for x in lv if x.get("first_error_cleared"))
+    out = ["## Outcome ladder (harness-v1.6, L; stored fields)", "",
+           f"Counts, this round: first error cleared **{sum(1 for x in lv if x.get('first_error_cleared'))} of {len(order)}** (by origin: {dict(by.most_common()) or 'none'}); "
+           f"environment resolved **{sum(1 for x in lv if x.get('env_resolved'))} of {len(order)}**; entrypoint runs (RUNS_*, smoke level) **{sum(1 for x in lv if x.get('entrypoint_runs'))} of {len(order)}**.", "",
+           "| id | first error cleared | cleared by | env resolved | entrypoint runs |", "|---|---|---|---|---|"]
+    for r, x in zip(order, lv):
+        yn = lambda v: "yes" if v else ("no" if v is not None else "(not stored)")  # noqa: E731
+        out.append(f"| {(r.get('batch') or {}).get('entry_id')} | {yn(x.get('first_error_cleared'))} | {x.get('first_error_cleared_by') or ''} | {yn(x.get('env_resolved'))} | {yn(x.get('entrypoint_runs'))} |")
+    out += ["", "## Blocker (harness-v1.6, B; stored fields; none on a RUNS_AFTER_REPAIR run)", "",
+            "| id | class | family | phase | attribution | fixable by | evidence | what a human must supply | sources |", "|---|---|---|---|---|---|---|---|---|"]
+    for r in order:
+        b = (r.get("result") or {}).get("blocker")
+        eid = (r.get("batch") or {}).get("entry_id")
+        if not isinstance(b, dict):
+            out.append(f"| {eid} | (none) | | | | | | | |")
+            continue
+        src = b.get("sources")
+        if isinstance(src, dict):
+            src_text = "; ".join((s or {}).get("url") or "" for s in src.get("sources") or []) or (src.get("reason") or "none")
+        elif isinstance(src, list):
+            src_text = "; ".join((s or {}).get("url") or "" for s in src) or "none"
+        else:
+            src_text = "not looked up" if src is None else str(src)
+        out.append(f"| {eid} | {b.get('class')} | {b.get('family')} | {b.get('phase')} | {b.get('attribution')} | {b.get('fixable_by')} | `{_cell(b.get('evidence'))}` | "
+                   f"{_cell(b.get('what_a_human_must_supply'))} | {_cell(src_text)} |")
+    return out + [""]
 
 
 def build_report(round_no: int, rounds: dict[int, list[dict]], *, billed: str = "AWAITED (the owner reads the account balance and reports it in chat)",
@@ -172,8 +212,9 @@ def build_report(round_no: int, rounds: dict[int, list[dict]], *, billed: str = 
         out.append(f"| {(r.get('batch') or {}).get('entry_id')} | {codes[0] if codes else '(none)'} | {' → '.join(codes[:8]) or '(none)'} | {(r.get('result') or {}).get('verdict')} {verdict_code(r)} |")
     out += ["", f"Histogram, baseline class, this round: {dict(base.most_common())}.", "",
             f"Histogram, ending (verdict code), this round: {dict(collections.Counter(f'{(r.get('result') or {}).get('verdict')} {verdict_code(r)}'.strip() for r in records).most_common())}.", "",
-            f"Histogram, ending, every earlier record of the DEV and gate entries (all versions, both arms of v1.3.2): {dict((history if history is not None else historical_histogram()).most_common())}.", "",
-            "## Deterministic rules that fired (no model call)", ""]
+            f"Histogram, ending, every earlier record of the DEV and gate entries (all versions, both arms of v1.3.2): {dict((history if history is not None else historical_histogram()).most_common())}.", ""]
+    out += ladder_and_blocker(records)
+    out += ["## Deterministic rules that fired (no model call)", ""]
     for r in sorted(records, key=lambda r: (r.get("batch") or {}).get("entry_id")):
         counted = collections.Counter(rules_fired(r))
         out.append(f"- #{(r.get('batch') or {}).get('entry_id')}: " + ("; ".join(f"{name}" + (f" x{n}" if n > 1 else "") for name, n in counted.items()) if counted else "none"))

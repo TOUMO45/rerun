@@ -48,12 +48,12 @@ class Spend:
 
 
 def read_spend(root: Path, exclude: Path | None = None) -> Spend:
-    """What the v1.5 DEV program has spent, from the files on disk: every entry record under runs/corpus_v2_batch/harness-v1.5*/dev/ (cost_guard.spent_usd, which includes the
+    """What the v1.5 DEV program has spent, from the files on disk: every entry record under runs/corpus_v2_batch/harness-v*/dev/ (every DEV round of the program, whatever its tag: harness-v1.5.*, v1.6.*, v1.7.*; cost_guard.spent_usd, which includes the
     estimate of a killed step), every pre-batch upload smoke record there, and the extras file (seals and anything else with a pointer to its record). `exclude` is a directory
     left out (the round being resumed: its own spend is what the round is about to continue, not a reason to refuse it)."""
     entries = smoke = estimated = 0.0
     items: list[tuple[str, float]] = []
-    for path in sorted((root / "runs" / "corpus_v2_batch").glob("harness-v1.5*/dev/**/*.json*")):
+    for path in sorted((root / "runs" / "corpus_v2_batch").glob("harness-v*/dev/**/*.json*")):
         if exclude is not None and exclude in path.parents:
             continue
         try:

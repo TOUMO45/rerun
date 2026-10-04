@@ -69,7 +69,7 @@ def check_frozen(tag: str, git=_git) -> None:
     changed = git("diff", "--name-only", tag, "HEAD", "--", *HARNESS_PATHS)
     if changed:
         raise SystemExit(f"REFUSED: the harness paths differ from {tag}: {changed.splitlines()[:5]}")
-    for dev_tag in git("tag", "--list", "harness-v1.5.[0-9]*").splitlines():
+    for dev_tag in git("tag", "--list", "harness-v1.[5-9].[0-9]*").splitlines():
         if git("rev-parse", f"refs/tags/{dev_tag}^{{commit}}") == local:
             raise SystemExit(f"REFUSED: {tag} is the same commit as the DEV round tag {dev_tag}: the freeze must be its own commit")
 
@@ -245,7 +245,7 @@ def main(argv: list[str] | None = None) -> int:
             print(f"sustained #{doc.get('entry')} {doc.get('name')}: {doc.get('outcome')}: {doc.get('label')} "
                   f"(${doc.get('cost_usd', 0.0):.4f} API-reported, ${doc.get('cost_estimated_usd', 0.0):.4f} estimated)", flush=True)
     dev_counts = {}
-    for path in sorted((ROOT / "runs" / "corpus_v2_batch").glob("harness-v1.5.[0-9]*/dev/round_summary.json")):
+    for path in sorted((ROOT / "runs" / "corpus_v2_batch").glob("harness-v*/dev/round_summary.json")):
         doc = json.loads(path.read_text(encoding="utf-8"))
         dev_counts[int(doc["round"])] = sum(1 for e in doc["entries"] if e.get("verdict") in RUNS_VERDICTS)
     result_doc = evaluate(records, sustained, dev_counts)

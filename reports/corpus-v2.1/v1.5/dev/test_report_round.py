@@ -103,3 +103,35 @@ def test_historical_histogram_skips_test_records_and_the_v15_rounds(tmp_path, mo
     (d / "04_a__b.json").write_text(json.dumps({"result": {"verdict": "BLOCKED", "taxonomy_code": "DEP_MISSING"}}), encoding="utf-8")
     (d / "07_a__b.json").write_text(json.dumps({"result": {"verdict": "BLOCKED", "taxonomy_code": "DEP_MISSING"}}), encoding="utf-8")
     assert r.historical_histogram() == collections.Counter({"BLOCKED DEP_MISSING": 2})
+
+
+def test_dev_rounds_at_any_tag_are_read_and_kept_out_of_the_history(tmp_path, monkeypatch):
+    """A DEV round under a later tag (harness-v1.6.0/dev, harness-v1.7.0/dev) is a round of this program: read as a round, counted in the ledger, never in the history."""
+    r = _mod()
+    for tag, rnd in (("harness-v1.5.2", 3), ("harness-v1.6.0", 4), ("harness-v1.7.0", 5)):
+        d = tmp_path / "runs" / "corpus_v2_batch" / tag / "dev"
+        d.mkdir(parents=True)
+        rec = _record(4, round_no=rnd)
+        rec["cost_guard"] = {"spent_usd": 1.0, "estimated_sandbox_spent_usd": 0.0}
+        (d / "04_o__r4.json").write_text(json.dumps(rec), encoding="utf-8")
+    assert sorted(r.dev_records(tmp_path / "runs")) == [3, 4, 5]
+    assert budget.read_spend(tmp_path).entries_usd == 3.0
+    monkeypatch.setattr(r, "ROOT", tmp_path)
+    assert sum(r.historical_histogram().values()) == 0
+
+
+def test_the_ladder_and_blocker_sections_read_the_stored_v16_fields():
+    r = _mod()
+    a, b = _record(4), _record(5, verdict="RUNS_AFTER_REPAIR")
+    a["result"]["outcome_levels"] = {"first_error_cleared": True, "first_error_cleared_by": "time_machine", "env_resolved": True, "entrypoint_runs": False}
+    a["result"]["blocker"] = {"class": "DATA_MISSING", "family": "Data", "phase": "repo_run", "attribution": "REPO", "evidence": "AssertionError: Download x | y",
+                              "fixable_by": "human", "what_a_human_must_supply": "the dataset", "sources": {"query": "q", "sources": [{"title": "t", "url": "https://e.org/d"}], "reason": None}}
+    b["result"]["outcome_levels"] = {"first_error_cleared": True, "first_error_cleared_by": "model", "env_resolved": True, "entrypoint_runs": True}
+    b["result"]["blocker"] = None
+    text = "\n".join(r.ladder_and_blocker([a, b]))
+    assert "first error cleared **2 of 2**" in text and "entrypoint runs (RUNS_*, smoke level) **1 of 2**" in text
+    assert "| 4 | DATA_MISSING | Data | repo_run | REPO | human | `AssertionError: Download x \\| y` | the dataset | https://e.org/d |" in text
+    assert "| 5 | (none) |" in text
+    old = _record(4)
+    old["result"].pop("outcome_levels", None)
+    assert "predate harness-v1.6" in "\n".join(r.ladder_and_blocker([old]))
