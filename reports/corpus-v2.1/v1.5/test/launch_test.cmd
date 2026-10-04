@@ -6,5 +6,5 @@ cd /d %~dp0..\..\..\..
 set PYTHONIOENCODING=utf-8
 if not exist runs\corpus_v2_batch\harness-v1.5-final mkdir runs\corpus_v2_batch\harness-v1.5-final
 echo LAUNCH %DATE% %TIME% test cap %1 >> runs\corpus_v2_batch\harness-v1.5-final\test_launcher.txt
-backend\.venv\Scripts\pythonw.exe -u reports\corpus-v2.1\v1.5\test\run_test_phase.py --tag harness-v1.5-final --test-cap-usd %1 --entry-cap-usd 1.50 --go --log-file runs\corpus_v2_batch\harness-v1.5-final\test_stdout.log
+backend\.venv\Scripts\pythonw.exe -u reports\corpus-v2.1\v1.5\test\run_test_phase.py --tag harness-v1.5-final --test-cap-usd %1 --entry-cap-usd 2.50 --go --log-file runs\corpus_v2_batch\harness-v1.5-final\test_stdout.log
 echo PYTHONW_RETURNED %ERRORLEVEL% %DATE% %TIME% >> runs\corpus_v2_batch\harness-v1.5-final\test_launcher.txt

@@ -16,7 +16,9 @@ import json
 from dataclasses import dataclass, field
 from pathlib import Path
 
-ENTRY_CAP_USD = 1.50
+# harness-v1.7 pre-registration (owner, chat 2026-10-04): $2.50 for DEV round 5 and the TEST phase (was $1.50 through round 4). The DEV total
+# stays $40.00 unless the owner writes another figure (run_dev_round.py --dev-total-usd); with $2.50 a round's worst case is $20.00.
+ENTRY_CAP_USD = 2.50
 N_DEV = 8
 ROUND_CAP_USD = round(N_DEV * ENTRY_CAP_USD, 2)  # 12.00: the worst case of one round
 DEV_TOTAL_CAP_USD = 40.00

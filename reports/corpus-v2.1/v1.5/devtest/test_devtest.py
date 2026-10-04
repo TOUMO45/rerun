@@ -103,9 +103,12 @@ def test_round_one_is_allowed_from_the_recorded_ledger():
 
 
 def test_the_dev_total_is_a_hard_check_on_a_rounds_worst_case():
-    guard = budget.round_guard(budget.Spend(entries_usd=28.50))
+    guard = budget.round_guard(budget.Spend(entries_usd=20.50))  # harness-v1.7: the worst case is 8 x $2.50 = $20.00 (was $12.00, threshold $28.00)
     assert not guard.hard_ok and any("DEV total" in r for r in guard.reasons)
-    assert budget.round_guard(budget.Spend(entries_usd=27.99), ledger_ceiling_usd=200.0).hard_ok
+    assert budget.round_guard(budget.Spend(entries_usd=19.99), ledger_ceiling_usd=200.0).hard_ok
+    # the owner's DEV total, written in chat, is what the runner passes (rule B4); round 5 after round 4's $23.7632 needs at least $43.77
+    assert not budget.round_guard(budget.Spend(entries_usd=23.7632), ledger_ceiling_usd=100.0).hard_ok
+    assert budget.round_guard(budget.Spend(entries_usd=23.7632), ledger_ceiling_usd=100.0, dev_total_cap_usd=50.0).ok
 
 
 def test_the_ledger_ceiling_is_a_hard_check_on_a_rounds_worst_case():
@@ -124,7 +127,7 @@ def test_the_central_estimate_and_the_reserve_come_from_the_recorded_costs():
     gate = [0.94354533, 0.6735389700000002, 1.1742299299999996, 0.90323577]
     assert round(8 * sum(gate) / 4, 2) == budget.CENTRAL_ROUND_USD
     assert budget.TEST_RESERVE_USD == round(budget.CENTRAL_ROUND_USD + 3 * 600 * 0.0104, 2) == 26.11
-    assert budget.ROUND_CAP_USD == 12.00
+    assert budget.ROUND_CAP_USD == 20.00  # harness-v1.7: 8 x the owner's $2.50 entry cap (was 8 x $1.50 = $12.00 through round 4)
 
 
 def test_read_spend_sums_entry_records_smoke_tests_and_extras_and_can_exclude_a_round(tmp_path):

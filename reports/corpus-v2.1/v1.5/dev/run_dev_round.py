@@ -86,7 +86,9 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--selftest", action="store_true")
     ap.add_argument("--round", type=int, help="the DEV round number (1-6), for the records' labels")
     ap.add_argument("--tag", help="the sealed harness tag this round runs at (harness-v1.5.N)")
-    ap.add_argument("--entry-cap-usd", type=float, help="the fixed per-entry cap (the owner's $1.50)")
+    ap.add_argument("--entry-cap-usd", type=float, help="the fixed per-entry cap (the owner's $2.50 from harness-v1.7; $1.50 through round 4)")
+    ap.add_argument("--dev-total-usd", type=float, default=budget.DEV_TOTAL_CAP_USD,
+                    help="the DEV total the HARD check uses (rule B4; $40.00 unless the owner writes another figure in chat)")
     ap.add_argument("--ledger-ceiling-usd", type=float, default=budget.LEDGER_CEILING_USD, help="the owner's ledger ceiling; raise only when the owner writes a new figure in chat")
     ap.add_argument("--resume", action="store_true", help="after an interruption: keep the valid records already written, run only the other entries")
     ap.add_argument("--log-file", help="write everything this process prints to this file (line-buffered, appended): for a run with no console")
@@ -112,9 +114,9 @@ def main(argv: list[str] | None = None) -> int:
     gate_budget.check_gate_caps(round_cap, args.entry_cap_usd, len(DEV_ENTRIES))
     odir = ROOT / "runs" / "corpus_v2_batch" / args.tag / "dev"
     spend = budget.read_spend(ROOT, exclude=odir if args.resume else None)  # a resumed round's own records are what it continues, not a reason to refuse it
-    guard = budget.round_guard(spend, ledger_ceiling_usd=args.ledger_ceiling_usd, round_cap_usd=round_cap)
+    guard = budget.round_guard(spend, ledger_ceiling_usd=args.ledger_ceiling_usd, round_cap_usd=round_cap, dev_total_cap_usd=args.dev_total_usd)
     print(f"budget: ledger ${guard.ledger_usd:.4f} (base ${budget.LEDGER_BASE_USD} + v1.5 DEV spend ${spend.total_usd:.4f}); ceiling ${args.ledger_ceiling_usd:.2f}; "
-          f"DEV total cap ${budget.DEV_TOTAL_CAP_USD:.2f}; round cap ${round_cap:.2f}; TEST reserve ${budget.TEST_RESERVE_USD:.2f}", flush=True)
+          f"DEV total cap ${args.dev_total_usd:.2f}; round cap ${round_cap:.2f}; TEST reserve ${budget.TEST_RESERVE_USD:.2f}", flush=True)
     if not guard.ok:
         for reason in guard.reasons:
             print(f"REFUSED: {reason}", file=sys.stderr, flush=True)

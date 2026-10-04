@@ -61,14 +61,23 @@ def verdict_code(record: dict) -> str:
     return result.get("taxonomy_code") or result.get("reason_code") or ""
 
 
+V17_RULES = ("memory_hook", "resource_adapt", "cpu_shim", "data_prep", "apt_archive", "companion_relax")
+
+
 def rules_fired(record: dict) -> list[str]:
+    """Every deterministic step of the run. harness-v1.7: read from the attempts' `time_machine_action.rule` (the record field), with the
+    runner's torch policy and any step only the log names (a record written before a step stored its action) taken from the event lines."""
     out = []
+    stored = [((a.get("time_machine_action") or {}).get("rule")) for a in (record.get("result") or {}).get("attempts") or []]
+    stored = [r for r in stored if r]
     for e in record.get("events") or []:
         line = e.get("line") or ""
         if (m := _DETERMINISTIC.match(line)):
-            out.append(m.group(1).strip())
+            if m.group(1).strip() not in stored:
+                out.append(m.group(1).strip())
         elif _TORCH.match(line):
             out.append("runner torch policy")
+    out += stored
     for a in (record.get("result") or {}).get("attempts") or []:
         if a.get("origin") == "time_machine":
             tm = a.get("time_machine") or {}
@@ -137,6 +146,34 @@ def adds_something(rounds: dict[int, list[dict]], n: int) -> tuple[bool, str]:
     return False, f"count {len(mine)} does not exceed the best earlier count {best} and no entry reaches RUNS_* for the first time"
 
 
+def v17_firing(records: list[dict]) -> list[str]:
+    """harness-v1.7 pre-registration, 'What round 5 measures': for each rule R1-R5, the entries it fired on, what it recorded, and the ending."""
+    out = ["## harness-v1.7 rules (R1-R5): where each fired, what it recorded, how the entry ended", "",
+           "| rule | entry | recorded | entry's ending |", "|---|---|---|---|"]
+    any_row = False
+    for rule in V17_RULES:
+        for r in sorted(records, key=lambda r: (r.get("batch") or {}).get("entry_id")):
+            res = r.get("result") or {}
+            for a in res.get("attempts") or []:
+                act = a.get("time_machine_action") or {}
+                if act.get("rule") != rule:
+                    continue
+                if rule == "cpu_shim" and not any(str(p).startswith("cpu_ref:") for p in act.get("paths_fired") or []):
+                    continue  # the v1.7 part of the shim is the reference kernels (R2)
+                detail = {"memory_hook": lambda: f"changes {act.get('changes') or 'none printed'}; env {act.get('env')}; swap {act.get('swap_file')}",
+                          "resource_adapt": lambda: act.get("label", ""),
+                          "cpu_shim": lambda: f"paths {[p for p in act.get('paths_fired') or [] if str(p).startswith('cpu_ref:')]}",
+                          "data_prep": lambda: f"{act.get('kind')} {act.get('readme')}:{act.get('line')} `{(act.get('command') or act.get('url') or '')[:80]}`; "
+                                               f"result {json.dumps(act.get('result'), sort_keys=True)[:160]}",
+                          "apt_archive": lambda: f"rewrote {act.get('rewrote')}",
+                          "companion_relax": lambda: act.get("reason", "")}[rule]()
+                out.append(f"| {rule} | {(r.get('batch') or {}).get('entry_id')} | {_cell(detail)} | {res.get('verdict')} {verdict_code(r)} (exit {a.get('exit_code')}) |")
+                any_row = True
+    if not any_row:
+        out.append("| (none) | | no v1.7 rule fired in this round | |")
+    return out + [""]
+
+
 def ladder_of(record: dict) -> dict:
     """The stored `outcome_levels` of a v1.6 record, or the same function applied to an older record's stored fields."""
     res = record.get("result") or {}
@@ -194,7 +231,7 @@ def ladder_and_blocker(records: list[dict]) -> list[str]:
 
 def build_report(round_no: int, rounds: dict[int, list[dict]], *, billed: str = "AWAITED (the owner reads the account balance and reports it in chat)",
                  spend: budget.Spend | None = None, history: collections.Counter | None = None,
-                 ledger_ceiling_usd: float = budget.LEDGER_CEILING_USD) -> str:
+                 ledger_ceiling_usd: float = budget.LEDGER_CEILING_USD, dev_total_usd: float = budget.DEV_TOTAL_CAP_USD) -> str:
     records = rounds[round_no]
     tag = (records[0].get("batch") or {}).get("harness_tag")
     commit = (records[0].get("batch") or {}).get("harness_commit")
@@ -204,15 +241,17 @@ def build_report(round_no: int, rounds: dict[int, list[dict]], *, billed: str = 
     kinds = collections.Counter(final_kind(r) for r in runs)
     adds, why = adds_something(rounds, round_no)
     spend = spend if spend is not None else budget.read_spend(ROOT)
-    guard = budget.round_guard(spend, ledger_ceiling_usd=ledger_ceiling_usd)
+    guard = budget.round_guard(spend, ledger_ceiling_usd=ledger_ceiling_usd, dev_total_cap_usd=dev_total_usd)
     out = [f"# DEV round {round_no} — {tag}", "",
            f"Protocol: METHODOLOGY.md \"harness-v1.5 dev/test protocol\". Tag `{tag}` (commit `{commit[:12]}`), TREATMENT, the {len(split.DEV_ENTRIES)} DEV entries once each, entry cap ${budget.ENTRY_CAP_USD:.2f}. "
            "DEV entries are tuned on; this is a development signal, not a result. The TEST entries are not in this report (rule F).", "",
            f"- **DEV count (smoke level, D2): {len(runs)} of {len(records)}** entries with a RUNS_* verdict; kinds: {dict(kinds) or 'none'} (`smoke_alive` = a 60 s smoke pass that nothing has confirmed; no sustained check in DEV).",
+           f"- Of those (harness-v1.7 pre-registration): **{sum(1 for r in runs if ladder_of(r).get('resource_adapted'))} resource-adapted** (R1 d, the documented "
+           f"command ran with a smaller batch) and **{sum(1 for r in runs if ladder_of(r).get('semantic_change'))} with a semantic change** (R6, D-44).",
            f"- Adds something over earlier rounds (D4): **{'yes' if adds else 'no'}** — {why}.",
            f"- Cost [API-REPORTED]: ${total - est:.4f}; [ESTIMATED] (killed steps): ${est:.4f}; round total ${total:.4f}. BILLED: {billed}.",
            f"- Ledger after this round (lower bound, D-27): ${guard.ledger_usd:.4f} (base ${budget.LEDGER_BASE_USD} + v1.5 DEV spend ${spend.total_usd:.4f}); ceiling ${ledger_ceiling_usd:.2f}; "
-           f"DEV total ${spend.total_usd:.4f} of ${budget.DEV_TOTAL_CAP_USD:.2f}. Guard for another round: {'OK' if guard.ok else 'REFUSED — ' + '; '.join(guard.reasons)}.", "",
+           f"DEV total ${spend.total_usd:.4f} of ${dev_total_usd:.2f}. Guard for another round: {'OK' if guard.ok else 'REFUSED — ' + '; '.join(guard.reasons)}.", "",
            "## Verdict per entry", "", "| id | entry | verdict | code | kind of final run | attempts | model attempts | cost USD |", "|---|---|---|---|---|---|---|---|"]
     for r in sorted(records, key=lambda r: (r.get("batch") or {}).get("entry_id")):
         res = r.get("result") or {}
@@ -229,6 +268,7 @@ def build_report(round_no: int, rounds: dict[int, list[dict]], *, billed: str = 
             f"Histogram, ending (verdict code), this round: {dict(collections.Counter(f'{(r.get('result') or {}).get('verdict')} {verdict_code(r)}'.strip() for r in records).most_common())}.", "",
             f"Histogram, ending, every earlier record of the DEV and gate entries (all versions, both arms of v1.3.2): {dict((history if history is not None else historical_histogram()).most_common())}.", ""]
     out += ladder_and_blocker(records)
+    out += v17_firing(records)
     out += ["## Deterministic rules that fired (no model call)", ""]
     for r in sorted(records, key=lambda r: (r.get("batch") or {}).get("entry_id")):
         counted = collections.Counter(rules_fired(r))
@@ -255,12 +295,13 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--billed", default="AWAITED (the owner reads the account balance and reports it in chat)")
     ap.add_argument("--ledger-ceiling-usd", type=float, default=100.00,
                     help="the owner's ledger ceiling as the runner was given it (METHODOLOGY, budget re-anchoring 2026-10-03: $100.00); the guard line uses it")
+    ap.add_argument("--dev-total-usd", type=float, default=budget.DEV_TOTAL_CAP_USD, help="the DEV total as the runner was given it")
     args = ap.parse_args(argv)
     rounds = dev_records(ROOT / "runs", None)
     if args.round not in rounds:
         print(f"no DEV records for round {args.round}", file=sys.stderr)
         return 2
-    text = build_report(args.round, rounds, billed=args.billed, ledger_ceiling_usd=args.ledger_ceiling_usd)
+    text = build_report(args.round, rounds, billed=args.billed, ledger_ceiling_usd=args.ledger_ceiling_usd, dev_total_usd=args.dev_total_usd)
     out = Path(args.out) if args.out else ROOT / "reports" / "dev" / f"ROUND_{args.round}.md"
     out.parent.mkdir(parents=True, exist_ok=True)
     out.write_text(text, encoding="utf-8", newline="\n")
