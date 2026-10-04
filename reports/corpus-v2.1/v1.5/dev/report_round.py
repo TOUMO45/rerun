@@ -138,7 +138,8 @@ def adds_something(rounds: dict[int, list[dict]], n: int) -> tuple[bool, str]:
 
 
 def build_report(round_no: int, rounds: dict[int, list[dict]], *, billed: str = "AWAITED (the owner reads the account balance and reports it in chat)",
-                 spend: budget.Spend | None = None, history: collections.Counter | None = None) -> str:
+                 spend: budget.Spend | None = None, history: collections.Counter | None = None,
+                 ledger_ceiling_usd: float = budget.LEDGER_CEILING_USD) -> str:
     records = rounds[round_no]
     tag = (records[0].get("batch") or {}).get("harness_tag")
     commit = (records[0].get("batch") or {}).get("harness_commit")
@@ -148,14 +149,14 @@ def build_report(round_no: int, rounds: dict[int, list[dict]], *, billed: str = 
     kinds = collections.Counter(final_kind(r) for r in runs)
     adds, why = adds_something(rounds, round_no)
     spend = spend if spend is not None else budget.read_spend(ROOT)
-    guard = budget.round_guard(spend)
+    guard = budget.round_guard(spend, ledger_ceiling_usd=ledger_ceiling_usd)
     out = [f"# DEV round {round_no} — {tag}", "",
            f"Protocol: METHODOLOGY.md \"harness-v1.5 dev/test protocol\". Tag `{tag}` (commit `{commit[:12]}`), TREATMENT, the {len(split.DEV_ENTRIES)} DEV entries once each, entry cap ${budget.ENTRY_CAP_USD:.2f}. "
            "DEV entries are tuned on; this is a development signal, not a result. The TEST entries are not in this report (rule F).", "",
            f"- **DEV count (smoke level, D2): {len(runs)} of {len(records)}** entries with a RUNS_* verdict; kinds: {dict(kinds) or 'none'} (`smoke_alive` = a 60 s smoke pass that nothing has confirmed; no sustained check in DEV).",
            f"- Adds something over earlier rounds (D4): **{'yes' if adds else 'no'}** — {why}.",
            f"- Cost [API-REPORTED]: ${total - est:.4f}; [ESTIMATED] (killed steps): ${est:.4f}; round total ${total:.4f}. BILLED: {billed}.",
-           f"- Ledger after this round (lower bound, D-27): ${guard.ledger_usd:.4f} (base ${budget.LEDGER_BASE_USD} + v1.5 DEV spend ${spend.total_usd:.4f}); ceiling ${budget.LEDGER_CEILING_USD:.2f}; "
+           f"- Ledger after this round (lower bound, D-27): ${guard.ledger_usd:.4f} (base ${budget.LEDGER_BASE_USD} + v1.5 DEV spend ${spend.total_usd:.4f}); ceiling ${ledger_ceiling_usd:.2f}; "
            f"DEV total ${spend.total_usd:.4f} of ${budget.DEV_TOTAL_CAP_USD:.2f}. Guard for another round: {'OK' if guard.ok else 'REFUSED — ' + '; '.join(guard.reasons)}.", "",
            "## Verdict per entry", "", "| id | entry | verdict | code | kind of final run | attempts | model attempts | cost USD |", "|---|---|---|---|---|---|---|---|"]
     for r in sorted(records, key=lambda r: (r.get("batch") or {}).get("entry_id")):
@@ -196,12 +197,14 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--round", type=int, required=True)
     ap.add_argument("--out")
     ap.add_argument("--billed", default="AWAITED (the owner reads the account balance and reports it in chat)")
+    ap.add_argument("--ledger-ceiling-usd", type=float, default=100.00,
+                    help="the owner's ledger ceiling as the runner was given it (METHODOLOGY, budget re-anchoring 2026-10-03: $100.00); the guard line uses it")
     args = ap.parse_args(argv)
     rounds = dev_records(ROOT / "runs", None)
     if args.round not in rounds:
         print(f"no DEV records for round {args.round}", file=sys.stderr)
         return 2
-    text = build_report(args.round, rounds, billed=args.billed)
+    text = build_report(args.round, rounds, billed=args.billed, ledger_ceiling_usd=args.ledger_ceiling_usd)
     out = Path(args.out) if args.out else ROOT / "reports" / "dev" / f"ROUND_{args.round}.md"
     out.parent.mkdir(parents=True, exist_ok=True)
     out.write_text(text, encoding="utf-8", newline="\n")
