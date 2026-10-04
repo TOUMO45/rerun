@@ -107,6 +107,7 @@ from app.services.tamper_gate import (
     heuristic_model_call_names,
     prepare_patch,
     py_compile_violations,
+    semantic_change_calls,
 )
 
 
@@ -383,6 +384,11 @@ class AttemptRecord:
             record["adjudication"] = self.adjudication
         if self.chosen is not None:
             record["chosen"] = self.chosen
+        if self.origin == "model" and self.gate_decision == "PASS" and self.diff_text.strip():
+            # harness-v1.7 (R6, D-44): a gated model patch that touches a call whose replacement changes a result; only serialized when set.
+            flagged = semantic_change_calls(self.diff_text)
+            if flagged:
+                record["semantic_change"] = list(flagged)
         return record
 
 

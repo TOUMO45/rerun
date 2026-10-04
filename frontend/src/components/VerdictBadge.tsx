@@ -12,8 +12,19 @@ const STYLES: Record<Verdict, { label: string; classes: string }> = {
   UPLOAD_TOO_LARGE: { label: "TOO LARGE (HARNESS)", classes: "bg-surface text-text-secondary border-border" },
 };
 
-export function VerdictBadge({ verdict, size = "md" }: { verdict: Verdict; size?: "sm" | "md" | "lg" }) {
-  const style = STYLES[verdict];
+/** harness-v1.7 (R6, D-44): a RUNS_AFTER_REPAIR whose passing code carries a model patch that changes what the code computes. */
+const SEMANTIC_CHANGE = { label: "RUNS AFTER REPAIR (SEMANTIC CHANGE)", classes: "bg-warn/10 text-warn border-warn/40" };
+
+export function VerdictBadge({
+  verdict,
+  size = "md",
+  semanticChange = false,
+}: {
+  verdict: Verdict;
+  size?: "sm" | "md" | "lg";
+  semanticChange?: boolean;
+}) {
+  const style = semanticChange && verdict === "RUNS_AFTER_REPAIR" ? SEMANTIC_CHANGE : STYLES[verdict];
   const sizeClasses = size === "lg" ? "text-sm px-4 py-2" : size === "sm" ? "text-[11px] px-2 py-0.5" : "text-xs px-3 py-1";
   return (
     <span

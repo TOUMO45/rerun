@@ -54,6 +54,12 @@ export function OutcomeLadder({ levels }: { levels: OutcomeLevels }) {
           </li>
         ))}
       </ol>
+      {levels.semantic_change && levels.semantic_change.length > 0 && (
+        <p data-testid="semantic-change" className="mt-2 font-mono text-[11px] leading-relaxed text-warn">
+          Semantic change (D-44): the passing code carries a gated model patch that touches {levels.semantic_change.join(", ")}; it
+          runs, but it may not compute what the paper&apos;s code computes. The diff is below.
+        </p>
+      )}
       <p className="mt-2 font-mono text-[11px] leading-relaxed text-text-secondary">
         Each rung is a count of stored fields, not a judgment; only the TEST phase&apos;s 600 s sustained check confirms
         a smoke pass.

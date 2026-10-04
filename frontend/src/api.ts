@@ -159,6 +159,9 @@ export interface OutcomeLevels {
   env_resolved: boolean;
   /** The verdict says the repository's command completed. */
   entrypoint_runs: boolean;
+  /** harness-v1.7 (R6, D-44): present only when a gated model patch the passing run carried touches a call whose replacement changes a
+   * result (torch.lu, linalg.*, solve, a seed, a dtype cast, a loss, ...): the names of those calls. */
+  semantic_change?: string[];
 }
 
 /** One Tavily hit for a blocker's "where to get it" lookup. */
@@ -199,6 +202,8 @@ export interface Blocker {
 export interface CertificateOut {
   run_id: string;
   verdict: Verdict;
+  /** harness-v1.7 (R6): the verdict as printed, "RUNS_AFTER_REPAIR (semantic change)" when D-44 applies; absent on older servers. */
+  verdict_label?: string;
   certificate_prose: string;
   full_log: string;
   build_plan: Record<string, unknown>;

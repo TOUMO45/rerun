@@ -94,6 +94,14 @@ class CertificateOut(BaseModel):
 
     @computed_field  # type: ignore[prop-decorator]
     @property
+    def verdict_label(self) -> str:
+        """harness-v1.7 (R6, D-44): the verdict as printed: "RUNS_AFTER_REPAIR (semantic change)" when a gated model patch touched a listed call."""
+        from app.services import outcome_levels
+
+        return outcome_levels.verdict_label(self._record())
+
+    @computed_field  # type: ignore[prop-decorator]
+    @property
     def blocker(self) -> dict | None:
         from app.services import blocker
 

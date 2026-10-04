@@ -475,6 +475,42 @@ describe("Certificate — blocker card (harness-v1.6)", () => {
   });
 });
 
+describe("Certificate — semantic change (harness-v1.7, R6, D-44)", () => {
+  it("labels a RUNS_AFTER_REPAIR whose model patch touched a listed call, and names the calls on the ladder", async () => {
+    getRun.mockResolvedValue(makeRun({ verdict: "RUNS_AFTER_REPAIR", taxonomy_code: null }));
+    getCertificate.mockResolvedValue(
+      makeCert([], {
+        verdict: "RUNS_AFTER_REPAIR",
+        outcome_levels: {
+          first_error_cleared: true,
+          first_error_cleared_by: "time_machine",
+          env_resolved: true,
+          entrypoint_runs: true,
+          semantic_change: ["torch.lu", "linalg"],
+        },
+        blocker: null,
+      }),
+    );
+    renderCertificate();
+    expect(await screen.findByText("RUNS AFTER REPAIR (SEMANTIC CHANGE)")).toBeTruthy();
+    expect(screen.getByTestId("semantic-change").textContent).toContain("torch.lu, linalg");
+  });
+
+  it("keeps the plain label when no listed call was touched", async () => {
+    getRun.mockResolvedValue(makeRun({ verdict: "RUNS_AFTER_REPAIR", taxonomy_code: null }));
+    getCertificate.mockResolvedValue(
+      makeCert([], {
+        verdict: "RUNS_AFTER_REPAIR",
+        outcome_levels: { first_error_cleared: true, first_error_cleared_by: "model", env_resolved: true, entrypoint_runs: true },
+        blocker: null,
+      }),
+    );
+    renderCertificate();
+    expect(await screen.findByText("RUNS AFTER REPAIR")).toBeTruthy();
+    expect(screen.queryByTestId("semantic-change")).toBeNull();
+  });
+});
+
 describe("Certificate — certificates served before harness-v1.6", () => {
   it("renders without the ladder or the blocker card when both fields are absent", async () => {
     getRun.mockResolvedValue(makeRun());

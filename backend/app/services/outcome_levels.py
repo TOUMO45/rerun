@@ -16,6 +16,10 @@ are recomputed from any stored record, so an old certificate can be read the sam
   env_resolved            the run got past the environment: the entry point ran, or the LAST failure is not an
                           environment-family class (dependencies, system libraries, the interpreter, the mirrors)
   entrypoint_runs         the verdict says the repository's command completed
+  semantic_change         harness-v1.7 (R6, D-44); present ONLY on a RUNS_AFTER_REPAIR run whose passing code carries a gated model patch that
+                          touches a call of tamper_gate.SEMANTIC_CALLS: the names of those calls. The verdict is unchanged; its label reads
+                          "RUNS_AFTER_REPAIR (semantic change)" (`verdict_label`). Absent otherwise, so every record written before v1.7 that it
+                          does not flag reads exactly as before.
 """
 
 from __future__ import annotations
@@ -38,6 +42,37 @@ ENVIRONMENT_CLASSES: frozenset[str] = frozenset(
 )
 
 RUNS_VERDICTS: frozenset[str] = frozenset({"RUNS_CLEAN", "RUNS_AFTER_REPAIR"})
+SEMANTIC_CHANGE_LABEL = "RUNS_AFTER_REPAIR (semantic change)"
+
+
+def semantic_change(result: dict) -> tuple[str, ...]:
+    """harness-v1.7 (R6, D-44). The SEMANTIC_CALLS names touched by the model patches the passing run carried: every model attempt the tamper gate
+    passed, up to the passing one, that was either not a candidate of a round or the round's chosen candidate (a candidate the adjudicator did
+    not choose was never applied). Errs on the side of marking: a patch later superseded still counts. Empty unless RUNS_AFTER_REPAIR."""
+    from app.services import tamper_gate  # pure; imported here so the ladder's import list stays the taxonomy alone
+
+    if result.get("verdict") != "RUNS_AFTER_REPAIR":
+        return ()
+    attempts = list(result.get("attempts") or ())
+    passed_at = max((i for i, a in enumerate(attempts) if a.get("exit_code") == 0), default=None)
+    if passed_at is None:
+        return ()
+    found: list[str] = []
+    for a in attempts[: passed_at + 1]:
+        if a.get("origin") != "model" or a.get("gate_decision") != "PASS" or not (a.get("diff_text") or "").strip():
+            continue
+        if a.get("candidate") is not None and a.get("chosen") is not True:
+            continue
+        stored = a.get("semantic_change")
+        for name in (stored if isinstance(stored, (list, tuple)) else tamper_gate.semantic_change_calls(a.get("diff_text") or "")):
+            if name not in found:
+                found.append(name)
+    return tuple(found)
+
+
+def verdict_label(result: dict) -> str:
+    """The verdict as the certificate, the dashboard and the ladder print it: the code, or SEMANTIC_CHANGE_LABEL (harness-v1.7, R6)."""
+    return SEMANTIC_CHANGE_LABEL if semantic_change(result) else str(result.get("verdict") or "")
 
 
 def compute(result: dict) -> dict:
@@ -72,9 +107,13 @@ def compute(result: dict) -> dict:
 
     env_resolved = entrypoint_runs or (bool(chain) and chain[-1].get("class") not in ENVIRONMENT_CLASSES)
 
-    return {
+    out = {
         "first_error_cleared": first_error_cleared,
         "first_error_cleared_by": first_error_cleared_by,
         "env_resolved": env_resolved,
         "entrypoint_runs": entrypoint_runs,
     }
+    flagged = semantic_change(result)
+    if flagged:
+        out["semantic_change"] = list(flagged)
+    return out

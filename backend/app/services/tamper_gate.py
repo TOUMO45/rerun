@@ -119,6 +119,9 @@ class GateResult:
     # which files are touched. Empty if the diff could not be parsed.
     canonical_diff: str = ""
     touched_paths: tuple[str, ...] = ()
+    # harness-v1.7 (R6, D-44): the calls in a fixed list (`SEMANTIC_CALLS`) that the patch's changed lines touch. Not a rejection: a patch
+    # that passes is still applied; the flag travels to the attempt record, the ladder and the verdict label ("semantic change").
+    semantic_change: tuple[str, ...] = ()
 
     @property
     def passed(self) -> bool:
@@ -779,7 +782,55 @@ def check_patch(
         violations=tuple(violations),
         canonical_diff=prepared.canonical_diff,
         touched_paths=prepared.paths,
+        semantic_change=semantic_change_calls(prepared.canonical_diff or diff_text),
     )
+
+
+# --- harness-v1.7 (R6, D-44): a patch that changes what the code computes ---------------------------------------------------------------------
+# The gate refuses a patch that makes the code do LESS (stubbed calls, reduced scale, swallowed errors); it does not check numerical equivalence.
+# DEV #14, round 3: `torch.lu(x, pivot=False)` became the PIVOTING `torch.linalg.lu_factor(x)`, the gate passed it and the entry ended
+# RUNS_AFTER_REPAIR. A fixed list of calls whose replacement changes a result: a changed line (added or removed, in a .py file, not a comment)
+# that touches one marks the patch. The list is the pre-registered one (METHODOLOGY, harness-v1.7, R6); it errs on the side of marking.
+SEMANTIC_CALLS: tuple[tuple[str, re.Pattern], ...] = (
+    ("torch.lu", re.compile(r"\btorch\.lu\b(?!_)")),
+    ("linalg", re.compile(r"\blinalg\.\w+")),
+    ("solve", re.compile(r"\b(?:solve|lstsq|lu_solve|cholesky_solve|triangular_solve)\s*\(")),
+    ("inverse", re.compile(r"\b(?:inverse|inv|pinv|pinverse)\s*\(")),
+    ("eig", re.compile(r"\b(?:eig|eigh|eigvals|eigvalsh|symeig)\s*\(")),
+    ("svd", re.compile(r"\b(?:svd|svd_lowrank|svdvals)\s*\(")),
+    ("cholesky", re.compile(r"\bcholesky\s*\(")),
+    ("qr", re.compile(r"\bqr\s*\(")),
+    ("det", re.compile(r"\b(?:det|slogdet|logdet)\s*\(")),
+    ("random seed", re.compile(r"\b(?:manual_seed|manual_seed_all|seed|set_seed|set_random_seed|default_rng|RandomState)\s*\(")),
+    ("dtype cast", re.compile(r"\.(?:float|double|half|bfloat16|long|int|short)\s*\(\s*\)|\.to\s*\([^)]*\bdtype\b|\.to\s*\(\s*torch\.(?:float|double|half|bfloat16|int|long)"
+                              r"|\bastype\s*\(|\.type\s*\(\s*torch\.|\bset_default_dtype\s*\(|\bset_default_tensor_type\s*\(")),
+    ("loss", re.compile(r"\b\w*(?:loss|Loss)\s*\(|\bcriterion\s*\(")),
+)
+
+
+def semantic_change_calls(diff_text: str) -> tuple[str, ...]:
+    """PURE. The names (SEMANTIC_CALLS order) of the listed calls that the changed lines of a unified diff touch, in .py files only; comment
+    lines and diff headers are skipped. Empty for a diff that touches none (or is not a diff)."""
+    found: set[str] = set()
+    python_file = False
+    for line in (diff_text or "").splitlines():
+        if line.startswith("+++ ") or line.startswith("--- "):
+            target = line[4:].strip().split("\t")[0]
+            if line.startswith("+++ ") or target != _DEV_NULL:
+                python_file = target.endswith(".py") if target != _DEV_NULL else python_file
+            continue
+        if line.startswith("diff --git"):
+            python_file = line.rstrip().endswith(".py")
+            continue
+        if not python_file or not line[:1] in ("+", "-"):
+            continue
+        code = line[1:].split("#", 1)[0]
+        if not code.strip():
+            continue
+        for name, pattern in SEMANTIC_CALLS:
+            if pattern.search(code):
+                found.add(name)
+    return tuple(name for name, _ in SEMANTIC_CALLS if name in found)
 
 
 # harness-v1.3.4 (D-19). Added lines a diagnostics-only patch may contain: prints, logging, stderr writes, tracebacks, faulthandler,
