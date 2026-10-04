@@ -137,30 +137,45 @@ def adds_something(rounds: dict[int, list[dict]], n: int) -> tuple[bool, str]:
     return False, f"count {len(mine)} does not exceed the best earlier count {best} and no entry reaches RUNS_* for the first time"
 
 
+def ladder_of(record: dict) -> dict:
+    """The stored `outcome_levels` of a v1.6 record, or the same function applied to an older record's stored fields."""
+    res = record.get("result") or {}
+    if isinstance(res.get("outcome_levels"), dict):
+        return res["outcome_levels"]
+    from app.services import outcome_levels  # backend on sys.path (the runner does the same)
+    return outcome_levels.compute({"verdict": res.get("verdict"), "error_chain": res.get("error_chain") or [], "attempts": res.get("attempts") or []})
+
+
+def blocker_of(record: dict) -> dict | None:
+    res = record.get("result") or {}
+    if "blocker" in res:
+        return res["blocker"]
+    from app.services import blocker
+    return blocker.report({"verdict": res.get("verdict"), "error_chain": res.get("error_chain") or [], "attempts": res.get("attempts") or []})
+
+
 def _cell(text) -> str:
     return str(text if text is not None else "").replace("|", "\\|").replace("\n", " ")[:160]
 
 
 def ladder_and_blocker(records: list[dict]) -> list[str]:
-    """The harness-v1.6 sections (METHODOLOGY "harness-v1.6 — PRE-REGISTRATION", L and B): the ladder and the blocker as the record stores them (`result.outcome_levels`,
-    `result.blocker`). A record written before harness-v1.6 stores neither; the section says so instead of recomputing."""
-    stored = [r for r in records if isinstance((r.get("result") or {}).get("outcome_levels"), dict)]
-    if not stored:
-        return ["## Outcome ladder and blocker", "", "Not stored: the records of this round predate harness-v1.6 (`reports/dev/levels/levels.md` recomputes the ladder offline).", ""]
+    """The harness-v1.6 sections (METHODOLOGY "harness-v1.6 — PRE-REGISTRATION", L and B, "Measured and reported"): the ladder and the blocker as the record stores
+    them (`result.outcome_levels`, `result.blocker`), or, for a record written before harness-v1.6, the same pure functions applied to its stored fields."""
     order = sorted(records, key=lambda r: (r.get("batch") or {}).get("entry_id"))
-    lv = [((r.get("result") or {}).get("outcome_levels") or {}) for r in order]
+    lv = [ladder_of(r) for r in order]
+    stored = sum(1 for r in order if isinstance((r.get("result") or {}).get("outcome_levels"), dict))
     by = collections.Counter(x.get("first_error_cleared_by") for x in lv if x.get("first_error_cleared"))
-    out = ["## Outcome ladder (harness-v1.6, L; stored fields)", "",
+    out = [f"## Outcome ladder (harness-v1.6, L; stored on {stored} of {len(order)} records, computed from the stored fields on the rest)", "",
            f"Counts, this round: first error cleared **{sum(1 for x in lv if x.get('first_error_cleared'))} of {len(order)}** (by origin: {dict(by.most_common()) or 'none'}); "
            f"environment resolved **{sum(1 for x in lv if x.get('env_resolved'))} of {len(order)}**; entrypoint runs (RUNS_*, smoke level) **{sum(1 for x in lv if x.get('entrypoint_runs'))} of {len(order)}**.", "",
            "| id | first error cleared | cleared by | env resolved | entrypoint runs |", "|---|---|---|---|---|"]
     for r, x in zip(order, lv):
         yn = lambda v: "yes" if v else ("no" if v is not None else "(not stored)")  # noqa: E731
         out.append(f"| {(r.get('batch') or {}).get('entry_id')} | {yn(x.get('first_error_cleared'))} | {x.get('first_error_cleared_by') or ''} | {yn(x.get('env_resolved'))} | {yn(x.get('entrypoint_runs'))} |")
-    out += ["", "## Blocker (harness-v1.6, B; stored fields; none on a RUNS_AFTER_REPAIR run)", "",
+    out += ["", "## Blocker (harness-v1.6, B; none on a RUNS_* run)", "",
             "| id | class | family | phase | attribution | fixable by | evidence | what a human must supply | sources |", "|---|---|---|---|---|---|---|---|---|"]
     for r in order:
-        b = (r.get("result") or {}).get("blocker")
+        b = blocker_of(r)
         eid = (r.get("batch") or {}).get("entry_id")
         if not isinstance(b, dict):
             out.append(f"| {eid} | (none) | | | | | | | |")

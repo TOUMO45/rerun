@@ -134,4 +134,7 @@ def test_the_ladder_and_blocker_sections_read_the_stored_v16_fields():
     assert "| 5 | (none) |" in text
     old = _record(4)
     old["result"].pop("outcome_levels", None)
-    assert "predate harness-v1.6" in "\n".join(r.ladder_and_blocker([old]))
+    old["result"].pop("blocker", None)
+    text_old = "\n".join(r.ladder_and_blocker([old]))
+    assert "stored on 0 of 1 records, computed from the stored fields" in text_old
+    assert text_old.count("## Outcome ladder") == 1 and "| 4 |" in text_old  # the older record's ladder is computed by the same pure function
