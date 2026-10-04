@@ -2,6 +2,9 @@
 
 One entry per phase of the post-corpus-v2 plan. Numbers are produced by scripts in `scripts/`.
 
+## harness-v1.7.0 (in preparation) — rules for the recorded DEV blockers, each labelled where it changes what runs (2026-10-04; offline, unsealed, not run live)
+Pre-registered in METHODOLOGY ("harness-v1.7 — PRE-REGISTRATION", pushed before any v1.7 live call; annotated after the review). R1 memory (DEV #17, gate #11): the memory hook and environment, a labelled RESOURCE-ADAPTED batch halving, swap pending the probe. R2 a CPU reference for LU without pivoting (DEV #14). R3 data_prep from a README-documented step (DEV #9; gate #3 and DEV #4 do not fire). R4 apt_archive for end-of-life Debian (DEV #16, #9). R5 companion_relax (DEV #5), labelled a dependency change. R6 the D-44 semantic-change flag (DEV #14 round 3). Round 4 recorded (3 of 8, adds nothing); the ledger reader fixed (round 4 had been left out: ledger $52.9336). Independent review: 2 high, 6 medium, 7 low, all fixed with tests. `reports/dev/FIXES_harness-v1.7.0.md`.
+
 ## harness-v1.6.0-rc — the outcome ladder, the blocker report, named blockers (2026-10-03; offline, unsealed, not run live)
 Pre-registered in METHODOLOGY ("harness-v1.6 — PRE-REGISTRATION") before any live call. Classifier: `API_REMOVED` (DEV #12, #17; gate #08), `DATA_MISSING` widened (DEV #9; gate #03), `GPU_REQUIRED` widened (DEV #14), `APT_MIRROR_GONE` (DEV #16; ENV, INDETERMINATE), `DEP_BUILD_FAILED` (gate #07). Every record gains `outcome_levels` (first error cleared by what; environment resolved; entrypoint runs) and `blocker` (class, evidence, fixable_by, what a human must supply, a Tavily source for a missing dataset), both outside the passport hash; the certificate screen shows them. Replay tests on the six recorded failures; independent review with ten findings fixed. `reports/dev/FIXES_harness-v1.6.0.md`; `reports/dev/levels/levels.md` (the ladder over every DEV and gate record, offline).
 
