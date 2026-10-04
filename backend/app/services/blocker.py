@@ -133,8 +133,25 @@ def _fill(template: str, evidence: str) -> str:
     return out
 
 
+_GPU_REFERENCE_SENTENCE = ("nothing, if the CPU shim's reference kernel answers it ({kernel}); otherwise a CUDA device: the operation has no CPU "
+                           "implementation")
+
+
+def _gpu_row(evidence: str) -> tuple[str, str]:
+    """GPU_REQUIRED: (fixable_by, sentence). harness-v1.7 (R2): an operation without a CPU kernel that the CPU shim's reference table covers is
+    RERUN's to fix (deterministic); any other operation without a CPU kernel needs a CUDA device."""
+    from app.services import runner_hooks  # stdlib-only module; imported here to keep blocker's import list as it was
+
+    kernel = runner_hooks.reference_kernel_for(evidence)
+    if kernel is not None:
+        return DETERMINISTIC, _GPU_REFERENCE_SENTENCE.replace("{kernel}", runner_hooks.CPU_REFERENCE_KERNELS[kernel]["label"])
+    if _NO_CPU_KERNEL.search(evidence):
+        return HUMAN, _GPU_NO_CPU_SENTENCE
+    return TABLE[TaxonomyCode.GPU_REQUIRED]
+
+
 def _gpu_sentence(evidence: str) -> str:
-    return _GPU_NO_CPU_SENTENCE if _NO_CPU_KERNEL.search(evidence) else TABLE[TaxonomyCode.GPU_REQUIRED][1]
+    return _gpu_row(evidence)[1]
 
 
 def _api_removed_sentence(evidence: str) -> str:
@@ -167,7 +184,7 @@ def report(result: dict) -> dict | None:
                 "evidence": evidence, "fixable_by": None, "what_a_human_must_supply": None, "sources": None}
     fixable_by, template = row
     if code == TaxonomyCode.GPU_REQUIRED:
-        sentence = _gpu_sentence(evidence)
+        fixable_by, sentence = _gpu_row(evidence)
     elif code == TaxonomyCode.API_REMOVED:
         sentence = _api_removed_sentence(evidence)
     else:

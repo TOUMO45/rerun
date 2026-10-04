@@ -191,8 +191,110 @@ def _patch(torch):
 
         torch.cuda.set_device = set_device
 
+    # 7. CPU reference kernels (harness-v1.7, R2; DEV entry 14: `torch.lu(x, pivot=False)` raised `linalg.lu_factor: LU without pivoting is not
+    #    implemented on the CPU`). Each entry point calls the ORIGINAL first; only when it raises "not implemented on the CPU" for pivot=False does
+    #    the pure-torch reference below answer instead. LU without pivoting is unique (unit-diagonal L) whenever it exists, so the reference computes
+    #    the factorisation the CUDA kernel computes, up to floating-point rounding; it is NOT the pivoting LU (D-44).
+    def lu_reference_patch():
+        linalg = getattr(torch, "linalg", None)  # torch < 1.8 has no torch.linalg: torch.lu (via torch._lu_with_info) is still covered
+
+        def no_cpu_kernel(exc):
+            return "not implemented on the CPU" in str(exc)
+
+        def factor(A):
+            """(LU packed, pivots 1..k int32, info int32) of A without pivoting, batched over the leading dimensions (Doolittle elimination)."""
+            m, n = A.shape[-2], A.shape[-1]
+            k = min(m, n)
+            batch = tuple(A.shape[:-2])
+            info = torch.zeros(batch, dtype=torch.int32, device=A.device)
+            S, rows, cols = A, [], []
+            for j in range(k):
+                piv = S[..., 0, 0]
+                info = torch.where((piv == 0) & (info == 0), torch.full_like(info, j + 1), info)  # LAPACK's info: the first zero pivot, 1-based
+                u = S[..., 0, :]
+                l = S[..., 1:, 0] / piv.unsqueeze(-1)
+                rows.append(u)
+                cols.append(l)
+                S = S[..., 1:, 1:] - l.unsqueeze(-1) * u[..., 1:].unsqueeze(-2)
+            LU = A.new_zeros(A.shape)
+            for j in range(k):
+                LU[..., j, j:] = rows[j]
+                LU[..., j + 1:, j] = cols[j]
+            pivots = torch.arange(1, k + 1, dtype=torch.int32, device=A.device).expand(batch + (k,)).contiguous()
+            return LU, pivots, info
+
+        def check(name, info):
+            if bool((info > 0).any()):
+                first = int(info[info > 0].reshape(-1)[0]) - 1
+                raise RuntimeError("%s: U[%d,%d] is zero and using it on lu_solve would result in a division by zero (RERUN CPU reference, no pivoting)"
+                                   % (name, first, first))
+
+        def pivot_of(args, kwargs, position):
+            return args[position] if len(args) > position else kwargs.get("pivot", True)
+
+        def wrap(owner, attr, path, answer):
+            orig = getattr(owner, attr)
+
+            def wrapped(A, *args, **kwargs):
+                try:
+                    return orig(A, *args, **kwargs)
+                except RuntimeError as exc:
+                    if not no_cpu_kernel(exc) or kwargs.get("out") is not None:
+                        raise
+                    result = answer(A, args, kwargs)
+                    if result is None:
+                        raise
+                    _fired(path)
+                    return result
+
+            wrapped.__wrapped__ = orig
+            wrapped.__doc__ = getattr(orig, "__doc__", None)
+            setattr(owner, attr, wrapped)
+
+        def lu_factor(A, args, kwargs):
+            if pivot_of(args, kwargs, 99) is not False:
+                return None
+            LU, pivots, info = factor(A)
+            check("linalg.lu_factor", info)
+            return LU, pivots
+
+        def lu_factor_ex(A, args, kwargs):
+            if pivot_of(args, kwargs, 99) is not False:
+                return None
+            LU, pivots, info = factor(A)
+            if kwargs.get("check_errors", False):
+                check("linalg.lu_factor_ex", info)
+            return LU, pivots, info
+
+        def lu_with_info(A, args, kwargs):  # torch._lu_with_info(A, pivot=True, check_errors=True): what torch.lu calls
+            if pivot_of(args, kwargs, 0) is not False:
+                return None
+            LU, pivots, info = factor(A)
+            if (args[1] if len(args) > 1 else kwargs.get("check_errors", True)):
+                check("torch.lu", info)
+            return LU, pivots, info
+
+        def lu_plu(A, args, kwargs):  # torch.linalg.lu(A, pivot=False) -> (P empty, L m x k unit lower, U k x n upper)
+            if pivot_of(args, kwargs, 99) is not False:
+                return None
+            LU, _pivots, info = factor(A)
+            check("linalg.lu", info)
+            m, n = A.shape[-2], A.shape[-1]
+            k = min(m, n)
+            L = torch.tril(LU[..., :, :k], -1) + torch.eye(m, k, dtype=A.dtype, device=A.device)
+            U = torch.triu(LU[..., :k, :])
+            return A.new_empty(0), L, U
+
+        for owner, attr, path, answer in ((torch, "_lu_with_info", "cpu_ref:torch.lu", lu_with_info),
+                                          (linalg, "lu_factor", "cpu_ref:linalg.lu_factor", lu_factor),
+                                          (linalg, "lu_factor_ex", "cpu_ref:linalg.lu_factor_ex", lu_factor_ex),
+                                          (linalg, "lu", "cpu_ref:linalg.lu", lu_plu)):
+            if owner is not None and hasattr(owner, attr):
+                wrap(owner, attr, path, answer)
+
     step("torch.cuda.is_available() -> False", is_available_patch)
     step("torch.cuda.set_device(...) does nothing", set_device_patch)
+    step("LU without pivoting: CPU reference when torch has no CPU kernel", lu_reference_patch)
     step("torch.load(map_location='cpu')", load_patch)
     step("Tensor.cuda() returns the tensor", tensor_cuda_patch)
     step("Module.cuda() returns the module", module_cuda_patch)
@@ -380,7 +482,8 @@ HOOKS = {
     CPU_SHIM: Hook(
         CPU_SHIM, "cpu_shim", "GPU_REQUIRED at repair time",
         "covers torch.load (map_location), torch.cuda.is_available(), torch.cuda.set_device() (does nothing: harness-v1.5.1), Tensor.cuda() and Module.cuda() "
-        "(return self), .to('cuda*') on Tensor and "
+        "(return self), a CPU reference for LU without pivoting when torch has no CPU kernel for it (torch.lu / torch._lu_with_info / "
+        "torch.linalg.lu_factor / lu_factor_ex / lu with pivot=False; harness-v1.7, R2), .to('cuda*') on Tensor and "
         "Module and torch.device('cuda*') (-> cpu); does NOT cover device='cuda' strings given to factory functions (torch.zeros(device='cuda')), "
         "the other torch.cuda.* functions (current_device, synchronize, ...), "
         "torch.cuda.*Tensor types or torch.set_default_tensor_type('torch.cuda.FloatTensor'); torch.device is a proxy class, so "
@@ -392,6 +495,31 @@ HOOKS = {
         "libraries that call sys.exit are",
     ),
 }
+
+
+# harness-v1.7 (R2): the CPU reference kernels the CPU shim carries, keyed by name. `matches` is what the error torch raises says; the reference answers
+# only when the original raises "not implemented on the CPU" for the case named in `case`. One row so far (DEV entry 14); a kernel is added only with a
+# recorded failure and a test against real torch.
+CPU_REFERENCE_KERNELS = {
+    "lu_nopivot": {
+        "label": "LU without pivoting",
+        "case": "pivot=False",
+        "entry_points": ("torch.lu", "torch._lu_with_info", "torch.linalg.lu_factor", "torch.linalg.lu_factor_ex", "torch.linalg.lu"),
+        "paths": ("cpu_ref:torch.lu", "cpu_ref:linalg.lu_factor", "cpu_ref:linalg.lu_factor_ex", "cpu_ref:linalg.lu"),
+        "matches": re.compile(r"\blu(?:_factor(?:_ex)?)?\b.*\bLU without pivoting is not implemented on the CPU|lu without pivoting is not implemented on the CPU",
+                              re.IGNORECASE),
+        "semantics": "LU without pivoting is unique (unit-diagonal L) whenever it exists: the reference computes the factorisation the CUDA kernel computes, "
+                     "up to floating-point rounding (Doolittle elimination in the input's dtype)",
+    },
+}
+
+
+def reference_kernel_for(evidence: str) -> str | None:
+    """The CPU reference kernel (CPU_REFERENCE_KERNELS key) that answers the 'not implemented on the CPU' error in `evidence`, or None."""
+    for name, row in CPU_REFERENCE_KERNELS.items():
+        if row["matches"].search(evidence or ""):
+            return name
+    return None
 
 
 _SHIM_PATH_RE = re.compile(r"^RERUN_CPU_SHIM_PATH: (\S+)", re.MULTILINE)
