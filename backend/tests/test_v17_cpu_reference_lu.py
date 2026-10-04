@@ -65,9 +65,18 @@ def test_other_no_cpu_kernel_errors_are_not_claimed_by_the_reference_table():
 
 
 def test_the_blocker_sentence_for_an_lu_kernel_names_the_reference_and_for_another_kernel_a_cuda_device():
+    """v1.7 review, M5: the blocker never claims a fix the record does not show; it says whether this run's shim carried the reference."""
     chain = [{"class": "GPU_REQUIRED", "error": LU_ERROR, "phase": "repo_run", "attribution": "REPO"}]
     b = blocker.report({"verdict": "BLOCKED", "error_chain": chain})
-    assert "CPU shim" in b["what_a_human_must_supply"] and b["fixable_by"] == blocker.DETERMINISTIC
+    assert b["fixable_by"] == blocker.HUMAN and "this run's shim did not carry it" in b["what_a_human_must_supply"]
+    old_shim = [{"time_machine_action": {"rule": "cpu_shim", "limit": "covers torch.load ..."}}]
+    assert "did not carry it" in blocker.report({"verdict": "BLOCKED", "error_chain": chain, "attempts": old_shim})["what_a_human_must_supply"]
+    new_shim = [{"time_machine_action": {"rule": "cpu_shim", "limit": runner_hooks.HOOKS[runner_hooks.CPU_SHIM].limit}}]
+    assert "the run still stopped here" in blocker.report({"verdict": "BLOCKED", "error_chain": chain, "attempts": new_shim})["what_a_human_must_supply"]
+    for record in RECORDS:  # the recorded #14 runs keep their human-facing claim (no retroactive fix)
+        result = json.loads(record.read_text(encoding="utf-8"))["result"]
+        if result["verdict"] not in ("RUNS_CLEAN", "RUNS_AFTER_REPAIR"):
+            assert blocker.report(result)["fixable_by"] != blocker.DETERMINISTIC
     other = [{"class": "GPU_REQUIRED", "error": "RuntimeError: _cdist_backward is not implemented on the CPU", "phase": "repo_run", "attribution": "REPO"}]
     assert blocker.report({"verdict": "BLOCKED", "error_chain": other})["what_a_human_must_supply"] == "a CUDA device: the operation has no CPU implementation"
 

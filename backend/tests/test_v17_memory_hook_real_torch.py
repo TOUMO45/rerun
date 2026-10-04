@@ -55,3 +55,35 @@ def test_on_real_torch_the_hook_drops_workers_keeps_the_order_and_lives_beside_t
                            capture_output=True, text=True, timeout=600, cwd=tmp_path)
     assert plain.returncode == 0, plain.stderr[-3000:]
     assert hooked.stdout.split("ORDER", 1)[1] == plain.stdout.split("ORDER", 1)[1]  # the same samples in the same order with 2 workers and with none
+
+
+LEFT_ALONE = r'''
+import warnings
+warnings.simplefilter("ignore")
+import torch
+from torch.utils.data import DataLoader, IterableDataset
+
+class Stream(IterableDataset):
+    def __iter__(self):
+        return iter(range(6))
+
+it = DataLoader(Stream(), batch_size=2, num_workers=2)
+print("ITERABLE", it.num_workers, sum(len(b) for b in it))
+init = DataLoader(list(range(6)), batch_size=2, num_workers=2, worker_init_fn=lambda wid: None)
+print("INIT", init.num_workers)
+'''
+
+
+@pytest.mark.skipif(not REAL_PY or not Path(REAL_PY).exists(), reason="set RERUN_REAL_TORCH_PYTHON to an interpreter with torch (CPU) installed")
+def test_on_real_torch_an_iterable_dataset_or_a_worker_init_fn_is_left_as_is(tmp_path):
+    """v1.7 review, H2: an unsharded IterableDataset yields once PER WORKER, and a worker_init_fn sets up each worker: the hook does not touch them."""
+    site = tmp_path / "site"
+    site.mkdir()
+    (site / "rerun_memory_hook.py").write_text(runner_hooks.source_of(runner_hooks.MEMORY_HOOK), encoding="utf-8")
+    (site / "rerun_memory_hook.pth").write_text("import rerun_memory_hook\n", encoding="utf-8")
+    done = subprocess.run([REAL_PY, "-c", f"import site; site.addsitedir({str(site)!r})\n" + textwrap.dedent(LEFT_ALONE)],
+                          capture_output=True, text=True, timeout=600, cwd=tmp_path)
+    assert done.returncode == 0, done.stderr[-3000:]
+    assert "ITERABLE 2 12" in done.stdout and "INIT 2" in done.stdout  # two workers, each yielding the whole stream: as without the hook
+    assert runner_hooks.memory_hook_changes(done.stderr) == ["DataLoader left as is (IterableDataset, num_workers 2)",
+                                                             "DataLoader left as is (worker_init_fn, num_workers 2)"]

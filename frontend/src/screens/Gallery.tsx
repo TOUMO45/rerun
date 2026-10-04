@@ -1,7 +1,7 @@
 import { Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { api, ApiError, type RunListItem } from "../api";
-import { VerdictBadge } from "../components/VerdictBadge";
+import { VerdictBadge, notesOfLabel } from "../components/VerdictBadge";
 import { DemoBanner, useDemoMode } from "../components/DemoBanner";
 
 /** `runs/corpus_v2_batch/<tag>/<arm>/NN_<owner>__<repo>.json` -> its parts; null for a live (non-demo) run. */
@@ -111,7 +111,7 @@ function RunTable({ title, runs }: { title: string; runs: RunListItem[] }) {
                 </td>
                 <td className="px-4 py-2.5">
                   {run.verdict ? (
-                    <VerdictBadge verdict={run.verdict} size="sm" />
+                    <VerdictBadge verdict={run.verdict} size="sm" notes={notesOfLabel(run.verdict_label)} />
                   ) : (
                     <span className="text-text-secondary">{run.status.toLowerCase()}</span>
                   )}

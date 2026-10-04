@@ -88,7 +88,8 @@ def _rules(result) -> list[str]:
     return [(a.time_machine_action or {}).get("rule") for a in result.attempts if a.time_machine_action]
 
 
-def test_replay_gate_11_hook_then_resource_adapt_and_the_verdict_says_resource_adapted(tmp_path):
+def test_replay_gate_11_hook_then_resource_adapt_and_the_verdict_says_resource_adapted(tmp_path, monkeypatch):
+    monkeypatch.setattr(runner_env, "SWAP_FILE_DECIDED", True)  # resource_adapt waits for the probe's decision on swap_file (pre-registration, R1 d)
     a = _kill(R11[1])
     command = "python main.py  --evaluate --dataset cifar10  --eps 0.031  --model capsnet  --attack vote_attack_FGSM"
     result, repair, plans, left = _memory_pipeline(tmp_path, [_killed(a, command), _killed(a, command), _ok()], command=command, files={"main.py": VOTE_MAIN})
@@ -102,6 +103,15 @@ def test_replay_gate_11_hook_then_resource_adapt_and_the_verdict_says_resource_a
     assert outcome_levels.compute(record)["resource_adapted"] == "RESOURCE-ADAPTED: --batch_size 256->128, --test_batch_size 256->128"
     assert outcome_levels.verdict_label(record) == "RUNS_AFTER_REPAIR (RESOURCE-ADAPTED: --batch_size 256->128, --test_batch_size 256->128)"
     assert any("resource_adapt round 1" in n and "NOT semantics-preserving" in n for n in result.build_plan["notes"])
+
+
+def test_before_the_swap_decision_resource_adapt_never_fires_and_the_stop_follows_the_hook(tmp_path):
+    a = _kill(R11[1])
+    command = "python main.py  --evaluate --dataset cifar10  --eps 0.031  --model capsnet  --attack vote_attack_FGSM"
+    evidence = SandboxRunResult(steps=(StepResult(command, 137, "", a["stderr_tail"] + "\nRERUN_EVIDENCE_BEGIN exit_status=137\nRERUN_EVIDENCE_END\n", 30.0, 0.3),))
+    assert runner_env.SWAP_FILE_DECIDED is False
+    result, repair, plans, left = _memory_pipeline(tmp_path, [_killed(a, command), _killed(a, command), evidence], command=command, files={"main.py": VOTE_MAIN})
+    assert not repair.calls and "resource_adapt" not in _rules(result) and result.verdict == "INDETERMINATE" and result.taxonomy_code == "RESOURCE_LIMIT"
 
 
 def test_replay_dev_17_hook_only_then_the_stop_with_no_adaptation_of_a_shell_script(tmp_path):
@@ -150,3 +160,59 @@ def test_the_hook_source_is_python_3_6_compatible_and_registered():
     assert runner_hooks.memory_hook_changes("RERUN memory_hook: DataLoader num_workers 2->0\nx\nRERUN memory_hook: DataLoader num_workers 2->0\n") == \
         ["DataLoader num_workers 2->0"]
     assert runner_env.with_memory_env("sh ./fs_train.sh") == "export MALLOC_ARENA_MAX=2 OMP_NUM_THREADS=4\nsh ./fs_train.sh"
+
+
+def test_resource_adapt_reads_aliases_refuses_abbreviations_and_keeps_every_other_character(tmp_path):
+    """v1.7 review, M3."""
+    (tmp_path / "train.py").write_text("import argparse\np = argparse.ArgumentParser()\np.add_argument('-b', '--batch-size', type=int, default=256)\n",
+                                       encoding="utf-8")
+    entry, _ = resource_adapt.entry_of("python train.py -b 512")
+    groups = resource_adapt.option_groups(tmp_path, entry)
+    assert groups == {"--batch-size": (256, ("-b", "--batch-size"))}
+    one, _ = resource_adapt.adapt("python train.py -b 512 --data $DATA_DIR ~/x", groups, 1)
+    assert one.command == "python train.py -b 256 --data $DATA_DIR ~/x" and one.label() == "RESOURCE-ADAPTED: -b 512->256"
+    refused, why = resource_adapt.adapt("python train.py --batch 512", groups, 1)
+    assert refused is None and "abbreviation" in why
+
+
+def test_a_kill_while_installing_is_not_a_memory_rule_case(tmp_path):
+    """v1.7 review, L5: the hook and resource_adapt act on the documented command's own kill (phase repo_run) only."""
+    a = _kill(R11[1])
+    command = "python main.py --evaluate"
+    install_kill = SandboxRunResult(steps=(StepResult("pip install -r requirements.txt", 137, a["stdout_tail"], a["stderr_tail"], 30.0, 0.3,
+                                                      phase="repo_install"),))
+    evidence = SandboxRunResult(steps=(StepResult(command, 137, "", "Killed\nRERUN_EVIDENCE_BEGIN exit_status=137\nRERUN_EVIDENCE_END\n", 30.0, 0.3),))
+    result, repair, plans, left = _memory_pipeline(tmp_path, [install_kill, evidence], command=command, files={"main.py": VOTE_MAIN})
+    assert not repair.calls and "memory_hook" not in _rules(result) and result.verdict == "INDETERMINATE"
+
+
+def test_the_memory_hook_label_reaches_the_ladder_the_verdict_label_and_the_blocker():
+    """v1.7 review, H2: the memory hook changes the random stream a seeded run draws from; it is labelled wherever the verdict is shown."""
+    attempts = [{"time_machine_action": {"rule": "memory_hook", "changes": ["DataLoader num_workers 2->0", "DataLoader pin_memory True->False"]},
+                 "exit_code": 0, "origin": "time_machine", "attempt_number": 0}]
+    record = {"verdict": "RUNS_AFTER_REPAIR", "attempts": attempts, "error_chain": []}
+    assert outcome_levels.compute(record)["memory_adapted"] == "memory hook: DataLoader num_workers 2->0, DataLoader pin_memory True->False"
+    assert outcome_levels.verdict_label(record).startswith("RUNS_AFTER_REPAIR (memory hook: DataLoader num_workers 2->0")
+    left_alone = [{"time_machine_action": {"rule": "memory_hook", "changes": ["DataLoader left as is (worker_init_fn, num_workers 4)"]}}]
+    assert "memory_adapted" not in outcome_levels.compute({"verdict": "RUNS_AFTER_REPAIR", "attempts": left_alone})
+    chain = [{"class": "RESOURCE_LIMIT", "error": "exit code 137: the process was killed by SIGKILL", "phase": "repo_run", "attribution": "SANDBOX_QUOTA"}]
+    assert blocker.report({"verdict": "INDETERMINATE", "error_chain": chain, "attempts": attempts})["memory_adapted"].startswith("memory hook:")
+
+
+def test_a_deferred_kill_stop_still_applies_when_the_attempt_budget_ends_the_loop(tmp_path):
+    """v1.7 review, L3: before v1.7 a RESOURCE_LIMIT always stopped first; a deferred one must never end BLOCKED or reach the model."""
+    a = _kill(R11[1])
+    command = "python main.py --evaluate"
+    _git_repo(tmp_path, {"main.py": VOTE_MAIN})
+
+    def runner(*, runner_extras=(), **kw):
+        return SandboxRunResult(steps=(StepResult(command, 137, a["stdout_tail"], a["stderr_tail"], 30.0, 0.9),))
+
+    repair = _Chat()
+    deps = PipelineDeps(recon_client=_Chat([{"entrypoint": "main.py", "confidence": 0.9}]), recon_model="r", repair_client=repair, repair_model="p",
+                        adjudicator_client=None, adjudicator_model=None, sandbox_api_key="k", sandbox_wall_clock_seconds=100, sandbox_runner=runner,
+                        tavily_client=None, smoke_seconds=0, max_attempts=3)
+    intake = RepoIntake(tmp_path, "a" * 40, {}, frozenset(), (), ("main.py",), None)
+    result = run_pipeline(repo_url="https://example.com/r", commit_sha="a" * 40, workdir=tmp_path, intake_result=intake, deps=deps,
+                          cost_guard=CostGuard(daily_cost_ceiling_usd=0.5), run_id="v17-mem-budget", documented_command=command)
+    assert not repair.calls and result.verdict == "INDETERMINATE" and result.taxonomy_code == "RESOURCE_LIMIT"

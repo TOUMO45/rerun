@@ -265,7 +265,8 @@ def test_list_runs_shape_and_demo_rows(client, demo_root):
     assert set(body) == {"runs", "total", "limit", "offset"} and body["total"] == 2 and body["limit"] == 200 and body["offset"] == 0
     assert len(body["runs"]) == 2
     row = next(r for r in body["runs"] if r["id"] == f"demo-harness-v1.5.1-dev-{SOME_DEV:02d}")
-    assert set(row) == {"id", "repo_url", "commit_sha", "status", "verdict", "taxonomy_code", "demo_source", "created_at"}
+    assert set(row) == {"id", "repo_url", "commit_sha", "status", "verdict", "taxonomy_code", "demo_source", "created_at", "verdict_label"}  # harness-v1.7: the labelled verdict
+    assert row["verdict_label"] == "RUNS_AFTER_REPAIR"  # a record with no v1.7 label reads as its verdict
     assert row["status"] == "DONE" and row["verdict"] == "RUNS_AFTER_REPAIR" and row["taxonomy_code"] == "DEP_YANKED"
     assert row["demo_source"].startswith("runs/corpus_v2_batch/harness-v1.5.1/dev/")
     # the certificate screen's endpoints serve the seeded row

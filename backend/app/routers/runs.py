@@ -27,6 +27,7 @@ from app.config import get_settings
 from app.db import SessionLocal, get_db
 from app.models import Certificate, RepairAttempt, Run
 from app.schemas import CertificateOut, RunCreate, RunListItem, RunListOut, RunOut
+from app.services import outcome_levels
 from app.services import intake
 from app.services.cost_guard import get_shared_cost_guard
 from app.services.orchestrator import PipelineResult, build_pipeline_deps, run_pipeline
@@ -173,6 +174,7 @@ def list_runs(
             taxonomy_code=cert.taxonomy_code if cert is not None and cert.taxonomy_code else run.taxonomy_code,
             demo_source=run.demo_source,
             created_at=run.created_at,
+            verdict_label=(outcome_levels.verdict_label({"verdict": cert.verdict, "attempts": cert.diffs or []}) if cert is not None else None),
         )
         for run, cert in db.execute(stmt).all()
     ]

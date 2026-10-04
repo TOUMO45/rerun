@@ -100,56 +100,71 @@ def _imported_repo_files(workdir: Path, entry_file: Path, tree: ast.Module) -> l
 
 
 def batch_options(workdir: Path, entry: Entry) -> dict[str, int | None]:
-    """{option string: its literal int default or None} for every BATCH_OPTION add_argument of the entry and its directly imported repo modules."""
+    """{option string: its literal int default or None} for every BATCH_OPTION add_argument of the entry and its directly imported repo modules. An
+    add_argument with several option strings (`"-b", "--batch-size"`) is ONE option: its first BATCH_OPTION string is the key, and every string of
+    the call is kept in `aliases_of` (v1.7 review, M3)."""
+    return {k: v for k, (v, _aliases) in option_groups(workdir, entry).items()}
+
+
+def option_groups(workdir: Path, entry: Entry) -> dict[str, tuple[int | None, tuple[str, ...]]]:
+    """{key option string: (literal int default or None, every option string of that add_argument call)}."""
     entry_file = _entry_file(workdir, entry)
     if entry_file is None:
         return {}
     tree = _parse(entry_file)
     if tree is None:
         return {}
-    found: dict[str, int | None] = {}
+    found: dict[str, tuple[int | None, tuple[str, ...]]] = {}
     for path in (entry_file, *_imported_repo_files(workdir, entry_file, tree)):
         module = tree if path == entry_file else _parse(path)
         for node in ast.walk(module) if module is not None else ():
             if not (isinstance(node, ast.Call) and getattr(node.func, "attr", getattr(node.func, "id", None)) == "add_argument"):
                 continue
-            options = [a.value for a in node.args if isinstance(a, ast.Constant) and isinstance(a.value, str) and BATCH_OPTION.match(a.value)]
-            if not options:
+            strings = tuple(a.value for a in node.args if isinstance(a, ast.Constant) and isinstance(a.value, str) and a.value.startswith("-"))
+            keys = [o for o in strings if BATCH_OPTION.match(o)]
+            if not keys:
                 continue
             default = next((k.value.value for k in node.keywords if k.arg == "default" and isinstance(k.value, ast.Constant)
                             and isinstance(k.value.value, int) and not isinstance(k.value.value, bool)), None)
-            for option in options:
-                found.setdefault(option, default)
+            found.setdefault(keys[0], (default, strings))
     return found
 
 
 @dataclass(frozen=True)
 class Adaptation:
     command: str
-    changes: tuple[tuple[str, int, int], ...]  # (option, before, after)
+    changes: tuple[tuple[str, int, int], ...]  # (option as written on the command line or the key, before, after)
 
     def label(self) -> str:
         return f"{LABEL}: " + ", ".join(f"{o} {a}->{b}" for o, a, b in self.changes)
 
 
-def adapt(command: str, options: dict[str, int | None], round_no: int) -> tuple[Adaptation | None, str]:
-    """The documented command with every batch option at 1/2**round_no of its value (round 1 or 2), or (None, why)."""
+def adapt(command: str, options: dict, round_no: int) -> tuple[Adaptation | None, str]:
+    """The documented command with every batch option at 1/2**round_no of its value (round 1 or 2), or (None, why). `options` is option_groups()
+    ({key: (default, aliases)}) or, for a bare call, batch_options() ({key: default}). The command is edited IN PLACE: only the value of the option
+    (as the command writes it, under any of its aliases) changes, or `--key N` is appended; every other character of the command is kept, so
+    variables, `~` and globs still reach the shell (v1.7 review, M3). A command that uses an abbreviation argparse would expand to a batch option
+    (`--batch` for `--batch-size`) is not adapted: the label could not say which value really changed."""
     entry, why = entry_of(command)
     if entry is None:
         return None, why
     if round_no < 1 or round_no > MAX_ROUNDS:
         return None, f"at most {MAX_ROUNDS} rounds"
-    tokens = list(entry.tokens)
+    groups = {k: (v if isinstance(v, tuple) else (v, (k,))) for k, v in options.items()}
+    args = list(entry.tokens[entry.args_at:])
+    every = {a for _default, aliases in groups.values() for a in aliases}
+    for token in args:
+        flag = token.split("=", 1)[0]
+        if flag.startswith("--") and flag not in every and any(a.startswith(flag) and a.startswith("--") for a in every) and len(flag) > 2:
+            return None, f"the command uses {flag!r}, an abbreviation argparse would expand to a batch option: not adapted"
+    edited = command
     changes: list[tuple[str, int, int]] = []
-    for option, default in sorted(options.items()):
-        value, where = None, None
-        for k in range(entry.args_at, len(tokens)):
-            if tokens[k] == option and k + 1 < len(tokens) and re.fullmatch(r"\d+", tokens[k + 1]):
-                value, where = int(tokens[k + 1]), ("next", k + 1)
-                break
-            if tokens[k].startswith(option + "=") and re.fullmatch(r"\d+", tokens[k][len(option) + 1:]):
-                value, where = int(tokens[k][len(option) + 1:]), ("eq", k)
-                break
+    appended: list[str] = []
+    for key, (default, aliases) in sorted(groups.items()):
+        value, written, mode = None, key, None
+        for alias in aliases:  # the LAST occurrence on the command line is the one argparse keeps
+            for m in re.finditer(rf"(?<!\S){re.escape(alias)}(=|\s+)(\d+)(?!\S)", edited):
+                value, written, mode = int(m.group(2)), alias, m
         if value is None:
             value = default
         if value is None:
@@ -157,15 +172,13 @@ def adapt(command: str, options: dict[str, int | None], round_no: int) -> tuple[
         new = max(1, value // (2 ** round_no))
         if new == value:
             continue
-        if where is None:
-            tokens.append(option)
-            tokens.append(str(new))
-        elif where[0] == "next":
-            tokens[where[1]] = str(new)
+        if mode is not None:
+            edited = edited[:mode.start(2)] + str(new) + edited[mode.end(2):]
         else:
-            tokens[where[1]] = f"{option}={new}"
-        changes.append((option, value, new))
+            appended.append(f"{key} {new}")
+        changes.append((written, value, new))
     if not changes:
         return None, "no batch-size option with a value to halve"
-    return Adaptation(" ".join(shlex.quote(t) if not _ASSIGNMENT.match(t) else t.split("=", 1)[0] + "=" + shlex.quote(t.split("=", 1)[1])
-                               for t in tokens), tuple(changes)), "ok"
+    if appended:
+        edited = edited.rstrip() + " " + " ".join(appended)
+    return Adaptation(edited, tuple(changes)), "ok"

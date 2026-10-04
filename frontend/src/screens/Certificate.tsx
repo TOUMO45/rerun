@@ -98,6 +98,10 @@ export function Certificate() {
           size="lg"
           semanticChange={(cert.outcome_levels?.semantic_change?.length ?? 0) > 0}
           resourceAdapted={Boolean(cert.outcome_levels?.resource_adapted)}
+          notes={[
+            cert.outcome_levels?.memory_adapted ? "MEMORY HOOK" : "",
+            cert.outcome_levels?.dependency_change ? "DEPENDENCY CHANGE" : "",
+          ].filter(Boolean)}
         />
       </div>
 

@@ -22,6 +22,9 @@ are recomputed from any stored record, so an old certificate can be read the sam
                           does not flag reads exactly as before.
   resource_adapted        harness-v1.7 (R1 d); present ONLY when a resource_adapt step ran: the label of the last adaptation applied
                           ("RESOURCE-ADAPTED: --batch_size 256->128"). The documented command did not run as published from then on.
+  memory_adapted          harness-v1.7 (R1 c, v1.7 review H2); present ONLY when the memory hook changed a DataLoader: "memory hook: DataLoader
+                          num_workers 2->0" (random draws then come from the main process's stream).
+  dependency_change       harness-v1.7 (R5, v1.7 review H1); present ONLY when companion_relax ran: "dependency change: torchvision 0.5.0->0.4.0".
 """
 
 from __future__ import annotations
@@ -80,16 +83,33 @@ def resource_adapted(result: dict) -> str:
     return labels[-1] if labels else ""
 
 
+def _actions(result: dict, rule: str) -> list[dict]:
+    return [(a.get("time_machine_action") or {}) for a in (result.get("attempts") or ()) if (a.get("time_machine_action") or {}).get("rule") == rule]
+
+
+def memory_adapted(result: dict) -> str:
+    """harness-v1.7 (R1 c): what the memory hook changed in a DataLoader, or '' (it changed nothing, or it never ran)."""
+    changes = [c for act in _actions(result, "memory_hook") for c in (act.get("changes") or ()) if "->" in str(c)]
+    return ("memory hook: " + ", ".join(dict.fromkeys(str(c) for c in changes))) if changes else ""
+
+
+def dependency_change(result: dict) -> str:
+    """harness-v1.7 (R5): the companion pin RERUN replaced, or ''."""
+    acts = [act for act in _actions(result, "companion_relax") if act.get("from") and act.get("to")]
+    return (f"dependency change: {acts[-1].get('package')} {acts[-1]['from']}->{acts[-1]['to']}") if acts else ""
+
+
+def labels(result: dict) -> list[str]:
+    """Every harness-v1.7 label of a run, in a fixed order: semantic change (R6), RESOURCE-ADAPTED (R1 d), memory hook (R1 c), dependency change (R5)."""
+    out = ["semantic change"] if semantic_change(result) else []
+    out += [x for x in (resource_adapted(result), memory_adapted(result), dependency_change(result)) if x]
+    return out
+
+
 def verdict_label(result: dict) -> str:
-    """The verdict as the certificate, the dashboard and the ladder print it: the code, with "(semantic change)" (harness-v1.7, R6) and / or the
-    RESOURCE-ADAPTED label (R1 d) beside it when they apply."""
+    """The verdict as the certificate, the dashboard and the ladder print it: the code, with every label of `labels` beside it."""
     verdict = str(result.get("verdict") or "")
-    notes = []
-    if semantic_change(result):
-        notes.append("semantic change")
-    adapted = resource_adapted(result)
-    if adapted:
-        notes.append(adapted)
+    notes = labels(result)
     return f"{verdict} ({'; '.join(notes)})" if notes else verdict
 
 
@@ -134,7 +154,8 @@ def compute(result: dict) -> dict:
     flagged = semantic_change(result)
     if flagged:
         out["semantic_change"] = list(flagged)
-    adapted = resource_adapted(result)
-    if adapted:
-        out["resource_adapted"] = adapted
+    for key, value in (("resource_adapted", resource_adapted(result)), ("memory_adapted", memory_adapted(result)),
+                       ("dependency_change", dependency_change(result))):
+        if value:
+            out[key] = value
     return out

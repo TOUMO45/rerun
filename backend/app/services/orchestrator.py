@@ -1526,7 +1526,7 @@ def _run_stages(
         """harness-v1.7 (R1 d): the resource_adapt rewrite of the documented command for `round_no`, or None (with the reason logged once)."""
         if not adapt_cache:
             entry, why = resource_adapt.entry_of(state.baseline.get("execute_command") or plan.execute_command)
-            options = resource_adapt.batch_options(workdir, entry) if entry is not None else {}
+            options = resource_adapt.option_groups(workdir, entry) if entry is not None else {}
             adapt_cache.append((entry, why if entry is None else ("no batch-size option" if not options else "ok"), options))
         entry, why, options = adapt_cache[0]
         if entry is None or not options:
@@ -1534,14 +1534,16 @@ def _run_stages(
         found, _ = resource_adapt.adapt(state.baseline.get("execute_command") or plan.execute_command, options, round_no)
         return found
 
-    def _memory_rule_next() -> str | None:
-        """harness-v1.7 (R1): the next memory rule for a RESOURCE_LIMIT, in the pre-registered order, or None when both are spent (then the stop)."""
-        if not deps.repair_enabled or not _declares_kwarg(deps.sandbox_runner, "runner_extras"):
+    def _memory_rule_next(phase: str = error_chain.PHASE_REPO_RUN) -> str | None:
+        """harness-v1.7 (R1): the next memory rule for a RESOURCE_LIMIT, in the pre-registered order, or None when both are spent (then the stop).
+        Only for a kill of the documented command itself (phase repo_run): a kill while installing is not something a DataLoader or a batch size
+        changes (v1.7 review, L5). resource_adapt only once swap_file is decided (runner_env.SWAP_FILE_DECIDED; v1.7 review, M6)."""
+        if not deps.repair_enabled or not _declares_kwarg(deps.sandbox_runner, "runner_extras") or phase != error_chain.PHASE_REPO_RUN:
             return None
         if not state.memory_hook:
             return "hook"
         done = (state.resource_adapt or {}).get("round", 0)
-        if done < resource_adapt.MAX_ROUNDS and _adaptation(done + 1) is not None:
+        if runner_env.SWAP_FILE_DECIDED and done < resource_adapt.MAX_ROUNDS and _adaptation(done + 1) is not None:
             return "adapt"
         return None
 
@@ -1575,7 +1577,7 @@ def _run_stages(
                 ),
                 phase,
             )
-        if classification.code == classifier.TaxonomyCode.RESOURCE_LIMIT and may_defer and _memory_rule_next() is not None:
+        if classification.code == classifier.TaxonomyCode.RESOURCE_LIMIT and may_defer and _memory_rule_next(phase) is not None:
             return None  # harness-v1.7 (R1): the memory hook, then resource_adapt, get their turn (the deterministic loop) before the stop below
         if classification.code == classifier.TaxonomyCode.RESOURCE_LIMIT:
             return _resource_reason(classification, phase)
@@ -1614,7 +1616,8 @@ def _run_stages(
         baseline_cls = classifier.classify(sandbox_result.final.exit_code, sandbox_result.final.stderr, sandbox_result.final.stdout,
                                            declared_deps=intake_result.declared_dependencies, repo_modules=_internal_modules())
         swap = None
-        if baseline_cls.code == classifier.TaxonomyCode.DEP_UNPINNED_CONFLICT:
+        if baseline_cls.code == classifier.TaxonomyCode.DEP_UNPINNED_CONFLICT and "ResolutionImpossible" in (
+                f"{sandbox_result.final.stderr}\n{sandbox_result.final.stdout}"):
             baseline_torch = runner_env.plan_torch_setup([*plan.as_shell_steps(), *intake_result.dependency_files.values()], workdir)
             swap = runner_env.companion_swap(baseline_torch.specs) if baseline_torch is not None else None
         if swap is not None:
@@ -1623,6 +1626,8 @@ def _run_stages(
             _log(f"[classifier] {baseline_cls.code}: {baseline_cls.evidence}")
             _note_failure(0, baseline_cls, sandbox_result.final.phase)  # the as-published failure is the chain's first link; its stop is deferred
             state.torch_overrides = {swap.package: swap.replacement}
+            plan = replace(plan, notes=(*plan.notes, f"companion_relax (harness-v1.7, R5; a DEPENDENCY CHANGE, labelled): {swap.as_dict()['reason']}; "
+                                                      f"{swap.package}=={swap.replacement} instead of {swap.pinned}"))
             relax_action = {"rule": "companion_relax", "matched_error": baseline_cls.evidence[:500], "phase": "repair",
                             "fires_on": "DEP_UNPINNED_CONFLICT in the runner's torch-family install, exact torch and torchvision pins that cannot coexist",
                             **swap.as_dict()}
@@ -2183,7 +2188,7 @@ def _run_stages(
             action["result"] = done if done is not None else {"error": "no RERUN_DATA_PREP line in the operation's output (the step may not have run)"}
             if done is not None:
                 _log(f"[time-machine] data_prep result: exit {done.get('exit_code')}, {done.get('bytes_written')} bytes written, "
-                     f"{done.get('seconds')} s{', OVER CAP: output removed' if done.get('over_cap') else ''}"
+                     f"{done.get('seconds')} s{(', OVER CAP: ' + str(done.get('removed_files')) + ' new file(s) removed, ' + str(done.get('changed_files_not_restored')) + ' changed file(s) not restored') if done.get('over_cap') else ''}"
                      f"{', error: ' + str(done.get('error')) if done.get('error') else ''}")
             _log(f"[time-machine] re-execution id={result.sandbox_id} exit_code={result.final.exit_code}")
             _record(result.final.exit_code, result.final.stdout[-2000:], result.final.stderr[-2000:], _execution_of(result, True))
@@ -2310,7 +2315,8 @@ def _run_stages(
                     break
                 compiler_error = missing_compiler_error(classification)
                 removal_hit = api_removals.match(f"{sandbox_result.final.stderr}\n{sandbox_result.final.stdout}")  # harness-v1.5.1 (F2)
-                memory_next = _memory_rule_next() if classification.code == classifier.TaxonomyCode.RESOURCE_LIMIT else None
+                memory_next = (_memory_rule_next(sandbox_result.final.phase) if classification.code == classifier.TaxonomyCode.RESOURCE_LIMIT
+                               else None)
                 if memory_next == "hook":
                     state.stage = "time_machine"  # harness-v1.7 (R1 c): the memory hook and the memory environment, before the RESOURCE_LIMIT stop
                     state.memory_hook = True
@@ -2355,6 +2361,14 @@ def _run_stages(
                 if state.cost_capped:
                     stop_run = True
                     break
+                if step_result is None and classification.code in (classifier.TaxonomyCode.RESOURCE_LIMIT, classifier.TaxonomyCode.APT_MIRROR_GONE):
+                    # harness-v1.7 (v1.7 review, L3): the deferred rule could not run (the daily ceiling stopped it): the stop it deferred applies now
+                    reason = _note_failure(0, classification, sandbox_result.final.phase, record=False, may_defer=False)
+                    if reason:
+                        verdict, indeterminate_reason = "INDETERMINATE", reason
+                        _log(f"[verdict] INDETERMINATE: {reason}")
+                        stop_run = True
+                        break
                 if step_result is None:
                     break
                 if not step_result.succeeded:
@@ -3229,7 +3243,15 @@ def _run_stages(
                 _log(f"[verdict] INDETERMINATE: {sandbox_reason}")
                 break
 
-        if verdict is None and state.cost_capped:
+        deferred_reason = None
+        if verdict is None and not state.cost_capped and classification.code in (classifier.TaxonomyCode.RESOURCE_LIMIT,
+                                                                                 classifier.TaxonomyCode.APT_MIRROR_GONE):
+            # harness-v1.7 (v1.7 review, L3): the attempts ended (or the attempt budget stopped them) before a deferred rule ran: the stop applies
+            deferred_reason = _note_failure(0, classification, sandbox_result.final.phase, record=False, may_defer=False)
+        if verdict is None and deferred_reason:
+            verdict, indeterminate_reason = "INDETERMINATE", deferred_reason
+            _log(f"[verdict] INDETERMINATE: {indeterminate_reason}")
+        elif verdict is None and state.cost_capped:
             verdict, indeterminate_reason = "INDETERMINATE", _cost_cap_reason(state.cost_capped)
             _log(f"[verdict] INDETERMINATE: {indeterminate_reason}")
         elif verdict is None and output_cut_without_error(sandbox_result):

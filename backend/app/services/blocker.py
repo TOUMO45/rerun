@@ -133,18 +133,20 @@ def _fill(template: str, evidence: str) -> str:
     return out
 
 
-_GPU_REFERENCE_SENTENCE = ("nothing, if the CPU shim's reference kernel answers it ({kernel}); otherwise a CUDA device: the operation has no CPU "
-                           "implementation")
-
-
-def _gpu_row(evidence: str) -> tuple[str, str]:
-    """GPU_REQUIRED: (fixable_by, sentence). harness-v1.7 (R2): an operation without a CPU kernel that the CPU shim's reference table covers is
-    RERUN's to fix (deterministic); any other operation without a CPU kernel needs a CUDA device."""
+def _gpu_row(evidence: str, attempts=()) -> tuple[str, str]:
+    """GPU_REQUIRED: (fixable_by, sentence). harness-v1.7 (R2): an operation without a CPU kernel still needs a CUDA device for THIS run; the
+    sentence says whether a CPU reference for it exists and whether this run's shim carried it. It never claims a fix the record does not show
+    (v1.7 review, M5: the blocker is recomputed when an older certificate is served, so it must not rewrite what an older run could do)."""
     from app.services import runner_hooks  # stdlib-only module; imported here to keep blocker's import list as it was
 
     kernel = runner_hooks.reference_kernel_for(evidence)
     if kernel is not None:
-        return DETERMINISTIC, _GPU_REFERENCE_SENTENCE.replace("{kernel}", runner_hooks.CPU_REFERENCE_KERNELS[kernel]["label"])
+        name = runner_hooks.CPU_REFERENCE_KERNELS[kernel]["label"]
+        had = any("LU without pivoting" in str(((a or {}).get("time_machine_action") or {}).get("limit") or "")
+                  for a in attempts if ((a or {}).get("time_machine_action") or {}).get("rule") == "cpu_shim")
+        if had:
+            return HUMAN, f"{_GPU_NO_CPU_SENTENCE}; this run's CPU shim carried the reference for {name} and the run still stopped here"
+        return HUMAN, f"{_GPU_NO_CPU_SENTENCE} (a CPU reference for {name} exists from harness-v1.7; this run's shim did not carry it)"
     if _NO_CPU_KERNEL.search(evidence):
         return HUMAN, _GPU_NO_CPU_SENTENCE
     return TABLE[TaxonomyCode.GPU_REQUIRED]
@@ -184,7 +186,7 @@ def report(result: dict) -> dict | None:
                 "evidence": evidence, "fixable_by": None, "what_a_human_must_supply": None, "sources": None}
     fixable_by, template = row
     if code == TaxonomyCode.GPU_REQUIRED:
-        fixable_by, sentence = _gpu_row(evidence)
+        fixable_by, sentence = _gpu_row(evidence, result.get("attempts") or ())
     elif code == TaxonomyCode.API_REMOVED:
         sentence = _api_removed_sentence(evidence)
     else:
@@ -199,9 +201,11 @@ def report(result: dict) -> dict | None:
         "what_a_human_must_supply": sentence,
         "sources": None,
     }
-    # harness-v1.7 (R1 d): when the run adapted the documented command for memory, the blocker says so (only when set: older reports are unchanged)
-    adapted = [(a.get("time_machine_action") or {}).get("label") for a in (result.get("attempts") or ())
-               if (a.get("time_machine_action") or {}).get("rule") == "resource_adapt"]
-    if any(adapted):
-        out["resource_adapted"] = [label for label in adapted if label][-1]
+    # harness-v1.7: every label of the run (RESOURCE-ADAPTED, memory hook, dependency change, semantic change), only when set: older reports are unchanged
+    from app.services import outcome_levels
+
+    for key, value in (("resource_adapted", outcome_levels.resource_adapted(result)), ("memory_adapted", outcome_levels.memory_adapted(result)),
+                       ("dependency_change", outcome_levels.dependency_change(result))):
+        if value:
+            out[key] = value
     return out

@@ -44,7 +44,7 @@ def test_only_apt_commands_get_the_step():
     assert runner_env.with_apt_archive("pip install -r requirements.txt") == "pip install -r requirements.txt"
     wrapped = runner_env.with_apt_archive("apt-get update && apt-get install -y build-essential")
     assert wrapped.startswith(runner_env.apt_archive_step()) and wrapped.endswith("apt-get install -y build-essential")
-    assert runner_env.with_apt_archive("apt-get -o Acquire::Retries=3 install -y gcc").startswith("if [ -r /etc/os-release ]")
+    assert runner_env.with_apt_archive("apt-get -o Acquire::Retries=3 install -y gcc").startswith("(if [ -r /etc/os-release ]")
     assert runner_env.apt_archive_rewrote("x\nRERUN_APT_ARCHIVE bullseye\n", "RERUN_APT_ARCHIVE bullseye") == ["bullseye"]
 
 
@@ -111,7 +111,7 @@ def test_replay_entry_16_the_step_runs_before_every_apt_command_once_and_no_mode
     assert result.verdict == "RUNS_AFTER_REPAIR"
     step = next(a for a in result.attempts if (a.time_machine_action or {}).get("rule") == "apt_archive")
     assert step.origin == "time_machine" and step.time_machine_action["sources"]["bullseye"] == ["deb http://archive.debian.org/debian bullseye main"]
-    assert not any(c.startswith("if [ -r /etc/os-release ]") for c in plans[0]["install_commands"])  # the baseline ran as published
+    assert not any(c.startswith("(if [ -r /etc/os-release ]") for c in plans[0]["install_commands"])  # the baseline ran as published
     apt_cmds = [c for c in plans[1]["install_commands"] if "apt-get" in c]
     assert apt_cmds and all(c.startswith(runner_env.apt_archive_step()) for c in apt_cmds)
     assert any("apt_archive (harness-v1.7, R4)" in n for n in result.build_plan["notes"])

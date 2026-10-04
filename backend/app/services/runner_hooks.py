@@ -279,8 +279,7 @@ def _patch(torch):
         def lu_plu(A, args, kwargs):  # torch.linalg.lu(A, pivot=False) -> (P empty, L m x k unit lower, U k x n upper)
             if pivot_of(args, kwargs, 99) is not False:
                 return None
-            LU, _pivots, info = factor(A)
-            check("linalg.lu", info)
+            LU, _pivots, _info = factor(A)  # torch.linalg.lu does not check for a zero pivot (it has no check_errors)
             m, n = A.shape[-2], A.shape[-1]
             k = min(m, n)
             L = torch.tril(LU[..., :, :k], -1) + torch.eye(m, k, dtype=A.dtype, device=A.device)
@@ -493,6 +492,16 @@ def _patch(torch):
                 return orig(self, *args, **kwargs)
             a = bound.arguments
             workers = a.get("num_workers")
+            dataset = a.get("dataset")
+            iterable = getattr(tud, "IterableDataset", None)
+            if isinstance(workers, int) and workers > 0 and iterable is not None and isinstance(dataset, iterable):
+                # an IterableDataset is iterated once PER WORKER unless it shards itself: fewer workers can change how many samples an epoch has
+                _say("DataLoader left as is (IterableDataset, num_workers %d)" % workers)
+                return orig(self, *args, **kwargs)
+            if isinstance(workers, int) and workers > 0 and a.get("worker_init_fn") is not None:
+                # a worker_init_fn seeds or opens per-worker resources; with no worker it is never called
+                _say("DataLoader left as is (worker_init_fn, num_workers %d)" % workers)
+                return orig(self, *args, **kwargs)
             # only an EXPLICIT num_workers > 0 is changed; an argument the caller did not pass is left to torch
             if isinstance(workers, int) and not isinstance(workers, bool) and workers > 0:
                 a["num_workers"] = 0
@@ -625,9 +634,11 @@ HOOKS = {
         MEMORY_HOOK, "memory_hook", "RESOURCE_LIMIT at repair time (the sandbox killed the process for memory; harness-v1.7, R1 c)",
         "an EXPLICIT DataLoader num_workers > 0 becomes 0 (with prefetch_factor dropped, persistent_workers, timeout and multiprocessing_context "
         "reset, which torch requires for a single-process loader) and pin_memory=True becomes False; an argument the caller did not pass is left "
-        "to torch. The samples and their order are the same (the sampler draws in the main process either way); a worker_init_fn is not called "
-        "with no workers, so random augmentations seeded per worker draw from the main process's stream instead. The re-execution also runs with "
-        "MALLOC_ARENA_MAX=2 and OMP_NUM_THREADS=4. The recorded kills (DEV #17, gate #11) were of the MAIN process, so this alone may not clear them",
+        "to torch; a loader over an IterableDataset or with a worker_init_fn is left as is (its samples or its per-worker setup depend on the "
+        "workers). The samples and their order are the same (the sampler draws in the main process either way), but random augmentations draw "
+        "from the main process's random stream, so a seeded run does not repeat its random draws: the change is LABELLED (memory hook) on the "
+        "verdict, the ladder and the blocker. The re-execution also runs with MALLOC_ARENA_MAX=2 and OMP_NUM_THREADS=4. The recorded kills "
+        "(DEV #17, gate #11) were of the MAIN process, so this alone may not clear them",
     ),
 }
 
@@ -807,39 +818,62 @@ DATA_PREP_MAX_SECONDS = 180
 DATA_PREP_MAX_BYTES = 500 * 1000 * 1000
 
 _DATA_PREP_SOURCE = r'''
-import base64, hashlib, json, os, subprocess, sys, tarfile, time, zipfile
+import base64, hashlib, json, os, signal, subprocess, sys, tarfile, time, zipfile
 spec = json.loads(base64.b64decode(sys.argv[1]).decode("utf-8"))
 max_bytes, max_seconds = int(spec["max_bytes"]), float(spec["max_seconds"])
 root = os.getcwd()
 target = os.path.join(root, spec["workdir"]) if spec["workdir"] else root
 
 
-def tree_bytes(path):
-    total = 0
-    for d, _dirs, files in os.walk(path):
-        for name in files:
+def snapshot(path):
+    # {relative path: (size, mtime)} of every file under the repository tree
+    files = {}
+    for d, _dirs, names in os.walk(path):
+        for name in names:
+            full = os.path.join(d, name)
             try:
-                total += os.lstat(os.path.join(d, name)).st_size
+                st = os.lstat(full)
             except OSError:
-                pass
-    return total
+                continue
+            files[os.path.relpath(full, path)] = (st.st_size, st.st_mtime)
+    return files
 
 
 def unsafe(name):
-    return name.startswith("/") or ".." in name.replace("\\", "/").split("/")
+    parts = name.replace("\\", "/").split("/")
+    return name.startswith("/") or ".." in parts
+
+
+def check_time():
+    if time.time() - start > max_seconds:
+        raise RuntimeError("the step passed %d s" % max_seconds)
 
 
 start = time.time()
-before = tree_bytes(root)
-out = {"kind": spec["kind"], "workdir": spec["workdir"]}
+before = snapshot(root)
+out = {"kind": spec["kind"], "workdir": spec["workdir"], "bytes_counted": "files inside the repository tree only"}
 try:
     if spec["kind"] == "script":
         with open(os.path.join(root, spec["script"]), "rb") as f:
             out["sha256"] = hashlib.sha256(f.read()).hexdigest()
         out["command"] = " ".join(spec["argv"])
-        proc = subprocess.run(spec["argv"], cwd=target, timeout=max_seconds, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
-        out["exit_code"] = proc.returncode
-        out["output_tail"] = proc.stdout.decode("utf-8", "replace")[-1500:]
+        # its own process group: on the time cap the WHOLE group is killed (a shell script's wget, a multiprocessing pool)
+        proc = subprocess.Popen(spec["argv"], cwd=target, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, start_new_session=True)
+        try:
+            output, _ = proc.communicate(timeout=max_seconds)
+            out["exit_code"] = proc.returncode
+        except subprocess.TimeoutExpired:
+            try:
+                if hasattr(os, "killpg"):
+                    os.killpg(proc.pid, signal.SIGKILL)
+                else:  # not POSIX (only the offline tests run it there)
+                    proc.kill()
+            except OSError:
+                pass
+            output, _ = proc.communicate()
+            out["exit_code"] = None
+            out["error"] = "the step passed %d s and its process group was killed" % max_seconds
+        out["output_tail"] = (output or b"").decode("utf-8", "replace")[-1500:]
     else:
         import urllib.request
         url = spec["url"]
@@ -851,8 +885,7 @@ try:
         response = urllib.request.urlopen(url, timeout=30)
         with open(dest, "wb") as f:
             while True:
-                if time.time() - start > max_seconds:
-                    raise RuntimeError("the download passed %d s" % max_seconds)
+                check_time()
                 chunk = response.read(1 << 20)
                 if not chunk:
                     break
@@ -864,40 +897,45 @@ try:
         out.update(url=url, sha256=digest.hexdigest(), downloaded_bytes=size)
         if name.endswith((".tar.gz", ".tgz")):
             with tarfile.open(dest) as archive:
-                for member in archive.getmembers():
-                    if unsafe(member.name) or member.issym() or member.islnk():
-                        raise RuntimeError("refused archive member %r" % member.name)
-                archive.extractall(target)
+                members = archive.getmembers()
+                for member in members:
+                    if unsafe(member.name) or not (member.isfile() or member.isdir()):
+                        raise RuntimeError("refused archive member %r (only plain files and directories inside the target)" % member.name)
+                for member in members:
+                    check_time()
+                    archive.extract(member, target)
             out["extracted"] = True
         elif name.endswith(".zip"):
             with zipfile.ZipFile(dest) as archive:
                 for member in archive.namelist():
                     if unsafe(member):
                         raise RuntimeError("refused archive member %r" % member)
-                archive.extractall(target)
+                for member in archive.namelist():
+                    check_time()
+                    archive.extract(member, target)
             out["extracted"] = True
         out["exit_code"] = 0
-except subprocess.TimeoutExpired:
-    out["exit_code"] = None
-    out["error"] = "the step passed %d s and was stopped" % max_seconds
 except Exception as exc:
     out["exit_code"] = None
     out["error"] = "%s: %s" % (type(exc).__name__, str(exc)[:300])
 out["seconds"] = round(time.time() - start, 1)
-out["bytes_written"] = tree_bytes(root) - before
+after = snapshot(root)
+new = [rel for rel in after if rel not in before]
+changed = [rel for rel in after if rel in before and after[rel] != before[rel]]
+out["new_files"] = len(new)
+out["changed_files"] = len(changed)
+out["bytes_written"] = sum(after[rel][0] for rel in new) + sum(max(0, after[rel][0] - before[rel][0]) for rel in changed)
 if out["bytes_written"] > max_bytes:
     removed = 0
-    for d, _dirs, files in os.walk(root):
-        for name in files:
-            path = os.path.join(d, name)
-            try:
-                if os.lstat(path).st_mtime >= start - 1:
-                    os.remove(path)
-                    removed += 1
-            except OSError:
-                pass
+    for rel in new:  # what the step CREATED is removed; a file that existed before is never deleted
+        try:
+            os.remove(os.path.join(root, rel))
+            removed += 1
+        except OSError:
+            pass
     out["over_cap"] = True
     out["removed_files"] = removed
+    out["changed_files_not_restored"] = len(changed)
 sys.stdout.write("RERUN_DATA_PREP " + json.dumps(out, sort_keys=True) + "\n")
 sys.stdout.flush()
 '''

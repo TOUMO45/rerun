@@ -150,6 +150,30 @@ def test_the_launcher_runs_the_script_in_its_directory_and_records_bytes_and_has
     assert (tmp_path / "data" / "cifar10" / "all_data" / "x.bin").is_file()
 
 
+def test_over_the_cap_files_with_old_timestamps_are_removed_and_a_rewritten_file_is_kept_and_counted(tmp_path):
+    """v1.7 review, M1: an extracted archive keeps its members' old mtimes, so deletion goes by the path snapshot, not by mtime; a file that existed
+    before the step is never deleted (it is counted as changed, not restored)."""
+    script = ("import os, time\nopen('extracted.bin','wb').write(b'0'*20000)\nos.utime('extracted.bin', (1, 1))\n"
+              "open('../../keep.txt','a').write('more')\n")
+    _tree(tmp_path, {"keep.txt": "old\n", "data/cifar10/generate_data.py": script})
+    record = _launch(tmp_path, _script_spec([sys.executable, "generate_data.py"], max_bytes=1000))
+    assert record["over_cap"] is True and record["removed_files"] == 1 and record["changed_files_not_restored"] >= 1
+    assert not (tmp_path / "data" / "cifar10" / "extracted.bin").exists() and (tmp_path / "keep.txt").is_file()
+
+
+def test_a_device_or_link_member_of_an_archive_is_refused():
+    source = runner_hooks.data_prep_source()
+    assert "not (member.isfile() or member.isdir())" in source and "start_new_session=True" in source
+
+
+def test_a_path_that_leaves_the_repository_is_never_a_target(tmp_path):
+    assert data_prep._inside("../data/x") is None and data_prep._inside("/abs/x") is None
+    assert data_prep._inside("./data/x") == "data/x" and data_prep._inside("data/./x") == "data/x"
+    files = {"README.md": "## Data\nDownload the dataset:\nhttps://example.org/files/toy-data.tar.gz\n", "train.py": ""}
+    d = data_prep.decide(_tree(tmp_path, files), "FileNotFoundError: [Errno 2] No such file or directory: '../data/toy/train.csv'")
+    assert d.prep is None  # the evidence names a path outside the repository and the README names no directory
+
+
 def test_over_the_byte_cap_the_new_files_are_removed_and_the_record_says_so(tmp_path):
     _tree(tmp_path, {"keep.txt": "old\n", "data/cifar10/generate_data.py": "open('big.bin','wb').write(b'0'*20000)\n"})
     old = tmp_path / "keep.txt"
@@ -164,7 +188,7 @@ def test_over_the_byte_cap_the_new_files_are_removed_and_the_record_says_so(tmp_
 def test_over_the_time_cap_the_step_is_stopped_and_the_launcher_still_exits_0(tmp_path):
     _tree(tmp_path, {"data/cifar10/generate_data.py": "import time\ntime.sleep(30)\n"})
     record = _launch(tmp_path, _script_spec([sys.executable, "generate_data.py"], max_seconds=1))
-    assert record["exit_code"] is None and "stopped" in record["error"]
+    assert record["exit_code"] is None and "killed" in record["error"]
 
 
 class _Quiet(http.server.SimpleHTTPRequestHandler):

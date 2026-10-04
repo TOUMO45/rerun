@@ -65,6 +65,8 @@ export interface RunListItem {
   taxonomy_code: string | null;
   demo_source: string | null;
   created_at: string;
+  /** harness-v1.7: the verdict with its labels (semantic change, RESOURCE-ADAPTED, memory hook, dependency change); absent on older servers. */
+  verdict_label?: string | null;
 }
 
 export interface RunListOut {
@@ -164,6 +166,10 @@ export interface OutcomeLevels {
   semantic_change?: string[];
   /** harness-v1.7 (R1 d): present only when the run halved the documented command's batch size after a memory kill ("RESOURCE-ADAPTED: --batch_size 256->128"). */
   resource_adapted?: string;
+  /** harness-v1.7 (R1 c): what the memory hook changed in a DataLoader ("memory hook: DataLoader num_workers 2->0"). */
+  memory_adapted?: string;
+  /** harness-v1.7 (R5): the companion pin RERUN replaced ("dependency change: torchvision 0.5.0->0.4.0"). */
+  dependency_change?: string;
 }
 
 /** One Tavily hit for a blocker's "where to get it" lookup. */

@@ -88,6 +88,17 @@ def _readme_in(directory: Path) -> Path | None:
     return None
 
 
+def _inside(path: str) -> str | None:
+    """A repository-relative POSIX path, or None for an absolute path or one that leaves the repository (`../data`). Only a leading `./` is dropped
+    (v1.7 review, L7: `.lstrip("./")` had turned `../data` into `data`)."""
+    while path.startswith("./"):
+        path = path[2:]
+    if not path or path.startswith("/"):
+        return None
+    norm = posixpath.normpath(path)
+    return None if norm == ".." or norm.startswith("../") else norm
+
+
 def readmes(workdir: Path) -> list[tuple[str, str]]:
     """(repository-relative path, text) of every README the rule reads, root first, in a fixed order."""
     out: list[tuple[str, str]] = []
@@ -104,8 +115,8 @@ def readmes(workdir: Path) -> list[tuple[str, str]]:
                 out.append((md.relative_to(workdir).as_posix(), text))
     seen = {p for p, _ in out}
     for m in _DIR_TOKEN.finditer(root_text):
-        rel = posixpath.normpath(m.group(1).lstrip("./") if m.group(1).startswith("./") else m.group(1).lstrip("/"))
-        if rel.startswith("..") or rel in (".", ""):
+        rel = _inside(m.group(1))
+        if rel is None or rel == ".":
             continue
         directory = workdir / rel
         readme = _readme_in(directory)
@@ -244,10 +255,10 @@ def decide(workdir: Path, evidence: str) -> Decision:
     # (b) documented archives
     target_from_evidence = ""
     m = _EVIDENCE_PATH.search(evidence or "")
-    if m:
-        target = posixpath.normpath(posixpath.dirname(m.group(1).lstrip("./")))
-        if target and not target.startswith("..") and not posixpath.isabs(m.group(1)):
-            target_from_evidence = "" if target == "." else target
+    inside = _inside(m.group(1)) if m else None
+    if inside is not None:
+        target = posixpath.dirname(inside)
+        target_from_evidence = "" if target in (".", "") else target
     for readme, text in docs:
         lines = text.splitlines()
         for i, line in enumerate(lines):
@@ -257,9 +268,9 @@ def decide(workdir: Path, evidence: str) -> Decision:
                     continue
                 workdir_rel = target_from_evidence
                 if not workdir_rel:
-                    named = [d.group(1).strip("./") for w in window for d in _DIR_TOKEN.finditer(w)
+                    named = [_inside(d.group(1)) for w in window for d in _DIR_TOKEN.finditer(w)
                              if not d.group(1).startswith("http") and "://" not in w[max(0, d.start() - 3): d.start() + 1]]
-                    named = [d for d in named if (workdir / d).is_dir()]
+                    named = [d.rstrip("/") for d in named if d and (workdir / d).is_dir()]
                     if not named:
                         return Decision(None, f"{readme}:{i + 1}: an archive URL, but neither the evidence nor the README names where it goes", names)
                     workdir_rel = named[0]

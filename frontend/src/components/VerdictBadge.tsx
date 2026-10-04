@@ -15,20 +15,38 @@ const STYLES: Record<Verdict, { label: string; classes: string }> = {
 /** harness-v1.7 (R6, D-44): a RUNS_AFTER_REPAIR whose passing code carries a model patch that changes what the code computes. */
 const SEMANTIC_CHANGE = { label: "RUNS AFTER REPAIR (SEMANTIC CHANGE)", classes: "bg-warn/10 text-warn border-warn/40" };
 
+/** harness-v1.7: the labels inside a server-side `verdict_label` ("RUNS_AFTER_REPAIR (semantic change; RESOURCE-ADAPTED: ...)"), as short badge tags. */
+export function notesOfLabel(label?: string | null): string[] {
+  const inner = label?.match(/\((.*)\)\s*$/)?.[1];
+  if (!inner) return [];
+  return inner.split("; ").map((note) =>
+    note.startsWith("RESOURCE-ADAPTED")
+      ? "RESOURCE-ADAPTED"
+      : note.startsWith("memory hook")
+        ? "MEMORY HOOK"
+        : note.startsWith("dependency change")
+          ? "DEPENDENCY CHANGE"
+          : note.toUpperCase(),
+  );
+}
+
 export function VerdictBadge({
   verdict,
   size = "md",
   semanticChange = false,
   resourceAdapted = false,
+  notes: extra = [],
 }: {
   verdict: Verdict;
   size?: "sm" | "md" | "lg";
   semanticChange?: boolean;
   /** harness-v1.7 (R1 d): the documented command ran with a smaller batch after a memory kill. */
   resourceAdapted?: boolean;
+  /** harness-v1.7: further labels (MEMORY HOOK, DEPENDENCY CHANGE, ...), e.g. from notesOfLabel(verdict_label). */
+  notes?: string[];
 }) {
   const runs = verdict === "RUNS_AFTER_REPAIR" || verdict === "RUNS_CLEAN";
-  const notes = [semanticChange && runs ? "SEMANTIC CHANGE" : "", resourceAdapted && runs ? "RESOURCE-ADAPTED" : ""].filter(Boolean);
+  const notes = [...new Set([semanticChange && runs ? "SEMANTIC CHANGE" : "", resourceAdapted && runs ? "RESOURCE-ADAPTED" : "", ...extra])].filter(Boolean);
   const style = notes.length
     ? { label: `${STYLES[verdict].label} (${notes.join("; ")})`, classes: SEMANTIC_CHANGE.classes }
     : STYLES[verdict];

@@ -516,6 +516,28 @@ describe("Certificate — semantic change (harness-v1.7, R6, D-44)", () => {
     expect(screen.getByTestId("resource-adapted").textContent).toContain("--batch_size 256->128");
   });
 
+  it("labels a memory-hook run and a dependency change, and names both on the ladder", async () => {
+    getRun.mockResolvedValue(makeRun({ verdict: "RUNS_AFTER_REPAIR", taxonomy_code: null }));
+    getCertificate.mockResolvedValue(
+      makeCert([], {
+        verdict: "RUNS_AFTER_REPAIR",
+        outcome_levels: {
+          first_error_cleared: true,
+          first_error_cleared_by: "time_machine",
+          env_resolved: true,
+          entrypoint_runs: true,
+          memory_adapted: "memory hook: DataLoader num_workers 2->0",
+          dependency_change: "dependency change: torchvision 0.5.0->0.4.0",
+        },
+        blocker: null,
+      }),
+    );
+    renderCertificate();
+    expect(await screen.findByText("RUNS AFTER REPAIR (MEMORY HOOK; DEPENDENCY CHANGE)")).toBeTruthy();
+    expect(screen.getByTestId("memory-adapted").textContent).toContain("num_workers 2->0");
+    expect(screen.getByTestId("dependency-change").textContent).toContain("torchvision 0.5.0->0.4.0");
+  });
+
   it("keeps the plain label when no listed call was touched", async () => {
     getRun.mockResolvedValue(makeRun({ verdict: "RUNS_AFTER_REPAIR", taxonomy_code: null }));
     getCertificate.mockResolvedValue(

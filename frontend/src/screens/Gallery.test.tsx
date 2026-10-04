@@ -128,6 +128,19 @@ describe("Gallery", () => {
     expect(screen.getByRole("link", { name: "Gallery" }).getAttribute("href")).toBe("/gallery");
   });
 
+  it("shows the harness-v1.7 labels of a recorded audit from the server's verdict_label", async () => {
+    const labelled = {
+      ...LIST,
+      runs: LIST.runs.map((r) =>
+        r.verdict === "RUNS_AFTER_REPAIR" ? { ...r, verdict_label: "RUNS_AFTER_REPAIR (semantic change; RESOURCE-ADAPTED: --batch_size 256->128)" } : r,
+      ),
+    };
+    listRuns.mockResolvedValue(labelled);
+    health.mockResolvedValue(healthy(true));
+    renderAt("/gallery");
+    expect(await screen.findByText("RUNS AFTER REPAIR (SEMANTIC CHANGE; RESOURCE-ADAPTED)")).toBeTruthy();
+  });
+
   it("says so when there are no runs and shows no banner outside demo mode", async () => {
     listRuns.mockResolvedValue({ runs: [], total: 0, limit: 200, offset: 0 });
     health.mockResolvedValue(healthy(false));

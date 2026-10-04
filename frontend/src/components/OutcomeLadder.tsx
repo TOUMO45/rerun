@@ -60,6 +60,16 @@ export function OutcomeLadder({ levels }: { levels: OutcomeLevels }) {
           runs, but it may not compute what the paper&apos;s code computes. The diff is below.
         </p>
       )}
+      {levels.memory_adapted && (
+        <p data-testid="memory-adapted" className="mt-2 font-mono text-[11px] leading-relaxed text-warn">
+          {levels.memory_adapted}: after a memory kill the data loader ran in the main process, so random draws come from its stream.
+        </p>
+      )}
+      {levels.dependency_change && (
+        <p data-testid="dependency-change" className="mt-2 font-mono text-[11px] leading-relaxed text-warn">
+          {levels.dependency_change}: the repository pins releases that cannot be installed together; RERUN kept the framework and changed its companion.
+        </p>
+      )}
       {levels.resource_adapted && (
         <p data-testid="resource-adapted" className="mt-2 font-mono text-[11px] leading-relaxed text-warn">
           {levels.resource_adapted}: after a memory kill the documented command ran with a smaller batch, not as published.

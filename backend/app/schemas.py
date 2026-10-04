@@ -51,6 +51,8 @@ class RunListItem(BaseModel):
     taxonomy_code: str | None
     demo_source: str | None
     created_at: datetime
+    # harness-v1.7: the verdict with its labels (semantic change, RESOURCE-ADAPTED, memory hook, dependency change), from the certificate's attempts
+    verdict_label: str | None = None
 
 
 class RunListOut(BaseModel):

@@ -77,6 +77,19 @@ def test_replay_entry_5_the_step_installs_torch_1_2_0_with_torchvision_0_4_0_and
               "attempts": [a.as_dict() for a in result.attempts]}
     levels = outcome_levels.compute(record)
     assert levels["first_error_cleared"] and levels["first_error_cleared_by"] == "time_machine"
+    # v1.7 review, H1: a dependency change is labelled on the ladder and the verdict, and noted in the build plan
+    assert levels["dependency_change"] == "dependency change: torchvision 0.5.0->0.4.0"
+    assert outcome_levels.verdict_label(record) == "RUNS_AFTER_REPAIR (dependency change: torchvision 0.5.0->0.4.0)"
+    assert any("companion_relax" in n and "DEPENDENCY CHANGE" in n for n in result.build_plan["notes"])
+
+
+def test_a_conflict_without_pips_resolution_impossible_text_is_not_relaxed(tmp_path):
+    """v1.7 review, L6: the rule needs pip's own ResolutionImpossible, not any DEP_UNPINNED_CONFLICT pattern."""
+    command, _ = _recorded()
+    other = "ERROR: Cannot install torch==1.2.0 and torchvision==0.5.0 because these package versions have conflicting dependencies."
+    result, repair, plans, left = _pipeline(tmp_path, [_setup_failure(command, other)], files={"train.py": "import torch\n"},
+                                            dependency_files={"requirements.txt": _requirements_from(command)})
+    assert len(plans) == 1 and result.indeterminate_reason.startswith("RUNNER_SETUP_FAILED")
 
 
 def test_a_conflict_the_table_does_not_explain_still_ends_runner_setup_failed_with_no_step(tmp_path):
