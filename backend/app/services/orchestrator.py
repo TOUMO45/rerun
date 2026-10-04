@@ -57,6 +57,7 @@ from app.services import (
 )
 from app.services import (
     compute_sandbox,
+    data_prep,
     dep_scan,
     error_chain,
     import_names,
@@ -253,6 +254,8 @@ class _RunState:
     torch_overrides: dict = field(default_factory=dict)
     # harness-v1.7 (R4, apt_archive): every apt command of the run is preceded by runner_env.apt_archive_step() from here on.
     apt_archive: bool = False
+    # harness-v1.7 (R3, data_prep): what the rule decided ({"decision", "readmes", "step"?}); set once per run, on the first DATA_MISSING at repair time.
+    data_prep: dict | None = None
 
 
 def _cost_cap_reason(message: str) -> str:
@@ -867,10 +870,10 @@ def run_pipeline(
         _run_pipeline_stages(repo_url=repo_url, commit_sha=commit_sha, workdir=workdir, intake_result=intake_result, deps=deps,
                              cost_guard=cost_guard, run_id=run_id, on_event=on_event, documented_command=documented_command,
                              state=state),
-        deps, repo_url, on_event)
+        deps, repo_url, on_event, dataset_name=((state.data_prep or {}).get("dataset_name") or ""))
 
 
-def _with_blocker_sources(result: PipelineResult, deps: PipelineDeps, repo_url: str, on_event) -> PipelineResult:
+def _with_blocker_sources(result: PipelineResult, deps: PipelineDeps, repo_url: str, on_event, dataset_name: str = "") -> PipelineResult:
     """harness-v1.6 (item S): after the verdict, one Tavily search for a DATA_MISSING blocker, stored on the result. It
     runs after every finalizer so the verdict is already fixed; it can neither change a verdict nor raise (a failed
     search is stored as its reason)."""
@@ -878,7 +881,7 @@ def _with_blocker_sources(result: PipelineResult, deps: PipelineDeps, repo_url: 
         # v1.6 review, defect 9: only a BLOCKED run has a blocker a person must act on; an INDETERMINATE one (cost cap,
         # invalid harness, a platform stop) carries a chain but no claim, and no search is spent on it.
         return result
-    sources = tavily.dataset_sources(getattr(deps, "tavily_client", None), repo_url, result.blocker)
+    sources = tavily.dataset_sources(getattr(deps, "tavily_client", None), repo_url, result.blocker, dataset_name)
     if sources is None:
         return result
     if on_event is not None:
@@ -2063,6 +2066,48 @@ def _run_stages(
 
         wrapper_tried = False
 
+        def _auto_data_prep(evidence: str) -> SandboxRunResult | None:
+            """harness-v1.7 (R3). Deterministic step (no model): the failure is DATA_MISSING and the repository's README documents how to prepare the
+            data (data_prep.decide: a documented script, else a documented archive). The step runs as a RERUN-owned setup command under the caps
+            (runner_hooks.data_prep_command), then the documented command is re-executed. Attempt 0 / origin time_machine, once per run. None when
+            the rule does not fire (the decision is logged and kept on the run) or the budget stops it. Never fabricates an input."""
+            decision = data_prep.decide(workdir, evidence)
+            state.data_prep = {"decision": decision.reason, "readmes": list(decision.readmes)}
+            if decision.prep is None:
+                _log(f"[time-machine] data_prep: not fired: {decision.reason}")
+                return None
+            prep = decision.prep
+            state.data_prep.update(step=prep.as_dict(), dataset_name=prep.dataset_name)
+            state.runner_extras.append(runner_hooks.data_prep_command(prep))
+            action = {"rule": runner_hooks.DATA_PREP_RULE, "matched_error": evidence[:500], "phase": "repair",
+                      "fires_on": "DATA_MISSING at repair time, when a README documents a data script or an archive URL", **prep.as_dict(),
+                      "caps": {"seconds": runner_hooks.DATA_PREP_MAX_SECONDS, "bytes_written": runner_hooks.DATA_PREP_MAX_BYTES}}
+            _log(f"[time-machine] deterministic step: data_prep ({prep.kind}: {prep.readme}:{prep.line} `{prep.quote[:160]}`"
+                 f"{' in ' + prep.workdir if prep.workdir else ''}); no model call")
+
+            def _record(exit_code, stdout, stderr, execution=None) -> None:
+                attempts.append(AttemptRecord(0, "", "PASS", (), exit_code, stdout, stderr, origin="time_machine",
+                                              execution=execution, time_machine_action=action))
+
+            try:
+                result = _execute(workdir, smoke=True, role="time machine: data_prep")
+            except CostLimitExceeded as exc:
+                _log(f"[time-machine] stopped: {exc}")
+                _record(None, "", f"stopped before completion: {exc}"[-2000:])
+                return None
+            except (SandboxTimeoutError, tree_integrity.HarnessIntegrityError) as exc:
+                _record(None, "", str(exc)[-2000:])
+                raise
+            done = runner_hooks.parse_data_prep(*(st.stdout for st in result.steps), *(st.stderr for st in result.steps))
+            action["result"] = done if done is not None else {"error": "no RERUN_DATA_PREP line in the operation's output (the step may not have run)"}
+            if done is not None:
+                _log(f"[time-machine] data_prep result: exit {done.get('exit_code')}, {done.get('bytes_written')} bytes written, "
+                     f"{done.get('seconds')} s{', OVER CAP: output removed' if done.get('over_cap') else ''}"
+                     f"{', error: ' + str(done.get('error')) if done.get('error') else ''}")
+            _log(f"[time-machine] re-execution id={result.sandbox_id} exit_code={result.final.exit_code}")
+            _record(result.final.exit_code, result.final.stdout[-2000:], result.final.stderr[-2000:], _execution_of(result, True))
+            return result
+
         def _auto_apt_archive(matched: str) -> SandboxRunResult | None:
             """harness-v1.7 (R4). Deterministic step (no model): the base image's Debian release has left the mirrors (APT_MIRROR_GONE). From here on
             every apt command is preceded by runner_env.apt_archive_step() (only an end-of-life codename is rewritten), recorded in the build plan's
@@ -2187,6 +2232,12 @@ def _run_stages(
                 if classification.code == classifier.TaxonomyCode.APT_MIRROR_GONE and not state.apt_archive:
                     state.stage = "time_machine"  # harness-v1.7 (R4): nothing else can install while the mirrors are gone
                     step_result = _auto_apt_archive(classification.evidence or classification.code)
+                elif (classification.code == classifier.TaxonomyCode.DATA_MISSING and hooks_ok and state.data_prep is None
+                      and not removal_hit):
+                    state.stage = "time_machine"  # harness-v1.7 (R3): the repository's documented data step, before any model call
+                    step_result = _auto_data_prep(classification.evidence or "")
+                    if step_result is None and not state.cost_capped:
+                        continue  # not fired (the decision is kept, so it cannot come back): the other deterministic steps get their turn
                 elif removal_hit and removal_hit[0].rule not in removals_applied:
                     state.stage = "time_machine"
                     step_result = _auto_api_removal(sandbox_result, *removal_hit)

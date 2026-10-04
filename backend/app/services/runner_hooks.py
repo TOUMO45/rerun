@@ -649,6 +649,144 @@ def wrap_entry_command(command: str, python: str | None = None) -> tuple[str | N
     return " ".join([*env, launcher, mode, shlex.quote(target), *(shlex.quote(a) for a in args)]).strip(), "wrapped"
 
 
+# --- data preparation (harness-v1.7, R3) ------------------------------------------------------------------------------------------
+# The step data_prep.decide() found (a documented script or a documented archive) runs inside the sandbox as one RERUN-owned setup command, after the
+# environment is built and before the documented command, so what it writes is in the environment image the re-execution starts from. Caps: the
+# step's wall clock (180 s) and the bytes it adds to the tree (500 MB; over the cap every file the step created or changed is deleted and the record
+# says so). It always exits 0 (a failed preparation is recorded, and the documented command then shows what is still missing). One line on stdout:
+# `RERUN_DATA_PREP {json}` (kind, exit code, bytes written, sha256 of the script or the archive, seconds, url, any error).
+
+DATA_PREP_RULE = "data_prep"
+DATA_PREP_MARKER = "RERUN_DATA_PREP"
+DATA_PREP_MAX_SECONDS = 180
+DATA_PREP_MAX_BYTES = 500 * 1000 * 1000
+
+_DATA_PREP_SOURCE = r'''
+import base64, hashlib, json, os, subprocess, sys, tarfile, time, zipfile
+spec = json.loads(base64.b64decode(sys.argv[1]).decode("utf-8"))
+max_bytes, max_seconds = int(spec["max_bytes"]), float(spec["max_seconds"])
+root = os.getcwd()
+target = os.path.join(root, spec["workdir"]) if spec["workdir"] else root
+
+
+def tree_bytes(path):
+    total = 0
+    for d, _dirs, files in os.walk(path):
+        for name in files:
+            try:
+                total += os.lstat(os.path.join(d, name)).st_size
+            except OSError:
+                pass
+    return total
+
+
+def unsafe(name):
+    return name.startswith("/") or ".." in name.replace("\\", "/").split("/")
+
+
+start = time.time()
+before = tree_bytes(root)
+out = {"kind": spec["kind"], "workdir": spec["workdir"]}
+try:
+    if spec["kind"] == "script":
+        with open(os.path.join(root, spec["script"]), "rb") as f:
+            out["sha256"] = hashlib.sha256(f.read()).hexdigest()
+        out["command"] = " ".join(spec["argv"])
+        proc = subprocess.run(spec["argv"], cwd=target, timeout=max_seconds, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+        out["exit_code"] = proc.returncode
+        out["output_tail"] = proc.stdout.decode("utf-8", "replace")[-1500:]
+    else:
+        import urllib.request
+        url = spec["url"]
+        name = url.rsplit("/", 1)[-1].split("?", 1)[0]
+        if not os.path.isdir(target):
+            os.makedirs(target)
+        dest = os.path.join(target, name)
+        digest, size = hashlib.sha256(), 0
+        response = urllib.request.urlopen(url, timeout=30)
+        with open(dest, "wb") as f:
+            while True:
+                if time.time() - start > max_seconds:
+                    raise RuntimeError("the download passed %d s" % max_seconds)
+                chunk = response.read(1 << 20)
+                if not chunk:
+                    break
+                size += len(chunk)
+                if size > max_bytes:
+                    raise RuntimeError("the download passed %d bytes" % max_bytes)
+                digest.update(chunk)
+                f.write(chunk)
+        out.update(url=url, sha256=digest.hexdigest(), downloaded_bytes=size)
+        if name.endswith((".tar.gz", ".tgz")):
+            with tarfile.open(dest) as archive:
+                for member in archive.getmembers():
+                    if unsafe(member.name) or member.issym() or member.islnk():
+                        raise RuntimeError("refused archive member %r" % member.name)
+                archive.extractall(target)
+            out["extracted"] = True
+        elif name.endswith(".zip"):
+            with zipfile.ZipFile(dest) as archive:
+                for member in archive.namelist():
+                    if unsafe(member):
+                        raise RuntimeError("refused archive member %r" % member)
+                archive.extractall(target)
+            out["extracted"] = True
+        out["exit_code"] = 0
+except subprocess.TimeoutExpired:
+    out["exit_code"] = None
+    out["error"] = "the step passed %d s and was stopped" % max_seconds
+except Exception as exc:
+    out["exit_code"] = None
+    out["error"] = "%s: %s" % (type(exc).__name__, str(exc)[:300])
+out["seconds"] = round(time.time() - start, 1)
+out["bytes_written"] = tree_bytes(root) - before
+if out["bytes_written"] > max_bytes:
+    removed = 0
+    for d, _dirs, files in os.walk(root):
+        for name in files:
+            path = os.path.join(d, name)
+            try:
+                if os.lstat(path).st_mtime >= start - 1:
+                    os.remove(path)
+                    removed += 1
+            except OSError:
+                pass
+    out["over_cap"] = True
+    out["removed_files"] = removed
+sys.stdout.write("RERUN_DATA_PREP " + json.dumps(out, sort_keys=True) + "\n")
+sys.stdout.flush()
+'''
+
+
+def data_prep_source() -> str:
+    return _DATA_PREP_SOURCE
+
+
+def data_prep_command(prep, python: str = "python3") -> str:
+    """The setup command that runs the documented step `prep` (data_prep.DataPrep) under the caps; always exits 0."""
+    import json
+
+    spec = {"kind": prep.kind, "workdir": prep.workdir, "script": prep.script, "argv": list(prep.command), "url": prep.url,
+            "max_bytes": DATA_PREP_MAX_BYTES, "max_seconds": DATA_PREP_MAX_SECONDS}
+    code = base64.b64encode(_DATA_PREP_SOURCE.encode("utf-8")).decode("ascii")
+    arg = base64.b64encode(json.dumps(spec, sort_keys=True).encode("utf-8")).decode("ascii")
+    return f"{python} -c \"import base64;exec(base64.b64decode('{code}').decode('utf-8'))\" {arg} || true"
+
+
+def parse_data_prep(*texts: str) -> dict | None:
+    """The `RERUN_DATA_PREP {json}` record in a run's output, or None."""
+    import json
+
+    for text in texts:
+        for line in (text or "").splitlines():
+            if line.startswith(DATA_PREP_MARKER + " "):
+                try:
+                    return json.loads(line[len(DATA_PREP_MARKER) + 1:])
+                except ValueError:
+                    return {"error": "unreadable RERUN_DATA_PREP line"}
+    return None
+
+
 # --- resource evidence (harness-v1.4.2-rc, D-38 / D-40) --------------------------------------------------------------------------
 
 EVIDENCE_BEGIN = "RERUN_EVIDENCE_BEGIN"
