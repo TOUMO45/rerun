@@ -86,6 +86,20 @@ def test_the_result_counts_confirmed_entries_against_the_target_and_only_a_compl
     assert none["confirmed_count"] == 0 and none["target_met"] is False
 
 
+def test_harness_v17_labels_a_resource_adapted_or_semantic_change_row_and_counts_without_the_adapted_ones():
+    m = _mod()
+    ids = list(m.TEST_ENTRIES)
+    records = [_runs(i) for i in ids]
+    records[0]["result"]["attempts"] = [*records[0]["result"]["attempts"],
+                                        {"origin": "time_machine", "attempt_number": 0, "exit_code": 137,
+                                         "time_machine_action": {"rule": "resource_adapt", "label": "RESOURCE-ADAPTED: --batch_size 256->128"}}]
+    sustained = [{"entry": i, "outcome": "completed", "funded_seconds": 600} for i in ids[:3]]
+    doc = m.evaluate(records, sustained, {})
+    assert doc["confirmed_count"] == 3 and doc["confirmed_count_without_resource_adapted"] == 2 and doc["confirmed_with_semantic_change"] == 0
+    first = next(r for r in doc["rows"] if r["entry"] == ids[0])
+    assert first["resource_adapted"] == "RESOURCE-ADAPTED: --batch_size 256->128" and first["verdict_label"].endswith("(RESOURCE-ADAPTED: --batch_size 256->128)")
+
+
 # --- the freeze ------------------------------------------------------------------------------------------------------------------------------
 
 def _git(commit="a" * 40, remote_commit=None, changed="", tags=(), dev_tag_commit="b" * 40, missing=False):

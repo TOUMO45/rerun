@@ -107,12 +107,24 @@ def confirmation(record: dict, sustained: dict | None) -> dict:
 
 def evaluate(records: list[dict], sustained: list[dict], dev_rounds: dict[int, int] | None = None) -> dict:
     """PURE. The TEST result: the count over the 8 entries against the target, every entry's confirmation, and the DEV rounds' counts beside it."""
+    from app.services import outcome_levels
+
     by_entry = {d.get("entry"): d for d in sustained if d}
-    rows = [confirmation(r, by_entry.get((r.get("batch") or {}).get("entry_id"))) for r in sorted(records, key=lambda r: (r.get("batch") or {}).get("entry_id"))]
+    ordered = sorted(records, key=lambda r: (r.get("batch") or {}).get("entry_id"))
+    rows = [confirmation(r, by_entry.get((r.get("batch") or {}).get("entry_id"))) for r in ordered]
+    for row, record in zip(rows, ordered):
+        # harness-v1.7 pre-registration: a RESOURCE-ADAPTED verdict (R1 d) and a semantic change (R6, D-44) are labelled on every confirmed row
+        result = record.get("result") or {}
+        row["resource_adapted"] = outcome_levels.resource_adapted(result) or None
+        row["semantic_change"] = list(outcome_levels.semantic_change(result)) or None
+        row["verdict_label"] = outcome_levels.verdict_label(result)
     count = sum(1 for r in rows if r["confirmed"])
+    count_unadapted = sum(1 for r in rows if r["confirmed"] and not r["resource_adapted"])
     smoke = sum(1 for r in rows if r["verdict"] in RUNS_VERDICTS)
     return {"split": "TEST (not touched by the v1.5 rounds; prior exposure in v1.3.2 is stated in METHODOLOGY)", "entries": len(TEST_ENTRIES), "ran": len(records),
             "primary_metric": "TEST entries with a RUNS_CLEAN / RUNS_AFTER_REPAIR verdict confirmed by the D-42 sustained check or by completion", "confirmed_count": count,
+            "confirmed_count_without_resource_adapted": count_unadapted,
+            "confirmed_with_semantic_change": sum(1 for r in rows if r["confirmed"] and r["semantic_change"]),
             "target": TARGET, "target_met": count >= TARGET and len(records) == len(TEST_ENTRIES), "runs_verdict_count_at_smoke_level": smoke,
             "dev_rounds_smoke_level_counts": dev_rounds or {}, "rows": rows,
             "note": "a count over 8 entries, one run each: not a rate; a confirmed run says the documented command ran 600 s or to completion, not that the paper's result was reproduced"}
