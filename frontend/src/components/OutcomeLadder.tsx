@@ -60,6 +60,11 @@ export function OutcomeLadder({ levels }: { levels: OutcomeLevels }) {
           runs, but it may not compute what the paper&apos;s code computes. The diff is below.
         </p>
       )}
+      {levels.resource_adapted && (
+        <p data-testid="resource-adapted" className="mt-2 font-mono text-[11px] leading-relaxed text-warn">
+          {levels.resource_adapted}: after a memory kill the documented command ran with a smaller batch, not as published.
+        </p>
+      )}
       <p className="mt-2 font-mono text-[11px] leading-relaxed text-text-secondary">
         Each rung is a count of stored fields, not a judgment; only the TEST phase&apos;s 600 s sustained check confirms
         a smoke pass.

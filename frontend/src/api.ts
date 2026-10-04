@@ -162,6 +162,8 @@ export interface OutcomeLevels {
   /** harness-v1.7 (R6, D-44): present only when a gated model patch the passing run carried touches a call whose replacement changes a
    * result (torch.lu, linalg.*, solve, a seed, a dtype cast, a loss, ...): the names of those calls. */
   semantic_change?: string[];
+  /** harness-v1.7 (R1 d): present only when the run halved the documented command's batch size after a memory kill ("RESOURCE-ADAPTED: --batch_size 256->128"). */
+  resource_adapted?: string;
 }
 
 /** One Tavily hit for a blocker's "where to get it" lookup. */

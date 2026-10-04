@@ -496,6 +496,26 @@ describe("Certificate — semantic change (harness-v1.7, R6, D-44)", () => {
     expect(screen.getByTestId("semantic-change").textContent).toContain("torch.lu, linalg");
   });
 
+  it("labels a resource-adapted run and says what changed", async () => {
+    getRun.mockResolvedValue(makeRun({ verdict: "RUNS_AFTER_REPAIR", taxonomy_code: null }));
+    getCertificate.mockResolvedValue(
+      makeCert([], {
+        verdict: "RUNS_AFTER_REPAIR",
+        outcome_levels: {
+          first_error_cleared: true,
+          first_error_cleared_by: "time_machine",
+          env_resolved: true,
+          entrypoint_runs: true,
+          resource_adapted: "RESOURCE-ADAPTED: --batch_size 256->128",
+        },
+        blocker: null,
+      }),
+    );
+    renderCertificate();
+    expect(await screen.findByText("RUNS AFTER REPAIR (RESOURCE-ADAPTED)")).toBeTruthy();
+    expect(screen.getByTestId("resource-adapted").textContent).toContain("--batch_size 256->128");
+  });
+
   it("keeps the plain label when no listed call was touched", async () => {
     getRun.mockResolvedValue(makeRun({ verdict: "RUNS_AFTER_REPAIR", taxonomy_code: null }));
     getCertificate.mockResolvedValue(

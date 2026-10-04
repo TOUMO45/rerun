@@ -20,6 +20,8 @@ are recomputed from any stored record, so an old certificate can be read the sam
                           touches a call of tamper_gate.SEMANTIC_CALLS: the names of those calls. The verdict is unchanged; its label reads
                           "RUNS_AFTER_REPAIR (semantic change)" (`verdict_label`). Absent otherwise, so every record written before v1.7 that it
                           does not flag reads exactly as before.
+  resource_adapted        harness-v1.7 (R1 d); present ONLY when a resource_adapt step ran: the label of the last adaptation applied
+                          ("RESOURCE-ADAPTED: --batch_size 256->128"). The documented command did not run as published from then on.
 """
 
 from __future__ import annotations
@@ -70,9 +72,25 @@ def semantic_change(result: dict) -> tuple[str, ...]:
     return tuple(found)
 
 
+def resource_adapted(result: dict) -> str:
+    """harness-v1.7 (R1 d): the label of the last resource_adapt step the run applied, or ''."""
+    labels = [(a.get("time_machine_action") or {}).get("label") for a in (result.get("attempts") or ())
+              if (a.get("time_machine_action") or {}).get("rule") == "resource_adapt"]
+    labels = [label for label in labels if label]
+    return labels[-1] if labels else ""
+
+
 def verdict_label(result: dict) -> str:
-    """The verdict as the certificate, the dashboard and the ladder print it: the code, or SEMANTIC_CHANGE_LABEL (harness-v1.7, R6)."""
-    return SEMANTIC_CHANGE_LABEL if semantic_change(result) else str(result.get("verdict") or "")
+    """The verdict as the certificate, the dashboard and the ladder print it: the code, with "(semantic change)" (harness-v1.7, R6) and / or the
+    RESOURCE-ADAPTED label (R1 d) beside it when they apply."""
+    verdict = str(result.get("verdict") or "")
+    notes = []
+    if semantic_change(result):
+        notes.append("semantic change")
+    adapted = resource_adapted(result)
+    if adapted:
+        notes.append(adapted)
+    return f"{verdict} ({'; '.join(notes)})" if notes else verdict
 
 
 def compute(result: dict) -> dict:
@@ -116,4 +134,7 @@ def compute(result: dict) -> dict:
     flagged = semantic_change(result)
     if flagged:
         out["semantic_change"] = list(flagged)
+    adapted = resource_adapted(result)
+    if adapted:
+        out["resource_adapted"] = adapted
     return out

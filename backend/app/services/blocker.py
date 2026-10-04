@@ -189,7 +189,7 @@ def report(result: dict) -> dict | None:
         sentence = _api_removed_sentence(evidence)
     else:
         sentence = _fill(template, evidence)
-    return {
+    out = {
         "class": code,
         "family": TaxonomyCode.FAMILY.get(_HISTORICAL.get(code, code)),
         "phase": link.get("phase"),
@@ -199,3 +199,9 @@ def report(result: dict) -> dict | None:
         "what_a_human_must_supply": sentence,
         "sources": None,
     }
+    # harness-v1.7 (R1 d): when the run adapted the documented command for memory, the blocker says so (only when set: older reports are unchanged)
+    adapted = [(a.get("time_machine_action") or {}).get("label") for a in (result.get("attempts") or ())
+               if (a.get("time_machine_action") or {}).get("rule") == "resource_adapt"]
+    if any(adapted):
+        out["resource_adapted"] = [label for label in adapted if label][-1]
+    return out

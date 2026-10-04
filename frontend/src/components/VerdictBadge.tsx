@@ -19,12 +19,19 @@ export function VerdictBadge({
   verdict,
   size = "md",
   semanticChange = false,
+  resourceAdapted = false,
 }: {
   verdict: Verdict;
   size?: "sm" | "md" | "lg";
   semanticChange?: boolean;
+  /** harness-v1.7 (R1 d): the documented command ran with a smaller batch after a memory kill. */
+  resourceAdapted?: boolean;
 }) {
-  const style = semanticChange && verdict === "RUNS_AFTER_REPAIR" ? SEMANTIC_CHANGE : STYLES[verdict];
+  const runs = verdict === "RUNS_AFTER_REPAIR" || verdict === "RUNS_CLEAN";
+  const notes = [semanticChange && runs ? "SEMANTIC CHANGE" : "", resourceAdapted && runs ? "RESOURCE-ADAPTED" : ""].filter(Boolean);
+  const style = notes.length
+    ? { label: `${STYLES[verdict].label} (${notes.join("; ")})`, classes: SEMANTIC_CHANGE.classes }
+    : STYLES[verdict];
   const sizeClasses = size === "lg" ? "text-sm px-4 py-2" : size === "sm" ? "text-[11px] px-2 py-0.5" : "text-xs px-3 py-1";
   return (
     <span

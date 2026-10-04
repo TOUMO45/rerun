@@ -93,7 +93,12 @@ export function Certificate() {
             </p>
           )}
         </div>
-        <VerdictBadge verdict={cert.verdict} size="lg" semanticChange={(cert.outcome_levels?.semantic_change?.length ?? 0) > 0} />
+        <VerdictBadge
+          verdict={cert.verdict}
+          size="lg"
+          semanticChange={(cert.outcome_levels?.semantic_change?.length ?? 0) > 0}
+          resourceAdapted={Boolean(cert.outcome_levels?.resource_adapted)}
+        />
       </div>
 
       {cert.outcome_levels && <OutcomeLadder levels={cert.outcome_levels} />}

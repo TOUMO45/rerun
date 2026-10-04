@@ -30,6 +30,8 @@ from dataclasses import dataclass
 
 CPU_SHIM = "cpu_shim"
 EXIT_HOOK = "exit_hook"
+MEMORY_HOOK = "memory_hook"
+MEMORY_HOOK_MARKER = "RERUN memory_hook:"
 
 CPU_SHIM_MARKER = "RERUN_CPU_SHIM"
 EXIT_HOOK_MARKER = "RERUN_EXIT_HOOK"
@@ -335,19 +337,24 @@ class _Finder(object):
     (importlib.util.find_spec("torch"), as transformers / accelerate / lightning do) must not use the shim up."""
 
     done = False
+    busy = False  # harness-v1.7: another RERUN finder (the memory hook) asks every finder too; without this guard the two recurse forever
 
     def find_spec(self, name, path=None, target=None):
-        if name != _TARGET or self.done:
+        if name != _TARGET or self.done or self.busy:
             return None
         others = [f for f in sys.meta_path if f is not self]
         spec = None
-        for finder in others:
-            find = getattr(finder, "find_spec", None)
-            if find is None:
-                continue
-            spec = find(name, path, target) if target is not None else find(name, path)
-            if spec is not None:
-                break
+        self.busy = True
+        try:
+            for finder in others:
+                find = getattr(finder, "find_spec", None)
+                if find is None:
+                    continue
+                spec = find(name, path, target) if target is not None else find(name, path)
+                if spec is not None:
+                    break
+        finally:
+            self.busy = False
         loader = getattr(spec, "loader", None)
         if spec is None or loader is None or not hasattr(loader, "exec_module"):
             return spec
@@ -449,6 +456,126 @@ except Exception:
 _wrap_quitters()  # if they already exist (the hook imported after start-up)
 '''
 
+_MEMORY_HOOK_SOURCE = r'''
+"""RERUN memory hook (harness-v1.7, R1 c): injected by RERUN after the sandbox killed a process for memory; not part of the repository."""
+import sys
+
+_TARGET = "torch"
+_SAID = set()
+
+
+def _say(text):
+    """One line per distinct change per process on stderr: `RERUN memory_hook: DataLoader num_workers 4->0` (the harness records it)."""
+    if text in _SAID:
+        return
+    _SAID.add(text)
+    try:
+        sys.stderr.write("RERUN memory_hook: %s\n" % text)
+        sys.stderr.flush()
+    except Exception:
+        pass
+
+
+def _patch(torch):
+    try:
+        import inspect
+        from torch.utils import data as tud
+        loader = tud.DataLoader
+        orig = loader.__init__
+        if getattr(orig, "_rerun_memory_hook", False):
+            return
+        sig = inspect.signature(orig)
+
+        def __init__(self, *args, **kwargs):
+            try:
+                bound = sig.bind_partial(self, *args, **kwargs)
+            except TypeError:
+                return orig(self, *args, **kwargs)
+            a = bound.arguments
+            workers = a.get("num_workers")
+            # only an EXPLICIT num_workers > 0 is changed; an argument the caller did not pass is left to torch
+            if isinstance(workers, int) and not isinstance(workers, bool) and workers > 0:
+                a["num_workers"] = 0
+                _say("DataLoader num_workers %d->0" % workers)
+                a.pop("prefetch_factor", None)  # valid only with workers (torch raises otherwise)
+                if a.get("persistent_workers"):
+                    a["persistent_workers"] = False
+                if isinstance(a.get("timeout"), (int, float)) and a.get("timeout") > 0:
+                    a["timeout"] = 0  # the single-process iterator asserts timeout == 0
+                if a.get("multiprocessing_context") is not None:
+                    a["multiprocessing_context"] = None
+            if a.get("pin_memory") is True:
+                a["pin_memory"] = False
+                _say("DataLoader pin_memory True->False")
+            return orig(*bound.args, **bound.kwargs)
+
+        __init__._rerun_memory_hook = True
+        __init__.__wrapped__ = orig
+        loader.__init__ = __init__
+        sys.stderr.write("RERUN_MEMORY_HOOK: injected by RERUN: DataLoader(num_workers>0 -> 0, pin_memory -> False)\n")
+    except Exception as exc:  # the hook must never break the import it patches
+        try:
+            sys.stderr.write("RERUN_MEMORY_HOOK: not applied (%r)\n" % (exc,))
+        except Exception:
+            pass
+
+
+class _Loader(object):
+    def __init__(self, inner, finder):
+        self._inner, self._finder = inner, finder
+
+    def create_module(self, spec):
+        create = getattr(self._inner, "create_module", None)
+        return create(spec) if create is not None else None
+
+    def exec_module(self, module):
+        self._inner.exec_module(module)
+        _patch(module)
+        self._finder.done = True
+        try:
+            sys.meta_path.remove(self._finder)
+        except ValueError:
+            pass
+
+    def __getattr__(self, name):
+        return getattr(self._inner, name)
+
+
+class _Finder(object):
+    done = False
+    busy = False  # the CPU shim's finder asks every finder too: without this guard the two recurse forever
+
+    def find_spec(self, name, path=None, target=None):
+        if name != _TARGET or self.done or self.busy:
+            return None
+        spec = None
+        self.busy = True
+        try:
+            for finder in [f for f in sys.meta_path if f is not self]:
+                find = getattr(finder, "find_spec", None)
+                if find is None:
+                    continue
+                spec = find(name, path, target) if target is not None else find(name, path)
+                if spec is not None:
+                    break
+        finally:
+            self.busy = False
+        loader = getattr(spec, "loader", None)
+        if spec is None or loader is None or not hasattr(loader, "exec_module"):
+            return spec
+        spec.loader = _Loader(loader, self)
+        return spec
+
+    def find_module(self, name, path=None):
+        return None
+
+
+if _TARGET in sys.modules:
+    _patch(sys.modules[_TARGET])
+else:
+    sys.meta_path.insert(0, _Finder())
+'''
+
 _INSTALLER = r'''
 import base64, os, site, sys
 name, source = sys.argv[1], base64.b64decode(sys.argv[2]).decode("utf-8")
@@ -467,7 +594,7 @@ with open(os.path.join(target, "rerun_%s.pth" % name), "w") as f:
 print("RERUN_HOOK_INSTALLED %s %s" % (name, target))
 '''
 
-_SOURCES = {CPU_SHIM: _CPU_SHIM_SOURCE, EXIT_HOOK: _EXIT_HOOK_SOURCE}
+_SOURCES = {CPU_SHIM: _CPU_SHIM_SOURCE, EXIT_HOOK: _EXIT_HOOK_SOURCE, MEMORY_HOOK: _MEMORY_HOOK_SOURCE}
 
 
 @dataclass(frozen=True)
@@ -494,7 +621,25 @@ HOOKS = {
         "a bare `raise SystemExit(n)` in the repository's own code is not captured; sys.exit, os._exit, exit(), quit() and "
         "libraries that call sys.exit are",
     ),
+    MEMORY_HOOK: Hook(
+        MEMORY_HOOK, "memory_hook", "RESOURCE_LIMIT at repair time (the sandbox killed the process for memory; harness-v1.7, R1 c)",
+        "an EXPLICIT DataLoader num_workers > 0 becomes 0 (with prefetch_factor dropped, persistent_workers, timeout and multiprocessing_context "
+        "reset, which torch requires for a single-process loader) and pin_memory=True becomes False; an argument the caller did not pass is left "
+        "to torch. The samples and their order are the same (the sampler draws in the main process either way); a worker_init_fn is not called "
+        "with no workers, so random augmentations seeded per worker draw from the main process's stream instead. The re-execution also runs with "
+        "MALLOC_ARENA_MAX=2 and OMP_NUM_THREADS=4. The recorded kills (DEV #17, gate #11) were of the MAIN process, so this alone may not clear them",
+    ),
 }
+
+
+def memory_hook_changes(*texts: str) -> list[str]:
+    """The memory hook's changes that acted, in order of first appearance (`RERUN memory_hook: <change>` lines)."""
+    seen: list[str] = []
+    for text in texts:
+        for change in re.findall(r"^RERUN memory_hook: (.+)$", text or "", re.MULTILINE):
+            if change not in seen:
+                seen.append(change)
+    return seen
 
 
 # harness-v1.7 (R2): the CPU reference kernels the CPU shim carries, keyed by name. `matches` is what the error torch raises says; the reference answers

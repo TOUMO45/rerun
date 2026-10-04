@@ -135,6 +135,22 @@ def torch_older_than_2_3(spec: str) -> bool:
     return False
 
 
+# --- harness-v1.7 (R1, memory): the re-execution after the sandbox killed a process for memory ----------------------------------------------------
+# MALLOC_ARENA_MAX=2 caps glibc's per-thread malloc arenas (each can hold freed memory the process never returns); OMP_NUM_THREADS=4 is the
+# sandbox's CPU count (nproc 4 in every evidence block), so no OpenMP pool is sized past it. Set in the shell before the documented command, so
+# every process of the run (DataLoader workers, a shell script's python) inherits them; a value the documented command sets itself wins.
+MEMORY_ENV: tuple[tuple[str, str], ...] = (("MALLOC_ARENA_MAX", "2"), ("OMP_NUM_THREADS", "4"))
+
+# R1 (b) swap_file: built only if the v1.7 probe shows the sandbox can enable a swap file and a process then survives past 3.85 GiB
+# (runs/sandbox_verification/v1.7-probes/). Until then it is off and nothing below runs.
+SWAP_FILE_ENABLED = False
+SWAP_FILE_MARKER = "RERUN_SWAP_FILE"
+
+
+def with_memory_env(command: str) -> str:
+    return "export " + " ".join(f"{k}={v}" for k, v in MEMORY_ENV) + "\n" + command
+
+
 # --- harness-v1.7 (R4, apt_archive): an end-of-life Debian release on the base image ------------------------------------------------------------
 # DEV #16 (python:3.6-slim) and DEV #9 round 3 (python:3.7-slim) are Debian 11 "bullseye" images: their apt sources still name security.debian.org,
 # which no longer serves bullseye's files (`E: Failed to fetch http://security.debian.org/debian-security/pool/... 404`, APT_MIRROR_GONE). At

@@ -58,6 +58,7 @@ from app.services import (
 from app.services import (
     compute_sandbox,
     data_prep,
+    resource_adapt,
     dep_scan,
     error_chain,
     import_names,
@@ -256,6 +257,10 @@ class _RunState:
     apt_archive: bool = False
     # harness-v1.7 (R3, data_prep): what the rule decided ({"decision", "readmes", "step"?}); set once per run, on the first DATA_MISSING at repair time.
     data_prep: dict | None = None
+    # harness-v1.7 (R1): the memory hook is installed and the memory environment applies to every re-execution from here on; `resource_adapt` is
+    # the last adaptation applied ({"round", "changes", "label", "command"}), None while the documented command runs as published.
+    memory_hook: bool = False
+    resource_adapt: dict | None = None
 
 
 def _cost_cap_reason(message: str) -> str:
@@ -1254,6 +1259,8 @@ def _run_stages(
             else:
                 wrapper_note = f"not applicable: {why}"
             _log(f"[exit-wrapper] {role or 're-execution'}: {wrapper_note}")
+        if not baseline and state.memory_hook:
+            base_command = runner_env.with_memory_env(base_command)  # harness-v1.7 (R1 c): MALLOC_ARENA_MAX / OMP_NUM_THREADS for every process of the run
         if evidence:
             # harness-v1.4.2-rc: the command (wrapped when the exit wrapper is on) runs unchanged, then the sandbox's own limits and any kill are read.
             base_command = runner_hooks.evidence_command(base_command)
@@ -1513,6 +1520,31 @@ def _run_stages(
         state.resource_evidence = found
         return found
 
+    adapt_cache: list = []
+
+    def _adaptation(round_no: int):
+        """harness-v1.7 (R1 d): the resource_adapt rewrite of the documented command for `round_no`, or None (with the reason logged once)."""
+        if not adapt_cache:
+            entry, why = resource_adapt.entry_of(state.baseline.get("execute_command") or plan.execute_command)
+            options = resource_adapt.batch_options(workdir, entry) if entry is not None else {}
+            adapt_cache.append((entry, why if entry is None else ("no batch-size option" if not options else "ok"), options))
+        entry, why, options = adapt_cache[0]
+        if entry is None or not options:
+            return None
+        found, _ = resource_adapt.adapt(state.baseline.get("execute_command") or plan.execute_command, options, round_no)
+        return found
+
+    def _memory_rule_next() -> str | None:
+        """harness-v1.7 (R1): the next memory rule for a RESOURCE_LIMIT, in the pre-registered order, or None when both are spent (then the stop)."""
+        if not deps.repair_enabled or not _declares_kwarg(deps.sandbox_runner, "runner_extras"):
+            return None
+        if not state.memory_hook:
+            return "hook"
+        done = (state.resource_adapt or {}).get("round", 0)
+        if done < resource_adapt.MAX_ROUNDS and _adaptation(done + 1) is not None:
+            return "adapt"
+        return None
+
     def _resource_reason(classification, phase: str = error_chain.PHASE_REPO_RUN) -> str:
         """The INDETERMINATE reason of a RESOURCE_LIMIT: the kill, the limits as the sandbox showed them (else as documented), and that no model attempt was made."""
         found = _collect_resource_evidence("resource evidence", classification.evidence, phase)
@@ -1541,6 +1573,8 @@ def _run_stages(
                 ),
                 phase,
             )
+        if classification.code == classifier.TaxonomyCode.RESOURCE_LIMIT and _memory_rule_next() is not None:
+            return None  # harness-v1.7 (R1): the memory hook, then resource_adapt, get their turn (the deterministic loop) before the stop below
         if classification.code == classifier.TaxonomyCode.RESOURCE_LIMIT:
             return _resource_reason(classification, phase)
         if classification.code in classifier.TaxonomyCode.SANDBOX_CODES:
@@ -2060,11 +2094,51 @@ def _run_stages(
                 raise
             if name == runner_hooks.CPU_SHIM:
                 action["paths_fired"] = runner_hooks.shim_paths_fired(result.final.stderr, result.final.stdout)
+            if name == runner_hooks.MEMORY_HOOK:
+                action["changes"] = runner_hooks.memory_hook_changes(result.final.stderr, result.final.stdout)
+                action["env"] = dict(runner_env.MEMORY_ENV)
+                action["swap_file"] = "enabled" if runner_env.SWAP_FILE_ENABLED else "not built (the v1.7 probe decides it)"
             _log(f"[time-machine] re-execution id={result.sandbox_id} exit_code={result.final.exit_code}")
             _record(result.final.exit_code, result.final.stdout[-2000:], result.final.stderr[-2000:], _execution_of(result, True))
             return result
 
         wrapper_tried = False
+
+        def _auto_resource_adapt(matched: str) -> SandboxRunResult | None:
+            """harness-v1.7 (R1 d). Deterministic step, NOT semantics-preserving, always labelled: the memory hook is in place and the sandbox still
+            killed the process for memory. Every batch-size option of the documented Python entry is set to 1/2 (round 1), then 1/4 (round 2) of its
+            value (resource_adapt). The verdict, the ladder and the blocker carry RESOURCE-ADAPTED with the exact arguments."""
+            nonlocal plan
+            round_no = (state.resource_adapt or {}).get("round", 0) + 1
+            adaptation = _adaptation(round_no)
+            if adaptation is None:
+                return None
+            state.resource_adapt = {"round": round_no, "changes": [list(c) for c in adaptation.changes], "label": adaptation.label(),
+                                    "command": adaptation.command}
+            plan = replace(plan, execute_command=adaptation.command,
+                           notes=(*plan.notes, f"resource_adapt round {round_no} (harness-v1.7, R1 d; NOT semantics-preserving): {adaptation.label()}"))
+            action = {"rule": "resource_adapt", "matched_error": matched[:500], "phase": "repair", "round": round_no, "label": adaptation.label(),
+                      "changes": [{"option": o, "from": a, "to": b} for o, a, b in adaptation.changes], "command": adaptation.command,
+                      "semantics": "NOT preserved: a smaller batch changes the optimisation (and any batch-dependent result); labelled RESOURCE-ADAPTED",
+                      "fires_on": "RESOURCE_LIMIT after the memory hook, a Python entry with a batch-size option"}
+            _log(f"[time-machine] deterministic step: resource_adapt round {round_no} ({adaptation.label()}); NOT semantics-preserving; no model call")
+
+            def _record(exit_code, stdout, stderr, execution=None) -> None:
+                attempts.append(AttemptRecord(0, "", "PASS", (), exit_code, stdout, stderr, origin="time_machine",
+                                              execution=execution, time_machine_action=action))
+
+            try:
+                result = _execute(workdir, smoke=True, role=f"time machine: resource_adapt {round_no}")
+            except CostLimitExceeded as exc:
+                _log(f"[time-machine] stopped: {exc}")
+                _record(None, "", f"stopped before completion: {exc}"[-2000:])
+                return None
+            except (SandboxTimeoutError, tree_integrity.HarnessIntegrityError) as exc:
+                _record(None, "", str(exc)[-2000:])
+                raise
+            _log(f"[time-machine] re-execution id={result.sandbox_id} exit_code={result.final.exit_code}")
+            _record(result.final.exit_code, result.final.stdout[-2000:], result.final.stderr[-2000:], _execution_of(result, True))
+            return result
 
         def _auto_data_prep(evidence: str) -> SandboxRunResult | None:
             """harness-v1.7 (R3). Deterministic step (no model): the failure is DATA_MISSING and the repository's README documents how to prepare the
@@ -2229,7 +2303,15 @@ def _run_stages(
                     break
                 compiler_error = missing_compiler_error(classification)
                 removal_hit = api_removals.match(f"{sandbox_result.final.stderr}\n{sandbox_result.final.stdout}")  # harness-v1.5.1 (F2)
-                if classification.code == classifier.TaxonomyCode.APT_MIRROR_GONE and not state.apt_archive:
+                memory_next = _memory_rule_next() if classification.code == classifier.TaxonomyCode.RESOURCE_LIMIT else None
+                if memory_next == "hook":
+                    state.stage = "time_machine"  # harness-v1.7 (R1 c): the memory hook and the memory environment, before the RESOURCE_LIMIT stop
+                    state.memory_hook = True
+                    step_result = _auto_runner_hook(runner_hooks.MEMORY_HOOK, classification.evidence or classification.code)
+                elif memory_next == "adapt":
+                    state.stage = "time_machine"  # harness-v1.7 (R1 d): labelled, not semantics-preserving
+                    step_result = _auto_resource_adapt(classification.evidence or classification.code)
+                elif classification.code == classifier.TaxonomyCode.APT_MIRROR_GONE and not state.apt_archive:
                     state.stage = "time_machine"  # harness-v1.7 (R4): nothing else can install while the mirrors are gone
                     step_result = _auto_apt_archive(classification.evidence or classification.code)
                 elif (classification.code == classifier.TaxonomyCode.DATA_MISSING and hooks_ok and state.data_prep is None
