@@ -137,6 +137,23 @@ def adds_something(rounds: dict[int, list[dict]], n: int) -> tuple[bool, str]:
     return False, f"count {len(mine)} does not exceed the best earlier count {best} and no entry reaches RUNS_* for the first time"
 
 
+def ladder_of(record: dict) -> dict:
+    """The stored `outcome_levels` of a v1.6 record, or the same function applied to an older record's stored fields."""
+    res = record.get("result") or {}
+    if isinstance(res.get("outcome_levels"), dict):
+        return res["outcome_levels"]
+    from app.services import outcome_levels  # backend on sys.path (the runner does the same)
+    return outcome_levels.compute({"verdict": res.get("verdict"), "error_chain": res.get("error_chain") or [], "attempts": res.get("attempts") or []})
+
+
+def blocker_of(record: dict) -> dict | None:
+    res = record.get("result") or {}
+    if "blocker" in res:
+        return res["blocker"]
+    from app.services import blocker
+    return blocker.report({"verdict": res.get("verdict"), "error_chain": res.get("error_chain") or [], "attempts": res.get("attempts") or []})
+
+
 def build_report(round_no: int, rounds: dict[int, list[dict]], *, billed: str = "AWAITED (the owner reads the account balance and reports it in chat)",
                  spend: budget.Spend | None = None, history: collections.Counter | None = None,
                  ledger_ceiling_usd: float = budget.LEDGER_CEILING_USD) -> str:
@@ -185,6 +202,33 @@ def build_report(round_no: int, rounds: dict[int, list[dict]], *, billed: str = 
     for r in sorted(records, key=lambda r: (r.get("batch") or {}).get("entry_id")):
         s = stream_flags(r)
         out.append(f"| {(r.get('batch') or {}).get('entry_id')} | {s['operations']} | {s['truncated_operations'] or 'none'} | {s['largest_stream_bytes']} | {'yes' if s['output_truncated_verdict'] else 'no'} |")
+    # harness-v1.6 (METHODOLOGY "harness-v1.6 — PRE-REGISTRATION", "Measured and reported"): the ladder and the blocker table, from the
+    # stored `outcome_levels` / `blocker` fields when the record has them (a v1.6 record), otherwise computed by the same pure functions.
+    out += ["", "## Outcome ladder (harness-v1.6, item L; counts of stored fields)", "",
+            "| id | first error cleared by | environment resolved | entrypoint runs (smoke) |", "|---|---|---|---|"]
+    ladder = collections.Counter()
+    for r in sorted(records, key=lambda r: (r.get("batch") or {}).get("entry_id")):
+        lv = ladder_of(r)
+        ladder["first"] += bool(lv["first_error_cleared"]); ladder["env"] += bool(lv["env_resolved"]); ladder["runs"] += bool(lv["entrypoint_runs"])
+        out.append(f"| {(r.get('batch') or {}).get('entry_id')} | {lv['first_error_cleared_by'] if lv['first_error_cleared'] else 'no'} | "
+                   f"{'yes' if lv['env_resolved'] else 'no'} | {'yes' if lv['entrypoint_runs'] else 'no'} |")
+    out += ["", f"Ladder, this round: first error cleared {ladder['first']} of {len(records)}; environment resolved {ladder['env']} of {len(records)}; "
+            f"entrypoint runs {ladder['runs']} of {len(records)} (smoke level; only the TEST phase's sustained check confirms a smoke pass).", "",
+            "## Blocker report (harness-v1.6, item B; the last recorded failure of every run that did not end RUNS_*)", "",
+            "| id | class@phase | fixable by | what a human must supply | Tavily sources (item S) |", "|---|---|---|---|---|"]
+    for r in sorted(records, key=lambda r: (r.get("batch") or {}).get("entry_id")):
+        b = blocker_of(r)
+        if b is None:
+            continue
+        src = b.get("sources")
+        if src is None:
+            src_text = "not looked up"
+        elif src.get("sources"):
+            src_text = "; ".join(f"[{(s.get('title') or s.get('url'))[:50]}]({s.get('url')})" for s in src["sources"][:3])
+        else:
+            src_text = f"none ({src.get('reason')})"
+        out.append(f"| {(r.get('batch') or {}).get('entry_id')} | {b.get('class')}@{b.get('phase')} | {b.get('fixable_by')} | "
+                   f"{(b.get('what_a_human_must_supply') or '').replace('|', '/')} | {src_text.replace('|', '/')} |")
     out += ["", "## Cost per entry [API-REPORTED unless marked]", "", "| id | sandbox | model | estimated (killed step) | total |", "|---|---|---|---|---|"]
     for r in sorted(records, key=lambda r: (r.get("batch") or {}).get("entry_id")):
         c = cost_of(r)
