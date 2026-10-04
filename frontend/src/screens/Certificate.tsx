@@ -7,6 +7,8 @@ import { RepairAttemptCard, TimeMachineView } from "../components/RepairAttemptC
 import { DiffView } from "../components/DiffView";
 import { EnvDeltaView } from "../components/EnvDeltaView";
 import { ScopeLine } from "../components/ScopeLine";
+import { OutcomeLadder } from "../components/OutcomeLadder";
+import { BlockerCard } from "../components/BlockerCard";
 
 export function Certificate() {
   const { runId } = useParams<{ runId: string }>();
@@ -64,6 +66,9 @@ export function Certificate() {
       ...(cert.bundle_version && cert.bundle_version >= 3
         ? { tree_integrity: cert.tree_integrity, corpus_hash: cert.corpus_hash }
         : {}),
+      // harness-v1.6: the outcome ladder and the blocker report, when the backend served them.
+      ...(cert.outcome_levels ? { outcome_levels: cert.outcome_levels } : {}),
+      ...(cert.blocker !== undefined ? { blocker: cert.blocker } : {}),
     };
     triggerDownload(`rerun-certificate-${run.id}.json`, JSON.stringify(payload, null, 2));
   };
@@ -82,9 +87,17 @@ export function Certificate() {
           <p className="mt-1 font-mono text-xs text-text-secondary">
             commit {run.commit_sha?.slice(0, 12) ?? "unknown"} · {new Date(cert.timestamp).toLocaleString()}
           </p>
+          {run.demo_source && (
+            <p className="mt-1 break-all font-mono text-[11px] text-text-secondary">
+              replayed from the committed record <span className="text-text-primary/80">{run.demo_source}</span>
+            </p>
+          )}
         </div>
         <VerdictBadge verdict={cert.verdict} size="lg" />
       </div>
+
+      {cert.outcome_levels && <OutcomeLadder levels={cert.outcome_levels} />}
+      {cert.blocker && <BlockerCard blocker={cert.blocker} />}
 
       {run.taxonomy_code && (
         <span className="inline-block rounded-sm border border-border bg-surface px-2.5 py-1 font-mono text-[11px] text-text-secondary">

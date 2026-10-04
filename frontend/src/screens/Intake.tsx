@@ -1,12 +1,14 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useMutation } from "@tanstack/react-query";
 import { api, ApiError } from "../api";
 import { ScopeLine } from "../components/ScopeLine";
+import { DemoBanner, useDemoMode } from "../components/DemoBanner";
 
 export function Intake() {
   const [repoUrl, setRepoUrl] = useState("");
   const navigate = useNavigate();
+  const demoMode = useDemoMode();
 
   const mutation = useMutation({
     mutationFn: (url: string) => api.createRun(url),
@@ -31,6 +33,19 @@ export function Intake() {
           by real log evidence, not a guess.
         </p>
       </div>
+
+      {demoMode && (
+        <div className="mb-6">
+          <DemoBanner />
+          <p className="mt-2 font-mono text-[11px] text-text-secondary">
+            Intake (clone, dependency scan) still runs; the execution step is refused by the backend. Browse the{" "}
+            <Link to="/gallery" className="text-signal hover:underline">
+              Gallery
+            </Link>{" "}
+            for the recorded audits.
+          </p>
+        </div>
+      )}
 
       <form onSubmit={handleSubmit} className="rounded-sm border border-border bg-surface p-5">
         <label htmlFor="repo-url" className="mb-2 block font-mono text-xs uppercase tracking-wide text-text-secondary">

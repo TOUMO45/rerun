@@ -4,10 +4,11 @@ TEST firewall (METHODOLOGY rule F): records are listed and opened only through `
 before it is opened. (Disclosure: on 2026-10-03 an ad-hoc exploratory script globbed every record before this module was written; its output was discarded, nothing was
 derived from it, and this committed script is the only one whose output is reported.)
 
-Per record, three levels read from stored fields only (nothing here changes a verdict):
-  FIRST_ERROR_CLEARED  result.error_chain[0] has `cleared_by` set: the as-published failure was cleared by a later attempt; its `origin` says by what (time_machine / rule / model);
-  ENV_RESOLVED         the last link of result.error_chain is not an environment class (DEP_*, SYS_LIB_MISSING) in an install phase, or the verdict is RUNS_*: the
-                       environment stopped being the blocker, whatever then did;
+Per record, the ladder is `backend/app/services/outcome_levels.compute` (harness-v1.6, item L) applied to the stored fields, so that this offline table and the
+`outcome_levels` field of a v1.6 record are one function (a test asserts it):
+  FIRST_ERROR_CLEARED  error_chain[0] was no longer the failure after a later attempt (`cleared_by`; for a pre-v1.6 RUNS_AFTER_REPAIR record with one link the verdict says so);
+                       `first_error_cleared_by` = the origin of that attempt (time_machine / a rule name / model);
+  ENV_RESOLVED         the last link of the error chain is not a dependency or system-library class, or the verdict is RUNS_*;
   ENTRYPOINT_RUNS      result.verdict is RUNS_CLEAN or RUNS_AFTER_REPAIR (the smoke criterion, as recorded).
   BLOCKER              the last link of result.error_chain: class@phase (attribution), with the first line of the error.
 Every figure is a count of stored fields (API-REPORTED by the project's tagging rule). Output: levels.json, levels.md beside this script.
@@ -21,14 +22,8 @@ ROOT = Path(__file__).resolve().parents[3]
 sys.path.insert(0, str(ROOT / "reports" / "corpus-v2.1" / "v1.5" / "devtest"))
 import firewall  # noqa: E402
 
-ENV_CLASSES = {"DEP_MISSING", "DEP_YANKED", "DEP_UNPINNED_CONFLICT", "DEP_NOT_ON_PYPI", "SYS_LIB_MISSING"}
-INSTALL_PHASES = {"runner_setup", "repo_install"}
-
-def origin_of(res: dict, cleared_by) -> str:
-    for a in res.get("attempts") or []:
-        if a.get("attempt_number") == cleared_by:
-            return str(a.get("origin") or "?")
-    return "?"
+sys.path.insert(0, str(ROOT / "backend"))
+from app.services import outcome_levels  # noqa: E402  (harness-v1.6: the SAME pure function the harness stores on new records)
 
 def main() -> int:
     rows = []
@@ -39,15 +34,14 @@ def main() -> int:
         if "verdict" not in res: continue
         chain = res.get("error_chain") or []
         first, last = (chain[0] if chain else {}), (chain[-1] if chain else {})
-        runs = res.get("verdict") in ("RUNS_CLEAN", "RUNS_AFTER_REPAIR")
-        env_block = (last.get("class") in ENV_CLASSES) and (last.get("phase") in INSTALL_PHASES or last.get("class") != "DEP_MISSING" or last.get("phase") == "repo_run")
+        levels = outcome_levels.compute({"verdict": res.get("verdict"), "error_chain": chain, "attempts": res.get("attempts") or []})
         rows.append({
             "version": f.parts[-3], "arm": f.parts[-2], "entry": firewall.entry_id_of(f), "record": f.relative_to(ROOT).as_posix(),
             "verdict": res.get("verdict"), "taxonomy": res.get("taxonomy_code"),
-            "first_class": first.get("class"), "first_phase": first.get("phase"), "first_cleared": first.get("cleared_by") is not None,
-            "first_cleared_origin": origin_of(res, first.get("cleared_by")) if first.get("cleared_by") is not None else None,
-            "env_resolved": runs or (bool(chain) and not env_block),
-            "entrypoint_runs": runs,
+            "first_class": first.get("class"), "first_phase": first.get("phase"), "first_cleared": levels["first_error_cleared"],
+            "first_cleared_origin": levels["first_error_cleared_by"] if levels["first_error_cleared"] else None,
+            "env_resolved": levels["env_resolved"],
+            "entrypoint_runs": levels["entrypoint_runs"],
             "blocker_class": last.get("class"), "blocker_phase": last.get("phase"), "blocker_attribution": last.get("attribution"),
             "blocker_error": (last.get("error") or "")[:140], "chain_length": len(chain),
         })

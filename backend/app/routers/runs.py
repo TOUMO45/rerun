@@ -18,19 +18,31 @@ import threading
 from collections.abc import Callable
 from pathlib import Path
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query
 from fastapi.responses import StreamingResponse
+from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.config import get_settings
 from app.db import SessionLocal, get_db
 from app.models import Certificate, RepairAttempt, Run
-from app.schemas import CertificateOut, RunCreate, RunOut
+from app.schemas import CertificateOut, RunCreate, RunListItem, RunListOut, RunOut
 from app.services import intake
 from app.services.cost_guard import get_shared_cost_guard
 from app.services.orchestrator import PipelineResult, build_pipeline_deps, run_pipeline
 
 router = APIRouter()
+
+DEMO_EXECUTE_REFUSED = "demo mode replays recorded audits; live execution is off"
+RUN_LIST_MAX = 200
+
+
+def _refuse_execution_in_demo_mode() -> None:
+    """DEMO mode (settings.demo_mode): the hosted instance replays the seeded records and can never spend money — every path
+    that would start the pipeline answers 409 with the same sentence. `POST /runs` (intake) is still allowed."""
+    # getattr: tests substitute minimal settings doubles that predate this flag.
+    if getattr(get_settings(), "demo_mode", False):
+        raise HTTPException(status_code=409, detail=DEMO_EXECUTE_REFUSED)
 
 
 def _sse_event(data: dict) -> str:
@@ -81,6 +93,7 @@ def _persist_pipeline_result(run: Run, result: PipelineResult, db: Session) -> N
             error_chain=list(result.error_chain),
             first_repo_error=result.first_repo_error,
             last_error=result.last_error,
+            blocker_sources=result.blocker_sources,
         )
     )
     db.commit()
@@ -134,6 +147,38 @@ def create_run(payload: RunCreate, db: Session = Depends(get_db)) -> Run:
         intake.cleanup_workdir(workdir)
 
 
+@router.get("/runs", response_model=RunListOut)
+def list_runs(
+    limit: int = Query(default=RUN_LIST_MAX, ge=1, le=RUN_LIST_MAX),
+    offset: int = Query(default=0, ge=0),
+    db: Session = Depends(get_db),
+) -> RunListOut:
+    """Newest first, capped at 200 per page. The verdict is the certificate's when one exists (the signed record), else the run row's;
+    `demo_source` names the committed record a DEMO row replays (null for a live run). No certificate bodies: the Gallery stays cheap."""
+    total = db.scalar(select(func.count()).select_from(Run)) or 0
+    stmt = (
+        select(Run, Certificate)
+        .outerjoin(Certificate, Certificate.run_id == Run.id)
+        .order_by(Run.created_at.desc(), Run.id.asc())
+        .limit(limit)
+        .offset(offset)
+    )
+    items = [
+        RunListItem(
+            id=run.id,
+            repo_url=run.repo_url,
+            commit_sha=run.commit_sha,
+            status=run.stage,
+            verdict=cert.verdict if cert is not None else run.verdict,
+            taxonomy_code=cert.taxonomy_code if cert is not None and cert.taxonomy_code else run.taxonomy_code,
+            demo_source=run.demo_source,
+            created_at=run.created_at,
+        )
+        for run, cert in db.execute(stmt).all()
+    ]
+    return RunListOut(runs=items, total=total, limit=limit, offset=offset)
+
+
 @router.get("/runs/{run_id}", response_model=RunOut)
 def get_run(run_id: str, db: Session = Depends(get_db)) -> Run:
     run = db.get(Run, run_id)
@@ -169,6 +214,8 @@ def _execute_pipeline_for_run(
     a compare-and-swap UPDATE or row-level locking, out of scope for this
     fix; see DECISIONS.md.
     """
+    _refuse_execution_in_demo_mode()
+
     if run.stage in ("EXECUTING", "DONE"):
         raise HTTPException(
             status_code=409,
@@ -289,6 +336,9 @@ def stream_run(run_id: str, db: Session = Depends(get_db)) -> StreamingResponse:
             yield _sse_event({"done": True, "verdict": verdict})
 
         return StreamingResponse(_replay(), media_type="text/event-stream")
+
+    # DEMO mode: a finished (seeded) run replays its log above; an unexecuted one never starts the pipeline.
+    _refuse_execution_in_demo_mode()
 
     settings = get_settings()
     if not settings.nebius_configured:

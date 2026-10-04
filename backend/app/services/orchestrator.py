@@ -24,6 +24,7 @@ persisting the `PipelineResult` it returns.
 
 from __future__ import annotations
 
+import dataclasses
 import hashlib
 import json
 import os
@@ -42,6 +43,7 @@ from pathlib import Path
 from app.services import (
     adjudicator,
     api_removals,
+    blocker,
     classifier,
     dep_resolver,
     env_repair,
@@ -59,6 +61,7 @@ from app.services import (
     error_chain,
     import_names,
     infra,
+    outcome_levels,
     patch_pipeline,
     python_policy,
     resource_limits,
@@ -151,6 +154,9 @@ OUR_FAULT_CODES: tuple[str, ...] = (
     "COST_CAP",
     # harness-v1.4.2: the process was killed by SIGKILL (the sandbox's resource limit): a platform limit says nothing about the paper's code.
     "RESOURCE_LIMIT",
+    # harness-v1.6: the base image RERUN chose has a distribution the apt mirrors no longer serve; attribution ENV, the run ends
+    # INDETERMINATE (`_note_failure`) and is excluded from the denominator like every other runner-side failure.
+    "APT_MIRROR_GONE",
 )
 
 _REASON_CODE_RE = re.compile(r"^([A-Z][A-Z_]*(?::[A-Za-z0-9_.-]+)*): ")
@@ -248,16 +254,32 @@ def _cost_cap_reason(message: str) -> str:
     return f"COST_CAP: {message} — RERUN's per-entry / per-operation spend cap stopped the run; not a verdict on the repository."
 
 
-def _verdict_record(state: "_RunState | None", taxonomy_code: str | None, indeterminate_reason: str) -> dict:
-    """The verdict-record fields the passport hash covers (bundle v4)."""
+def derived_record(verdict: str, chain: list[dict], attempts: list[dict]) -> dict:
+    """harness-v1.6: the two records READ OFF the verdict record, never hashed (bundle v4 is unchanged: both are
+    recomputable from the hashed fields by anyone holding the certificate). `outcome_levels` is the four-rung ladder
+    (outcome_levels.compute), `blocker` what the last failure needs (blocker.report). `attempts` are attempt dicts
+    (AttemptRecord.as_dict())."""
+    record = {"verdict": verdict, "error_chain": list(chain), "attempts": list(attempts)}
+    return {"outcome_levels": outcome_levels.compute(record), "blocker": blocker.report(record)}
+
+
+def _verdict_record(
+    state: "_RunState | None", taxonomy_code: str | None, indeterminate_reason: str,
+    verdict: str | None = None, attempts: tuple = (),
+) -> dict:
+    """The verdict-record fields the passport hash covers (bundle v4), plus, when the caller gives the verdict, the
+    v1.6 derived records (`derived_record`), which the hash does not cover."""
     chain = state.error_chain if state is not None else error_chain.ErrorChain()
-    return {
+    record = {
         "taxonomy_code": taxonomy_code,
         "indeterminate_reason": indeterminate_reason,
         "error_chain": chain.as_list(),
         "first_repo_error": chain.first_repo_error,
         "last_error": chain.last_error,
     }
+    if verdict is not None:
+        record.update(derived_record(verdict, record["error_chain"], [a.as_dict() for a in attempts]))
+    return record
 
 
 def _chain_kwargs(state: "_RunState | None") -> dict:
@@ -391,12 +413,31 @@ class PipelineResult:
     error_chain: tuple[dict, ...] = ()
     first_repo_error: str | None = None
     last_error: str | None = None
+    # harness-v1.6 (item S): the Tavily lookup for a DATA_MISSING blocker (`tavily.dataset_sources`), stored because it
+    # is not derivable from the record; None when the blocker is not DATA_MISSING. Outside the passport hash.
+    blocker_sources: dict | None = None
 
     @property
     def repair_mode(self) -> str:
         """"model_assisted" iff the repair model was consulted in any attempt;
         otherwise "deterministic" (no repair, or only the time machine)."""
         return "model_assisted" if any(a.origin == "model" for a in self.attempts) else "deterministic"
+
+    def derived(self) -> dict:
+        """harness-v1.6: `{"outcome_levels", "blocker"}`, read off the verdict record (see `derived_record`), with the
+        stored Tavily lookup (`blocker_sources`) placed on `blocker["sources"]` when there is a blocker."""
+        out = derived_record(self.verdict, list(self.error_chain), [a.as_dict() for a in self.attempts])
+        if out["blocker"] is not None:
+            out["blocker"] = {**out["blocker"], "sources": self.blocker_sources}
+        return out
+
+    @property
+    def outcome_levels(self) -> dict:
+        return self.derived()["outcome_levels"]
+
+    @property
+    def blocker(self) -> dict | None:
+        return self.derived()["blocker"]
 
     def certificate(self) -> dict:
         """The exact downloadable certificate (what S3 exports and
@@ -419,6 +460,8 @@ class PipelineResult:
             "error_chain": list(self.error_chain),
             "first_repo_error": self.first_repo_error,
             "last_error": self.last_error,
+            # harness-v1.6: derived from the fields above; not in the hash (bundle v4 unchanged, see `derived_record`).
+            **self.derived(),
             "reproduction_passport_hash": self.reproduction_passport_hash,
         }
 
@@ -810,6 +853,35 @@ def run_pipeline(
     """
     state = _RunState()
     state.corpus_hash = corpus_hash
+    return _with_blocker_sources(
+        _run_pipeline_stages(repo_url=repo_url, commit_sha=commit_sha, workdir=workdir, intake_result=intake_result, deps=deps,
+                             cost_guard=cost_guard, run_id=run_id, on_event=on_event, documented_command=documented_command,
+                             state=state),
+        deps, repo_url, on_event)
+
+
+def _with_blocker_sources(result: PipelineResult, deps: PipelineDeps, repo_url: str, on_event) -> PipelineResult:
+    """harness-v1.6 (item S): after the verdict, one Tavily search for a DATA_MISSING blocker, stored on the result. It
+    runs after every finalizer so the verdict is already fixed; it can neither change a verdict nor raise (a failed
+    search is stored as its reason)."""
+    if result.verdict != "BLOCKED":
+        # v1.6 review, defect 9: only a BLOCKED run has a blocker a person must act on; an INDETERMINATE one (cost cap,
+        # invalid harness, a platform stop) carries a chain but no claim, and no search is spent on it.
+        return result
+    sources = tavily.dataset_sources(getattr(deps, "tavily_client", None), repo_url, result.blocker)
+    if sources is None:
+        return result
+    if on_event is not None:
+        n = len(sources["sources"] or [])
+        on_event(f"[blocker] DATA_MISSING: Tavily dataset lookup '{sources['query']}' -> {n} source(s)"
+                 + (f" ({sources['reason']})" if sources.get("reason") else ""))
+    return dataclasses.replace(result, blocker_sources=sources)
+
+
+def _run_pipeline_stages(
+    *, repo_url: str, commit_sha: str, workdir: Path, intake_result: RepoIntake, deps: PipelineDeps, cost_guard: CostGuard,
+    run_id: str, on_event, documented_command: str | None, state: "_RunState",
+) -> PipelineResult:
     try:
         return _run_stages(
             repo_url=repo_url,
@@ -1455,10 +1527,26 @@ def _run_stages(
             return _resource_reason(classification, phase)
         if classification.code in classifier.TaxonomyCode.SANDBOX_CODES:
             return f"{classification.code}: {classification.evidence} — a sandbox-side failure, not a verdict on the repository."
+        if classification.code == classifier.TaxonomyCode.APT_MIRROR_GONE:
+            # harness-v1.6: ENV attribution alone does not end a run (a declared package the runner failed to install is ENV
+            # too, and the time machine may still fix it); the INDETERMINATE stop is decided here, by the code, exactly as
+            # for the sandbox classes. No repair can bring a distribution back to the mirrors, in any phase.
+            return (f"APT_MIRROR_GONE: {classification.evidence} — the base image's distribution is no longer on the apt "
+                    "mirrors; RERUN chose the image, so this is not a verdict on the repository and no repair attempt was made.")
         if phase == error_chain.PHASE_RUNNER_SETUP:
             return (f"RUNNER_SETUP_FAILED: {classification.evidence} — RERUN's own setup step failed before the "
                     "repository's first command ran; not a verdict on the repository.")
         return None
+
+    internal_modules_cache: list[frozenset[str]] = []
+
+    def _internal_modules() -> frozenset[str]:
+        """Names that resolve inside the repository (dep_scan): never installed from PyPI (D-1, D-12). harness-v1.6: also
+        handed to every classification as `repo_modules`, so an `ImportError: cannot import name` from the repository's
+        own package is a code bug and not API_REMOVED. Walked once per run, on the first failure."""
+        if not internal_modules_cache:
+            internal_modules_cache.append(dep_scan.internal_module_names(workdir))
+        return internal_modules_cache[0]
 
     if not sandbox_result.succeeded:
         state.stage = "classifier"
@@ -1467,6 +1555,7 @@ def _run_stages(
             sandbox_result.final.stderr,
             sandbox_result.final.stdout,
             declared_deps=intake_result.declared_dependencies,
+            repo_modules=_internal_modules(),
         )
         taxonomy_code = classification.code
         state.baseline["taxonomy_code"] = classification.code
@@ -1496,13 +1585,6 @@ def _run_stages(
         # lazily, only if an env change needs checking.
         current_requirements = intake_result.dependency_files.get("requirements.txt")
         imported_modules: frozenset[str] | None = None
-        internal_modules_cache: list[frozenset[str]] = []
-
-        def _internal_modules() -> frozenset[str]:
-            """Names that resolve inside the repository (dep_scan): never installed from PyPI (D-1, D-12)."""
-            if not internal_modules_cache:
-                internal_modules_cache.append(dep_scan.internal_module_names(workdir))
-            return internal_modules_cache[0]
 
         resolved_lock: list[str] | None = None  # set by the time machine
         era_cache: list = []
@@ -1735,7 +1817,16 @@ def _run_stages(
             return result
 
         # --- Time machine (attempt 0): the repo's own era, deterministically --
-        if deps.repair_enabled and classifier.repair_layer_for(classification.code) == "env":
+        era_first = classifier.repair_layer_for(classification.code) == "env"
+        if era_first and classification.code == classifier.TaxonomyCode.API_REMOVED and api_removals.match(
+                f"{sandbox_result.final.stderr}\n{sandbox_result.final.stdout}"):
+            # harness-v1.6: an API_REMOVED failure that a removed-API row (api_removals, F2) covers keeps the order validated at
+            # v1.5.1/v1.5.2: the row's EXACT recorded release (and the Python that installs it) goes first, in the deterministic
+            # loop below; the era lock, inferred from a date, is not run ahead of it. API_REMOVED failures no row covers still
+            # take the era lock first.
+            era_first = False
+            _log(f"[time-machine] skipped ahead of the removed-API rule for {classification.code}: the rule's recorded release goes first")
+        if deps.repair_enabled and era_first:
             state.stage = "time_machine"
             era = _era()
             if era is not None:
@@ -1781,6 +1872,12 @@ def _run_stages(
                     n for n in undeclared
                     if n.lower() not in runner_env.TORCH_FAMILY and n not in set(lock.not_on_index)
                 ) if not lock.ok else ()
+                if fallback_names and not lock.ok and classification.code == classifier.TaxonomyCode.API_REMOVED:
+                    # harness-v1.6: the unpinned fallback installs the NEWEST releases, which are exactly the ones that lack the
+                    # name; only an era lock can answer an API_REMOVED failure, so without one the step is not spent.
+                    _log(f"[time-machine] era lock unavailable ({lock.error[-200:].strip()!r}); no unpinned fallback for "
+                         f"{classification.code}: the newest releases are the ones without the name")
+                    fallback_names = ()
                 if lock.ok or fallback_names:
                     if lock.ok:
                         _log(
@@ -1842,6 +1939,7 @@ def _run_stages(
                         sandbox_result = tm_result
                         if tm_result.succeeded:
                             verdict = "RUNS_AFTER_REPAIR"
+                            state.error_chain.clear_last(0)  # harness-v1.6: the era environment cleared the failure
                         else:
                             state.stage = "classifier"
                             classification = classifier.classify(
@@ -1849,6 +1947,7 @@ def _run_stages(
                                 tm_result.final.stderr,
                                 tm_result.final.stdout,
                                 declared_deps=intake_result.declared_dependencies,
+                                repo_modules=_internal_modules(),
                             )
                             taxonomy_code = classification.code
                             _log(f"[classifier] {classification.code}: {classification.evidence}")
@@ -2028,6 +2127,7 @@ def _run_stages(
                 sandbox_result = step_result
                 if step_result.succeeded:
                     verdict = "RUNS_AFTER_REPAIR"
+                    state.error_chain.clear_last(0)  # harness-v1.6: a deterministic step (attempt 0) cleared the failure
                     stop_run = True
                     break
                 if state.resource_stop:
@@ -2044,6 +2144,7 @@ def _run_stages(
                     step_result.final.stderr,
                     step_result.final.stdout,
                     declared_deps=intake_result.declared_dependencies,
+                    repo_modules=_internal_modules(),
                 )
                 taxonomy_code = classification.code
                 _log(f"[classifier] {classification.code}: {classification.evidence}")
@@ -2621,7 +2722,7 @@ def _run_stages(
                         if result.succeeded:
                             break
                         cls = classifier.classify(result.final.exit_code, result.final.stderr, result.final.stdout,
-                                                  declared_deps=intake_result.declared_dependencies)
+                                                  declared_deps=intake_result.declared_dependencies, repo_modules=_internal_modules())
                         output = f"{result.final.stderr}\n{result.final.stdout}"
                         installed = hooks_installed | {runner_hooks.hook_of_command(c) for c in cand["extras"]}
                         silent = (not classifier.has_actionable_error(result.final.stderr, result.final.stdout)
@@ -2724,7 +2825,7 @@ def _run_stages(
                             entry["changed"] = True
                         else:
                             cand_class = classifier.classify(result.final.exit_code, result.final.stderr, result.final.stdout,
-                                                             declared_deps=intake_result.declared_dependencies)
+                                                             declared_deps=intake_result.declared_dependencies, repo_modules=_internal_modules())
                             entry["classification"] = cand_class
                             entry["changed"] = (cand_class.code, cand_class.evidence) != (classification.code, classification.evidence)
                         _log(f"[repair {cand['label']}] re-execution id={result.sandbox_id} exit_code={result.final.exit_code}; "
@@ -2872,6 +2973,7 @@ def _run_stages(
 
             if rerun_result.succeeded:
                 verdict = "RUNS_AFTER_REPAIR"
+                state.error_chain.clear_last(attempt_number)  # harness-v1.6: this model attempt cleared the failure
                 sandbox_result = rerun_result
                 break
 
@@ -2881,6 +2983,7 @@ def _run_stages(
                 rerun_result.final.stderr,
                 rerun_result.final.stdout,
                 declared_deps=intake_result.declared_dependencies,
+                repo_modules=_internal_modules(),
             )
             taxonomy_code = classification.code
             sandbox_result = rerun_result
@@ -2980,7 +3083,7 @@ def _finalize(
         "recovery": recovery,
         "tree_integrity": dict(state.tree_integrity) if state is not None else {"status": "not_checked"},
         "corpus_hash": getattr(state, "corpus_hash", None),
-        **_verdict_record(state, taxonomy_code, indeterminate_reason),
+        **_verdict_record(state, taxonomy_code, indeterminate_reason, adjudication.verdict, attempts),
     }
     passport_hash = passport.compute_passport_hash(certificate_for_hash)
 
@@ -3078,7 +3181,7 @@ def _finalize_pipeline_error(
                 "recovery": False,
                 "tree_integrity": dict(state.tree_integrity),
                 "corpus_hash": getattr(state, "corpus_hash", None),
-                **_verdict_record(state, None, reason),
+                **_verdict_record(state, None, reason, verdict, attempts),
             }
         )
     except Exception:  # noqa: BLE001
@@ -3148,7 +3251,7 @@ def _finalize_invalid_harness(
         "recovery": False,
         "tree_integrity": dict(state.tree_integrity),
         "corpus_hash": getattr(state, "corpus_hash", None),
-        **_verdict_record(state, None, reason),
+        **_verdict_record(state, None, reason, verdict, attempts),
     }
     return PipelineResult(
         verdict=verdict,
@@ -3278,7 +3381,7 @@ def _finalize_not_measured(
         "recovery": False,
         "tree_integrity": dict(state.tree_integrity),
         "corpus_hash": getattr(state, "corpus_hash", None),
-        **_verdict_record(state, taxonomy_code, reason),
+        **_verdict_record(state, taxonomy_code, reason, verdict, attempts),
     }
     return PipelineResult(
         verdict=verdict,

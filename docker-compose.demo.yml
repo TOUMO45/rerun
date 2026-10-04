@@ -1,0 +1,16 @@
+# RERUN demo / replay deployment (harness-v1.6): no API key, no spend. The backend seeds the committed run records
+# (DEV and gate entries only, through the TEST firewall) and refuses live execution with HTTP 409; the Gallery lists
+# them and every certificate shows the outcome ladder and the blocker report.
+#   docker compose -f docker-compose.yml -f docker-compose.demo.yml up --build
+# The records and the firewall module live outside the backend build context, so they are bind-mounted read-only
+# and DEMO_ROOT points at the mount.
+services:
+  backend:
+    environment:
+      DEMO_MODE: "1"
+      DEMO_ROOT: /repo
+      NEBIUS_API_KEY: ""
+      TAVILY_API_KEY: ""
+    volumes:
+      - ./runs:/repo/runs:ro
+      - ./reports/corpus-v2.1/v1.5/devtest:/repo/reports/corpus-v2.1/v1.5/devtest:ro

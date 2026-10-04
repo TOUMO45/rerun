@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from datetime import datetime
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, computed_field
 
 
 class RunCreate(BaseModel):
@@ -32,8 +32,32 @@ class RunOut(BaseModel):
     taxonomy_code: str | None
     indeterminate_reason: str | None
     attempts_used: int
+    # DEMO mode: the committed record this run replays (repository-relative path); null for a live run.
+    demo_source: str | None = None
     created_at: datetime
     updated_at: datetime
+
+
+class RunListItem(BaseModel):
+    """One row of `GET /runs`: cheap (no certificate body), enough for the Gallery."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    id: str
+    repo_url: str
+    commit_sha: str | None
+    status: str
+    verdict: str | None
+    taxonomy_code: str | None
+    demo_source: str | None
+    created_at: datetime
+
+
+class RunListOut(BaseModel):
+    runs: list[RunListItem]
+    total: int
+    limit: int
+    offset: int
 
 
 class CertificateOut(BaseModel):
@@ -57,6 +81,27 @@ class CertificateOut(BaseModel):
     error_chain: list | None = None
     first_repo_error: str | None = None
     last_error: str | None = None
+    blocker_sources: dict | None = None
+
+    # harness-v1.6: read off the stored fields above at response time (no column, no migration): the same pure
+    # functions the orchestrator's certificate() uses, so the API and the downloaded certificate agree.
+    @computed_field  # type: ignore[prop-decorator]
+    @property
+    def outcome_levels(self) -> dict:
+        from app.services import outcome_levels
+
+        return outcome_levels.compute(self._record())
+
+    @computed_field  # type: ignore[prop-decorator]
+    @property
+    def blocker(self) -> dict | None:
+        from app.services import blocker
+
+        out = blocker.report(self._record())
+        return {**out, "sources": self.blocker_sources} if out is not None else None
+
+    def _record(self) -> dict:
+        return {"verdict": self.verdict, "error_chain": self.error_chain or [], "attempts": self.diffs or []}
 
 
 class HealthOut(BaseModel):

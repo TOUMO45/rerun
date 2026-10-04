@@ -35,6 +35,9 @@ class Run(Base):
     indeterminate_reason: Mapped[str | None] = mapped_column(Text, nullable=True)
     attempts_used: Mapped[int] = mapped_column(Integer, default=0)
     build_plan: Mapped[dict | None] = mapped_column(JSON, nullable=True)
+    # harness-v1.6 DEMO mode: the repository-relative path of the committed run record this row replays
+    # (`runs/corpus_v2_batch/<tag>/<arm>/NN_<owner>__<repo>.json`); NULL for a live run.
+    demo_source: Mapped[str | None] = mapped_column(Text, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_utcnow)
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_utcnow, onupdate=_utcnow)
 
@@ -92,5 +95,7 @@ class Certificate(Base):
     error_chain: Mapped[list | None] = mapped_column(JSON, nullable=True)
     first_repo_error: Mapped[str | None] = mapped_column(Text, nullable=True)
     last_error: Mapped[str | None] = mapped_column(Text, nullable=True)
+    # harness-v1.6 (item S): the stored Tavily lookup for a DATA_MISSING blocker; outside the passport hash.
+    blocker_sources: Mapped[dict | None] = mapped_column(JSON, nullable=True)
 
     run: Mapped[Run] = relationship(back_populates="certificate")

@@ -17,6 +17,9 @@ export function Shell({ children }: { children: ReactNode }) {
             <NavLink to="/" active={location.pathname === "/"}>
               New run
             </NavLink>
+            <NavLink to="/gallery" active={location.pathname === "/gallery"}>
+              Gallery
+            </NavLink>
             <NavLink to="/batch" active={location.pathname === "/batch"}>
               Batch Lab
             </NavLink>

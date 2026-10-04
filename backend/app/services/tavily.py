@@ -22,6 +22,8 @@ following Tavily's well-documented public API conventions.
 
 from __future__ import annotations
 
+import re
+
 from dataclasses import dataclass, field
 from typing import Protocol
 
@@ -145,3 +147,46 @@ def fetch_context(
         for result in response.get("results", [])
     )
     return TavilyContext(query=query, sources=sources)
+
+
+# ---------------------------------------------------------------------------
+# harness-v1.6, item S: a source for a missing dataset, for the human the blocker report is addressed to.
+# ---------------------------------------------------------------------------
+
+DATASET_SOURCES_MAX = 3
+_PATH_RES = (re.compile(r"No such file or directory:\s*'?([^'\n]+?)'?(?:\s|$)"),
+             re.compile(r"FileNotFoundError:\s*(?!\[Errno)'?([^'\n]+?)'?(?:\s|$)"))
+_ASSERT_RE = re.compile(r"AssertionError:\s*(.{4,120})")
+
+
+def dataset_query(repo_url: str, evidence: str) -> str:
+    """Deterministic and explainable, like `build_query`: the repository's name plus what the evidence line names (a path
+    after "No such file or directory", or the assertion message that tells the user to download something). Nothing a
+    model phrased; the query is stored beside the sources it produced."""
+    repo = repo_url.rstrip("/").removesuffix(".git").rsplit("/", 1)[-1] if repo_url else ""
+    owner = repo_url.rstrip("/").removesuffix(".git").rsplit("/", 2)[-2] if repo_url and repo_url.count("/") >= 2 else ""
+    what = ""
+    m = next((mm for rx in (*_PATH_RES, _ASSERT_RE) if (mm := rx.search(evidence))), None)
+    if m:
+        what = m.group(1).strip()[:120]
+    head = " ".join(part for part in (owner, repo) if part)
+    return f"{head} dataset download {what}".strip()
+
+
+def dataset_sources(client: _SearchClientLike | None, repo_url: str, blocker_record: dict | None) -> dict | None:
+    """The `sources` field of a blocker report (item S). Only for a DATA_MISSING blocker; one search; up to three
+    (title, url) pairs. Never raises: a run without a Tavily key, or a failed search, stores `sources: None` and the
+    reason, so the record says why there is nothing rather than showing an empty list that looks like "nothing found".
+    No model reads these: they are for the person who has to obtain the dataset."""
+    if not blocker_record or blocker_record.get("class") != "DATA_MISSING":
+        return None
+    query = dataset_query(repo_url, str(blocker_record.get("evidence") or ""))
+    if client is None:
+        return {"query": query, "sources": None, "reason": "no Tavily client configured"}
+    try:
+        response = client.search(query, max_results=DATASET_SOURCES_MAX, search_depth="basic", timeout=timeouts.TAVILY_S)
+    except Exception as exc:  # noqa: BLE001 - a should-have enrichment never blocks the verdict
+        return {"query": query, "sources": None, "reason": f"search failed: {type(exc).__name__}: {str(exc)[:160]}"}
+    sources = [{"title": str(r.get("title", ""))[:200], "url": str(r.get("url", ""))}
+               for r in (response.get("results") or [])[:DATASET_SOURCES_MAX]]
+    return {"query": query, "sources": sources, "reason": None if sources else "the search returned no result"}

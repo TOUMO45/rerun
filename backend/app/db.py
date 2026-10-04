@@ -48,6 +48,10 @@ SessionLocal = sessionmaker(bind=engine, autoflush=False, autocommit=False)
 # Columns added after the first release. `create_all` never alters an
 # existing table, so an older local SQLite file gets them here (idempotent).
 _ADDED_COLUMNS = {
+    "runs": (
+        # harness-v1.6 DEMO mode: which committed record a replayed run comes from
+        ("demo_source", "TEXT"),
+    ),
     "certificates": (
         ("bundle_version", "INTEGER DEFAULT 1"),
         ("baseline", "JSON"),
@@ -60,6 +64,8 @@ _ADDED_COLUMNS = {
         ("error_chain", "JSON"),
         ("first_repo_error", "TEXT"),
         ("last_error", "TEXT"),
+        # harness-v1.6 (item S): the Tavily dataset lookup stored beside the blocker
+        ("blocker_sources", "JSON"),
     ),
 }
 

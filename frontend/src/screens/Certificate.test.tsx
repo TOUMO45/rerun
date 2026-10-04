@@ -338,3 +338,152 @@ describe("Certificate — baseline vs RERUN (bundle v2)", () => {
     expect(text).not.toMatch(/reproduc(es|ed|ible)/i);
   });
 });
+
+describe("Certificate — outcome ladder (harness-v1.6)", () => {
+  it("renders each rung as reached / not reached and names the origin that cleared the first error", async () => {
+    getRun.mockResolvedValue(makeRun());
+    getCertificate.mockResolvedValue(
+      makeCert([], {
+        outcome_levels: { first_error_cleared: true, first_error_cleared_by: "time_machine", env_resolved: true, entrypoint_runs: false },
+        blocker: null,
+      }),
+    );
+    renderCertificate();
+
+    const ladder = (await screen.findByRole("heading", { name: "Outcome ladder" })).parentElement!;
+    const env = screen.getByTestId("rung-env_resolved");
+    const entry = screen.getByTestId("rung-entrypoint_runs");
+    const first = screen.getByTestId("rung-first_error_cleared");
+    expect(env.getAttribute("data-reached")).toBe("true");
+    expect(env.textContent).toMatch(/^reached/);
+    expect(env.textContent).toContain("Environment resolved");
+    expect(entry.getAttribute("data-reached")).toBe("false");
+    expect(entry.textContent).toMatch(/^not reached/);
+    expect(entry.textContent).toContain("Entrypoint runs (60 s smoke)");
+    expect(first.getAttribute("data-reached")).toBe("true");
+    expect(first.textContent).toContain("First error cleared by: time machine");
+    // Rungs are shown in order.
+    const items = ladder.querySelectorAll("li");
+    expect(Array.from(items).map((li) => li.getAttribute("data-testid"))).toEqual([
+      "rung-env_resolved",
+      "rung-entrypoint_runs",
+      "rung-first_error_cleared",
+    ]);
+    expect(ladder.textContent).toMatch(/count of stored fields/);
+    expect(ladder.textContent).toMatch(/600 s sustained check/);
+    // Nothing blocks: no blocker card.
+    expect(screen.queryByRole("heading", { name: "What blocks it" })).toBeNull();
+  });
+
+  it("shows an unexplained origin and all rungs not reached", async () => {
+    getRun.mockResolvedValue(makeRun());
+    getCertificate.mockResolvedValue(
+      makeCert([], {
+        outcome_levels: { first_error_cleared: false, first_error_cleared_by: null, env_resolved: false, entrypoint_runs: false },
+      }),
+    );
+    renderCertificate();
+    await screen.findByRole("heading", { name: "Outcome ladder" });
+    for (const key of ["env_resolved", "entrypoint_runs", "first_error_cleared"]) {
+      expect(screen.getByTestId(`rung-${key}`).getAttribute("data-reached")).toBe("false");
+    }
+    expect(screen.getByTestId("rung-first_error_cleared").textContent).toContain("First error cleared by: —");
+  });
+});
+
+describe("Certificate — blocker card (harness-v1.6)", () => {
+  const blocker = {
+    class: "DATA_MISSING",
+    family: "Data",
+    phase: "TEST",
+    attribution: "REPO",
+    evidence: "FileNotFoundError: [Errno 2] No such file or directory: 'data/train.csv'",
+    fixable_by: "human" as const,
+    what_a_human_must_supply: "the dataset the repository expects at data/train.csv, obtained as its README describes",
+    sources: null,
+  };
+
+  it("renders class, family, phase, attribution, evidence, fixable-by and the human sentence, plus linked sources", async () => {
+    getRun.mockResolvedValue(makeRun({ taxonomy_code: "DATA_MISSING" }));
+    getCertificate.mockResolvedValue(
+      makeCert([], {
+        blocker: {
+          ...blocker,
+          sources: {
+            query: "download train.csv dataset paper",
+            sources: [
+              { title: "Dataset page", url: "https://example.org/dataset" },
+              { title: "Evil", url: "javascript:alert(1)" },
+            ],
+            reason: null,
+          },
+        },
+      }),
+    );
+    renderCertificate();
+
+    const card = (await screen.findByRole("heading", { name: "What blocks it" })).parentElement!;
+    expect(card.textContent).toContain("DATA_MISSING · Data");
+    expect(card.textContent).toContain("phase: TEST");
+    expect(card.textContent).toContain("attribution: REPO");
+    expect(card.querySelector("pre")!.textContent).toBe(blocker.evidence);
+    expect(card.textContent).toMatch(/Fixable by\s*human/);
+    expect(card.textContent).toContain(`What a human must supply: ${blocker.what_a_human_must_supply}`);
+    expect(card.textContent).toContain("Where to get it (Tavily)");
+    const link = card.querySelector('a[href="https://example.org/dataset"]')!;
+    expect(link).toBeTruthy();
+    expect(link.textContent).toContain("Dataset page");
+    expect(link.getAttribute("target")).toBe("_blank");
+    expect(link.getAttribute("rel")).toBe("noopener noreferrer");
+    expect(card.querySelector('a[href^="javascript:"]')).toBeNull();
+    expect(card.textContent).toContain("query: download train.csv dataset paper");
+  });
+
+  it("shows the reason when the lookup found no sources, and never renders HTML from the strings", async () => {
+    getRun.mockResolvedValue(makeRun({ taxonomy_code: "DATA_MISSING" }));
+    getCertificate.mockResolvedValue(
+      makeCert([], {
+        blocker: {
+          ...blocker,
+          evidence: "<img src=x onerror=alert(1)> missing",
+          sources: { query: "download train.csv", sources: null, reason: "Tavily not configured" },
+        },
+      }),
+    );
+    renderCertificate();
+
+    const card = (await screen.findByRole("heading", { name: "What blocks it" })).parentElement!;
+    expect(card.textContent).toContain("no sources: Tavily not configured");
+    expect(card.textContent).toContain("query: download train.csv");
+    expect(card.querySelector("a")).toBeNull();
+    expect(card.querySelector("img")).toBeNull();
+    expect(card.querySelector("pre")!.textContent).toBe("<img src=x onerror=alert(1)> missing");
+  });
+
+  it("is absent when blocker is null", async () => {
+    getRun.mockResolvedValue(makeRun({ verdict: "RUNS_CLEAN", taxonomy_code: null }));
+    getCertificate.mockResolvedValue(
+      makeCert([], {
+        verdict: "RUNS_CLEAN",
+        outcome_levels: { first_error_cleared: false, first_error_cleared_by: null, env_resolved: true, entrypoint_runs: true },
+        blocker: null,
+      }),
+    );
+    renderCertificate();
+    await screen.findByRole("heading", { name: "Outcome ladder" });
+    expect(screen.queryByRole("heading", { name: "What blocks it" })).toBeNull();
+  });
+});
+
+describe("Certificate — certificates served before harness-v1.6", () => {
+  it("renders without the ladder or the blocker card when both fields are absent", async () => {
+    getRun.mockResolvedValue(makeRun());
+    getCertificate.mockResolvedValue(makeCert([rejected]));
+    renderCertificate();
+
+    expect(await screen.findByText("Execution Certificate")).toBeTruthy();
+    expect(screen.getByText(/tamper gate REJECTED/i)).toBeTruthy();
+    expect(screen.queryByRole("heading", { name: "Outcome ladder" })).toBeNull();
+    expect(screen.queryByRole("heading", { name: "What blocks it" })).toBeNull();
+  });
+});

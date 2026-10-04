@@ -2,6 +2,9 @@
 
 One entry per phase of the post-corpus-v2 plan. Numbers are produced by scripts in `scripts/`.
 
+## harness-v1.6.0-rc — the outcome ladder, the blocker report, named blockers (2026-10-03; offline, unsealed, not run live)
+Pre-registered in METHODOLOGY ("harness-v1.6 — PRE-REGISTRATION") before any live call. Classifier: `API_REMOVED` (DEV #12, #17; gate #08), `DATA_MISSING` widened (DEV #9; gate #03), `GPU_REQUIRED` widened (DEV #14), `APT_MIRROR_GONE` (DEV #16; ENV, INDETERMINATE), `DEP_BUILD_FAILED` (gate #07). Every record gains `outcome_levels` (first error cleared by what; environment resolved; entrypoint runs) and `blocker` (class, evidence, fixable_by, what a human must supply, a Tavily source for a missing dataset), both outside the passport hash; the certificate screen shows them. Replay tests on the six recorded failures; independent review with ten findings fixed. `reports/dev/FIXES_harness-v1.6.0.md`; `reports/dev/levels/levels.md` (the ladder over every DEV and gate record, offline).
+
 ## Budget re-anchoring before DEV round 3 (2026-10-03; offline, no spend)
 Owner's BILLED reading after round 2: $47.96 (round 2 billed $0.33 against $6.9561 API-reported; at most $2.04 billed in all). The API-reported ceilings do not track billing (D-36). Owner's decision under rule B4: ledger ceiling $100.00 (`launch_round.cmd` passes `--ledger-ceiling-usd 100.00`), a BILLED floor of $20.00 below which no live work starts; DEV total, entry cap, criteria, records, split and firewall unchanged. METHODOLOGY "DEV round 2, BILLED reading, and the budget re-anchoring"; `reports/dev/BILLED_READINGS.md`; annotation in `reports/dev/ROUND_2.md`.
 
