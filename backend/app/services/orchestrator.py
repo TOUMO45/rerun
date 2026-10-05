@@ -2109,7 +2109,7 @@ def _run_stages(
             if name == runner_hooks.MEMORY_HOOK:
                 action["changes"] = runner_hooks.memory_hook_changes(result.final.stderr, result.final.stdout)
                 action["env"] = dict(runner_env.MEMORY_ENV)
-                action["swap_file"] = "enabled" if runner_env.SWAP_FILE_ENABLED else "not built (the v1.7 probe: swapon refused a fallocate'd file on virtiofs)"
+                action["swap_file"] = "enabled" if runner_env.SWAP_FILE_ENABLED else "not built (the v1.7 probes: swapon refused both a fallocate'd and a dd-written file on virtiofs)"
             _log(f"[time-machine] re-execution id={result.sandbox_id} exit_code={result.final.exit_code}")
             _record(result.final.exit_code, result.final.stdout[-2000:], result.final.stderr[-2000:], _execution_of(result, True))
             return result

@@ -89,7 +89,7 @@ def _rules(result) -> list[str]:
 
 
 def test_replay_gate_11_hook_then_resource_adapt_and_the_verdict_says_resource_adapted(tmp_path, monkeypatch):
-    monkeypatch.setattr(runner_env, "SWAP_FILE_DECIDED", True)  # resource_adapt waits for the probe's decision on swap_file (pre-registration, R1 d)
+    assert runner_env.SWAP_FILE_DECIDED is True and runner_env.SWAP_FILE_ENABLED is False  # the probes' decision: swap_file not buildable (R1 b)
     a = _kill(R11[1])
     command = "python main.py  --evaluate --dataset cifar10  --eps 0.031  --model capsnet  --attack vote_attack_FGSM"
     result, repair, plans, left = _memory_pipeline(tmp_path, [_killed(a, command), _killed(a, command), _ok()], command=command, files={"main.py": VOTE_MAIN})
@@ -216,3 +216,13 @@ def test_a_deferred_kill_stop_still_applies_when_the_attempt_budget_ends_the_loo
     result = run_pipeline(repo_url="https://example.com/r", commit_sha="a" * 40, workdir=tmp_path, intake_result=intake, deps=deps,
                           cost_guard=CostGuard(daily_cost_ceiling_usd=0.5), run_id="v17-mem-budget", documented_command=command)
     assert not repair.calls and result.verdict == "INDETERMINATE" and result.taxonomy_code == "RESOURCE_LIMIT"
+
+
+def test_the_swap_decision_rests_on_the_two_probe_records():
+    """R1 (b) is not buildable: both committed probe records show swapon refusing the file (fallocate'd, then dd-written), and no allocation ran."""
+    probes = ROOT / "runs" / "sandbox_verification" / "v1.7-probes"
+    first = json.loads((probes / "probe_20261005T064245Z.json").read_text(encoding="utf-8"))["operations"][0]["stdout"]
+    dd = json.loads((probes / "probe_dd_20261005T080007Z.json").read_text(encoding="utf-8"))["operations"][0]["stdout"]
+    assert "fallocate rc=0" in first and "swapon rc=255" in first and "alloc skipped" in first
+    assert "dd rc=0" in dd and "mkswap rc=0" in dd and "swapon rc=255" in dd and "alloc skipped" in dd and "swapfile has holes" in dd
+    assert runner_env.SWAP_FILE_DECIDED is True and runner_env.SWAP_FILE_ENABLED is False

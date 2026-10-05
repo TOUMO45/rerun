@@ -144,14 +144,15 @@ MEMORY_ENV: tuple[tuple[str, str], ...] = (("MALLOC_ARENA_MAX", "2"), ("OMP_NUM_
 # R1 (b) swap_file: built only if the v1.7 probe shows the sandbox can enable a swap file and a process then survives past 3.85 GiB.
 # The probe (runs/sandbox_verification/v1.7-probes/probe_20261005T064245Z.json, 2026-10-05) did not show it: on the virtiofs root, fallocate and
 # mkswap returned 0, swapon returned 255 `Invalid argument` (kernel: `swapon: swapfile has holes`), and the allocation was skipped. So (b) is not
-# built. That record does not show that no swap file can be enabled: the file was fallocate'd, and a dd-written file was not tried (the probe takes
-# dd only when fallocate fails). The follow-up probe (reports/corpus-v2.1/v1.7/probe/run_v17_probe_dd.py) settles it.
+# built. The follow-up probe (probe_dd_20261005T080007Z.json; not pre-registered) wrote a 2 GiB file with dd (every block allocated: 2097152 KiB
+# on disk), mkswap returned 0, and swapon again returned 255 `Invalid argument` (kernel: `swapon: swapfile has holes`). The sandbox's virtiofs root
+# cannot back a swap file, written either way: (b) is not buildable on this sandbox.
 SWAP_FILE_ENABLED = False
 SWAP_FILE_MARKER = "RERUN_SWAP_FILE"
 # The pre-registration allows R1 (d) resource_adapt only once (b) is decided: built, or shown by the probe not to be buildable. While False,
-# resource_adapt never fires (v1.7 review, M6). Still False after the probe of 2026-10-05: it did not show (b) unbuildable (see above); the
-# follow-up probe's record, or the owner's written decision to activate (d) as a stated deviation, sets it.
-SWAP_FILE_DECIDED = False
+# resource_adapt never fires (v1.7 review, M6). True from the follow-up probe's record (above): (b) not buildable. resource_adapt is NOT
+# semantics-preserving and every verdict it touches carries RESOURCE-ADAPTED (outcome_levels.verdict_label).
+SWAP_FILE_DECIDED = True
 
 
 def with_memory_env(command: str) -> str:

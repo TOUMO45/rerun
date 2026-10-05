@@ -1,0 +1,25 @@
+{
+  "record_kind": "harness-v1.7 probe follow-up (R1 (a): a dd-written swap file; not pre-registered)",
+  "started_at": "2026-10-05T08:00:07.554206+00:00",
+  "cap_usd": 0.1,
+  "operations": [
+    {
+      "n": 1,
+      "what": "dd-written swap file",
+      "image": "python:3.10-slim",
+      "started_at": "2026-10-05T08:00:07.554450+00:00",
+      "finished_at": "2026-10-05T08:00:16.424264+00:00",
+      "timeout_s": 90,
+      "exit_code": 0,
+      "cost_usd": 0.0043476800000000005,
+      "elapsed_seconds": 0.429824,
+      "truncated": false,
+      "stdout": "== meminfo\nMemTotal:        4034744 kB\nMemAvailable:    3854688 kB\nSwapTotal:             0 kB\nSwapFree:              0 kB\n== mounts\nrootfs / virtiofs rw,relatime 0 0\n== dd\n2147483648 bytes (2.1 GB, 2.0 GiB) copied, 4.16445 s, 516 MB/s\ndd rc=0\n2097152 -rw-r--r-- 1 root root 2147483648 Oct  5 08:00 /swapfile\n/bin/sh: 7: filefrag: not found\nfilefrag: not available\nSetting up swapspace version 1, size = 2 GiB (2147479552 bytes)\nno label, UUID=046d863e-6883-4776-b06a-2b5dcb14d16b\nmkswap rc=0\nswapon: /swapfile: swapon failed: Invalid argument\nswapon rc=255\nFilename\t\t\t\tType\t\tSize\t\tUsed\t\tPriority\nSwapTotal:             0 kB\nSwapFree:              0 kB\n== alloc skipped: swapon did not take\n[    0.027578] Spectre V1 : Vulnerable: __user pointer sanitization and usercopy barriers only; no swapgs barriers\n[    0.080040] zswap: loaded using pool zstd\n[    4.375237] swapon: swapfile has holes\n",
+      "stderr": "",
+      "script": "\necho \"== meminfo\"; grep -E '^(MemTotal|MemAvailable|SwapTotal|SwapFree):' /proc/meminfo\necho \"== mounts\"; grep -E ' / ' /proc/mounts 2>&1\necho \"== dd\"\ndd if=/dev/zero of=/swapfile bs=1M count=2048 conv=fsync 2>&1 | tail -n 1; echo \"dd rc=$?\"\nls -ls /swapfile 2>&1\n(filefrag /swapfile 2>&1 || echo \"filefrag: not available\") | tail -n 2\nchmod 600 /swapfile 2>&1\nmkswap /swapfile 2>&1; echo \"mkswap rc=$?\"\nswapon /swapfile 2>&1; rc=$?; echo \"swapon rc=$rc\"\ncat /proc/swaps; grep -E '^(SwapTotal|SwapFree):' /proc/meminfo\nif [ \"$rc\" = \"0\" ]; then\n  echo \"== alloc\"\n  timeout 50 python3 -c '\nchunks = []\nfor i in range(20):  # 20 x 256 MiB = 5 GiB, every page written\n    b = bytearray(256 * 1024 * 1024)\n    for j in range(0, len(b), 4096):\n        b[j] = 1\n    chunks.append(b)\n    print(\"ALLOC_MB\", (i + 1) * 256, flush=True)\nprint(\"ALLOC_DONE\", len(chunks) * 256, flush=True)\n'\n  echo \"alloc rc=$?\"\n  grep -E '^(SwapTotal|SwapFree):' /proc/meminfo\n  swapoff /swapfile 2>&1; echo \"swapoff rc=$?\"\nelse\n  echo \"== alloc skipped: swapon did not take\"\nfi\ndmesg 2>&1 | grep -iE 'swap|oom|killed process' | tail -n 6\n"
+    }
+  ],
+  "finished_at": "2026-10-05T08:00:16.424287+00:00",
+  "cost_usd": 0.004348,
+  "cost_over_cap_usd": 0.0
+}

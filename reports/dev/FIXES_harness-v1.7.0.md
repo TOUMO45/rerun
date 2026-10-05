@@ -48,3 +48,9 @@ The probe ran once (owner, 06:42 UTC, $0.0162 API-reported; `runs/sandbox_verifi
 - Review of this diff: 1 medium-high (the R1 d clause), 1 medium (the recorded swap_file text), 4 low (buster evidence, unverifiable scheduler claims and time zones, this list's wording, unreported empty probe readings); all addressed in the same commit.
 
 Done from the list above: item 1, and the probe of item 2. Still to do, in order: the follow-up probe (owner) and the swap decision from its record; tag `harness-v1.7.0-rc`; the owner launches the seal; `write_seal_verification_v17.py`; tag `harness-v1.7.0`; round 5 with `launch_round.cmd 5 harness-v1.7.0 50.00`; a BILLED reading.
+
+## After the follow-up probe (2026-10-05, 08:00 UTC)
+- The dd-written 2 GiB file (fully allocated) was refused by swapon exactly like the fallocate'd one (`swapfile has holes`, virtiofs). R1 b is not buildable on this sandbox.
+- R1 d `resource_adapt` is ON (`SWAP_FILE_DECIDED = True`), labelled RESOURCE-ADAPTED, recorded in METHODOLOGY as a deviation (the follow-up probe was not pre-registered; the owner approved it).
+- Test added: the decision is asserted against both committed probe records. Cost $0.0043 API-reported.
+- Next: tag `harness-v1.7.0-rc`; then the owner approves the seal and round 5 separately.
