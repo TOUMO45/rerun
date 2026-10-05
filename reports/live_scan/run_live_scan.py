@@ -106,7 +106,7 @@ def scan(url: str) -> dict:
         row.update(stage=run.get("stage"), verdict=cert["verdict"], label=cert.get("verdict_label"), taxonomy_code=cert.get("taxonomy_code"),
                    indeterminate_reason=cert.get("indeterminate_reason"), outcome_levels=cert.get("outcome_levels"), blocker=cert.get("blocker"),
                    execute_command=(cert.get("build_plan") or {}).get("execute_command"), passport=cert.get("reproduction_passport_hash"),
-                   cost=_cost(cert.get("full_log") or ""), certificate=f"runs/live_scan/{stamp}_{name}_certificate.json")
+                   cost=_cost(cert.get("full_log") or ""), certificate=(OUT / f"{stamp}_{name}_certificate.json").relative_to(ROOT).as_posix())
         return row
     finally:
         proc.kill()
@@ -118,7 +118,11 @@ def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("urls", nargs="+")
     ap.add_argument("--log-file")
+    ap.add_argument("--out-subdir", help="write under runs/live_scan/<subdir>/ so a later scan never overwrites an earlier one")
     args = ap.parse_args()
+    global OUT
+    if args.out_subdir:
+        OUT = OUT / args.out_subdir
     OUT.mkdir(parents=True, exist_ok=True)  # before the log file, which lives in it (a pythonw process cannot report the error otherwise)
     if args.log_file:
         sys.stdout = sys.stderr = open(args.log_file, "a", encoding="utf-8", buffering=1)

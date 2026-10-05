@@ -73,3 +73,26 @@ def test_an_ordinary_failure_still_goes_to_the_classifier_and_the_repair_loop(tm
     assert not (result.indeterminate_reason or "").startswith(("ENTRYPOINT_NEEDS_ARGS", "DISPLAY_REQUIRED"))
     # the run reached the repair loop: the fake repair model (no scripted reply) was called and stopped the pipeline there
     assert (result.indeterminate_reason or "").startswith("PIPELINE_ERROR:repairer") and "No module named 'numpy'" in (result.last_error or "")
+
+
+# --- the v1.7.2 re-scan of insta-dl: the blocker appeared only after earlier steps had fixed the environment --------------------------------
+EOF_STDERR = ('Traceback (most recent call last):\n  File "insta-dl.py", line 98, in <module>\n    username = input("Enter Instagram username: ")\n'
+              "EOFError: EOF when reading a line\n")
+
+
+def test_interactive_input_is_named_and_an_eoferror_elsewhere_is_not():
+    assert entry_blockers.stop_of(1, "", EOF_STDERR) == {"code": "NEEDS_INTERACTIVE_INPUT",
+                                                         "evidence": 'username = input("Enter Instagram username: ") -> EOFError: EOF when reading a line'}
+    other = 'Traceback (most recent call last):\n  File "a.py", line 4, in <module>\n    data = pickle.load(f)\nEOFError: Ran out of input\n'
+    assert entry_blockers.stop_of(1, "", other) is None
+
+
+def test_a_blocker_that_appears_after_a_deterministic_step_stops_the_loop_with_no_model_call(tmp_path):
+    """Baseline: a removed torch API (the F2 rule pins torch and re-executes, no model). The re-execution then reaches the program's own
+    input() prompt and fails EOFError: the loop must stop NEEDS_INTERACTIVE_INPUT instead of handing that failure to the repair model."""
+    removed = _failure("ImportError: cannot import name 'zero_gradients' from 'torch.autograd.gradcheck' (/x/gradcheck.py)\n")
+    result, repair, plans, left = _pipeline(tmp_path, [removed, _failure(EOF_STDERR)], files={"train.py": "import torch\n"},
+                                            dependency_files={"requirements.txt": "torch\n"})
+    assert not left and not repair.calls and len(plans) == 2
+    assert result.verdict == "INDETERMINATE" and result.indeterminate_reason.startswith("NEEDS_INTERACTIVE_INPUT")
+    assert [(a.time_machine_action or {}).get("rule") for a in result.attempts] == ["removed_api_torch_zero_gradients"]

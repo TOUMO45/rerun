@@ -53,10 +53,28 @@ def test_parse_recon_response_accepts_confident_valid_choice():
 
 
 def test_parse_recon_response_negative_control_low_confidence_is_indeterminate():
+    # harness-v1.7.2: the threshold guards a choice BETWEEN candidates; with several, a low-confidence pick is still refused
     raw = {"entrypoint": "train.py", "confidence": 0.3}
-    result = parse_recon_response(raw, candidates=("train.py",))
+    result = parse_recon_response(raw, candidates=("train.py", "eval.py"))
     assert result.is_indeterminate is True
     assert "0.30" in result.indeterminate_reason
+
+
+def test_parse_recon_response_runs_the_sole_candidate_below_the_threshold_and_says_so():
+    # harness-v1.7.2 (re-scan of TomAnthony/pdf-to-powerpoint: its only script, convert.py, named at 0.35): not a guess between entrypoints
+    convert = "import sys\nfrom pptx import Presentation\n\npdf_file = sys.argv[1]\nprint(\"Converting file: \" + pdf_file)\n"  # the scanned file's opening
+    result = parse_recon_response({"entrypoint": "convert.py", "confidence": 0.35, "reasoning": "a module-level script"}, candidates=("convert.py",),
+                                  source_by_path={"convert.py": convert})
+    assert result.is_indeterminate is False and result.entrypoint == "convert.py" and result.confidence == 0.35
+    assert result.reasoning.startswith("SOLE CANDIDATE: run although the model's confidence (0.35) is below the 0.6 threshold")
+    # a sole candidate whose source runs nothing (only defines functions) would exit 0 at once with no output: still INDETERMINATE
+    lib = parse_recon_response({"entrypoint": "train.py", "confidence": 0.1}, candidates=("train.py",), source_by_path={"train.py": "def run():\n    pass\n"})
+    assert lib.is_indeterminate is True
+    # no source given: the exception is never taken blind
+    assert parse_recon_response({"entrypoint": "convert.py", "confidence": 0.35}, candidates=("convert.py",)).is_indeterminate is True
+    # the model must still name it: no entrypoint named, or a name that is not the candidate, stays INDETERMINATE
+    assert parse_recon_response({"entrypoint": None, "confidence": 0.1}, candidates=("convert.py",)).is_indeterminate is True
+    assert parse_recon_response({"entrypoint": "other.py", "confidence": 0.3}, candidates=("convert.py",)).is_indeterminate is True
 
 
 def test_parse_recon_response_rejects_hallucinated_entrypoint_not_in_candidates():

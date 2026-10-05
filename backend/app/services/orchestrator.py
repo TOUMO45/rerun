@@ -2442,6 +2442,14 @@ def _run_stages(
                     _log(f"[verdict] INDETERMINATE: {indeterminate_reason}")
                     stop_run = True
                     break
+                # harness-v1.7.2 (v1.7.2 re-scan of insta-dl): a blocker no code change can supply (missing arguments, no display, no keyboard)
+                # can appear only after earlier steps fixed the environment, so it is checked on every failed run here, not only on the baseline
+                late_stop = entry_blockers.stop_of(sandbox_result.final.exit_code, sandbox_result.final.stdout, sandbox_result.final.stderr)
+                if late_stop is not None:
+                    verdict, indeterminate_reason = "INDETERMINATE", entry_blockers.stop_reason(late_stop)
+                    _log(f"[verdict] INDETERMINATE: {indeterminate_reason}")
+                    stop_run = True
+                    break
                 compiler_error = missing_compiler_error(classification)
                 removal_hit = api_removals.match(f"{sandbox_result.final.stderr}\n{sandbox_result.final.stdout}")  # harness-v1.5.1 (F2)
                 memory_next = (_memory_rule_next(sandbox_result.final.phase) if classification.code == classifier.TaxonomyCode.RESOURCE_LIMIT

@@ -152,6 +152,16 @@ def _validate_names_against_source(names: list, source_by_path: dict[str, str]) 
     return tuple(validated)
 
 
+def _executes_something(path: str, source: str | None) -> bool:
+    """harness-v1.7.2: the source shows code that runs when the file is executed: a __main__ guard, or module-level code the discovery rule
+    recognises (intake._is_module_level_script). No source: False (the sole-candidate exception is never taken blind)."""
+    if not source:
+        return False
+    from app.services.intake import _is_module_level_script
+
+    return bool(re.search(r"""if\s+__name__\s*==\s*['"]__main__['"]\s*:""", source)) or _is_module_level_script(path.rsplit("/", 1)[-1], source)
+
+
 def parse_recon_response(
     raw: dict,
     candidates: tuple[str, ...],
@@ -178,7 +188,15 @@ def parse_recon_response(
             f"recon actually found ({list(candidates)}) — treating as unreliable"
         )
 
-    if confidence < MIN_CONFIDENCE:
+    # harness-v1.7.2 (v1.7.2 re-scan, TomAnthony/pdf-to-powerpoint): the repository's ONLY candidate script (`convert.py`) was found, and the model
+    # named it at 0.35. Running a repository's only script is not a guess between entrypoints, and the run's verdict still comes only from what
+    # the run shows (a script that cannot run without its input now ends INDETERMINATE ENTRYPOINT_NEEDS_ARGS, entry_blockers). So a sole candidate
+    # that the model itself named is run below the threshold, and the reasoning says so. With several candidates the threshold applies as before.
+    # Only when the candidate's source shows it RUNS something (a __main__ guard or module-level code that reads its arguments or starts a GUI): a
+    # file named train.py that only defines functions would exit 0 at once with no output, a false RUNS_CLEAN (the exit-0 check sees no message).
+    sole_candidate = (len(candidates) == 1 and confidence < MIN_CONFIDENCE and entrypoint == candidates[0]
+                      and _executes_something(entrypoint, (source_by_path or {}).get(entrypoint)))
+    if confidence < MIN_CONFIDENCE and not sole_candidate:
         return _indeterminate(
             f"model's confidence ({confidence:.2f}) in entrypoint '{entrypoint}' is below "
             f"the {MIN_CONFIDENCE} threshold — candidates were {list(candidates)}"
@@ -198,7 +216,8 @@ def parse_recon_response(
         data_requirements=tuple(str(d) for d in data_reqs),
         eval_call_names=_validate_names_against_source(eval_names if isinstance(eval_names, list) else [], source_by_path or {}),
         model_call_names=_validate_names_against_source(model_names if isinstance(model_names, list) else [], source_by_path or {}),
-        reasoning=str(raw.get("reasoning", "")),
+        reasoning=(f"SOLE CANDIDATE: run although the model's confidence ({confidence:.2f}) is below the {MIN_CONFIDENCE} threshold, because it is the "
+                   f"repository's only candidate script. " if sole_candidate else "") + str(raw.get("reasoning", "")),
     )
 
 
