@@ -46,7 +46,7 @@ Not measured. Every record uses the three Nemotron models above; there is no rec
 - **The models endpoint with pricing**: the cost guard prices every call from it and records the source and retrieval date.
 - **Seal verification**: every sandbox-touching code path was executed live before a harness version was sealed; the logs are committed under `runs/sandbox_verification/`.
 
-Recorded spend on the current ledger: $29.1704 [ESTIMATED] = $26.2069 [API-REPORTED] + $1.4761 [ESTIMATED] + $1.4874 [DERIVED], a lower bound (D-27); the DERIVED part is parsed from the logs of gate attempts that were killed before they wrote a record. That is the sandbox API's reported operation cost; the account balance page showed at most $0.43 [BILLED] charged at the time of the owner's second reading, which predates the last two gates, and the two are not reconciled (D-36, open). With the DEV rounds that followed the gates, and their seals and probes, the ledger is $65.9273 [DERIVED] (`reports/phase-d/dev_rounds.json`, cross-checked against the round runner's own ledger reader), still a lower bound.
+Recorded spend on the current ledger: $29.1704 [ESTIMATED] = $26.2069 [API-REPORTED] + $1.4761 [ESTIMATED] + $1.4874 [DERIVED], a lower bound (D-27); the DERIVED part is parsed from the logs of gate attempts that were killed before they wrote a record. That is the sandbox API's reported operation cost; the account balance page showed at most $0.43 [BILLED] charged at the time of the owner's second reading, which predates the last two gates, and the two are not reconciled (D-36, open). With the DEV rounds that followed the gates, their seals and probes, the live UI run and the TEST phase, the ledger is $85.4343 [DERIVED] (`reports/phase-d/dev_rounds.json`, cross-checked against the round runner's own ledger reader), still a lower bound.
 
 ## How likely are you to recommend Nebius Token Factory?
 
@@ -73,7 +73,7 @@ In RERUN: the open defects (D-21, D-25, D-43), a gate that cannot be killed by i
 
 ## What is next?
 
-The gates ended with harness-v1.4.3. The DEV rounds of the pre-registered dev/test protocol followed, the last at the sealed harness-v1.7.1, and stopped by their own rule (the last round added nothing). The next step is the owner's decision, not a promise: the TEST phase, on eight entries never tuned on, each RUNS_* verdict confirmed by a sustained run (D-42); it is the protocol's primary measure and has not run. Each design note (`docs/design/D-25.md`, `docs/design/D-40-resources.md`) says what a validating gate would have to measure before the defect may be called fixed.
+The gates ended with harness-v1.4.3. The DEV rounds of the pre-registered dev/test protocol followed, the last at the sealed harness-v1.7.1, and stopped by their own rule (the last round added nothing). Then the TEST phase, the protocol's primary measure, on eight entries never tuned on: 2 [DERIVED] of 8 [DERIVED] confirmed against a target of 3 [DERIVED]; one of the two is a false positive found by an audit written before the result (D-46: a pipe hid an import error), so 1 [DERIVED] ran its command. What would come next is a version that fixes D-46 and D-47 and a new seal; it is the owner's decision, not a promise. Each design note (`docs/design/D-25.md`, `docs/design/D-40-resources.md`) says what a validating gate would have to measure before the defect may be called fixed.
 
 ## Did you use Tavily?
 

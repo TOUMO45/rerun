@@ -141,6 +141,8 @@ def build() -> dict:
             "ledger_with_test_usd": _tagged(float(budget.LEDGER_BASE_USD) + dev_total + test["total_usd"]["value"], "DERIVED",
                                             ref="ledger_usd + test.total_usd"),
             "last_round_adds_nothing": _tagged(rounds[-1]["runs_count"]["value"] <= best_before, "DERIVED", ref="METHODOLOGY.md D4"),
+            "extras_items": [{"what": r["what"], "usd": _tagged(float(r["usd"]), "ESTIMATED" if r.get("estimated") else "API-REPORTED", ref=EXTRAS)}
+                             for r in extras],  # seals, probes, the live UI run: each row as written in the extras file
             "extras_api_reported_usd": _tagged(extras_api, "API-REPORTED", ref=EXTRAS),
             "extras_estimated_usd": _tagged(extras_est, "ESTIMATED", ref=EXTRAS),
             "dev_total_usd": _tagged(dev_total, "DERIVED", sum_of=[*all_ids, EXTRAS]),

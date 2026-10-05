@@ -245,4 +245,7 @@ def test_the_dev_rounds_file_is_what_the_committed_records_give():
     assert dev_rounds.main(["--check"]) == 0
     doc = json.loads((ROOT / "reports/phase-d/dev_rounds.json").read_text(encoding="utf-8"))
     assert [r["round"] for r in doc["rounds"]] == [1, 2, 3, 4, 5] and all(r["entries_total"]["value"] == 8 for r in doc["rounds"])
-    assert "not a result" in doc["kind"] and "not run" in doc["primary_metric"]
+    assert "not a result" in doc["kind"] and "`test`" in doc["primary_metric"]
+    # the TEST phase as recorded: the pre-registered count, and beside it the D-46 audit (checked against the stored stderr hash by the builder)
+    assert doc["test"]["confirmed_count"]["value"] == 2 and doc["test"]["target"]["value"] == 3
+    assert doc["test"]["confirmed_false_positive_d46"]["value"] == 1 and doc["test"]["confirmed_that_ran"]["value"] == 1
