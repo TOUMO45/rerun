@@ -11,7 +11,7 @@ Protocol: METHODOLOGY.md "harness-v1.5 dev/test protocol", section T, and the fr
 | 1 | nadiinchi/power_laws_deep_ensembles | BLOCKED | DEP_MISSING | | no |
 | 2 | DeformableFriends/NeuralTracking | BLOCKED | RUNTIME_ERROR_OTHER | | no |
 | 6 | grigorisg9gr/rocgan | BLOCKED | RUNTIME_ERROR_OTHER | | no |
-| 10 | alevine0/patchSmoothing | RUNS_AFTER_REPAIR | GPU_REQUIRED | smoke alive at 60 s, then the sustained run ran the full 600 s without failing | **yes**, rule (iii) |
+| 10 | alevine0/patchSmoothing | RUNS_AFTER_REPAIR | GPU_REQUIRED | smoke alive at 60 s; the sustained run was still running when the client's 600 s wait ended (no API result; it had not failed by then; not completion) | **yes**, rule (iii) |
 | 13 | seongjunyun/neo_gnns | INDETERMINATE | DEP_BUILD_FAILED | | no |
 | 18 | aam-at/adversary_critic | RUNS_CLEAN | | as published: exit 0 (`baseline_complete`) | **yes**, rule (i) — **a false positive, see below** |
 | 19 | lrjconan/RBP | BLOCKED | DEP_MISSING | | no |
@@ -23,11 +23,11 @@ D-46 (written while the TEST phase was running, before any result was read; `rep
 
 **#18 did not run.** Its documented command is `python generate_script.py --train=True | bash`. The run step took about 0.1 s of sandbox time, wrote nothing to stdout and 154 bytes to stderr. The record keeps the stream's SHA-256, and it equals the SHA-256 of the 154-byte traceback `ModuleNotFoundError: No module named 'decorator'` at the script's line 8. The script failed at its first import; `bash`, at the end of the pipe, read nothing and exited 0, and that exit code is the pipeline's.
 
-**So: 2 of 8 confirmed as pre-registered; 1 of 8 (#10) ran its documented command, for 600 s.** The pre-registered number is not changed after the fact; the correction is stated beside it.
+**So: 2 of 8 confirmed as pre-registered; 1 of 8 (#10) ran its documented command: still running, without a failure, at the 600 s limit.** The pre-registered number is not changed after the fact; the correction is stated beside it.
 
 ## Cost
 
-Entries $9.3150 (API-reported plus the estimate of any killed step), sustained runs $9.12, total $18.4350 of the $30.00 TEST cap (`test_result.json`, `spend`).
+Entries $9.3150 (API-reported plus the estimate of any killed step), the one sustained run $9.12 **ESTIMATED** (600 s at $0.0152/s: the API returned no result, so it reported no cost), total $18.4350 of the $30.00 TEST cap (`test_result.json`, `spend`), plus the pre-batch upload smoke test. TEST spend is not in the DEV ledger reader (`devtest/budget.read_spend` reads `dev/` folders only); the totals in `reports/phase-d/dev_rounds.json` add it.
 
 ## What the TEST entries show about the harness
 
