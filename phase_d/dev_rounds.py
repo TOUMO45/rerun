@@ -133,15 +133,89 @@ def build() -> dict:
     if abs(ledger_dev - dev_total) > 1e-4:
         raise DevRoundsError(f"DEV total {dev_total:.6f} from the records disagrees with the round runner's ledger reader {ledger_dev:.6f}")
     best_before = max(r["runs_count"]["value"] for r in rounds[:-1])
+    test = _test_phase()
     return {"kind": "DEV rounds of the harness-v1.5 dev/test protocol: tuned-on entries, smoke level (60 s); a development signal, not a result",
-            "primary_metric": "the TEST phase (8 entries never tuned on, confirmed by a 600 s sustained check); not run",
+            "primary_metric": "the TEST phase (8 entries never tuned on, confirmed by a 600 s sustained check or completion): see `test`",
             "rounds": rounds,
+            "test": test,
+            "ledger_with_test_usd": _tagged(float(budget.LEDGER_BASE_USD) + dev_total + test["total_usd"]["value"], "DERIVED",
+                                            ref="ledger_usd + test.total_usd"),
             "last_round_adds_nothing": _tagged(rounds[-1]["runs_count"]["value"] <= best_before, "DERIVED", ref="METHODOLOGY.md D4"),
             "extras_api_reported_usd": _tagged(extras_api, "API-REPORTED", ref=EXTRAS),
             "extras_estimated_usd": _tagged(extras_est, "ESTIMATED", ref=EXTRAS),
             "dev_total_usd": _tagged(dev_total, "DERIVED", sum_of=[*all_ids, EXTRAS]),
             "ledger_base_usd": _tagged(float(budget.LEDGER_BASE_USD), "DERIVED", ref="reports/corpus-v2.1/v1.5/devtest/budget.py LEDGER_BASE_USD"),
             "ledger_usd": _tagged(float(budget.LEDGER_BASE_USD) + dev_total, "DERIVED", ref="reports/corpus-v2.1/v1.5/devtest/budget.py read_spend")}
+
+
+TEST_TAG = "harness-v1.5-final"
+# The D-46 audit (reports/dev/TEST_RESULT.md; reports/corpus-v2.1/candidate_v1.3.3_defects.md), decided before the TEST result was read: an entry confirmed
+# under rule (i) whose run did nothing. #18: the stored stderr SHA-256 equals that of the 154-byte `ModuleNotFoundError: No module named 'decorator'`
+# traceback, and `| bash` exited 0. The pre-registered count is not changed; this is reported beside it.
+D46_STDERR_SHA256 = {18: "5c4c19a43604794b1bb52f532b020f44f6a05982f8c0c45865800ffa8ecc1164"}
+
+
+def _test_phase() -> dict:
+    base = f"runs/corpus_v2_batch/{TEST_TAG}/test/"
+    result_rel = base + "test_result.json"
+    result = json.loads(_blob(result_rel))
+    ids, confirmed_ids, runs_ids, api_ids, est_ids, smoke_ids, sustained_ids = {}, [], [], [], [], [], []
+    api_sum = est_sum = smoke_sum = sustained_api = sustained_est = 0.0
+    for rel in _committed(base):
+        name = rel.rsplit("/", 1)[1]
+        raw = _blob(rel)
+        if re.match(r"^\d{2}_.+\.json$", name):
+            doc = json.loads(raw)
+            rid = f"{TEST_TAG}/test/{name[:2]}@{hashlib.sha256(raw).hexdigest()}"
+            ids[int(name[:2])] = (rid, doc)
+            guard = doc.get("cost_guard") or {}
+            spent, est = float(guard.get("spent_usd") or 0.0), float(guard.get("estimated_sandbox_spent_usd") or 0.0)
+            api_sum += spent - est
+            est_sum += est
+            (est_ids if est else api_ids).append(rid)
+        elif name.startswith("sustained_"):
+            doc = json.loads(raw)
+            sustained_api += float(doc.get("cost_usd") or 0.0)
+            sustained_est += float(doc.get("cost_estimated_usd") or 0.0)
+            sustained_ids.append(f"{rel}@{hashlib.sha256(raw).hexdigest()}")
+        elif name.startswith("upload_smoke_"):
+            doc = json.loads(raw)
+            smoke_sum += sum(float(r.get("cost_usd") or 0.0) for r in doc.get("runs") or [])
+            smoke_ids.append(f"{rel}@{hashlib.sha256(raw).hexdigest()}")
+    if len(ids) != result["ran"] or len(ids) != 8:
+        raise DevRoundsError(f"{base}: {len(ids)} TEST records, the result says {result['ran']}")
+    for row in result["rows"]:
+        rid, doc = ids[row["entry"]]
+        if doc["result"]["verdict"] != row["verdict"]:
+            raise DevRoundsError(f"TEST entry {row['entry']}: the result disagrees with its record")
+        if row["verdict"] in RUNS:
+            runs_ids.append(rid)
+        if row["confirmed"]:
+            confirmed_ids.append(rid)
+    if len(confirmed_ids) != result["confirmed_count"]:
+        raise DevRoundsError("the confirmed count disagrees with the rows")
+    false_positive = []
+    for entry, sha in D46_STDERR_SHA256.items():
+        rid, doc = ids[entry]
+        stored = (doc["operations"][0].get("streams") or {}).get("stderr", {}).get("sha256")
+        if stored != sha:
+            raise DevRoundsError(f"TEST #{entry}: the stored stderr hash is not the audited one")
+        false_positive.append(rid)
+    ran_ids = [r for r in confirmed_ids if r not in false_positive]
+    total = api_sum + est_sum + smoke_sum + sustained_api + sustained_est
+    return {"harness_tag": TEST_TAG, "result": result_rel,
+            "entries_total": _tagged(len(ids), "DERIVED", count_of=[ids[k][0] for k in sorted(ids)]),
+            "runs_count": _tagged(len(runs_ids), "DERIVED", count_of=runs_ids),
+            "confirmed_count": _tagged(len(confirmed_ids), "DERIVED", count_of=confirmed_ids),
+            "target": _tagged(int(result["target"]), "DERIVED", ref=result_rel),
+            "confirmed_false_positive_d46": _tagged(len(false_positive), "DERIVED", count_of=false_positive),
+            "confirmed_that_ran": _tagged(len(ran_ids), "DERIVED", count_of=ran_ids),
+            "entries_api_reported_usd": _tagged(api_sum, "API-REPORTED", sum_of=api_ids),
+            "entries_estimated_usd": _tagged(est_sum, "ESTIMATED", sum_of=est_ids),
+            "sustained_api_reported_usd": _tagged(sustained_api, "API-REPORTED", sum_of=sustained_ids),
+            "sustained_estimated_usd": _tagged(sustained_est, "ESTIMATED", sum_of=sustained_ids),
+            "upload_smoke_usd": _tagged(smoke_sum, "API-REPORTED", sum_of=smoke_ids),
+            "total_usd": _tagged(total, "DERIVED", sum_of=[*api_ids, *est_ids, *sustained_ids, *smoke_ids])}
 
 
 def render(doc: dict) -> str:
