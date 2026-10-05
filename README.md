@@ -29,7 +29,13 @@ RERUN answers that in minutes, for about a dollar, with evidence: it clones the 
 
 The deterministic time machine does most of the work. The model's repairs, under a gate that refuses code that does less, added little on this corpus, and that is measured and reported, not hidden: no pre-registered gate passed (next section). What then blocks a run is named in the records' own words: a dataset the repository tells the user to download, a GPU-only operation on a CPU sandbox, an API a newer release removed, an end-of-life apt mirror, a source build that fails. harness-v1.6 makes the classifier name each of these (`API_REMOVED`, `APT_MIRROR_GONE`, `DEP_BUILD_FAILED`, widened `DATA_MISSING` and `GPU_REQUIRED`), replay-tested on the recorded failures.
 
-**Try it without a key.** `docker compose -f docker-compose.yml -f docker-compose.demo.yml up --build`, then open the Gallery: the committed audits replay from their records, every certificate carries the ladder and the blocker, and live execution is refused with an HTTP conflict status, so a demo can never spend. A live run needs `NEBIUS_API_KEY` and `TAVILY_API_KEY` (`.env.example`).
+**Try it without a key, locally, in one command** (needs Docker; tested):
+
+```bash
+docker compose -f docker-compose.yml -f docker-compose.demo.yml up --build
+```
+
+Then open the `frontend` service's address (`docker compose ps` shows it) and go to the Gallery. The first build takes a few minutes. The committed audits replay from their records, every certificate carries its verdict label, the ladder and the blocker, and **Download certificate JSON** gives a file that `python scripts/verify_passport.py <file>` verifies offline. Live execution is refused with an HTTP conflict status, so a demo can never spend. Stop it with `docker compose -f docker-compose.yml -f docker-compose.demo.yml down`. A live run needs `NEBIUS_API_KEY` and `TAVILY_API_KEY` (`.env.example`). The same demo packaged for a free hosted service is in `deploy/render/` (steps in its README).
 
 Track: Coding and Agentic Engineering. Models: NVIDIA Nemotron Nano (recon), Super (planner, repairer), Ultra (adjudicator), through Nebius Token Factory; every execution in a Token Factory sandbox; Tavily at runtime for repair context and for dataset sources.
 

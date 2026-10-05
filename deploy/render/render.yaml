@@ -1,0 +1,16 @@
+# Render Blueprint for the RERUN demo (free instance, demo mode, no keys). Render reads a Blueprint from the repository root by default;
+# this one lives in deploy/render/, so either point the Blueprint at this path or create the service by hand with the same values
+# (deploy/render/README.md gives both).
+services:
+  - type: web
+    name: rerun-demo
+    runtime: docker
+    plan: free
+    rootDir: deploy/render
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    healthCheckPath: /api/healthz
+    autoDeploy: false
+    envVars:
+      - key: DEMO_MODE
+        value: "1"

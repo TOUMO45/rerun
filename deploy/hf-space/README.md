@@ -12,6 +12,8 @@ short_description: Replays RERUN's recorded reproducibility audits; no key, no s
 
 # RERUN on a Hugging Face Space (demo mode)
 
+> **Note (2026-10-05):** creating a Docker Space required a paid plan on the owner's account (seen on the Space creation page), so this path is kept but not used. The free hosted demo is on Render: `deploy/render/README.md`. The image here was built and run locally and works.
+
 This Space replays the committed audit records of [RERUN](https://github.com/TOUMO45/rerun). There is no API key and nothing is spent: live execution is refused (HTTP 409). Every certificate shows the verdict with its label, the outcome ladder and the blocker, and the downloaded certificate verifies offline with `python scripts/verify_passport.py <file>` from the repository.
 
 What the image does (see `Dockerfile`): it clones the public repository at `REF`, builds the frontend, installs the backend, and runs both behind nginx on port 7860, as an unprivileged user, with `DEMO_MODE=1` and a fresh SQLite database in `/tmp`. The app code is the repository's own; nothing in this folder changes it.
