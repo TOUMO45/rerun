@@ -67,7 +67,7 @@ def _run_step(tmp_path: Path, codename: str) -> tuple[subprocess.CompletedProces
 def test_the_step_rewrites_an_end_of_life_release_and_leaves_a_live_one_alone(tmp_path):
     done, root = _run_step(tmp_path, "bullseye")
     assert done.returncode == 0, done.stderr
-    assert (root / "etc" / "apt" / "sources.list").read_text(encoding="utf-8") == "deb http://archive.debian.org/debian bullseye main\n"
+    assert (root / "etc" / "apt" / "sources.list").read_text(encoding="utf-8") == "deb http://archive.debian.org/debian bullseye main\ndeb http://archive.debian.org/debian bullseye-updates main\n"
     assert not (root / "etc" / "apt" / "sources.list.d" / "extra.list").exists()
     assert 'Acquire::Check-Valid-Until "false";' in (root / "etc" / "apt" / "apt.conf.d" / "99rerun-archive").read_text(encoding="utf-8")
     assert "RERUN_APT_ARCHIVE bullseye" in done.stderr
@@ -75,6 +75,21 @@ def test_the_step_rewrites_an_end_of_life_release_and_leaves_a_live_one_alone(tm
     assert live.returncode == 0 and live.stderr == ""
     assert "deb.debian.org" in (live_root / "etc" / "apt" / "sources.list").read_text(encoding="utf-8")
     assert (live_root / "etc" / "apt" / "sources.list.d" / "extra.list").exists()
+
+
+def test_the_suites_are_the_ones_the_probe_saw_served_and_never_a_security_suite():
+    """runs/sandbox_verification/v1.7-probes/probe_20261005T064245Z.json: every suite the step writes answered `URL 200` in the probe, except stretch
+    (not probed), which stays main only."""
+    probe = json.loads((ROOT / "runs" / "sandbox_verification" / "v1.7-probes" / "probe_20261005T064245Z.json").read_text(encoding="utf-8"))
+    served = probe["operations"][1]["stdout"]
+    for codename, lines in runner_env.EOL_APT_SOURCES.items():
+        assert not any("security" in line for line in lines)
+        if codename == "stretch":
+            assert lines == ("deb http://archive.debian.org/debian stretch main",)
+            continue
+        assert [line.split()[2] for line in lines] == [codename, codename + "-updates"]
+        for line in lines:
+            assert "URL 200 http://archive.debian.org/debian/dists/%s/Release" % line.split()[2] in served
 
 
 def _apt_failure(a: dict) -> SandboxRunResult:
@@ -110,7 +125,7 @@ def test_replay_entry_16_the_step_runs_before_every_apt_command_once_and_no_mode
     assert not left and not repair.calls
     assert result.verdict == "RUNS_AFTER_REPAIR"
     step = next(a for a in result.attempts if (a.time_machine_action or {}).get("rule") == "apt_archive")
-    assert step.origin == "time_machine" and step.time_machine_action["sources"]["bullseye"] == ["deb http://archive.debian.org/debian bullseye main"]
+    assert step.origin == "time_machine" and step.time_machine_action["sources"]["bullseye"] == ["deb http://archive.debian.org/debian bullseye main", "deb http://archive.debian.org/debian bullseye-updates main"]
     assert not any(c.startswith("(if [ -r /etc/os-release ]") for c in plans[0]["install_commands"])  # the baseline ran as published
     apt_cmds = [c for c in plans[1]["install_commands"] if "apt-get" in c]
     assert apt_cmds and all(c.startswith(runner_env.apt_archive_step()) for c in apt_cmds)

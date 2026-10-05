@@ -37,3 +37,14 @@ Two high, six medium, seven low; all addressed in `4c0b742`, each with a test:
 2. The probe (`launch_probe.cmd`, about $0.10 API-reported). Then: the R4 suites and R1 b from its record, `SWAP_FILE_DECIDED`, the tag `harness-v1.7.0-rc`.
 3. The seal (`launch_seal.cmd`, ESTIMATED $1.29 API-reported, cap $1.50). Then `write_seal_verification_v17.py`, the tag `harness-v1.7.0`.
 4. DEV round 5 (`launch_round.cmd 5 harness-v1.7.0 <DEV total>`), and a BILLED reading after each paid phase.
+
+## After the probe (2026-10-05)
+The probe ran once (owner, 06:42 UTC, $0.0162 API-reported; `runs/sandbox_verification/v1.7-probes/`). From its record:
+- R1 b `swap_file`: not built. swapon refused a fallocate'd file on virtiofs (kernel: `swapfile has holes`). A dd-written file was not tried, so the record does not show that swap cannot be enabled.
+- R1 d `resource_adapt`: still off (`SWAP_FILE_DECIDED = False`). A draft switched it on under "(b) was not buildable"; the independent review of the post-probe diff called that an over-claim and it was withdrawn before commit. A follow-up probe (`run_v17_probe_dd.py`, `launch_probe_dd.cmd`, cap $0.10 API-reported, not pre-registered and stated as a deviation) settles it.
+- R4 suites: bullseye and buster get `main` and `<codename>-updates` (both answered 200 on the archive); stretch `main` only (not probed); no security suite. Buster has no live apt run behind it.
+- Test added: the suites in the code are the ones the probe record shows served.
+- DEV total: $50.00, the owner's figure in chat on 2026-10-05.
+- Review of this diff: 1 medium-high (the R1 d clause), 1 medium (the recorded swap_file text), 4 low (buster evidence, unverifiable scheduler claims and time zones, this list's wording, unreported empty probe readings); all addressed in the same commit.
+
+Done from the list above: item 1, and the probe of item 2. Still to do, in order: the follow-up probe (owner) and the swap decision from its record; tag `harness-v1.7.0-rc`; the owner launches the seal; `write_seal_verification_v17.py`; tag `harness-v1.7.0`; round 5 with `launch_round.cmd 5 harness-v1.7.0 50.00`; a BILLED reading.

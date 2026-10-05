@@ -141,12 +141,16 @@ def torch_older_than_2_3(spec: str) -> bool:
 # every process of the run (DataLoader workers, a shell script's python) inherits them; a value the documented command sets itself wins.
 MEMORY_ENV: tuple[tuple[str, str], ...] = (("MALLOC_ARENA_MAX", "2"), ("OMP_NUM_THREADS", "4"))
 
-# R1 (b) swap_file: built only if the v1.7 probe shows the sandbox can enable a swap file and a process then survives past 3.85 GiB
-# (runs/sandbox_verification/v1.7-probes/). Until then it is off and nothing below runs.
+# R1 (b) swap_file: built only if the v1.7 probe shows the sandbox can enable a swap file and a process then survives past 3.85 GiB.
+# The probe (runs/sandbox_verification/v1.7-probes/probe_20261005T064245Z.json, 2026-10-05) did not show it: on the virtiofs root, fallocate and
+# mkswap returned 0, swapon returned 255 `Invalid argument` (kernel: `swapon: swapfile has holes`), and the allocation was skipped. So (b) is not
+# built. That record does not show that no swap file can be enabled: the file was fallocate'd, and a dd-written file was not tried (the probe takes
+# dd only when fallocate fails). The follow-up probe (reports/corpus-v2.1/v1.7/probe/run_v17_probe_dd.py) settles it.
 SWAP_FILE_ENABLED = False
 SWAP_FILE_MARKER = "RERUN_SWAP_FILE"
-# The pre-registration allows R1 (d) resource_adapt only once (b) is decided: built, or shown by the probe not to be buildable. False until the probe's
-# record is committed and read; while False, resource_adapt never fires (v1.7 review, M6).
+# The pre-registration allows R1 (d) resource_adapt only once (b) is decided: built, or shown by the probe not to be buildable. While False,
+# resource_adapt never fires (v1.7 review, M6). Still False after the probe of 2026-10-05: it did not show (b) unbuildable (see above); the
+# follow-up probe's record, or the owner's written decision to activate (d) as a stated deviation, sets it.
 SWAP_FILE_DECIDED = False
 
 
@@ -160,15 +164,18 @@ def with_memory_env(command: str) -> str:
 # repair time, once, every apt command of the run is preceded by one RERUN-owned shell step that reads VERSION_CODENAME from /etc/os-release and,
 # ONLY for a codename in EOL_APT_SOURCES, rewrites /etc/apt/sources.list to that release's suites on its official archive, drops every other
 # source file, and turns off the Release-file expiry check (archived Release files are past their Valid-Until date). A live release is left alone.
-# The same Debian release's packages: no version changes. The suites are PROVISIONAL (main only) until the v1.7 probe shows what archive.debian.org
-# serves (runs/sandbox_verification/v1.7-probes/); the live check in the v1.7 seal (N3) tests the bullseye rewrite. The step runs in a subshell, so the
+# The same Debian release's packages: no version changes. The suites follow the v1.7 probe (runs/sandbox_verification/v1.7-probes/
+# probe_20261005T064245Z.json): archive.debian.org answered 200 for the Release file of bullseye, bullseye-updates, buster and buster-updates, so those
+# two releases get main and <codename>-updates; stretch was not probed and stays main only. For buster that is the Release files' status only: no
+# apt-get update has run against the buster lines, and the seal's live check (bullseye) does not cover them. The security suite is dropped as pre-registered (the archive
+# answered 200 for bullseye-security too; it is not used). The live check in the v1.7 seal (N3) tests the bullseye rewrite. The step runs in a subshell, so the
 # variables /etc/os-release defines do not leak into the apt command after it (v1.7 review, L1). Because it is prefixed to the apt command, the runner's
 # setup splitter (sandbox_limits.split_setup_ops) files that command with the requirements steps, after the torch step, not before it: the order changes,
 # nothing else (accepted; sandbox_limits.py is not changed).
 EOL_APT_SOURCES: dict[str, tuple[str, ...]] = {
     "stretch": ("deb http://archive.debian.org/debian stretch main",),
-    "buster": ("deb http://archive.debian.org/debian buster main",),
-    "bullseye": ("deb http://archive.debian.org/debian bullseye main",),
+    "buster": ("deb http://archive.debian.org/debian buster main", "deb http://archive.debian.org/debian buster-updates main"),
+    "bullseye": ("deb http://archive.debian.org/debian bullseye main", "deb http://archive.debian.org/debian bullseye-updates main"),
 }
 APT_ARCHIVE_MARKER = "RERUN_APT_ARCHIVE"
 _APT_COMMAND = re.compile(r"(?<![\w-])apt(?:-get)?\s[^\n;&|]*?\b(?:update|install)\b")

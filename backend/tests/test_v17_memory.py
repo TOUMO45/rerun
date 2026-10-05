@@ -105,11 +105,11 @@ def test_replay_gate_11_hook_then_resource_adapt_and_the_verdict_says_resource_a
     assert any("resource_adapt round 1" in n and "NOT semantics-preserving" in n for n in result.build_plan["notes"])
 
 
-def test_before_the_swap_decision_resource_adapt_never_fires_and_the_stop_follows_the_hook(tmp_path):
+def test_before_the_swap_decision_resource_adapt_never_fires_and_the_stop_follows_the_hook(tmp_path, monkeypatch):
+    monkeypatch.setattr(runner_env, "SWAP_FILE_DECIDED", False)  # the state until swap_file is decided, whatever the module says today
     a = _kill(R11[1])
     command = "python main.py  --evaluate --dataset cifar10  --eps 0.031  --model capsnet  --attack vote_attack_FGSM"
     evidence = SandboxRunResult(steps=(StepResult(command, 137, "", a["stderr_tail"] + "\nRERUN_EVIDENCE_BEGIN exit_status=137\nRERUN_EVIDENCE_END\n", 30.0, 0.3),))
-    assert runner_env.SWAP_FILE_DECIDED is False
     result, repair, plans, left = _memory_pipeline(tmp_path, [_killed(a, command), _killed(a, command), evidence], command=command, files={"main.py": VOTE_MAIN})
     assert not repair.calls and "resource_adapt" not in _rules(result) and result.verdict == "INDETERMINATE" and result.taxonomy_code == "RESOURCE_LIMIT"
 
