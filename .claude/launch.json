@@ -4,20 +4,64 @@
     {
       "name": "rerun-frontend",
       "runtimeExecutable": "npm",
-      "runtimeArgs": ["--prefix", "frontend", "run", "dev"],
+      "runtimeArgs": [
+        "--prefix",
+        "frontend",
+        "run",
+        "dev"
+      ],
       "port": 5173
+    },
+    {
+      "name": "rerun-frontend-5174",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": [
+        "--prefix",
+        "frontend",
+        "run",
+        "dev",
+        "--",
+        "--port",
+        "5174",
+        "--strictPort"
+      ],
+      "port": 5174
     },
     {
       "name": "rerun-backend-demo",
       "runtimeExecutable": "cmd",
-      "runtimeArgs": ["/c", "cd backend && (if exist data\\rerun_demo_clean.db del /q data\\rerun_demo_clean.db) && set DEMO_MODE=1&& set NEBIUS_API_KEY=&& set TAVILY_API_KEY=&& set DATABASE_URL=sqlite:///./data/rerun_demo_clean.db&& .venv\\Scripts\\python.exe -m uvicorn app.main:app --port 8000"],
+      "runtimeArgs": [
+        "/c",
+        "cd backend && (if exist data\\rerun_demo_clean.db del /q data\\rerun_demo_clean.db) && set DEMO_MODE=1&& set NEBIUS_API_KEY=&& set TAVILY_API_KEY=&& set DATABASE_URL=sqlite:///./data/rerun_demo_clean.db&& .venv\\Scripts\\python.exe -m uvicorn app.main:app --port 8000"
+      ],
       "port": 8000
     },
     {
       "name": "rerun-backend-live",
       "runtimeExecutable": "cmd",
-      "runtimeArgs": ["/c", "cd backend && (if exist data\\rerun_live_ui.db del /q data\\rerun_live_ui.db) && set DEMO_MODE=0&& set DAILY_COST_CEILING_USD=2.50&& set DATABASE_URL=sqlite:///./data/rerun_live_ui.db&& .venv\\Scripts\\python.exe -m uvicorn app.main:app --port 8000"],
+      "runtimeArgs": [
+        "/c",
+        "cd backend && (if exist data\\rerun_live_ui.db del /q data\\rerun_live_ui.db) && set DEMO_MODE=0&& set DAILY_COST_CEILING_USD=2.50&& set DATABASE_URL=sqlite:///./data/rerun_live_ui.db&& .venv\\Scripts\\python.exe -m uvicorn app.main:app --port 8000"
+      ],
       "port": 8000
+    },
+    {
+      "name": "rerun-backend-demo-8011",
+      "runtimeExecutable": "cmd",
+      "runtimeArgs": [
+        "/c",
+        "cd backend && (if exist data\\rerun_demo_8011.db del /q data\\rerun_demo_8011.db) && set DEMO_MODE=1&& set NEBIUS_API_KEY=&& set TAVILY_API_KEY=&& set DATABASE_URL=sqlite:///./data/rerun_demo_8011.db&& .venv\\Scripts\\python.exe -m uvicorn app.main:app --port 8011"
+      ],
+      "port": 8011
+    },
+    {
+      "name": "rerun-frontend-demo-5175",
+      "runtimeExecutable": "cmd",
+      "runtimeArgs": [
+        "/c",
+        "set RERUN_API_PROXY=http://localhost:8011&& npm --prefix frontend run dev -- --port 5175 --strictPort"
+      ],
+      "port": 5175
     }
   ]
 }

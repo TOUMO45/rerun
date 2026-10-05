@@ -2,6 +2,9 @@
 
 One entry per phase of the post-corpus-v2 plan. Numbers are produced by scripts in `scripts/`.
 
+## harness-v1.7.2-rc — D-49 (repo-URL injection) fixed, D-45/D-48 fixed, the new UI, TEST-B pre-registered (2026-10-05; offline, before the paid seal)
+Security: `POST /runs` ran `git ls-remote <repo_url>`, so `--upload-pack=<cmd>` ran a command on the backend host (D-49); now GitHub HTTPS only, `--` before every URL, the execute endpoint re-checks. D-48: R4's archive rewrite also runs on a repair candidate's own branch; D-45: `rewrote` is read from every step. Tests fail on the old code; independent review: no HIGH or MEDIUM finding. UI: the "Ember" theme, checked in a real browser (desktop and 375 px; 12 downloaded certificates pass `scripts/verify_passport.py`). No sandbox-touching file changed. TEST-B (corpus-v3) and the out-of-sample scan pre-registered in METHODOLOGY before any draw or pick. `reports/dev/FIXES_harness-v1.7.2.md`.
+
 ## harness-v1.7.0 (in preparation) — rules for the recorded DEV blockers, each labelled where it changes what runs (2026-10-04; offline, unsealed, not run live)
 Pre-registered in METHODOLOGY ("harness-v1.7 — PRE-REGISTRATION", pushed before any v1.7 live call; annotated after the review). R1 memory (DEV #17, gate #11): the memory hook and environment, a labelled RESOURCE-ADAPTED batch halving, swap pending the probe. R2 a CPU reference for LU without pivoting (DEV #14). R3 data_prep from a README-documented step (DEV #9; gate #3 and DEV #4 do not fire). R4 apt_archive for end-of-life Debian (DEV #16, #9). R5 companion_relax (DEV #5), labelled a dependency change. R6 the D-44 semantic-change flag (DEV #14 round 3). Round 4 recorded (3 of 8, adds nothing); the ledger reader fixed (round 4 had been left out: ledger $52.9336). Independent review: 2 high, 6 medium, 7 low, all fixed with tests. `reports/dev/FIXES_harness-v1.7.0.md`.
 

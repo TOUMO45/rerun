@@ -244,6 +244,7 @@ def test_v2_certificate_round_trips_through_the_api(client, fake_paper_repo, mon
         nebius_sandbox_image = "python:3.11-slim"
         nebius_project_id = ""
         nebius_sandbox_backend = "token_factory"
+        allow_local_repo_paths = True  # the fixture repository is a local directory
 
     monkeypatch.setattr("app.routers.runs.get_settings", lambda: _S())
     monkeypatch.setattr("app.routers.runs.run_pipeline", lambda **kwargs: fake_result)

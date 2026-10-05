@@ -23,6 +23,7 @@ class _FakeSettings:
     nebius_model_adjudicator = "nvidia/nemotron-3-ultra"
     nebius_model_planner = "nvidia/nemotron-3-super"
     nebius_sandbox_wall_clock_seconds = 60
+    allow_local_repo_paths = True  # the fixture repository is a local directory
     max_attempts_per_run = 3
     daily_cost_ceiling_usd = 25.0
     tavily_configured = False

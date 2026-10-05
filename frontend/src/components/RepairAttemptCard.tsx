@@ -167,7 +167,7 @@ export function RepairAttemptCard({ attempt }: { attempt: RepairAttemptDiff }) {
   }
   if (attempt.gate_decision === "DECLINED") {
     return (
-      <div className="rounded-sm border border-border bg-surface px-4 py-3">
+      <div className="rounded-sm border border-border bg-surface shadow-card px-4 py-3">
         <Header label={`Repair attempt ${attempt.attempt_number} — model declined`} tone="neutral" />
         <p className="mt-2 font-mono text-xs text-text-secondary">
           The repair model did not propose a fix it was confident about for this attempt.

@@ -36,7 +36,7 @@ export function BlockerCard({ blocker }: { blocker: Blocker }) {
   const hits = sources?.sources ?? null;
 
   return (
-    <section className="rounded-sm border border-border bg-surface px-5 py-4" aria-labelledby="blocker-heading">
+    <section className="rounded-sm border border-border bg-surface shadow-card px-5 py-4" aria-labelledby="blocker-heading">
       <h2 id="blocker-heading" className="font-mono text-xs uppercase tracking-wide text-text-secondary">
         What blocks it
       </h2>

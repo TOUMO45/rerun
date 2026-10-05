@@ -107,6 +107,9 @@ class Settings(BaseSettings):
     repair_candidates_per_round: int = 3
     # §7: committed at repo root, precomputed by the offline batch runner.
     batch_results_path: str = "../batch_results.json"
+    # POST /runs accepts https://github.com/<owner>/<repo> only. True admits an absolute local directory as well:
+    # the test suite's fixture repositories. Never set in a deployment.
+    allow_local_repo_paths: bool = False
 
     @property
     def nebius_configured(self) -> bool:

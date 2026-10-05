@@ -6,6 +6,8 @@ Two commands, run in this order and committed in between:
               PINNED dataset revisions (DuckDB over hf:// parquet, column
               projection + filters pushed to the source; the full parquet files
               are never downloaded) and write population.csv, sorted by paper_url.
+  draw-v3     corpus-v3 = TEST-B (backend/app/batch/corpus_v3/prereg.json): draw-v2's
+              screening with a new seed, 8 entries, and RERUN's firewall.
   draw-v2     corpus-v2 (backend/app/batch/corpus_v2/prereg.json): the same draw
               with E5_v2, skipping corpus-v1's papers and repos as duplicates.
   draw        Deterministically shuffle the frame with the pre-registered seed,
@@ -395,6 +397,111 @@ def draw_v2() -> None:
     write_corpus(pre, eligible, version="corpus-v2", prereg=V2_PREREG, corpus_yaml=V2_CORPUS_YAML, hash_file=V2_HASH_FILE)
 
 
+V3_DIR = ROOT / "backend" / "app" / "batch" / "corpus_v3"
+V3_PREREG = V3_DIR / "prereg.json"
+V3_PREREG_SHA = V3_DIR / "prereg.sha256"
+V3_LOG = V3_DIR / "screening_log.jsonl"
+V3_CORPUS_YAML = V3_DIR / "corpus.yaml"
+V3_HASH_FILE = V3_DIR / "corpus_hash.txt"
+_GH_REPO_RE = re.compile(r"https?://github\.com/([A-Za-z0-9][A-Za-z0-9-]*)/([A-Za-z0-9_.-]+)", re.IGNORECASE)
+_FIREWALL_SUFFIXES = {".json", ".jsonl", ".yaml", ".yml", ".md", ".csv", ".log", ".txt"}
+
+
+def _repo_key(url: str) -> str | None:
+    m = _GH_REPO_RE.search(url or "")
+    if not m:
+        return None
+    repo = m.group(2)
+    repo = repo[:-4] if repo.lower().endswith(".git") else repo
+    return f"{m.group(1)}/{repo}".rstrip("/").lower()
+
+
+def v3_firewall() -> tuple[set[str], set[str]]:
+    """corpus-v3 prereg /firewall: (paper_urls, repo keys) RERUN already knows. corpus-v1/v2 corpus.yaml and screening logs (every candidate ever screened), and every
+    GitHub repository named in a text record under runs/ or reports/. population.csv is not a source (it is the whole frame)."""
+    papers: set[str] = set()
+    repos: set[str] = set()
+    for cdir in (CORPUS_DIR, V2_DIR):
+        for line in (cdir / "screening_log.jsonl").read_text(encoding="utf-8").splitlines():
+            if line.strip():
+                row = json.loads(line)
+                papers.add(row.get("paper_url") or "")
+                repos.add(_repo_key(row.get("repo_url") or "") or "")
+        import yaml
+
+        for row in yaml.safe_load((cdir / "corpus.yaml").read_text(encoding="utf-8"))["repos"]:
+            papers.add(row.get("paper_url") or "")
+            repos.add(_repo_key(row.get("repo_url") or "") or "")
+    for base in (ROOT / "runs", ROOT / "reports"):
+        for path in base.rglob("*"):
+            if path.is_file() and path.suffix.lower() in _FIREWALL_SUFFIXES:
+                text = path.read_text(encoding="utf-8", errors="ignore")
+                repos.update(_repo_key(m.group(0)) for m in _GH_REPO_RE.finditer(text))
+    papers.discard("")
+    repos.discard("")
+    repos.discard(None)
+    return papers, repos
+
+
+def check_v3_registration() -> dict:
+    """Refuse unless corpus-v3's registration is exactly as sealed and its eligibility is corpus-v2's, unchanged."""
+    check_v2_registration()  # the E5_v2 regexes and command_rules equal corpus_v2/prereg.json (the eligibility corpus-v3 reuses)
+    pre = json.loads(V3_PREREG.read_text(encoding="utf-8"))
+    if sha256_file(V3_PREREG) != V3_PREREG_SHA.read_text(encoding="utf-8").split()[0]:
+        raise SystemExit("corpus_v3/prereg.json does not match corpus_v3/prereg.sha256 — refusing to draw")
+    frame = pre["frame_and_population"]
+    if sha256_file(ROOT / frame["population_file"]) != frame["population_sha256"]:
+        raise SystemExit("population.csv does not match the corpus-v3 registration — refusing to draw")
+    if any(V3_DIR.joinpath(name).exists() for name in pre["outputs"]):
+        raise SystemExit("corpus-v3 is already drawn: the draw runs once")
+    return pre
+
+
+def draw_v3() -> None:
+    """corpus-v3 (TEST-B): corpus-v2's draw with a new seed, 8 entries, and the RERUN firewall (corpus_v3/prereg.json)."""
+    import yaml
+
+    from app.batch import command_rules  # path set by check_v2_registration
+
+    pre = check_v3_registration()
+    with (ROOT / pre["frame_and_population"]["population_file"]).open(encoding="utf-8", newline="") as fh:
+        population = list(csv.DictReader(fh))
+    fw_papers, fw_repos = v3_firewall()
+    print(f"firewall: {len(fw_papers)} paper(s), {len(fw_repos)} repositor(ies)", flush=True)
+    order = list(range(len(population)))
+    random.Random(pre["seed"]).shuffle(order)
+    target = pre["target_eligible"]
+    eligible, seen_repos = [], set()
+    V3_LOG.write_text("", encoding="utf-8", newline="\n")
+    with httpx.Client(timeout=30, follow_redirects=True, headers={"User-Agent": "rerun-corpus-draw"}) as client:
+        for draw_no, idx in enumerate(order, start=1):
+            candidate = population[idx]
+            key = _repo_key(candidate["repo_url"]) or candidate["repo_url"].lower()
+            entry = {"draw": draw_no, "population_index": idx, **{k: candidate[k] for k in ("paper_url", "venue", "year", "repo_url", "title")}}
+            if candidate["paper_url"] in fw_papers or key in fw_repos:
+                entry.update(eligible=False, reason="firewall: paper or repository already known to RERUN")
+            elif key in seen_repos:
+                entry.update(eligible=False, reason="duplicate: repository already drawn for another paper")
+            else:
+                seen_repos.add(key)
+                outcome = screen(client, candidate, excluded_by=command_rules.matched_rules)
+                entry.update(eligible=bool(outcome.pop("eligible", False)), **outcome)
+            with V3_LOG.open("a", encoding="utf-8", newline="\n") as fh:
+                fh.write(json.dumps(entry) + "\n")
+            print(f"#{draw_no:3d} {'ELIGIBLE' if entry['eligible'] else 'fail    '} {candidate['venue']} {candidate['year']} "
+                  f"{candidate['repo_url']}  {entry.get('reason', entry.get('command', ''))[:110]}", flush=True)
+            if entry["eligible"]:
+                eligible.append(entry)
+                if len(eligible) == target:
+                    break
+    # Self-check (prereg /firewall/check_after_the_draw): nothing drawn is known to RERUN.
+    fw_papers, fw_repos = v3_firewall()
+    leaked = [e["repo_url"] for e in eligible if e["paper_url"] in fw_papers or (_repo_key(e["repo_url"]) in fw_repos)]
+    if leaked:
+        raise SystemExit(f"firewall self-check failed, corpus.yaml NOT written: {leaked}")
+    write_corpus(pre, eligible, version="corpus-v3", prereg=V3_PREREG, corpus_yaml=V3_CORPUS_YAML, hash_file=V3_HASH_FILE)
+
+
 if __name__ == "__main__":
     command = sys.argv[1] if len(sys.argv) > 1 else ""
     if command == "population":
@@ -403,5 +510,7 @@ if __name__ == "__main__":
         draw()
     elif command == "draw-v2":
         draw_v2()
+    elif command == "draw-v3":
+        draw_v3()
     else:
         raise SystemExit(__doc__)

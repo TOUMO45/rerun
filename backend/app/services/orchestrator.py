@@ -129,6 +129,29 @@ def _classify_run(exit_code, stderr, stdout="", **kwargs) -> classifier.Classifi
     return classifier.classify(exit_zero_check.classify_exit_code(exit_code), stderr, stdout, **kwargs)
 
 
+APT_ARCHIVE_RULE = "apt_archive"
+
+
+def _apt_archive_note() -> str:
+    """harness-v1.7 (R4): the build-plan note of the archive rewrite (main loop, or an adopted candidate since harness-v1.7.2, D-48)."""
+    return ("apt_archive (harness-v1.7, R4): apt sources of an end-of-life Debian release rewritten to its archive before every apt command: "
+            + "; ".join(f"{codename}: {', '.join(lines)}" for codename, lines in sorted(runner_env.EOL_APT_SOURCES.items())))
+
+
+def _apt_archive_action(matched: str, fires_on: str) -> dict:
+    """harness-v1.7 (R4): the recorded time-machine action of the archive rewrite."""
+    return {"rule": APT_ARCHIVE_RULE, "matched_error": matched[:500], "phase": "repair", "fires_on": fires_on,
+            "step": runner_env.apt_archive_step(), "sources": {k: list(v) for k, v in sorted(runner_env.EOL_APT_SOURCES.items())},
+            "limit": "only the codenames in runner_env.EOL_APT_SOURCES are rewritten; a live release is left alone"}
+
+
+def _archive_rewrote(result) -> list[str]:
+    """harness-v1.7.2 (D-45): the codenames the archive step rewrote, read from EVERY step of the operation. The step prints its marker in the
+    install step that carries it; reading the final (execute) step only recorded `rewrote: []` although the step ran (round 5, entry #16).
+    Known limit: still `[]` when this operation reopened a kept image whose prefixed apt step ran in an EARLIER operation (the marker printed there)."""
+    return runner_env.apt_archive_rewrote(*(text for step in result.steps for text in (step.stderr, step.stdout)))
+
+
 def _self_inflicted(cand_class, env_delta_dicts, declared_deps) -> str | None:
     """harness-v1.7.2: the package a candidate's NEW error names when that package was added by the candidate's own env delta (op add / pin /
     pip_git) and the repository does not declare it, else None. Live: insta-dl, a candidate added `python3-tk` (an apt package name) as a pip
@@ -1272,7 +1295,7 @@ def _run_stages(
                       extra_files: dict | None = None, keep_result: bool = False, share: int = 1, role: str = "",
                       candidate: int | None = None, resumed_after: int | None = None, may_resume: bool = False,
                       extra_apt_layers: tuple = (), extra_extras: tuple = (), exec_wrapper: bool | None = None,
-                      evidence: bool = False) -> SandboxRunResult:
+                      evidence: bool = False, apt_archive: bool = False) -> SandboxRunResult:
         # §9: the daily cost ceiling must actually stop spend, not just be
         # documented. There's no pre-flight cost quote from the sandbox
         # API, so this refuses to start a step at all once today's real
@@ -1362,7 +1385,9 @@ def _run_stages(
             runner_kwargs["runner_extras"] = extras
         # harness-v1.4.1-rc (D-34): apt packages added at repair time are additive layers inside the setup list, not part of its first step.
         steps = _sandbox_steps(use_plan, extra_apt_layers)
-        if state.apt_archive:  # harness-v1.7 (R4): the apt-archive step goes in front of every apt command (never on the baseline: nothing sets it before)
+        # harness-v1.7 (R4): the apt-archive step goes in front of every apt command (never on the baseline: nothing sets it before).
+        # harness-v1.7.2 (D-48): or on one repair candidate's branch only (`apt_archive`), when that candidate's own apt install met the gone mirror.
+        if (state.apt_archive or apt_archive) and not baseline:
             steps = tuple(runner_env.with_apt_archive(command) for command in steps)
         cmds = setup_commands(steps, torch_setup, extras)
         # harness-v1.4.0-rc (D-23): TREATMENT operations reuse kept images instead of rebuilding the environment every time.
@@ -2342,12 +2367,8 @@ def _run_stages(
             notes; then re-execute. Attempt 0 / origin time_machine, once per run. None if the budget stops it."""
             nonlocal plan
             state.apt_archive = True
-            note = ("apt_archive (harness-v1.7, R4): apt sources of an end-of-life Debian release rewritten to its archive before every apt command: "
-                    + "; ".join(f"{codename}: {', '.join(lines)}" for codename, lines in sorted(runner_env.EOL_APT_SOURCES.items())))
-            plan = replace(plan, notes=(*plan.notes, note))
-            action = {"rule": "apt_archive", "matched_error": matched[:500], "phase": "repair", "fires_on": "APT_MIRROR_GONE at repair time",
-                      "step": runner_env.apt_archive_step(), "sources": {k: list(v) for k, v in sorted(runner_env.EOL_APT_SOURCES.items())},
-                      "limit": "only the codenames in runner_env.EOL_APT_SOURCES are rewritten; a live release is left alone"}
+            plan = replace(plan, notes=(*plan.notes, _apt_archive_note()))
+            action = _apt_archive_action(matched, "APT_MIRROR_GONE at repair time")
             _log(f"[time-machine] deterministic step: apt_archive (matched: {matched[:200]}); no model call")
 
             def _record(exit_code, stdout, stderr, execution=None) -> None:
@@ -2363,7 +2384,7 @@ def _run_stages(
             except (SandboxTimeoutError, tree_integrity.HarnessIntegrityError) as exc:
                 _record(None, "", str(exc)[-2000:])
                 raise
-            action["rewrote"] = runner_env.apt_archive_rewrote(result.final.stderr, result.final.stdout)
+            action["rewrote"] = _archive_rewrote(result)
             _log(f"[time-machine] re-execution id={result.sandbox_id} exit_code={result.final.exit_code}")
             _record(result.final.exit_code, result.final.stdout[-2000:], result.final.stderr[-2000:], _execution_of(result, True))
             return result
@@ -3138,7 +3159,8 @@ def _run_stages(
                 def _candidate_run(cand: dict, role: str):
                     return _execute(workdir, smoke=True, plan_used=cand["plan"], extra_files=cand["files"], keep_result=True,
                                     share=concurrent, role=role, candidate=cand["number"], extra_apt_layers=tuple(cand["apt_layers"]),
-                                    extra_extras=tuple(cand["extras"]), exec_wrapper=True if cand["wrapper"] else None)
+                                    extra_extras=tuple(cand["extras"]), exec_wrapper=True if cand["wrapper"] else None,
+                                    apt_archive=bool(cand.get("apt_archive")))
 
                 def _observe_candidate(cand: dict, result: SandboxRunResult):
                     """harness-v1.4.1-rc (D-33). The deterministic rules (D-24 build-essential, the CPU shim, the exit-site hook, the exit
@@ -3160,7 +3182,15 @@ def _run_stages(
                                   and not getattr(result.final, "truncated", False))  # nor is a stream the API cut (D-41)
                         compiler = missing_compiler_error(cls)
                         action: dict | None = None
-                        if compiler and "build-essential" not in cand["plan"].apt_install:
+                        if (cls.code == classifier.TaxonomyCode.APT_MIRROR_GONE and not state.apt_archive
+                                and not cand.get("apt_archive")):
+                            # harness-v1.7.2 (D-48): R4 fired only in the main loop, so a candidate's own `apt install` on an end-of-life
+                            # Debian image met the 404 mirror and the candidate was judged on RERUN's missing rewrite (live scan v1.7.2b,
+                            # insta-dl: `apt python3-tk`, the right idea, failed that way). The same step now runs on this candidate's branch.
+                            cand = {**cand, "apt_archive": True}
+                            action = {**_apt_archive_action(cls.evidence or cls.code, "APT_MIRROR_GONE on a repair candidate's branch"),
+                                      "on_candidate": cand["number"]}
+                        elif compiler and "build-essential" not in cand["plan"].apt_install:
                             change = env_repair.EnvChange(op="apt", package="build-essential", evidence=compiler,
                                                           justification="deterministic: the failing run could not execute a C compiler")
                             violations = env_repair.check_env_delta(
@@ -3219,6 +3249,8 @@ def _run_stages(
                             break
                         if action["rule"] == runner_hooks.HOOKS[runner_hooks.CPU_SHIM].rule:
                             action["paths_fired"] = runner_hooks.shim_paths_fired(again.final.stderr, again.final.stdout)
+                        if action["rule"] == APT_ARCHIVE_RULE:
+                            action["rewrote"] = _archive_rewrote(again)
                         if action["rule"] == runner_hooks.EXIT_WRAPPER_RULE:
                             printed = (runner_hooks.EXIT_WRAPPER_MARKER in f"{again.final.stderr}\n{again.final.stdout}"
                                        or classifier.has_actionable_error(again.final.stderr, again.final.stdout))
@@ -3398,6 +3430,14 @@ def _run_stages(
                         hooks_installed.add(adopted_hook)
                 if winner["wrapper"]:
                     state.exit_wrapper = True
+                if (winner.get("apt_archive") and not state.apt_archive
+                        and any(a.get("rule") == APT_ARCHIVE_RULE and a.get("rewrote") for a in winner["actions"])):
+                    # harness-v1.7.2 (D-48): the adopted candidate needed the archive rewrite; every later apt command of the run keeps it. Only when the
+                    # step actually rewrote a release: on a live release (or a dead third-party source) it does nothing, and the note would be untrue.
+                    # Known limit: if the plan's FIRST apt step is prefixed, the candidate's branch cannot reuse the kept image for it and rebuilds from
+                    # there; in practice a plan's own apt step on an end-of-life image fails at the baseline, where the main-loop step fires first.
+                    state.apt_archive = True
+                    plan = replace(plan, notes=(*plan.notes, _apt_archive_note()))
                 state.build_plan_dict = plan.as_dict()
                 rerun_result = winner["result"]
                 if rerun_result.result_image:

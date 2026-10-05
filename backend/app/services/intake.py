@@ -135,6 +135,35 @@ class RepoNotPythonError(IntakeError):
     pass
 
 
+class RepoUrlInvalidError(IntakeError):
+    pass
+
+
+# What POST /runs accepts: a public GitHub repository over HTTPS and nothing else. The URL reaches
+# `git ls-remote` / `git clone` on the backend host: a value read as an option (`--upload-pack=<cmd>`)
+# runs a command there, and a `file://` / `ext::` / local path reads the host itself.
+_GITHUB_REPO_URL = re.compile(r"https://(?i:(?:www\.)?github\.com)/[A-Za-z0-9](?:[A-Za-z0-9-]{0,38})/(?P<repo>[A-Za-z0-9_.-]{1,100}?)(?:\.git)?/?")
+
+
+def validate_repo_url(url: str, *, allow_local: bool = False) -> None:
+    """Refuse anything but `https://github.com/<owner>/<repo>[.git][/]` before any git command sees it.
+    `allow_local` (tests only, Settings.allow_local_repo_paths) also admits an absolute local path,
+    which is how the test suite feeds a fixture repository (a missing one then fails as "not found")."""
+    match = _GITHUB_REPO_URL.fullmatch(url)  # fullmatch: a trailing newline is refused too
+    if match and match.group("repo") not in (".", ".."):
+        return
+    # `//host/share` and `\\host\share` are absolute on Windows: a UNC path would make git reach out over SMB.
+    if allow_local and not url.startswith(("-", "//", "\\\\")) and Path(url).is_absolute():
+        return
+    raise RepoUrlInvalidError(f"'{url[:200]}' is not a public GitHub repository URL (expected https://github.com/<owner>/<repo>)")
+
+
+def _refuse_option_like(url: str) -> None:
+    """Last line of defence for every git call that takes a URL: a value starting with '-' is never a repository."""
+    if url.startswith("-"):
+        raise RepoUrlInvalidError(f"'{url[:200]}' is not a repository URL")
+
+
 def validate_repo_accessible(url: str, timeout: float = 30.0) -> None:
     """Cheap pre-flight check (S1 intake, §8): confirm `url` is a reachable,
     public git repo before paying for a full clone. Raises a specific
@@ -144,8 +173,9 @@ def validate_repo_accessible(url: str, timeout: float = 30.0) -> None:
     Uses `git ls-remote`, which talks to the remote without downloading
     any repo content — read-only, per §2.5.
     """
+    _refuse_option_like(url)
     result = subprocess.run(
-        ["git", "ls-remote", "--exit-code", url, "HEAD"],
+        ["git", "ls-remote", "--exit-code", "--", url, "HEAD"],
         capture_output=True,
         text=True,
         timeout=timeout,
@@ -225,11 +255,12 @@ def clone_repo(url: str, dest: Path, shallow: bool = True) -> str:
     """Shallow-clone `url` into `dest` (read-only) and return the checked-out
     commit SHA. Never pushes, never authenticates — public clone only,
     per §2.5."""
+    _refuse_option_like(url)
     dest.parent.mkdir(parents=True, exist_ok=True)
     cmd = ["git", *_GIT_BYTE_EXACT, "clone", "--config", "core.autocrlf=false", "--config", "core.eol=lf"]
     if shallow:
         cmd += ["--depth", "1"]
-    cmd += [url, str(dest)]
+    cmd += ["--", url, str(dest)]
     result = subprocess.run(cmd, capture_output=True, text=True, timeout=timeouts.GIT_FETCH_S, env=_git_env())
     if result.returncode != 0:
         raise IntakeError(f"git clone failed for '{url}': {result.stderr.strip()}")
@@ -264,6 +295,7 @@ def clone_repo_at_commit(url: str, dest: Path, commit_sha: str) -> str:
     error message says so explicitly rather than silently falling back to
     HEAD, which would defeat the whole point of pinning).
     """
+    _refuse_option_like(url)
     dest.mkdir(parents=True, exist_ok=True)
     init_result = subprocess.run(["git", "init", str(dest)], capture_output=True, text=True, timeout=timeouts.GIT_LOCAL_S)
     if init_result.returncode != 0:
@@ -275,7 +307,7 @@ def clone_repo_at_commit(url: str, dest: Path, commit_sha: str) -> str:
 
     def _fetch():
         result = subprocess.run(
-            ["git", *_GIT_BYTE_EXACT, "-C", str(dest), "fetch", "--depth", "1", url, commit_sha],
+            ["git", *_GIT_BYTE_EXACT, "-C", str(dest), "fetch", "--depth", "1", "--", url, commit_sha],
             capture_output=True,
             text=True,
             timeout=timeouts.GIT_FETCH_S,

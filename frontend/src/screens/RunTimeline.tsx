@@ -93,7 +93,7 @@ export function RunTimeline() {
 
   return (
     <div className="mx-auto max-w-3xl">
-      <div className="mb-6 flex items-start justify-between gap-4">
+      <div className="mb-6 flex flex-col-reverse items-start justify-between gap-3 sm:flex-row sm:gap-4">
         <div>
           <p className="font-mono text-xs text-text-secondary">Run</p>
           <h1 className="mt-1 break-all font-mono text-lg font-medium text-text-primary">{run.repo_url}</h1>
@@ -105,7 +105,7 @@ export function RunTimeline() {
       </div>
 
       {!isDone && !hasStarted && isExecutingElsewhere && (
-        <div className="rounded-sm border border-border bg-surface px-5 py-6 text-center">
+        <div className="rounded-sm border border-border bg-surface shadow-card px-5 py-6 text-center">
           <span className="mb-2 inline-block h-2 w-2 animate-pulse rounded-full bg-signal" />
           <p className="font-mono text-sm text-text-secondary">
             An execution run is already in progress for this run — started from another
@@ -115,7 +115,7 @@ export function RunTimeline() {
       )}
 
       {!isDone && !hasStarted && !isExecutingElsewhere && (
-        <div className="rounded-sm border border-border bg-surface px-5 py-6 text-center">
+        <div className="rounded-sm border border-border bg-surface shadow-card px-5 py-6 text-center">
           {demoMode && (
             <div className="mb-4 text-left">
               <DemoBanner />
@@ -129,7 +129,7 @@ export function RunTimeline() {
           <button
             onClick={() => setHasStarted(true)}
             disabled={demoMode}
-            className="rounded-sm bg-signal px-5 py-2.5 font-mono text-sm font-medium text-bg transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-40"
+            className="pill-ink"
           >
             Start execution run
           </button>
@@ -137,7 +137,7 @@ export function RunTimeline() {
       )}
 
       {!isDone && hasStarted && (
-        <div className="rounded-sm border border-border bg-surface">
+        <div className="rounded-sm border border-border bg-surface shadow-card">
           <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border px-5 py-3">
             <div className="flex items-center gap-3">
               <span className="h-2 w-2 animate-pulse rounded-full bg-signal" />
@@ -156,7 +156,7 @@ export function RunTimeline() {
                   const { stage, message } = parseLogLine(rawLine);
                   const isError = rawLine.startsWith("[error]");
                   return (
-                    <li key={index} className={`font-mono text-xs ${isError ? "text-alarm" : ""}`}>
+                    <li key={index} className={`font-mono text-xs [overflow-wrap:anywhere] ${isError ? "text-alarm" : ""}`}>
                       {stage && <span className="text-text-secondary">[{stage}]</span>}{" "}
                       <span className={isError ? "" : "text-text-primary/90"}>{message}</span>
                     </li>
@@ -197,7 +197,7 @@ export function RunTimeline() {
               ) : (
                 <li key={item.key} className="relative">
                   <span className="absolute -left-[1.4rem] top-1.5 h-1.5 w-1.5 rounded-full bg-border" />
-                  <p className="font-mono text-xs">
+                  <p className="font-mono text-xs [overflow-wrap:anywhere]">
                     {item.stage && <span className="text-text-secondary">[{item.stage}]</span>}{" "}
                     <span className="text-text-primary/90">{item.message}</span>
                   </p>

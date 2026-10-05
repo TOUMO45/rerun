@@ -12,6 +12,7 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.pool import StaticPool
 
+from app.config import get_settings
 from app.db import get_db
 from app.main import app
 from app.models import Base
@@ -93,6 +94,8 @@ def client(monkeypatch):
     # — instead of this fixture's isolated in-memory one. Found by
     # actually running the stream test, not by inspection.
     monkeypatch.setattr("app.routers.runs.SessionLocal", TestingSessionLocal)
+    # The fixture repositories are local directories; a deployment accepts GitHub HTTPS URLs only.
+    monkeypatch.setattr(get_settings(), "allow_local_repo_paths", True)
     # Deliberately not using `with TestClient(...)`: that would trigger the
     # app's startup event, which calls init_db() against the REAL default
     # engine (rerun.db), not this test's in-memory one. Tests only need the

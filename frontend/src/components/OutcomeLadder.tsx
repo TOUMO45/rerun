@@ -29,7 +29,7 @@ export function OutcomeLadder({ levels }: { levels: OutcomeLevels }) {
   ];
 
   return (
-    <section className="rounded-sm border border-border bg-surface px-5 py-4" aria-labelledby="outcome-ladder-heading">
+    <section className="rounded-sm border border-border bg-surface shadow-card px-5 py-4" aria-labelledby="outcome-ladder-heading">
       <h2 id="outcome-ladder-heading" className="font-mono text-xs uppercase tracking-wide text-text-secondary">
         Outcome ladder
       </h2>

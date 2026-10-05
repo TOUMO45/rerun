@@ -108,6 +108,11 @@ def create_run(payload: RunCreate, db: Session = Depends(get_db)) -> Run:
         raise HTTPException(status_code=422, detail="repo_url must not be empty")
 
     try:
+        intake.validate_repo_url(repo_url, allow_local=getattr(get_settings(), "allow_local_repo_paths", False))
+    except intake.RepoUrlInvalidError as exc:
+        raise HTTPException(status_code=422, detail=f"invalid repo URL: {exc}") from exc
+
+    try:
         intake.validate_repo_accessible(repo_url)
     except intake.RepoPrivateError as exc:
         raise HTTPException(status_code=422, detail=f"private repo: {exc}") from exc
@@ -241,6 +246,8 @@ def _execute_pipeline_for_run(
     workdir = Path(tempfile.mkdtemp(prefix="rerun_exec_"))
     try:
         try:
+            # A row written before the repo-URL check existed is checked again before it is cloned a second time.
+            intake.validate_repo_url(run.repo_url, allow_local=getattr(settings, "allow_local_repo_paths", False))
             intake_result = intake.run_intake(run.repo_url, workdir)
         except intake.IntakeError as exc:
             raise HTTPException(status_code=422, detail=f"re-clone for execution failed: {exc}") from exc

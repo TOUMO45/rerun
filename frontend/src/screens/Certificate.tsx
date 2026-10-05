@@ -90,7 +90,7 @@ export function Certificate() {
 
   return (
     <div className="mx-auto max-w-3xl space-y-6">
-      <div className="flex items-start justify-between gap-4">
+      <div className="flex flex-col-reverse items-start justify-between gap-3 sm:flex-row sm:gap-4">
         <div>
           <p className="font-mono text-xs text-text-secondary">Execution Certificate</p>
           <h1 className="mt-1 break-all font-mono text-lg font-medium text-text-primary">{run.repo_url}</h1>
@@ -119,7 +119,7 @@ export function Certificate() {
       {cert.blocker && <BlockerCard blocker={cert.blocker} />}
 
       {run.taxonomy_code && (
-        <span className="inline-block rounded-sm border border-border bg-surface px-2.5 py-1 font-mono text-[11px] text-text-secondary">
+        <span className="inline-block rounded-sm border border-border bg-surface shadow-card px-2.5 py-1 font-mono text-[11px] text-text-secondary">
           taxonomy: {run.taxonomy_code}
         </span>
       )}
@@ -131,12 +131,12 @@ export function Certificate() {
 
       {cert.baseline && <BaselineSection baseline={cert.baseline} verdict={cert.verdict} recovery={!!cert.recovery} />}
 
-      <section className="rounded-sm border border-border bg-surface px-5 py-4">
+      <section className="rounded-sm border border-border bg-surface shadow-card px-5 py-4">
         <h2 className="font-mono text-xs uppercase tracking-wide text-text-secondary">Summary</h2>
         <p className="mt-2 text-sm leading-relaxed text-text-primary">{cert.certificate_prose}</p>
       </section>
 
-      <section className="rounded-sm border border-border bg-surface px-5 py-4">
+      <section className="rounded-sm border border-border bg-surface shadow-card px-5 py-4">
         <h2 className="font-mono text-xs uppercase tracking-wide text-text-secondary">Build plan</h2>
         <pre className="mt-2 overflow-auto font-mono text-[11px] leading-relaxed text-text-primary/90">
           {JSON.stringify(cert.build_plan, null, 2)}
@@ -144,7 +144,7 @@ export function Certificate() {
       </section>
 
       {cert.diffs.length > 0 && (
-        <section className="rounded-sm border border-border bg-surface px-5 py-4">
+        <section className="rounded-sm border border-border bg-surface shadow-card px-5 py-4">
           <h2 className="font-mono text-xs uppercase tracking-wide text-text-secondary">Environment Delta</h2>
           <p className="mt-1 font-mono text-[11px] text-text-secondary">
             Build-plan changes that were applied and re-executed (the repository's files are not edited).
@@ -157,7 +157,7 @@ export function Certificate() {
       )}
 
       {cert.diffs.length > 0 && (
-        <section className="rounded-sm border border-border bg-surface px-5 py-4">
+        <section className="rounded-sm border border-border bg-surface shadow-card px-5 py-4">
           <h2 className="font-mono text-xs uppercase tracking-wide text-text-secondary">Code Diff</h2>
           <p className="mt-1 font-mono text-[11px] text-text-secondary">
             Changes to the repository's own files that were applied and re-executed.
@@ -238,7 +238,7 @@ function BaselineSection({ baseline, verdict, recovery }: { baseline: Baseline; 
         : "was not run";
   const finalText = COMPLETED.has(verdict) ? "ran to completion" : `did not run to completion (${verdict})`;
   return (
-    <section className="rounded-sm border border-border bg-surface px-5 py-4">
+    <section className="rounded-sm border border-border bg-surface shadow-card px-5 py-4">
       <h2 className="font-mono text-xs uppercase tracking-wide text-text-secondary">Baseline vs RERUN</h2>
       <dl className="mt-2 space-y-1 font-mono text-xs">
         <div>

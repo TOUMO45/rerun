@@ -48,15 +48,15 @@ export function Gallery() {
         </h1>
         <p className="mt-2 max-w-2xl text-sm leading-relaxed text-text-secondary">
           Every row is a real RERUN run, served from the committed record of that run — the verdict, the error chain and the
-          signed certificate are shown exactly as they were written. DEV and gate entries of the corpus only; TEST entries stay
-          behind the pre-registration firewall until the freeze.
+          signed certificate are shown exactly as they were written. DEV and gate entries of the corpus only: the pre-registered
+          TEST entries ran once each at the freeze and are reported on their own, not replayed here.
         </p>
       </div>
 
       {demoMode && <DemoBanner />}
 
       {runs.length === 0 ? (
-        <p className="rounded-sm border border-border bg-surface px-5 py-6 text-center font-mono text-sm text-text-secondary">
+        <p className="rounded-sm border border-border bg-surface shadow-card px-5 py-6 text-center font-mono text-sm text-text-secondary">
           No runs yet.
         </p>
       ) : (

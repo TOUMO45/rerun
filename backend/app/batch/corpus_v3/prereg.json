@@ -1,0 +1,49 @@
+{
+  "corpus_version": "corpus-v3",
+  "name": "TEST-B",
+  "registered": "2026-10-05",
+  "status": "PRE-REGISTERED. Written and committed (with prereg.sha256) in the harness-v1.7.2 release candidate, before any corpus-v3 candidate is screened, drawn or run. Draw with: backend/.venv/Scripts/python.exe scripts/draw_corpus.py draw-v3 (after the harness-v1.7.2 tag); run with reports/test-b/run_test_b.py at the frozen tag harness-v1.7.2.",
+  "purpose": "A second, fresh pre-registered test of RERUN (owner, chat 2026-10-05: 'TEST-B: pre-register a NEW set of 8 papers' repos never seen by any round or scan ... run it once and report whatever comes out'). The first TEST set (corpus-v2 TEST, harness-v1.7.1 code) is not re-run.",
+  "seed": 20261005,
+  "seed_note": "The registration date, the convention of corpus-v1 (20260924) and corpus-v2 (20260928). Fixed before any corpus-v3 draw.",
+  "target_eligible": 8,
+  "frame_and_population": {
+    "rule": "identical to corpus-v1 and corpus-v2: the Papers-with-Code archive frame at the pinned revisions, the population file below, unchanged",
+    "population_file": "backend/app/batch/corpus_v1/population.csv",
+    "population_sha256": "ec825aacdebfa53adfc0a484e7959bf2648663e0eed7e72bbe5819004b6bbcbb",
+    "population_size": 5485
+  },
+  "eligibility": {
+    "rule": "E1-E4 identical to corpus-v1; E5_v2 identical to corpus-v2 (backend/app/batch/corpus_v2/prereg.json /eligibility: the same command_regex, placeholder_regex and command_rules exclusion rules). draw-v3 refuses to draw unless its regexes and command_rules equal corpus_v2/prereg.json's, as draw-v2 does.",
+    "reference": "backend/app/batch/corpus_v2/prereg.json"
+  },
+  "firewall": {
+    "rule": "A candidate is skipped (logged as 'firewall') when its paper_url or its repository is already known to RERUN: (a) any paper_url or repo_url in corpus-v1 or corpus-v2 corpus.yaml or screening_log.jsonl (every candidate ever screened, eligible or not); (b) any github.com/<owner>/<repo> found in any .json/.jsonl/.yaml/.yml/.md/.csv/.log/.txt file under runs/ or reports/ at the commit the draw runs on (every DEV, gate, TEST, seal, live UI and live-scan record and every report). Repositories are compared case-insensitively without a trailing '.git' or '/'. population.csv itself is not a firewall source (it lists the whole frame).",
+    "check_after_the_draw": "draw-v3 recomputes the firewall after drawing and refuses to write corpus.yaml if any drawn entry is in it (a self-check, logged)."
+  },
+  "draw_procedure": "random.Random(20261005).shuffle(list(range(len(population)))) in CPython; screen in that order with E3, E4, E5_v2; a firewalled candidate, or a repository already drawn for another paper, is skipped and logged; stop at 8 eligible or when the population is exhausted. Every draw is logged with its reason in screening_log.jsonl.",
+  "draw_script": "scripts/draw_corpus.py draw-v3 (sealed in the harness-v1.7.2 tag with this file). It refuses to draw unless sha256(prereg.json) equals corpus_v3/prereg.sha256 and population.csv matches population_sha256.",
+  "outputs": ["screening_log.jsonl", "corpus.yaml", "corpus_hash.txt"],
+  "corpus_hash_definition": "sha256 of canonical JSON {prereg_sha256, entries sorted by name with name, repo_url, commit_sha, command} (as corpus-v1 and corpus-v2)",
+  "harness": "The TEST-B batch runs once on the tag harness-v1.7.2 with no harness change after the draw. A harness defect found by TEST-B is recorded as a known limit, not fixed; nothing is re-run and nothing is tuned on a TEST-B result.",
+  "run": {
+    "arm": "treatment (full RERUN: repair, Tavily, the deterministic rules), each entry ONCE, in ascending id",
+    "entry_cap_usd": 2.5,
+    "test_b_cap_usd": 95.0,
+    "cap_note": "8 entries x $2.50 = $20.00 worst case for the entries; the rest ($75.00 or more) funds the D-42 sustained runs (600 s each at most, about $9.12 at $0.0152/s), shared equally among the entries that need one. Ledger ceiling $300.00 API-reported, BILLED floor $10.00 (owner, chat 2026-10-05).",
+    "infra_retry": "an entry that ends INFRA_ERROR with no baseline execution is re-run ONCE (the first record kept unmodified under infra_retries/), as in the TEST phase; no other re-run exists"
+  },
+  "analysis": {
+    "primary_measure": "RAN: the number of the 8 entries whose documented command actually ran, under the rule below. A count over 8 entries, one run each: not a rate. It does not say that any paper's result was reproduced.",
+    "ran_rule": [
+      "R1  the verdict is RUNS_CLEAN or RUNS_AFTER_REPAIR (harness-v1.7.2: an exit 0 with a traceback, a usage message or a missing-credential message is already overruled at run time, D-46);",
+      "R2  and the run is CONFIRMED as in the TEST phase: (i) the documented command exited 0 by itself (baseline_complete or smoke_exited), or (ii) its sustained run completed with exit 0, or (iii) its sustained run ran the full 600 s without failing and without a funding limit;",
+      "R3  and, for (i) and (ii) only, the final run printed something: an exit 0 with empty stdout AND empty stderr tails does not count (a silent exit 0 is not evidence of work);",
+      "R4  and the D-46 audit below does not strike it.",
+      "Reported beside RAN, never added to it: RAN entries with a SEMANTIC CHANGE label (R6, D-44), with RESOURCE-ADAPTED (R1 d), and with SOLE CANDIDATE. A second line gives RAN without semantic change, the stricter reading."
+    ],
+    "d46_audit": "Fixed before the run: for every entry that passes R1-R3, the report lists the documented command, the final run's exit code, the byte length and SHA-256 of its stdout and stderr tails and the first error-like line in either. The entry is struck from RAN when (a) the documented command contains a pipe '|' or a '||' / ';' sequence and the record does not show that the FIRST command of it ran to completion (its own output, not the pipe's last command), or (b) either tail contains 'Traceback (most recent call last)', 'Error:' as a Python exception line, 'usage:' at a line start, or a missing-credential / API-key message. The audit can only strike an entry, never add one. Each strike is stated with the line that caused it.",
+    "target": "none: the count is reported whatever it is",
+    "beside_it": "the TEST phase's numbers belong to harness-v1.7.1 code only (2 of 8 confirmed as pre-registered; 1 of 8 actually ran after the D-46 audit) and are never pooled with TEST-B."
+  }
+}

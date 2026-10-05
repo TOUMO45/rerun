@@ -76,7 +76,7 @@ export function BatchLab() {
         <Stat label="Indeterminate" value={indeterminate} tone="warn" />
       </div>
 
-      <div className="rounded-sm border border-border bg-surface px-5 py-4">
+      <div className="rounded-sm border border-border bg-surface shadow-card px-5 py-4">
         <div className="flex items-baseline justify-between">
           <span className="font-mono text-2xl font-semibold text-text-primary">
             ≈{estimatedHours.toFixed(0)} hrs
@@ -97,7 +97,7 @@ export function BatchLab() {
       </div>
 
       {Object.keys(breakdown).length > 0 && (
-        <div className="rounded-sm border border-border bg-surface px-5 py-4">
+        <div className="rounded-sm border border-border bg-surface shadow-card px-5 py-4">
           <h2 className="mb-3 font-mono text-xs uppercase tracking-wide text-text-secondary">
             Failure breakdown by taxonomy code
           </h2>
@@ -125,7 +125,7 @@ export function BatchLab() {
 function Stat({ label, value, tone }: { label: string; value: number; tone?: "alarm" | "warn" }) {
   const color = tone === "alarm" ? "text-alarm" : tone === "warn" ? "text-warn" : "text-text-primary";
   return (
-    <div className="rounded-sm border border-border bg-surface px-4 py-3">
+    <div className="rounded-sm border border-border bg-surface shadow-card px-4 py-3">
       <p className={`font-mono text-2xl font-semibold ${color}`}>{value}</p>
       <p className="mt-1 font-mono text-[11px] text-text-secondary">{label}</p>
     </div>
