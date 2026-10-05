@@ -4,6 +4,8 @@
 set -eu
 PORT="${PORT:-10000}"
 case "$PORT" in *[!0-9]*|"") echo "PORT is not a number: $PORT" >&2; exit 1;; esac
+# Render mounts an empty /tmp at run time (what the image created there at build time is gone): create nginx's directory here
+mkdir -p /tmp/nginx
 sed "s/__PORT__/${PORT}/" /etc/nginx/rerun.conf.template > /tmp/nginx/nginx.conf
 echo "RERUN demo: commit $(cat /repo/.deployed_commit), DEMO_MODE=${DEMO_MODE}, port ${PORT}"
 cd /repo/backend
@@ -13,7 +15,7 @@ backend=$!
 i=0
 until python -c "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/healthz', timeout=2)" 2>/dev/null; do
   i=$((i + 1))
-  if [ "$i" -gt 90 ] || ! kill -0 "$backend" 2>/dev/null; then echo "backend did not start" >&2; exit 1; fi
+  if [ "$i" -gt 180 ] || ! kill -0 "$backend" 2>/dev/null; then echo "backend did not start" >&2; exit 1; fi
   sleep 1
 done
 nginx -c /tmp/nginx/nginx.conf -g 'daemon off;' &

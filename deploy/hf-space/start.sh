@@ -2,6 +2,8 @@
 # Starts the backend (demo mode, set in the Dockerfile's ENV) and nginx in front of it. If either exits, the container exits,
 # so the Space shows the failure instead of serving a half-working page.
 set -eu
+# a platform may mount an empty /tmp at run time (Render does): create nginx's directory here
+mkdir -p /tmp/nginx
 echo "RERUN demo: commit $(cat /repo/.deployed_commit), DEMO_MODE=${DEMO_MODE}"
 cd /repo/backend
 uvicorn app.main:app --host 127.0.0.1 --port 8000 &
