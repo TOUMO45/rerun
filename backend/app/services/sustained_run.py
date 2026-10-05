@@ -19,7 +19,7 @@ from __future__ import annotations
 
 import math
 
-from app.services import classifier, sandbox
+from app.services import classifier, exit_zero_check, outcome_levels, sandbox
 
 SUSTAINED_SECONDS = 600
 MIN_SUSTAINED_SECONDS = 90
@@ -37,9 +37,9 @@ def final_run_of(record: dict) -> dict | None:
     if result.get("verdict") not in RUNS_VERDICTS:
         return None
     attempts = result.get("attempts") or []
-    final = next((a for a in reversed(attempts) if a.get("chosen") is True and a.get("exit_code") == 0), None)
+    final = next((a for a in reversed(attempts) if a.get("chosen") is True and outcome_levels.attempt_passed(a)), None)
     if final is None:
-        final = next((a for a in reversed(attempts) if a.get("exit_code") == 0 and a.get("execution")), None)
+        final = next((a for a in reversed(attempts) if outcome_levels.attempt_passed(a) and a.get("execution")), None)
     execution = (final or {}).get("execution") or {}
     if not final or not execution:
         if result.get("verdict") == "RUNS_CLEAN":
@@ -77,6 +77,11 @@ def outcome_of(step, *, funded: int, requested: int = SUSTAINED_SECONDS) -> tupl
         note = ("it had printed an error text and was still running (see the recorded tail)" if printed else "it had not failed by then")
         return "running_at_limit", (f"sustained run: still running when the sandbox stopped it at its {funded} s limit ({requested} s requested{limited}); {note}; "
                                     "this is not completion")
+    overruled = exit_zero_check.check(step.exit_code, step.stdout, step.stderr, step.elapsed_seconds) if step.exit_code == 0 else None
+    if overruled is not None:
+        # harness-v1.7.2 (D-46): an exit code 0 after an uncaught traceback, or after only a usage / "missing" message, is not completion
+        return "failed", (f"sustained run: the command exited 0 after {seconds} s, but the exit-0 check overruled it ({overruled.kind}: "
+                          f"{overruled.evidence[:160]}); not completion")
     if step.exit_code == 0:
         return "completed", f"sustained run: the command ran to completion in {seconds} s (exit code 0)"
     cls = _classification(step)

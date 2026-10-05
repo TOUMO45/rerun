@@ -24,6 +24,9 @@ are recomputed from any stored record, so an old certificate can be read the sam
                           ("RESOURCE-ADAPTED: --batch_size 256->128"). The documented command did not run as published from then on.
   memory_adapted          harness-v1.7 (R1 c, v1.7 review H2); present ONLY when the memory hook changed a DataLoader: "memory hook: DataLoader
                           num_workers 2->0" (random draws then come from the main process's stream).
+  exit_zero_overruled     harness-v1.7.2 (D-46); present ONLY when a run of this entry exited 0 and the exit-zero check overruled it (an uncaught
+                          traceback, or only a usage / "missing" message): "exit 0 overruled: <evidence>". Records written before v1.7.2 carry no
+                          `exit_zero_check` and read exactly as before.
   dependency_change       harness-v1.7 (R5, v1.7 review H1); present ONLY when companion_relax ran: "dependency change: torchvision 0.5.0->0.4.0"; from harness-v1.7.1 with what it pins
                           beside the replacement: "dependency change: torchvision 0.5.0->0.4.0, Pillow 9.0.0->6.2.2".
 """
@@ -51,6 +54,29 @@ ENVIRONMENT_CLASSES: frozenset[str] = frozenset(
 
 RUNS_VERDICTS: frozenset[str] = frozenset({"RUNS_CLEAN", "RUNS_AFTER_REPAIR"})
 SEMANTIC_CHANGE_LABEL = "RUNS_AFTER_REPAIR (semantic change)"
+EXIT_ZERO_LABEL = "exit 0 overruled"
+
+
+def _overruled(holder) -> dict | None:
+    found = (holder or {}).get("exit_zero_check") if isinstance(holder, dict) else None
+    return found if isinstance(found, dict) and found.get("overruled") else None
+
+
+def attempt_passed(record: dict | None) -> bool:
+    """harness-v1.7.2 (D-46): a stored attempt / candidate / stage dict that PASSED: exit code 0 and not overruled by the exit-zero check
+    (exit_zero_check; the finding sits on the dict itself, on its `execution` or on its `stage`). Records written before v1.7.2 carry no finding and
+    read exactly as before (exit code 0 = passed)."""
+    if not isinstance(record, dict) or record.get("exit_code") != 0:
+        return False
+    return not any(_overruled(h) for h in (record, record.get("execution"), record.get("stage")))
+
+
+def exit_zero_overruled(result: dict) -> str:
+    """harness-v1.7.2 (D-46): "exit 0 overruled: <evidence>" for the LAST overruled run of the record (error-chain links, then attempts), or ''."""
+    found = [_overruled(link) for link in (result.get("error_chain") or ())]
+    found += [_overruled(a) or _overruled(a.get("execution")) for a in (result.get("attempts") or ()) if isinstance(a, dict)]
+    found = [f for f in found if f]
+    return f"{EXIT_ZERO_LABEL}: {str(found[-1].get('evidence') or found[-1].get('kind'))[:160]}" if found else ""
 
 
 def semantic_change(result: dict) -> tuple[str, ...]:
@@ -62,7 +88,7 @@ def semantic_change(result: dict) -> tuple[str, ...]:
     if result.get("verdict") != "RUNS_AFTER_REPAIR":
         return ()
     attempts = list(result.get("attempts") or ())
-    passed_at = max((i for i, a in enumerate(attempts) if a.get("exit_code") == 0), default=None)
+    passed_at = max((i for i, a in enumerate(attempts) if attempt_passed(a)), default=None)
     if passed_at is None:
         return ()
     found: list[str] = []
@@ -119,9 +145,10 @@ def _pin_of(line) -> str:
 
 
 def labels(result: dict) -> list[str]:
-    """Every harness-v1.7 label of a run, in a fixed order: semantic change (R6), RESOURCE-ADAPTED (R1 d), memory hook (R1 c), dependency change (R5)."""
+    """Every harness-v1.7 label of a run, in a fixed order: semantic change (R6), RESOURCE-ADAPTED (R1 d), memory hook (R1 c), dependency change (R5),
+    then exit 0 overruled (harness-v1.7.2, D-46)."""
     out = ["semantic change"] if semantic_change(result) else []
-    out += [x for x in (resource_adapted(result), memory_adapted(result), dependency_change(result)) if x]
+    out += [x for x in (resource_adapted(result), memory_adapted(result), dependency_change(result), exit_zero_overruled(result)) if x]
     return out
 
 
@@ -149,7 +176,7 @@ def compute(result: dict) -> dict:
             # (error_chain.clear_last did not exist): the verdict says it was cleared; the attempt that passed says by whom.
             # Only RUNS_AFTER_REPAIR (v1.6 review, defect 6): a RUNS_CLEAN record whose as-is rerun passed (a flaky
             # repository) cleared nothing.
-            passed = [a for a in attempts if a.get("exit_code") == 0]
+            passed = [a for a in attempts if attempt_passed(a)]
             cleared_by = passed[-1].get("attempt_number") if passed else None
             first_error_cleared = True
         else:
@@ -158,7 +185,7 @@ def compute(result: dict) -> dict:
             # Several attempts share a number (the time machine and every deterministic step are attempt 0, v1.6 review,
             # defect 7): the one that PASSED cleared the failure; failing that, the last with that number.
             numbered = [a for a in attempts if a.get("attempt_number") == cleared_by]
-            passed = [a for a in numbered if a.get("exit_code") == 0]
+            passed = [a for a in numbered if attempt_passed(a)]
             attempt = passed[-1] if passed else (numbered[-1] if numbered else None)
             first_error_cleared_by = attempt.get("origin") if attempt is not None else None
 
@@ -174,7 +201,7 @@ def compute(result: dict) -> dict:
     if flagged:
         out["semantic_change"] = list(flagged)
     for key, value in (("resource_adapted", resource_adapted(result)), ("memory_adapted", memory_adapted(result)),
-                       ("dependency_change", dependency_change(result))):
+                       ("dependency_change", dependency_change(result)), ("exit_zero_overruled", exit_zero_overruled(result))):
         if value:
             out[key] = value
     return out

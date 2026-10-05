@@ -15,6 +15,7 @@ from __future__ import annotations
 import json
 from dataclasses import dataclass, replace
 
+from app.services import indentation
 from app.services.classifier import Classification
 from app.services.model_client import (
     UNTRUSTED_CONTENT_NOTICE,
@@ -180,6 +181,13 @@ def build_repair_user_prompt(
         "Evidence:",
         untrusted_block("failure evidence from the run's output", classification.evidence),
         f"Target file: {target_file_path}",
+    ]
+    if target_file_path.endswith(".py"):
+        # harness-v1.7.2 (D-47): DEV #15's run_models.py is tab-indented and all six patches the model wrote used spaces (none parsed).
+        indent_line = indentation.describe(target_file_content, target_file_path)
+        if indent_line:
+            parts.append(indent_line)
+    parts += [
         "Current file content:",
         untrusted_block(f"content of {target_file_path}", target_file_content),
     ]
