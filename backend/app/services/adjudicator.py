@@ -120,6 +120,12 @@ def templated_certificate_prose(verdict: str, taxonomy_code: str | None, attempt
             "The command exited without a Python error, and RERUN's evidence run showed no sandbox kill (EXIT_OUTSIDE_PYTHON); "
             "RERUN cannot say why it exited, so nothing is claimed about the repository."
         )
+    elif verdict == "INDETERMINATE" and reason.startswith(("ENTRYPOINT_NEEDS_ARGS", "NEEDS_CREDENTIALS")):
+        # harness-v1.7.2 (D-46): the command exited 0 having printed only a usage message, or only that something it needs is missing.
+        base = (
+            "The command exited with code 0 but printed only that it needs an argument, an input or a credential it was not given "
+            f"({reason.split(':', 1)[0]}); nothing ran, so nothing is claimed about the repository."
+        )
     elif verdict == "INDETERMINATE" and reason.startswith("OUTPUT_TRUNCATED"):
         base = (
             "The command failed and the sandbox API returned only the start of its output, with no error in it (OUTPUT_TRUNCATED); "
@@ -277,6 +283,14 @@ class CandidateAdjudication:
         return record
 
 
+def _passed(record: dict | None) -> bool:
+    """harness-v1.7.2 (D-46): exit code 0 and not overruled by the exit-zero check (outcome_levels.attempt_passed). A stage or candidate dict written
+    before v1.7.2 carries no finding: exit code 0 = passed, as before."""
+    from app.services.outcome_levels import attempt_passed
+
+    return attempt_passed(record)
+
+
 # harness-v1.4.1-rc (D-32): how far a candidate's run got, from what its operation recorded (no model involved).
 _PHASE_RANK = {"runner_setup": 0, "repo_install": 1, "repo_run": 2}
 
@@ -289,7 +303,7 @@ def stage_rank(stage: dict | None) -> tuple:
     it was still running when it failed, then how long it ran. A candidate with no stage ranks lowest (ties go to the lowest number)."""
     if not stage:
         return (0, -1, 0, 0, 0.0)
-    if stage.get("exit_code") == 0:
+    if _passed(stage):
         return (1, 3, 0, 0, 0.0)
     phase = _PHASE_RANK.get(stage.get("phase"), -1)
     ran = 1 if stage.get("outcome") == "failed_while_running" else 0
@@ -302,7 +316,7 @@ def advance_key(stage: dict | None) -> tuple:
     run is not progress (the independent review of v1.4.2-rc found the flag let a silent run beat a quick exit)."""
     if not stage:
         return (0, -1, 0)
-    if stage.get("exit_code") == 0:
+    if _passed(stage):
         return (1, 3, 0)
     phase = stage.get("phase")
     completed = int(stage.get("setup_completed") or 0) if phase in ("runner_setup", "repo_install") else 0
@@ -318,7 +332,7 @@ def partial_progress_choice(current: dict | None, candidates: list[dict]) -> dic
     # A run that PASSED is never "partial progress": the adjudicator judges passes, and when it says none (it passes by doing less, the
     # rules disqualified it) that veto stands. Found by the independent review: without this a vetoed pass was adopted and the entry ended
     # RUNS_AFTER_REPAIR where v1.4.1 ended BLOCKED.
-    ahead = [c for c in candidates if c.get("exit_code") != 0 and advance_key(c.get("stage")) > now]
+    ahead = [c for c in candidates if not _passed(c) and advance_key(c.get("stage")) > now]
     if not ahead:
         return None
     best = max(ahead, key=lambda c: (advance_key(c.get("stage")), stage_rank(c.get("stage")), -c["number"]))
@@ -332,7 +346,7 @@ def _deterministic_choice(candidates: list[dict]) -> int | None:
     lowest number."""
     if not candidates:
         return None
-    passed = [c["number"] for c in candidates if c.get("exit_code") == 0]
+    passed = [c["number"] for c in candidates if _passed(c)]
     if passed:
         return passed[0]
     return max(candidates, key=lambda c: (stage_rank(c.get("stage")), -c["number"]))["number"]
@@ -409,7 +423,9 @@ def _adjudicate(client, model: str | None, failure: str, candidates: list[dict],
         return _by_rerun("no adjudicator configured", "no adjudicator client", model_called=False)
     parts = ["The failure being repaired:", untrusted_block("failure evidence", failure[:2000])]
     for c in candidates:
-        parts.append(f"Candidate {c['number']}: run exit code {c.get('exit_code')}, outcome {c.get('outcome')}")
+        parts.append(f"Candidate {c['number']}: run exit code {c.get('exit_code')}, outcome {c.get('outcome')}"
+                     + (f" (exit code 0 OVERRULED by RERUN's exit-0 check, not a pass: {c['exit_zero_check'].get('kind')})"
+                        if isinstance(c.get("exit_zero_check"), dict) else ""))
         parts.append(untrusted_block(f"candidate {c['number']} explanation", str(c.get("explanation") or "")[:600]))
         parts.append(untrusted_block(f"candidate {c['number']} code diff", str(c.get("diff") or "(none)")[:4000]))
         parts.append(untrusted_block(f"candidate {c['number']} environment changes", str(c.get("env_delta") or "(none)")[:1500]))

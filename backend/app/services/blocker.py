@@ -205,7 +205,8 @@ def report(result: dict) -> dict | None:
     from app.services import outcome_levels
 
     for key, value in (("resource_adapted", outcome_levels.resource_adapted(result)), ("memory_adapted", outcome_levels.memory_adapted(result)),
-                       ("dependency_change", outcome_levels.dependency_change(result))):
+                       ("dependency_change", outcome_levels.dependency_change(result)),
+                       ("exit_zero_overruled", outcome_levels.exit_zero_overruled(result))):  # harness-v1.7.2 (D-46)
         if value:
             out[key] = value
     return out

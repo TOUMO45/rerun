@@ -26,7 +26,9 @@ export function notesOfLabel(label?: string | null): string[] {
         ? "MEMORY HOOK"
         : note.startsWith("dependency change")
           ? "DEPENDENCY CHANGE"
-          : note.toUpperCase(),
+          : note.startsWith("exit 0 overruled") // harness-v1.7.2 (D-46)
+            ? "EXIT 0 OVERRULED"
+            : note.toUpperCase(),
   );
 }
 

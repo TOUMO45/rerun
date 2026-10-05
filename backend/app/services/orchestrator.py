@@ -61,7 +61,9 @@ from app.services import (
     resource_adapt,
     dep_scan,
     error_chain,
+    exit_zero_check,
     import_names,
+    indentation,
     infra,
     outcome_levels,
     patch_pipeline,
@@ -107,6 +109,7 @@ from app.services.tamper_gate import (
     diagnostics_only_violation,
     heuristic_eval_call_names,
     heuristic_model_call_names,
+    injected_default,
     prepare_patch,
     py_compile_violations,
     semantic_change_calls,
@@ -115,6 +118,14 @@ from app.services.tamper_gate import (
 
 class OrchestratorError(RuntimeError):
     pass
+
+
+def _classify_run(exit_code, stderr, stdout="", **kwargs) -> classifier.Classification:
+    """classifier.classify for a run's final step. harness-v1.7.2 (D-46): a run whose exit code 0 the exit-zero check overruled
+    (exit_zero_check) is classified from its output like any failed run; classify() refuses 0 by contract, so it is given
+    exit_zero_check.CLASSIFY_EXIT_CODE (the recorded exit code stays 0). No earlier call could pass 0 (it raised), so every
+    earlier classification is unchanged."""
+    return classifier.classify(exit_zero_check.classify_exit_code(exit_code), stderr, stdout, **kwargs)
 
 
 def apt_layer_command(packages) -> str:
@@ -381,6 +392,9 @@ class AttemptRecord:
     branch: dict | None = None
     adjudication: dict | None = None
     chosen: bool | None = None
+    # harness-v1.7.2 (D-47), only serialized when set: the patch's added lines were re-indented to the file's convention before the gate
+    # ([{"file", "from", "to", "lines", "parse_error"}], indentation.normalise_patch); `diff_text` is the normalised diff, `model_patch` what the model sent.
+    indentation_normalised: tuple[dict, ...] | list | None = None
 
     def as_dict(self) -> dict:
         record = {
@@ -419,9 +433,12 @@ class AttemptRecord:
             record["adjudication"] = self.adjudication
         if self.chosen is not None:
             record["chosen"] = self.chosen
+        if self.indentation_normalised:
+            record["indentation_normalised"] = [dict(x) for x in self.indentation_normalised]
         if self.origin == "model" and self.gate_decision == "PASS" and self.diff_text.strip():
             # harness-v1.7 (R6, D-44): a gated model patch that touches a call whose replacement changes a result; only serialized when set.
-            flagged = semantic_change_calls(self.diff_text)
+            # harness-v1.7.2: plus an injected default input (tamper_gate.injected_default), stored from this version on only
+            flagged = semantic_change_calls(self.diff_text) + injected_default(self.diff_text)
             if flagged:
                 record["semantic_change"] = list(flagged)
         return record
@@ -535,13 +552,17 @@ def _candidate_stage(result: SandboxRunResult, outcome: str) -> dict:
     """harness-v1.4.1-rc (D-32): how far a candidate's run got, from what its operation recorded: the phase of its final step, the
     setup steps that finished, the smoke record's outcome and how long the final step ran (adjudicator.stage_rank orders these)."""
     final = result.final
-    return {
+    stage = {
         "phase": final.phase,
         "setup_completed": sum(1 for s in result.steps if s.phase in ("runner_setup", "repo_install") and s.exit_code == 0),
         "outcome": outcome,
         "seconds": round(final.elapsed_seconds, 3),
         "exit_code": final.exit_code,
     }
+    overruled = exit_zero_check.finding_of(result)
+    if overruled:
+        stage["exit_zero_check"] = overruled  # harness-v1.7.2 (D-46): an exit code 0 that is not a pass (adjudicator.stage_rank reads it)
+    return stage
 
 
 def _installs_project_copy(command: str) -> bool:
@@ -1063,9 +1084,12 @@ def _run_stages(
     _log(f"[planner] build plan: {plan.as_dict()}")
 
     def _execution_of(result: SandboxRunResult, smoke: bool) -> dict | None:
+        overruled = exit_zero_check.finding_of(result)  # harness-v1.7.2 (D-46): only on a run the exit-zero check overruled
         if not (smoke and deps.smoke_seconds):
-            return None
+            return {"exit_zero_check": overruled} if overruled else None
         record = smoke_exec.execution_record(deps.smoke_seconds, result.final.exit_code, result.final.stdout, result.final.stderr)
+        if overruled:
+            record = {**record, "exit_zero_check": overruled}
         image = command_image(result)  # harness-v1.4.3-rc (D-42): the image the sustained-run line reopens for a RUNS_* entry
         if image:
             record = {**record, "image": image}
@@ -1441,6 +1465,13 @@ def _run_stages(
             raise
         if isinstance(result, SandboxRunResult):
             result = replace(result, base_command=use_plan.execute_command)  # harness-v1.4.3-rc (D-42): what THIS plan ran (a model's env delta may change it)
+            if not evidence:
+                # harness-v1.7.2 (D-46): an exit code 0 whose output is an uncaught traceback or only a usage message is not a pass (exit_zero_check).
+                result = exit_zero_check.overrule(result)
+                overruled = exit_zero_check.finding_of(result)
+                if overruled:
+                    _log(f"[exit-0 check] {role}: exit code 0 overruled ({overruled['kind']}: {overruled['evidence'][:200]}); {overruled['rule']} — "
+                         "not a pass (harness-v1.7.2, D-46)")
         cost_guard.record_spend(result.total_cost_usd)
         op = _record_op("completed", result=result, cost_usd=result.total_cost_usd)
         if checkpoint_mode:
@@ -1494,7 +1525,10 @@ def _run_stages(
         "taxonomy_code": None,
         "evidence": "",
     }
-    _log(f"[baseline] as-is run: {state.baseline['result']} (exit code {sandbox_result.final.exit_code})")
+    if exit_zero_check.finding_of(sandbox_result):
+        state.baseline["exit_zero_check"] = exit_zero_check.finding_of(sandbox_result)  # harness-v1.7.2 (D-46); only when set (older records unchanged)
+    _log(f"[baseline] as-is run: {state.baseline['result']} (exit code {sandbox_result.final.exit_code}"
+         + (", overruled by the exit-0 check" if exit_zero_check.finding_of(sandbox_result) else "") + ")")
 
     attempts: list[AttemptRecord] = state.attempts
     verdict = "RUNS_CLEAN" if sandbox_result.succeeded else None
@@ -1578,13 +1612,16 @@ def _run_stages(
         return (f"RESOURCE_LIMIT: {classification.evidence}; limits ({quote}) — the sandbox killed the process; not a verdict on the repository, "
                 f"and no repair attempt was made.{no_evidence}")
 
-    def _note_failure(attempt_number: int, classification, phase: str = "repo_run", *, record: bool = True, may_defer: bool = True) -> str | None:
+    def _note_failure(attempt_number: int, classification, phase: str = "repo_run", *, record: bool = True, may_defer: bool = True,
+                      result=None) -> str | None:
         """Record a classified failure in the run's error chain. Returns an
         INDETERMINATE reason if the failure is sandbox-side (a limit or a platform
         refusal): no repair can fix it and it is not evidence about the code.
         `record=False` (harness-v1.7): the link is already in the chain; only the stop is decided. `may_defer` (harness-v1.7): a deterministic
         pass is still ahead (the loop at the top of a model attempt), so a v1.7 rule may take the failure first; False after the LAST model
-        attempt, where a deferred stop would otherwise end the run BLOCKED (found by the v1.4.2 kill tests)."""
+        attempt, where a deferred stop would otherwise end the run BLOCKED (found by the v1.4.2 kill tests).
+        `result` (harness-v1.7.2, D-46): the run classified; when the exit-zero check overruled its exit code 0, the new link carries it."""
+        links_before = len(state.error_chain.links)
         if record:
             state.error_chain.record(
                 attempt_number,
@@ -1600,6 +1637,9 @@ def _run_stages(
                 ),
                 phase,
             )
+        overruled = exit_zero_check.finding_of(result)
+        if overruled and len(state.error_chain.links) > links_before:
+            state.error_chain.links[-1]["exit_zero_check"] = overruled  # only on a link this overruled run added (older chains unchanged)
         if classification.code == classifier.TaxonomyCode.RESOURCE_LIMIT and may_defer and _memory_rule_next(phase) is not None:
             return None  # harness-v1.7 (R1): the memory hook, then resource_adapt, get their turn (the deterministic loop) before the stop below
         if classification.code == classifier.TaxonomyCode.RESOURCE_LIMIT:
@@ -1636,7 +1676,7 @@ def _run_stages(
     # (runner_env.companion_swap, a dated snapshot of PyPI's metadata). The as-published failure stays the baseline's and the chain's first link.
     if not sandbox_result.succeeded and deps.repair_enabled and sandbox_result.final.phase == error_chain.PHASE_RUNNER_SETUP \
             and _accepts_kwarg(deps.sandbox_runner, "torch_setup"):
-        baseline_cls = classifier.classify(sandbox_result.final.exit_code, sandbox_result.final.stderr, sandbox_result.final.stdout,
+        baseline_cls = _classify_run(sandbox_result.final.exit_code, sandbox_result.final.stderr, sandbox_result.final.stdout,
                                            declared_deps=intake_result.declared_dependencies, repo_modules=_internal_modules())
         swap = None
         if baseline_cls.code == classifier.TaxonomyCode.DEP_UNPINNED_CONFLICT and "ResolutionImpossible" in (
@@ -1680,9 +1720,34 @@ def _run_stages(
                     state.error_chain.clear_last(0)
                     verdict = "RUNS_AFTER_REPAIR"
 
+    if not sandbox_result.succeeded and exit_zero_check.stop_of(sandbox_result):
+        # harness-v1.7.2 (D-46): the command exited 0 after printing only a usage message: the entry point did not get the arguments it needs and
+        # nothing ran. INDETERMINATE ENTRYPOINT_NEEDS_ARGS, with the usage line as evidence; no classification, no repair, no model call (a code
+        # change cannot supply a command's arguments).
+        stop = exit_zero_check.stop_of(sandbox_result)
+        if sandbox_result is baseline_result and state.baseline.get("taxonomy_code") is None:
+            state.baseline["evidence"] = stop["evidence"]
+        reason = exit_zero_check.stop_reason(stop)
+        _log(f"[verdict] INDETERMINATE: {reason}")
+        return _finalize(
+            verdict="INDETERMINATE",
+            taxonomy_code=None,
+            indeterminate_reason=reason,
+            attempts=tuple(attempts),
+            build_plan_dict=plan.as_dict(),
+            log_lines=log_lines,
+            deps=deps,
+            cost_guard=cost_guard,
+            on_event=on_event,
+            attempts_used=0,
+            repo_url=repo_url,
+            commit_sha=commit_sha,
+            state=state,
+        )
+
     if not sandbox_result.succeeded:
         state.stage = "classifier"
-        classification = classifier.classify(
+        classification = _classify_run(
             sandbox_result.final.exit_code,
             sandbox_result.final.stderr,
             sandbox_result.final.stdout,
@@ -1696,7 +1761,8 @@ def _run_stages(
             state.baseline["evidence"] = classification.evidence
         if not same_as_baseline:
             _log(f"[classifier] {classification.code}: {classification.evidence}")
-        sandbox_reason = _note_failure(0, classification, sandbox_result.final.phase, record=not same_as_baseline, may_defer=deps.max_attempts >= 1)
+        sandbox_reason = _note_failure(0, classification, sandbox_result.final.phase, record=not same_as_baseline, may_defer=deps.max_attempts >= 1,
+                                       result=sandbox_result)
         if sandbox_reason:
             _log(f"[verdict] INDETERMINATE: {sandbox_reason}")
             return _finalize(
@@ -2082,7 +2148,7 @@ def _run_stages(
                             state.error_chain.clear_last(0)  # harness-v1.6: the era environment cleared the failure
                         else:
                             state.stage = "classifier"
-                            classification = classifier.classify(
+                            classification = _classify_run(
                                 tm_result.final.exit_code,
                                 tm_result.final.stderr,
                                 tm_result.final.stdout,
@@ -2091,7 +2157,7 @@ def _run_stages(
                             )
                             taxonomy_code = classification.code
                             _log(f"[classifier] {classification.code}: {classification.evidence}")
-                            sandbox_reason = _note_failure(0, classification, tm_result.final.phase, may_defer=deps.max_attempts >= 1)
+                            sandbox_reason = _note_failure(0, classification, tm_result.final.phase, may_defer=deps.max_attempts >= 1, result=tm_result)
                             if sandbox_reason:
                                 verdict, indeterminate_reason = "INDETERMINATE", sandbox_reason
                                 _log(f"[verdict] INDETERMINATE: {sandbox_reason}")
@@ -2344,6 +2410,11 @@ def _run_stages(
                     _log(f"[verdict] INDETERMINATE: {unseen}")
                     stop_run = True
                     break
+                if exit_zero_check.stop_of(sandbox_result):  # harness-v1.7.2 (D-46): a later run printed only a usage message and exited 0
+                    verdict, indeterminate_reason = "INDETERMINATE", exit_zero_check.stop_reason(exit_zero_check.stop_of(sandbox_result))
+                    _log(f"[verdict] INDETERMINATE: {indeterminate_reason}")
+                    stop_run = True
+                    break
                 compiler_error = missing_compiler_error(classification)
                 removal_hit = api_removals.match(f"{sandbox_result.final.stderr}\n{sandbox_result.final.stdout}")  # harness-v1.5.1 (F2)
                 memory_next = (_memory_rule_next(sandbox_result.final.phase) if classification.code == classifier.TaxonomyCode.RESOURCE_LIMIT
@@ -2419,7 +2490,7 @@ def _run_stages(
                     stop_run = True
                     break
                 state.stage = "classifier"
-                classification = classifier.classify(
+                classification = _classify_run(
                     step_result.final.exit_code,
                     step_result.final.stderr,
                     step_result.final.stdout,
@@ -2428,7 +2499,7 @@ def _run_stages(
                 )
                 taxonomy_code = classification.code
                 _log(f"[classifier] {classification.code}: {classification.evidence}")
-                sandbox_reason = _note_failure(0, classification, step_result.final.phase)
+                sandbox_reason = _note_failure(0, classification, step_result.final.phase, result=step_result)
                 if sandbox_reason:
                     verdict, indeterminate_reason = "INDETERMINATE", sandbox_reason
                     _log(f"[verdict] INDETERMINATE: {sandbox_reason}")
@@ -2709,6 +2780,7 @@ def _run_stages(
                 code_violations: tuple = ()
                 patch_notes: tuple[str, ...] = ()
                 model_patch = ""
+                indentation_normalised: list[dict] | None = None  # harness-v1.7.2 (D-47)
 
                 def _resolve_code(prop) -> "patch_pipeline.PatchResolution":
                     return patch_pipeline.resolve_patch(
@@ -2766,6 +2838,18 @@ def _run_stages(
                     # not just the file the repairer was shown (the hole found live on
                     # 2026-09-24). Paths come from the same normalizer the gate uses.
                     touched_originals = _load_touched_originals(workdir, prepare_patch(candidate_diff).paths)
+                    # harness-v1.7.2 (D-47): a patch whose added lines use another indentation than the file (spaces in a tab-indented file) and
+                    # fails to parse ONLY for that is re-indented to the file's convention, parsed once more, and checked by the gate as normalised.
+                    normalised = indentation.normalise_patch(candidate_diff, touched_originals)
+                    if normalised is not None and patch_pipeline.git_apply_check(workdir, normalised[0]) is None:
+                        if not model_patch:
+                            model_patch = _raw_patch(proposal)
+                        candidate_diff, indentation_normalised = normalised
+                        for found in indentation_normalised:
+                            note = (f"{found['file']}: indentation normalised from {found['from']} to {found['to']} ({found['lines']} added line(s); "
+                                    f"the patch as written failed to parse: {found['parse_error']}) (harness-v1.7.2, D-47)")
+                            patch_notes = (*patch_notes, note)
+                            _log(f"[patch] {note}")
                     touched_sources = "\n".join(touched_originals.values())
                     # Recon's names come from a model that reads untrusted repo text;
                     # the AST-derived floor keeps rules 1-2 armed even if recon was
@@ -2813,7 +2897,7 @@ def _run_stages(
                             "",
                             (),
                             env_delta_dicts,
-                            patch_notes=patch_notes,
+                            patch_notes=patch_notes, indentation_normalised=indentation_normalised,
                             model_patch=model_patch,
                             consulted=consulted,
                             reason_no_citation=proposal.reason_no_citation,
@@ -2822,7 +2906,7 @@ def _run_stages(
                     )
                     return None
                 return {"number": cand_no, "label": label, "proposal": proposal, "env_changes": env_changes,
-                        "env_delta_dicts": env_delta_dicts, "checked_diff": checked_diff, "patch_notes": patch_notes,
+                        "env_delta_dicts": env_delta_dicts, "checked_diff": checked_diff, "patch_notes": patch_notes, "indentation_normalised": indentation_normalised,
                         "model_patch": model_patch}
 
             summaries: list[str] = []
@@ -2848,7 +2932,7 @@ def _run_stages(
                 env_changes = chosen_one["env_changes"]
                 env_delta_dicts = chosen_one["env_delta_dicts"]
                 checked_diff = chosen_one["checked_diff"]
-                patch_notes = chosen_one["patch_notes"]
+                patch_notes = chosen_one["patch_notes"]; chosen_indentation = chosen_one.get("indentation_normalised")
                 model_patch = chosen_one["model_patch"]
                 layers = " + ".join(x for x, present in (("env", bool(env_changes)), ("code", bool(checked_diff))) if present)
                 _log(f"[repair {attempt_number}] tamper gate PASS ({layers}) — applying and re-executing")
@@ -2872,7 +2956,7 @@ def _run_stages(
                         _cite(())
                         attempts.append(
                             AttemptRecord(attempt_number, checked_diff, "PASS", (), None, "", str(exc)[-2000:], (), env_delta_dicts,
-                                          patch_notes=patch_notes, model_patch=model_patch, consulted=consulted,
+                                          patch_notes=patch_notes, indentation_normalised=chosen_indentation, model_patch=model_patch, consulted=consulted,
                                           reason_no_citation=proposal.reason_no_citation, silent_exit=silent_exit)
                         )
                         continue
@@ -2908,7 +2992,7 @@ def _run_stages(
                     attempts.append(
                         AttemptRecord(attempt_number, checked_diff, "PASS", (), None, "",
                                       f"run void (INVALID_HARNESS): {exc}; sandbox: {str(exc.record.get('sandbox_stderr', ''))[-800:]}"[-2000:],
-                                      cited_tavily, env_delta_dicts, cited_resolved, patch_notes=patch_notes, model_patch=model_patch,
+                                      cited_tavily, env_delta_dicts, cited_resolved, patch_notes=patch_notes, indentation_normalised=chosen_indentation, model_patch=model_patch,
                                       consulted=consulted, reason_no_citation=proposal.reason_no_citation, silent_exit=silent_exit)
                     )
                     raise
@@ -2930,7 +3014,7 @@ def _run_stages(
                         env_delta_dicts,
                         cited_resolved,
                         execution=_execution_of(rerun_result, True),
-                        patch_notes=patch_notes,
+                        patch_notes=patch_notes, indentation_normalised=chosen_indentation,
                         model_patch=model_patch,
                         consulted=consulted,
                         reason_no_citation=proposal.reason_no_citation,
@@ -2955,7 +3039,7 @@ def _run_stages(
                             _cite(())
                             attempts.append(
                                 AttemptRecord(attempt_number, cand["checked_diff"], "PASS", (), None, "", str(exc)[-2000:], (),
-                                              cand["env_delta_dicts"], patch_notes=cand["patch_notes"], model_patch=cand["model_patch"],
+                                              cand["env_delta_dicts"], patch_notes=cand["patch_notes"], indentation_normalised=cand.get("indentation_normalised"), model_patch=cand["model_patch"],
                                               consulted=consulted, reason_no_citation=cand["proposal"].reason_no_citation,
                                               silent_exit=silent_exit, candidate=cand["number"])
                             )
@@ -2999,9 +3083,9 @@ def _run_stages(
                     candidate's attempt, and the candidate's outcome is the run after the rules."""
                     label = f"repair {attempt_number} candidate {cand['number']}"
                     for _ in range(4):
-                        if result.succeeded:
+                        if result.succeeded or exit_zero_check.stop_of(result):  # harness-v1.7.2 (D-46): a usage / "missing" exit 0 is not a silent exit
                             break
-                        cls = classifier.classify(result.final.exit_code, result.final.stderr, result.final.stdout,
+                        cls = _classify_run(result.final.exit_code, result.final.stderr, result.final.stdout,
                                                   declared_deps=intake_result.declared_dependencies, repo_modules=_internal_modules())
                         output = f"{result.final.stderr}\n{result.final.stdout}"
                         installed = hooks_installed | {runner_hooks.hook_of_command(c) for c in cand["extras"]}
@@ -3104,7 +3188,7 @@ def _run_stages(
                         if result.succeeded:
                             entry["changed"] = True
                         else:
-                            cand_class = classifier.classify(result.final.exit_code, result.final.stderr, result.final.stdout,
+                            cand_class = _classify_run(result.final.exit_code, result.final.stderr, result.final.stdout,
                                                              declared_deps=intake_result.declared_dependencies, repo_modules=_internal_modules())
                             entry["classification"] = cand_class
                             entry["changed"] = (cand_class.code, cand_class.evidence) != (classification.code, classification.evidence)
@@ -3123,6 +3207,7 @@ def _run_stages(
                         f"{classification.code}: {classification.evidence}",
                         [{"number": e["number"], "diff": e["checked_diff"], "env_delta": json.dumps(list(e["env_delta_dicts"])),
                           "exit_code": e["result"].final.exit_code,
+                          **({"exit_zero_check": exit_zero_check.finding_of(e["result"])} if exit_zero_check.finding_of(e["result"]) else {}),
                           "outcome": (_execution_of(e["result"], True) or {}).get("outcome", "exited"),
                           "stage": _candidate_stage(e["result"], (_execution_of(e["result"], True) or {}).get("outcome", "exited")),
                           # harness-v1.4.2-rc (D-38): a candidate whose run the sandbox killed (SIGKILL) ends the entry INDETERMINATE once adopted
@@ -3164,7 +3249,7 @@ def _run_stages(
                             e["env_delta_dicts"],
                             cited_resolved,
                             execution=_execution_of(result, True) if result is not None else None,
-                            patch_notes=e["patch_notes"],
+                            patch_notes=e["patch_notes"], indentation_normalised=e.get("indentation_normalised"),
                             model_patch=e["model_patch"],
                             consulted=consulted,
                             reason_no_citation=e["proposal"].reason_no_citation,
@@ -3258,7 +3343,7 @@ def _run_stages(
                 break
 
             state.stage = "classifier"
-            classification = classifier.classify(
+            classification = _classify_run(
                 rerun_result.final.exit_code,
                 rerun_result.final.stderr,
                 rerun_result.final.stdout,
@@ -3268,7 +3353,8 @@ def _run_stages(
             taxonomy_code = classification.code
             sandbox_result = rerun_result
             _log(f"[classifier] {classification.code}: {classification.evidence}")
-            sandbox_reason = _note_failure(attempt_number, classification, rerun_result.final.phase, may_defer=attempt_number < deps.max_attempts)
+            sandbox_reason = _note_failure(attempt_number, classification, rerun_result.final.phase, may_defer=attempt_number < deps.max_attempts,
+                                          result=rerun_result)
             if sandbox_reason:
                 verdict, indeterminate_reason = "INDETERMINATE", sandbox_reason
                 _log(f"[verdict] INDETERMINATE: {sandbox_reason}")
@@ -3284,6 +3370,10 @@ def _run_stages(
             _log(f"[verdict] INDETERMINATE: {indeterminate_reason}")
         elif verdict is None and state.cost_capped:
             verdict, indeterminate_reason = "INDETERMINATE", _cost_cap_reason(state.cost_capped)
+            _log(f"[verdict] INDETERMINATE: {indeterminate_reason}")
+        elif verdict is None and exit_zero_check.stop_of(sandbox_result):
+            # harness-v1.7.2 (D-46): the last run exited 0 after printing only a usage message (the loop-top check covers the runs a further attempt reads)
+            verdict, indeterminate_reason = "INDETERMINATE", exit_zero_check.stop_reason(exit_zero_check.stop_of(sandbox_result))
             _log(f"[verdict] INDETERMINATE: {indeterminate_reason}")
         elif verdict is None and output_cut_without_error(sandbox_result):
             # harness-v1.4.3-rc (D-41): the loop-top check covers every failure a further attempt would have read; the LAST attempt's result (and a repair-off arm's baseline) end here

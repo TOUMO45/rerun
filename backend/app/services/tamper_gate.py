@@ -833,6 +833,66 @@ def semantic_change_calls(diff_text: str) -> tuple[str, ...]:
     return tuple(name for name, _ in SEMANTIC_CALLS if name in found)
 
 
+# --- harness-v1.7.2: an injected default input --------------------------------------------------------------------------------------------------
+# Live UI scan, 2026-10-05 (`faris-shi/py_weather_cli`, runs/live_scan/): the adopted model patch answered the authors' `raise ValueError('please enter
+# the city name')` with `weather_config.city_name = 'Toronto'`: the run then used an input the authors never gave, and no semantic-change label was set.
+# A patch "injects a default" when an ADDED line assigns a literal (a string, a number or a bool, never None) to a name and either (a) the same hunk
+# REMOVES a `raise` line, or (b) the assignment sits right under an `if` / `elif` (added or kept) whose condition tests that same name for being empty,
+# false or None (`not x`, `x is None`, `len(x) == 0`, `x == ''`). Not a rejection: the flag joins R6's list as "injected default". It is stored on the
+# attempt record by harness-v1.7.2 and later only (`AttemptRecord.as_dict`); `semantic_change_calls` is unchanged, so a record written before this
+# version, read again, is never newly flagged (outcome_levels recomputes an unstored flag with semantic_change_calls alone).
+INJECTED_DEFAULT = "injected default"
+_LITERAL_ASSIGN_RE = re.compile(
+    r"^\s*(?P<target>[A-Za-z_][\w.]*(?:\[\s*(?:'[^']*'|\"[^\"]*\")\s*\])?)\s*=\s*"
+    r"(?P<literal>'[^'\n]*'|\"[^\"\n]*\"|-?\d+(?:\.\d+)?|True|False)\s*(?:#.*)?$"
+)
+_RAISE_RE = re.compile(r"^\s*raise\b")
+_GUARD_RE = re.compile(r"^\s*(?:el)?if\b")
+_EMPTY_TEST_RE = re.compile(r"\bnot\b|\bis\s+None\b|==\s*0\b|==\s*(?:''|\"\")|\blen\s*\(")
+
+
+def _assigned_name(target: str) -> str:
+    key = re.search(r"\[\s*['\"]([^'\"]*)['\"]\s*\]$", target)
+    return key.group(1) if key else target.rsplit(".", 1)[-1]
+
+
+def injected_default(diff_text: str) -> tuple[str, ...]:
+    """PURE. `(INJECTED_DEFAULT,)` when an added line of a .py hunk injects a literal default input (see above), else ()."""
+    python_file = False
+    hunk: list[tuple[str, str]] = []
+
+    def _hunk_flags() -> bool:
+        removes_raise = any(kind == "-" and _RAISE_RE.match(text.split("#", 1)[0]) for kind, text in hunk)
+        kept = [(kind, text) for kind, text in hunk if kind != "-"]
+        for i, (kind, text) in enumerate(kept):
+            if kind != "+":
+                continue
+            assign = _LITERAL_ASSIGN_RE.match(text)
+            if not assign:
+                continue
+            if removes_raise:
+                return True
+            above = next((t for _, t in reversed(kept[:i]) if t.strip()), "")
+            name = _assigned_name(assign.group("target"))
+            if _GUARD_RE.match(above) and re.search(rf"\b{re.escape(name)}\b", above) and _EMPTY_TEST_RE.search(above):
+                return True
+        return False
+
+    for line in (diff_text or "").splitlines():
+        if line.startswith(("+++ ", "--- ", "diff --git", "@@")):
+            if python_file and hunk and _hunk_flags():
+                return (INJECTED_DEFAULT,)
+            hunk = []
+            if line.startswith("+++ "):
+                python_file = line[4:].strip().split("\t")[0].endswith(".py")
+            continue
+        if line[:1] in ("+", "-", " "):
+            hunk.append((line[:1], line[1:]))
+    if python_file and hunk and _hunk_flags():
+        return (INJECTED_DEFAULT,)
+    return ()
+
+
 # harness-v1.3.4 (D-19). Added lines a diagnostics-only patch may contain: prints, logging, stderr writes, tracebacks, faulthandler,
 # and the imports they need. Anything else (or any removed line) is a code change made without an error to act on.
 _DIAGNOSTIC_LINE_RE = re.compile(
