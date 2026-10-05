@@ -1,0 +1,80 @@
+{
+  "written_at": "2026-10-05T08:14:54.232523+00:00",
+  "harness": "harness-v1.7.0-rc",
+  "code_blobs": {
+    "backend/app/services/sandbox.py": "465c8cdc714536fd06a5534ee2fee02c813f87dc",
+    "backend/app/services/sandbox_limits.py": "bfb04105b708bb400c1174ad498fb64bb3c0661b",
+    "backend/app/services/runner_env.py": "ddd7de71eae9d6ca9323eb482f625c3b6dc55204",
+    "backend/app/services/smoke_exec.py": "ec61fd0bc3bb39a90da8945310bf3c7e392bcb36",
+    "backend/app/services/runner_hooks.py": "dc4be539bb73bccfef9d91e6311e6990c7459dff"
+  },
+  "ok": false,
+  "swap": {
+    "package": "torchvision",
+    "from": "0.5.0",
+    "to": "0.4.0",
+    "kept": "torch==1.2.0",
+    "reason": "torchvision 0.5.0 requires torch==1.4.0; the repository pins torch==1.2.0, whose torchvision is 0.4.0",
+    "table": {
+      "source": "https://pypi.org/pypi/torchvision/<version>/json (info.requires_dist)",
+      "retrieved": "2026-10-04"
+    }
+  },
+  "specs": [
+    "torch==1.2.0",
+    "torchvision==0.4.0",
+    "torchaudio"
+  ],
+  "installed": "",
+  "run_id": "530a92b4-f102-49db-b203-80604d0b64ef",
+  "cost_usd": 0.10734249000000001,
+  "steps": [
+    {
+      "phase": "runner_setup",
+      "command": "pip install torch==1.2.0 torchvision==0.4.0 torchaudio 'numpy<2' --index-url https://download.pytorch.org/whl/cpu --extra-index-url https://pypi.org/simple || p",
+      "exit": 0,
+      "seconds": 9.711775,
+      "cost_usd": 0.09891283000000001
+    },
+    {
+      "phase": "runner_setup",
+      "command": "python -c '\nimport glob, importlib.util, os, struct, subprocess, sys\nspec = importlib.util.find_spec(\"torch\")\nroot = os.path.join(os.path.dirname(spec.origin), ",
+      "exit": 0,
+      "seconds": 0.389067,
+      "cost_usd": 0.00429463
+    },
+    {
+      "phase": "repo_install",
+      "command": "true",
+      "exit": 0,
+      "seconds": 0.001339,
+      "cost_usd": 6.277e-05
+    },
+    {
+      "phase": "repo_run",
+      "command": "python3 -c \"import torch, torchvision; print('V17_COMPANION', torch.__version__, torchvision.__version__)\"",
+      "exit": 1,
+      "seconds": 0.363852,
+      "cost_usd": 0.00407226
+    }
+  ],
+  "layers": [],
+  "result_image": null,
+  "streams": {
+    "limit_bytes": 4194304,
+    "stdout": {
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "truncated": false
+    },
+    "stderr": {
+      "bytes": 1037,
+      "sha256": "f69b60a20d5c86c98ce14082faa3a94d02db8eca189e870f78e859849e17ac28",
+      "truncated": false
+    }
+  },
+  "max_rss_as_returned": 86748,
+  "stdout": "",
+  "stderr_tail": ".7/site-packages/torchvision/transforms/transforms.py\", line 17, in <module>\n    from . import functional as F\n  File \"/usr/local/lib/python3.7/site-packages/torchvision/transforms/functional.py\", line 5, in <module>\n    from PIL import Image, ImageOps, ImageEnhance, PILLOW_VERSION\nImportError: cannot import name 'PILLOW_VERSION' from 'PIL' (/usr/local/lib/python3.7/site-packages/PIL/__init__.py)\n",
+  "stderr_head": "Traceback (most recent call last):\n  File \"<string>\", line 1"
+}
