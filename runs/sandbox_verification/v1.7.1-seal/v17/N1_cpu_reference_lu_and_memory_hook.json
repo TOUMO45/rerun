@@ -1,0 +1,110 @@
+{
+  "written_at": "2026-10-05T10:18:42.905044+00:00",
+  "harness": "harness-v1.7.1-rc",
+  "code_blobs": {
+    "backend/app/services/sandbox.py": "465c8cdc714536fd06a5534ee2fee02c813f87dc",
+    "backend/app/services/sandbox_limits.py": "bfb04105b708bb400c1174ad498fb64bb3c0661b",
+    "backend/app/services/runner_env.py": "50a32ba4cb2b05cc4e541514deaee8c4edce3ebf",
+    "backend/app/services/smoke_exec.py": "ec61fd0bc3bb39a90da8945310bf3c7e392bcb36",
+    "backend/app/services/runner_hooks.py": "dc4be539bb73bccfef9d91e6311e6990c7459dff"
+  },
+  "ok": true,
+  "probe": {
+    "torch": "2.14.1+cpu",
+    "lu_err": 1.7763568394002505e-15,
+    "pivots": [
+      1,
+      2,
+      3,
+      4,
+      5,
+      6
+    ],
+    "num_workers": 0,
+    "pin_memory": false,
+    "batches": 5,
+    "env": {
+      "MALLOC_ARENA_MAX": "2",
+      "OMP_NUM_THREADS": "4"
+    }
+  },
+  "shim_paths": [
+    "cpu_ref:torch.lu"
+  ],
+  "memory_hook_changes": [
+    "DataLoader num_workers 2->0",
+    "DataLoader pin_memory True->False"
+  ],
+  "run_id": "1caced67-d952-43b8-a12c-60ea6f19314a",
+  "cost_usd": 0.24504873,
+  "steps": [
+    {
+      "phase": "rerun_extract",
+      "command": "tar -xpf .rerun-upload.tar --no-same-owner && rm -f .rerun-upload.tar && python3 .rerun_upload_v1/verify.py && rm -rf .rerun_upload_v1",
+      "exit": 0,
+      "seconds": 0.073606,
+      "cost_usd": 0.0008173200000000001
+    },
+    {
+      "phase": "runner_setup",
+      "command": "pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cpu --extra-index-url https://pypi.org/simple || pip install torch --index",
+      "exit": 0,
+      "seconds": 20.844406,
+      "cost_usd": 0.21459548
+    },
+    {
+      "phase": "runner_setup",
+      "command": "python -c '\nimport glob, importlib.util, os, struct, subprocess, sys\nspec = importlib.util.find_spec(\"torch\")\nroot = os.path.join(os.path.dirname(spec.origin), ",
+      "exit": 0,
+      "seconds": 1.387843,
+      "cost_usd": 0.01494423
+    },
+    {
+      "phase": "repo_install",
+      "command": "true",
+      "exit": 0,
+      "seconds": 0.001263,
+      "cost_usd": 6.189e-05
+    },
+    {
+      "phase": "runner_setup",
+      "command": "python3 -c \"import base64;exec(base64.b64decode('CmltcG9ydCBiYXNlNjQsIG9zLCBzaXRlLCBzeXMKbmFtZSwgc291cmNlID0gc3lzLmFyZ3ZbMV0sIGJhc2U2NC5iNjRkZWNvZGUoc3lzLmFyZ3Z",
+      "exit": 0,
+      "seconds": 0.019603,
+      "cost_usd": 0.00024005
+    },
+    {
+      "phase": "runner_setup",
+      "command": "python3 -c \"import base64;exec(base64.b64decode('CmltcG9ydCBiYXNlNjQsIG9zLCBzaXRlLCBzeXMKbmFtZSwgc291cmNlID0gc3lzLmFyZ3ZbMV0sIGJhc2U2NC5iNjRkZWNvZGUoc3lzLmFyZ3Z",
+      "exit": 0,
+      "seconds": 0.022355,
+      "cost_usd": 0.00027293
+    },
+    {
+      "phase": "repo_run",
+      "command": "export MALLOC_ARENA_MAX=2 OMP_NUM_THREADS=4\npython3 probe.py",
+      "exit": 0,
+      "seconds": 1.380933,
+      "cost_usd": 0.01493415
+    }
+  ],
+  "layers": [],
+  "result_image": null,
+  "streams": {
+    "limit_bytes": 4194304,
+    "stdout": {
+      "bytes": 208,
+      "sha256": "5fe215c858c1741ab36d4f6a31e471c3e72b2b25c511ed4c52ee2d2206f9693a",
+      "truncated": false
+    },
+    "stderr": {
+      "bytes": 588,
+      "sha256": "a41fbef9dc1f11b7741c36aa864c7b98b1e6232f7e83f0a7b6d472fbb4bb8c25",
+      "truncated": false
+    }
+  },
+  "max_rss_as_returned": 224964,
+  "stdout": "V17_SEAL {\"torch\": \"2.14.1+cpu\", \"lu_err\": 1.7763568394002505e-15, \"pivots\": [1, 2, 3, 4, 5, 6], \"num_workers\": 0, \"pin_memory\": false, \"batches\": 5, \"env\": {\"MALLOC_ARENA_MAX\": \"2\", \"OMP_NUM_THREADS\": \"4\"}}\n",
+  "stderr_tail": "map_location='cpu'), Tensor.cuda() returns the tensor, Module.cuda() returns the module, Tensor.to('cuda*') -> cpu, Module.to('cuda*') -> cpu, torch.device('cuda*') -> cpu\nRERUN_MEMORY_HOOK: injected by RERUN: DataLoader(num_workers>0 -> 0, pin_memory -> False)\nRERUN_CPU_SHIM_PATH: cpu_ref:torch.lu\nRERUN memory_hook: DataLoader num_workers 2->0\nRERUN memory_hook: DataLoader pin_memory True->False\n",
+  "stderr_head": "RERUN_CPU_SHIM: injected by RERUN: torch.cuda.is_available()"
+}

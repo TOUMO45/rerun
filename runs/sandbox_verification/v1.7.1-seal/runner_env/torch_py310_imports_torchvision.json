@@ -1,0 +1,42 @@
+{
+  "image": "python:3.10-slim",
+  "mode": "imports",
+  "items": [
+    "torchvision.transforms"
+  ],
+  "expect": "ok",
+  "install_command": "pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cpu --extra-index-url https://pypi.org/simple || pip install torch torchvision --index-url https://download.pytorch.org/whl/cpu --extra-index-url https://pypi.org/simple",
+  "reason": "repo imports torchvision without declaring it; runner provides the newest matched CPU wheels",
+  "started_at": "2026-10-05T10:15:40.169677+00:00",
+  "run_id": "2f3d071f-0fae-4a22-87b3-82d5a3c46b8c",
+  "cost_usd": 0.24650584,
+  "succeeded": true,
+  "final_phase": "repo_run",
+  "steps": [
+    {
+      "cmd": "pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cpu --extra-index-url https://pypi.org/simple || pip i",
+      "phase": "runner_setup",
+      "exit": 0,
+      "stdout": "rkx, MarkupSafe, fsspec, filelock, jinja2, torch, torchvision\nSuccessfully installed MarkupSafe-3.0.4 filelock-4.0.11 fsspec-2026.9.0 jinja2-3.1.6 mpmath-1.3.0 networkx-3.4.2 numpy-2.2.6 pillow-12.3.0 sympy-1.14.0 torch-2.14.1+cpu torchaudio-2.11.0+cpu torchvision-0.29.1+cpu typing-extensions-4.16.0",
+      "stderr": "WARNING: Running pip as the 'root' user can result in broken permissions and conflicting behaviour with the system package manager. It is recommended to use a virtual environment instead: https://pip.pypa.io/warnings/venv\n\n[notice] A new release of pip is available: 23.0.1 -> 26.2.1\n[notice] To update, run: pip install --upgrade pip",
+      "seconds": 20.1
+    },
+    {
+      "cmd": "python -c '\nimport glob, importlib.util, os, struct, subprocess, sys\nspec = importlib.util.find_spec(\"torch\")\nroot = os.path.join(os.path.di",
+      "phase": "runner_setup",
+      "exit": 0,
+      "stdout": "RERUN_TORCH_OK 2.14.1+cpu",
+      "stderr": "",
+      "seconds": 1.4
+    },
+    {
+      "cmd": "python -c 'import sys, torchvision; print(\"IMPORT_OK\", sys.version.split()[0], torchvision.__version__)'",
+      "phase": "repo_run",
+      "exit": 0,
+      "stdout": "IMPORT_OK 3.10.20 0.29.1+cpu",
+      "stderr": "",
+      "seconds": 2.4
+    }
+  ],
+  "ok": true
+}

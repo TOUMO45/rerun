@@ -89,8 +89,14 @@ def check_release_candidate(run: dict) -> None:
         rc = _git("rev-parse", "--verify", f"refs/tags/{RC_TAG}^{{commit}}")
     except subprocess.CalledProcessError as exc:
         raise SystemExit(f"the tag {RC_TAG} does not exist") from exc
-    if run.get("rc_commit") != rc:
-        raise SystemExit(f"SEAL_RUN.json ran against {str(run.get('rc_commit'))[:10]}, the tag {RC_TAG} is {rc[:10]}")
+    # The driver stores `git rev-parse <rc tag>`: for an annotated tag that is the tag object, not its commit (harness-v1.7.0-rc and -v1.7.1-rc are annotated;
+    # the v1.4.x rc tags were lightweight). Both sides are peeled to the commit before they are compared; the record keeps what the driver wrote.
+    try:
+        recorded = _git("rev-parse", "--verify", f"{run.get('rc_commit')}^{{commit}}")
+    except subprocess.CalledProcessError as exc:
+        raise SystemExit(f"SEAL_RUN.json names {str(run.get('rc_commit'))[:10]}, which is not a commit or tag object of this repository") from exc
+    if recorded != rc:
+        raise SystemExit(f"SEAL_RUN.json ran against {recorded[:10]}, the tag {RC_TAG} is {rc[:10]}")
     changed = _git("diff", "--name-only", RC_TAG, "HEAD", "--", *HARNESS_PATHS)
     if changed:
         raise SystemExit(f"the harness paths differ from {RC_TAG}: {changed.splitlines()[:5]}")
