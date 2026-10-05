@@ -163,6 +163,30 @@ def _api_removed_sentence(evidence: str) -> str:
     return _RELEASE_API.replace("{package}", package or _FALLBACK["package"])
 
 
+# harness-v1.7.2: an INDETERMINATE stop on something the run did not have (exit_zero_check, entry_blockers). The verdict says a human or the platform
+# must supply it and that no repair was made; the blocker must say the same thing, not describe the last code error in the chain (found live:
+# pdf-to-powerpoint's certificate said "RUNTIME_ERROR_OTHER, fixable by model" beside "ENTRYPOINT_NEEDS_ARGS ... not repaired").
+INPUT_STOPS: dict[str, tuple[str, str, str]] = {
+    "ENTRYPOINT_NEEDS_ARGS": (HUMAN, "Inputs", "the arguments the entry point reads (for example an input file), as the quoted line shows"),
+    "NEEDS_CREDENTIALS": (HUMAN, "Inputs", "the key, token or credential the program asks for"),
+    "NEEDS_INTERACTIVE_INPUT": (HUMAN, "Inputs", "the answers the program asks a person to type, or a way to pass them without a keyboard"),
+    "DISPLAY_REQUIRED": (PLATFORM, "Resources", "a display: a desktop session, or a virtual display such as Xvfb"),
+}
+
+
+def _input_stop(result: dict, chain: list) -> dict | None:
+    reason = result.get("indeterminate_reason") or ""
+    code = reason.split(":", 1)[0].strip()
+    if result.get("verdict") != "INDETERMINATE" or code not in INPUT_STOPS:
+        return None
+    fixable_by, family, sentence = INPUT_STOPS[code]
+    quoted = re.search(r"`([^`]+)`|\('([^']+)'\)", reason)
+    return {"class": code, "family": family, "phase": (chain[-1].get("phase") if chain else None) or "repo_run",
+            "attribution": None,  # neither the repository's code nor the environment: something the run was not given
+            "evidence": ((quoted.group(1) or quoted.group(2)) if quoted else reason)[:EVIDENCE_MAX_CHARS],
+            "fixable_by": fixable_by, "what_a_human_must_supply": sentence, "sources": None}
+
+
 def report(result: dict) -> dict | None:
     """The blocker record for one stored result dict, or None when nothing blocks (see the module docstring)."""
     if result.get("verdict") in ("RUNS_CLEAN", "RUNS_AFTER_REPAIR"):
@@ -170,6 +194,9 @@ def report(result: dict) -> dict | None:
         # `first_error_cleared_by` says by what). A blocker here would describe something no longer in the way.
         return None
     chain = list(result.get("error_chain") or ())
+    stop = _input_stop(result, chain)
+    if stop is not None:
+        return stop
     if not chain:
         return None
     link = chain[-1]

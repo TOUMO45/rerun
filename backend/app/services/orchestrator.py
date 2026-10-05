@@ -129,6 +129,24 @@ def _classify_run(exit_code, stderr, stdout="", **kwargs) -> classifier.Classifi
     return classifier.classify(exit_zero_check.classify_exit_code(exit_code), stderr, stdout, **kwargs)
 
 
+def _self_inflicted(cand_class, env_delta_dicts, declared_deps) -> str | None:
+    """harness-v1.7.2: the package a candidate's NEW error names when that package was added by the candidate's own env delta (op add / pin /
+    pip_git) and the repository does not declare it, else None. Live: insta-dl, a candidate added `python3-tk` (an apt package name) as a pip
+    requirement and the run then failed `Could not find a version that satisfies the requirement python3-tk`."""
+    evidence = (getattr(cand_class, "evidence", "") or "").lower()
+    declared = {re.sub(r"[-_.]+", "-", d).lower() for d in (declared_deps or ())}
+    for change in env_delta_dicts:
+        package = str(change.get("package") or "")
+        if change.get("op") not in ("add", "pin", "pip_git") or not package:
+            continue
+        norm = re.sub(r"[-_.]+", "-", package).lower()
+        if norm in declared:
+            continue
+        if re.search(rf"(?<![\w.-]){re.escape(package.lower())}(?![\w.-])", evidence) or re.search(rf"(?<![\w.-]){re.escape(norm)}(?![\w.-])", evidence):
+            return package
+    return None
+
+
 def apt_layer_command(packages) -> str:
     """harness-v1.4.1-rc (D-34): the setup command of an additive apt layer. It starts with `export DEBIAN_FRONTEND=noninteractive &&`, so
     sandbox_limits.split_setup_ops does NOT file it with the system-package operations (which always run first): it keeps its place
@@ -2995,6 +3013,7 @@ def _run_stages(
                                           reason_no_citation=proposal.reason_no_citation, silent_exit=silent_exit)
                         )
                         continue
+                plan_kept, requirements_kept, layers_kept = plan, current_requirements, len(state.apt_layers)  # harness-v1.7.2: for a put-back
                 if env_changes:
                     state.stage = "apply_env"
                     plan_before = plan
@@ -3059,6 +3078,18 @@ def _run_stages(
                 if not rerun_result.succeeded:
                     failed_moves.update(env_repair.change_key(c) for c in env_changes)
                     rerun_result = _with_build_isolation(rerun_result)
+                    # harness-v1.7.2 (v1.7.2 re-scan of insta-dl): a change whose own added package is what the new error names made that error;
+                    # it is put back, and the run keeps the failure it had (the same rule the multi-candidate flow applies when it qualifies).
+                    rerun_cls = _classify_run(rerun_result.final.exit_code, rerun_result.final.stderr, rerun_result.final.stdout,
+                                              declared_deps=intake_result.declared_dependencies, repo_modules=_internal_modules())
+                    own = _self_inflicted(rerun_cls, env_delta_dicts, intake_result.declared_dependencies)
+                    if own and env_changes and not checked_diff:
+                        plan, current_requirements = plan_kept, requirements_kept
+                        del state.apt_layers[layers_kept:]
+                        state.build_plan_dict = plan.as_dict()
+                        _log(f"[repair {attempt_number}] change put back: its new error names {own!r}, which the change added and the repository "
+                             "does not declare; the run keeps its previous failure")
+                        rerun_result = sandbox_result
             else:
                 # harness-v1.4.0-rc: every gate-approved candidate runs at the same time, each in its own branch of the environment image
                 # (nothing is applied to the checkout yet). The candidates that changed the exit outcome go to the adjudicator (Ultra);
@@ -3227,6 +3258,15 @@ def _run_stages(
                                                              declared_deps=intake_result.declared_dependencies, repo_modules=_internal_modules())
                             entry["classification"] = cand_class
                             entry["changed"] = (cand_class.code, cand_class.evidence) != (classification.code, classification.evidence)
+                            own = _self_inflicted(cand_class, entry.get("env_delta_dicts") or (), intake_result.declared_dependencies)
+                            if entry["changed"] and own:
+                                # harness-v1.7.2 (v1.7.2 re-scan of insta-dl): the candidate's new failure is about a package the candidate itself
+                                # added and the repository never declared (`pip install python3-tk`, an apt name): the candidate made that error,
+                                # so it is no progress and must not be adopted (it had ended the run BLOCKED on an error attributed to the repo).
+                                entry["changed"] = False
+                                entry["self_inflicted"] = own
+                                _log(f"[repair {cand['label']}] not a qualifying change: its new error names {own!r}, which this candidate added "
+                                     "and the repository does not declare")
                         _log(f"[repair {cand['label']}] re-execution id={result.sandbox_id} exit_code={result.final.exit_code}; "
                              f"exit outcome {'changed' if entry['changed'] else 'unchanged'}")
                     else:

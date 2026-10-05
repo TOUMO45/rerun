@@ -96,3 +96,46 @@ def test_a_blocker_that_appears_after_a_deterministic_step_stops_the_loop_with_n
     assert not left and not repair.calls and len(plans) == 2
     assert result.verdict == "INDETERMINATE" and result.indeterminate_reason.startswith("NEEDS_INTERACTIVE_INPUT")
     assert [(a.time_machine_action or {}).get("rule") for a in result.attempts] == ["removed_api_torch_zero_gradients"]
+
+
+def test_the_blocker_agrees_with_an_input_stop_instead_of_describing_the_last_code_error():
+    """Found live (runs/live_scan/v1.7.2b/, pdf-to-powerpoint): the verdict said ENTRYPOINT_NEEDS_ARGS, not repaired, while the blocker said
+    RUNTIME_ERROR_OTHER, fixable by model. The blocker now follows the stop."""
+    from app.services import blocker
+
+    chain = [{"error": "IndexError: list index out of range", "class": "RUNTIME_ERROR_OTHER", "attribution": "REPO", "phase": "repo_run", "cleared_by": None}]
+    reason = entry_blockers.stop_reason(entry_blockers.stop_of(1, "", ARGV_STDERR))
+    b = blocker.report({"verdict": "INDETERMINATE", "indeterminate_reason": reason, "error_chain": chain})
+    assert (b["class"], b["fixable_by"], b["attribution"]) == ("ENTRYPOINT_NEEDS_ARGS", "human", None)
+    assert b["evidence"] == "pdf_file = sys.argv[1] -> IndexError: list index out of range"
+    display = blocker.report({"verdict": "INDETERMINATE", "indeterminate_reason": entry_blockers.stop_reason(entry_blockers.stop_of(1, "", DISPLAY_STDERR)),
+                              "error_chain": chain})
+    assert (display["class"], display["fixable_by"]) == ("DISPLAY_REQUIRED", "platform")
+    # any other verdict or reason: the chain's last link, exactly as before
+    assert blocker.report({"verdict": "BLOCKED", "indeterminate_reason": "", "error_chain": chain})["class"] == "RUNTIME_ERROR_OTHER"
+
+
+def test_a_candidate_that_causes_its_own_new_error_is_not_adopted(tmp_path):
+    """v1.7.2 re-scan of insta-dl (runs/live_scan/v1.7.2b/): a candidate added `python3-tk` (an apt package name) as a pip requirement; its run
+    failed because pip has no such package; that self-inflicted error was adopted and the run ended BLOCKED on it, attributed to the repository.
+    Now the candidate does not qualify, and the run's last error stays the repository's own."""
+    from types import SimpleNamespace
+
+    from app.services.orchestrator import _self_inflicted
+    from test_v151_pins_and_removals import _fail
+
+    pip_missing = "ERROR: Could not find a version that satisfies the requirement python3-tk (from versions: none)"
+    assert _self_inflicted(SimpleNamespace(evidence=pip_missing), [{"op": "add", "package": "python3-tk"}], frozenset({"requests"})) == "python3-tk"
+    assert _self_inflicted(SimpleNamespace(evidence=pip_missing), [{"op": "add", "package": "python3-tk"}], frozenset({"python3_tk"})) is None  # declared
+    assert _self_inflicted(SimpleNamespace(evidence=pip_missing), [{"op": "apt", "package": "python3-tk"}], frozenset()) is None  # not a pip change
+    assert _self_inflicted(SimpleNamespace(evidence=pip_missing), [{"op": "add", "package": "tk"}], frozenset()) is None  # part of another name
+
+    tk_missing = "Traceback (most recent call last):\n  File \"train.py\", line 1, in <module>\n    import Tkinter as tkinter\nModuleNotFoundError: No module named 'Tkinter'\n"
+    fix = {"env_delta": [{"op": "add", "package": "python3-tk", "justification": "provides Tkinter", "evidence": "No module named 'Tkinter'"}],
+           "cited_sources": [], "reason_no_citation": "none offered", "explanation": "x"}
+    own_error = SandboxRunResult(steps=(StepResult("pip install -r requirements.txt", 1, "", pip_missing + "\n", 1.0, 0.01, phase="repo_install"),))
+    result, repair, plans, left = _pipeline(tmp_path, [_fail(tk_missing), own_error], files={"train.py": "import Tkinter as tkinter\n"},
+                                            dependency_files={"requirements.txt": "requests\n"}, replies=[fix], max_attempts=1)
+    assert len(repair.calls) == 1 and len(plans) == 2
+    last = result.error_chain[-1].as_dict() if hasattr(result.error_chain[-1], "as_dict") else result.error_chain[-1]
+    assert "No module named 'Tkinter'" in last["error"] and "python3-tk" not in (result.last_error or "")

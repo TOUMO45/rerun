@@ -1,0 +1,1016 @@
+{
+  "run_id": "6f13c733-5e50-4c8d-9ea9-170c8e76b577",
+  "verdict": "BLOCKED",
+  "certificate_prose": "The execution was blocked after nine repair attempts due to a dependency not available on PyPI (DEP_NOT_ON_PYPI). The run log confirms the final verdict: BLOCKED after 9 repair attempt(s): DEP_NOT_ON_PYPI. Verifies that the artifact executes. Does not verify the paper's numerical results.",
+  "full_log": "[intake] cloned https://github.com/sdushantha/insta-dl@a699bf1bc43ad8ce1e598243b27c2e78199b6b02\n[recon] calling Nemotron Nano\n[recon] entrypoint=insta-dl.py confidence=0.60\n[python] python:3.10-slim (default): no usable Python declaration; RERUN default 3.10\n[planner] build plan: {'base_image': 'python:3.10-slim', 'apt_install': [], 'install_commands': ['true  # no declared dependency file found; nothing to install'], 'execute_command': 'python insta-dl.py', 'notes': ['base image python:3.10-slim: no usable Python declaration; RERUN default 3.10']}\n[integrity] verified 4 file(s) against tree 056380b386b44f2ef3cbd747ff6cfaad48052cdb\n[checkpoint] baseline: no kept image holds this environment yet; building it from python:3.10-slim and keeping every layer\n[sandbox] starting build+execute (wall_clock_seconds=600)\n[operation 1] baseline: completed; 0.1s of sandbox time; no torch install; branch_from_image=None; result_image=None; 2 image(s) kept\n[cost_guard] recorded $0.0011 sandbox spend, $2.4985 remaining today\n[sandbox] id=05e04906-5420-42c3-be5a-533ed9e47fcb exit_code=1\n[baseline] as-is run: FAILS (exit code 1)\n[classifier] DEP_MISSING: ModuleNotFoundError: No module named 'requests'\n[era] 2018-07-11 from pinned-commit {'note': 'no dependency files in the repository'}\n[time-machine] era 2018-07-11 (pinned-commit) -> python 3.6; locked 5 package(s) with uv --exclude-newer; not on the index: none\n[smoke] re-execution of the documented command under a 60s smoke limit\n[integrity] verified 4 file(s) against tree 056380b386b44f2ef3cbd747ff6cfaad48052cdb\n[checkpoint] re-execution: no kept image holds this environment yet; building it from python:3.6-slim and keeping every layer\n[sandbox] starting build+execute (wall_clock_seconds=600)\n[operation 2] re-execution: completed; 1.7s of sandbox time; no torch install; branch_from_image=None; result_image=None; 2 image(s) kept\n[cost_guard] recorded $0.0175 sandbox spend, $2.4810 remaining today\n[time-machine] re-execution id=58052ab5-fafa-47f2-b9fd-da9ac7359611 exit_code=1\n[classifier] DEP_MISSING: ModuleNotFoundError: No module named 'Tkinter'\n[resolver] Tkinter: 1 verified git source(s), PyPI not on PyPI (0 release(s) shown), era 2018-07-11; query: 'Tkinter python 3.6 package source code github repository pip install | Tkinter github repository (github.com only)'\n[tavily] 10 result(s) for 'Tkinter python 3.6 package source code github repository pip install | Tkinter github repository (github.com only)'\n[repair 1.2] env change lacked justification/evidence; re-asked once (same attempt)\n[repair 1] tamper gate PASS for candidate(s) [1, 2, 3]; running them concurrently, each in its own branch of the environment image\n[smoke] re-execution of the documented command under a 60s smoke limit\n[smoke] re-execution of the documented command under a 60s smoke limit\n[smoke] re-execution of the documented command under a 60s smoke limit\n[integrity] verified 4 file(s) against tree 056380b386b44f2ef3cbd747ff6cfaad48052cdb\n[integrity] verified 4 file(s) against tree 056380b386b44f2ef3cbd747ff6cfaad48052cdb\n[checkpoint] repair 1 candidate 2: branching from image 4dac2784-1b75-42e8-9aa5-bdacff81e706 (0 of 1 setup command(s) already in it, kept by operation 2); no reinstall of what it contains\n[sandbox] starting build+execute (wall_clock_seconds=274)\n[checkpoint] repair 1 candidate 3: branching from image 4dac2784-1b75-42e8-9aa5-bdacff81e706 (0 of 1 setup command(s) already in it, kept by operation 2); no reinstall of what it contains\n[sandbox] starting build+execute (wall_clock_seconds=274)\n[integrity] verified 4 file(s) against tree 056380b386b44f2ef3cbd747ff6cfaad48052cdb\n[checkpoint] repair 1 candidate 1: branching from image 58052ab5-fafa-47f2-b9fd-da9ac7359611 (1 of 2 setup command(s) already in it, kept by operation 2); no reinstall of what it contains\n[sandbox] starting build+execute (wall_clock_seconds=274)\n[operation 3] repair 1 candidate 1: completed; 2.0s of sandbox time; no torch install; branch_from_image=58052ab5-fafa-47f2-b9fd-da9ac7359611; result_image=None; 0 image(s) kept\n[cost_guard] recorded $0.0202 sandbox spend, $2.4429 remaining today\n[operation 4] repair 1 candidate 2: completed; 1.7s of sandbox time; no torch install; branch_from_image=4dac2784-1b75-42e8-9aa5-bdacff81e706; result_image=af3bd347-e8c0-4341-ae02-6c41381f0c1d; 2 image(s) kept\n[cost_guard] recorded $0.0177 sandbox spend, $2.4252 remaining today\n[operation 5] repair 1 candidate 3: completed; 1.7s of sandbox time; no torch install; branch_from_image=4dac2784-1b75-42e8-9aa5-bdacff81e706; result_image=b89de014-adf7-47eb-b5e4-0e7bf6b6a606; 2 image(s) kept\n[cost_guard] recorded $0.0173 sandbox spend, $2.4080 remaining today\n[repair 1.1] re-execution id=8d8b7454-79ea-4ee3-a295-90b671e4c4f7 exit_code=100; exit outcome changed\n[repair 1.2] re-execution id=af3bd347-e8c0-4341-ae02-6c41381f0c1d exit_code=1; exit outcome unchanged\n[repair 1.3] re-execution id=b89de014-adf7-47eb-b5e4-0e7bf6b6a606 exit_code=1; exit outcome unchanged\n[adjudicator] qualifying candidate(s) [1]; chosen: None; reasoning: Candidate 1 attempted to install python3-tk via apt, but the run output shows multiple 404 errors fetching dependencies and the overall exit code was 100, indicating the installation failed. Since the candidate's run did not succeed, it does not plausibly fix the ModuleNotFoundError for Tkinter.\n[citations] not cited (not used in a decision): https://www.geeksforgeeks.org/python/how-to-install-tkinter-in-windows\n[citations] not cited (not used in a decision): https://docs.python.org/3/library/tkinter.html\n[citations] not cited (not used in a decision): https://github.com/pypi\n[citations] not cited (not used in a decision): https://packaging.python.org/tutorials/installing-packages\n[citations] not cited (not used in a decision): https://github.com/mvitousek/reticulated\n[citations] not cited (not used in a decision): https://github.com/topics/tkinter-gui-library\n[citations] not cited (not used in a decision): https://github.com/tomschimansky/customtkinter\n[citations] not cited (not used in a decision): https://github.com/topics/python-tkinter-gui\n[citations] not cited (not used in a decision): https://github.com/topics/tkinter-python\n[citations] not cited (not used in a decision): https://github.com/topics/tkinter-gui\n[citations] not cited (offered, not used): https://github.com/tomschimansky/customtkinter\n[citations] not cited (not used in a decision): https://www.geeksforgeeks.org/python/how-to-install-tkinter-in-windows\n[citations] not cited (not used in a decision): https://docs.python.org/3/library/tkinter.html\n[citations] not cited (not used in a decision): https://github.com/pypi\n[citations] not cited (not used in a decision): https://packaging.python.org/tutorials/installing-packages\n[citations] not cited (not used in a decision): https://github.com/mvitousek/reticulated\n[citations] not cited (not used in a decision): https://github.com/topics/tkinter-gui-library\n[citations] not cited (not used in a decision): https://github.com/tomschimansky/customtkinter\n[citations] not cited (not used in a decision): https://github.com/topics/python-tkinter-gui\n[citations] not cited (not used in a decision): https://github.com/topics/tkinter-python\n[citations] not cited (not used in a decision): https://github.com/topics/tkinter-gui\n[citations] not cited (offered, not used): https://github.com/tomschimansky/customtkinter\n[citations] not cited (not used in a decision): https://www.geeksforgeeks.org/python/how-to-install-tkinter-in-windows\n[citations] not cited (not used in a decision): https://docs.python.org/3/library/tkinter.html\n[citations] not cited (not used in a decision): https://github.com/pypi\n[citations] not cited (not used in a decision): https://packaging.python.org/tutorials/installing-packages\n[citations] not cited (not used in a decision): https://github.com/mvitousek/reticulated\n[citations] not cited (not used in a decision): https://github.com/topics/tkinter-gui-library\n[citations] not cited (not used in a decision): https://github.com/tomschimansky/customtkinter\n[citations] not cited (not used in a decision): https://github.com/topics/python-tkinter-gui\n[citations] not cited (not used in a decision): https://github.com/topics/tkinter-python\n[citations] not cited (not used in a decision): https://github.com/topics/tkinter-gui\n[citations] not cited (offered, not used): https://github.com/tomschimansky/customtkinter\n[repair 1] no candidate adopted; the checkout and the environment image are unchanged\n[resolver] Tkinter: 1 verified git source(s), PyPI not on PyPI (0 release(s) shown), era 2018-07-11; query: 'Tkinter python 3.6 package source code github repository pip install'\n[tavily] 5 result(s) for 'Tkinter python 3.6 package source code github repository pip install'\n[repair 2.3] proposal repeats change(s) already tried and failed this run (add tk); re-asked once (same attempt)\n[repair 2] tamper gate PASS for candidate(s) [1, 2, 3]; running them concurrently, each in its own branch of the environment image\n[smoke] re-execution of the documented command under a 60s smoke limit\n[smoke] re-execution of the documented command under a 60s smoke limit\n[smoke] re-execution of the documented command under a 60s smoke limit\n[integrity] verified 4 file(s) against tree 056380b386b44f2ef3cbd747ff6cfaad48052cdb\n[integrity] verified 4 file(s) against tree 056380b386b44f2ef3cbd747ff6cfaad48052cdb\n[integrity] verified 4 file(s) against tree 056380b386b44f2ef3cbd747ff6cfaad48052cdb\n[checkpoint] repair 2 candidate 2: branching from image 4dac2784-1b75-42e8-9aa5-bdacff81e706 (0 of 1 setup command(s) already in it, kept by operation 2); no reinstall of what it contains\n[sandbox] starting build+execute (wall_clock_seconds=265)\n[checkpoint] repair 2 candidate 3: branching from image 4dac2784-1b75-42e8-9aa5-bdacff81e706 (0 of 1 setup command(s) already in it, kept by operation 2); no reinstall of what it contains\n[sandbox] starting build+execute (wall_clock_seconds=265)\n[checkpoint] repair 2 candidate 1: branching from image 4dac2784-1b75-42e8-9aa5-bdacff81e706 (0 of 1 setup command(s) already in it, kept by operation 2); no reinstall of what it contains\n[sandbox] starting build+execute (wall_clock_seconds=265)\n[operation 6] repair 2 candidate 3: completed; 1.3s of sandbox time; no torch install; branch_from_image=4dac2784-1b75-42e8-9aa5-bdacff81e706; result_image=None; 0 image(s) kept\n[cost_guard] recorded $0.0129 sandbox spend, $2.3714 remaining today\n[operation 7] repair 2 candidate 2: completed; 1.3s of sandbox time; no torch install; branch_from_image=4dac2784-1b75-42e8-9aa5-bdacff81e706; result_image=None; 0 image(s) kept\n[cost_guard] recorded $0.0132 sandbox spend, $2.3582 remaining today\n[operation 8] repair 2 candidate 1: completed; 1.3s of sandbox time; no torch install; branch_from_image=4dac2784-1b75-42e8-9aa5-bdacff81e706; result_image=None; 0 image(s) kept\n[cost_guard] recorded $0.0128 sandbox spend, $2.3454 remaining today\n[repair 2.1] re-execution id=3e950c66-28c8-4adf-b1a3-438744f5a74b exit_code=1; exit outcome changed\n[repair 2.2] re-execution id=9f066653-eadd-4fb0-80fd-139656550f6b exit_code=1; exit outcome changed\n[repair 2.3] re-execution id=6c965806-daf0-483f-92e8-8ab92e2c1165 exit_code=1; exit outcome changed\n[adjudicator] qualifying candidate(s) [1, 2, 3]; chosen: 1 (adjudicator); reasoning: Candidate 1 correctly identifies python3-tk as the Debian system package that provides Tkinter bindings for Python 3.6, which directly addresses the ModuleNotFoundError. Candidates 2 and 3 target lower-level libraries (tk8.6, tcl8.6) that would be pulled in as dependencies of python3-tk. All three c\n[citations] not cited (not used in a decision): https://github.com/TomSchimansky/CustomTkinter/discussions/311\n[citations] not cited (not used in a decision): https://forums.linuxmint.com/viewtopic.php?t=420965\n[citations] not cited (not used in a decision): https://docs.python.org/3/library/tkinter.html\n[citations] not cited (not used in a decision): https://www.youtube.com/watch?v=c6IgzwFRf5I&vl=en\n[citations] not cited (not used in a decision): https://github.com/Jrohy/python3-install\n[citations] not cited (offered, not used): https://github.com/TomSchimansky/CustomTkinter\n[citations] not cited (not used in a decision): https://github.com/TomSchimansky/CustomTkinter/discussions/311\n[citations] not cited (not used in a decision): https://forums.linuxmint.com/viewtopic.php?t=420965\n[citations] not cited (not used in a decision): https://docs.python.org/3/library/tkinter.html\n[citations] not cited (not used in a decision): https://www.youtube.com/watch?v=c6IgzwFRf5I&vl=en\n[citations] not cited (not used in a decision): https://github.com/Jrohy/python3-install\n[citations] not cited (offered, not used): https://github.com/TomSchimansky/CustomTkinter\n[citations] not cited (not used in a decision): https://github.com/TomSchimansky/CustomTkinter/discussions/311\n[citations] not cited (not used in a decision): https://forums.linuxmint.com/viewtopic.php?t=420965\n[citations] not cited (not used in a decision): https://docs.python.org/3/library/tkinter.html\n[citations] not cited (not used in a decision): https://www.youtube.com/watch?v=c6IgzwFRf5I&vl=en\n[citations] not cited (not used in a decision): https://github.com/Jrohy/python3-install\n[citations] not cited (offered, not used): https://github.com/TomSchimansky/CustomTkinter\n[repair 2] candidate 1's env delta applied; build plan now: {'base_image': 'python:3.6-slim', 'apt_install': [], 'install_commands': [\"printf '%s\\\\n' certifi==2018.4.16 chardet==3.0.4 idna==2.7 requests==2.19.1 urllib3==1.23 python3-tk > .rerun-requirements.txt && pip install -r .rerun-requirements.txt\"], 'execute_command': 'python insta-dl.py', 'notes': ['base image python:3.10-slim: no usable Python declaration; RERUN default 3.10', 'time machine: python 3.6, 5 locked package(s)', 'env delta: add python3-tk \u2014 Install Tkinter support for Python 3.6 to resolve missing _tkinter module']}\n[classifier] DEP_NOT_ON_PYPI: ERROR: Could not find a version that satisfies the requirement python3-tk (from versions: none)\n[resolver] python3-tk: 0 verified git source(s), PyPI not on PyPI (0 release(s) shown), era 2018-07-11; query: 'python3-tk python 3.6 package source code github repository pip install | python3-tk github repository (github.com only)'\n[tavily] 10 result(s) for 'python3-tk python 3.6 package source code github repository pip install | python3-tk github repository (github.com only)'\n[repair 3.1] proposal repeats change(s) already tried and failed this run (apt python3-tk); re-asked once (same attempt)\n[repair 3.1] tamper gate REJECT: repeats 'apt python3-tk', already tried and failed this run\n[citations] not cited (not used in a decision): https://forums.linuxmint.com/viewtopic.php?t=420965\n[citations] not cited (not used in a decision): https://github.com/topics/tkinter-python\n[citations] not cited (not used in a decision): https://docs.python.org/3/library/tkinter.html\n[citations] not cited (not used in a decision): https://medium.com/@lynzt/install-python-packages-from-github-5866d234c4e4\n[citations] not cited (not used in a decision): https://github.com/pypa/pip\n[citations] not cited (not used in a decision): https://github.com/topics/tkinter-python?l=javascript&o=desc&s=forks\n[citations] not cited (not used in a decision): https://github.com/topics/python-tkinter-gui\n[citations] not cited (not used in a decision): https://github.com/parthjadhav/tkinter-designer\n[citations] not cited (not used in a decision): https://github.com/topics/tkinter-python\n[citations] not cited (not used in a decision): https://github.com/topics/tkinter?l=jupyter+notebook&o=asc&s=stars\n[repair 3.2] declined: model declined to propose a fix\n[citations] not cited (not used in a decision): https://forums.linuxmint.com/viewtopic.php?t=420965\n[citations] not cited (not used in a decision): https://github.com/topics/tkinter-python\n[citations] not cited (not used in a decision): https://docs.python.org/3/library/tkinter.html\n[citations] not cited (not used in a decision): https://medium.com/@lynzt/install-python-packages-from-github-5866d234c4e4\n[citations] not cited (not used in a decision): https://github.com/pypa/pip\n[citations] not cited (not used in a decision): https://github.com/topics/tkinter-python?l=javascript&o=desc&s=forks\n[citations] not cited (not used in a decision): https://github.com/topics/python-tkinter-gui\n[citations] not cited (not used in a decision): https://github.com/parthjadhav/tkinter-designer\n[citations] not cited (not used in a decision): https://github.com/topics/tkinter-python\n[citations] not cited (not used in a decision): https://github.com/topics/tkinter?l=jupyter+notebook&o=asc&s=stars\n[repair 3.3] declined: We decline to fix because the build plan's install_commands attempts to install python3-tk via pip, and env_delta cannot alter this command to remove the dependency.\n[citations] not cited (not used in a decision): https://forums.linuxmint.com/viewtopic.php?t=420965\n[citations] not cited (not used in a decision): https://github.com/topics/tkinter-python\n[citations] not cited (not used in a decision): https://docs.python.org/3/library/tkinter.html\n[citations] not cited (not used in a decision): https://medium.com/@lynzt/install-python-packages-from-github-5866d234c4e4\n[citations] not cited (not used in a decision): https://github.com/pypa/pip\n[citations] not cited (not used in a decision): https://github.com/topics/tkinter-python?l=javascript&o=desc&s=forks\n[citations] not cited (not used in a decision): https://github.com/topics/python-tkinter-gui\n[citations] not cited (not used in a decision): https://github.com/parthjadhav/tkinter-designer\n[citations] not cited (not used in a decision): https://github.com/topics/tkinter-python\n[citations] not cited (not used in a decision): https://github.com/topics/tkinter?l=jupyter+notebook&o=asc&s=stars\n[verdict] BLOCKED after 9 repair attempt(s): DEP_NOT_ON_PYPI",
+  "build_plan": {
+    "base_image": "python:3.6-slim",
+    "apt_install": [],
+    "install_commands": [
+      "printf '%s\\n' certifi==2018.4.16 chardet==3.0.4 idna==2.7 requests==2.19.1 urllib3==1.23 python3-tk > .rerun-requirements.txt && pip install -r .rerun-requirements.txt"
+    ],
+    "execute_command": "python insta-dl.py",
+    "notes": [
+      "base image python:3.10-slim: no usable Python declaration; RERUN default 3.10",
+      "time machine: python 3.6, 5 locked package(s)",
+      "env delta: add python3-tk \u2014 Install Tkinter support for Python 3.6 to resolve missing _tkinter module"
+    ]
+  },
+  "diffs": [
+    {
+      "attempt_number": 0,
+      "diff_text": "",
+      "gate_decision": "PASS",
+      "gate_violations": [],
+      "exit_code": 1,
+      "stdout_tail": "",
+      "stderr_tail": "Traceback (most recent call last):\n  File \"insta-dl.py\", line 8, in <module>\n    import tkinter\n  File \"/usr/local/lib/python3.6/tkinter/__init__.py\", line 36, in <module>\n    import _tkinter # If this fails your Python may not be configured for Tk\nImportError: libtk8.6.so: cannot open shared object file: No such file or directory\n\nDuring handling of the above exception, another exception occurred:\n\nTraceback (most recent call last):\n  File \"insta-dl.py\", line 10, in <module>\n    import Tkinter as tkinter\nModuleNotFoundError: No module named 'Tkinter'\n",
+      "tavily_sources": [],
+      "env_delta": [],
+      "resolved_sources": [],
+      "origin": "time_machine",
+      "time_machine": {
+        "era": {
+          "date": "2018-07-11",
+          "source": "pinned-commit",
+          "detail": {
+            "note": "no dependency files in the repository"
+          }
+        },
+        "python": {
+          "version": "3.6",
+          "reason": "newest CPython first released \u2265180 days before the era date 2018-07-11 (https://devguide.python.org/versions/ (first release dates, retrieved 2026-09-24))",
+          "source": "https://devguide.python.org/versions/ (first release dates, retrieved 2026-09-24)"
+        },
+        "undeclared_imports": [
+          "requests"
+        ],
+        "batch_scan": {
+          "install": [
+            "requests"
+          ],
+          "internal_excluded": [],
+          "optional_skipped": [],
+          "python2_only_skipped": [
+            "Tkinter"
+          ],
+          "already_declared": [],
+          "import_mappings": []
+        },
+        "import_mappings": [],
+        "apt_added": [],
+        "apt_reason": "",
+        "lock": {
+          "ok": true,
+          "lock": [
+            "certifi==2018.4.16",
+            "chardet==3.0.4",
+            "idna==2.7",
+            "requests==2.19.1",
+            "urllib3==1.23"
+          ],
+          "inputs": [
+            "requests"
+          ],
+          "not_on_index": [],
+          "relaxed": [],
+          "command": "pip compile - --no-header --no-annotate --quiet --exclude-newer 2018-07-12T00:00:00Z --python-version 3.6 --python-platform x86_64-unknown-linux-gnu --python C:\\Users\\E16\\AppData\\Roaming\\uv\\python\\cpython-3.8.20-windows-x86_64-none\\python.exe",
+          "error": ""
+        }
+      },
+      "execution": {
+        "mode": "smoke",
+        "seconds": 60,
+        "outcome": "exited",
+        "image": "58052ab5-fafa-47f2-b9fd-da9ac7359611",
+        "command": "python insta-dl.py"
+      }
+    },
+    {
+      "attempt_number": 1,
+      "diff_text": "",
+      "gate_decision": "PASS",
+      "gate_violations": [],
+      "exit_code": 100,
+      "stdout_tail": "nfig1 amd64 2.13.1-4.2 [347 kB]\nGet:16 http://deb.debian.org/debian bullseye/main amd64 libxau6 amd64 1:1.0.9-1 [19.7 kB]\nGet:17 http://deb.debian.org/debian bullseye/main amd64 libmd0 amd64 1.0.3-3 [28.0 kB]\nGet:18 http://deb.debian.org/debian bullseye/main amd64 libbsd0 amd64 0.11.3-1+deb11u1 [108 kB]\nGet:19 http://deb.debian.org/debian bullseye/main amd64 libxdmcp6 amd64 1:1.1.2-3 [26.3 kB]\nGet:20 http://deb.debian.org/debian bullseye/main amd64 libxcb1 amd64 1.14-3 [140 kB]\nGet:21 http://deb.debian.org/debian bullseye/main amd64 libx11-data all 2:1.7.2-1+deb11u2 [311 kB]\nGet:22 http://deb.debian.org/debian bullseye/main amd64 libx11-6 amd64 2:1.7.2-1+deb11u2 [772 kB]\nErr:23 http://security.debian.org/debian-security bullseye-security/main amd64 ucf all 3.0043+deb11u2\n  404  Not Found [IP: 199.232.174.132 80]\nGet:24 http://deb.debian.org/debian bullseye/main amd64 libxrender1 amd64 1:0.9.10-1 [33.0 kB]\nGet:25 http://deb.debian.org/debian bullseye/main amd64 libxft2 amd64 2.3.2-2 [57.2 kB]\nGet:26 http://deb.debian.org/debian bullseye/main amd64 libxext6 amd64 2:1.3.3-1.1 [52.7 kB]\nGet:27 http://deb.debian.org/debian bullseye/main amd64 x11-common all 1:7.7+22 [252 kB]\nGet:28 http://deb.debian.org/debian bullseye/main amd64 libxss1 amd64 1:1.2.3-1 [17.8 kB]\nGet:29 http://deb.debian.org/debian bullseye/main amd64 libtk8.6 amd64 8.6.11-2 [780 kB]\nErr:30 http://security.debian.org/debian-security bullseye-security/main amd64 libpng16-16 amd64 1.6.37-3+deb11u4\n  404  Not Found [IP: 199.232.174.132 80]\nGet:31 http://deb.debian.org/debian bullseye/main amd64 tk8.6-blt2.5 amd64 2.5.3+dfsg-4.1 [593 kB]\nGet:32 http://deb.debian.org/debian bullseye/main amd64 blt amd64 2.5.3+dfsg-4.1 [14.9 kB]\nErr:33 http://security.debian.org/debian-security bullseye-security/main amd64 libfreetype6 amd64 2.10.4+dfsg-1+deb11u2\n  404  Not Found [IP: 199.232.174.132 80]\nGet:34 http://deb.debian.org/debian bullseye/main amd64 python3-tk amd64 3.9.2-1 [101 kB]\nFetched 6528 kB in 0s (17.5 MB/s)\n",
+      "stderr_tail": "E: Failed to fetch http://security.debian.org/debian-security/pool/updates/main/p/python3.9/libpython3.9-minimal_3.9.2-1%2bdeb11u7_amd64.deb  404  Not Found [IP: 199.232.174.132 80]\nE: Failed to fetch http://security.debian.org/debian-security/pool/updates/main/p/python3.9/python3.9-minimal_3.9.2-1%2bdeb11u7_amd64.deb  404  Not Found [IP: 199.232.174.132 80]\nE: Failed to fetch http://security.debian.org/debian-security/pool/updates/main/p/python3.9/libpython3.9-stdlib_3.9.2-1%2bdeb11u7_amd64.deb  404  Not Found [IP: 199.232.174.132 80]\nE: Failed to fetch http://security.debian.org/debian-security/pool/updates/main/p/python3.9/python3.9_3.9.2-1%2bdeb11u7_amd64.deb  404  Not Found [IP: 199.232.174.132 80]\nE: Failed to fetch http://security.debian.org/debian-security/pool/updates/main/u/ucf/ucf_3.0043%2bdeb11u2_all.deb  404  Not Found [IP: 199.232.174.132 80]\nE: Failed to fetch http://security.debian.org/debian-security/pool/updates/main/libp/libpng1.6/libpng16-16_1.6.37-3%2bdeb11u4_amd64.deb  404  Not Found [IP: 199.232.174.132 80]\nE: Failed to fetch http://security.debian.org/debian-security/pool/updates/main/f/freetype/libfreetype6_2.10.4%2bdfsg-1%2bdeb11u2_amd64.deb  404  Not Found [IP: 199.232.174.132 80]\nE: Unable to fetch some archives, maybe run apt-get update or try with --fix-missing?\n",
+      "tavily_sources": [],
+      "env_delta": [
+        {
+          "command": null,
+          "op": "apt",
+          "package": "python3-tk",
+          "version": null,
+          "git_url": null,
+          "commit": null,
+          "justification": "Install Tk library for Python 3 to resolve missing libtk8.6.so",
+          "evidence": "ImportError: libtk8.6.so: cannot open shared object file: No such file or directory"
+        }
+      ],
+      "resolved_sources": [],
+      "origin": "model",
+      "time_machine": null,
+      "execution": {
+        "mode": "smoke",
+        "seconds": 60,
+        "outcome": "exited",
+        "command": "python insta-dl.py"
+      },
+      "consulted": [
+        {
+          "number": 1,
+          "title": "How to Install Tk in Windows? - GeeksforGeeks",
+          "url": "https://www.geeksforgeeks.org/python/how-to-install-tkinter-in-windows",
+          "content": "## For PIP Users:\n\nOpen up the command prompt and use the below command to install Tkinter:\n\n```\npip install tk\n```\n\nThis installs the Python tk bindings, which is what tkinter depends on. The following message will be displayed once the installation is completed:\n\ninstalling tkinter using pip\n\nTo verify the installation use the tk.\\_test() function. Use the below screenshots for reference:\n\n Python  ````\n import tkinter tkinter. _test()\n```` \n\nOutput:\n\nverifying Tkinter installation [...] ### For Windows:\n\nIf you don\u2019t have tkinter installed, the easiest way is to reinstall Python from the official website and ensure that the tkinter package is included during installation.\n\n Download the latest Python version from python.org.\n During installation, ensure the \"Tcl/Tk and IDLE\" option is selected.\n\nHowever, if you want to ensure all dependencies are managed via pip (though tkinter is part of the Python standard library in most cases), you can install the tk package using pip. [...] ## For conda Users:\n\nConda users can open up the Anaconda Power Shell and use the below command to install Tkinter:\n\n```\nconda install -c anaconda tk\n```\n\nYou will get the following message once the installation is completed:\n\ninstalling Tkinter using conda\n\nTo verify the installation run the below code:\n\n Python  ````\n import tkinter tkinter. _test()\n````\n\nOutput:\n\nverifying Tkinter installation\n\nComment"
+        },
+        {
+          "number": 2,
+          "title": "tkinter \u2014 Python interface to Tcl/Tk",
+          "url": "https://docs.python.org/3/library/tkinter.html",
+          "content": "The `tkinter` package (\u201cTk interface\u201d) is the standard Python interface to the Tcl/Tk GUI toolkit. Both Tk and `tkinter` are available on most Unix platforms, including macOS, as well as on Windows systems. [...] Tk\n:   Tk is a Tcl package implemented in C that adds custom commands to create and manipulate GUI widgets. Each `Tk` object embeds its own Tcl interpreter instance with Tk loaded into it. Tk\u2019s widgets are very customizable, though at the cost of a dated appearance. Tk uses Tcl\u2019s event queue to generate and process GUI events. [...] #### Previous topic\n\nGraphical user interfaces with Tk\n\n#### Next topic\n\n`tkinter.colorchooser` \u2014 Color choosing dialog\n\n### This page\n\n Report a bug\n Improve this page\n Show source\n\n### Navigation\n\n index\n modules |\n next |\n previous |\n Python \u00bb\n\n 3.14.8 Documentation \u00bb\n The Python standard library \u00bb\n Graphical user interfaces with Tk \u00bb\n `tkinter` \u2014 Python interface to Tcl/Tk\n |\n Theme  Auto Light Dark   |\n\n# `tkinter` \u2014 Python interface to Tcl/Tk\u00b6\n\nSource code: Lib/tkinter/\\_\\_init\\_\\_.py"
+        },
+        {
+          "number": 3,
+          "title": "The Python Package Index \u00b7 GitHub",
+          "url": "https://github.com/pypi",
+          "content": "PyPI \u2014 the Python Package Index \u2014 is the official repository of software for the Python programming language. It helps you find and install software developed and shared by the Python community, and lets you distribute your own.\n\nThis organization hosts Warehouse, the codebase that powers PyPI, along with the supporting tools, infrastructure, and services that keep the index running for millions of developers worldwide.\n\n  \n\nLearn    Docs Help Blog\n\nConnect    Mastodon Bluesky Discourse [...] + pypi.org\n\n  Learn more about verified organizations\n\n 659 followers\n United States of America\n \n @pypi.org\n @pypi@fosstodon.org\n @pypi\n\nSponsor\n\nREADME.md\n\n# PyPI README\n\nPyPI \u2014 The Python Package Index \n\n### The Python Package Index \u00b7 `pip install` the world's Python software\n\nWebsite Docs Status [...] ## Sponsors\n\nPyPI is a free service serving billions of downloads a month. That scale is made possible by the infrastructure sponsors who donate CDN, compute, monitoring, and security services, and by donations to the Python Software Foundation.\n\nOur Sponsors     Donate\n\n## About the Python Software Foundation\n\n Python Software Foundation"
+        },
+        {
+          "number": 4,
+          "title": "Installing Packages - Python Packaging User Guide",
+          "url": "https://packaging.python.org/tutorials/installing-packages",
+          "content": "### Ensure you can run pip from the command line\u00b6\n\nAdditionally, you\u2019ll need to make sure you have pip available. You can check this by running:\n\n```\n    \n```\n\nIf you installed Python from source, with an installer from python.org, or via Homebrew you should already have pip. If you\u2019re on Linux and installed using your OS package manager, you may have to install pip separately, see Installing pip/setuptools/wheel with Linux Package Managers. [...] ```\n      =       =       =  \n```\n\n## Installing from other sources\u00b6\n\nTo install from other data sources (for example Amazon S3 storage) you can create a helper application that presents the data in a format compliant with the simple repository API:, and use the `--extra-index-url` flag to direct pip to use that index.\n\n```\n  = 7777       \n```\n\n## Installing Prereleases\u00b6\n\nFind pre-release and development versions, in addition to stable versions. By default, pip only finds stable versions. [...] If `pip` isn\u2019t already installed, then first try to bootstrap it from the standard library:\n\n```\n    \n```\n\nIf that still doesn\u2019t allow you to run `python -m pip`:\n\n Securely Download get-pip.py (#id7)\n Run `pythonget-pip.py`. (#id8) This will install or upgrade pip. Additionally, it may install Setuptools and wheel if they\u2019re not installed already.\n\n  Warning"
+        },
+        {
+          "number": 5,
+          "title": "GitHub - mvitousek/reticulated: Types for Python \u00b7 GitHub",
+          "url": "https://github.com/mvitousek/reticulated",
+          "content": "## Repository files navigation [...] Readme\n\n### Stars\n\n87 stars\n\n### Watchers\n\n10 watching\n\n### Forks\n\n9 forks\n\nReport repository\n\n## Used by\n\nYou can\u2019t perform that action at this time. [...] BranchesTags\n\nOpen more actions menu\n\n## Latest commit\n\n## History\n\n359 Commits\n\n359 Commits\n\n## Folders and files\n\n| Name | Name | Last commit message | Last commit date |\n ---  --- |\n| archive | archive |  |  |\n| docs | docs |  |  |\n| efftests | efftests |  |  |\n| retic | retic |  |  |\n| tests | tests |  |  |\n| unit\\_tests | unit\\_tests |  |  |\n| .gitignore | .gitignore |  |  |\n| README.md | README.md |  |  |\n| retic.py | retic.py |  |  |\n| setup.py | setup.py |  |  |\n|  |"
+        },
+        {
+          "number": 6,
+          "title": "tkinter-gui-library \u00b7 GitHub Topics \u00b7 GitHub",
+          "url": "https://github.com/topics/tkinter-gui-library",
+          "content": "## Navigation Menu\n\n# tkinter-gui-library\n\n## Here are 48 public repositories matching this topic...\n\ntkinter-toolkit\n\n### Akascape / tkinter-toolkit\n\nExplore all modern tkinter widget libraries and helpful tools! (Including customtkinter)\n\n### Akascape / TkDial\n\nTkinter Dial-Knob widgets\n\n### MatinAfzal / IRIS-GUI\n\nA graphical machine learning program written with tkinter and scikit-learn library.\n\n### vednig / shadowTk\n\nAdd Shadows to Tkinter Components\n\n### MatinAfzal / CalCul [...] ### jaxendutta / tictactoe-minimax\n\nTic-Tac-Toe with a Minimax AI\n\n### h-techzone6 / billing-system\n\nBilling System With GUI using Ttk Bootstrap\n\n## Add this topic to your repo\n\nTo associate your repository with the\ntkinter-gui-library\ntopic, visit your repo's landing page and select \"manage topics.\"\n\nLearn more\n\n## Footer\n\n### Footer navigation [...] ### mohammadmasoumi / python\\_tkinter\\_login\n\nA simple login GUI with Tkinter and sqlite\n\n### rohiit-chaurasiya / College-Cafeteria\n\nDevelop Python GUI Application with the help of Tkinter and MySQL\n\n### sanjidaaaziz / Typing-Speed-Game\n\nPicked the Python programming language to implement the project since the best justification for producing games in Python is the language's relative ease of use because it is written similarly to English.\n\n### Anita47 / Generate-Password-Gui"
+        },
+        {
+          "number": 7,
+          "title": "GitHub - TomSchimansky/CustomTkinter: A modern and customizable python UI-library based on Tkinter \u00b7 GitHub",
+          "url": "https://github.com/tomschimansky/customtkinter",
+          "content": "### Forks\n\n1.2k forks\n\nReport repository\n\n## Used by\n\nYou can\u2019t perform that action at this time. [...] ## Repository files navigation\n\nPyPI PyPI - Downloads Downloads last 6 month PyPI - License Minimum Python Version\n\n| Current Developers | Contact |\n --- |\n| Tom Schimansky | contact@customtkinter.tomschimansky.com |\n| Federico Spada | www.linkedin.com/in/federicospada13 |\n\n## Official website: [...] | Readme.md | Readme.md |  |  |\n| dev-proces.md | dev-proces.md |  |  |\n| pyproject.toml | pyproject.toml |  |  |\n| requirements.txt | requirements.txt |  |  |\n| setup.cfg | setup.cfg |  |  |\n|  |"
+        },
+        {
+          "number": 8,
+          "title": "python-tkinter-gui \u00b7 GitHub Topics \u00b7 GitHub",
+          "url": "https://github.com/topics/python-tkinter-gui",
+          "content": "To associate your repository with the python-tkinter-gui topic, visit your repo's landing page and select \"manage topics.\"\n\nLearn more\n\nYou can\u2019t perform that action at this time. [...] Updated Jun 14, 2022\n Python\n\n### pavleen14 / Fun-with-Python\n\nStar  2\n\nThis repository has some basic games created using Python, along with some creative stuff made using Tkinter & Turtle Graphics. Update : Mar 17, 2023 Adding JenkinsFile to this Repo, trying out MultiBranch Pipeline!\n\njenkins python3 jenkinsfile turtle-graphics multibranch tkinter-graphic-interface turtle-python tkinter-gui python-tkinter-gui python-tkinter-series multibranchpipeline\n\n Updated Mar 18, 2023\n Python [...] Sort options\n\nMost stars   Fewest stars   Most forks   Fewest forks   Recently updated   Least recently updated\n\ntkinter-toolkit\n\n### Akascape / tkinter-toolkit\n\nStar  360\n\nExplore all modern tkinter widget libraries and helpful tools! (Including customtkinter)"
+        },
+        {
+          "number": 9,
+          "title": "tkinter-python \u00b7 GitHub Topics \u00b7 GitHub",
+          "url": "https://github.com/topics/tkinter-python",
+          "content": "Updated Jul 4, 2021\n Python\n\n## Add this topic to your repo\n\nTo associate your repository with the tkinter-python topic, visit your repo's landing page and select \"manage topics.\"\n\nLearn more\n\nYou can\u2019t perform that action at this time. [...] Star  360\n\nExplore all modern tkinter widget libraries and helpful tools! (Including customtkinter)\n\npython python3 tkinter python-tkinter tkinter-graphic-interface tkinter-widgets tkinter-gui tkinter-python tkinter-library tkinter-toolkit python-tkinter-application tkinter-gui-library python-tkinter-framework python-tkinter-gui tkinter-framework tkinter-applications customtkinter\n\n Updated May 23, 2025\n Python\n\n### edoardogerosa / pockint\n\nStar  285 [...] Star  169\n\nRestaurant-Management-System in python(tkinter) , GUI based project for college students in python using module tkinter, Based on new boston tutorials with some added tabs and functions.\n\npython python3 tkinter tkinter-graphic-interface tkinter-python\n\n Updated Apr 27, 2024\n Python\n\nTkNodeSystem\n\n### Akascape / TkNodeSystem\n\nStar  159\n\nCreate visual node-based UI with Tkinter!"
+        },
+        {
+          "number": 10,
+          "title": "tkinter-gui \u00b7 GitHub Topics \u00b7 GitHub",
+          "url": "https://github.com/topics/tkinter-gui",
+          "content": "tableview tkinter tables tkinter-gui tabular-editor customtkinter customtkinter-table customtkinter-treeview\n\n Updated Jul 20, 2024\n Python\n\n### kujirahand / tkeasygui-python\n\nSponsor \n\nStar  332\n\nThe easiest library for creating GUIs in Python\n\ngui tkinter tkinter-gui tkinter-gui-python\n\n Updated Jul 17, 2026\n Python\n\n## Add this topic to your repo\n\nTo associate your repository with the tkinter-gui topic, visit your repo's landing page and select \"manage topics.\"\n\nLearn more [...] ### rigvedmaanas / CustomTkinterBuilder\n\nStar  373\n\nThis is a Free and Open Source RAD tool for Custom Tkinter. This software allows you to create complex UI faster than ever\u26a1\n\nui-design tkinter gui-library gui-designer tkinter-gui python-gui-tkinter tkinter-python python-gui-development customtkinter customtkinter-themes customtkinter-widgets customtkinterprojects\n\n Updated Apr 30, 2026\n Python\n\ntkinter-toolkit\n\n### Akascape / tkinter-toolkit\n\nStar  360 [...] Star  360\n\nExplore all modern tkinter widget libraries and helpful tools! (Including customtkinter)\n\npython python3 tkinter python-tkinter tkinter-graphic-interface tkinter-widgets tkinter-gui tkinter-python tkinter-library tkinter-toolkit python-tkinter-application tkinter-gui-library python-tkinter-framework python-tkinter-gui tkinter-framework tkinter-applications customtkinter\n\n Updated May 23, 2025\n Python\n\n### emnikhil / Sign-Language-To-Text-Conversion\n\nStar  359"
+        }
+      ],
+      "reason_no_citation": "The fix is based on the error message indicating a missing shared library and standard practice of installing python3-tk in Debian-based systems for Tkinter support.",
+      "candidate": 1,
+      "branch": {
+        "branch_from_image": "58052ab5-fafa-47f2-b9fd-da9ac7359611",
+        "result_image": null,
+        "image_kept": false
+      },
+      "adjudication": {
+        "chosen": null,
+        "reasoning": "Candidate 1 attempted to install python3-tk via apt, but the run output shows multiple 404 errors fetching dependencies and the overall exit code was 100, indicating the installation failed. Since the candidate's run did not succeed, it does not plausibly fix the ModuleNotFoundError for Tkinter.",
+        "qualifying": [
+          1
+        ],
+        "model_called": true,
+        "replies": [
+          "{\"chosen\": null, \"reasoning\": \"Candidate 1 attempted to install python3-tk via apt, but the run output shows multiple 404 errors fetching dependencies and the overall exit code was 100, indicating the installation failed. Since the candidate's run did not succeed, it does not plausibly fix the ModuleNotFoundError for Tkinter.\"}"
+        ],
+        "released_images": []
+      },
+      "chosen": false
+    },
+    {
+      "attempt_number": 1,
+      "diff_text": "",
+      "gate_decision": "PASS",
+      "gate_violations": [],
+      "exit_code": 1,
+      "stdout_tail": "",
+      "stderr_tail": "Traceback (most recent call last):\n  File \"insta-dl.py\", line 8, in <module>\n    import tkinter\n  File \"/usr/local/lib/python3.6/tkinter/__init__.py\", line 36, in <module>\n    import _tkinter # If this fails your Python may not be configured for Tk\nImportError: libtk8.6.so: cannot open shared object file: No such file or directory\n\nDuring handling of the above exception, another exception occurred:\n\nTraceback (most recent call last):\n  File \"insta-dl.py\", line 10, in <module>\n    import Tkinter as tkinter\nModuleNotFoundError: No module named 'Tkinter'\n",
+      "tavily_sources": [],
+      "env_delta": [
+        {
+          "command": null,
+          "op": "add",
+          "package": "tk",
+          "version": null,
+          "git_url": null,
+          "commit": null,
+          "justification": "Install tk via pip to provide Tkinter bindings as suggested in external resources for resolving Tkinter import issues.",
+          "evidence": "ModuleNotFoundError: No module named 'Tkinter'"
+        }
+      ],
+      "resolved_sources": [],
+      "origin": "model",
+      "time_machine": null,
+      "execution": {
+        "mode": "smoke",
+        "seconds": 60,
+        "outcome": "exited",
+        "image": "af3bd347-e8c0-4341-ae02-6c41381f0c1d",
+        "command": "python insta-dl.py"
+      },
+      "consulted": [
+        {
+          "number": 1,
+          "title": "How to Install Tk in Windows? - GeeksforGeeks",
+          "url": "https://www.geeksforgeeks.org/python/how-to-install-tkinter-in-windows",
+          "content": "## For PIP Users:\n\nOpen up the command prompt and use the below command to install Tkinter:\n\n```\npip install tk\n```\n\nThis installs the Python tk bindings, which is what tkinter depends on. The following message will be displayed once the installation is completed:\n\ninstalling tkinter using pip\n\nTo verify the installation use the tk.\\_test() function. Use the below screenshots for reference:\n\n Python  ````\n import tkinter tkinter. _test()\n```` \n\nOutput:\n\nverifying Tkinter installation [...] ### For Windows:\n\nIf you don\u2019t have tkinter installed, the easiest way is to reinstall Python from the official website and ensure that the tkinter package is included during installation.\n\n Download the latest Python version from python.org.\n During installation, ensure the \"Tcl/Tk and IDLE\" option is selected.\n\nHowever, if you want to ensure all dependencies are managed via pip (though tkinter is part of the Python standard library in most cases), you can install the tk package using pip. [...] ## For conda Users:\n\nConda users can open up the Anaconda Power Shell and use the below command to install Tkinter:\n\n```\nconda install -c anaconda tk\n```\n\nYou will get the following message once the installation is completed:\n\ninstalling Tkinter using conda\n\nTo verify the installation run the below code:\n\n Python  ````\n import tkinter tkinter. _test()\n````\n\nOutput:\n\nverifying Tkinter installation\n\nComment"
+        },
+        {
+          "number": 2,
+          "title": "tkinter \u2014 Python interface to Tcl/Tk",
+          "url": "https://docs.python.org/3/library/tkinter.html",
+          "content": "The `tkinter` package (\u201cTk interface\u201d) is the standard Python interface to the Tcl/Tk GUI toolkit. Both Tk and `tkinter` are available on most Unix platforms, including macOS, as well as on Windows systems. [...] Tk\n:   Tk is a Tcl package implemented in C that adds custom commands to create and manipulate GUI widgets. Each `Tk` object embeds its own Tcl interpreter instance with Tk loaded into it. Tk\u2019s widgets are very customizable, though at the cost of a dated appearance. Tk uses Tcl\u2019s event queue to generate and process GUI events. [...] #### Previous topic\n\nGraphical user interfaces with Tk\n\n#### Next topic\n\n`tkinter.colorchooser` \u2014 Color choosing dialog\n\n### This page\n\n Report a bug\n Improve this page\n Show source\n\n### Navigation\n\n index\n modules |\n next |\n previous |\n Python \u00bb\n\n 3.14.8 Documentation \u00bb\n The Python standard library \u00bb\n Graphical user interfaces with Tk \u00bb\n `tkinter` \u2014 Python interface to Tcl/Tk\n |\n Theme  Auto Light Dark   |\n\n# `tkinter` \u2014 Python interface to Tcl/Tk\u00b6\n\nSource code: Lib/tkinter/\\_\\_init\\_\\_.py"
+        },
+        {
+          "number": 3,
+          "title": "The Python Package Index \u00b7 GitHub",
+          "url": "https://github.com/pypi",
+          "content": "PyPI \u2014 the Python Package Index \u2014 is the official repository of software for the Python programming language. It helps you find and install software developed and shared by the Python community, and lets you distribute your own.\n\nThis organization hosts Warehouse, the codebase that powers PyPI, along with the supporting tools, infrastructure, and services that keep the index running for millions of developers worldwide.\n\n  \n\nLearn    Docs Help Blog\n\nConnect    Mastodon Bluesky Discourse [...] + pypi.org\n\n  Learn more about verified organizations\n\n 659 followers\n United States of America\n \n @pypi.org\n @pypi@fosstodon.org\n @pypi\n\nSponsor\n\nREADME.md\n\n# PyPI README\n\nPyPI \u2014 The Python Package Index \n\n### The Python Package Index \u00b7 `pip install` the world's Python software\n\nWebsite Docs Status [...] ## Sponsors\n\nPyPI is a free service serving billions of downloads a month. That scale is made possible by the infrastructure sponsors who donate CDN, compute, monitoring, and security services, and by donations to the Python Software Foundation.\n\nOur Sponsors     Donate\n\n## About the Python Software Foundation\n\n Python Software Foundation"
+        },
+        {
+          "number": 4,
+          "title": "Installing Packages - Python Packaging User Guide",
+          "url": "https://packaging.python.org/tutorials/installing-packages",
+          "content": "### Ensure you can run pip from the command line\u00b6\n\nAdditionally, you\u2019ll need to make sure you have pip available. You can check this by running:\n\n```\n    \n```\n\nIf you installed Python from source, with an installer from python.org, or via Homebrew you should already have pip. If you\u2019re on Linux and installed using your OS package manager, you may have to install pip separately, see Installing pip/setuptools/wheel with Linux Package Managers. [...] ```\n      =       =       =  \n```\n\n## Installing from other sources\u00b6\n\nTo install from other data sources (for example Amazon S3 storage) you can create a helper application that presents the data in a format compliant with the simple repository API:, and use the `--extra-index-url` flag to direct pip to use that index.\n\n```\n  = 7777       \n```\n\n## Installing Prereleases\u00b6\n\nFind pre-release and development versions, in addition to stable versions. By default, pip only finds stable versions. [...] If `pip` isn\u2019t already installed, then first try to bootstrap it from the standard library:\n\n```\n    \n```\n\nIf that still doesn\u2019t allow you to run `python -m pip`:\n\n Securely Download get-pip.py (#id7)\n Run `pythonget-pip.py`. (#id8) This will install or upgrade pip. Additionally, it may install Setuptools and wheel if they\u2019re not installed already.\n\n  Warning"
+        },
+        {
+          "number": 5,
+          "title": "GitHub - mvitousek/reticulated: Types for Python \u00b7 GitHub",
+          "url": "https://github.com/mvitousek/reticulated",
+          "content": "## Repository files navigation [...] Readme\n\n### Stars\n\n87 stars\n\n### Watchers\n\n10 watching\n\n### Forks\n\n9 forks\n\nReport repository\n\n## Used by\n\nYou can\u2019t perform that action at this time. [...] BranchesTags\n\nOpen more actions menu\n\n## Latest commit\n\n## History\n\n359 Commits\n\n359 Commits\n\n## Folders and files\n\n| Name | Name | Last commit message | Last commit date |\n ---  --- |\n| archive | archive |  |  |\n| docs | docs |  |  |\n| efftests | efftests |  |  |\n| retic | retic |  |  |\n| tests | tests |  |  |\n| unit\\_tests | unit\\_tests |  |  |\n| .gitignore | .gitignore |  |  |\n| README.md | README.md |  |  |\n| retic.py | retic.py |  |  |\n| setup.py | setup.py |  |  |\n|  |"
+        },
+        {
+          "number": 6,
+          "title": "tkinter-gui-library \u00b7 GitHub Topics \u00b7 GitHub",
+          "url": "https://github.com/topics/tkinter-gui-library",
+          "content": "## Navigation Menu\n\n# tkinter-gui-library\n\n## Here are 48 public repositories matching this topic...\n\ntkinter-toolkit\n\n### Akascape / tkinter-toolkit\n\nExplore all modern tkinter widget libraries and helpful tools! (Including customtkinter)\n\n### Akascape / TkDial\n\nTkinter Dial-Knob widgets\n\n### MatinAfzal / IRIS-GUI\n\nA graphical machine learning program written with tkinter and scikit-learn library.\n\n### vednig / shadowTk\n\nAdd Shadows to Tkinter Components\n\n### MatinAfzal / CalCul [...] ### jaxendutta / tictactoe-minimax\n\nTic-Tac-Toe with a Minimax AI\n\n### h-techzone6 / billing-system\n\nBilling System With GUI using Ttk Bootstrap\n\n## Add this topic to your repo\n\nTo associate your repository with the\ntkinter-gui-library\ntopic, visit your repo's landing page and select \"manage topics.\"\n\nLearn more\n\n## Footer\n\n### Footer navigation [...] ### mohammadmasoumi / python\\_tkinter\\_login\n\nA simple login GUI with Tkinter and sqlite\n\n### rohiit-chaurasiya / College-Cafeteria\n\nDevelop Python GUI Application with the help of Tkinter and MySQL\n\n### sanjidaaaziz / Typing-Speed-Game\n\nPicked the Python programming language to implement the project since the best justification for producing games in Python is the language's relative ease of use because it is written similarly to English.\n\n### Anita47 / Generate-Password-Gui"
+        },
+        {
+          "number": 7,
+          "title": "GitHub - TomSchimansky/CustomTkinter: A modern and customizable python UI-library based on Tkinter \u00b7 GitHub",
+          "url": "https://github.com/tomschimansky/customtkinter",
+          "content": "### Forks\n\n1.2k forks\n\nReport repository\n\n## Used by\n\nYou can\u2019t perform that action at this time. [...] ## Repository files navigation\n\nPyPI PyPI - Downloads Downloads last 6 month PyPI - License Minimum Python Version\n\n| Current Developers | Contact |\n --- |\n| Tom Schimansky | contact@customtkinter.tomschimansky.com |\n| Federico Spada | www.linkedin.com/in/federicospada13 |\n\n## Official website: [...] | Readme.md | Readme.md |  |  |\n| dev-proces.md | dev-proces.md |  |  |\n| pyproject.toml | pyproject.toml |  |  |\n| requirements.txt | requirements.txt |  |  |\n| setup.cfg | setup.cfg |  |  |\n|  |"
+        },
+        {
+          "number": 8,
+          "title": "python-tkinter-gui \u00b7 GitHub Topics \u00b7 GitHub",
+          "url": "https://github.com/topics/python-tkinter-gui",
+          "content": "To associate your repository with the python-tkinter-gui topic, visit your repo's landing page and select \"manage topics.\"\n\nLearn more\n\nYou can\u2019t perform that action at this time. [...] Updated Jun 14, 2022\n Python\n\n### pavleen14 / Fun-with-Python\n\nStar  2\n\nThis repository has some basic games created using Python, along with some creative stuff made using Tkinter & Turtle Graphics. Update : Mar 17, 2023 Adding JenkinsFile to this Repo, trying out MultiBranch Pipeline!\n\njenkins python3 jenkinsfile turtle-graphics multibranch tkinter-graphic-interface turtle-python tkinter-gui python-tkinter-gui python-tkinter-series multibranchpipeline\n\n Updated Mar 18, 2023\n Python [...] Sort options\n\nMost stars   Fewest stars   Most forks   Fewest forks   Recently updated   Least recently updated\n\ntkinter-toolkit\n\n### Akascape / tkinter-toolkit\n\nStar  360\n\nExplore all modern tkinter widget libraries and helpful tools! (Including customtkinter)"
+        },
+        {
+          "number": 9,
+          "title": "tkinter-python \u00b7 GitHub Topics \u00b7 GitHub",
+          "url": "https://github.com/topics/tkinter-python",
+          "content": "Updated Jul 4, 2021\n Python\n\n## Add this topic to your repo\n\nTo associate your repository with the tkinter-python topic, visit your repo's landing page and select \"manage topics.\"\n\nLearn more\n\nYou can\u2019t perform that action at this time. [...] Star  360\n\nExplore all modern tkinter widget libraries and helpful tools! (Including customtkinter)\n\npython python3 tkinter python-tkinter tkinter-graphic-interface tkinter-widgets tkinter-gui tkinter-python tkinter-library tkinter-toolkit python-tkinter-application tkinter-gui-library python-tkinter-framework python-tkinter-gui tkinter-framework tkinter-applications customtkinter\n\n Updated May 23, 2025\n Python\n\n### edoardogerosa / pockint\n\nStar  285 [...] Star  169\n\nRestaurant-Management-System in python(tkinter) , GUI based project for college students in python using module tkinter, Based on new boston tutorials with some added tabs and functions.\n\npython python3 tkinter tkinter-graphic-interface tkinter-python\n\n Updated Apr 27, 2024\n Python\n\nTkNodeSystem\n\n### Akascape / TkNodeSystem\n\nStar  159\n\nCreate visual node-based UI with Tkinter!"
+        },
+        {
+          "number": 10,
+          "title": "tkinter-gui \u00b7 GitHub Topics \u00b7 GitHub",
+          "url": "https://github.com/topics/tkinter-gui",
+          "content": "tableview tkinter tables tkinter-gui tabular-editor customtkinter customtkinter-table customtkinter-treeview\n\n Updated Jul 20, 2024\n Python\n\n### kujirahand / tkeasygui-python\n\nSponsor \n\nStar  332\n\nThe easiest library for creating GUIs in Python\n\ngui tkinter tkinter-gui tkinter-gui-python\n\n Updated Jul 17, 2026\n Python\n\n## Add this topic to your repo\n\nTo associate your repository with the tkinter-gui topic, visit your repo's landing page and select \"manage topics.\"\n\nLearn more [...] ### rigvedmaanas / CustomTkinterBuilder\n\nStar  373\n\nThis is a Free and Open Source RAD tool for Custom Tkinter. This software allows you to create complex UI faster than ever\u26a1\n\nui-design tkinter gui-library gui-designer tkinter-gui python-gui-tkinter tkinter-python python-gui-development customtkinter customtkinter-themes customtkinter-widgets customtkinterprojects\n\n Updated Apr 30, 2026\n Python\n\ntkinter-toolkit\n\n### Akascape / tkinter-toolkit\n\nStar  360 [...] Star  360\n\nExplore all modern tkinter widget libraries and helpful tools! (Including customtkinter)\n\npython python3 tkinter python-tkinter tkinter-graphic-interface tkinter-widgets tkinter-gui tkinter-python tkinter-library tkinter-toolkit python-tkinter-application tkinter-gui-library python-tkinter-framework python-tkinter-gui tkinter-framework tkinter-applications customtkinter\n\n Updated May 23, 2025\n Python\n\n### emnikhil / Sign-Language-To-Text-Conversion\n\nStar  359"
+        }
+      ],
+      "reason_no_citation": "The justification and evidence are derived solely from the failure log and general knowledge; no external references were used.",
+      "candidate": 2,
+      "branch": {
+        "branch_from_image": "4dac2784-1b75-42e8-9aa5-bdacff81e706",
+        "result_image": "af3bd347-e8c0-4341-ae02-6c41381f0c1d",
+        "image_kept": false
+      },
+      "adjudication": {
+        "chosen": null,
+        "reasoning": "Candidate 1 attempted to install python3-tk via apt, but the run output shows multiple 404 errors fetching dependencies and the overall exit code was 100, indicating the installation failed. Since the candidate's run did not succeed, it does not plausibly fix the ModuleNotFoundError for Tkinter.",
+        "qualifying": [
+          1
+        ],
+        "model_called": true,
+        "replies": [
+          "{\"chosen\": null, \"reasoning\": \"Candidate 1 attempted to install python3-tk via apt, but the run output shows multiple 404 errors fetching dependencies and the overall exit code was 100, indicating the installation failed. Since the candidate's run did not succeed, it does not plausibly fix the ModuleNotFoundError for Tkinter.\"}"
+        ],
+        "released_images": []
+      },
+      "chosen": false
+    },
+    {
+      "attempt_number": 1,
+      "diff_text": "",
+      "gate_decision": "PASS",
+      "gate_violations": [],
+      "exit_code": 1,
+      "stdout_tail": "",
+      "stderr_tail": "Traceback (most recent call last):\n  File \"insta-dl.py\", line 8, in <module>\n    import tkinter\n  File \"/usr/local/lib/python3.6/tkinter/__init__.py\", line 36, in <module>\n    import _tkinter # If this fails your Python may not be configured for Tk\nImportError: libtk8.6.so: cannot open shared object file: No such file or directory\n\nDuring handling of the above exception, another exception occurred:\n\nTraceback (most recent call last):\n  File \"insta-dl.py\", line 10, in <module>\n    import Tkinter as tkinter\nModuleNotFoundError: No module named 'Tkinter'\n",
+      "tavily_sources": [],
+      "env_delta": [
+        {
+          "command": null,
+          "op": "add",
+          "package": "tk",
+          "version": null,
+          "git_url": null,
+          "commit": null,
+          "justification": "The error indicates missing libtk8.6.so shared library, which is provided by the 'tk' Debian package.",
+          "evidence": "libtk8.6.so: cannot open shared object file: No such file or directory"
+        }
+      ],
+      "resolved_sources": [],
+      "origin": "model",
+      "time_machine": null,
+      "execution": {
+        "mode": "smoke",
+        "seconds": 60,
+        "outcome": "exited",
+        "image": "b89de014-adf7-47eb-b5e4-0e7bf6b6a606",
+        "command": "python insta-dl.py"
+      },
+      "consulted": [
+        {
+          "number": 1,
+          "title": "How to Install Tk in Windows? - GeeksforGeeks",
+          "url": "https://www.geeksforgeeks.org/python/how-to-install-tkinter-in-windows",
+          "content": "## For PIP Users:\n\nOpen up the command prompt and use the below command to install Tkinter:\n\n```\npip install tk\n```\n\nThis installs the Python tk bindings, which is what tkinter depends on. The following message will be displayed once the installation is completed:\n\ninstalling tkinter using pip\n\nTo verify the installation use the tk.\\_test() function. Use the below screenshots for reference:\n\n Python  ````\n import tkinter tkinter. _test()\n```` \n\nOutput:\n\nverifying Tkinter installation [...] ### For Windows:\n\nIf you don\u2019t have tkinter installed, the easiest way is to reinstall Python from the official website and ensure that the tkinter package is included during installation.\n\n Download the latest Python version from python.org.\n During installation, ensure the \"Tcl/Tk and IDLE\" option is selected.\n\nHowever, if you want to ensure all dependencies are managed via pip (though tkinter is part of the Python standard library in most cases), you can install the tk package using pip. [...] ## For conda Users:\n\nConda users can open up the Anaconda Power Shell and use the below command to install Tkinter:\n\n```\nconda install -c anaconda tk\n```\n\nYou will get the following message once the installation is completed:\n\ninstalling Tkinter using conda\n\nTo verify the installation run the below code:\n\n Python  ````\n import tkinter tkinter. _test()\n````\n\nOutput:\n\nverifying Tkinter installation\n\nComment"
+        },
+        {
+          "number": 2,
+          "title": "tkinter \u2014 Python interface to Tcl/Tk",
+          "url": "https://docs.python.org/3/library/tkinter.html",
+          "content": "The `tkinter` package (\u201cTk interface\u201d) is the standard Python interface to the Tcl/Tk GUI toolkit. Both Tk and `tkinter` are available on most Unix platforms, including macOS, as well as on Windows systems. [...] Tk\n:   Tk is a Tcl package implemented in C that adds custom commands to create and manipulate GUI widgets. Each `Tk` object embeds its own Tcl interpreter instance with Tk loaded into it. Tk\u2019s widgets are very customizable, though at the cost of a dated appearance. Tk uses Tcl\u2019s event queue to generate and process GUI events. [...] #### Previous topic\n\nGraphical user interfaces with Tk\n\n#### Next topic\n\n`tkinter.colorchooser` \u2014 Color choosing dialog\n\n### This page\n\n Report a bug\n Improve this page\n Show source\n\n### Navigation\n\n index\n modules |\n next |\n previous |\n Python \u00bb\n\n 3.14.8 Documentation \u00bb\n The Python standard library \u00bb\n Graphical user interfaces with Tk \u00bb\n `tkinter` \u2014 Python interface to Tcl/Tk\n |\n Theme  Auto Light Dark   |\n\n# `tkinter` \u2014 Python interface to Tcl/Tk\u00b6\n\nSource code: Lib/tkinter/\\_\\_init\\_\\_.py"
+        },
+        {
+          "number": 3,
+          "title": "The Python Package Index \u00b7 GitHub",
+          "url": "https://github.com/pypi",
+          "content": "PyPI \u2014 the Python Package Index \u2014 is the official repository of software for the Python programming language. It helps you find and install software developed and shared by the Python community, and lets you distribute your own.\n\nThis organization hosts Warehouse, the codebase that powers PyPI, along with the supporting tools, infrastructure, and services that keep the index running for millions of developers worldwide.\n\n  \n\nLearn    Docs Help Blog\n\nConnect    Mastodon Bluesky Discourse [...] + pypi.org\n\n  Learn more about verified organizations\n\n 659 followers\n United States of America\n \n @pypi.org\n @pypi@fosstodon.org\n @pypi\n\nSponsor\n\nREADME.md\n\n# PyPI README\n\nPyPI \u2014 The Python Package Index \n\n### The Python Package Index \u00b7 `pip install` the world's Python software\n\nWebsite Docs Status [...] ## Sponsors\n\nPyPI is a free service serving billions of downloads a month. That scale is made possible by the infrastructure sponsors who donate CDN, compute, monitoring, and security services, and by donations to the Python Software Foundation.\n\nOur Sponsors     Donate\n\n## About the Python Software Foundation\n\n Python Software Foundation"
+        },
+        {
+          "number": 4,
+          "title": "Installing Packages - Python Packaging User Guide",
+          "url": "https://packaging.python.org/tutorials/installing-packages",
+          "content": "### Ensure you can run pip from the command line\u00b6\n\nAdditionally, you\u2019ll need to make sure you have pip available. You can check this by running:\n\n```\n    \n```\n\nIf you installed Python from source, with an installer from python.org, or via Homebrew you should already have pip. If you\u2019re on Linux and installed using your OS package manager, you may have to install pip separately, see Installing pip/setuptools/wheel with Linux Package Managers. [...] ```\n      =       =       =  \n```\n\n## Installing from other sources\u00b6\n\nTo install from other data sources (for example Amazon S3 storage) you can create a helper application that presents the data in a format compliant with the simple repository API:, and use the `--extra-index-url` flag to direct pip to use that index.\n\n```\n  = 7777       \n```\n\n## Installing Prereleases\u00b6\n\nFind pre-release and development versions, in addition to stable versions. By default, pip only finds stable versions. [...] If `pip` isn\u2019t already installed, then first try to bootstrap it from the standard library:\n\n```\n    \n```\n\nIf that still doesn\u2019t allow you to run `python -m pip`:\n\n Securely Download get-pip.py (#id7)\n Run `pythonget-pip.py`. (#id8) This will install or upgrade pip. Additionally, it may install Setuptools and wheel if they\u2019re not installed already.\n\n  Warning"
+        },
+        {
+          "number": 5,
+          "title": "GitHub - mvitousek/reticulated: Types for Python \u00b7 GitHub",
+          "url": "https://github.com/mvitousek/reticulated",
+          "content": "## Repository files navigation [...] Readme\n\n### Stars\n\n87 stars\n\n### Watchers\n\n10 watching\n\n### Forks\n\n9 forks\n\nReport repository\n\n## Used by\n\nYou can\u2019t perform that action at this time. [...] BranchesTags\n\nOpen more actions menu\n\n## Latest commit\n\n## History\n\n359 Commits\n\n359 Commits\n\n## Folders and files\n\n| Name | Name | Last commit message | Last commit date |\n ---  --- |\n| archive | archive |  |  |\n| docs | docs |  |  |\n| efftests | efftests |  |  |\n| retic | retic |  |  |\n| tests | tests |  |  |\n| unit\\_tests | unit\\_tests |  |  |\n| .gitignore | .gitignore |  |  |\n| README.md | README.md |  |  |\n| retic.py | retic.py |  |  |\n| setup.py | setup.py |  |  |\n|  |"
+        },
+        {
+          "number": 6,
+          "title": "tkinter-gui-library \u00b7 GitHub Topics \u00b7 GitHub",
+          "url": "https://github.com/topics/tkinter-gui-library",
+          "content": "## Navigation Menu\n\n# tkinter-gui-library\n\n## Here are 48 public repositories matching this topic...\n\ntkinter-toolkit\n\n### Akascape / tkinter-toolkit\n\nExplore all modern tkinter widget libraries and helpful tools! (Including customtkinter)\n\n### Akascape / TkDial\n\nTkinter Dial-Knob widgets\n\n### MatinAfzal / IRIS-GUI\n\nA graphical machine learning program written with tkinter and scikit-learn library.\n\n### vednig / shadowTk\n\nAdd Shadows to Tkinter Components\n\n### MatinAfzal / CalCul [...] ### jaxendutta / tictactoe-minimax\n\nTic-Tac-Toe with a Minimax AI\n\n### h-techzone6 / billing-system\n\nBilling System With GUI using Ttk Bootstrap\n\n## Add this topic to your repo\n\nTo associate your repository with the\ntkinter-gui-library\ntopic, visit your repo's landing page and select \"manage topics.\"\n\nLearn more\n\n## Footer\n\n### Footer navigation [...] ### mohammadmasoumi / python\\_tkinter\\_login\n\nA simple login GUI with Tkinter and sqlite\n\n### rohiit-chaurasiya / College-Cafeteria\n\nDevelop Python GUI Application with the help of Tkinter and MySQL\n\n### sanjidaaaziz / Typing-Speed-Game\n\nPicked the Python programming language to implement the project since the best justification for producing games in Python is the language's relative ease of use because it is written similarly to English.\n\n### Anita47 / Generate-Password-Gui"
+        },
+        {
+          "number": 7,
+          "title": "GitHub - TomSchimansky/CustomTkinter: A modern and customizable python UI-library based on Tkinter \u00b7 GitHub",
+          "url": "https://github.com/tomschimansky/customtkinter",
+          "content": "### Forks\n\n1.2k forks\n\nReport repository\n\n## Used by\n\nYou can\u2019t perform that action at this time. [...] ## Repository files navigation\n\nPyPI PyPI - Downloads Downloads last 6 month PyPI - License Minimum Python Version\n\n| Current Developers | Contact |\n --- |\n| Tom Schimansky | contact@customtkinter.tomschimansky.com |\n| Federico Spada | www.linkedin.com/in/federicospada13 |\n\n## Official website: [...] | Readme.md | Readme.md |  |  |\n| dev-proces.md | dev-proces.md |  |  |\n| pyproject.toml | pyproject.toml |  |  |\n| requirements.txt | requirements.txt |  |  |\n| setup.cfg | setup.cfg |  |  |\n|  |"
+        },
+        {
+          "number": 8,
+          "title": "python-tkinter-gui \u00b7 GitHub Topics \u00b7 GitHub",
+          "url": "https://github.com/topics/python-tkinter-gui",
+          "content": "To associate your repository with the python-tkinter-gui topic, visit your repo's landing page and select \"manage topics.\"\n\nLearn more\n\nYou can\u2019t perform that action at this time. [...] Updated Jun 14, 2022\n Python\n\n### pavleen14 / Fun-with-Python\n\nStar  2\n\nThis repository has some basic games created using Python, along with some creative stuff made using Tkinter & Turtle Graphics. Update : Mar 17, 2023 Adding JenkinsFile to this Repo, trying out MultiBranch Pipeline!\n\njenkins python3 jenkinsfile turtle-graphics multibranch tkinter-graphic-interface turtle-python tkinter-gui python-tkinter-gui python-tkinter-series multibranchpipeline\n\n Updated Mar 18, 2023\n Python [...] Sort options\n\nMost stars   Fewest stars   Most forks   Fewest forks   Recently updated   Least recently updated\n\ntkinter-toolkit\n\n### Akascape / tkinter-toolkit\n\nStar  360\n\nExplore all modern tkinter widget libraries and helpful tools! (Including customtkinter)"
+        },
+        {
+          "number": 9,
+          "title": "tkinter-python \u00b7 GitHub Topics \u00b7 GitHub",
+          "url": "https://github.com/topics/tkinter-python",
+          "content": "Updated Jul 4, 2021\n Python\n\n## Add this topic to your repo\n\nTo associate your repository with the tkinter-python topic, visit your repo's landing page and select \"manage topics.\"\n\nLearn more\n\nYou can\u2019t perform that action at this time. [...] Star  360\n\nExplore all modern tkinter widget libraries and helpful tools! (Including customtkinter)\n\npython python3 tkinter python-tkinter tkinter-graphic-interface tkinter-widgets tkinter-gui tkinter-python tkinter-library tkinter-toolkit python-tkinter-application tkinter-gui-library python-tkinter-framework python-tkinter-gui tkinter-framework tkinter-applications customtkinter\n\n Updated May 23, 2025\n Python\n\n### edoardogerosa / pockint\n\nStar  285 [...] Star  169\n\nRestaurant-Management-System in python(tkinter) , GUI based project for college students in python using module tkinter, Based on new boston tutorials with some added tabs and functions.\n\npython python3 tkinter tkinter-graphic-interface tkinter-python\n\n Updated Apr 27, 2024\n Python\n\nTkNodeSystem\n\n### Akascape / TkNodeSystem\n\nStar  159\n\nCreate visual node-based UI with Tkinter!"
+        },
+        {
+          "number": 10,
+          "title": "tkinter-gui \u00b7 GitHub Topics \u00b7 GitHub",
+          "url": "https://github.com/topics/tkinter-gui",
+          "content": "tableview tkinter tables tkinter-gui tabular-editor customtkinter customtkinter-table customtkinter-treeview\n\n Updated Jul 20, 2024\n Python\n\n### kujirahand / tkeasygui-python\n\nSponsor \n\nStar  332\n\nThe easiest library for creating GUIs in Python\n\ngui tkinter tkinter-gui tkinter-gui-python\n\n Updated Jul 17, 2026\n Python\n\n## Add this topic to your repo\n\nTo associate your repository with the tkinter-gui topic, visit your repo's landing page and select \"manage topics.\"\n\nLearn more [...] ### rigvedmaanas / CustomTkinterBuilder\n\nStar  373\n\nThis is a Free and Open Source RAD tool for Custom Tkinter. This software allows you to create complex UI faster than ever\u26a1\n\nui-design tkinter gui-library gui-designer tkinter-gui python-gui-tkinter tkinter-python python-gui-development customtkinter customtkinter-themes customtkinter-widgets customtkinterprojects\n\n Updated Apr 30, 2026\n Python\n\ntkinter-toolkit\n\n### Akascape / tkinter-toolkit\n\nStar  360 [...] Star  360\n\nExplore all modern tkinter widget libraries and helpful tools! (Including customtkinter)\n\npython python3 tkinter python-tkinter tkinter-graphic-interface tkinter-widgets tkinter-gui tkinter-python tkinter-library tkinter-toolkit python-tkinter-application tkinter-gui-library python-tkinter-framework python-tkinter-gui tkinter-framework tkinter-applications customtkinter\n\n Updated May 23, 2025\n Python\n\n### emnikhil / Sign-Language-To-Text-Conversion\n\nStar  359"
+        }
+      ],
+      "reason_no_citation": "The fix is derived from the error message and standard Debian package knowledge, without needing to consult the provided references.",
+      "candidate": 3,
+      "branch": {
+        "branch_from_image": "4dac2784-1b75-42e8-9aa5-bdacff81e706",
+        "result_image": "b89de014-adf7-47eb-b5e4-0e7bf6b6a606",
+        "image_kept": false
+      },
+      "adjudication": {
+        "chosen": null,
+        "reasoning": "Candidate 1 attempted to install python3-tk via apt, but the run output shows multiple 404 errors fetching dependencies and the overall exit code was 100, indicating the installation failed. Since the candidate's run did not succeed, it does not plausibly fix the ModuleNotFoundError for Tkinter.",
+        "qualifying": [
+          1
+        ],
+        "model_called": true,
+        "replies": [
+          "{\"chosen\": null, \"reasoning\": \"Candidate 1 attempted to install python3-tk via apt, but the run output shows multiple 404 errors fetching dependencies and the overall exit code was 100, indicating the installation failed. Since the candidate's run did not succeed, it does not plausibly fix the ModuleNotFoundError for Tkinter.\"}"
+        ],
+        "released_images": []
+      },
+      "chosen": false
+    },
+    {
+      "attempt_number": 2,
+      "diff_text": "",
+      "gate_decision": "PASS",
+      "gate_violations": [],
+      "exit_code": 1,
+      "stdout_tail": "Collecting certifi==2018.4.16\n  Downloading certifi-2018.4.16-py2.py3-none-any.whl (150 kB)\nCollecting chardet==3.0.4\n  Downloading chardet-3.0.4-py2.py3-none-any.whl (133 kB)\nCollecting idna==2.7\n  Downloading idna-2.7-py2.py3-none-any.whl (58 kB)\nCollecting requests==2.19.1\n  Downloading requests-2.19.1-py2.py3-none-any.whl (91 kB)\nCollecting urllib3==1.23\n  Downloading urllib3-1.23-py2.py3-none-any.whl (133 kB)\n",
+      "stderr_tail": "ERROR: Could not find a version that satisfies the requirement python3-tk (from versions: none)\nERROR: No matching distribution found for python3-tk\nWARNING: You are using pip version 21.2.4; however, version 21.3.1 is available.\nYou should consider upgrading via the '/usr/local/bin/python -m pip install --upgrade pip' command.\n",
+      "tavily_sources": [],
+      "env_delta": [
+        {
+          "command": null,
+          "op": "add",
+          "package": "python3-tk",
+          "version": null,
+          "git_url": null,
+          "commit": null,
+          "justification": "Install Tkinter support for Python 3.6 to resolve missing _tkinter module",
+          "evidence": "ImportError: libtk8.6.so: cannot open shared object file: No such file or directory"
+        }
+      ],
+      "resolved_sources": [],
+      "origin": "model",
+      "time_machine": null,
+      "execution": {
+        "mode": "smoke",
+        "seconds": 60,
+        "outcome": "exited",
+        "command": "python insta-dl.py"
+      },
+      "consulted": [
+        {
+          "number": 1,
+          "title": "How to change Python version the customtkinter gets installed? \u00b7 TomSchimansky/CustomTkinter \u00b7 Discussion #311 \u00b7 GitHub",
+          "url": "https://github.com/TomSchimansky/CustomTkinter/discussions/311",
+          "content": "|  |\n\n| How do you installed customtkinter? So if you have two python versions installed, you should be able to start them either with `python3.6`  or `python3.9` . And if you install modules you should also have two different `pip` commands. If you want to install a module for 3.6 you do: `pip3.6 install`  and for 3.9 you do `pip3.9 install` .  And CustomTkinter only works with python>=3.7. |\n\nYou must be logged in to vote\n\nAll reactions  \n\n \u2764\ufe0f 1\n\n0 replies\n\nComment options\n\n### Uh oh! [...] | Well, taking into account you're a beginner, I'd just say you're gonna have some headaches sometimes trying to solve things that feels really hard to solve. But that's life and you'll get through it.  I'd recommend you to keep trying unninstalling python 3.6 and try to stick only to the versions you're really using.  An easy work around that will probably work (for ctk at least) but I don't recommend sticking to it for too long (try to pip install it properly later) is:   1. Git clone or [...] |  |\n\n| If you are only interested right now to use github customtkinter version and you don't want to install using pip you can do this:  ``` import sys sys path append\"/location/to/the/library/called/CustomTkinter/\" ```  Just call this sample code inside the main before importing customtkinter and don't forget to change to the correct path |\n\nYou must be logged in to vote\n\nAll reactions\n\n0 replies\n\nComment options\n\n### Uh oh!\n\nThere was an error while loading. Please reload this page."
+        },
+        {
+          "number": 2,
+          "title": "<SOLVED> pyenv python install tkinter - Linux Mint Forums",
+          "url": "https://forums.linuxmint.com/viewtopic.php?t=420965",
+          "content": "I do not have a solution to your problem, but be aware that `tk` on PyPI refers to a 4-year-old version of TensorKit that links to a defunct GitHub page.  \n   \n If you were working with your system Python, you could install the repository package `python3-tk`, but this would not be for Python 3.12. I have not looked in-depth, but it appears that installing specific versions of `tkinter` in a Python environment may not be trivial.\n\nTop [...] Code: Select all\n\n```\ngilles@Gil-Linux:~$ pip install tk Requirement already satisfied: tk in ./.pyenv/versions/3.12.3/lib/python3.12/site-packages (0.1.0) gilles@Gil-Linux:~$ \n```\n\nBut when I launch VS Code with the .py file being just the line \"import tkinter\", I get this message in VSC :  \n Image [...] Top\n\nUser avatar spamegg\n:   Level 18  \n    Level 18\n:   Posts: 8725\n:   Joined: Mon Oct 28, 2019 2:34 am\n:   Contact:\n\n    Contact spamegg \n\n    Website\n\n### Re: pyenv python install tkinter\n\nPost  by spamegg \u00bb\n\nThat's bizarre. I don't know what else to do.  \n It might be a VS Code problem, maybe?  \n   \n Try:\n\nCode: Select all\n\n```\napt install python3-tk \n```\n\nTop\n\nUser avatar spamegg\n:   Level 18  \n    Level 18\n:   Posts: 8725\n:   Joined: Mon Oct 28, 2019 2:34 am\n:   Contact:"
+        },
+        {
+          "number": 3,
+          "title": "tkinter \u2014 Python interface to Tcl/Tk",
+          "url": "https://docs.python.org/3/library/tkinter.html",
+          "content": "The `tkinter` package (\u201cTk interface\u201d) is the standard Python interface to the Tcl/Tk GUI toolkit. Both Tk and `tkinter` are available on most Unix platforms, including macOS, as well as on Windows systems. [...] Tk\n:   Tk is a Tcl package implemented in C that adds custom commands to create and manipulate GUI widgets. Each `Tk` object embeds its own Tcl interpreter instance with Tk loaded into it. Tk\u2019s widgets are very customizable, though at the cost of a dated appearance. Tk uses Tcl\u2019s event queue to generate and process GUI events. [...] #### Previous topic\n\nGraphical user interfaces with Tk\n\n#### Next topic\n\n`tkinter.colorchooser` \u2014 Color choosing dialog\n\n### This page\n\n Report a bug\n Improve this page\n Show source\n\n### Navigation\n\n index\n modules |\n next |\n previous |\n Python \u00bb\n\n 3.14.8 Documentation \u00bb\n The Python standard library \u00bb\n Graphical user interfaces with Tk \u00bb\n `tkinter` \u2014 Python interface to Tcl/Tk\n |\n Theme  Auto Light Dark   |\n\n# `tkinter` \u2014 Python interface to Tcl/Tk\u00b6\n\nSource code: Lib/tkinter/\\_\\_init\\_\\_.py"
+        },
+        {
+          "number": 4,
+          "title": "How to Install Python Packages from Github",
+          "url": "https://www.youtube.com/watch?v=c6IgzwFRf5I&vl=en",
+          "content": "[4:19] repo is like where the project was like at a different point in time and the use case I find this most useful for just in general\n[4:27] installing from github is when the code on github is in a better state than the\n[4:34] library on pipe I so sometimes pipe I gets updated really late and the changes that are necessary for let's say a bug [...] [1:21] version the most recent version is 2.00 dot dev so what I'll do is I'll uninstall this and I'll prepare to\n[1:29] install it from github in setup from pipe I so pip install and then to use\n[1:37] this you can use - II for editable so this is a good idea because we'll see when we create the requirements a text file it's going to point directly to the\n[1:46] repo URL so pip install - II for editable because we need that for the URL and then get plus and then we're [...] # How to Install Python Packages from Github\n## Channel: Pretty Printed\n97.4K subscribers\n694 likes\n\n### Description\n86,206 views\nPosted: 2020-07-10\nNeed help with your Python project? Get one-on-one coaching with me: \n\nIf a Python package you want isn't available on Pypi, then you can still install it using pip."
+        },
+        {
+          "number": 5,
+          "title": "GitHub - Jrohy/python3-install: auto install latest python3 & pip \u00b7 GitHub",
+          "url": "https://github.com/Jrohy/python3-install",
+          "content": "```\nsource <(curl -sL  -v 3.6.5 \n```\n\n## Only install python3\n\n```\nsource <(curl -sL  --nopip \n```\n\n## Compile with custom param\n\n```\nsource <(curl -sL  --latest --enable-optimizations \n```\n\nfind the special version in python\\_version\\_list, script will auto download and compile it\n\nif os openssl version less than 1.0.2 , script will auto install latest openssl before compile python3, it may be have risk(except new install os), so recommend install without compile way\n\n## About [...] BranchesTags\n\nOpen more actions menu\n\n## Latest commit\n\n## History\n\n55 Commits\n\n55 Commits\n\n## Folders and files\n\n| Name | Name | Last commit message | Last commit date |\n ---  --- |\n| LICENSE | LICENSE |  |  |\n| README.md | README.md |  |  |\n| install.sh | install.sh |  |  |\n|  |\n\n## Repository files navigation\n\n# python3-install\n\n\n\n```\nsource <(curl -sL  \n```\n\n## Install with compile(latest version)\n\n```\nsource <(curl -sL  --latest \n```\n\n## Install with compile(special version) [...] ## About\n\nauto install latest python3 & pip\n\n### Topics\n\nauto-installpip3python3\n\n### Resources\n\nReadme\n\nGPL-3.0 license\n\n### Stars\n\n67 stars\n\n### Watchers\n\n5 watching\n\n### Forks\n\n39 forks\n\nReport repository\n\nYou can\u2019t perform that action at this time."
+        }
+      ],
+      "reason_no_citation": "The fix is based on the error message indicating missing Tkinter shared library, which is resolved by installing the system package python3-tk; no external references needed.",
+      "candidate": 1,
+      "branch": {
+        "branch_from_image": "4dac2784-1b75-42e8-9aa5-bdacff81e706",
+        "result_image": null,
+        "image_kept": false
+      },
+      "adjudication": {
+        "chosen": 1,
+        "reasoning": "Candidate 1 correctly identifies python3-tk as the Debian system package that provides Tkinter bindings for Python 3.6, which directly addresses the ModuleNotFoundError. Candidates 2 and 3 target lower-level libraries (tk8.6, tcl8.6) that would be pulled in as dependencies of python3-tk. All three candidates failed because the execution environment attempted to install these system packages via pip instead of apt, but Candidate 1's package choice is the correct and complete fix for the missing Tkinter module.",
+        "qualifying": [
+          1,
+          2,
+          3
+        ],
+        "model_called": true,
+        "replies": [
+          "{\"chosen\": 1, \"reasoning\": \"Candidate 1 correctly identifies python3-tk as the Debian system package that provides Tkinter bindings for Python 3.6, which directly addresses the ModuleNotFoundError. Candidates 2 and 3 target lower-level libraries (tk8.6, tcl8.6) that would be pulled in as dependencies of python3-tk. All three candidates failed because the execution environment attempted to install these system packages via pip instead of apt, but Candidate 1's package choice is the correct and complete fix for the missing Tkinter module.\"}"
+        ],
+        "adopted_reason": "adjudicator",
+        "released_images": []
+      },
+      "chosen": true
+    },
+    {
+      "attempt_number": 2,
+      "diff_text": "",
+      "gate_decision": "PASS",
+      "gate_violations": [],
+      "exit_code": 1,
+      "stdout_tail": "Collecting certifi==2018.4.16\n  Downloading certifi-2018.4.16-py2.py3-none-any.whl (150 kB)\nCollecting chardet==3.0.4\n  Downloading chardet-3.0.4-py2.py3-none-any.whl (133 kB)\nCollecting idna==2.7\n  Downloading idna-2.7-py2.py3-none-any.whl (58 kB)\nCollecting requests==2.19.1\n  Downloading requests-2.19.1-py2.py3-none-any.whl (91 kB)\nCollecting urllib3==1.23\n  Downloading urllib3-1.23-py2.py3-none-any.whl (133 kB)\n",
+      "stderr_tail": "ERROR: Could not find a version that satisfies the requirement tk8.6 (from versions: none)\nERROR: No matching distribution found for tk8.6\nWARNING: You are using pip version 21.2.4; however, version 21.3.1 is available.\nYou should consider upgrading via the '/usr/local/bin/python -m pip install --upgrade pip' command.\n",
+      "tavily_sources": [],
+      "env_delta": [
+        {
+          "command": null,
+          "op": "add",
+          "package": "tk8.6",
+          "version": null,
+          "git_url": null,
+          "commit": null,
+          "justification": "Provides libtk8.6.so shared library needed by tkinter",
+          "evidence": "ImportError: libtk8.6.so: cannot open shared object file: No such file or directory"
+        }
+      ],
+      "resolved_sources": [],
+      "origin": "model",
+      "time_machine": null,
+      "execution": {
+        "mode": "smoke",
+        "seconds": 60,
+        "outcome": "exited",
+        "command": "python insta-dl.py"
+      },
+      "consulted": [
+        {
+          "number": 1,
+          "title": "How to change Python version the customtkinter gets installed? \u00b7 TomSchimansky/CustomTkinter \u00b7 Discussion #311 \u00b7 GitHub",
+          "url": "https://github.com/TomSchimansky/CustomTkinter/discussions/311",
+          "content": "|  |\n\n| How do you installed customtkinter? So if you have two python versions installed, you should be able to start them either with `python3.6`  or `python3.9` . And if you install modules you should also have two different `pip` commands. If you want to install a module for 3.6 you do: `pip3.6 install`  and for 3.9 you do `pip3.9 install` .  And CustomTkinter only works with python>=3.7. |\n\nYou must be logged in to vote\n\nAll reactions  \n\n \u2764\ufe0f 1\n\n0 replies\n\nComment options\n\n### Uh oh! [...] | Well, taking into account you're a beginner, I'd just say you're gonna have some headaches sometimes trying to solve things that feels really hard to solve. But that's life and you'll get through it.  I'd recommend you to keep trying unninstalling python 3.6 and try to stick only to the versions you're really using.  An easy work around that will probably work (for ctk at least) but I don't recommend sticking to it for too long (try to pip install it properly later) is:   1. Git clone or [...] |  |\n\n| If you are only interested right now to use github customtkinter version and you don't want to install using pip you can do this:  ``` import sys sys path append\"/location/to/the/library/called/CustomTkinter/\" ```  Just call this sample code inside the main before importing customtkinter and don't forget to change to the correct path |\n\nYou must be logged in to vote\n\nAll reactions\n\n0 replies\n\nComment options\n\n### Uh oh!\n\nThere was an error while loading. Please reload this page."
+        },
+        {
+          "number": 2,
+          "title": "<SOLVED> pyenv python install tkinter - Linux Mint Forums",
+          "url": "https://forums.linuxmint.com/viewtopic.php?t=420965",
+          "content": "I do not have a solution to your problem, but be aware that `tk` on PyPI refers to a 4-year-old version of TensorKit that links to a defunct GitHub page.  \n   \n If you were working with your system Python, you could install the repository package `python3-tk`, but this would not be for Python 3.12. I have not looked in-depth, but it appears that installing specific versions of `tkinter` in a Python environment may not be trivial.\n\nTop [...] Code: Select all\n\n```\ngilles@Gil-Linux:~$ pip install tk Requirement already satisfied: tk in ./.pyenv/versions/3.12.3/lib/python3.12/site-packages (0.1.0) gilles@Gil-Linux:~$ \n```\n\nBut when I launch VS Code with the .py file being just the line \"import tkinter\", I get this message in VSC :  \n Image [...] Top\n\nUser avatar spamegg\n:   Level 18  \n    Level 18\n:   Posts: 8725\n:   Joined: Mon Oct 28, 2019 2:34 am\n:   Contact:\n\n    Contact spamegg \n\n    Website\n\n### Re: pyenv python install tkinter\n\nPost  by spamegg \u00bb\n\nThat's bizarre. I don't know what else to do.  \n It might be a VS Code problem, maybe?  \n   \n Try:\n\nCode: Select all\n\n```\napt install python3-tk \n```\n\nTop\n\nUser avatar spamegg\n:   Level 18  \n    Level 18\n:   Posts: 8725\n:   Joined: Mon Oct 28, 2019 2:34 am\n:   Contact:"
+        },
+        {
+          "number": 3,
+          "title": "tkinter \u2014 Python interface to Tcl/Tk",
+          "url": "https://docs.python.org/3/library/tkinter.html",
+          "content": "The `tkinter` package (\u201cTk interface\u201d) is the standard Python interface to the Tcl/Tk GUI toolkit. Both Tk and `tkinter` are available on most Unix platforms, including macOS, as well as on Windows systems. [...] Tk\n:   Tk is a Tcl package implemented in C that adds custom commands to create and manipulate GUI widgets. Each `Tk` object embeds its own Tcl interpreter instance with Tk loaded into it. Tk\u2019s widgets are very customizable, though at the cost of a dated appearance. Tk uses Tcl\u2019s event queue to generate and process GUI events. [...] #### Previous topic\n\nGraphical user interfaces with Tk\n\n#### Next topic\n\n`tkinter.colorchooser` \u2014 Color choosing dialog\n\n### This page\n\n Report a bug\n Improve this page\n Show source\n\n### Navigation\n\n index\n modules |\n next |\n previous |\n Python \u00bb\n\n 3.14.8 Documentation \u00bb\n The Python standard library \u00bb\n Graphical user interfaces with Tk \u00bb\n `tkinter` \u2014 Python interface to Tcl/Tk\n |\n Theme  Auto Light Dark   |\n\n# `tkinter` \u2014 Python interface to Tcl/Tk\u00b6\n\nSource code: Lib/tkinter/\\_\\_init\\_\\_.py"
+        },
+        {
+          "number": 4,
+          "title": "How to Install Python Packages from Github",
+          "url": "https://www.youtube.com/watch?v=c6IgzwFRf5I&vl=en",
+          "content": "[4:19] repo is like where the project was like at a different point in time and the use case I find this most useful for just in general\n[4:27] installing from github is when the code on github is in a better state than the\n[4:34] library on pipe I so sometimes pipe I gets updated really late and the changes that are necessary for let's say a bug [...] [1:21] version the most recent version is 2.00 dot dev so what I'll do is I'll uninstall this and I'll prepare to\n[1:29] install it from github in setup from pipe I so pip install and then to use\n[1:37] this you can use - II for editable so this is a good idea because we'll see when we create the requirements a text file it's going to point directly to the\n[1:46] repo URL so pip install - II for editable because we need that for the URL and then get plus and then we're [...] # How to Install Python Packages from Github\n## Channel: Pretty Printed\n97.4K subscribers\n694 likes\n\n### Description\n86,206 views\nPosted: 2020-07-10\nNeed help with your Python project? Get one-on-one coaching with me: \n\nIf a Python package you want isn't available on Pypi, then you can still install it using pip."
+        },
+        {
+          "number": 5,
+          "title": "GitHub - Jrohy/python3-install: auto install latest python3 & pip \u00b7 GitHub",
+          "url": "https://github.com/Jrohy/python3-install",
+          "content": "```\nsource <(curl -sL  -v 3.6.5 \n```\n\n## Only install python3\n\n```\nsource <(curl -sL  --nopip \n```\n\n## Compile with custom param\n\n```\nsource <(curl -sL  --latest --enable-optimizations \n```\n\nfind the special version in python\\_version\\_list, script will auto download and compile it\n\nif os openssl version less than 1.0.2 , script will auto install latest openssl before compile python3, it may be have risk(except new install os), so recommend install without compile way\n\n## About [...] BranchesTags\n\nOpen more actions menu\n\n## Latest commit\n\n## History\n\n55 Commits\n\n55 Commits\n\n## Folders and files\n\n| Name | Name | Last commit message | Last commit date |\n ---  --- |\n| LICENSE | LICENSE |  |  |\n| README.md | README.md |  |  |\n| install.sh | install.sh |  |  |\n|  |\n\n## Repository files navigation\n\n# python3-install\n\n\n\n```\nsource <(curl -sL  \n```\n\n## Install with compile(latest version)\n\n```\nsource <(curl -sL  --latest \n```\n\n## Install with compile(special version) [...] ## About\n\nauto install latest python3 & pip\n\n### Topics\n\nauto-installpip3python3\n\n### Resources\n\nReadme\n\nGPL-3.0 license\n\n### Stars\n\n67 stars\n\n### Watchers\n\n5 watching\n\n### Forks\n\n39 forks\n\nReport repository\n\nYou can\u2019t perform that action at this time."
+        }
+      ],
+      "reason_no_citation": "The fix is based solely on the error message from the log, which indicates missing libtk8.6.so; no external references needed.",
+      "candidate": 2,
+      "branch": {
+        "branch_from_image": "4dac2784-1b75-42e8-9aa5-bdacff81e706",
+        "result_image": null,
+        "image_kept": false
+      },
+      "adjudication": {
+        "chosen": 1,
+        "reasoning": "Candidate 1 correctly identifies python3-tk as the Debian system package that provides Tkinter bindings for Python 3.6, which directly addresses the ModuleNotFoundError. Candidates 2 and 3 target lower-level libraries (tk8.6, tcl8.6) that would be pulled in as dependencies of python3-tk. All three candidates failed because the execution environment attempted to install these system packages via pip instead of apt, but Candidate 1's package choice is the correct and complete fix for the missing Tkinter module.",
+        "qualifying": [
+          1,
+          2,
+          3
+        ],
+        "model_called": true,
+        "replies": [
+          "{\"chosen\": 1, \"reasoning\": \"Candidate 1 correctly identifies python3-tk as the Debian system package that provides Tkinter bindings for Python 3.6, which directly addresses the ModuleNotFoundError. Candidates 2 and 3 target lower-level libraries (tk8.6, tcl8.6) that would be pulled in as dependencies of python3-tk. All three candidates failed because the execution environment attempted to install these system packages via pip instead of apt, but Candidate 1's package choice is the correct and complete fix for the missing Tkinter module.\"}"
+        ],
+        "adopted_reason": "adjudicator",
+        "released_images": []
+      },
+      "chosen": false
+    },
+    {
+      "attempt_number": 2,
+      "diff_text": "",
+      "gate_decision": "PASS",
+      "gate_violations": [],
+      "exit_code": 1,
+      "stdout_tail": "Collecting certifi==2018.4.16\n  Downloading certifi-2018.4.16-py2.py3-none-any.whl (150 kB)\nCollecting chardet==3.0.4\n  Downloading chardet-3.0.4-py2.py3-none-any.whl (133 kB)\nCollecting idna==2.7\n  Downloading idna-2.7-py2.py3-none-any.whl (58 kB)\nCollecting requests==2.19.1\n  Downloading requests-2.19.1-py2.py3-none-any.whl (91 kB)\nCollecting urllib3==1.23\n  Downloading urllib3-1.23-py2.py3-none-any.whl (133 kB)\n",
+      "stderr_tail": "ERROR: Could not find a version that satisfies the requirement tcl8.6 (from versions: none)\nERROR: No matching distribution found for tcl8.6\nWARNING: You are using pip version 21.2.4; however, version 21.3.1 is available.\nYou should consider upgrading via the '/usr/local/bin/python -m pip install --upgrade pip' command.\n",
+      "tavily_sources": [],
+      "env_delta": [
+        {
+          "command": null,
+          "op": "add",
+          "package": "tcl8.6",
+          "version": null,
+          "git_url": null,
+          "commit": null,
+          "justification": "Provide Tcl 8.6 library required by Tk 8.6 to resolve libtk8.6.so missing error",
+          "evidence": "ImportError: libtk8.6.so: cannot open shared object file: No such file or directory"
+        }
+      ],
+      "resolved_sources": [],
+      "origin": "model",
+      "time_machine": null,
+      "execution": {
+        "mode": "smoke",
+        "seconds": 60,
+        "outcome": "exited",
+        "command": "python insta-dl.py"
+      },
+      "consulted": [
+        {
+          "number": 1,
+          "title": "How to change Python version the customtkinter gets installed? \u00b7 TomSchimansky/CustomTkinter \u00b7 Discussion #311 \u00b7 GitHub",
+          "url": "https://github.com/TomSchimansky/CustomTkinter/discussions/311",
+          "content": "|  |\n\n| How do you installed customtkinter? So if you have two python versions installed, you should be able to start them either with `python3.6`  or `python3.9` . And if you install modules you should also have two different `pip` commands. If you want to install a module for 3.6 you do: `pip3.6 install`  and for 3.9 you do `pip3.9 install` .  And CustomTkinter only works with python>=3.7. |\n\nYou must be logged in to vote\n\nAll reactions  \n\n \u2764\ufe0f 1\n\n0 replies\n\nComment options\n\n### Uh oh! [...] | Well, taking into account you're a beginner, I'd just say you're gonna have some headaches sometimes trying to solve things that feels really hard to solve. But that's life and you'll get through it.  I'd recommend you to keep trying unninstalling python 3.6 and try to stick only to the versions you're really using.  An easy work around that will probably work (for ctk at least) but I don't recommend sticking to it for too long (try to pip install it properly later) is:   1. Git clone or [...] |  |\n\n| If you are only interested right now to use github customtkinter version and you don't want to install using pip you can do this:  ``` import sys sys path append\"/location/to/the/library/called/CustomTkinter/\" ```  Just call this sample code inside the main before importing customtkinter and don't forget to change to the correct path |\n\nYou must be logged in to vote\n\nAll reactions\n\n0 replies\n\nComment options\n\n### Uh oh!\n\nThere was an error while loading. Please reload this page."
+        },
+        {
+          "number": 2,
+          "title": "<SOLVED> pyenv python install tkinter - Linux Mint Forums",
+          "url": "https://forums.linuxmint.com/viewtopic.php?t=420965",
+          "content": "I do not have a solution to your problem, but be aware that `tk` on PyPI refers to a 4-year-old version of TensorKit that links to a defunct GitHub page.  \n   \n If you were working with your system Python, you could install the repository package `python3-tk`, but this would not be for Python 3.12. I have not looked in-depth, but it appears that installing specific versions of `tkinter` in a Python environment may not be trivial.\n\nTop [...] Code: Select all\n\n```\ngilles@Gil-Linux:~$ pip install tk Requirement already satisfied: tk in ./.pyenv/versions/3.12.3/lib/python3.12/site-packages (0.1.0) gilles@Gil-Linux:~$ \n```\n\nBut when I launch VS Code with the .py file being just the line \"import tkinter\", I get this message in VSC :  \n Image [...] Top\n\nUser avatar spamegg\n:   Level 18  \n    Level 18\n:   Posts: 8725\n:   Joined: Mon Oct 28, 2019 2:34 am\n:   Contact:\n\n    Contact spamegg \n\n    Website\n\n### Re: pyenv python install tkinter\n\nPost  by spamegg \u00bb\n\nThat's bizarre. I don't know what else to do.  \n It might be a VS Code problem, maybe?  \n   \n Try:\n\nCode: Select all\n\n```\napt install python3-tk \n```\n\nTop\n\nUser avatar spamegg\n:   Level 18  \n    Level 18\n:   Posts: 8725\n:   Joined: Mon Oct 28, 2019 2:34 am\n:   Contact:"
+        },
+        {
+          "number": 3,
+          "title": "tkinter \u2014 Python interface to Tcl/Tk",
+          "url": "https://docs.python.org/3/library/tkinter.html",
+          "content": "The `tkinter` package (\u201cTk interface\u201d) is the standard Python interface to the Tcl/Tk GUI toolkit. Both Tk and `tkinter` are available on most Unix platforms, including macOS, as well as on Windows systems. [...] Tk\n:   Tk is a Tcl package implemented in C that adds custom commands to create and manipulate GUI widgets. Each `Tk` object embeds its own Tcl interpreter instance with Tk loaded into it. Tk\u2019s widgets are very customizable, though at the cost of a dated appearance. Tk uses Tcl\u2019s event queue to generate and process GUI events. [...] #### Previous topic\n\nGraphical user interfaces with Tk\n\n#### Next topic\n\n`tkinter.colorchooser` \u2014 Color choosing dialog\n\n### This page\n\n Report a bug\n Improve this page\n Show source\n\n### Navigation\n\n index\n modules |\n next |\n previous |\n Python \u00bb\n\n 3.14.8 Documentation \u00bb\n The Python standard library \u00bb\n Graphical user interfaces with Tk \u00bb\n `tkinter` \u2014 Python interface to Tcl/Tk\n |\n Theme  Auto Light Dark   |\n\n# `tkinter` \u2014 Python interface to Tcl/Tk\u00b6\n\nSource code: Lib/tkinter/\\_\\_init\\_\\_.py"
+        },
+        {
+          "number": 4,
+          "title": "How to Install Python Packages from Github",
+          "url": "https://www.youtube.com/watch?v=c6IgzwFRf5I&vl=en",
+          "content": "[4:19] repo is like where the project was like at a different point in time and the use case I find this most useful for just in general\n[4:27] installing from github is when the code on github is in a better state than the\n[4:34] library on pipe I so sometimes pipe I gets updated really late and the changes that are necessary for let's say a bug [...] [1:21] version the most recent version is 2.00 dot dev so what I'll do is I'll uninstall this and I'll prepare to\n[1:29] install it from github in setup from pipe I so pip install and then to use\n[1:37] this you can use - II for editable so this is a good idea because we'll see when we create the requirements a text file it's going to point directly to the\n[1:46] repo URL so pip install - II for editable because we need that for the URL and then get plus and then we're [...] # How to Install Python Packages from Github\n## Channel: Pretty Printed\n97.4K subscribers\n694 likes\n\n### Description\n86,206 views\nPosted: 2020-07-10\nNeed help with your Python project? Get one-on-one coaching with me: \n\nIf a Python package you want isn't available on Pypi, then you can still install it using pip."
+        },
+        {
+          "number": 5,
+          "title": "GitHub - Jrohy/python3-install: auto install latest python3 & pip \u00b7 GitHub",
+          "url": "https://github.com/Jrohy/python3-install",
+          "content": "```\nsource <(curl -sL  -v 3.6.5 \n```\n\n## Only install python3\n\n```\nsource <(curl -sL  --nopip \n```\n\n## Compile with custom param\n\n```\nsource <(curl -sL  --latest --enable-optimizations \n```\n\nfind the special version in python\\_version\\_list, script will auto download and compile it\n\nif os openssl version less than 1.0.2 , script will auto install latest openssl before compile python3, it may be have risk(except new install os), so recommend install without compile way\n\n## About [...] BranchesTags\n\nOpen more actions menu\n\n## Latest commit\n\n## History\n\n55 Commits\n\n55 Commits\n\n## Folders and files\n\n| Name | Name | Last commit message | Last commit date |\n ---  --- |\n| LICENSE | LICENSE |  |  |\n| README.md | README.md |  |  |\n| install.sh | install.sh |  |  |\n|  |\n\n## Repository files navigation\n\n# python3-install\n\n\n\n```\nsource <(curl -sL  \n```\n\n## Install with compile(latest version)\n\n```\nsource <(curl -sL  --latest \n```\n\n## Install with compile(special version) [...] ## About\n\nauto install latest python3 & pip\n\n### Topics\n\nauto-installpip3python3\n\n### Resources\n\nReadme\n\nGPL-3.0 license\n\n### Stars\n\n67 stars\n\n### Watchers\n\n5 watching\n\n### Forks\n\n39 forks\n\nReport repository\n\nYou can\u2019t perform that action at this time."
+        }
+      ],
+      "reason_no_citation": "No external references were needed; the fix is based on the error message and typical Debian packaging for Tk dependencies.",
+      "candidate": 3,
+      "branch": {
+        "branch_from_image": "4dac2784-1b75-42e8-9aa5-bdacff81e706",
+        "result_image": null,
+        "image_kept": false
+      },
+      "adjudication": {
+        "chosen": 1,
+        "reasoning": "Candidate 1 correctly identifies python3-tk as the Debian system package that provides Tkinter bindings for Python 3.6, which directly addresses the ModuleNotFoundError. Candidates 2 and 3 target lower-level libraries (tk8.6, tcl8.6) that would be pulled in as dependencies of python3-tk. All three candidates failed because the execution environment attempted to install these system packages via pip instead of apt, but Candidate 1's package choice is the correct and complete fix for the missing Tkinter module.",
+        "qualifying": [
+          1,
+          2,
+          3
+        ],
+        "model_called": true,
+        "replies": [
+          "{\"chosen\": 1, \"reasoning\": \"Candidate 1 correctly identifies python3-tk as the Debian system package that provides Tkinter bindings for Python 3.6, which directly addresses the ModuleNotFoundError. Candidates 2 and 3 target lower-level libraries (tk8.6, tcl8.6) that would be pulled in as dependencies of python3-tk. All three candidates failed because the execution environment attempted to install these system packages via pip instead of apt, but Candidate 1's package choice is the correct and complete fix for the missing Tkinter module.\"}"
+        ],
+        "adopted_reason": "adjudicator",
+        "released_images": []
+      },
+      "chosen": false
+    },
+    {
+      "attempt_number": 3,
+      "diff_text": "",
+      "gate_decision": "REJECT",
+      "gate_violations": [
+        {
+          "rule": "ENV_REPEATS_FAILED_CHANGE",
+          "reason": "repeats 'apt python3-tk', already tried and failed this run",
+          "file": ""
+        }
+      ],
+      "exit_code": null,
+      "stdout_tail": "",
+      "stderr_tail": "",
+      "tavily_sources": [],
+      "env_delta": [
+        {
+          "command": null,
+          "op": "remove",
+          "package": "python3-tk",
+          "version": null,
+          "git_url": null,
+          "commit": null,
+          "justification": "python3-tk is not available on PyPI; must be installed via system package manager",
+          "evidence": "ERROR: Could not find a version that satisfies the requirement python3-tk (from versions: none)"
+        },
+        {
+          "command": null,
+          "op": "apt",
+          "package": "python3-tk",
+          "version": null,
+          "git_url": null,
+          "commit": null,
+          "justification": "Install Tkinter support for Python 3.6 via system package",
+          "evidence": "ERROR: Could not find a version that satisfies the requirement python3-tk (from versions: none)"
+        }
+      ],
+      "resolved_sources": [],
+      "origin": "model",
+      "time_machine": null,
+      "consulted": [
+        {
+          "number": 1,
+          "title": "<SOLVED> pyenv python install tkinter - Linux Mint Forums",
+          "url": "https://forums.linuxmint.com/viewtopic.php?t=420965",
+          "content": "I do not have a solution to your problem, but be aware that `tk` on PyPI refers to a 4-year-old version of TensorKit that links to a defunct GitHub page.  \n   \n If you were working with your system Python, you could install the repository package `python3-tk`, but this would not be for Python 3.12. I have not looked in-depth, but it appears that installing specific versions of `tkinter` in a Python environment may not be trivial.\n\nTop [...] Top\n\nUser avatar spamegg\n:   Level 18  \n    Level 18\n:   Posts: 8725\n:   Joined: Mon Oct 28, 2019 2:34 am\n:   Contact:\n\n    Contact spamegg \n\n    Website\n\n### Re: pyenv python install tkinter\n\nPost  by spamegg \u00bb\n\nThat's bizarre. I don't know what else to do.  \n It might be a VS Code problem, maybe?  \n   \n Try:\n\nCode: Select all\n\n```\napt install python3-tk \n```\n\nTop\n\nUser avatar spamegg\n:   Level 18  \n    Level 18\n:   Posts: 8725\n:   Joined: Mon Oct 28, 2019 2:34 am\n:   Contact: [...] Code: Select all\n\n```\ngilles@Gil-Linux:~$ pip install tk Requirement already satisfied: tk in ./.pyenv/versions/3.12.3/lib/python3.12/site-packages (0.1.0) gilles@Gil-Linux:~$ \n```\n\nBut when I launch VS Code with the .py file being just the line \"import tkinter\", I get this message in VSC :  \n Image"
+        },
+        {
+          "number": 2,
+          "title": "tkinter-python \u00b7 GitHub Topics \u00b7 GitHub",
+          "url": "https://github.com/topics/tkinter-python",
+          "content": "python bot gui selenium python3 whatsapp tkinter python-3 selenium-webdriver whatsapp-web whatsapp-bot tkinter-graphic-interface selenium-tests whatsapp-api whatsapp-chat selenium-python python-selenium tkinter-gui tkinter-python tkinter-library\n\n Updated Mar 13, 2024\n Python\n\n### ragardner / tksheet\n\nStar  503\n\nPython tkinter table and treeview widget\n\npython data tree tree-widget table python3 tk tkinter sheet treeview tkinter-graphic-interface tkinter-widgets tkinter-gui tkinter-python [...] Star  360\n\nExplore all modern tkinter widget libraries and helpful tools! (Including customtkinter)\n\npython python3 tkinter python-tkinter tkinter-graphic-interface tkinter-widgets tkinter-gui tkinter-python tkinter-library tkinter-toolkit python-tkinter-application tkinter-gui-library python-tkinter-framework python-tkinter-gui tkinter-framework tkinter-applications customtkinter\n\n Updated May 23, 2025\n Python\n\n### edoardogerosa / pockint\n\nStar  285 [...] python ui-design gui drag-and-drop python3 tkinter learn easy gui-library figma ui-designer tkinter-graphic-interface tkinter-gui tkinter-python hecktoberfest tkinter-designer customtkinter customtkinter-widgets customtkinterprojects buildfy\n\n Updated Jan 19, 2025\n\n### amark23 / Restaurant-Management-System-Python-\n\nStar  169"
+        },
+        {
+          "number": 3,
+          "title": "tkinter \u2014 Python interface to Tcl/Tk",
+          "url": "https://docs.python.org/3/library/tkinter.html",
+          "content": "Tk\n:   Tk is a Tcl package implemented in C that adds custom commands to create and manipulate GUI widgets. Each `Tk` object embeds its own Tcl interpreter instance with Tk loaded into it. Tk\u2019s widgets are very customizable, though at the cost of a dated appearance. Tk uses Tcl\u2019s event queue to generate and process GUI events. [...] The `tkinter` package (\u201cTk interface\u201d) is the standard Python interface to the Tcl/Tk GUI toolkit. Both Tk and `tkinter` are available on most Unix platforms, including macOS, as well as on Windows systems. [...] #### Previous topic\n\nGraphical user interfaces with Tk\n\n#### Next topic\n\n`tkinter.colorchooser` \u2014 Color choosing dialog\n\n### This page\n\n Report a bug\n Improve this page\n Show source\n\n### Navigation\n\n index\n modules |\n next |\n previous |\n Python \u00bb\n\n 3.14.8 Documentation \u00bb\n The Python standard library \u00bb\n Graphical user interfaces with Tk \u00bb\n `tkinter` \u2014 Python interface to Tcl/Tk\n |\n Theme  Auto Light Dark   |\n\n# `tkinter` \u2014 Python interface to Tcl/Tk\u00b6\n\nSource code: Lib/tkinter/\\_\\_init\\_\\_.py"
+        },
+        {
+          "number": 4,
+          "title": "install python packages from github",
+          "url": "https://medium.com/@lynzt/install-python-packages-from-github-5866d234c4e4",
+          "content": "## Importing the package from github\n\nSo now I have a python package on github and want to pull it into my project without submitting it to the official Python Package Index. First step, install git on my virtual machine (else it won\u2019t work and you\u2019ll get an error).\n\nsudo apt-get update  \nsudo apt-get install git\nThen pip install from github. You can add the --update flag if you make changes to your package and need the latest version of the package. In this case, I ran: [...] pip install --upgrade git+git://github.com/lynzt/python_people_names.git\nThen to use the package in the project, import & use:\n\nfrom people_names import people_namesnames = people_names.split_name('frank smith')\nThis article is similar to one I wrote about installing node modules from github\u2026\n\nPython\n\nGithub\n\nPip\n\nPython Packages\n\n[](\n\n132\n\n[](\n\n132\n\n3\n\n[](\n\n[](\n\nImage 4: lindsay\n\nImage 5: lindsay\n\nFollow\n\n## Written by lindsay\n\n49 followers\n\n\u00b710 following [...] \u00b710 following\n\nthis is becoming a place i list TIL\u2026 twitter: @lynzt\n\nFollow\n\nHelp\n\nStatus\n\nAbout\n\nCareers\n\nPress\n\nBlog\n\nStore\n\nPrivacy\n\nRules\n\nTerms\n\nText to speech"
+        },
+        {
+          "number": 5,
+          "title": "GitHub - pypa/pip: The Python package installer \u00b7 GitHub",
+          "url": "https://github.com/pypa/pip",
+          "content": "If you find bugs, need help, or want to talk to the developers, please use our mailing lists or chat rooms:\n\nIf you want to get involved, head over to GitHub to get the source code, look at our development documentation and feel free to jump on the developer mailing lists and chat rooms:\n\n## Code of Conduct\n\nEveryone interacting in the pip project's codebases, issue trackers, chat\nrooms, and mailing lists is expected to follow the PSF Code of Conduct.\n\n## About\n\nThe Python package installer [...] ## Repository files navigation\n\n# pip - The Python Package Installer\n\nPyPI PyPI - Python Version Documentation\n\nPyPI\nPyPI - Python Version\nDocumentation\n\nPip is the package installer for Python. You can use pip to install packages from the Python Package Index and other indexes.\n\nPlease take a look at our documentation for how to install and use pip:\n\nWe release updates regularly, with a new version every 3 months. Find more details in our documentation: [...] | Name | | Name | Last commit message | Last commit date |\n ---  --- \n| .devcontainer | | .devcontainer |  |  |\n| .github | | .github |  |  |\n| build-project | | build-project |  |  |\n| docs | | docs |  |  |\n| news | | news |  |  |\n| src/pip | | src/pip |  |  |\n| tests | | tests |  |  |\n| tools | | tools |  |  |\n| .git-blame-ignore-revs | | .git-blame-ignore-revs |  |  |\n| .gitattributes | | .gitattributes |  |  |\n| .gitignore | | .gitignore |  |  |\n| .mailmap | | .mailmap |  |  |"
+        },
+        {
+          "number": 6,
+          "title": "tkinter-python \u00b7 GitHub Topics \u00b7 GitHub",
+          "url": "https://github.com/topics/tkinter-python?l=javascript&o=desc&s=forks",
+          "content": "## Navigation Menu\n\n# tkinter-python\n\n## Here are 8 public repositories matching this topic...\n\n### rahisenpai / med-ease\n\nCourse Project for DBMS (CSE202) at IIITD, Winter'24\n\n### AM1CODES / The-Tkinter-Guide\n\nThis is a Simple Web application that will help you learn Tkinter, the library used for making GUI using Python.\n\n### himanshukumaaar / Crypto-Currency-Converter [...] Unos peque\u00f1os apuntes sobre la creaci\u00f3n de GUIs con Tkinter en Python, centrados en el uso de grid\n\n## Add this topic to your repo\n\nTo associate your repository with the\ntkinter-python\ntopic, visit your repo's landing page and select \"manage topics.\"\n\nLearn more\n\n## Footer\n\n### Footer navigation [...] This project focused on implementing Huffman coding, a popular algorithm used for lossless data compression. Huffman coding assigns variable-length codes to input characters based on their frequencies, ensuring that more frequent characters have shorter codes. This results in efficient compression of data.\n\n### njNafir / api-with-exe-file-from-website\n\nCRUD method for website api control from a desktop exe file created by tk ttk, response\n\n### OscarMaestre / python3contkinter"
+        },
+        {
+          "number": 7,
+          "title": "python-tkinter-gui \u00b7 GitHub Topics \u00b7 GitHub",
+          "url": "https://github.com/topics/python-tkinter-gui",
+          "content": "Updated Jun 14, 2022\n Python\n\n### pavleen14 / Fun-with-Python\n\nStar  2\n\nThis repository has some basic games created using Python, along with some creative stuff made using Tkinter & Turtle Graphics. Update : Mar 17, 2023 Adding JenkinsFile to this Repo, trying out MultiBranch Pipeline!\n\njenkins python3 jenkinsfile turtle-graphics multibranch tkinter-graphic-interface turtle-python tkinter-gui python-tkinter-gui python-tkinter-series multibranchpipeline\n\n Updated Mar 18, 2023\n Python [...] To associate your repository with the python-tkinter-gui topic, visit your repo's landing page and select \"manage topics.\"\n\nLearn more\n\nYou can\u2019t perform that action at this time. [...] python python3 tkinter python-tkinter tkinter-graphic-interface tkinter-widgets tkinter-gui tkinter-python tkinter-library tkinter-toolkit python-tkinter-application tkinter-gui-library python-tkinter-framework python-tkinter-gui tkinter-framework tkinter-applications customtkinter\n\n Updated May 23, 2025\n Python\n\n### ashu1230 / Billing\\_system\n\nStar  12"
+        },
+        {
+          "number": 8,
+          "title": "GitHub - ParthJadhav/Tkinter-Designer: An easy and fast way to create a Python GUI \ud83d\udc0d \u00b7 GitHub",
+          "url": "https://github.com/parthjadhav/tkinter-designer",
+          "content": "## About\n\nAn easy and fast way to create a Python GUI \ud83d\udc0d\n\n### Topics\n\nautomaticcollaboratedrag-and-dropeasyeasy-to-usefastfigmaguigui-applicationhacktoberfestlearnpythonpython-scriptpython3tkintertkinter-designertkinter-graphic-interfacetkinter-guitkinter-pythontkinter-widgets\n\n### Resources\n\nBSD-3-Clause license\n\n### Code of conduct\n\nCode of conduct\n\n### Contributing\n\n### Stars\n\n10.3k stars\n\n### Watchers\n\n99 watching\n\n### Forks\n\n931 forks\n\nReport repository\n\n## Sponsor this project\n\n## Used by [...] | Name | Name | Last commit message | Last commit date |\n ---  --- |\n| .github | .github |  |  |\n| docs | docs |  |  |\n| gui | gui |  |  |\n| tests | tests |  |  |\n| tkdesigner | tkdesigner |  |  |\n| .dockerignore | .dockerignore |  |  |\n| .flake8 | .flake8 |  |  |\n| .gitignore | .gitignore |  |  |\n| CODE\\_OF\\_CONDUCT.md | CODE\\_OF\\_CONDUCT.md |  |  |\n| Dockerfile | Dockerfile |  |  |\n| LEARN.md | LEARN.md |  |  |\n| LICENSE | LICENSE |  |  |\n| Makefile | Makefile |  |  |"
+        },
+        {
+          "number": 9,
+          "title": "tkinter-python \u00b7 GitHub Topics \u00b7 GitHub",
+          "url": "https://github.com/topics/tkinter-python",
+          "content": "python bot gui selenium python3 whatsapp tkinter python-3 selenium-webdriver whatsapp-web whatsapp-bot tkinter-graphic-interface selenium-tests whatsapp-api whatsapp-chat selenium-python python-selenium tkinter-gui tkinter-python tkinter-library\n\n Updated Mar 13, 2024\n Python\n\n### ragardner / tksheet\n\nStar  503\n\nPython tkinter table and treeview widget\n\npython data tree tree-widget table python3 tk tkinter sheet treeview tkinter-graphic-interface tkinter-widgets tkinter-gui tkinter-python [...] Star  360\n\nExplore all modern tkinter widget libraries and helpful tools! (Including customtkinter)\n\npython python3 tkinter python-tkinter tkinter-graphic-interface tkinter-widgets tkinter-gui tkinter-python tkinter-library tkinter-toolkit python-tkinter-application tkinter-gui-library python-tkinter-framework python-tkinter-gui tkinter-framework tkinter-applications customtkinter\n\n Updated May 23, 2025\n Python\n\n### edoardogerosa / pockint\n\nStar  285 [...] Star  169\n\nRestaurant-Management-System in python(tkinter) , GUI based project for college students in python using module tkinter, Based on new boston tutorials with some added tabs and functions.\n\npython python3 tkinter tkinter-graphic-interface tkinter-python\n\n Updated Apr 27, 2024\n Python\n\nTkNodeSystem\n\n### Akascape / TkNodeSystem\n\nStar  159\n\nCreate visual node-based UI with Tkinter!"
+        },
+        {
+          "number": 10,
+          "title": "tkinter \u00b7 GitHub Topics \u00b7 GitHub",
+          "url": "https://github.com/topics/tkinter?l=jupyter+notebook&o=asc&s=stars",
+          "content": "### MS-32154 / flextabs\n\nA flexible and extensible tab manager widget for tkinter applications built on top of ttk.Notebook\n\n### Patynesa / Anotador\n\nPeque\u00f1o block de notas hecho con python3 y tkinter\n\n### Laurentius96 / IA-Colab\\_Preparation\\_Agent [...] ## Navigation Menu\n\n# tkinter\n\n## Here are 27 public repositories matching this topic...\n\n### ThePisanzer / Notebook\n\nA lightweight note-taking app built with Python and CustomTkinter, using SQLite for storage. My first complete Python project.\n\n### IA-0 / notebooklm-file-collector\n\nPython desktop app with GUI to collect, filter and organize NotebookLM-compatible files from any folder and subfolders.\n\n### C295-oss / personal-project---Notebook"
+        }
+      ],
+      "reason_no_citation": "The fix is based solely on the error message and the known fact that python3-tk is a Debian/Ubuntu system package, not a PyPI package.",
+      "candidate": 1
+    },
+    {
+      "attempt_number": 3,
+      "diff_text": "",
+      "gate_decision": "DECLINED",
+      "gate_violations": [],
+      "exit_code": null,
+      "stdout_tail": "",
+      "stderr_tail": "",
+      "tavily_sources": [],
+      "env_delta": [],
+      "resolved_sources": [],
+      "origin": "model",
+      "time_machine": null,
+      "consulted": [
+        {
+          "number": 1,
+          "title": "<SOLVED> pyenv python install tkinter - Linux Mint Forums",
+          "url": "https://forums.linuxmint.com/viewtopic.php?t=420965",
+          "content": "I do not have a solution to your problem, but be aware that `tk` on PyPI refers to a 4-year-old version of TensorKit that links to a defunct GitHub page.  \n   \n If you were working with your system Python, you could install the repository package `python3-tk`, but this would not be for Python 3.12. I have not looked in-depth, but it appears that installing specific versions of `tkinter` in a Python environment may not be trivial.\n\nTop [...] Top\n\nUser avatar spamegg\n:   Level 18  \n    Level 18\n:   Posts: 8725\n:   Joined: Mon Oct 28, 2019 2:34 am\n:   Contact:\n\n    Contact spamegg \n\n    Website\n\n### Re: pyenv python install tkinter\n\nPost  by spamegg \u00bb\n\nThat's bizarre. I don't know what else to do.  \n It might be a VS Code problem, maybe?  \n   \n Try:\n\nCode: Select all\n\n```\napt install python3-tk \n```\n\nTop\n\nUser avatar spamegg\n:   Level 18  \n    Level 18\n:   Posts: 8725\n:   Joined: Mon Oct 28, 2019 2:34 am\n:   Contact: [...] Code: Select all\n\n```\ngilles@Gil-Linux:~$ pip install tk Requirement already satisfied: tk in ./.pyenv/versions/3.12.3/lib/python3.12/site-packages (0.1.0) gilles@Gil-Linux:~$ \n```\n\nBut when I launch VS Code with the .py file being just the line \"import tkinter\", I get this message in VSC :  \n Image"
+        },
+        {
+          "number": 2,
+          "title": "tkinter-python \u00b7 GitHub Topics \u00b7 GitHub",
+          "url": "https://github.com/topics/tkinter-python",
+          "content": "python bot gui selenium python3 whatsapp tkinter python-3 selenium-webdriver whatsapp-web whatsapp-bot tkinter-graphic-interface selenium-tests whatsapp-api whatsapp-chat selenium-python python-selenium tkinter-gui tkinter-python tkinter-library\n\n Updated Mar 13, 2024\n Python\n\n### ragardner / tksheet\n\nStar  503\n\nPython tkinter table and treeview widget\n\npython data tree tree-widget table python3 tk tkinter sheet treeview tkinter-graphic-interface tkinter-widgets tkinter-gui tkinter-python [...] Star  360\n\nExplore all modern tkinter widget libraries and helpful tools! (Including customtkinter)\n\npython python3 tkinter python-tkinter tkinter-graphic-interface tkinter-widgets tkinter-gui tkinter-python tkinter-library tkinter-toolkit python-tkinter-application tkinter-gui-library python-tkinter-framework python-tkinter-gui tkinter-framework tkinter-applications customtkinter\n\n Updated May 23, 2025\n Python\n\n### edoardogerosa / pockint\n\nStar  285 [...] python ui-design gui drag-and-drop python3 tkinter learn easy gui-library figma ui-designer tkinter-graphic-interface tkinter-gui tkinter-python hecktoberfest tkinter-designer customtkinter customtkinter-widgets customtkinterprojects buildfy\n\n Updated Jan 19, 2025\n\n### amark23 / Restaurant-Management-System-Python-\n\nStar  169"
+        },
+        {
+          "number": 3,
+          "title": "tkinter \u2014 Python interface to Tcl/Tk",
+          "url": "https://docs.python.org/3/library/tkinter.html",
+          "content": "Tk\n:   Tk is a Tcl package implemented in C that adds custom commands to create and manipulate GUI widgets. Each `Tk` object embeds its own Tcl interpreter instance with Tk loaded into it. Tk\u2019s widgets are very customizable, though at the cost of a dated appearance. Tk uses Tcl\u2019s event queue to generate and process GUI events. [...] The `tkinter` package (\u201cTk interface\u201d) is the standard Python interface to the Tcl/Tk GUI toolkit. Both Tk and `tkinter` are available on most Unix platforms, including macOS, as well as on Windows systems. [...] #### Previous topic\n\nGraphical user interfaces with Tk\n\n#### Next topic\n\n`tkinter.colorchooser` \u2014 Color choosing dialog\n\n### This page\n\n Report a bug\n Improve this page\n Show source\n\n### Navigation\n\n index\n modules |\n next |\n previous |\n Python \u00bb\n\n 3.14.8 Documentation \u00bb\n The Python standard library \u00bb\n Graphical user interfaces with Tk \u00bb\n `tkinter` \u2014 Python interface to Tcl/Tk\n |\n Theme  Auto Light Dark   |\n\n# `tkinter` \u2014 Python interface to Tcl/Tk\u00b6\n\nSource code: Lib/tkinter/\\_\\_init\\_\\_.py"
+        },
+        {
+          "number": 4,
+          "title": "install python packages from github",
+          "url": "https://medium.com/@lynzt/install-python-packages-from-github-5866d234c4e4",
+          "content": "## Importing the package from github\n\nSo now I have a python package on github and want to pull it into my project without submitting it to the official Python Package Index. First step, install git on my virtual machine (else it won\u2019t work and you\u2019ll get an error).\n\nsudo apt-get update  \nsudo apt-get install git\nThen pip install from github. You can add the --update flag if you make changes to your package and need the latest version of the package. In this case, I ran: [...] pip install --upgrade git+git://github.com/lynzt/python_people_names.git\nThen to use the package in the project, import & use:\n\nfrom people_names import people_namesnames = people_names.split_name('frank smith')\nThis article is similar to one I wrote about installing node modules from github\u2026\n\nPython\n\nGithub\n\nPip\n\nPython Packages\n\n[](\n\n132\n\n[](\n\n132\n\n3\n\n[](\n\n[](\n\nImage 4: lindsay\n\nImage 5: lindsay\n\nFollow\n\n## Written by lindsay\n\n49 followers\n\n\u00b710 following [...] \u00b710 following\n\nthis is becoming a place i list TIL\u2026 twitter: @lynzt\n\nFollow\n\nHelp\n\nStatus\n\nAbout\n\nCareers\n\nPress\n\nBlog\n\nStore\n\nPrivacy\n\nRules\n\nTerms\n\nText to speech"
+        },
+        {
+          "number": 5,
+          "title": "GitHub - pypa/pip: The Python package installer \u00b7 GitHub",
+          "url": "https://github.com/pypa/pip",
+          "content": "If you find bugs, need help, or want to talk to the developers, please use our mailing lists or chat rooms:\n\nIf you want to get involved, head over to GitHub to get the source code, look at our development documentation and feel free to jump on the developer mailing lists and chat rooms:\n\n## Code of Conduct\n\nEveryone interacting in the pip project's codebases, issue trackers, chat\nrooms, and mailing lists is expected to follow the PSF Code of Conduct.\n\n## About\n\nThe Python package installer [...] ## Repository files navigation\n\n# pip - The Python Package Installer\n\nPyPI PyPI - Python Version Documentation\n\nPyPI\nPyPI - Python Version\nDocumentation\n\nPip is the package installer for Python. You can use pip to install packages from the Python Package Index and other indexes.\n\nPlease take a look at our documentation for how to install and use pip:\n\nWe release updates regularly, with a new version every 3 months. Find more details in our documentation: [...] | Name | | Name | Last commit message | Last commit date |\n ---  --- \n| .devcontainer | | .devcontainer |  |  |\n| .github | | .github |  |  |\n| build-project | | build-project |  |  |\n| docs | | docs |  |  |\n| news | | news |  |  |\n| src/pip | | src/pip |  |  |\n| tests | | tests |  |  |\n| tools | | tools |  |  |\n| .git-blame-ignore-revs | | .git-blame-ignore-revs |  |  |\n| .gitattributes | | .gitattributes |  |  |\n| .gitignore | | .gitignore |  |  |\n| .mailmap | | .mailmap |  |  |"
+        },
+        {
+          "number": 6,
+          "title": "tkinter-python \u00b7 GitHub Topics \u00b7 GitHub",
+          "url": "https://github.com/topics/tkinter-python?l=javascript&o=desc&s=forks",
+          "content": "## Navigation Menu\n\n# tkinter-python\n\n## Here are 8 public repositories matching this topic...\n\n### rahisenpai / med-ease\n\nCourse Project for DBMS (CSE202) at IIITD, Winter'24\n\n### AM1CODES / The-Tkinter-Guide\n\nThis is a Simple Web application that will help you learn Tkinter, the library used for making GUI using Python.\n\n### himanshukumaaar / Crypto-Currency-Converter [...] Unos peque\u00f1os apuntes sobre la creaci\u00f3n de GUIs con Tkinter en Python, centrados en el uso de grid\n\n## Add this topic to your repo\n\nTo associate your repository with the\ntkinter-python\ntopic, visit your repo's landing page and select \"manage topics.\"\n\nLearn more\n\n## Footer\n\n### Footer navigation [...] This project focused on implementing Huffman coding, a popular algorithm used for lossless data compression. Huffman coding assigns variable-length codes to input characters based on their frequencies, ensuring that more frequent characters have shorter codes. This results in efficient compression of data.\n\n### njNafir / api-with-exe-file-from-website\n\nCRUD method for website api control from a desktop exe file created by tk ttk, response\n\n### OscarMaestre / python3contkinter"
+        },
+        {
+          "number": 7,
+          "title": "python-tkinter-gui \u00b7 GitHub Topics \u00b7 GitHub",
+          "url": "https://github.com/topics/python-tkinter-gui",
+          "content": "Updated Jun 14, 2022\n Python\n\n### pavleen14 / Fun-with-Python\n\nStar  2\n\nThis repository has some basic games created using Python, along with some creative stuff made using Tkinter & Turtle Graphics. Update : Mar 17, 2023 Adding JenkinsFile to this Repo, trying out MultiBranch Pipeline!\n\njenkins python3 jenkinsfile turtle-graphics multibranch tkinter-graphic-interface turtle-python tkinter-gui python-tkinter-gui python-tkinter-series multibranchpipeline\n\n Updated Mar 18, 2023\n Python [...] To associate your repository with the python-tkinter-gui topic, visit your repo's landing page and select \"manage topics.\"\n\nLearn more\n\nYou can\u2019t perform that action at this time. [...] python python3 tkinter python-tkinter tkinter-graphic-interface tkinter-widgets tkinter-gui tkinter-python tkinter-library tkinter-toolkit python-tkinter-application tkinter-gui-library python-tkinter-framework python-tkinter-gui tkinter-framework tkinter-applications customtkinter\n\n Updated May 23, 2025\n Python\n\n### ashu1230 / Billing\\_system\n\nStar  12"
+        },
+        {
+          "number": 8,
+          "title": "GitHub - ParthJadhav/Tkinter-Designer: An easy and fast way to create a Python GUI \ud83d\udc0d \u00b7 GitHub",
+          "url": "https://github.com/parthjadhav/tkinter-designer",
+          "content": "## About\n\nAn easy and fast way to create a Python GUI \ud83d\udc0d\n\n### Topics\n\nautomaticcollaboratedrag-and-dropeasyeasy-to-usefastfigmaguigui-applicationhacktoberfestlearnpythonpython-scriptpython3tkintertkinter-designertkinter-graphic-interfacetkinter-guitkinter-pythontkinter-widgets\n\n### Resources\n\nBSD-3-Clause license\n\n### Code of conduct\n\nCode of conduct\n\n### Contributing\n\n### Stars\n\n10.3k stars\n\n### Watchers\n\n99 watching\n\n### Forks\n\n931 forks\n\nReport repository\n\n## Sponsor this project\n\n## Used by [...] | Name | Name | Last commit message | Last commit date |\n ---  --- |\n| .github | .github |  |  |\n| docs | docs |  |  |\n| gui | gui |  |  |\n| tests | tests |  |  |\n| tkdesigner | tkdesigner |  |  |\n| .dockerignore | .dockerignore |  |  |\n| .flake8 | .flake8 |  |  |\n| .gitignore | .gitignore |  |  |\n| CODE\\_OF\\_CONDUCT.md | CODE\\_OF\\_CONDUCT.md |  |  |\n| Dockerfile | Dockerfile |  |  |\n| LEARN.md | LEARN.md |  |  |\n| LICENSE | LICENSE |  |  |\n| Makefile | Makefile |  |  |"
+        },
+        {
+          "number": 9,
+          "title": "tkinter-python \u00b7 GitHub Topics \u00b7 GitHub",
+          "url": "https://github.com/topics/tkinter-python",
+          "content": "python bot gui selenium python3 whatsapp tkinter python-3 selenium-webdriver whatsapp-web whatsapp-bot tkinter-graphic-interface selenium-tests whatsapp-api whatsapp-chat selenium-python python-selenium tkinter-gui tkinter-python tkinter-library\n\n Updated Mar 13, 2024\n Python\n\n### ragardner / tksheet\n\nStar  503\n\nPython tkinter table and treeview widget\n\npython data tree tree-widget table python3 tk tkinter sheet treeview tkinter-graphic-interface tkinter-widgets tkinter-gui tkinter-python [...] Star  360\n\nExplore all modern tkinter widget libraries and helpful tools! (Including customtkinter)\n\npython python3 tkinter python-tkinter tkinter-graphic-interface tkinter-widgets tkinter-gui tkinter-python tkinter-library tkinter-toolkit python-tkinter-application tkinter-gui-library python-tkinter-framework python-tkinter-gui tkinter-framework tkinter-applications customtkinter\n\n Updated May 23, 2025\n Python\n\n### edoardogerosa / pockint\n\nStar  285 [...] Star  169\n\nRestaurant-Management-System in python(tkinter) , GUI based project for college students in python using module tkinter, Based on new boston tutorials with some added tabs and functions.\n\npython python3 tkinter tkinter-graphic-interface tkinter-python\n\n Updated Apr 27, 2024\n Python\n\nTkNodeSystem\n\n### Akascape / TkNodeSystem\n\nStar  159\n\nCreate visual node-based UI with Tkinter!"
+        },
+        {
+          "number": 10,
+          "title": "tkinter \u00b7 GitHub Topics \u00b7 GitHub",
+          "url": "https://github.com/topics/tkinter?l=jupyter+notebook&o=asc&s=stars",
+          "content": "### MS-32154 / flextabs\n\nA flexible and extensible tab manager widget for tkinter applications built on top of ttk.Notebook\n\n### Patynesa / Anotador\n\nPeque\u00f1o block de notas hecho con python3 y tkinter\n\n### Laurentius96 / IA-Colab\\_Preparation\\_Agent [...] ## Navigation Menu\n\n# tkinter\n\n## Here are 27 public repositories matching this topic...\n\n### ThePisanzer / Notebook\n\nA lightweight note-taking app built with Python and CustomTkinter, using SQLite for storage. My first complete Python project.\n\n### IA-0 / notebooklm-file-collector\n\nPython desktop app with GUI to collect, filter and organize NotebookLM-compatible files from any folder and subfolders.\n\n### C295-oss / personal-project---Notebook"
+        }
+      ],
+      "candidate": 2
+    },
+    {
+      "attempt_number": 3,
+      "diff_text": "",
+      "gate_decision": "DECLINED",
+      "gate_violations": [],
+      "exit_code": null,
+      "stdout_tail": "",
+      "stderr_tail": "",
+      "tavily_sources": [],
+      "env_delta": [],
+      "resolved_sources": [],
+      "origin": "model",
+      "time_machine": null,
+      "consulted": [
+        {
+          "number": 1,
+          "title": "<SOLVED> pyenv python install tkinter - Linux Mint Forums",
+          "url": "https://forums.linuxmint.com/viewtopic.php?t=420965",
+          "content": "I do not have a solution to your problem, but be aware that `tk` on PyPI refers to a 4-year-old version of TensorKit that links to a defunct GitHub page.  \n   \n If you were working with your system Python, you could install the repository package `python3-tk`, but this would not be for Python 3.12. I have not looked in-depth, but it appears that installing specific versions of `tkinter` in a Python environment may not be trivial.\n\nTop [...] Top\n\nUser avatar spamegg\n:   Level 18  \n    Level 18\n:   Posts: 8725\n:   Joined: Mon Oct 28, 2019 2:34 am\n:   Contact:\n\n    Contact spamegg \n\n    Website\n\n### Re: pyenv python install tkinter\n\nPost  by spamegg \u00bb\n\nThat's bizarre. I don't know what else to do.  \n It might be a VS Code problem, maybe?  \n   \n Try:\n\nCode: Select all\n\n```\napt install python3-tk \n```\n\nTop\n\nUser avatar spamegg\n:   Level 18  \n    Level 18\n:   Posts: 8725\n:   Joined: Mon Oct 28, 2019 2:34 am\n:   Contact: [...] Code: Select all\n\n```\ngilles@Gil-Linux:~$ pip install tk Requirement already satisfied: tk in ./.pyenv/versions/3.12.3/lib/python3.12/site-packages (0.1.0) gilles@Gil-Linux:~$ \n```\n\nBut when I launch VS Code with the .py file being just the line \"import tkinter\", I get this message in VSC :  \n Image"
+        },
+        {
+          "number": 2,
+          "title": "tkinter-python \u00b7 GitHub Topics \u00b7 GitHub",
+          "url": "https://github.com/topics/tkinter-python",
+          "content": "python bot gui selenium python3 whatsapp tkinter python-3 selenium-webdriver whatsapp-web whatsapp-bot tkinter-graphic-interface selenium-tests whatsapp-api whatsapp-chat selenium-python python-selenium tkinter-gui tkinter-python tkinter-library\n\n Updated Mar 13, 2024\n Python\n\n### ragardner / tksheet\n\nStar  503\n\nPython tkinter table and treeview widget\n\npython data tree tree-widget table python3 tk tkinter sheet treeview tkinter-graphic-interface tkinter-widgets tkinter-gui tkinter-python [...] Star  360\n\nExplore all modern tkinter widget libraries and helpful tools! (Including customtkinter)\n\npython python3 tkinter python-tkinter tkinter-graphic-interface tkinter-widgets tkinter-gui tkinter-python tkinter-library tkinter-toolkit python-tkinter-application tkinter-gui-library python-tkinter-framework python-tkinter-gui tkinter-framework tkinter-applications customtkinter\n\n Updated May 23, 2025\n Python\n\n### edoardogerosa / pockint\n\nStar  285 [...] python ui-design gui drag-and-drop python3 tkinter learn easy gui-library figma ui-designer tkinter-graphic-interface tkinter-gui tkinter-python hecktoberfest tkinter-designer customtkinter customtkinter-widgets customtkinterprojects buildfy\n\n Updated Jan 19, 2025\n\n### amark23 / Restaurant-Management-System-Python-\n\nStar  169"
+        },
+        {
+          "number": 3,
+          "title": "tkinter \u2014 Python interface to Tcl/Tk",
+          "url": "https://docs.python.org/3/library/tkinter.html",
+          "content": "Tk\n:   Tk is a Tcl package implemented in C that adds custom commands to create and manipulate GUI widgets. Each `Tk` object embeds its own Tcl interpreter instance with Tk loaded into it. Tk\u2019s widgets are very customizable, though at the cost of a dated appearance. Tk uses Tcl\u2019s event queue to generate and process GUI events. [...] The `tkinter` package (\u201cTk interface\u201d) is the standard Python interface to the Tcl/Tk GUI toolkit. Both Tk and `tkinter` are available on most Unix platforms, including macOS, as well as on Windows systems. [...] #### Previous topic\n\nGraphical user interfaces with Tk\n\n#### Next topic\n\n`tkinter.colorchooser` \u2014 Color choosing dialog\n\n### This page\n\n Report a bug\n Improve this page\n Show source\n\n### Navigation\n\n index\n modules |\n next |\n previous |\n Python \u00bb\n\n 3.14.8 Documentation \u00bb\n The Python standard library \u00bb\n Graphical user interfaces with Tk \u00bb\n `tkinter` \u2014 Python interface to Tcl/Tk\n |\n Theme  Auto Light Dark   |\n\n# `tkinter` \u2014 Python interface to Tcl/Tk\u00b6\n\nSource code: Lib/tkinter/\\_\\_init\\_\\_.py"
+        },
+        {
+          "number": 4,
+          "title": "install python packages from github",
+          "url": "https://medium.com/@lynzt/install-python-packages-from-github-5866d234c4e4",
+          "content": "## Importing the package from github\n\nSo now I have a python package on github and want to pull it into my project without submitting it to the official Python Package Index. First step, install git on my virtual machine (else it won\u2019t work and you\u2019ll get an error).\n\nsudo apt-get update  \nsudo apt-get install git\nThen pip install from github. You can add the --update flag if you make changes to your package and need the latest version of the package. In this case, I ran: [...] pip install --upgrade git+git://github.com/lynzt/python_people_names.git\nThen to use the package in the project, import & use:\n\nfrom people_names import people_namesnames = people_names.split_name('frank smith')\nThis article is similar to one I wrote about installing node modules from github\u2026\n\nPython\n\nGithub\n\nPip\n\nPython Packages\n\n[](\n\n132\n\n[](\n\n132\n\n3\n\n[](\n\n[](\n\nImage 4: lindsay\n\nImage 5: lindsay\n\nFollow\n\n## Written by lindsay\n\n49 followers\n\n\u00b710 following [...] \u00b710 following\n\nthis is becoming a place i list TIL\u2026 twitter: @lynzt\n\nFollow\n\nHelp\n\nStatus\n\nAbout\n\nCareers\n\nPress\n\nBlog\n\nStore\n\nPrivacy\n\nRules\n\nTerms\n\nText to speech"
+        },
+        {
+          "number": 5,
+          "title": "GitHub - pypa/pip: The Python package installer \u00b7 GitHub",
+          "url": "https://github.com/pypa/pip",
+          "content": "If you find bugs, need help, or want to talk to the developers, please use our mailing lists or chat rooms:\n\nIf you want to get involved, head over to GitHub to get the source code, look at our development documentation and feel free to jump on the developer mailing lists and chat rooms:\n\n## Code of Conduct\n\nEveryone interacting in the pip project's codebases, issue trackers, chat\nrooms, and mailing lists is expected to follow the PSF Code of Conduct.\n\n## About\n\nThe Python package installer [...] ## Repository files navigation\n\n# pip - The Python Package Installer\n\nPyPI PyPI - Python Version Documentation\n\nPyPI\nPyPI - Python Version\nDocumentation\n\nPip is the package installer for Python. You can use pip to install packages from the Python Package Index and other indexes.\n\nPlease take a look at our documentation for how to install and use pip:\n\nWe release updates regularly, with a new version every 3 months. Find more details in our documentation: [...] | Name | | Name | Last commit message | Last commit date |\n ---  --- \n| .devcontainer | | .devcontainer |  |  |\n| .github | | .github |  |  |\n| build-project | | build-project |  |  |\n| docs | | docs |  |  |\n| news | | news |  |  |\n| src/pip | | src/pip |  |  |\n| tests | | tests |  |  |\n| tools | | tools |  |  |\n| .git-blame-ignore-revs | | .git-blame-ignore-revs |  |  |\n| .gitattributes | | .gitattributes |  |  |\n| .gitignore | | .gitignore |  |  |\n| .mailmap | | .mailmap |  |  |"
+        },
+        {
+          "number": 6,
+          "title": "tkinter-python \u00b7 GitHub Topics \u00b7 GitHub",
+          "url": "https://github.com/topics/tkinter-python?l=javascript&o=desc&s=forks",
+          "content": "## Navigation Menu\n\n# tkinter-python\n\n## Here are 8 public repositories matching this topic...\n\n### rahisenpai / med-ease\n\nCourse Project for DBMS (CSE202) at IIITD, Winter'24\n\n### AM1CODES / The-Tkinter-Guide\n\nThis is a Simple Web application that will help you learn Tkinter, the library used for making GUI using Python.\n\n### himanshukumaaar / Crypto-Currency-Converter [...] Unos peque\u00f1os apuntes sobre la creaci\u00f3n de GUIs con Tkinter en Python, centrados en el uso de grid\n\n## Add this topic to your repo\n\nTo associate your repository with the\ntkinter-python\ntopic, visit your repo's landing page and select \"manage topics.\"\n\nLearn more\n\n## Footer\n\n### Footer navigation [...] This project focused on implementing Huffman coding, a popular algorithm used for lossless data compression. Huffman coding assigns variable-length codes to input characters based on their frequencies, ensuring that more frequent characters have shorter codes. This results in efficient compression of data.\n\n### njNafir / api-with-exe-file-from-website\n\nCRUD method for website api control from a desktop exe file created by tk ttk, response\n\n### OscarMaestre / python3contkinter"
+        },
+        {
+          "number": 7,
+          "title": "python-tkinter-gui \u00b7 GitHub Topics \u00b7 GitHub",
+          "url": "https://github.com/topics/python-tkinter-gui",
+          "content": "Updated Jun 14, 2022\n Python\n\n### pavleen14 / Fun-with-Python\n\nStar  2\n\nThis repository has some basic games created using Python, along with some creative stuff made using Tkinter & Turtle Graphics. Update : Mar 17, 2023 Adding JenkinsFile to this Repo, trying out MultiBranch Pipeline!\n\njenkins python3 jenkinsfile turtle-graphics multibranch tkinter-graphic-interface turtle-python tkinter-gui python-tkinter-gui python-tkinter-series multibranchpipeline\n\n Updated Mar 18, 2023\n Python [...] To associate your repository with the python-tkinter-gui topic, visit your repo's landing page and select \"manage topics.\"\n\nLearn more\n\nYou can\u2019t perform that action at this time. [...] python python3 tkinter python-tkinter tkinter-graphic-interface tkinter-widgets tkinter-gui tkinter-python tkinter-library tkinter-toolkit python-tkinter-application tkinter-gui-library python-tkinter-framework python-tkinter-gui tkinter-framework tkinter-applications customtkinter\n\n Updated May 23, 2025\n Python\n\n### ashu1230 / Billing\\_system\n\nStar  12"
+        },
+        {
+          "number": 8,
+          "title": "GitHub - ParthJadhav/Tkinter-Designer: An easy and fast way to create a Python GUI \ud83d\udc0d \u00b7 GitHub",
+          "url": "https://github.com/parthjadhav/tkinter-designer",
+          "content": "## About\n\nAn easy and fast way to create a Python GUI \ud83d\udc0d\n\n### Topics\n\nautomaticcollaboratedrag-and-dropeasyeasy-to-usefastfigmaguigui-applicationhacktoberfestlearnpythonpython-scriptpython3tkintertkinter-designertkinter-graphic-interfacetkinter-guitkinter-pythontkinter-widgets\n\n### Resources\n\nBSD-3-Clause license\n\n### Code of conduct\n\nCode of conduct\n\n### Contributing\n\n### Stars\n\n10.3k stars\n\n### Watchers\n\n99 watching\n\n### Forks\n\n931 forks\n\nReport repository\n\n## Sponsor this project\n\n## Used by [...] | Name | Name | Last commit message | Last commit date |\n ---  --- |\n| .github | .github |  |  |\n| docs | docs |  |  |\n| gui | gui |  |  |\n| tests | tests |  |  |\n| tkdesigner | tkdesigner |  |  |\n| .dockerignore | .dockerignore |  |  |\n| .flake8 | .flake8 |  |  |\n| .gitignore | .gitignore |  |  |\n| CODE\\_OF\\_CONDUCT.md | CODE\\_OF\\_CONDUCT.md |  |  |\n| Dockerfile | Dockerfile |  |  |\n| LEARN.md | LEARN.md |  |  |\n| LICENSE | LICENSE |  |  |\n| Makefile | Makefile |  |  |"
+        },
+        {
+          "number": 9,
+          "title": "tkinter-python \u00b7 GitHub Topics \u00b7 GitHub",
+          "url": "https://github.com/topics/tkinter-python",
+          "content": "python bot gui selenium python3 whatsapp tkinter python-3 selenium-webdriver whatsapp-web whatsapp-bot tkinter-graphic-interface selenium-tests whatsapp-api whatsapp-chat selenium-python python-selenium tkinter-gui tkinter-python tkinter-library\n\n Updated Mar 13, 2024\n Python\n\n### ragardner / tksheet\n\nStar  503\n\nPython tkinter table and treeview widget\n\npython data tree tree-widget table python3 tk tkinter sheet treeview tkinter-graphic-interface tkinter-widgets tkinter-gui tkinter-python [...] Star  360\n\nExplore all modern tkinter widget libraries and helpful tools! (Including customtkinter)\n\npython python3 tkinter python-tkinter tkinter-graphic-interface tkinter-widgets tkinter-gui tkinter-python tkinter-library tkinter-toolkit python-tkinter-application tkinter-gui-library python-tkinter-framework python-tkinter-gui tkinter-framework tkinter-applications customtkinter\n\n Updated May 23, 2025\n Python\n\n### edoardogerosa / pockint\n\nStar  285 [...] Star  169\n\nRestaurant-Management-System in python(tkinter) , GUI based project for college students in python using module tkinter, Based on new boston tutorials with some added tabs and functions.\n\npython python3 tkinter tkinter-graphic-interface tkinter-python\n\n Updated Apr 27, 2024\n Python\n\nTkNodeSystem\n\n### Akascape / TkNodeSystem\n\nStar  159\n\nCreate visual node-based UI with Tkinter!"
+        },
+        {
+          "number": 10,
+          "title": "tkinter \u00b7 GitHub Topics \u00b7 GitHub",
+          "url": "https://github.com/topics/tkinter?l=jupyter+notebook&o=asc&s=stars",
+          "content": "### MS-32154 / flextabs\n\nA flexible and extensible tab manager widget for tkinter applications built on top of ttk.Notebook\n\n### Patynesa / Anotador\n\nPeque\u00f1o block de notas hecho con python3 y tkinter\n\n### Laurentius96 / IA-Colab\\_Preparation\\_Agent [...] ## Navigation Menu\n\n# tkinter\n\n## Here are 27 public repositories matching this topic...\n\n### ThePisanzer / Notebook\n\nA lightweight note-taking app built with Python and CustomTkinter, using SQLite for storage. My first complete Python project.\n\n### IA-0 / notebooklm-file-collector\n\nPython desktop app with GUI to collect, filter and organize NotebookLM-compatible files from any folder and subfolders.\n\n### C295-oss / personal-project---Notebook"
+        }
+      ],
+      "candidate": 3
+    }
+  ],
+  "reproduction_passport_hash": "fb0a72211cabf83a6c48f5b9fbaac2983e385a262b37f55c11007d8780f9c15e",
+  "timestamp": "2026-10-05T18:49:17.996539+00:00",
+  "bundle_version": 4,
+  "baseline": {
+    "result": "FAILS",
+    "exit_code": 1,
+    "base_image": "python:3.10-slim",
+    "install_commands": [
+      "true  # no declared dependency file found; nothing to install"
+    ],
+    "execute_command": "python insta-dl.py",
+    "sandbox_id": "05e04906-5420-42c3-be5a-533ed9e47fcb",
+    "taxonomy_code": "DEP_MISSING",
+    "evidence": "ModuleNotFoundError: No module named 'requests'"
+  },
+  "recovery": false,
+  "tree_integrity": {
+    "status": "verified",
+    "tree_sha": "056380b386b44f2ef3cbd747ff6cfaad48052cdb",
+    "files_checked": 4,
+    "excluded_patched": []
+  },
+  "corpus_hash": null,
+  "taxonomy_code": "DEP_NOT_ON_PYPI",
+  "indeterminate_reason": "",
+  "error_chain": [
+    {
+      "error": "ModuleNotFoundError: No module named 'requests'",
+      "class": "DEP_MISSING",
+      "attribution": "REPO",
+      "phase": "repo_run",
+      "cleared_by": 0
+    },
+    {
+      "error": "ModuleNotFoundError: No module named 'Tkinter'",
+      "class": "DEP_MISSING",
+      "attribution": "REPO",
+      "phase": "repo_run",
+      "cleared_by": 2
+    },
+    {
+      "error": "ERROR: Could not find a version that satisfies the requirement python3-tk (from versions: none)",
+      "class": "DEP_NOT_ON_PYPI",
+      "attribution": "REPO",
+      "phase": "repo_install",
+      "cleared_by": null
+    }
+  ],
+  "first_repo_error": "ModuleNotFoundError: No module named 'requests'",
+  "last_error": "ERROR: Could not find a version that satisfies the requirement python3-tk (from versions: none)",
+  "blocker_sources": null,
+  "outcome_levels": {
+    "first_error_cleared": true,
+    "first_error_cleared_by": "time_machine",
+    "env_resolved": false,
+    "entrypoint_runs": false
+  },
+  "verdict_label": "BLOCKED",
+  "blocker": {
+    "class": "DEP_NOT_ON_PYPI",
+    "family": "Dependencies",
+    "phase": "repo_install",
+    "attribution": "REPO",
+    "evidence": "ERROR: Could not find a version that satisfies the requirement python3-tk (from versions: none)",
+    "fixable_by": "deterministic",
+    "what_a_human_must_supply": "nothing, if the era lock resolves it; otherwise the exact release of python3-tk the authors used",
+    "sources": null
+  }
+}
