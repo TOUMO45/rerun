@@ -4,6 +4,13 @@
 
 **Does a paper's code still run? If not, how far does it get, what stops it, and what would a human have to supply?**
 
+**One real run, end to end** (DEV round five, entry `05`, `BorgwardtLab/topological-autoencoders` at its pinned commit; record `runs/corpus_v2_batch/harness-v1.7.1/dev/05_BorgwardtLab__topological-autoencoders.json`):
+
+- As published, it cannot even install: it pins `torch==1.2.0` with `torchvision==0.5.0`, a pair pip cannot install together (`ResolutionImpossible`).
+- A deterministic rule swaps in the torchvision made for that torch, and the Pillow it imports, with no model call; the certificate says so: `dependency change: torchvision 0.5.0->0.4.0, Pillow 9.0.0->6.2.2`.
+- The next failure is the repository's own: its requirements pin a `urllib3` that its own `botocore` pin forbids. NVIDIA Nemotron proposes repairs; the tamper gate rejects one whose evidence is not in the log, Nemotron Ultra adjudicates, and unpinning `urllib3` clears it.
+- Then `cmake: not found`, added by the model; then a package build fails (`error: subprocess-exited-with-error`). Verdict: BLOCKED (DEP_BUILD_FAILED), with the blocker quoted, the ladder (first error cleared, environment not resolved), and a SHA-256 passport that `python scripts/verify_passport.py` checks offline. Cost $2.3701 [API-REPORTED]. It did not run, and the certificate says exactly why.
+
 RERUN answers that in minutes, for about a dollar, with evidence: it clones the repository at its pinned commit, rebuilds the environment of the paper's era with deterministic rules, runs the documented command in a Nebius Token Factory sandbox, classifies what stopped it, lets NVIDIA Nemotron propose a repair that a deterministic tamper gate decides, and signs a passport that anyone can verify offline. Every number it reports carries a tag and traces to a committed record: API-REPORTED (formerly MEASURED) is a stored field of a committed record, or a count or sum of such fields, and for a dollar figure the sandbox API's reported operation cost, not account billing; ESTIMATED; DERIVED; BILLED for the owner's account-balance readings.
 
 **What a certificate shows (harness-v1.6):**
