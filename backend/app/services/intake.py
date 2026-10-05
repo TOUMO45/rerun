@@ -362,7 +362,22 @@ def find_entrypoint_candidates(repo_path: Path) -> tuple[str, ...]:
             continue
         if re.search(r"""if\s+__name__\s*==\s*['"]__main__['"]\s*:""", text):
             candidates.add(rel)
+        elif _is_module_level_script(py_file.name, text):
+            candidates.add(rel)
     return tuple(sorted(candidates))
+
+
+# harness-v1.7.2 (live scan 2026-10-05, reports/live_scan/SCAN_2026-10-05.md): three of five small repositories were scripts that run at module
+# level with no `__main__` guard (pdf-to-powerpoint `convert.py`: `pdf_file = sys.argv[1]`; pyqver `pyqver2.py`/`pyqver3.py`: argparse; insta-dl
+# `insta-dl.py`: a tkinter window and `mainloop()`), so discovery found no candidate and recon stopped ENTRYPOINT_UNCLEAR. A file is now also a
+# candidate when an UNINDENTED line (module level, so it runs on import) reads sys.argv, parses arguments or enters a GUI main loop. A text check,
+# not an AST: Python 2 scripts (pyqver2.py) do not parse under Python 3. Package, setup, test and docs files are never candidates this way.
+_MODULE_LEVEL_RUN = re.compile(r"^(?![ \t#@]|import\b|from\b|def\b|class\b)[^\n]*(?:\bsys\.argv\b|\.parse_args\(|\.mainloop\(|\bgetopt\.getopt\()", re.M)
+_NOT_A_SCRIPT = re.compile(r"^(?:__init__|__main__|setup|conftest|conf|test_.*|.*_test)\.py$")
+
+
+def _is_module_level_script(name: str, text: str) -> bool:
+    return not _NOT_A_SCRIPT.match(name) and _MODULE_LEVEL_RUN.search(text) is not None
 
 
 def parse_requirements_txt(content: str) -> frozenset[str]:

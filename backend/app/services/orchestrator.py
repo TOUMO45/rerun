@@ -60,6 +60,7 @@ from app.services import (
     data_prep,
     resource_adapt,
     dep_scan,
+    entry_blockers,
     error_chain,
     exit_zero_check,
     import_names,
@@ -1728,6 +1729,32 @@ def _run_stages(
         if sandbox_result is baseline_result and state.baseline.get("taxonomy_code") is None:
             state.baseline["evidence"] = stop["evidence"]
         reason = exit_zero_check.stop_reason(stop)
+        _log(f"[verdict] INDETERMINATE: {reason}")
+        return _finalize(
+            verdict="INDETERMINATE",
+            taxonomy_code=None,
+            indeterminate_reason=reason,
+            attempts=tuple(attempts),
+            build_plan_dict=plan.as_dict(),
+            log_lines=log_lines,
+            deps=deps,
+            cost_guard=cost_guard,
+            on_event=on_event,
+            attempts_used=0,
+            repo_url=repo_url,
+            commit_sha=commit_sha,
+            state=state,
+        )
+
+    entry_stop = None if sandbox_result.succeeded else entry_blockers.stop_of(
+        sandbox_result.final.exit_code, sandbox_result.final.stdout, sandbox_result.final.stderr)
+    if entry_stop is not None:
+        # harness-v1.7.2 (live scan 2026-10-05): the run failed because the entry point did not get the arguments it reads, or because it opens a
+        # window and the sandbox has no display. INDETERMINATE with the evidence line; no classification, no repair, no model call (a code change
+        # could only invent the input, or cannot supply a display at all).
+        if sandbox_result is baseline_result and state.baseline.get("taxonomy_code") is None:
+            state.baseline["evidence"] = entry_stop["evidence"]
+        reason = entry_blockers.stop_reason(entry_stop)
         _log(f"[verdict] INDETERMINATE: {reason}")
         return _finalize(
             verdict="INDETERMINATE",
