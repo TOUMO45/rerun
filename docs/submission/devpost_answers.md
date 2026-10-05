@@ -22,6 +22,8 @@ Evidence for:
 - The model abstains and explains itself: it recorded a reason for not citing on 17 [API-REPORTED] attempts in the last gate, and declined an attempt rather than guess once the harness told it there was no error text.
 - It produced a recorded repair attempt in 17 [API-REPORTED] of 24 [API-REPORTED] gate entry-runs, and the one entry-run that ended RUNS_AFTER_REPAIR (harness-v1.4.2, a smoke-criterion pass: the command ran for the smoke limit without failing) followed environment changes it had proposed. The same entry ended BLOCKED in the last gate: the pass did not repeat.
 
+- On the DEV rounds of the dev/test protocol (tuned-on entries, `reports/phase-d/dev_rounds.json`), entry `15` reached RUNS_AFTER_REPAIR in each of the five rounds on a model-proposed environment change adopted through the tamper gate; in the last round it is one of 3 [DERIVED] such verdicts of 8 [DERIVED], the other two on deterministic steps alone. Each is a 60 s smoke-criterion verdict, not a reproduced result.
+
 Evidence against:
 - No gate passed: 2 [API-REPORTED] of 24 [API-REPORTED] gate entry-runs ended RUNS_CLEAN or RUNS_AFTER_REPAIR, one a smoke-limit artefact and one that smoke-criterion pass, and 0 [API-REPORTED] of 16 [API-REPORTED] repositories reached RUNS_AFTER_REPAIR on the pre-registered run.
 - It cited a source in some gates and not in others: 7 [API-REPORTED] citations in the last gate, and 0 [API-REPORTED] in the one before it although 51 [API-REPORTED] references were offered (D-21).
@@ -44,7 +46,7 @@ Not measured. Every record uses the three Nemotron models above; there is no rec
 - **The models endpoint with pricing**: the cost guard prices every call from it and records the source and retrieval date.
 - **Seal verification**: every sandbox-touching code path was executed live before a harness version was sealed; the logs are committed under `runs/sandbox_verification/`.
 
-Recorded spend on the current ledger: $29.1704 [ESTIMATED] = $26.2069 [API-REPORTED] + $1.4761 [ESTIMATED] + $1.4874 [DERIVED], a lower bound (D-27); the DERIVED part is parsed from the logs of gate attempts that were killed before they wrote a record. That is the sandbox API's reported operation cost; the account balance page showed at most $0.43 [BILLED] charged at the time of the owner's second reading, which predates the last two gates, and the two are not reconciled (D-36, open).
+Recorded spend on the current ledger: $29.1704 [ESTIMATED] = $26.2069 [API-REPORTED] + $1.4761 [ESTIMATED] + $1.4874 [DERIVED], a lower bound (D-27); the DERIVED part is parsed from the logs of gate attempts that were killed before they wrote a record. That is the sandbox API's reported operation cost; the account balance page showed at most $0.43 [BILLED] charged at the time of the owner's second reading, which predates the last two gates, and the two are not reconciled (D-36, open). With the DEV rounds that followed the gates, and their seals and probes, the ledger is $65.9273 [DERIVED] (`reports/phase-d/dev_rounds.json`, cross-checked against the round runner's own ledger reader), still a lower bound.
 
 ## How likely are you to recommend Nebius Token Factory?
 
@@ -71,7 +73,7 @@ In RERUN: the open defects (D-21, D-25, D-43), a gate that cannot be killed by i
 
 ## What is next?
 
-All live work has stopped: the final gate has run. The next step is written down, not promised, and it is the owner's decision: a gate that exercises the sustained-run line (D-42) on an entry that ends RUNS_*, which would need a new seal and a new gate, and the room left under the spend ceiling is small. Each design note (`docs/design/D-25.md`, `docs/design/D-40-resources.md`) says what a validating gate would have to measure before the defect may be called fixed.
+The gates ended with harness-v1.4.3. The DEV rounds of the pre-registered dev/test protocol followed, the last at the sealed harness-v1.7.1, and stopped by their own rule (the last round added nothing). The next step is the owner's decision, not a promise: the TEST phase, on eight entries never tuned on, each RUNS_* verdict confirmed by a sustained run (D-42); it is the protocol's primary measure and has not run. Each design note (`docs/design/D-25.md`, `docs/design/D-40-resources.md`) says what a validating gate would have to measure before the defect may be called fixed.
 
 ## Did you use Tavily?
 

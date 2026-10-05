@@ -53,6 +53,13 @@ What the last gates found about the harness itself, from its own records:
 - Entry `11` was killed by the sandbox (exit code 137) in the last two gates. One evidence run read the sandbox from inside: a kernel out-of-memory line, on a VM with 3.85 [DERIVED] GiB of memory and 4 [API-REPORTED] CPUs. That is a sandbox limit, not something a repair can fix: the entry ended INDETERMINATE (RESOURCE_LIMIT), never BLOCKED. The API's own peak-memory figure for the step is now stored (3898376 [API-REPORTED], unit not documented; close to the kilobyte figure in the kernel's quoted line).
 - The final gate's process was killed twice by its environment, once with the session that started it and once by a console control event whose sender is not known (D-43, open). It was resumed from complete records under the same tag, caps and order; the interrupted work is not in the gate and its spend is in the ledger as a DERIVED part.
 
+**After the gates: the DEV rounds of the dev/test protocol** (harness-v1.5.0 to harness-v1.7.1; `reports/phase-d/dev_rounds.json`, built from the round records by `python -m phase_d.dev_rounds`; per round `reports/dev/ROUND_1.md` to `ROUND_5.md`). The eight DEV entries are tuned on, so these counts are a development signal, not a result; the protocol's primary measure is a TEST phase on eight entries never tuned on, which has not run.
+
+- Entries with a RUNS_* verdict at smoke level, per round: 1 [DERIVED], 2 [DERIVED], 3 [DERIVED], 3 [DERIVED] and 3 [DERIVED] of 8 [DERIVED]. The last round added nothing over the one before, so by the pre-registered stop rule the DEV loop ended there.
+- In the last round (harness-v1.7.1), the outcome ladder: first error cleared on 7 [DERIVED] entries, environment resolved on 5 [DERIVED], entrypoint runs (60 s smoke) on 3 [DERIVED]. Of the three RUNS_AFTER_REPAIR verdicts, two (entries `12`, `17`) passed on a deterministic step with no model proposal, and one (entry `15`) passed on a model-proposed environment change adopted through the tamper gate; each is a 60 s smoke-criterion verdict on a tuned-on entry, not a reproduction of a result.
+- harness-v1.7 added rules for the blockers the earlier DEV rounds recorded, each labelled where it changes what runs (METHODOLOGY, "harness-v1.7 — PRE-REGISTRATION" and its dated annotations): an archive-mirror rewrite took entry `16` past an end-of-life Debian mirror for the first time; a companion swap took entry `05` past a torch/torchvision pair that cannot be installed together, and its certificate says `dependency change: torchvision 0.5.0->0.4.0, Pillow 9.0.0->6.2.2`; neither entry reached a RUNS_* verdict. Its first seal failed on that swap (an import error found live) and was fixed and re-sealed as harness-v1.7.1.
+- DEV spend through round five: $36.7569 [DERIVED], of which the sandbox and model costs are API-REPORTED and killed steps ESTIMATED (`dev_rounds.json` keeps the split per round).
+
 This is a statement about this harness and its repair loop on this corpus, not about the papers and not about automated repair in general.
 What a run verifies is execution at smoke level: a re-execution "passes" when it ran for 60 [API-REPORTED] seconds without failing. It does not verify a paper's numerical results.
 
@@ -143,12 +150,12 @@ python -m phase_d.build_dashboard --check
 
 ## Run it live
 
-Live runs spend money on Nebius. None is needed to inspect the result, and the project's stop rule is in force: the final gate has run and all live work stopped there.
+Live runs spend money on Nebius. None is needed to inspect the result. The gates ended with harness-v1.4.3; the DEV rounds of the dev/test protocol ran after them, the last at the sealed harness-v1.7.1, and the TEST phase has not run.
 
 - **Prerequisites.** The backend's dependencies (`backend/pyproject.toml`), git, a Nebius Token Factory API key and a Tavily API key.
 - **Environment variables.** Copy `.env.example` to `.env` and set `NEBIUS_API_KEY` and `TAVILY_API_KEY`. The model names and the sandbox backend have recorded defaults.
 - **One repository.** `scripts/live_run.py` runs the pipeline once with a hard cost cap (`--cost-cap-usd`).
-- **A batch.** `scripts/run_corpus_v1_batch.py` refuses to start unless the checkout is a sealed harness tag with a current seal verification. The sealed tag is `harness-v1.4.3`; `main` is ahead of it by records, reports, documentation and the Phase D assets only (the harness paths are byte-identical to the tag).
+- **A batch.** `scripts/run_corpus_v1_batch.py` refuses to start unless the checkout is a sealed harness tag with a current seal verification. The current sealed tag is `harness-v1.7.1` (`seal_verification.json`); `main` is ahead of it by records, reports, documentation and the Phase D assets only (the harness paths are byte-identical to the tag). The gates ran at their own sealed tags, the last `harness-v1.4.3`.
 - **Cost caps, as recorded.** Entry cap $2.0 [API-REPORTED] in harness-v1.3.3, a cap per entry from $0.7819 [API-REPORTED] to $2.0 [API-REPORTED] in harness-v1.3.4, $1.25 [API-REPORTED] in harness-v1.4.0, $1.5 [API-REPORTED] in harness-v1.4.1 and v1.4.2, and $1.75 [API-REPORTED] in harness-v1.4.3. Batch caps: $25.0 [API-REPORTED] for the pre-registered run; for the six gates $6.0 [API-REPORTED], $3.5 [API-REPORTED], $5.0 [API-REPORTED], $6.0 [API-REPORTED], $6.0 [API-REPORTED] and $7.0 [API-REPORTED] ($6.25 [API-REPORTED] for the last two entries of the last gate, resumed under the lower cap the spend ceiling then allowed).
 - **Expected spend per entry.** In the six gates an entry cost between $0.4610 [API-REPORTED] and $1.3058 [API-REPORTED]. In the pre-registered run the cap was not yet hard: one entry reached $5.6773 [API-REPORTED] (D-7).
 

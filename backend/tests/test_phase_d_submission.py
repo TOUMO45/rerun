@@ -64,7 +64,8 @@ def allowed() -> set[str]:
             for v in obj:
                 walk(v)
 
-    for rel in dashboard.INPUTS:
+    # harness-v1.7.1: the DEV rounds (phase_d/dev_rounds.py, built from the round records with tags and pointers) are a source the texts may cite too
+    for rel in (*dashboard.INPUTS, "reports/phase-d/dev_rounds.json"):
         raw = (ROOT / rel).read_text(encoding="utf-8")
         tokens |= set(NUMBER.findall(raw))
         walk(json.loads(raw))
@@ -234,3 +235,14 @@ def test_all_five_submission_texts_exist():
     assert DOCS == ["docs/submission/demo_script.md", "README.md", "docs/submission/devpost_answers.md", "docs/submission/description.md",
                     "docs/submission/criteria_map.md"]
     assert all((ROOT / d).is_file() for d in DOCS)
+
+
+def test_the_dev_rounds_file_is_what_the_committed_records_give():
+    """phase_d/dev_rounds.py --check: every DEV-round number the texts may cite is rebuilt from the committed record blobs, and the DEV total equals the
+    round runner's own ledger reader (devtest/budget.read_spend)."""
+    from phase_d import dev_rounds
+
+    assert dev_rounds.main(["--check"]) == 0
+    doc = json.loads((ROOT / "reports/phase-d/dev_rounds.json").read_text(encoding="utf-8"))
+    assert [r["round"] for r in doc["rounds"]] == [1, 2, 3, 4, 5] and all(r["entries_total"]["value"] == 8 for r in doc["rounds"])
+    assert "not a result" in doc["kind"] and "not run" in doc["primary_metric"]
