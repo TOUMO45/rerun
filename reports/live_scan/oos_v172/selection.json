@@ -1,0 +1,1199 @@
+{
+ "rule": "Out-of-sample scan of harness-v1.7.2: how the 5 repositories are picked (written and committed BEFORE the selection runs; owner, chat 2026-10-05).\n\nRule (fixed here, run once, after the harness-v1.7.2 tag):\n  * Five GitHub topics, one repository each, chosen to vary the kind of Python program, none of them research code:\n        cli, web-scraping, game, data-visualization, automation\n  * For each topic, the GitHub search API (unauthenticated, https://api.github.com/search/repositories) with\n        q = \"topic:<topic> language:Python stars:30..400 size:<20000 pushed:2019-01-01..2023-12-31 archived:false fork:false\"\n        sort = stars, order = desc, per_page = 50\n    The pushed window keeps old-enough code that its environment has drifted (what RERUN is for) without picking abandoned stubs; the star window and size cap keep\n    repositories small and real.\n  * Walk the results in the API's order and take the FIRST repository that passes all of:\n        - its URL is not in any record RERUN has ever written or listed (the firewall below), and not already taken for another topic;\n        - the default branch has at least one .py file at the top level or one directory down (GitHub contents API), so intake can find Python code.\n  * Nothing else is looked at: no README is read, nothing is run, and a repository is never swapped for another after it is picked.\n\nFirewall: every repo URL found in runs/ (corpus records, live UI runs, live scans), backend/app/batch/corpus_v1 and corpus_v2 (corpus.yaml and screening_log.jsonl,\nwhich lists every candidate ever screened), reports/ (any JSON, YAML or Markdown file), compared case-insensitively without a trailing \".git\" or \"/\".\n\nWrites reports/live_scan/oos_v172/selection.json with the raw search responses' repository lists (name, stars, pushed_at), every skip and its reason, and the picks.\n",
+ "ran_at": "2026-10-05T23:07:37.011625+00:00",
+ "firewall_size": 5348,
+ "topics": [
+  {
+   "topic": "cli",
+   "query": "topic:cli language:Python stars:30..400 size:<20000 pushed:2019-01-01..2023-12-31 archived:false fork:false",
+   "results": [
+    {
+     "full_name": "ValvePython/steamctl",
+     "stars": 377,
+     "pushed_at": "2023-12-07T13:19:23Z"
+    },
+    {
+     "full_name": "bndr/pycycle",
+     "stars": 364,
+     "pushed_at": "2022-01-15T20:44:01Z"
+    },
+    {
+     "full_name": "luckydonald/pytg",
+     "stars": 362,
+     "pushed_at": "2021-09-20T22:11:10Z"
+    },
+    {
+     "full_name": "prashnts/hues",
+     "stars": 343,
+     "pushed_at": "2020-01-30T21:44:37Z"
+    },
+    {
+     "full_name": "althonos/ffpb",
+     "stars": 323,
+     "pushed_at": "2023-01-07T20:58:18Z"
+    },
+    {
+     "full_name": "SimGus/Chatette",
+     "stars": 315,
+     "pushed_at": "2021-08-12T09:52:33Z"
+    },
+    {
+     "full_name": "mechboxes/mech",
+     "stars": 313,
+     "pushed_at": "2022-12-14T05:21:26Z"
+    },
+    {
+     "full_name": "getpopper/popper",
+     "stars": 311,
+     "pushed_at": "2022-03-29T22:02:27Z"
+    },
+    {
+     "full_name": "joowani/colorpedia",
+     "stars": 304,
+     "pushed_at": "2022-06-17T03:54:28Z"
+    },
+    {
+     "full_name": "jankrepl/pychubby",
+     "stars": 301,
+     "pushed_at": "2022-10-06T11:00:43Z"
+    },
+    {
+     "full_name": "radi-cho/datasetGPT",
+     "stars": 300,
+     "pushed_at": "2023-08-25T16:39:10Z"
+    },
+    {
+     "full_name": "GustavoKatel/pushbullet-cli",
+     "stars": 288,
+     "pushed_at": "2023-07-24T08:25:33Z"
+    },
+    {
+     "full_name": "michaeljoseph/changes",
+     "stars": 275,
+     "pushed_at": "2022-10-27T04:58:49Z"
+    },
+    {
+     "full_name": "lmbringas/packtpub-downloader",
+     "stars": 270,
+     "pushed_at": "2022-12-08T01:34:44Z"
+    },
+    {
+     "full_name": "sdushantha/facebook-dl",
+     "stars": 247,
+     "pushed_at": "2020-07-11T20:20:16Z"
+    },
+    {
+     "full_name": "bchao1/vocabs",
+     "stars": 245,
+     "pushed_at": "2019-02-24T10:18:24Z"
+    },
+    {
+     "full_name": "RuthGnz/SpyScrap",
+     "stars": 240,
+     "pushed_at": "2023-11-26T11:59:06Z"
+    },
+    {
+     "full_name": "ProfOak/ascii_py",
+     "stars": 240,
+     "pushed_at": "2023-10-03T22:17:28Z"
+    },
+    {
+     "full_name": "LCTT/Grank",
+     "stars": 237,
+     "pushed_at": "2022-12-08T05:45:57Z"
+    },
+    {
+     "full_name": "lebinh/aq",
+     "stars": 200,
+     "pushed_at": "2020-10-01T18:28:45Z"
+    },
+    {
+     "full_name": "Nekmo/gkeep",
+     "stars": 200,
+     "pushed_at": "2023-10-29T00:08:37Z"
+    },
+    {
+     "full_name": "pklaus/ds1054z",
+     "stars": 199,
+     "pushed_at": "2020-11-01T12:57:37Z"
+    },
+    {
+     "full_name": "kracekumar/jut",
+     "stars": 192,
+     "pushed_at": "2022-07-23T20:55:06Z"
+    },
+    {
+     "full_name": "Thibauth/python-pushover",
+     "stars": 184,
+     "pushed_at": "2022-09-15T16:58:44Z"
+    },
+    {
+     "full_name": "rogerzhu/NBAsh",
+     "stars": 183,
+     "pushed_at": "2019-12-16T02:11:45Z"
+    },
+    {
+     "full_name": "voussoir/timesearch",
+     "stars": 181,
+     "pushed_at": "2023-09-12T04:31:33Z"
+    },
+    {
+     "full_name": "alexandre-lavoie/python-log4rce",
+     "stars": 178,
+     "pushed_at": "2021-12-16T18:34:46Z"
+    },
+    {
+     "full_name": "Hamuko/cum",
+     "stars": 177,
+     "pushed_at": "2022-01-25T12:08:09Z"
+    },
+    {
+     "full_name": "Mellcap/MellPlayer",
+     "stars": 172,
+     "pushed_at": "2019-11-30T04:52:13Z"
+    },
+    {
+     "full_name": "regisb/slack-cli",
+     "stars": 171,
+     "pushed_at": "2020-12-15T11:50:24Z"
+    },
+    {
+     "full_name": "m110/grafcli",
+     "stars": 169,
+     "pushed_at": "2022-07-25T18:41:11Z"
+    },
+    {
+     "full_name": "avalonv/reCBZ",
+     "stars": 165,
+     "pushed_at": "2023-02-28T11:32:41Z"
+    },
+    {
+     "full_name": "chukhraiartur/seo-keyword-research-tool",
+     "stars": 165,
+     "pushed_at": "2023-05-10T06:19:02Z"
+    },
+    {
+     "full_name": "rachmadaniHaryono/we-get",
+     "stars": 163,
+     "pushed_at": "2022-09-22T01:25:56Z"
+    },
+    {
+     "full_name": "maxisoft/Freenom-dns-updater",
+     "stars": 163,
+     "pushed_at": "2021-09-05T01:28:10Z"
+    },
+    {
+     "full_name": "shmuelamar/cbox",
+     "stars": 158,
+     "pushed_at": "2023-06-08T08:54:47Z"
+    },
+    {
+     "full_name": "interviewstreet/ghs",
+     "stars": 155,
+     "pushed_at": "2022-11-07T20:30:41Z"
+    },
+    {
+     "full_name": "winkidney/PickTrue",
+     "stars": 151,
+     "pushed_at": "2023-03-10T17:24:05Z"
+    },
+    {
+     "full_name": "gojuukaze/terminal_layout",
+     "stars": 151,
+     "pushed_at": "2023-10-04T00:59:02Z"
+    },
+    {
+     "full_name": "charlysan/pyrfidhid",
+     "stars": 148,
+     "pushed_at": "2020-11-17T02:00:28Z"
+    },
+    {
+     "full_name": "clankwright/spam-bot-3000",
+     "stars": 148,
+     "pushed_at": "2019-04-18T19:14:32Z"
+    },
+    {
+     "full_name": "rsc-dev/loophole",
+     "stars": 146,
+     "pushed_at": "2021-01-12T17:34:33Z"
+    },
+    {
+     "full_name": "Kosat/telegram-messages-dump",
+     "stars": 143,
+     "pushed_at": "2022-11-20T16:52:17Z"
+    },
+    {
+     "full_name": "jarulsamy/Twitter-Archive",
+     "stars": 142,
+     "pushed_at": "2022-08-26T21:42:30Z"
+    },
+    {
+     "full_name": "yukondude/Scripnix",
+     "stars": 136,
+     "pushed_at": "2022-04-20T15:30:55Z"
+    },
+    {
+     "full_name": "wkentaro/video-cli",
+     "stars": 136,
+     "pushed_at": "2022-02-20T18:31:15Z"
+    },
+    {
+     "full_name": "francoischalifour/todo-cli",
+     "stars": 134,
+     "pushed_at": "2023-08-14T09:18:21Z"
+    },
+    {
+     "full_name": "RijulGulati/yt-audio",
+     "stars": 134,
+     "pushed_at": "2020-08-03T16:28:58Z"
+    },
+    {
+     "full_name": "gtalarico/pipenv-pipes",
+     "stars": 134,
+     "pushed_at": "2023-10-01T17:28:23Z"
+    },
+    {
+     "full_name": "dunossauro/notas-musicais",
+     "stars": 133,
+     "pushed_at": "2023-06-16T18:24:04Z"
+    }
+   ],
+   "skipped": [],
+   "pick": "https://github.com/ValvePython/steamctl"
+  },
+  {
+   "topic": "web-scraping",
+   "query": "topic:web-scraping language:Python stars:30..400 size:<20000 pushed:2019-01-01..2023-12-31 archived:false fork:false",
+   "results": [
+    {
+     "full_name": "n0kovo/fb_friend_list_scraper",
+     "stars": 335,
+     "pushed_at": "2022-12-15T15:51:31Z"
+    },
+    {
+     "full_name": "walissonsilva/web-scraping-python",
+     "stars": 322,
+     "pushed_at": "2021-07-13T00:39:57Z"
+    },
+    {
+     "full_name": "batuhaniskr/twitter-intelligence",
+     "stars": 241,
+     "pushed_at": "2020-11-10T17:46:06Z"
+    },
+    {
+     "full_name": "NLPatVCU/PaperScraper",
+     "stars": 233,
+     "pushed_at": "2022-10-14T23:19:56Z"
+    },
+    {
+     "full_name": "ChrisMuir/Zillow",
+     "stars": 171,
+     "pushed_at": "2019-06-09T00:49:36Z"
+    },
+    {
+     "full_name": "mattmurray/juno_crawler",
+     "stars": 155,
+     "pushed_at": "2019-01-04T07:18:10Z"
+    },
+    {
+     "full_name": "0xZDH/BridgeKeeper",
+     "stars": 131,
+     "pushed_at": "2022-11-19T10:09:30Z"
+    },
+    {
+     "full_name": "my8100/scrapyd-cluster-on-heroku",
+     "stars": 123,
+     "pushed_at": "2020-04-04T10:53:37Z"
+    },
+    {
+     "full_name": "TechfaneTechnologies/QtsApp",
+     "stars": 103,
+     "pushed_at": "2023-02-07T07:20:24Z"
+    },
+    {
+     "full_name": "seanfhear/tab-scraper",
+     "stars": 100,
+     "pushed_at": "2022-12-08T18:57:53Z"
+    },
+    {
+     "full_name": "alex000kim/slack-gpt-bot",
+     "stars": 75,
+     "pushed_at": "2023-05-12T19:51:53Z"
+    },
+    {
+     "full_name": "dddat1017/Scraping-Youtube-Comments",
+     "stars": 74,
+     "pushed_at": "2021-06-02T03:23:55Z"
+    },
+    {
+     "full_name": "LordGhostX/animeX-v2",
+     "stars": 73,
+     "pushed_at": "2023-05-22T22:18:01Z"
+    },
+    {
+     "full_name": "Deepakchawla/Mobile-Phone-Dataset-GSMArena",
+     "stars": 69,
+     "pushed_at": "2023-10-18T02:05:23Z"
+    },
+    {
+     "full_name": "utkuufuk/ping-sm",
+     "stars": 65,
+     "pushed_at": "2020-05-21T20:04:08Z"
+    },
+    {
+     "full_name": "avilum/smart-url-fuzzer",
+     "stars": 60,
+     "pushed_at": "2021-03-21T13:24:34Z"
+    },
+    {
+     "full_name": "dojutsu-user/IMDB-Scraper",
+     "stars": 59,
+     "pushed_at": "2020-03-14T06:05:15Z"
+    },
+    {
+     "full_name": "ZxZ7/ZFundPredictor",
+     "stars": 51,
+     "pushed_at": "2020-11-07T13:15:38Z"
+    },
+    {
+     "full_name": "sahitpj/India-WhatsAppFakeNews-Dataset",
+     "stars": 43,
+     "pushed_at": "2019-04-23T16:01:41Z"
+    },
+    {
+     "full_name": "CNuge/email-report",
+     "stars": 41,
+     "pushed_at": "2020-07-08T17:37:45Z"
+    },
+    {
+     "full_name": "HexNio/booking_scraper",
+     "stars": 38,
+     "pushed_at": "2021-06-06T11:14:45Z"
+    },
+    {
+     "full_name": "sudhamjayanthi/upwork-job-scraper",
+     "stars": 38,
+     "pushed_at": "2021-10-11T13:41:36Z"
+    },
+    {
+     "full_name": "Notifysolutions/request_curl",
+     "stars": 36,
+     "pushed_at": "2023-02-10T18:05:40Z"
+    },
+    {
+     "full_name": "aashishpeepra/whatsapp-live-cricket-bot",
+     "stars": 36,
+     "pushed_at": "2022-08-18T20:38:26Z"
+    },
+    {
+     "full_name": "techyhoney/TikTok_Scrapper",
+     "stars": 34,
+     "pushed_at": "2020-06-09T10:41:35Z"
+    },
+    {
+     "full_name": "raymelon/tagalog-dictionary-scraper",
+     "stars": 33,
+     "pushed_at": "2023-02-19T20:46:33Z"
+    },
+    {
+     "full_name": "Sachaaaaaa/Grhoth",
+     "stars": 32,
+     "pushed_at": "2020-07-08T11:43:50Z"
+    },
+    {
+     "full_name": "ayaka14732/lihkg-scraper",
+     "stars": 32,
+     "pushed_at": "2022-03-07T11:01:22Z"
+    },
+    {
+     "full_name": "smahesh29/Web-Scraping-Python",
+     "stars": 31,
+     "pushed_at": "2023-02-05T15:25:33Z"
+    }
+   ],
+   "skipped": [],
+   "pick": "https://github.com/n0kovo/fb_friend_list_scraper"
+  },
+  {
+   "topic": "game",
+   "query": "topic:game language:Python stars:30..400 size:<20000 pushed:2019-01-01..2023-12-31 archived:false fork:false",
+   "results": [
+    {
+     "full_name": "Frimkron/mud-pi",
+     "stars": 370,
+     "pushed_at": "2021-07-04T21:19:37Z"
+    },
+    {
+     "full_name": "surya-veer/movement-tracking",
+     "stars": 366,
+     "pushed_at": "2020-07-29T16:19:26Z"
+    },
+    {
+     "full_name": "hanmin0822/RaphaelScriptHelper",
+     "stars": 273,
+     "pushed_at": "2022-02-08T12:48:29Z"
+    },
+    {
+     "full_name": "BadagalaAdarsh/Super_Mario",
+     "stars": 239,
+     "pushed_at": "2022-10-18T07:55:23Z"
+    },
+    {
+     "full_name": "MestreLion/humblebundle",
+     "stars": 221,
+     "pushed_at": "2022-07-31T13:22:20Z"
+    },
+    {
+     "full_name": "SirFroweey/PyDark",
+     "stars": 220,
+     "pushed_at": "2021-08-27T22:17:58Z"
+    },
+    {
+     "full_name": "sbordeyne/rpg-text",
+     "stars": 187,
+     "pushed_at": "2019-12-17T11:38:20Z"
+    },
+    {
+     "full_name": "YuriyGuts/snake-ai-reinforcement",
+     "stars": 174,
+     "pushed_at": "2019-02-15T23:32:37Z"
+    },
+    {
+     "full_name": "nikp06/subwAI",
+     "stars": 163,
+     "pushed_at": "2021-10-29T13:09:41Z"
+    },
+    {
+     "full_name": "Gautam-J/Self-Driving-Car",
+     "stars": 150,
+     "pushed_at": "2021-06-18T03:54:17Z"
+    },
+    {
+     "full_name": "ripexz/python-tkinter-minesweeper",
+     "stars": 148,
+     "pushed_at": "2022-07-05T13:57:12Z"
+    },
+    {
+     "full_name": "aqeelanwar/Tic-Tac-Toe",
+     "stars": 148,
+     "pushed_at": "2023-12-07T08:33:43Z"
+    },
+    {
+     "full_name": "steve1316/granblue-automation-pyautogui",
+     "stars": 133,
+     "pushed_at": "2023-10-14T06:44:43Z"
+    },
+    {
+     "full_name": "DrGFreeman/rps-cv",
+     "stars": 125,
+     "pushed_at": "2019-08-16T18:46:07Z"
+    },
+    {
+     "full_name": "niyue/skillmap",
+     "stars": 118,
+     "pushed_at": "2022-04-10T00:27:07Z"
+    },
+    {
+     "full_name": "alpharaoh/AmongUsBot",
+     "stars": 111,
+     "pushed_at": "2020-11-05T08:35:39Z"
+    },
+    {
+     "full_name": "MasterGroosha/telegram-bombsweeper-bot",
+     "stars": 102,
+     "pushed_at": "2023-06-03T10:58:00Z"
+    },
+    {
+     "full_name": "notshridhar/chain-reaction-ai",
+     "stars": 95,
+     "pushed_at": "2022-12-15T04:39:08Z"
+    },
+    {
+     "full_name": "Bunjin/Rouleth",
+     "stars": 95,
+     "pushed_at": "2019-02-03T08:54:45Z"
+    },
+    {
+     "full_name": "danielkrupinski/OneByteRadar",
+     "stars": 93,
+     "pushed_at": "2022-05-28T11:40:01Z"
+    },
+    {
+     "full_name": "kxgames/glooey",
+     "stars": 91,
+     "pushed_at": "2022-11-11T15:04:48Z"
+    },
+    {
+     "full_name": "HapHac/weiqi",
+     "stars": 83,
+     "pushed_at": "2022-09-14T14:57:42Z"
+    },
+    {
+     "full_name": "kying18/minesweeper",
+     "stars": 81,
+     "pushed_at": "2022-10-04T12:29:34Z"
+    },
+    {
+     "full_name": "eevee/anise-cheezball-rising",
+     "stars": 79,
+     "pushed_at": "2022-12-30T22:37:53Z"
+    },
+    {
+     "full_name": "cordeirossauro/TRPG",
+     "stars": 78,
+     "pushed_at": "2021-11-02T06:43:42Z"
+    },
+    {
+     "full_name": "timswyzen/discordTCG",
+     "stars": 78,
+     "pushed_at": "2022-08-08T18:38:39Z"
+    },
+    {
+     "full_name": "cSquaerd/CursaTetra",
+     "stars": 76,
+     "pushed_at": "2021-02-11T01:46:23Z"
+    },
+    {
+     "full_name": "dhhruv/Chrome-Dino-Runner",
+     "stars": 71,
+     "pushed_at": "2023-10-14T03:07:57Z"
+    },
+    {
+     "full_name": "Yuu177/Contra_Game",
+     "stars": 68,
+     "pushed_at": "2019-05-02T09:07:58Z"
+    },
+    {
+     "full_name": "M4cs/drugwars",
+     "stars": 66,
+     "pushed_at": "2020-10-20T02:21:57Z"
+    },
+    {
+     "full_name": "rpdelaney-archive/python-chess-annotator",
+     "stars": 62,
+     "pushed_at": "2021-04-20T18:27:34Z"
+    },
+    {
+     "full_name": "SamRagusa/Checkers-Reinforcement-Learning",
+     "stars": 60,
+     "pushed_at": "2020-05-30T23:39:42Z"
+    },
+    {
+     "full_name": "mwharrisjr/Game-of-Life",
+     "stars": 59,
+     "pushed_at": "2021-06-14T03:12:09Z"
+    },
+    {
+     "full_name": "Arx-Game/arxcode",
+     "stars": 58,
+     "pushed_at": "2023-10-04T01:05:12Z"
+    },
+    {
+     "full_name": "soloist-v/AutoStrike",
+     "stars": 56,
+     "pushed_at": "2022-08-04T06:42:54Z"
+    },
+    {
+     "full_name": "fayrose/Scrabble",
+     "stars": 55,
+     "pushed_at": "2023-04-21T18:31:07Z"
+    },
+    {
+     "full_name": "dellalibera/td-gammon",
+     "stars": 53,
+     "pushed_at": "2023-09-25T10:02:36Z"
+    },
+    {
+     "full_name": "agoose77/GOAP",
+     "stars": 49,
+     "pushed_at": "2023-12-20T19:16:30Z"
+    },
+    {
+     "full_name": "stilManiac/steamgifts-bot",
+     "stars": 47,
+     "pushed_at": "2022-12-08T10:59:20Z"
+    },
+    {
+     "full_name": "Noobgamer0111/SubwaySurfersDecrypted",
+     "stars": 46,
+     "pushed_at": "2023-09-28T02:48:13Z"
+    },
+    {
+     "full_name": "LeonMarqs/Flappy-bird-python",
+     "stars": 45,
+     "pushed_at": "2022-10-06T03:22:45Z"
+    },
+    {
+     "full_name": "Eric-Mendes/unexpected-isaves",
+     "stars": 45,
+     "pushed_at": "2023-12-27T03:01:45Z"
+    },
+    {
+     "full_name": "dchen327/ruzzle-solver",
+     "stars": 45,
+     "pushed_at": "2020-02-25T15:40:29Z"
+    },
+    {
+     "full_name": "hayderkharrufa/snake_pathfinding_ai",
+     "stars": 44,
+     "pushed_at": "2023-06-26T20:39:22Z"
+    },
+    {
+     "full_name": "alirezamika/flappybird-es",
+     "stars": 44,
+     "pushed_at": "2020-09-30T19:06:50Z"
+    },
+    {
+     "full_name": "Alfo5123/Connect4",
+     "stars": 42,
+     "pushed_at": "2019-03-13T08:55:34Z"
+    },
+    {
+     "full_name": "srimanikantapalakollu/Ping-Pong-Game",
+     "stars": 42,
+     "pushed_at": "2022-02-11T15:38:03Z"
+    },
+    {
+     "full_name": "Viliami/agario",
+     "stars": 42,
+     "pushed_at": "2020-12-30T22:57:00Z"
+    },
+    {
+     "full_name": "dannyso16/pynasour",
+     "stars": 41,
+     "pushed_at": "2021-10-18T12:44:30Z"
+    },
+    {
+     "full_name": "lynn/shanghai",
+     "stars": 38,
+     "pushed_at": "2023-06-06T21:07:04Z"
+    }
+   ],
+   "skipped": [],
+   "pick": "https://github.com/Frimkron/mud-pi"
+  },
+  {
+   "topic": "data-visualization",
+   "query": "topic:data-visualization language:Python stars:30..400 size:<20000 pushed:2019-01-01..2023-12-31 archived:false fork:false",
+   "results": [
+    {
+     "full_name": "njanakiev/openstreetmap-heatmap",
+     "stars": 396,
+     "pushed_at": "2022-06-04T11:36:41Z"
+    },
+    {
+     "full_name": "LinLidi/StockSensation",
+     "stars": 340,
+     "pushed_at": "2019-03-24T15:36:57Z"
+    },
+    {
+     "full_name": "asad70/reddit-sentiment-analysis",
+     "stars": 287,
+     "pushed_at": "2023-03-28T17:13:52Z"
+    },
+    {
+     "full_name": "ned2/slapdash",
+     "stars": 255,
+     "pushed_at": "2022-10-19T11:07:36Z"
+    },
+    {
+     "full_name": "tkrabel/edaviz",
+     "stars": 226,
+     "pushed_at": "2019-11-20T08:39:04Z"
+    },
+    {
+     "full_name": "mljar/bloxs",
+     "stars": 215,
+     "pushed_at": "2022-07-27T14:24:21Z"
+    },
+    {
+     "full_name": "yaph/programming-languages-influence",
+     "stars": 186,
+     "pushed_at": "2022-02-20T20:11:55Z"
+    },
+    {
+     "full_name": "phillipdupuis/dtale-desktop",
+     "stars": 163,
+     "pushed_at": "2021-02-25T23:49:38Z"
+    },
+    {
+     "full_name": "tnjd/telegram-analysis",
+     "stars": 118,
+     "pushed_at": "2020-11-07T00:00:18Z"
+    },
+    {
+     "full_name": "LeviBorodenko/Logation",
+     "stars": 116,
+     "pushed_at": "2019-04-08T15:26:31Z"
+    },
+    {
+     "full_name": "prakharrathi25/data-storyteller",
+     "stars": 115,
+     "pushed_at": "2023-10-15T17:02:03Z"
+    },
+    {
+     "full_name": "SimonWang00/salesPredict",
+     "stars": 113,
+     "pushed_at": "2019-08-17T05:50:44Z"
+    },
+    {
+     "full_name": "WangGodder/deep-cross-modal-hashing",
+     "stars": 109,
+     "pushed_at": "2021-10-07T08:14:33Z"
+    },
+    {
+     "full_name": "FraserTarbet/F1Dash",
+     "stars": 107,
+     "pushed_at": "2023-08-19T09:27:58Z"
+    },
+    {
+     "full_name": "Mohan-Zhang-u/mzutils",
+     "stars": 102,
+     "pushed_at": "2023-08-11T15:06:26Z"
+    },
+    {
+     "full_name": "brad-darksbian/commodities-dashboard",
+     "stars": 93,
+     "pushed_at": "2022-07-06T18:12:39Z"
+    },
+    {
+     "full_name": "ogustavo-pereira/aprenda-python",
+     "stars": 90,
+     "pushed_at": "2022-08-16T00:37:22Z"
+    },
+    {
+     "full_name": "Indexical-Metrics-Measure-Advisory/watchmen-matryoshka-doll",
+     "stars": 90,
+     "pushed_at": "2022-04-28T04:06:32Z"
+    },
+    {
+     "full_name": "svenkreiss/databench",
+     "stars": 87,
+     "pushed_at": "2023-03-01T13:17:42Z"
+    },
+    {
+     "full_name": "kevinadhiguna/dqlab-career-track",
+     "stars": 79,
+     "pushed_at": "2022-09-08T02:14:17Z"
+    },
+    {
+     "full_name": "thongekchakrit/ChartAI",
+     "stars": 78,
+     "pushed_at": "2023-06-16T15:31:21Z"
+    },
+    {
+     "full_name": "An0n1mity/RRGPy",
+     "stars": 76,
+     "pushed_at": "2023-04-08T21:18:55Z"
+    },
+    {
+     "full_name": "Lan-ce-lot/weibo-opinion-analysis",
+     "stars": 74,
+     "pushed_at": "2023-03-04T15:09:12Z"
+    },
+    {
+     "full_name": "kaustubhhiware/facebook-archive",
+     "stars": 72,
+     "pushed_at": "2023-10-03T21:21:16Z"
+    },
+    {
+     "full_name": "randyzwitch/streamlit-embedcode",
+     "stars": 71,
+     "pushed_at": "2021-05-17T19:02:53Z"
+    },
+    {
+     "full_name": "BoyaaDataCenter/seed",
+     "stars": 70,
+     "pushed_at": "2022-12-08T03:00:26Z"
+    },
+    {
+     "full_name": "krvaibhaw/blockchain",
+     "stars": 65,
+     "pushed_at": "2022-01-27T05:18:55Z"
+    },
+    {
+     "full_name": "ewhitmire/pyrealtime",
+     "stars": 65,
+     "pushed_at": "2020-09-09T19:36:06Z"
+    },
+    {
+     "full_name": "dwasse/vol-surface-visualizer",
+     "stars": 64,
+     "pushed_at": "2022-12-08T06:08:38Z"
+    },
+    {
+     "full_name": "rr-/ida-images",
+     "stars": 63,
+     "pushed_at": "2022-09-17T18:24:56Z"
+    },
+    {
+     "full_name": "PaulKlinger/satellite_tracker",
+     "stars": 62,
+     "pushed_at": "2020-04-17T20:53:01Z"
+    },
+    {
+     "full_name": "heucoder/TimeSeriesAnimationChart",
+     "stars": 57,
+     "pushed_at": "2019-09-28T08:15:55Z"
+    },
+    {
+     "full_name": "markdouthwaite/streamlit-project",
+     "stars": 56,
+     "pushed_at": "2021-12-22T05:33:10Z"
+    },
+    {
+     "full_name": "benthecoder/linkedin-visualizer",
+     "stars": 54,
+     "pushed_at": "2022-10-06T20:05:37Z"
+    },
+    {
+     "full_name": "Matt-OP/fasteda",
+     "stars": 50,
+     "pushed_at": "2023-01-24T20:31:24Z"
+    },
+    {
+     "full_name": "aparajitad60/Stacked-LSTM-for-Covid-19-Outbreak-Prediction",
+     "stars": 50,
+     "pushed_at": "2020-05-16T16:26:49Z"
+    },
+    {
+     "full_name": "HarshShah03325/AI-for-healthcare",
+     "stars": 49,
+     "pushed_at": "2021-11-10T09:19:01Z"
+    },
+    {
+     "full_name": "Nesador95/Computational-Physics-Solutions",
+     "stars": 47,
+     "pushed_at": "2022-02-22T14:03:34Z"
+    },
+    {
+     "full_name": "AashitaK/bubbly",
+     "stars": 46,
+     "pushed_at": "2023-11-08T10:03:10Z"
+    },
+    {
+     "full_name": "kennbroorg/poorskeme",
+     "stars": 45,
+     "pushed_at": "2023-11-25T23:14:32Z"
+    },
+    {
+     "full_name": "irfanchahyadi/Whatsapp-Chat-Analyzer",
+     "stars": 44,
+     "pushed_at": "2023-01-21T16:51:33Z"
+    },
+    {
+     "full_name": "kylebarron/keplergl_cli",
+     "stars": 42,
+     "pushed_at": "2022-12-26T21:00:03Z"
+    },
+    {
+     "full_name": "teamreboott/data-modori",
+     "stars": 40,
+     "pushed_at": "2023-12-16T10:53:24Z"
+    },
+    {
+     "full_name": "eliasdabbas/dashboardom",
+     "stars": 40,
+     "pushed_at": "2023-02-15T22:04:25Z"
+    },
+    {
+     "full_name": "rsokl/noggin",
+     "stars": 37,
+     "pushed_at": "2022-12-03T14:10:33Z"
+    },
+    {
+     "full_name": "Fozan-Talat/divvy-bikeshare-de-project",
+     "stars": 36,
+     "pushed_at": "2023-04-29T16:42:41Z"
+    },
+    {
+     "full_name": "johannesuhl/shapefile2gif",
+     "stars": 35,
+     "pushed_at": "2022-12-28T20:31:01Z"
+    },
+    {
+     "full_name": "katonic-dev/explainit",
+     "stars": 32,
+     "pushed_at": "2022-12-09T10:19:58Z"
+    },
+    {
+     "full_name": "Dineshkarthik/Whatsapp-analyzer",
+     "stars": 32,
+     "pushed_at": "2023-05-01T21:37:11Z"
+    },
+    {
+     "full_name": "Proggleb/youtube_data_engineering_project",
+     "stars": 32,
+     "pushed_at": "2023-11-21T05:10:29Z"
+    }
+   ],
+   "skipped": [],
+   "pick": "https://github.com/njanakiev/openstreetmap-heatmap"
+  },
+  {
+   "topic": "automation",
+   "query": "topic:automation language:Python stars:30..400 size:<20000 pushed:2019-01-01..2023-12-31 archived:false fork:false",
+   "results": [
+    {
+     "full_name": "awekrx/AutoDoc-ChatGPT",
+     "stars": 391,
+     "pushed_at": "2023-03-10T19:19:29Z"
+    },
+    {
+     "full_name": "Skiller9090/Lucifer",
+     "stars": 377,
+     "pushed_at": "2022-11-08T08:13:14Z"
+    },
+    {
+     "full_name": "Th0h0/autossrf",
+     "stars": 364,
+     "pushed_at": "2022-05-05T21:59:41Z"
+    },
+    {
+     "full_name": "kudeh/automate-the-boring-stuff-projects",
+     "stars": 348,
+     "pushed_at": "2023-10-03T14:32:48Z"
+    },
+    {
+     "full_name": "reb311ion/replica",
+     "stars": 314,
+     "pushed_at": "2020-05-30T06:34:42Z"
+    },
+    {
+     "full_name": "anned20/begoneads",
+     "stars": 310,
+     "pushed_at": "2023-07-30T15:42:15Z"
+    },
+    {
+     "full_name": "artkulak/text2youtube",
+     "stars": 307,
+     "pushed_at": "2023-11-12T19:50:49Z"
+    },
+    {
+     "full_name": "Anteste/WebMap",
+     "stars": 295,
+     "pushed_at": "2022-06-03T09:43:08Z"
+    },
+    {
+     "full_name": "skalavala/mysmarthome",
+     "stars": 267,
+     "pushed_at": "2023-11-02T08:39:16Z"
+    },
+    {
+     "full_name": "alfonsrv/impf-botpy",
+     "stars": 241,
+     "pushed_at": "2021-06-23T10:32:28Z"
+    },
+    {
+     "full_name": "TreborNamor/Agressive-Store-Bots",
+     "stars": 235,
+     "pushed_at": "2022-06-09T03:38:27Z"
+    },
+    {
+     "full_name": "Xonshiz/anime-dl",
+     "stars": 231,
+     "pushed_at": "2021-10-16T02:17:29Z"
+    },
+    {
+     "full_name": "9b/chirp",
+     "stars": 230,
+     "pushed_at": "2022-12-08T00:58:39Z"
+    },
+    {
+     "full_name": "vincentbavitz/bezmouse",
+     "stars": 210,
+     "pushed_at": "2022-06-07T19:36:39Z"
+    },
+    {
+     "full_name": "holps-7/Instagram-Spam-Bot",
+     "stars": 197,
+     "pushed_at": "2022-07-17T09:36:09Z"
+    },
+    {
+     "full_name": "secdec/adapt",
+     "stars": 195,
+     "pushed_at": "2019-09-24T15:42:57Z"
+    },
+    {
+     "full_name": "takuzoo3868/penta",
+     "stars": 182,
+     "pushed_at": "2020-05-21T06:44:52Z"
+    },
+    {
+     "full_name": "jeremymaya/google-it-automation-with-python",
+     "stars": 176,
+     "pushed_at": "2020-08-11T18:06:20Z"
+    },
+    {
+     "full_name": "eddieoz/youtube-clips-automator",
+     "stars": 163,
+     "pushed_at": "2023-02-02T01:08:55Z"
+    },
+    {
+     "full_name": "ssbostan/maasta",
+     "stars": 163,
+     "pushed_at": "2023-02-04T15:59:03Z"
+    },
+    {
+     "full_name": "ruscito/pycomm",
+     "stars": 158,
+     "pushed_at": "2019-09-07T03:54:36Z"
+    },
+    {
+     "full_name": "the-llm-lab/CommanderGPT",
+     "stars": 156,
+     "pushed_at": "2023-05-23T06:31:07Z"
+    },
+    {
+     "full_name": "ksharinarayanan/SourceWolf",
+     "stars": 156,
+     "pushed_at": "2023-09-18T08:55:47Z"
+    },
+    {
+     "full_name": "Gautam-J/Self-Driving-Car",
+     "stars": 150,
+     "pushed_at": "2021-06-18T03:54:17Z"
+    },
+    {
+     "full_name": "xtekky/google-login-bypass",
+     "stars": 148,
+     "pushed_at": "2023-03-02T15:17:33Z"
+    },
+    {
+     "full_name": "clankwright/spam-bot-3000",
+     "stars": 148,
+     "pushed_at": "2019-04-18T19:14:32Z"
+    },
+    {
+     "full_name": "ekapope/Combine-CSV-files-in-the-folder",
+     "stars": 147,
+     "pushed_at": "2020-09-30T16:37:15Z"
+    },
+    {
+     "full_name": "souravrs999/FaucetCryptoBot",
+     "stars": 145,
+     "pushed_at": "2021-03-05T03:58:20Z"
+    },
+    {
+     "full_name": "Yt1g3r/CVE-2020-0688_EXP",
+     "stars": 144,
+     "pushed_at": "2020-02-27T15:57:53Z"
+    },
+    {
+     "full_name": "ArthurG/Kijiji-Repost-Headless",
+     "stars": 143,
+     "pushed_at": "2023-02-01T12:44:01Z"
+    },
+    {
+     "full_name": "brthor/docker-push-ssh",
+     "stars": 143,
+     "pushed_at": "2022-01-15T19:42:10Z"
+    },
+    {
+     "full_name": "HA6Bots/Twitch-Clips-Compilation-Generator-TCCG-",
+     "stars": 142,
+     "pushed_at": "2021-11-13T15:49:43Z"
+    },
+    {
+     "full_name": "yuyu1987/pithy-test",
+     "stars": 139,
+     "pushed_at": "2020-07-03T04:34:06Z"
+    },
+    {
+     "full_name": "rodolflying/GPT_scraper",
+     "stars": 138,
+     "pushed_at": "2023-09-27T05:20:12Z"
+    },
+    {
+     "full_name": "steve1316/granblue-automation-pyautogui",
+     "stars": 133,
+     "pushed_at": "2023-10-14T06:44:43Z"
+    },
+    {
+     "full_name": "eldaduzman/pymeter",
+     "stars": 133,
+     "pushed_at": "2023-12-05T13:18:43Z"
+    },
+    {
+     "full_name": "inforkgodara/whatsapp-bulk-messages-without-saving-contacts",
+     "stars": 132,
+     "pushed_at": "2023-10-27T17:01:14Z"
+    },
+    {
+     "full_name": "GjjvdBurg/HugoPhotoSwipe",
+     "stars": 132,
+     "pushed_at": "2023-10-01T22:41:17Z"
+    },
+    {
+     "full_name": "napalm-automation/napalm-salt",
+     "stars": 131,
+     "pushed_at": "2019-05-21T13:27:58Z"
+    },
+    {
+     "full_name": "caronc/nzb-notify",
+     "stars": 129,
+     "pushed_at": "2023-06-08T12:32:41Z"
+    },
+    {
+     "full_name": "devo-ps/pipelines",
+     "stars": 128,
+     "pushed_at": "2023-03-02T22:58:35Z"
+    },
+    {
+     "full_name": "jtpio/trello-full-backup",
+     "stars": 124,
+     "pushed_at": "2022-08-10T14:24:20Z"
+    },
+    {
+     "full_name": "AdriaGual/marvel-snap-bot",
+     "stars": 118,
+     "pushed_at": "2023-02-26T10:05:52Z"
+    },
+    {
+     "full_name": "Vasiley/Home-Assistant-Main",
+     "stars": 114,
+     "pushed_at": "2019-08-09T14:22:06Z"
+    },
+    {
+     "full_name": "anna-geller/dataflow-ops",
+     "stars": 114,
+     "pushed_at": "2023-07-21T10:03:52Z"
+    },
+    {
+     "full_name": "anna-geller/prefect-dataplatform",
+     "stars": 112,
+     "pushed_at": "2023-02-08T04:57:44Z"
+    },
+    {
+     "full_name": "shailshouryya/yt-videos-list",
+     "stars": 111,
+     "pushed_at": "2023-11-28T07:05:37Z"
+    },
+    {
+     "full_name": "anna-geller/prefect-deployment-patterns",
+     "stars": 111,
+     "pushed_at": "2023-01-11T16:58:30Z"
+    },
+    {
+     "full_name": "Chamepp/Daily.py",
+     "stars": 110,
+     "pushed_at": "2023-08-05T11:34:55Z"
+    },
+    {
+     "full_name": "timgrossmann/TwitPy",
+     "stars": 109,
+     "pushed_at": "2020-09-03T11:43:21Z"
+    }
+   ],
+   "skipped": [],
+   "pick": "https://github.com/awekrx/AutoDoc-ChatGPT"
+  }
+ ],
+ "picks": [
+  "https://github.com/ValvePython/steamctl",
+  "https://github.com/n0kovo/fb_friend_list_scraper",
+  "https://github.com/Frimkron/mud-pi",
+  "https://github.com/njanakiev/openstreetmap-heatmap",
+  "https://github.com/awekrx/AutoDoc-ChatGPT"
+ ]
+}
