@@ -1,0 +1,53 @@
+{
+  "repo_url": "https://github.com/awekrx/AutoDoc-ChatGPT",
+  "commit_sha": "2ae010d1f67fd55b3d3ba8f72e5761174d9a81e3",
+  "build_plan": {
+    "base_image": "python:3.10-slim",
+    "apt_install": [],
+    "install_commands": [
+      "pip install -r requirements.txt"
+    ],
+    "execute_command": "python main.py",
+    "notes": [
+      "base image python:3.10-slim: no usable Python declaration; RERUN default 3.10"
+    ]
+  },
+  "full_log": "[intake] cloned https://github.com/awekrx/AutoDoc-ChatGPT@2ae010d1f67fd55b3d3ba8f72e5761174d9a81e3\n[recon] calling Nemotron Nano\n[recon] entrypoint=main.py confidence=0.80\n[python] python:3.10-slim (default): no usable Python declaration; RERUN default 3.10\n[planner] build plan: {'base_image': 'python:3.10-slim', 'apt_install': [], 'install_commands': ['pip install -r requirements.txt'], 'execute_command': 'python main.py', 'notes': ['base image python:3.10-slim: no usable Python declaration; RERUN default 3.10']}\n[integrity] verified 25 file(s) against tree 204b188a587cee5199ffc086d4173847622b84bc\n[checkpoint] baseline: no kept image holds this environment yet; building it from python:3.10-slim and keeping every layer\n[sandbox] starting build+execute (wall_clock_seconds=600)\n[operation 1] baseline: completed; 9.2s of sandbox time; no torch install; branch_from_image=None; result_image=None; 2 image(s) kept\n[cost_guard] recorded $0.0932 sandbox spend, $2.4061 remaining today\n[sandbox] id=da617b70-6301-45c2-b2da-6451e8182537 exit_code=2\n[baseline] as-is run: FAILS (exit code 2)\n[verdict] INDETERMINATE: ENTRYPOINT_NEEDS_ARGS: the command failed because it did not get the arguments it reads (`main.py: error: the following arguments are required: -file`); a human must supply them (for example an input file); not repaired, since a code change could only invent them",
+  "diffs": [],
+  "verdict": "INDETERMINATE",
+  "timestamp": "2026-10-05T23:30:29.963959+00:00",
+  "reproduction_passport_hash": "65720e3cec4932a2b1dcee1250bc37c410defc75c855237bd6596595a7b41ae9",
+  "bundle_version": 4,
+  "baseline": {
+    "result": "FAILS",
+    "exit_code": 2,
+    "base_image": "python:3.10-slim",
+    "install_commands": [
+      "pip install -r requirements.txt"
+    ],
+    "execute_command": "python main.py",
+    "sandbox_id": "da617b70-6301-45c2-b2da-6451e8182537",
+    "taxonomy_code": null,
+    "evidence": "main.py: error: the following arguments are required: -file"
+  },
+  "recovery": false,
+  "tree_integrity": {
+    "status": "verified",
+    "tree_sha": "204b188a587cee5199ffc086d4173847622b84bc",
+    "files_checked": 25,
+    "excluded_patched": []
+  },
+  "corpus_hash": null,
+  "taxonomy_code": null,
+  "indeterminate_reason": "ENTRYPOINT_NEEDS_ARGS: the command failed because it did not get the arguments it reads (`main.py: error: the following arguments are required: -file`); a human must supply them (for example an input file); not repaired, since a code change could only invent them",
+  "error_chain": [],
+  "first_repo_error": null,
+  "last_error": null,
+  "outcome_levels": {
+    "first_error_cleared": false,
+    "first_error_cleared_by": null,
+    "env_resolved": false,
+    "entrypoint_runs": false
+  },
+  "blocker": null
+}
