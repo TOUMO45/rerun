@@ -227,6 +227,12 @@ export interface CertificateOut {
   /** v3: proof the uploaded files were the committed tree. */
   tree_integrity?: { status: string; tree_sha?: string; files_checked?: number; mismatched?: string[]; not_in_commit?: string[] } | null;
   corpus_hash?: string | null;
+  /** v4: the full verdict record is part of the passport hash (scripts/verify_passport.py CANONICAL_FIELDS_BY_VERSION[4]). */
+  taxonomy_code?: string | null;
+  indeterminate_reason?: string | null;
+  error_chain?: unknown[] | null;
+  first_repo_error?: unknown;
+  last_error?: unknown;
   /** harness-v1.6; absent on certificates served before it. */
   outcome_levels?: OutcomeLevels | null;
   /** harness-v1.6; absent on certificates served before it, null when nothing blocks. */

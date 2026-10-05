@@ -165,6 +165,27 @@ OUR_FAULT_CODES: tuple[str, ...] = (
 _REASON_CODE_RE = re.compile(r"^([A-Z][A-Z_]*(?::[A-Za-z0-9_.-]+)*): ")
 
 
+def _companion_requirements(plan, swap, requirements: str | None, evidence: str):
+    """harness-v1.7.1 (R5): the swap's pins written into RERUN's copy of requirements.txt (env_repair.apply_env_delta; the repository's file is never edited).
+    Only a package the file already names is pinned there; one it does not name is left to the runner's torch step, which pins it. Returns
+    (plan, the copy's text or None, [{"package", "from", "to"}] for each line replaced, `from` being the line as the repository wrote it)."""
+    if requirements is None:
+        return plan, None, []
+    lines = requirements.splitlines()
+    pins, changes = [], []
+    for name, release in swap.overrides().items():
+        held = [line.strip() for line in lines if env_repair._requirement_name(line) == env_repair._norm(name)]
+        if not held:
+            continue
+        pins.append({"package": name, "from": held[0], "to": release})
+        changes.append(env_repair.EnvChange(op="pin", package=name, version=release, evidence=evidence[:300],
+                                            justification=f"deterministic: companion_relax (R5) pins {name}=={release}; the repository's line was {held[0]}"[:300]))
+    if not changes:
+        return plan, None, []
+    plan, text = env_repair.apply_env_delta(plan, tuple(changes), requirements)
+    return plan, text, pins
+
+
 def reason_code_of(indeterminate_reason: str | None) -> str | None:
     """The stable code prefix of an `indeterminate_reason`
     ("ENTRYPOINT_UNCLEAR: ...", "PIPELINE_ERROR:recon:ValueError: ..."), or
@@ -253,6 +274,8 @@ class _RunState:
     resource_stop: tuple | None = None
     # harness-v1.7 (R5, companion_relax): torch-family pins the runner replaced at repair time ({package: version}), applied by runner_env.plan_torch_setup.
     torch_overrides: dict = field(default_factory=dict)
+    # harness-v1.7.1 (R5): RERUN's copy of requirements.txt with the swap's pins (None: the repository's file pins none of them, or has no requirements.txt).
+    companion_requirements: str | None = None
     # harness-v1.7 (R4, apt_archive): every apt command of the run is preceded by runner_env.apt_archive_step() from here on.
     apt_archive: bool = False
     # harness-v1.7 (R3, data_prep): what the rule decided ({"decision", "readmes", "step"?}); set once per run, on the first DATA_MISSING at repair time.
@@ -1625,12 +1648,20 @@ def _run_stages(
             state.baseline["evidence"] = baseline_cls.evidence
             _log(f"[classifier] {baseline_cls.code}: {baseline_cls.evidence}")
             _note_failure(0, baseline_cls, sandbox_result.final.phase)  # the as-published failure is the chain's first link; its stop is deferred
-            state.torch_overrides = {swap.package: swap.replacement}
+            state.torch_overrides = swap.overrides()
             plan = replace(plan, notes=(*plan.notes, f"companion_relax (harness-v1.7, R5; a DEPENDENCY CHANGE, labelled): {swap.as_dict()['reason']}; "
                                                       f"{swap.package}=={swap.replacement} instead of {swap.pinned}"))
             relax_action = {"rule": "companion_relax", "matched_error": baseline_cls.evidence[:500], "phase": "repair",
                             "fires_on": "DEP_UNPINNED_CONFLICT in the runner's torch-family install, exact torch and torchvision pins that cannot coexist",
                             **swap.as_dict()}
+            # harness-v1.7.1: the repository's own `pip install -r requirements.txt` runs after the runner's torch step and would put its pins back (DEV #5's
+            # file pins torchvision==0.5.0 and Pillow==9.0.0). The swap's pins go into RERUN's copy of the file (env_repair; the repository's file is never edited).
+            plan, state.companion_requirements, relax_action["requirements_pins"] = _companion_requirements(
+                plan, swap, intake_result.dependency_files.get("requirements.txt"), baseline_cls.evidence)
+            for pin in relax_action["requirements_pins"]:
+                for also in relax_action["also"]:
+                    if also["package"].lower() == pin["package"].lower():
+                        also["from"] = pin["from"]
             _log(f"[time-machine] deterministic step: companion_relax ({swap.package} {swap.pinned} -> {swap.replacement}, "
                  f"{swap.primary}=={swap.primary_version} kept: {swap.as_dict()['reason']}); no model call")
             try:
@@ -1687,7 +1718,7 @@ def _run_stages(
         # Env repair edits a RERUN-owned copy of requirements.txt (never the
         # repo's file); this tracks it across attempts. Imports are scanned
         # lazily, only if an env change needs checking.
-        current_requirements = intake_result.dependency_files.get("requirements.txt")
+        current_requirements = state.companion_requirements or intake_result.dependency_files.get("requirements.txt")  # harness-v1.7.1 (R5)
         imported_modules: frozenset[str] | None = None
 
         resolved_lock: list[str] | None = None  # set by the time machine

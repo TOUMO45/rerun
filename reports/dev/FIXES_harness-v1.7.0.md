@@ -54,3 +54,10 @@ Done from the list above: item 1, and the probe of item 2. Still to do, in order
 - R1 d `resource_adapt` is ON (`SWAP_FILE_DECIDED = True`), labelled RESOURCE-ADAPTED, recorded in METHODOLOGY as a deviation (the follow-up probe was not pre-registered; the owner approved it).
 - Test added: the decision is asserted against both committed probe records. Cost $0.0043 API-reported.
 - Next: tag `harness-v1.7.0-rc`; then the owner approves the seal and round 5 separately.
+
+## harness-v1.7.1 (2026-10-05): after the failed seal of harness-v1.7.0-rc
+- Seal attempt 1 failed at N4 (R5): torchvision 0.4.0 imports `PIL.PILLOW_VERSION`, which the Pillow pip installed did not define (the record keeps no install output; an offline pip dry run resolves that set to Pillow 9.5.0, which lacks it). $1.1071 API-reported. Records: `runs/sandbox_verification/v1.7-seal/` (baf4dce). No harness-v1.7.0 tag.
+- Owner decision 1b: R5 pins `Pillow==6.2.2` beside torchvision 0.4.0 (DEV #5 only), labelled with the dependency change, not semantics-preserving.
+- Found by the offline review before any paid run: R5 left the repository's `pip install -r requirements.txt` untouched, and DEV #5's file pins torchvision==0.5.0 and Pillow==9.0.0 itself. Fix: the swap's pins also go into RERUN's copy of the requirements file. DEV #5's file also pins requests==2.22.0 with urllib3==1.26.5 (incompatible), so #5 is not expected to reach RUNS_* from R5.
+- Tests: the N4 record and the swap's pins; a replay of DEV #5 with its own requirement lines. All three new or changed tests fail on harness-v1.7.0-rc's code and pass now.
+- Seal: N4 now runs the torch step, then the requirements copy, then imports torch, torchvision and PIL (expects 1.2.0 / 0.4.0 / 6.2.2). Records go to `runs/sandbox_verification/v1.7.1-seal/`.

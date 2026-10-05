@@ -213,14 +213,35 @@ class CompanionSwap:
     primary: str
     primary_version: str
     pinned_requires: str
+    # harness-v1.7.1: packages pinned beside the replacement so that it imports ((name, release), ...); see REPLACEMENT_NEEDS.
+    also: tuple[tuple[str, str], ...] = ()
+
+    def overrides(self) -> dict[str, str]:
+        """Every pin the swap sets, {name: release}: the replacement, then what it needs beside it."""
+        return {self.package: self.replacement, **dict(self.also)}
 
     def as_dict(self) -> dict:
         from app.services import torch_companions_data as data
 
+        reason = (f"{self.package} {self.pinned} requires {self.primary}=={self.pinned_requires}; the repository pins "
+                  f"{self.primary}=={self.primary_version}, whose {self.package} is {self.replacement}")
+        for name, release in self.also:
+            reason += f"; {name}=={release} beside it ({REPLACEMENT_NEEDS[(self.package, self.replacement)][1]})"
         return {"package": self.package, "from": self.pinned, "to": self.replacement, "kept": f"{self.primary}=={self.primary_version}",
-                "reason": f"{self.package} {self.pinned} requires {self.primary}=={self.pinned_requires}; the repository pins "
-                          f"{self.primary}=={self.primary_version}, whose {self.package} is {self.replacement}",
+                "also": [{"package": name, "to": release} for name, release in self.also], "reason": reason,
                 "table": {"source": data.SOURCE, "retrieved": data.RETRIEVED}}
+
+
+# harness-v1.7.1 (R5, after check N4 of the harness-v1.7.0 seal failed): a replacement release that does not import with what the resolver picks beside
+# it, (package, release) -> ((name, release to pin), why). Recorded: runs/sandbox_verification/v1.7-seal/v17/N4_companion_torch_1_2_0_torchvision_0_4_0.json,
+# torch==1.2.0 with torchvision==0.4.0 installed, then `import torchvision` raised `ImportError: cannot import name 'PILLOW_VERSION' from 'PIL'` (the record keeps
+# no install output; an offline pip dry run for Python 3.7 manylinux resolves that set's Pillow to 9.5.0). Checked offline on 2026-10-05 from the wheels: torchvision-0.4.0+cpu's transforms/functional.py does
+# `from PIL import Image, ImageOps, ImageEnhance, PILLOW_VERSION`; Pillow 6.2.2's PIL/__init__.py defines PILLOW_VERSION, Pillow 9.5.0's does not
+# ("PILLOW_VERSION was removed in Pillow 9.0.0"). Pillow 6.2.2 has cp27/cp35-cp38 wheels, every Python torch 1.2.0 has. Only the release R5 swaps
+# to on DEV #5 is listed (rule G); another release needs its own recorded failure. NOT semantics-preserving: Pillow decodes and resizes the images.
+REPLACEMENT_NEEDS: dict[tuple[str, str], tuple[tuple[str, str], str]] = {
+    ("torchvision", "0.4.0"): (("Pillow", "6.2.2"), "torchvision 0.4.0 imports PIL.PILLOW_VERSION, which Pillow 9.0.0 and later do not define"),
+}
 
 
 _EXACT = re.compile(r"^==\s*(\d+(?:\.\d+)*)$")
@@ -244,7 +265,8 @@ def companion_swap(specs: Iterable[str]) -> CompanionSwap | None:
     replacement = data.TORCHVISION_FOR_TORCH.get(torch_v)
     if requires is None or replacement is None or requires == torch_v or replacement == vision_v:
         return None
-    return CompanionSwap("torchvision", vision_v, replacement, "torch", torch_v, requires)
+    needs = REPLACEMENT_NEEDS.get(("torchvision", replacement))
+    return CompanionSwap("torchvision", vision_v, replacement, "torch", torch_v, requires, also=(needs[0],) if needs else ())
 
 
 def plan_torch_setup(texts: Iterable[str], workdir: Path | None, overrides: dict[str, str] | None = None) -> TorchSetup | None:
@@ -262,11 +284,13 @@ def plan_torch_setup(texts: Iterable[str], workdir: Path | None, overrides: dict
     for name, version in (overrides or {}).items():  # harness-v1.7 (R5): a companion pin relaxed at repair time (CompanionSwap)
         if name in pins:
             pins[name] = f"=={version}"
-    specs = tuple(f"{name}{pins.get(name, '')}" for name in TORCH_FAMILY)
-    needed = tuple(name for name in TORCH_FAMILY if name in used or name == "torch")
+    # harness-v1.7.1 (R5): a pin the replacement needs beside it (CompanionSwap.also, e.g. Pillow) goes into the same pip command, and into the fallback too
+    beside = tuple(f"{name}=={version}" for name, version in (overrides or {}).items() if name not in TORCH_FAMILY)
+    specs = tuple(f"{name}{pins.get(name, '')}" for name in TORCH_FAMILY) + beside
+    needed = tuple(name for name in TORCH_FAMILY if name in used or name == "torch") + tuple(_spec_base(s) for s in beside)
     if overrides:
         reason = (f"repo pins {', '.join(pins)}; installed the CPU wheels as a matched set with the same pins except "
-                  + ", ".join(f"{n}=={v} (companion relaxed)" for n, v in overrides.items()))
+                  + ", ".join(f"{n}=={v} (companion relaxed)" if n in TORCH_FAMILY else f"{n}=={v} (pinned beside it)" for n, v in overrides.items()))
     elif pins:
         reason = f"repo pins {', '.join(pins)}; installed the CPU wheels as a matched set with the same pins"
     else:

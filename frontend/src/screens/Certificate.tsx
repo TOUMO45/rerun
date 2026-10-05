@@ -66,6 +66,16 @@ export function Certificate() {
       ...(cert.bundle_version && cert.bundle_version >= 3
         ? { tree_integrity: cert.tree_integrity, corpus_hash: cert.corpus_hash }
         : {}),
+      // v4: the full verdict record is hashed. Without these fields a downloaded v4 certificate failed scripts/verify_passport.py (harness-v1.7.1 UI check).
+      ...(cert.bundle_version && cert.bundle_version >= 4
+        ? {
+            taxonomy_code: cert.taxonomy_code ?? null,
+            indeterminate_reason: cert.indeterminate_reason ?? null,
+            error_chain: cert.error_chain ?? null,
+            first_repo_error: cert.first_repo_error ?? null,
+            last_error: cert.last_error ?? null,
+          }
+        : {}),
       // harness-v1.6: the outcome ladder and the blocker report, when the backend served them.
       ...(cert.outcome_levels ? { outcome_levels: cert.outcome_levels } : {}),
       ...(cert.blocker !== undefined ? { blocker: cert.blocker } : {}),

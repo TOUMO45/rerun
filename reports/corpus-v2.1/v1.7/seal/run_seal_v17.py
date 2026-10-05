@@ -1,4 +1,4 @@
-"""Seal of harness-v1.7.0 (option B over CHANGED files; METHODOLOGY "harness-v1.7 — PRE-REGISTRATION", rule G): live checks of what v1.7 changed in the sandbox-touching files.
+"""Seal of harness-v1.7.1 (option B over CHANGED files; METHODOLOGY "harness-v1.7 — PRE-REGISTRATION", rule G): live checks of what v1.7 changed in the sandbox-touching files.
 
     backend/.venv/Scripts/python.exe reports/corpus-v2.1/v1.7/seal/run_seal_v17.py                                     # PLAN: what would run, ESTIMATED cost
     backend/.venv/Scripts/pythonw.exe reports/corpus-v2.1/v1.7/seal/run_seal_v17.py --go --max-usd X --log-file F       # live (launch_seal.cmd, Task Scheduler, owner)
@@ -16,9 +16,11 @@ step; R5 the torch companion swap). `sandbox.py`, `sandbox_limits.py` and `smoke
                   reference (L @ U == A), a DataLoader(num_workers=2, pin_memory=True) runs with 0 workers and no pinning, MALLOC_ARENA_MAX / OMP_NUM_THREADS are set (R1 c, R2);
                N2 python:3.6-slim: the data-preparation launcher runs a README-documented script under its caps and the documented command finds its output (R3);
                N3 python:3.6-slim: the apt-archive step, then `apt-get install -y build-essential` succeeds and gcc runs (R4: the owner's live check);
-               N4 python:3.7-slim: the runner's torch install with the companion swap, torch==1.2.0 with torchvision==0.4.0, installs and imports (R5).
+               N4 python:3.7-slim (harness-v1.7.1): the runner's torch install with every pin of the companion swap (torch==1.2.0 kept, torchvision 0.5.0 -> 0.4.0,
+                  Pillow==6.2.2 beside it), then `pip install -r` of RERUN's requirements copy of a file that pins what DEV #5 pins, then torch, torchvision and PIL
+                  import at 1.2.0 / 0.4.0 / 6.2.2 (R5). Attempt 1 at harness-v1.7.0-rc failed here (runs/sandbox_verification/v1.7-seal/v17/N4_*).
 
-Every record goes to runs/sandbox_verification/v1.7-seal/<stage>/; SEAL_RUN.json says which commit and which blobs of the five files the stages ran against. Reuses the v1.4.3
+Every record goes to runs/sandbox_verification/v1.7.1-seal/<stage>/; SEAL_RUN.json says which commit and which blobs of the five files the stages ran against. Reuses the v1.4.3
 seal driver (precondition against the release-candidate tag, a stage that fails stops the seal, SEAL_RUN.json after every stage). Never runs without --go and --max-usd.
 """
 from __future__ import annotations
@@ -34,15 +36,17 @@ _spec = importlib.util.spec_from_file_location("run_seal_v143", ROOT / "reports"
 base = importlib.util.module_from_spec(_spec)
 _spec.loader.exec_module(base)
 
-OUT = ROOT / "runs" / "sandbox_verification" / "v1.7-seal"
-RC_TAG = "harness-v1.7.0-rc"
+OUT = ROOT / "runs" / "sandbox_verification" / "v1.7.1-seal"  # harness-v1.7.1; attempt 1 (harness-v1.7.0-rc) stays in v1.7-seal
+RC_TAG = "harness-v1.7.1-rc"
 MAX_SEAL_USD = 1.50  # the owner's seal bound since v1.4.3
 RUNNER_ENV_RECORDS = ("torch_py36_pin1.10.2.json", "torch_py310_imports_torchvision.json", "torch_py39_pin1.8.1_numpy_cap.json", "phase_runner_setup_failure_py310.json")
 # ESTIMATED: N1 and N4 install torch (the v1.4.3 seal's torch checks cost $0.17-0.26 API-reported); N2 is a small operation; N3 runs apt on python:3.6-slim.
 V17_ESTIMATES = {"N1_cpu_reference_lu_and_memory_hook": 0.30, "N2_data_prep_launcher_py36": 0.02, "N3_apt_archive_build_essential_py36": 0.08,
-                 "N4_companion_torch_1_2_0_torchvision_0_4_0": 0.25}
+                 "N4_companion_swap_with_requirements_py37": 0.20}
+# N4 at 0.20: attempt 1's N4 cost $0.1073 API-reported (torch 1.2.0 + torchvision on python:3.7-slim); v1.7.1 adds one `pip install -r` of five small pins. The guard
+# starts a check only with 1.5 x its estimate left: at 0.30 that was $0.45 against about $0.50 left after attempt 1's other stages ($1.0001), too thin (v1.7.1 review).
 WALL_SECONDS = {"N1_cpu_reference_lu_and_memory_hook": 600, "N2_data_prep_launcher_py36": 240, "N3_apt_archive_build_essential_py36": 420,
-                "N4_companion_torch_1_2_0_torchvision_0_4_0": 600}
+                "N4_companion_swap_with_requirements_py37": 720}
 
 N1_PROBE = b'''import json, os, sys, warnings
 warnings.simplefilter("ignore")
@@ -144,23 +148,33 @@ def run_v17(api_key, project_id, guard, blobs_now):
     if not ok:
         return docs
 
-    # N4: R5, the companion swap installs: torch 1.2.0 kept, torchvision 0.5.0 -> 0.4.0
+    # N4: R5 (harness-v1.7.1), the companion swap through the path a run takes. Attempt 1 (harness-v1.7.0-rc) installed torch 1.2.0 + torchvision 0.4.0 and
+    # `import torchvision` raised ImportError PILLOW_VERSION (runs/sandbox_verification/v1.7-seal/v17/N4_*). Now: the runner's torch step with every pin of the swap
+    # (Pillow==6.2.2 beside torchvision 0.4.0), then the repository's `pip install -r requirements.txt` from RERUN's copy (orchestrator._companion_requirements, the
+    # code a run uses) of a file that pins what DEV #5 pins (torch, torchvision, Pillow, numpy, six), then the imports.
+    from app.services import orchestrator, planner
+
     swap = runner_env.companion_swap(("torch==1.2.0", "torchvision==0.5.0", "torchaudio"))
-    setup = runner_env.plan_torch_setup(["torch==1.2.0\ntorchvision==0.5.0\n"], None, overrides={swap.package: swap.replacement})
-    n4 = op("N4_companion_torch_1_2_0_torchvision_0_4_0", base_image="python:3.7-slim", install_commands=["true"], torch_setup=setup,
-            execute_command="python3 -c \"import torch, torchvision; print('V17_COMPANION', torch.__version__, torchvision.__version__)\"")
+    reqs = "numpy==1.17.2\nPillow==9.0.0\nsix==1.12.0\ntorch==1.2.0\ntorchvision==0.5.0\n"
+    plan_n4, copy, pins = orchestrator._companion_requirements(planner.BuildPlan("python:3.7-slim", (), ("pip install -r requirements.txt",), "true"),
+                                                               swap, reqs, "seal N4")
+    setup = runner_env.plan_torch_setup([reqs], None, overrides=swap.overrides())
+    n4 = op("N4_companion_swap_with_requirements_py37", base_image="python:3.7-slim", install_commands=list(plan_n4.install_commands), torch_setup=setup,
+            upload_files={"requirements.txt": reqs.encode("utf-8")},
+            execute_command="python3 -c \"import torch, torchvision, PIL; print('V17_COMPANION', torch.__version__, torchvision.__version__, PIL.__version__)\"")
     if n4 is None:
         return [*docs, {"ok": False, "note": "N4 stopped at its clock"}]
-    line = next((l for l in n4.final.stdout.splitlines() if l.startswith("V17_COMPANION")), "")
-    ok = n4.final.exit_code == 0 and line.split()[1:2] and line.split()[1].startswith("1.2.0") and line.split()[2].startswith("0.4.0")
-    docs.append(_v17_record("N4_companion_torch_1_2_0_torchvision_0_4_0", blobs_now, ok=bool(ok), swap=swap.as_dict(), specs=list(setup.specs),
-                            installed=line, **base._result_doc(n4)))
+    parts = next((l for l in n4.final.stdout.splitlines() if l.startswith("V17_COMPANION")), "").split()
+    ok = (n4.final.exit_code == 0 and len(parts) == 4 and parts[1].startswith("1.2.0") and parts[2].startswith("0.4.0") and parts[3] == "6.2.2"
+          and copy is not None and "torchvision==0.4.0" in copy and "Pillow==6.2.2" in copy)
+    docs.append(_v17_record("N4_companion_swap_with_requirements_py37", blobs_now, ok=bool(ok), swap=swap.as_dict(), specs=list(setup.specs),
+                            requirements_pins=pins, requirements_copy=copy, installed=" ".join(parts), **base._result_doc(n4)))
     return docs
 
 
 def run_runner_env(api_key, project_id, guard, blobs_now):
     """The v1.4.3 seal's `final` stage restricted to the four records that list runner_env.py, each in its own process through scripts/verify_*.py (the same argv as then),
-    written to runs/sandbox_verification/v1.7-seal/runner_env/. The kill-at-limit check lists sandbox.py only and is not re-run."""
+    written to runs/sandbox_verification/v1.7.1-seal/runner_env/. The kill-at-limit check lists sandbox.py only and is not re-run."""
     mod = base._load("scripts/run_seal_verification_v140.py", "run_seal_verification_v140")
     mod.OUT = (OUT / "runner_env").relative_to(ROOT).as_posix()
     (ROOT / mod.OUT).mkdir(parents=True, exist_ok=True)

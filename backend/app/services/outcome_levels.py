@@ -24,10 +24,13 @@ are recomputed from any stored record, so an old certificate can be read the sam
                           ("RESOURCE-ADAPTED: --batch_size 256->128"). The documented command did not run as published from then on.
   memory_adapted          harness-v1.7 (R1 c, v1.7 review H2); present ONLY when the memory hook changed a DataLoader: "memory hook: DataLoader
                           num_workers 2->0" (random draws then come from the main process's stream).
-  dependency_change       harness-v1.7 (R5, v1.7 review H1); present ONLY when companion_relax ran: "dependency change: torchvision 0.5.0->0.4.0".
+  dependency_change       harness-v1.7 (R5, v1.7 review H1); present ONLY when companion_relax ran: "dependency change: torchvision 0.5.0->0.4.0"; from harness-v1.7.1 with what it pins
+                          beside the replacement: "dependency change: torchvision 0.5.0->0.4.0, Pillow 9.0.0->6.2.2".
 """
 
 from __future__ import annotations
+
+import re
 
 from app.services.classifier import TaxonomyCode
 
@@ -96,7 +99,23 @@ def memory_adapted(result: dict) -> str:
 def dependency_change(result: dict) -> str:
     """harness-v1.7 (R5): the companion pin RERUN replaced, or ''."""
     acts = [act for act in _actions(result, "companion_relax") if act.get("from") and act.get("to")]
-    return (f"dependency change: {acts[-1].get('package')} {acts[-1]['from']}->{acts[-1]['to']}") if acts else ""
+    if not acts:
+        return ""
+    act = acts[-1]
+    # harness-v1.7.1: what the swap pinned beside the replacement (Pillow for torchvision 0.4.0), with the repository's own line when it had one
+    also = [f"{a.get('package')} {_pin_of(a.get('from'))}->{a.get('to')}" for a in (act.get("also") or ()) if a.get("to")]
+    return "dependency change: " + ", ".join([f"{act.get('package')} {act['from']}->{act['to']}", *also])
+
+
+def _pin_of(line) -> str:
+    """What the repository declared, from its requirements line: `9.0.0` for `Pillow==9.0.0`, `>=7.0` for `Pillow>=7.0`, `unpinned` for a bare `Pillow`,
+    `not declared` when the file does not name the package (no line)."""
+    if not line:
+        return "not declared"
+    found = re.match(r"^\s*[A-Za-z0-9][A-Za-z0-9._-]*(?:\[[^\]]*\])?\s*(.*?)\s*(?:[;#].*)?$", str(line))
+    spec = found.group(1) if found else str(line).strip()
+    exact = re.fullmatch(r"===?\s*([^\s,]+)", spec)
+    return exact.group(1) if exact else (spec or "unpinned")
 
 
 def labels(result: dict) -> list[str]:

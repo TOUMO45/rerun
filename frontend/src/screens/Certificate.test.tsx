@@ -565,3 +565,44 @@ describe("Certificate — certificates served before harness-v1.6", () => {
     expect(screen.queryByRole("heading", { name: "What blocks it" })).toBeNull();
   });
 });
+
+describe("Certificate — downloaded passport", () => {
+  it("includes every field a bundle v4 passport hashes, so scripts/verify_passport.py can verify the file", async () => {
+    // harness-v1.7.1 UI check: the button stopped at the v3 fields, and every downloaded v4 certificate failed the shipped verifier.
+    getRun.mockResolvedValue(makeRun());
+    getCertificate.mockResolvedValue(
+      makeCert([passed], {
+        bundle_version: 4,
+        baseline: null,
+        recovery: false,
+        tree_integrity: { status: "verified" },
+        corpus_hash: null,
+        taxonomy_code: "DEP_MISSING",
+        indeterminate_reason: "",
+        error_chain: [{ error: "ModuleNotFoundError: x", class: "DEP_MISSING" }],
+        first_repo_error: "ModuleNotFoundError: x",
+        last_error: null,
+      }),
+    );
+    const blobs: Blob[] = [];
+    const create = vi.fn((b: Blob) => { blobs.push(b); return "blob:x"; });
+    Object.assign(URL, { createObjectURL: create, revokeObjectURL: vi.fn() });
+    const click = vi.spyOn(HTMLAnchorElement.prototype, "click").mockImplementation(() => {});
+    renderCertificate();
+    (await screen.findByText("Download certificate JSON")).click();
+    expect(click).toHaveBeenCalled();
+    const text = await new Promise<string>((resolve) => {
+      const reader = new FileReader();  // jsdom's Blob has no .text()
+      reader.onload = () => resolve(String(reader.result));
+      reader.readAsText(blobs[0]);
+    });
+    const payload = JSON.parse(text);
+    for (const key of ["bundle_version", "baseline", "recovery", "tree_integrity", "corpus_hash",
+                       "taxonomy_code", "indeterminate_reason", "error_chain", "first_repo_error", "last_error"]) {
+      expect(payload).toHaveProperty(key);
+    }
+    expect(payload.taxonomy_code).toBe("DEP_MISSING");
+    expect(payload.last_error).toBeNull();
+    click.mockRestore();
+  });
+});

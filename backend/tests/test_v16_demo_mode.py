@@ -228,6 +228,20 @@ def test_the_committed_records_seed_the_dev_and_gate_entries_only(db):
     assert demo_seed.seed(db, ROOT) == 0
 
 
+def test_the_demo_shows_each_entrys_latest_recorded_round_not_a_fixed_harness_series():
+    """harness-v1.7.1: the patterns stopped at harness-v1.5.x, so the demo showed DEV round 3 (harness-v1.5.2) after round 4 (harness-v1.6.0) was recorded.
+    Every DEV entry must come from the highest tag that holds a record for it, whatever that tag is."""
+    runs = ROOT / demo_seed.RUNS_SUBDIR
+    newest = {}
+    for path in runs.glob("harness-v*/dev/[0-9][0-9]_*.json"):
+        ref = record_ref(runs, path)
+        if ref is not None and ref.entry_id in firewall.ANALYSIS_ENTRIES:
+            newest[ref.entry_id] = max(newest.get(ref.entry_id, ref.tag), ref.tag, key=tag_key)
+    chosen = {r.entry_id: r.tag for r in demo_seed.allowed_records(ROOT) if r.arm == "dev"}
+    assert newest and chosen == newest
+    assert chosen[5] == max(newest.values(), key=tag_key)  # DEV #5 ran in every round, so it carries the newest DEV tag
+
+
 # ---------------------------------------------------------------- the API in demo mode
 
 

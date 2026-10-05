@@ -1,4 +1,4 @@
-"""Write seal_verification.json for harness-v1.7.0 (option B over CHANGED files, METHODOLOGY "harness-v1.7 — PRE-REGISTRATION").
+"""Write seal_verification.json for harness-v1.7.1 (option B over CHANGED files, METHODOLOGY "harness-v1.7 — PRE-REGISTRATION").
 
 `runner_hooks.py` and `runner_env.py` changed among the five sandbox-touching files. The entries of the harness-v1.6.0 seal (= harness-v1.5.1's) that list one of them are
 re-verified by the live records of run_seal_v17.py: the four that list runner_hooks.py by its `v142` stage, the four that list runner_env.py by its `runner_env` stage (an entry
@@ -22,10 +22,10 @@ ROOT = Path(__file__).resolve().parents[4]
 sys.path.insert(0, str(ROOT / "scripts"))
 from write_seal_verification import blob, extra_checks, path_checks  # noqa: E402
 
-TAG = "harness-v1.7.0"
+TAG = "harness-v1.7.1"
 PREVIOUS_TAG = "harness-v1.6.0"
-RC_TAG = "harness-v1.7.0-rc"
-NEW = "runs/sandbox_verification/v1.7-seal"
+RC_TAG = "harness-v1.7.1-rc"
+NEW = "runs/sandbox_verification/v1.7.1-seal"  # attempt 1 (harness-v1.7.0-rc, failed at N4) stays in v1.7-seal
 HOOKS = "backend/app/services/runner_hooks.py"
 ENV = "backend/app/services/runner_env.py"
 SANDBOX = "backend/app/services/sandbox.py"
@@ -41,8 +41,9 @@ NEW_ENTRIES = (
      (SANDBOX, HOOKS), ("N2_data_prep_launcher_py36.json",)),
     ("apt_archive_build_essential_py36", "python:3.6-slim (bullseye): the apt-archive step, then apt-get install -y build-essential succeeds and gcc runs (R4)",
      (SANDBOX, ENV), ("N3_apt_archive_build_essential_py36.json",)),
-    ("companion_swap_installs", "python:3.7-slim: the runner's torch install with the companion swap (torch==1.2.0 kept, torchvision 0.5.0 -> 0.4.0) installs and imports (R5)",
-     (SANDBOX, ENV), ("N4_companion_torch_1_2_0_torchvision_0_4_0.json",)),
+    ("companion_swap_installs", "python:3.7-slim: the runner's torch install with every pin of the companion swap (torch==1.2.0 kept, torchvision 0.5.0 -> 0.4.0, Pillow==6.2.2 "
+     "beside it), then RERUN's requirements copy of a file pinning what DEV #5 pins; torch, torchvision and PIL import at 1.2.0 / 0.4.0 / 6.2.2 (R5, harness-v1.7.1)",
+     (SANDBOX, ENV), ("N4_companion_swap_with_requirements_py37.json",)),
 )
 
 

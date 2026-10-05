@@ -43,11 +43,12 @@ PACKAGE_REPO_ROOT = Path(__file__).resolve().parents[3]
 RUNS_SUBDIR = Path("runs") / "corpus_v2_batch"
 FIREWALL_SUBDIR = Path("reports") / "corpus-v2.1" / "v1.5" / "devtest"
 
-# The record families the demo replays: the gate entries were tuned on under
-# harness-v1.4.x (arm `gate`), the DEV entries under harness-v1.5.x (arm `dev`).
+# The record families the demo replays: the gate entries (arm `gate`, harness-v1.4.x) and the DEV entries (arm `dev`, harness-v1.5.0 onwards).
+# harness-v1.7.1: every tag, so a later DEV round (harness-v1.6.0's round 4, round 5) is shown; the patterns had stopped at harness-v1.5.x, and the
+# demo showed round 3 as the latest DEV record. The firewall filters every record, and the latest tag per entry wins (select_latest_per_entry).
 RECORD_PATTERNS = (
-    "harness-v1.4.*/gate/[0-9][0-9]_*.json",
-    "harness-v1.5.*/dev/[0-9][0-9]_*.json",
+    "harness-v*/gate/[0-9][0-9]_*.json",
+    "harness-v*/dev/[0-9][0-9]_*.json",
 )
 
 _TAG_RE = re.compile(r"^harness-v(\d+)\.(\d+)\.(\d+)(?:-rc)?$")
