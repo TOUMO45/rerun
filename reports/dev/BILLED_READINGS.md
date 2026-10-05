@@ -13,6 +13,7 @@ readings.
 | **this reading** | **2026-10-04 13:50 local, after DEV round 3, about one minute into round 4** (owner's screenshot, chat) | **$47.61** | **$0.35** | at most **$2.39 cumulative**; the interval holds round 3 ($5.8532 API-reported) and the first minute of round 4 |
 | after DEV round 4 | **2026-10-04, after DEV round 4** (owner's figure, chat) | **$47.11** | **$0.50** | at most **$2.89 cumulative** if the account started at $50.00; the interval holds round 4 ($5.3490 API-reported entries + $0.0053 upload smoke test) less its first minute |
 | before the v1.7 probe | **2026-10-05** (owner's screenshot, chat: "Account balance $47.11") | **$47.11** | **$0.00** | confirms the round-4 reading by screenshot; nothing paid ran in between (the v1.7 work was offline; the probe has not run). Above the $20.00 floor |
+| after DEV round 5 | **2026-10-05, after DEV round 5** (owner's screenshot, pasted in chat: "Account balance $46.90"; the screenshot shows no time) | **$46.90** | **$0.21** | at most **$3.10 cumulative** if the account started at $50.00; the interval holds the two v1.7 probes ($0.0205), the two seal attempts ($2.2393) and DEV round 5 ($8.8107 API-reported + $1.9177 estimated + $0.0053 upload smoke test): $11.0759 API-reported against $0.21 billed (D-36, not reconciled). Above the $20.00 floor |
 
 ## What the $48.29 covers, and what it does not say
 

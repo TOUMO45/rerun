@@ -22,7 +22,9 @@ ENTRY_CAP_USD = 2.50
 N_DEV = 8
 ROUND_CAP_USD = round(N_DEV * ENTRY_CAP_USD, 2)  # 12.00: the worst case of one round
 DEV_TOTAL_CAP_USD = 40.00
-LEDGER_CEILING_USD = 75.00
+# The owner's ledger ceiling (API-reported): $75.00 pre-registered, $100.00 from 2026-10-03 (DEV rounds pass it as --ledger-ceiling-usd), and $130.00 written by
+# the owner in chat on 2026-10-05 for the TEST phase (TEST cap $30.00, entry cap $2.50, BILLED floor $20.00). The TEST runner reads this constant.
+LEDGER_CEILING_USD = 130.00
 LEDGER_BASE_USD = 29.1704
 CENTRAL_ROUND_USD = 7.39  # 8 x 0.9236 (mean of the four v1.4.3 gate entries: 0.9435, 0.6735, 1.1742, 0.9032)
 SUSTAINED_RUN_USD = 6.24  # 600 s x $0.0104 per sandbox second

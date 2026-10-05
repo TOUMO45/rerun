@@ -112,12 +112,13 @@ def test_the_dev_total_is_a_hard_check_on_a_rounds_worst_case():
 
 
 def test_the_ledger_ceiling_is_a_hard_check_on_a_rounds_worst_case():
-    guard = budget.round_guard(budget.Spend(entries_usd=34.0))  # ledger 63.17 + 12.00 > 75
+    # the ceiling these numbers were written for is passed explicitly: the constant became $130.00 (owner, 2026-10-05) and the check is the same
+    guard = budget.round_guard(budget.Spend(entries_usd=34.0), ledger_ceiling_usd=75.00, dev_total_cap_usd=100.00, round_cap_usd=12.00)  # ledger 63.17 + 12.00 > 75
     assert not guard.hard_ok and any("ledger ceiling" in r for r in guard.reasons)
 
 
 def test_the_test_reserve_refuses_a_round_that_would_leave_no_money_for_the_test_phase():
-    guard = budget.round_guard(budget.Spend(entries_usd=15.0))  # ledger 44.17 + 7.39 + 26.11 > 75 (hard checks fine)
+    guard = budget.round_guard(budget.Spend(entries_usd=15.0), ledger_ceiling_usd=75.00)  # ledger 44.17 + 7.39 + 26.11 > 75 (hard checks fine)
     assert guard.hard_ok and not guard.reserve_ok and not guard.ok
     assert any("TEST reserve" in r for r in guard.reasons)
     assert budget.round_guard(budget.Spend(entries_usd=15.0), ledger_ceiling_usd=100.0).ok  # the owner raising the ceiling is the way out
@@ -176,3 +177,8 @@ def test_the_infra_requeue_rule_retries_only_an_infra_error_with_no_completed_ba
 
 def test_the_runner_selftest_passes():
     assert _runner()._selftest() == 0
+
+
+def test_the_ledger_ceiling_is_the_owners_130_for_the_test_phase():
+    """The owner's figure in chat, 2026-10-05: the TEST runner reads LEDGER_CEILING_USD (run_test_phase.py), so the $130.00 is the constant."""
+    assert budget.LEDGER_CEILING_USD == 130.00
