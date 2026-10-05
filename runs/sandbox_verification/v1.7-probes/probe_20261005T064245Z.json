@@ -1,0 +1,40 @@
+{
+  "record_kind": "harness-v1.7 probe (METHODOLOGY harness-v1.7 pre-registration, R1 (a) and R4)",
+  "started_at": "2026-10-05T06:42:45.035646+00:00",
+  "cap_usd": 0.1,
+  "operations": [
+    {
+      "n": 1,
+      "what": "memory and swap",
+      "image": "python:3.10-slim",
+      "started_at": "2026-10-05T06:42:45.035984+00:00",
+      "finished_at": "2026-10-05T06:42:47.922780+00:00",
+      "timeout_s": 60,
+      "exit_code": 0,
+      "cost_usd": 0.00036433,
+      "elapsed_seconds": 0.031487,
+      "truncated": false,
+      "stdout": "== id\nuid=0(root) gid=0(root) groups=0(root)\n== meminfo\nMemTotal:        4034744 kB\nMemFree:         3973324 kB\nMemAvailable:    3854888 kB\nSwapTotal:             0 kB\nSwapFree:              0 kB\nCommitLimit:     2017372 kB\nCommitted_AS:      46356 kB\n== free\n/bin/sh: 4: free: not found\nfree: not installed\n== ulimit\ntime(seconds)        unlimited\nfile(blocks)         unlimited\ndata(kbytes)         unlimited\nstack(kbytes)        8192\ncoredump(blocks)     0\nmemory(kbytes)       unlimited\nlocked memory(kbytes) 8192\nprocess              15742\nnofiles              1024\nvmemory(kbytes)      unlimited\nlocks                unlimited\nrtprio               0\n== overcommit\n0\n50\n60\n== cgroup\n0::/\n== swaps\nFilename\t\t\t\tType\t\tSize\t\tUsed\t\tPriority\n== block\ngrep: /proc/modules: No such file or directory\n== mounts\nrootfs / virtiofs rw,relatime 0 0\nFilesystem     Type       1K-blocks      Used   Available Use% Mounted on\nrootfs         virtiofs 50000000000 177983940 49809674172   1% /\nrootfs         virtiofs 50000000000 177983940 49809674172   1% /\n== kernel\n7.0.6\n== swapfile\nfallocate rc=0\n-rw-r--r-- 1 root root 4294967296 Oct  5 06:42 /swapfile\nSetting up swapspace version 1, size = 4 GiB (4294963200 bytes)\nno label, UUID=b86e0ed8-08c1-4ee4-9515-8290e377b14c\nmkswap rc=0\nswapon: /swapfile: swapon failed: Invalid argument\nswapon rc=255\nFilename\t\t\t\tType\t\tSize\t\tUsed\t\tPriority\nSwapTotal:             0 kB\nSwapFree:              0 kB\n== alloc skipped: swapon did not take\n[    0.027632] Spectre V1 : Vulnerable: __user pointer sanitization and usercopy barriers only; no swapgs barriers\n[    0.084143] zswap: loaded using pool zstd\n[    0.217519] swapon: swapfile has holes\n",
+      "stderr": "",
+      "script": "\necho \"== id\"; id\necho \"== meminfo\"; grep -E '^(MemTotal|MemFree|MemAvailable|SwapTotal|SwapFree|CommitLimit|Committed_AS):' /proc/meminfo\necho \"== free\"; (free -m 2>&1 || echo \"free: not installed\")\necho \"== ulimit\"; ulimit -a 2>&1\necho \"== overcommit\"; cat /proc/sys/vm/overcommit_memory /proc/sys/vm/overcommit_ratio /proc/sys/vm/swappiness 2>&1\necho \"== cgroup\"; cat /proc/self/cgroup 2>&1\nfor f in /sys/fs/cgroup/memory.max /sys/fs/cgroup/memory.swap.max /sys/fs/cgroup/memory.high /sys/fs/cgroup/memory.current \\\n         /sys/fs/cgroup/memory/memory.limit_in_bytes /sys/fs/cgroup/memory/memory.memsw.limit_in_bytes; do [ -r \"$f\" ] && echo \"$f=$(cat \"$f\")\"; done\necho \"== swaps\"; cat /proc/swaps 2>&1\necho \"== block\"; ls /sys/block 2>&1; grep -i -E 'zram|loop' /proc/devices /proc/modules 2>&1 | head -5\necho \"== mounts\"; grep -E ' / | /tmp ' /proc/mounts 2>&1; df -T / /tmp 2>&1 | head -5\necho \"== kernel\"; uname -r\necho \"== swapfile\"\nif fallocate -l 4G /swapfile 2>/tmp/falloc.err; then echo \"fallocate rc=0\"; else echo \"fallocate rc=$? $(cat /tmp/falloc.err)\"; dd if=/dev/zero of=/swapfile bs=1M count=4096 2>&1 | tail -n 1; echo \"dd rc=$?\"; fi\nls -l /swapfile 2>&1\nchmod 600 /swapfile 2>&1\nmkswap /swapfile 2>&1; echo \"mkswap rc=$?\"\nswapon /swapfile 2>&1; rc=$?; echo \"swapon rc=$rc\"\ncat /proc/swaps; grep -E '^(SwapTotal|SwapFree):' /proc/meminfo\nif [ \"$rc\" = \"0\" ]; then\n  echo \"== alloc\"\n  timeout 40 python3 -c '\nimport sys\nchunks = []\nfor i in range(20):  # 20 x 256 MiB = 5 GiB, every page written\n    b = bytearray(256 * 1024 * 1024)\n    for j in range(0, len(b), 4096):\n        b[j] = 1\n    chunks.append(b)\n    print(\"ALLOC_MB\", (i + 1) * 256, flush=True)\nprint(\"ALLOC_DONE\", len(chunks) * 256, flush=True)\n'\n  echo \"alloc rc=$?\"\n  grep -E '^(SwapTotal|SwapFree):' /proc/meminfo\n  swapoff /swapfile 2>&1; echo \"swapoff rc=$?\"\nelse\n  echo \"== alloc skipped: swapon did not take\"\nfi\ndmesg 2>&1 | grep -iE 'swap|oom|killed process' | tail -n 5\n"
+    },
+    {
+      "n": 2,
+      "what": "apt mirrors for bullseye",
+      "image": "python:3.6-slim",
+      "started_at": "2026-10-05T06:42:47.922806+00:00",
+      "finished_at": "2026-10-05T06:42:58.179943+00:00",
+      "timeout_s": 45,
+      "exit_code": 0,
+      "cost_usd": 0.01581559,
+      "elapsed_seconds": 1.559675,
+      "truncated": false,
+      "stdout": "== os-release\nPRETTY_NAME=\"Debian GNU/Linux 11 (bullseye)\"\nNAME=\"Debian GNU/Linux\"\nVERSION_ID=\"11\"\nVERSION=\"11 (bullseye)\"\nVERSION_CODENAME=bullseye\nID=debian\nHOME_URL=\"https://www.debian.org/\"\nSUPPORT_URL=\"https://www.debian.org/support\"\nBUG_REPORT_URL=\"https://bugs.debian.org/\"\n== sources\n# deb http://snapshot.debian.org/archive/debian/20211220T000000Z bullseye main\ndeb http://deb.debian.org/debian bullseye main\n# deb http://snapshot.debian.org/archive/debian-security/20211220T000000Z bullseye-security main\ndeb http://security.debian.org/debian-security bullseye-security main\n# deb http://snapshot.debian.org/archive/debian/20211220T000000Z bullseye-updates main\ndeb http://deb.debian.org/debian bullseye-updates main\n== urls\nURL 200 http://deb.debian.org/debian/dists/bullseye/Release\nURL 200 http://deb.debian.org/debian/dists/bullseye-updates/Release\nURL 200 http://security.debian.org/debian-security/dists/bullseye-security/Release\nURL 200 http://archive.debian.org/debian/dists/bullseye/Release\nURL 200 http://archive.debian.org/debian/dists/bullseye-updates/Release\nURL 200 http://archive.debian.org/debian-security/dists/bullseye-security/Release\nURL 200 http://archive.debian.org/debian/dists/buster/Release\nURL 200 http://archive.debian.org/debian/dists/buster-updates/Release\n== archive update\ndeb http://archive.debian.org/debian bullseye main\napt-get update rc=0\nGet:1 http://archive.debian.org/debian bullseye InRelease [116 kB]\nGet:2 http://archive.debian.org/debian bullseye/main amd64 Packages [8066 kB]\nFetched 8182 kB in 1s (7300 kB/s)\nReading package lists...\nbuild-essential:\n  Installed: (none)\n  Candidate: 12.9\n  Version table:\n",
+      "stderr": "",
+      "script": "\necho \"== os-release\"; cat /etc/os-release\necho \"== sources\"; cat /etc/apt/sources.list 2>&1; ls /etc/apt/sources.list.d 2>&1\necho \"== urls\"\npython3 -c '\nimport sys, urllib.request\nfor url in sys.argv[1:]:\n    try:\n        r = urllib.request.urlopen(urllib.request.Request(url, method=\"HEAD\"), timeout=8)\n        print(\"URL\", r.status, url)\n    except Exception as exc:\n        print(\"URL\", getattr(exc, \"code\", type(exc).__name__), url)\n' http://deb.debian.org/debian/dists/bullseye/Release http://deb.debian.org/debian/dists/bullseye-updates/Release http://security.debian.org/debian-security/dists/bullseye-security/Release http://archive.debian.org/debian/dists/bullseye/Release http://archive.debian.org/debian/dists/bullseye-updates/Release http://archive.debian.org/debian-security/dists/bullseye-security/Release http://archive.debian.org/debian/dists/buster/Release http://archive.debian.org/debian/dists/buster-updates/Release\necho \"== archive update\"\n. /etc/os-release\nprintf 'deb http://archive.debian.org/debian %s main\\n' \"$VERSION_CODENAME\" > /etc/apt/sources.list\necho 'Acquire::Check-Valid-Until \"false\";' > /etc/apt/apt.conf.d/99rerun-archive\ncat /etc/apt/sources.list\ntimeout 30 apt-get -o Acquire::http::Timeout=10 update >/tmp/apt_update.log 2>&1; echo \"apt-get update rc=$?\"; tail -n 8 /tmp/apt_update.log\napt-cache policy build-essential 2>&1 | head -n 4\n"
+    }
+  ],
+  "finished_at": "2026-10-05T06:42:58.179963+00:00",
+  "cost_usd": 0.01618,
+  "cost_over_cap_usd": 0.0
+}
