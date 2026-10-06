@@ -242,3 +242,8 @@ Post-hoc annotations only: the entries above are not edited. Owner, chat 2026-10
 - **D-50 [new; open, known limit]** A package's `__main__.py` is run as a file (`python steamctl/__main__.py`) instead of `python -m steamctl`; its package import fails, and the repairer's adopted fix was a code patch (`sys.path.insert`) where a command change suffices.
 - **D-51 [new; open, known limit]** An exit 0 after a CLI's no-argument notice (no `usage:` prefix) is read as a run (steamctl: argcomplete's activation notice). The D-46 exit-zero check and the TEST-B audit (rule R4) do not catch such text.
 - **D-52 [new; open, known limit]** A module-level script that reads no arguments (a server loop, mud-pi) is not an entrypoint candidate; discovery keys on `sys.argv` / argparse.
+
+## TEST-B (corpus-v3) at harness-v1.7.2 (2026-10-06; `reports/test-b/TEST_B_RESULT.md`; recorded, not fixed: no tuning on TEST-B)
+
+- **D-53 [new; open; the TEST-B evaluator, not the harness]** `reports/test-b/run_test_b.py` reads a baseline (as-published) run's output from the record, which keeps only each stream's length and SHA-256 for that run; it read the missing text as empty and struck #6 under R3 ("printed nothing") although the run printed 1,209 bytes. The pre-registered R4 (b) strike (a usage message) applies instead, proven by reproducing the stream byte for byte (same SHA-256; `reports/test-b/audit_06/`). The count is unchanged (RAN 1 of 8); `test_b_result.json` is not edited.
+- **D-54 [new; open]** A missing NLTK data resource (`Resource ptb not found`, TEST-B #1) is classified `RUNTIME_ERROR_OTHER`, not `DATA_MISSING`.

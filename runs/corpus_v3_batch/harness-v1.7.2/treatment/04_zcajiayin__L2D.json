@@ -1,0 +1,995 @@
+{
+  "run_kind": "live end-to-end run",
+  "dev_run": false,
+  "dry_run": null,
+  "batch": {
+    "harness_tag": "harness-v1.7.2",
+    "harness_commit": "7a1e0ba4014e565246feeb91b8e0f2377669be2c",
+    "head_commit": "d6e99a3deb1a6507ffedc257043f24ddda35d2eb",
+    "corpus": "corpus-v3",
+    "prereg_sha256": "7b2f53f9f8909c757ab1a5a3d1fb4548b8cfd32837b424af19d19a7a987fa22e",
+    "corpus_hash": "99b52da76e87bb778ec0ebc11316d88f369cf80626ac08c340b72166e1d42638",
+    "arm": "treatment",
+    "total_cap_usd": 95.0,
+    "already_spent_usd": 0.0,
+    "entry_id": 4,
+    "category": "PRIMARY",
+    "rules_matched": [],
+    "per_entry_cap_usd": 2.5,
+    "protocol": "TEST-B (corpus-v3, pre-registered 2026-10-05)"
+  },
+  "started_at": "2026-10-06T00:08:21.985129+00:00",
+  "corpus_entry": {
+    "name": "zcajiayin__L2D",
+    "repo_url": "https://github.com/zcajiayin/L2D",
+    "commit_sha": "7b2efbb1ffc960260b16952f2bed68e500765bf0",
+    "command": "python3 test_learned.py",
+    "command_source": "README.md line 45"
+  },
+  "config": {
+    "models": {
+      "recon": "nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B",
+      "planner": "nvidia/nemotron-3-super-120b-a12b",
+      "repairer": "nvidia/nemotron-3-super-120b-a12b",
+      "adjudicator": "nvidia/Nemotron-3-Ultra-550b-a55b"
+    },
+    "sandbox_backend": "token_factory",
+    "sandbox_image_default": "python:3.10-slim",
+    "sandbox_wall_clock_seconds": 600.0,
+    "arm": "treatment",
+    "repair_enabled": true,
+    "max_attempts": 3,
+    "candidates_per_round": 3,
+    "tavily_configured": true,
+    "cost_cap_usd": 2.5
+  },
+  "intake": {
+    "duration_s": 8.32,
+    "resolved_sha": "7b2efbb1ffc960260b16952f2bed68e500765bf0",
+    "dependency_files": [],
+    "declared_dependencies": [],
+    "entrypoint_candidates": [
+      "PPO_jssp_multiInstances.py",
+      "Params.py",
+      "mb_agg.py",
+      "models/actor_critic.py",
+      "models/graphcnn_congForSJSSP.py",
+      "permissibleLS.py",
+      "test_learned.py",
+      "updateAdjMat.py",
+      "updateEntTimeLB.py",
+      "validation.py"
+    ],
+    "notebook_paths": []
+  },
+  "pipeline_duration_s": 214.59,
+  "repair_mode": "deterministic",
+  "tree_integrity": {
+    "status": "verified",
+    "tree_sha": "e84d54ac1ece1be21e8e67f8e5c70423431fc967",
+    "files_checked": 75,
+    "excluded_patched": []
+  },
+  "result": {
+    "verdict": "RUNS_AFTER_REPAIR",
+    "taxonomy_code": "GPU_REQUIRED",
+    "indeterminate_reason": "",
+    "reason_code": null,
+    "error_chain": [
+      {
+        "error": "ModuleNotFoundError: No module named 'gym'",
+        "class": "DEP_MISSING",
+        "attribution": "REPO",
+        "phase": "repo_run",
+        "cleared_by": 0
+      },
+      {
+        "error": "raise AssertionError(\"Torch not compiled with CUDA enabled\")",
+        "class": "GPU_REQUIRED",
+        "attribution": "REPO",
+        "phase": "repo_run",
+        "cleared_by": 0
+      }
+    ],
+    "first_repo_error": "ModuleNotFoundError: No module named 'gym'",
+    "last_error": "raise AssertionError(\"Torch not compiled with CUDA enabled\")",
+    "error_traceback": "",
+    "attempts": [
+      {
+        "attempt_number": 0,
+        "diff_text": "",
+        "gate_decision": "PASS",
+        "gate_violations": [],
+        "exit_code": 1,
+        "stdout_tail": "",
+        "stderr_tail": "Traceback (most recent call last):\n  File \"//test_learned.py\", line 35, in <module>\n    ppo = PPO(configs.lr, configs.gamma, configs.k_epochs, configs.eps_clip,\n  File \"/PPO_jssp_multiInstances.py\", line 61, in __init__\n    self.policy = ActorCritic(n_j=n_j,\n  File \"/models/actor_critic.py\", line 44, in __init__\n    device=device).to(device)\n  File \"/usr/local/lib/python3.10/site-packages/torch/nn/modules/module.py\", line 927, in to\n    return self._apply(convert)\n  File \"/usr/local/lib/python3.10/site-packages/torch/nn/modules/module.py\", line 579, in _apply\n    module._apply(fn)\n  File \"/usr/local/lib/python3.10/site-packages/torch/nn/modules/module.py\", line 579, in _apply\n    module._apply(fn)\n  File \"/usr/local/lib/python3.10/site-packages/torch/nn/modules/module.py\", line 579, in _apply\n    module._apply(fn)\n  [Previous line repeated 1 more time]\n  File \"/usr/local/lib/python3.10/site-packages/torch/nn/modules/module.py\", line 602, in _apply\n    param_applied = fn(param)\n  File \"/usr/local/lib/python3.10/site-packages/torch/nn/modules/module.py\", line 925, in convert\n    return t.to(device, dtype if t.is_floating_point() or t.is_complex() else None, non_blocking)\n  File \"/usr/local/lib/python3.10/site-packages/torch/cuda/__init__.py\", line 211, in _lazy_init\n    raise AssertionError(\"Torch not compiled with CUDA enabled\")\nAssertionError: Torch not compiled with CUDA enabled\n",
+        "tavily_sources": [],
+        "env_delta": [],
+        "resolved_sources": [],
+        "origin": "time_machine",
+        "time_machine": {
+          "era": {
+            "date": "2022-08-31",
+            "source": "pinned-commit",
+            "detail": {
+              "note": "no dependency files in the repository"
+            }
+          },
+          "python": {
+            "version": "3.10",
+            "reason": "newest CPython first released \u2265180 days before the era date 2022-08-31 (https://devguide.python.org/versions/ (first release dates, retrieved 2026-09-24))",
+            "source": "https://devguide.python.org/versions/ (first release dates, retrieved 2026-09-24)"
+          },
+          "undeclared_imports": [
+            "gym",
+            "matplotlib",
+            "numpy",
+            "torch"
+          ],
+          "batch_scan": {
+            "install": [
+              "gym",
+              "matplotlib",
+              "numpy",
+              "torch"
+            ],
+            "internal_excluded": [
+              "JSSP_Env",
+              "PPO_jssp_multiInstances",
+              "Params",
+              "agent_utils",
+              "mb_agg",
+              "models",
+              "permissibleLS",
+              "uniform_instance_gen",
+              "updateAdjMat",
+              "updateEntTimeLB",
+              "validation"
+            ],
+            "optional_skipped": [],
+            "python2_only_skipped": [],
+            "already_declared": [],
+            "import_mappings": []
+          },
+          "import_mappings": [],
+          "apt_added": [],
+          "apt_reason": "",
+          "lock": {
+            "ok": true,
+            "lock": [
+              "cloudpickle==2.1.0",
+              "cycler==0.11.0",
+              "fonttools==4.37.1",
+              "gym==0.25.2",
+              "gym-notices==0.0.8",
+              "kiwisolver==1.4.4",
+              "matplotlib==3.5.3",
+              "numpy==1.23.2",
+              "packaging==21.3",
+              "pillow==9.2.0",
+              "pyparsing==3.0.9",
+              "python-dateutil==2.8.2",
+              "six==1.16.0",
+              "torch==1.12.1",
+              "typing-extensions==4.3.0"
+            ],
+            "inputs": [
+              "gym",
+              "matplotlib",
+              "numpy",
+              "torch"
+            ],
+            "not_on_index": [],
+            "relaxed": [],
+            "command": "pip compile - --no-header --no-annotate --quiet --exclude-newer 2022-09-01T00:00:00Z --python-version 3.10 --python-platform x86_64-unknown-linux-gnu --python C:\\Users\\E16\\AppData\\Roaming\\uv\\python\\cpython-3.8.20-windows-x86_64-none\\python.exe",
+            "error": ""
+          }
+        },
+        "execution": {
+          "mode": "smoke",
+          "seconds": 60,
+          "outcome": "exited",
+          "image": "e1125690-cee5-43d5-ad52-be490cd3e700",
+          "command": "python3 test_learned.py"
+        }
+      },
+      {
+        "attempt_number": 0,
+        "diff_text": "",
+        "gate_decision": "PASS",
+        "gate_violations": [],
+        "exit_code": 0,
+        "stdout_tail": "30 makespan: 1411.0\nInstance31 makespan: 1378.0\nInstance32 makespan: 1371.0\nInstance33 makespan: 1492.0\nInstance34 makespan: 1502.0\nInstance35 makespan: 1622.0\nInstance36 makespan: 1495.0\nInstance37 makespan: 1427.0\nInstance38 makespan: 1624.0\nInstance39 makespan: 1576.0\nInstance40 makespan: 1531.0\nInstance41 makespan: 1264.0\nInstance42 makespan: 1355.0\nInstance43 makespan: 1698.0\nInstance44 makespan: 1460.0\nInstance45 makespan: 1441.0\nInstance46 makespan: 1502.0\nInstance47 makespan: 1575.0\nInstance48 makespan: 1538.0\nInstance49 makespan: 1631.0\nInstance50 makespan: 1936.0\nInstance51 makespan: 1595.0\nInstance52 makespan: 1528.0\nInstance53 makespan: 1465.0\nInstance54 makespan: 1537.0\nInstance55 makespan: 1407.0\nInstance56 makespan: 1636.0\nInstance57 makespan: 1594.0\nInstance58 makespan: 1525.0\nInstance59 makespan: 1396.0\nInstance60 makespan: 1383.0\nInstance61 makespan: 1528.0\nInstance62 makespan: 1424.0\nInstance63 makespan: 1372.0\nInstance64 makespan: 1474.0\nInstance65 makespan: 1508.0\nInstance66 makespan: 1589.0\nInstance67 makespan: 1338.0\nInstance68 makespan: 1584.0\nInstance69 makespan: 1580.0\nInstance70 makespan: 1551.0\nInstance71 makespan: 1376.0\nInstance72 makespan: 1494.0\nInstance73 makespan: 1493.0\nInstance74 makespan: 1478.0\nInstance75 makespan: 1398.0\nInstance76 makespan: 1510.0\nInstance77 makespan: 1434.0\nInstance78 makespan: 1496.0\nInstance79 makespan: 1406.0\nInstance80 makespan: 1485.0\nInstance81 makespan: 1458.0\nInstance82 makespan: 1598.0\nInstance83 makespan: 1558.0\nInstance84 makespan: 1384.0\nInstance85 makespan: 1455.0\nInstance86 makespan: 1412.0\nInstance87 makespan: 1563.0\nInstance88 makespan: 1395.0\nInstance89 makespan: 1497.0\nInstance90 makespan: 1336.0\nInstance91 makespan: 1490.0\nInstance92 makespan: 1448.0\nInstance93 makespan: 1394.0\nInstance94 makespan: 1494.0\nInstance95 makespan: 1413.0\nInstance96 makespan: 1398.0\nInstance97 makespan: 1507.0\nInstance98 makespan: 1593.0\nInstance99 makespan: 1575.0\nInstance100 makespan: 1621.0\n19.393107414245605\n",
+        "stderr_tail": "RERUN_CPU_SHIM: injected by RERUN: torch.cuda.is_available() -> False, torch.cuda.set_device(...) does nothing, LU without pivoting: CPU reference when torch has no CPU kernel, torch.load(map_location='cpu'), Tensor.cuda() returns the tensor, Module.cuda() returns the module, Tensor.to('cuda*') -> cpu, Module.to('cuda*') -> cpu, torch.device('cuda*') -> cpu\nRERUN_CPU_SHIM_PATH: torch.device\nRERUN_CPU_SHIM_PATH: torch.load\n",
+        "tavily_sources": [],
+        "env_delta": [],
+        "resolved_sources": [],
+        "origin": "time_machine",
+        "time_machine": null,
+        "execution": {
+          "mode": "smoke",
+          "seconds": 60,
+          "outcome": "exited",
+          "image": "913de9ce-899f-4237-b9ba-db43de314094",
+          "command": "python3 test_learned.py"
+        },
+        "time_machine_action": {
+          "rule": "cpu_shim",
+          "matched_error": "raise AssertionError(\"Torch not compiled with CUDA enabled\")",
+          "hook": "cpu_shim",
+          "fires_on": "GPU_REQUIRED at repair time",
+          "phase": "repair",
+          "limit": "covers torch.load (map_location), torch.cuda.is_available(), torch.cuda.set_device() (does nothing: harness-v1.5.1), Tensor.cuda() and Module.cuda() (return self), a CPU reference for LU without pivoting when torch has no CPU kernel for it (torch.lu / torch._lu_with_info / torch.linalg.lu_factor / lu_factor_ex / lu with pivot=False; harness-v1.7, R2), .to('cuda*') on Tensor and Module and torch.device('cuda*') (-> cpu); does NOT cover device='cuda' strings given to factory functions (torch.zeros(device='cuda')), the other torch.cuda.* functions (current_device, synchronize, ...), torch.cuda.*Tensor types or torch.set_default_tensor_type('torch.cuda.FloatTensor'); torch.device is a proxy class, so `type(d) is torch.device` is False for a real device and a `torch.device(...)` call inside a TorchScript function is not supported",
+          "paths_fired": [
+            "torch.device",
+            "torch.load"
+          ]
+        }
+      }
+    ],
+    "certificate_prose": "The run log shows the execution completed successfully with exit_code=0 after 78.5 seconds of sandbox time. The process used a cpu_shim branch from an existing image with torch already installed, indicating the code ran to completion on the available hardware. Verifies that the artifact executes. Does not verify the paper's numerical results.",
+    "outcome_levels": {
+      "first_error_cleared": true,
+      "first_error_cleared_by": "time_machine",
+      "env_resolved": true,
+      "entrypoint_runs": true
+    },
+    "blocker": null
+  },
+  "certificate": {
+    "repo_url": "https://github.com/zcajiayin/L2D",
+    "commit_sha": "7b2efbb1ffc960260b16952f2bed68e500765bf0",
+    "build_plan": {
+      "base_image": "python:3.10-slim",
+      "apt_install": [],
+      "install_commands": [
+        "printf '%s\\n' cloudpickle==2.1.0 cycler==0.11.0 fonttools==4.37.1 gym==0.25.2 gym-notices==0.0.8 kiwisolver==1.4.4 matplotlib==3.5.3 numpy==1.23.2 packaging==21.3 pillow==9.2.0 pyparsing==3.0.9 python-dateutil==2.8.2 six==1.16.0 torch==1.12.1 typing-extensions==4.3.0 > .rerun-requirements.txt && pip install -r .rerun-requirements.txt"
+      ],
+      "execute_command": "python3 test_learned.py",
+      "notes": [
+        "execute command is the repository's documented command (corpus ground truth)",
+        "base image python:3.10-slim: no usable Python declaration; RERUN default 3.10",
+        "time machine: python 3.10, 15 locked package(s)"
+      ]
+    },
+    "full_log": "[intake] cloned https://github.com/zcajiayin/L2D@7b2efbb1ffc960260b16952f2bed68e500765bf0\n[recon] calling Nemotron Nano\n[recon] entrypoint=PPO_jssp_multiInstances.py confidence=0.85\n[python] python:3.10-slim (default): no usable Python declaration; RERUN default 3.10\n[planner] build plan: {'base_image': 'python:3.10-slim', 'apt_install': [], 'install_commands': ['true  # no declared dependency file found; nothing to install'], 'execute_command': 'python3 test_learned.py', 'notes': [\"execute command is the repository's documented command (corpus ground truth)\", 'base image python:3.10-slim: no usable Python declaration; RERUN default 3.10']}\n[integrity] verified 75 file(s) against tree e84d54ac1ece1be21e8e67f8e5c70423431fc967\n[runner] torch: repo imports torch without declaring it; runner provides the newest matched CPU wheels\n[checkpoint] baseline: no kept image holds this environment yet; building it from python:3.10-slim and keeping every layer\n[sandbox] starting build+execute (wall_clock_seconds=600)\n[operation 1] baseline: completed; 23.8s of sandbox time; torch installed; branch_from_image=None; result_image=None; 4 image(s) kept\n[cost_guard] recorded $0.2461 sandbox spend, $2.2529 remaining today\n[sandbox] id=5db303ea-e9cc-4b02-aecf-3d88f54f77b4 exit_code=1\n[baseline] as-is run: FAILS (exit code 1)\n[classifier] DEP_MISSING: ModuleNotFoundError: No module named 'gym'\n[era] 2022-08-31 from pinned-commit {'note': 'no dependency files in the repository'}\n[time-machine] era 2022-08-31 (pinned-commit) -> python 3.10; locked 15 package(s) with uv --exclude-newer; not on the index: none\n[smoke] re-execution of the documented command under a 60s smoke limit\n[integrity] verified 75 file(s) against tree e84d54ac1ece1be21e8e67f8e5c70423431fc967\n[runner] torch: repo pins torch; installed the CPU wheels as a matched set with the same pins\n[checkpoint] re-execution: branching from image 66b73f92-611c-41c7-bece-0d8be3f03c2b (0 of 3 setup command(s) already in it, kept by operation 1); no reinstall of what it contains\n[sandbox] starting build+execute (wall_clock_seconds=377)\n[operation 2] re-execution: completed; 24.4s of sandbox time; torch installed; branch_from_image=66b73f92-611c-41c7-bece-0d8be3f03c2b; result_image=None; 3 image(s) kept\n[cost_guard] recorded $0.2509 sandbox spend, $2.0020 remaining today\n[time-machine] re-execution id=e1125690-cee5-43d5-ad52-be490cd3e700 exit_code=1\n[classifier] GPU_REQUIRED: raise AssertionError(\"Torch not compiled with CUDA enabled\")\n[time-machine] deterministic step: cpu_shim (matched: raise AssertionError(\"Torch not compiled with CUDA enabled\")); no model call\n[smoke] re-execution of the documented command under a 60s smoke limit\n[integrity] verified 75 file(s) against tree e84d54ac1ece1be21e8e67f8e5c70423431fc967\n[runner] torch: repo pins torch; installed the CPU wheels as a matched set with the same pins\n[checkpoint] time machine: cpu_shim: branching from image e1125690-cee5-43d5-ad52-be490cd3e700 (3 of 4 setup command(s) already in it, kept by operation 2); no reinstall of what it contains\n[sandbox] starting build+execute (wall_clock_seconds=424)\n[operation 3] time machine: cpu_shim: completed; 78.5s of sandbox time; torch already in the start image; branch_from_image=e1125690-cee5-43d5-ad52-be490cd3e700; result_image=None; 1 image(s) kept\n[cost_guard] recorded $0.7855 sandbox spend, $1.2165 remaining today\n[time-machine] re-execution id=913de9ce-899f-4237-b9ba-db43de314094 exit_code=0",
+    "diffs": [
+      {
+        "attempt_number": 0,
+        "diff_text": "",
+        "gate_decision": "PASS",
+        "gate_violations": [],
+        "exit_code": 1,
+        "stdout_tail": "",
+        "stderr_tail": "Traceback (most recent call last):\n  File \"//test_learned.py\", line 35, in <module>\n    ppo = PPO(configs.lr, configs.gamma, configs.k_epochs, configs.eps_clip,\n  File \"/PPO_jssp_multiInstances.py\", line 61, in __init__\n    self.policy = ActorCritic(n_j=n_j,\n  File \"/models/actor_critic.py\", line 44, in __init__\n    device=device).to(device)\n  File \"/usr/local/lib/python3.10/site-packages/torch/nn/modules/module.py\", line 927, in to\n    return self._apply(convert)\n  File \"/usr/local/lib/python3.10/site-packages/torch/nn/modules/module.py\", line 579, in _apply\n    module._apply(fn)\n  File \"/usr/local/lib/python3.10/site-packages/torch/nn/modules/module.py\", line 579, in _apply\n    module._apply(fn)\n  File \"/usr/local/lib/python3.10/site-packages/torch/nn/modules/module.py\", line 579, in _apply\n    module._apply(fn)\n  [Previous line repeated 1 more time]\n  File \"/usr/local/lib/python3.10/site-packages/torch/nn/modules/module.py\", line 602, in _apply\n    param_applied = fn(param)\n  File \"/usr/local/lib/python3.10/site-packages/torch/nn/modules/module.py\", line 925, in convert\n    return t.to(device, dtype if t.is_floating_point() or t.is_complex() else None, non_blocking)\n  File \"/usr/local/lib/python3.10/site-packages/torch/cuda/__init__.py\", line 211, in _lazy_init\n    raise AssertionError(\"Torch not compiled with CUDA enabled\")\nAssertionError: Torch not compiled with CUDA enabled\n",
+        "tavily_sources": [],
+        "env_delta": [],
+        "resolved_sources": [],
+        "origin": "time_machine",
+        "time_machine": {
+          "era": {
+            "date": "2022-08-31",
+            "source": "pinned-commit",
+            "detail": {
+              "note": "no dependency files in the repository"
+            }
+          },
+          "python": {
+            "version": "3.10",
+            "reason": "newest CPython first released \u2265180 days before the era date 2022-08-31 (https://devguide.python.org/versions/ (first release dates, retrieved 2026-09-24))",
+            "source": "https://devguide.python.org/versions/ (first release dates, retrieved 2026-09-24)"
+          },
+          "undeclared_imports": [
+            "gym",
+            "matplotlib",
+            "numpy",
+            "torch"
+          ],
+          "batch_scan": {
+            "install": [
+              "gym",
+              "matplotlib",
+              "numpy",
+              "torch"
+            ],
+            "internal_excluded": [
+              "JSSP_Env",
+              "PPO_jssp_multiInstances",
+              "Params",
+              "agent_utils",
+              "mb_agg",
+              "models",
+              "permissibleLS",
+              "uniform_instance_gen",
+              "updateAdjMat",
+              "updateEntTimeLB",
+              "validation"
+            ],
+            "optional_skipped": [],
+            "python2_only_skipped": [],
+            "already_declared": [],
+            "import_mappings": []
+          },
+          "import_mappings": [],
+          "apt_added": [],
+          "apt_reason": "",
+          "lock": {
+            "ok": true,
+            "lock": [
+              "cloudpickle==2.1.0",
+              "cycler==0.11.0",
+              "fonttools==4.37.1",
+              "gym==0.25.2",
+              "gym-notices==0.0.8",
+              "kiwisolver==1.4.4",
+              "matplotlib==3.5.3",
+              "numpy==1.23.2",
+              "packaging==21.3",
+              "pillow==9.2.0",
+              "pyparsing==3.0.9",
+              "python-dateutil==2.8.2",
+              "six==1.16.0",
+              "torch==1.12.1",
+              "typing-extensions==4.3.0"
+            ],
+            "inputs": [
+              "gym",
+              "matplotlib",
+              "numpy",
+              "torch"
+            ],
+            "not_on_index": [],
+            "relaxed": [],
+            "command": "pip compile - --no-header --no-annotate --quiet --exclude-newer 2022-09-01T00:00:00Z --python-version 3.10 --python-platform x86_64-unknown-linux-gnu --python C:\\Users\\E16\\AppData\\Roaming\\uv\\python\\cpython-3.8.20-windows-x86_64-none\\python.exe",
+            "error": ""
+          }
+        },
+        "execution": {
+          "mode": "smoke",
+          "seconds": 60,
+          "outcome": "exited",
+          "image": "e1125690-cee5-43d5-ad52-be490cd3e700",
+          "command": "python3 test_learned.py"
+        }
+      },
+      {
+        "attempt_number": 0,
+        "diff_text": "",
+        "gate_decision": "PASS",
+        "gate_violations": [],
+        "exit_code": 0,
+        "stdout_tail": "30 makespan: 1411.0\nInstance31 makespan: 1378.0\nInstance32 makespan: 1371.0\nInstance33 makespan: 1492.0\nInstance34 makespan: 1502.0\nInstance35 makespan: 1622.0\nInstance36 makespan: 1495.0\nInstance37 makespan: 1427.0\nInstance38 makespan: 1624.0\nInstance39 makespan: 1576.0\nInstance40 makespan: 1531.0\nInstance41 makespan: 1264.0\nInstance42 makespan: 1355.0\nInstance43 makespan: 1698.0\nInstance44 makespan: 1460.0\nInstance45 makespan: 1441.0\nInstance46 makespan: 1502.0\nInstance47 makespan: 1575.0\nInstance48 makespan: 1538.0\nInstance49 makespan: 1631.0\nInstance50 makespan: 1936.0\nInstance51 makespan: 1595.0\nInstance52 makespan: 1528.0\nInstance53 makespan: 1465.0\nInstance54 makespan: 1537.0\nInstance55 makespan: 1407.0\nInstance56 makespan: 1636.0\nInstance57 makespan: 1594.0\nInstance58 makespan: 1525.0\nInstance59 makespan: 1396.0\nInstance60 makespan: 1383.0\nInstance61 makespan: 1528.0\nInstance62 makespan: 1424.0\nInstance63 makespan: 1372.0\nInstance64 makespan: 1474.0\nInstance65 makespan: 1508.0\nInstance66 makespan: 1589.0\nInstance67 makespan: 1338.0\nInstance68 makespan: 1584.0\nInstance69 makespan: 1580.0\nInstance70 makespan: 1551.0\nInstance71 makespan: 1376.0\nInstance72 makespan: 1494.0\nInstance73 makespan: 1493.0\nInstance74 makespan: 1478.0\nInstance75 makespan: 1398.0\nInstance76 makespan: 1510.0\nInstance77 makespan: 1434.0\nInstance78 makespan: 1496.0\nInstance79 makespan: 1406.0\nInstance80 makespan: 1485.0\nInstance81 makespan: 1458.0\nInstance82 makespan: 1598.0\nInstance83 makespan: 1558.0\nInstance84 makespan: 1384.0\nInstance85 makespan: 1455.0\nInstance86 makespan: 1412.0\nInstance87 makespan: 1563.0\nInstance88 makespan: 1395.0\nInstance89 makespan: 1497.0\nInstance90 makespan: 1336.0\nInstance91 makespan: 1490.0\nInstance92 makespan: 1448.0\nInstance93 makespan: 1394.0\nInstance94 makespan: 1494.0\nInstance95 makespan: 1413.0\nInstance96 makespan: 1398.0\nInstance97 makespan: 1507.0\nInstance98 makespan: 1593.0\nInstance99 makespan: 1575.0\nInstance100 makespan: 1621.0\n19.393107414245605\n",
+        "stderr_tail": "RERUN_CPU_SHIM: injected by RERUN: torch.cuda.is_available() -> False, torch.cuda.set_device(...) does nothing, LU without pivoting: CPU reference when torch has no CPU kernel, torch.load(map_location='cpu'), Tensor.cuda() returns the tensor, Module.cuda() returns the module, Tensor.to('cuda*') -> cpu, Module.to('cuda*') -> cpu, torch.device('cuda*') -> cpu\nRERUN_CPU_SHIM_PATH: torch.device\nRERUN_CPU_SHIM_PATH: torch.load\n",
+        "tavily_sources": [],
+        "env_delta": [],
+        "resolved_sources": [],
+        "origin": "time_machine",
+        "time_machine": null,
+        "execution": {
+          "mode": "smoke",
+          "seconds": 60,
+          "outcome": "exited",
+          "image": "913de9ce-899f-4237-b9ba-db43de314094",
+          "command": "python3 test_learned.py"
+        },
+        "time_machine_action": {
+          "rule": "cpu_shim",
+          "matched_error": "raise AssertionError(\"Torch not compiled with CUDA enabled\")",
+          "hook": "cpu_shim",
+          "fires_on": "GPU_REQUIRED at repair time",
+          "phase": "repair",
+          "limit": "covers torch.load (map_location), torch.cuda.is_available(), torch.cuda.set_device() (does nothing: harness-v1.5.1), Tensor.cuda() and Module.cuda() (return self), a CPU reference for LU without pivoting when torch has no CPU kernel for it (torch.lu / torch._lu_with_info / torch.linalg.lu_factor / lu_factor_ex / lu with pivot=False; harness-v1.7, R2), .to('cuda*') on Tensor and Module and torch.device('cuda*') (-> cpu); does NOT cover device='cuda' strings given to factory functions (torch.zeros(device='cuda')), the other torch.cuda.* functions (current_device, synchronize, ...), torch.cuda.*Tensor types or torch.set_default_tensor_type('torch.cuda.FloatTensor'); torch.device is a proxy class, so `type(d) is torch.device` is False for a real device and a `torch.device(...)` call inside a TorchScript function is not supported",
+          "paths_fired": [
+            "torch.device",
+            "torch.load"
+          ]
+        }
+      }
+    ],
+    "verdict": "RUNS_AFTER_REPAIR",
+    "timestamp": "2026-10-06T00:12:04.897255+00:00",
+    "bundle_version": 4,
+    "baseline": {
+      "result": "FAILS",
+      "exit_code": 1,
+      "base_image": "python:3.10-slim",
+      "install_commands": [
+        "true  # no declared dependency file found; nothing to install"
+      ],
+      "execute_command": "python3 test_learned.py",
+      "sandbox_id": "5db303ea-e9cc-4b02-aecf-3d88f54f77b4",
+      "taxonomy_code": "DEP_MISSING",
+      "evidence": "ModuleNotFoundError: No module named 'gym'"
+    },
+    "recovery": true,
+    "tree_integrity": {
+      "status": "verified",
+      "tree_sha": "e84d54ac1ece1be21e8e67f8e5c70423431fc967",
+      "files_checked": 75,
+      "excluded_patched": []
+    },
+    "corpus_hash": "99b52da76e87bb778ec0ebc11316d88f369cf80626ac08c340b72166e1d42638",
+    "taxonomy_code": "GPU_REQUIRED",
+    "indeterminate_reason": "",
+    "error_chain": [
+      {
+        "error": "ModuleNotFoundError: No module named 'gym'",
+        "class": "DEP_MISSING",
+        "attribution": "REPO",
+        "phase": "repo_run",
+        "cleared_by": 0
+      },
+      {
+        "error": "raise AssertionError(\"Torch not compiled with CUDA enabled\")",
+        "class": "GPU_REQUIRED",
+        "attribution": "REPO",
+        "phase": "repo_run",
+        "cleared_by": 0
+      }
+    ],
+    "first_repo_error": "ModuleNotFoundError: No module named 'gym'",
+    "last_error": "raise AssertionError(\"Torch not compiled with CUDA enabled\")",
+    "outcome_levels": {
+      "first_error_cleared": true,
+      "first_error_cleared_by": "time_machine",
+      "env_resolved": true,
+      "entrypoint_runs": true
+    },
+    "blocker": null,
+    "reproduction_passport_hash": "79878949032f0056c927fd1e47ac882a8bc0ce056a6f0059d1ccc39fc9e9f8dd"
+  },
+  "finished_at": "2026-10-06T00:12:04.959911+00:00",
+  "events": [
+    {
+      "t_s": 0.0,
+      "at": "2026-10-06T00:08:30.306409+00:00",
+      "line": "[intake] cloned https://github.com/zcajiayin/L2D@7b2efbb1ffc960260b16952f2bed68e500765bf0"
+    },
+    {
+      "t_s": 0.0,
+      "at": "2026-10-06T00:08:30.308498+00:00",
+      "line": "[recon] calling Nemotron Nano"
+    },
+    {
+      "t_s": 10.83,
+      "at": "2026-10-06T00:08:41.138505+00:00",
+      "line": "[recon] entrypoint=PPO_jssp_multiInstances.py confidence=0.85"
+    },
+    {
+      "t_s": 10.84,
+      "at": "2026-10-06T00:08:41.150000+00:00",
+      "line": "[python] python:3.10-slim (default): no usable Python declaration; RERUN default 3.10"
+    },
+    {
+      "t_s": 12.02,
+      "at": "2026-10-06T00:08:42.326853+00:00",
+      "line": "[planner] build plan: {'base_image': 'python:3.10-slim', 'apt_install': [], 'install_commands': ['true  # no declared dependency file found; nothing to install'], 'execute_command': 'python3 test_learned.py', 'notes': [\"execute command is the repository's documented command (corpus ground truth)\", 'base image python:3.10-slim: no usable Python declaration; RERUN default 3.10']}"
+    },
+    {
+      "t_s": 12.54,
+      "at": "2026-10-06T00:08:42.848660+00:00",
+      "line": "[integrity] verified 75 file(s) against tree e84d54ac1ece1be21e8e67f8e5c70423431fc967"
+    },
+    {
+      "t_s": 12.56,
+      "at": "2026-10-06T00:08:42.863978+00:00",
+      "line": "[runner] torch: repo imports torch without declaring it; runner provides the newest matched CPU wheels"
+    },
+    {
+      "t_s": 12.56,
+      "at": "2026-10-06T00:08:42.865151+00:00",
+      "line": "[checkpoint] baseline: no kept image holds this environment yet; building it from python:3.10-slim and keeping every layer"
+    },
+    {
+      "t_s": 12.56,
+      "at": "2026-10-06T00:08:42.865365+00:00",
+      "line": "[sandbox] starting build+execute (wall_clock_seconds=600)"
+    },
+    {
+      "t_s": 82.18,
+      "at": "2026-10-06T00:09:52.483281+00:00",
+      "line": "[operation 1] baseline: completed; 23.8s of sandbox time; torch installed; branch_from_image=None; result_image=None; 4 image(s) kept"
+    },
+    {
+      "t_s": 82.18,
+      "at": "2026-10-06T00:09:52.483341+00:00",
+      "line": "[cost_guard] recorded $0.2461 sandbox spend, $2.2529 remaining today"
+    },
+    {
+      "t_s": 82.18,
+      "at": "2026-10-06T00:09:52.483414+00:00",
+      "line": "[sandbox] id=5db303ea-e9cc-4b02-aecf-3d88f54f77b4 exit_code=1"
+    },
+    {
+      "t_s": 82.18,
+      "at": "2026-10-06T00:09:52.483430+00:00",
+      "line": "[baseline] as-is run: FAILS (exit code 1)"
+    },
+    {
+      "t_s": 82.19,
+      "at": "2026-10-06T00:09:52.493099+00:00",
+      "line": "[classifier] DEP_MISSING: ModuleNotFoundError: No module named 'gym'"
+    },
+    {
+      "t_s": 82.23,
+      "at": "2026-10-06T00:09:52.541215+00:00",
+      "line": "[era] 2022-08-31 from pinned-commit {'note': 'no dependency files in the repository'}"
+    },
+    {
+      "t_s": 87.52,
+      "at": "2026-10-06T00:09:57.825883+00:00",
+      "line": "[time-machine] era 2022-08-31 (pinned-commit) -> python 3.10; locked 15 package(s) with uv --exclude-newer; not on the index: none"
+    },
+    {
+      "t_s": 87.54,
+      "at": "2026-10-06T00:09:57.847473+00:00",
+      "line": "[smoke] re-execution of the documented command under a 60s smoke limit"
+    },
+    {
+      "t_s": 87.64,
+      "at": "2026-10-06T00:09:57.942101+00:00",
+      "line": "[integrity] verified 75 file(s) against tree e84d54ac1ece1be21e8e67f8e5c70423431fc967"
+    },
+    {
+      "t_s": 87.65,
+      "at": "2026-10-06T00:09:57.957383+00:00",
+      "line": "[runner] torch: repo pins torch; installed the CPU wheels as a matched set with the same pins"
+    },
+    {
+      "t_s": 87.65,
+      "at": "2026-10-06T00:09:57.958980+00:00",
+      "line": "[checkpoint] re-execution: branching from image 66b73f92-611c-41c7-bece-0d8be3f03c2b (0 of 3 setup command(s) already in it, kept by operation 1); no reinstall of what it contains"
+    },
+    {
+      "t_s": 87.65,
+      "at": "2026-10-06T00:09:57.959006+00:00",
+      "line": "[sandbox] starting build+execute (wall_clock_seconds=377)"
+    },
+    {
+      "t_s": 176.04,
+      "at": "2026-10-06T00:11:26.350850+00:00",
+      "line": "[operation 2] re-execution: completed; 24.4s of sandbox time; torch installed; branch_from_image=66b73f92-611c-41c7-bece-0d8be3f03c2b; result_image=None; 3 image(s) kept"
+    },
+    {
+      "t_s": 176.04,
+      "at": "2026-10-06T00:11:26.350911+00:00",
+      "line": "[cost_guard] recorded $0.2509 sandbox spend, $2.0020 remaining today"
+    },
+    {
+      "t_s": 176.04,
+      "at": "2026-10-06T00:11:26.351022+00:00",
+      "line": "[time-machine] re-execution id=e1125690-cee5-43d5-ad52-be490cd3e700 exit_code=1"
+    },
+    {
+      "t_s": 176.05,
+      "at": "2026-10-06T00:11:26.352552+00:00",
+      "line": "[classifier] GPU_REQUIRED: raise AssertionError(\"Torch not compiled with CUDA enabled\")"
+    },
+    {
+      "t_s": 176.05,
+      "at": "2026-10-06T00:11:26.353683+00:00",
+      "line": "[time-machine] deterministic step: cpu_shim (matched: raise AssertionError(\"Torch not compiled with CUDA enabled\")); no model call"
+    },
+    {
+      "t_s": 176.07,
+      "at": "2026-10-06T00:11:26.371514+00:00",
+      "line": "[smoke] re-execution of the documented command under a 60s smoke limit"
+    },
+    {
+      "t_s": 176.15,
+      "at": "2026-10-06T00:11:26.456943+00:00",
+      "line": "[integrity] verified 75 file(s) against tree e84d54ac1ece1be21e8e67f8e5c70423431fc967"
+    },
+    {
+      "t_s": 176.16,
+      "at": "2026-10-06T00:11:26.470790+00:00",
+      "line": "[runner] torch: repo pins torch; installed the CPU wheels as a matched set with the same pins"
+    },
+    {
+      "t_s": 176.17,
+      "at": "2026-10-06T00:11:26.472202+00:00",
+      "line": "[checkpoint] time machine: cpu_shim: branching from image e1125690-cee5-43d5-ad52-be490cd3e700 (3 of 4 setup command(s) already in it, kept by operation 2); no reinstall of what it contains"
+    },
+    {
+      "t_s": 176.17,
+      "at": "2026-10-06T00:11:26.472224+00:00",
+      "line": "[sandbox] starting build+execute (wall_clock_seconds=424)"
+    },
+    {
+      "t_s": 199.8,
+      "at": "2026-10-06T00:11:50.109028+00:00",
+      "line": "[operation 3] time machine: cpu_shim: completed; 78.5s of sandbox time; torch already in the start image; branch_from_image=e1125690-cee5-43d5-ad52-be490cd3e700; result_image=None; 1 image(s) kept"
+    },
+    {
+      "t_s": 199.8,
+      "at": "2026-10-06T00:11:50.109083+00:00",
+      "line": "[cost_guard] recorded $0.7855 sandbox spend, $1.2165 remaining today"
+    },
+    {
+      "t_s": 199.8,
+      "at": "2026-10-06T00:11:50.109250+00:00",
+      "line": "[time-machine] re-execution id=913de9ce-899f-4237-b9ba-db43de314094 exit_code=0"
+    }
+  ],
+  "model_calls": [
+    {
+      "model": "nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B",
+      "started_at": "2026-10-06T00:08:30.520097+00:00",
+      "latency_s": 10.62,
+      "finish_reason": "stop",
+      "content_is_none": false,
+      "has_reasoning": true,
+      "usage": {
+        "completion_tokens": 1123,
+        "prompt_tokens": 10097,
+        "total_tokens": 11220,
+        "completion_tokens_details": null,
+        "prompt_tokens_details": null
+      }
+    },
+    {
+      "model": "nvidia/nemotron-3-super-120b-a12b",
+      "started_at": "2026-10-06T00:08:41.151233+00:00",
+      "latency_s": 1.18,
+      "finish_reason": "stop",
+      "content_is_none": false,
+      "has_reasoning": true,
+      "usage": {
+        "completion_tokens": 33,
+        "prompt_tokens": 272,
+        "total_tokens": 305,
+        "completion_tokens_details": {
+          "accepted_prediction_tokens": null,
+          "audio_tokens": null,
+          "reasoning_tokens": 23,
+          "rejected_prediction_tokens": null,
+          "text_tokens": null
+        },
+        "prompt_tokens_details": {
+          "audio_tokens": null,
+          "cache_write_tokens": null,
+          "cached_tokens": 0,
+          "image_tokens": null,
+          "text_tokens": null,
+          "created_cache_tokens": 0,
+          "multimodal_tokens": null
+        },
+        "prompt_cache_hit_tokens": 0,
+        "prompt_cache_miss_tokens": 272
+      }
+    },
+    {
+      "model": "nvidia/Nemotron-3-Ultra-550b-a55b",
+      "started_at": "2026-10-06T00:11:50.111161+00:00",
+      "error": "APITimeoutError: Request timed out.",
+      "latency_s": 10.01
+    },
+    {
+      "model": "nvidia/Nemotron-3-Ultra-550b-a55b",
+      "started_at": "2026-10-06T00:12:02.127126+00:00",
+      "latency_s": 2.77,
+      "finish_reason": "stop",
+      "content_is_none": false,
+      "has_reasoning": true,
+      "usage": {
+        "completion_tokens": 614,
+        "prompt_tokens": 774,
+        "total_tokens": 1388,
+        "completion_tokens_details": {
+          "accepted_prediction_tokens": null,
+          "audio_tokens": null,
+          "reasoning_tokens": 510,
+          "rejected_prediction_tokens": null,
+          "text_tokens": null
+        },
+        "prompt_tokens_details": {
+          "audio_tokens": null,
+          "cache_write_tokens": null,
+          "cached_tokens": 0,
+          "image_tokens": null,
+          "text_tokens": null,
+          "multimodal_tokens": null
+        },
+        "prompt_cache_hit_tokens": 0,
+        "prompt_cache_miss_tokens": 774
+      }
+    }
+  ],
+  "cost_guard": {
+    "spent_usd": 1.2861327100000002,
+    "model_spent_usd": 0.00360264,
+    "sandbox_spent_usd": 1.2825300700000002,
+    "estimated_sandbox_spent_usd": 0.0,
+    "cost_events": [],
+    "remaining_usd": 1.2138672899999998,
+    "model_usage": [
+      {
+        "model": "nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B",
+        "prompt_tokens": 10097,
+        "completion_tokens": 1123,
+        "cost_usd": 0.00087534
+      },
+      {
+        "model": "nvidia/nemotron-3-super-120b-a12b",
+        "prompt_tokens": 272,
+        "completion_tokens": 33,
+        "cost_usd": 0.0001113
+      },
+      {
+        "model": "nvidia/Nemotron-3-Ultra-550b-a55b",
+        "prompt_tokens": 774,
+        "completion_tokens": 614,
+        "cost_usd": 0.002616
+      }
+    ],
+    "prices_usd_per_1m": {
+      "nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B": [
+        0.06,
+        0.24
+      ],
+      "nvidia/nemotron-3-super-120b-a12b": [
+        0.3,
+        0.9
+      ],
+      "nvidia/Nemotron-3-Ultra-550b-a55b": [
+        1.0,
+        3.0
+      ]
+    },
+    "prices_source": "https://api.tokenfactory.nebius.com/v1/models?verbose=true (pricing field)",
+    "prices_retrieved": "2026-09-24"
+  },
+  "operations": [
+    {
+      "n": 1,
+      "role": "baseline",
+      "candidate": null,
+      "concurrent": 1,
+      "base_image": "python:3.10-slim",
+      "funded_seconds": 600.0,
+      "wall_seconds": 69.62,
+      "sandbox_seconds": 23.845,
+      "install_seconds": [
+        {
+          "command": "pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cpu --extra-index-url https://pypi.org/simple || pip install torch --index",
+          "phase": "runner_setup",
+          "seconds": 20.811,
+          "exit_code": 0,
+          "cost_usd": 0.214883,
+          "torch": true
+        },
+        {
+          "command": "python -c '\nimport glob, importlib.util, os, struct, subprocess, sys\nspec = importlib.util.find_spec(\"torch\")\nroot = os.path.join(os.path.dirname(spec.origin), ",
+          "phase": "runner_setup",
+          "seconds": 1.491,
+          "exit_code": 0,
+          "cost_usd": 0.015979,
+          "torch": false
+        },
+        {
+          "command": "true  # no declared dependency file found; nothing to install",
+          "phase": "repo_install",
+          "seconds": 0.001,
+          "exit_code": 0,
+          "cost_usd": 5.1e-05,
+          "torch": false
+        }
+      ],
+      "rerun_steps": [
+        {
+          "phase": "rerun_extract",
+          "seconds": 0.127,
+          "cost_usd": 0.001381
+        }
+      ],
+      "branch_from_image": null,
+      "start_setup_commands": 0,
+      "setup_commands": 3,
+      "torch_in_start_image": false,
+      "torch_installed": true,
+      "torch_env_key": "2d155cd9862014d8",
+      "result_image": null,
+      "image_kept": true,
+      "kept_images": [
+        "66b73f92-611c-41c7-bece-0d8be3f03c2b",
+        "9018ce8a-e892-46f4-8e6b-622d83eb369a",
+        "3da35bd4-f0b9-4995-aaa3-5e1d7c8ccceb",
+        "5db303ea-e9cc-4b02-aecf-3d88f54f77b4"
+      ],
+      "env_image_id": "5db303ea-e9cc-4b02-aecf-3d88f54f77b4",
+      "cost_usd": 0.246127,
+      "cost_estimated_usd": 0.0,
+      "outcome": "completed",
+      "resource_limits": {
+        "memory": "not documented (the only wording is \"Automatic cleanup and resource limits help prevent abuse.\" (docs.tokenfactory.nebius.com/sandboxes/overview) and \"Built-in tracking of CPU time, memory usage, and I/O operations for every execution.\")",
+        "cpu": "not documented",
+        "disk_layer_bytes": 12884901888,
+        "larger_instance": "not documented: the spawn request, the SDK, the CLI and the MCP tools have no memory, CPU, size or GPU parameter; Sandboxes is a beta (access by request, contree@nebius.com); no price page (the product page says free while in beta, D-36)",
+        "source": "docs/design/D-40-resources.md (public Nebius Token Factory / ConTree documentation and contree_sdk 0.3.6, read offline 2026-10-01)"
+      },
+      "exit_code": 1,
+      "max_rss": 1078544,
+      "streams": {
+        "limit_bytes": 4194304,
+        "stdout": {
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "truncated": false
+        },
+        "stderr": {
+          "bytes": 216,
+          "sha256": "4ec7f1809159adacdcdbac849d3e05a0f18ba74e9388be7d34857f1d00febde5",
+          "truncated": false
+        }
+      },
+      "killed_step": null,
+      "killed_seconds": null,
+      "funding": {
+        "basis": "baseline: the pre-registered wall clock, not budget-limited",
+        "rate_used_usd_per_s": null,
+        "source_operations": []
+      }
+    },
+    {
+      "n": 2,
+      "role": "re-execution",
+      "candidate": null,
+      "concurrent": 1,
+      "base_image": "python:3.10-slim",
+      "funded_seconds": 377.1,
+      "wall_seconds": 88.39,
+      "sandbox_seconds": 24.405,
+      "install_seconds": [
+        {
+          "command": "pip install torch==1.12.1 torchvision torchaudio 'numpy<2' --index-url https://download.pytorch.org/whl/cpu --extra-index-url https://pypi.org/simple || pip ins",
+          "phase": "runner_setup",
+          "seconds": 14.8,
+          "exit_code": 0,
+          "cost_usd": 0.151042,
+          "torch": true
+        },
+        {
+          "command": "python -c '\nimport glob, importlib.util, os, struct, subprocess, sys\nspec = importlib.util.find_spec(\"torch\")\nroot = os.path.join(os.path.dirname(spec.origin), ",
+          "phase": "runner_setup",
+          "seconds": 1.508,
+          "exit_code": 0,
+          "cost_usd": 0.017523,
+          "torch": false
+        },
+        {
+          "command": "printf '%s\\n' cloudpickle==2.1.0 cycler==0.11.0 fonttools==4.37.1 gym==0.25.2 gym-notices==0.0.8 kiwisolver==1.4.4 matplotlib==3.5.3 numpy==1.23.2 packaging==21",
+          "phase": "repo_install",
+          "seconds": 7.237,
+          "exit_code": 0,
+          "cost_usd": 0.073017,
+          "torch": false
+        }
+      ],
+      "rerun_steps": [],
+      "branch_from_image": "66b73f92-611c-41c7-bece-0d8be3f03c2b",
+      "start_setup_commands": 0,
+      "setup_commands": 3,
+      "torch_in_start_image": false,
+      "torch_installed": true,
+      "torch_env_key": "f275195b53edcef1",
+      "result_image": null,
+      "image_kept": true,
+      "kept_images": [
+        "b680b0f8-f192-45e7-836f-2b5c3ba2ad22",
+        "10cb9cdf-ac1a-4464-b5a2-1f3e01c93e74",
+        "e1125690-cee5-43d5-ad52-be490cd3e700"
+      ],
+      "env_image_id": "e1125690-cee5-43d5-ad52-be490cd3e700",
+      "cost_usd": 0.250936,
+      "cost_estimated_usd": 0.0,
+      "outcome": "completed",
+      "resource_limits": {
+        "memory": "not documented (the only wording is \"Automatic cleanup and resource limits help prevent abuse.\" (docs.tokenfactory.nebius.com/sandboxes/overview) and \"Built-in tracking of CPU time, memory usage, and I/O operations for every execution.\")",
+        "cpu": "not documented",
+        "disk_layer_bytes": 12884901888,
+        "larger_instance": "not documented: the spawn request, the SDK, the CLI and the MCP tools have no memory, CPU, size or GPU parameter; Sandboxes is a beta (access by request, contree@nebius.com); no price page (the product page says free while in beta, D-36)",
+        "source": "docs/design/D-40-resources.md (public Nebius Token Factory / ConTree documentation and contree_sdk 0.3.6, read offline 2026-10-01)"
+      },
+      "exit_code": 1,
+      "max_rss": 609380,
+      "streams": {
+        "limit_bytes": 4194304,
+        "stdout": {
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "truncated": false
+        },
+        "stderr": {
+          "bytes": 1403,
+          "sha256": "360f8ea989e6f62d3631b5b7cfa3a612137ad1eb09259b1edce9294cc43c1642",
+          "truncated": false
+        }
+      },
+      "killed_step": null,
+      "killed_seconds": null,
+      "funding": {
+        "rate_used_usd_per_s": 0.00530294,
+        "measured_usd_per_s": 0.00353529,
+        "safety": 1.5,
+        "floor_usd_per_s": 0.003,
+        "ceiling_usd_per_s": 0.0085,
+        "basis": "measured x safety",
+        "source_operations": [
+          1
+        ]
+      }
+    },
+    {
+      "n": 3,
+      "role": "time machine: cpu_shim",
+      "candidate": null,
+      "concurrent": 1,
+      "base_image": "python:3.10-slim",
+      "funded_seconds": 423.8,
+      "wall_seconds": 23.64,
+      "sandbox_seconds": 78.462,
+      "install_seconds": [
+        {
+          "command": "python3 -c \"import base64;exec(base64.b64decode('CmltcG9ydCBiYXNlNjQsIG9zLCBzaXRlLCBzeXMKbmFtZSwgc291cmNlID0gc3lzLmFyZ3ZbMV0sIGJhc2U2NC5iNjRkZWNvZGUoc3lzLmFyZ3Z",
+          "phase": "runner_setup",
+          "seconds": 0.023,
+          "exit_code": 0,
+          "cost_usd": 0.000276,
+          "torch": false
+        }
+      ],
+      "rerun_steps": [],
+      "branch_from_image": "e1125690-cee5-43d5-ad52-be490cd3e700",
+      "start_setup_commands": 3,
+      "setup_commands": 4,
+      "torch_in_start_image": true,
+      "torch_installed": false,
+      "torch_env_key": "f275195b53edcef1",
+      "result_image": null,
+      "image_kept": true,
+      "kept_images": [
+        "913de9ce-899f-4237-b9ba-db43de314094"
+      ],
+      "env_image_id": "913de9ce-899f-4237-b9ba-db43de314094",
+      "cost_usd": 0.785467,
+      "cost_estimated_usd": 0.0,
+      "outcome": "completed",
+      "resource_limits": {
+        "memory": "not documented (the only wording is \"Automatic cleanup and resource limits help prevent abuse.\" (docs.tokenfactory.nebius.com/sandboxes/overview) and \"Built-in tracking of CPU time, memory usage, and I/O operations for every execution.\")",
+        "cpu": "not documented",
+        "disk_layer_bytes": 12884901888,
+        "larger_instance": "not documented: the spawn request, the SDK, the CLI and the MCP tools have no memory, CPU, size or GPU parameter; Sandboxes is a beta (access by request, contree@nebius.com); no price page (the product page says free while in beta, D-36)",
+        "source": "docs/design/D-40-resources.md (public Nebius Token Factory / ConTree documentation and contree_sdk 0.3.6, read offline 2026-10-01)"
+      },
+      "exit_code": 0,
+      "max_rss": 160284,
+      "streams": {
+        "limit_bytes": 4194304,
+        "stdout": {
+          "bytes": 2811,
+          "sha256": "04f83c34b31ff786fcec4a111e33751c41d258042673209305f26cd1c59bb6be",
+          "truncated": false
+        },
+        "stderr": {
+          "bytes": 426,
+          "sha256": "2bd96da1e0bb79ba1e82424f78eaab198751e377db2769be4e2f1668766e5134",
+          "truncated": false
+        }
+      },
+      "killed_step": null,
+      "killed_seconds": null,
+      "funding": {
+        "rate_used_usd_per_s": 0.00471865,
+        "measured_usd_per_s": 0.00314577,
+        "safety": 1.5,
+        "floor_usd_per_s": 0.003,
+        "ceiling_usd_per_s": 0.0085,
+        "basis": "measured x safety",
+        "source_operations": [
+          1,
+          2
+        ]
+      }
+    }
+  ]
+}
