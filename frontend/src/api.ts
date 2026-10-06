@@ -282,6 +282,42 @@ export interface BatchResults {
   failure_breakdown?: Record<string, number>;
 }
 
+
+/** GET /batch/preregistered: the held-out results, read from the committed result files (backend/app/routers/batch.py). */
+export interface PreregisteredRow {
+  entry: number;
+  name: string;
+  verdict: Verdict | string | null;
+  code: string | null;
+  counts: boolean;
+  note: string;
+  note_source: string | null;
+  verdict_label?: string | null;
+}
+
+export interface PreregisteredSet {
+  key: string;
+  title: string;
+  harness: string;
+  what: string;
+  measure: string;
+  count: number;
+  of: number;
+  tag: string;
+  registered: boolean;
+  source: string;
+  spend_usd: number;
+  spend_tag: string;
+  preregistered_count?: number;
+  preregistered_measure?: string;
+  rows: PreregisteredRow[];
+}
+
+export interface PreregisteredResults {
+  sets: PreregisteredSet[];
+  note: string;
+}
+
 export const api = {
   health: () => request<HealthOut>("/healthz"),
   createRun: (repo_url: string) =>
@@ -291,6 +327,7 @@ export const api = {
   executeRun: (id: string) => request<RunOut>(`/runs/${id}/execute`, { method: "POST" }),
   getCertificate: (id: string) => request<CertificateOut>(`/runs/${id}/certificate`),
   getBatchResults: () => request<BatchResults>("/batch/results"),
+  getPreregistered: () => request<PreregisteredResults>("/batch/preregistered"),
   streamRunUrl: (id: string) => `${API_BASE}/runs/${id}/stream`,
 };
 

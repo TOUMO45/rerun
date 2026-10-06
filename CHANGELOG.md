@@ -2,6 +2,9 @@
 
 One entry per phase of the post-corpus-v2 plan. Numbers are produced by scripts in `scripts/`.
 
+## After harness-v1.7.2 — the Batch Lab shows the held-out results (2026-10-06; presentation only, not a harness version)
+The Batch Lab page showed only "unavailable" (no `batch_results.json` was ever produced). It now reads the committed held-out results through a new read-only route, `GET /batch/preregistered` (`backend/app/routers/batch.py`): TEST-B (harness-v1.7.2), the out-of-sample scan (harness-v1.7.2) and TEST (harness-v1.7.1 code), each as its own count, never pooled, with each audit correction attached to its entry and linked to its document. Its counts are tested against `reports/phase-d/dev_rounds.json`. Nothing that runs a repository changed (no orchestrator, intake or sandbox file); the run records, the seal and the tag `harness-v1.7.2` are untouched, but the harness paths now differ from the tag, so a batch at that tag must be started from the tag's commit. Checked in a browser at desktop and 375 px width.
+
 ## harness-v1.7.2-rc — D-49 (repo-URL injection) fixed, D-45/D-48 fixed, the new UI, TEST-B pre-registered (2026-10-05; offline, before the paid seal)
 Security: `POST /runs` ran `git ls-remote <repo_url>`, so `--upload-pack=<cmd>` ran a command on the backend host (D-49); now GitHub HTTPS only, `--` before every URL, the execute endpoint re-checks. D-48: R4's archive rewrite also runs on a repair candidate's own branch; D-45: `rewrote` is read from every step. Tests fail on the old code; independent review: no HIGH or MEDIUM finding. UI: the "Ember" theme, checked in a real browser (desktop and 375 px; 12 downloaded certificates pass `scripts/verify_passport.py`). No sandbox-touching file changed. TEST-B (corpus-v3) and the out-of-sample scan pre-registered in METHODOLOGY before any draw or pick. `reports/dev/FIXES_harness-v1.7.2.md`.
 
