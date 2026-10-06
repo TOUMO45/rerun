@@ -4,9 +4,9 @@
 
 Sums, from the records on disk (each with the estimate of any killed step, as each source records it):
   program   reports/corpus-v2.1/v1.5/devtest/budget.py: LEDGER_BASE_USD + read_spend() (every DEV round, the seals and extras in ledger_extras.json)
-  TEST      runs/corpus_v2_batch/harness-v1.5-final/test/test_result.json spend.total_usd (read_spend reads dev/ folders only)
+  TEST      runs/corpus_v2_batch/harness-v1.5-final/test/test_result.json spend.total_usd + its upload smoke tests (read_spend reads dev/ folders only)
   scans     every runs/live_scan/**/scan_summary.json row: cost.guard_total_usd, else cost.sandbox_api_reported_usd
-  TEST-B    runs/corpus_v3_batch/*/treatment/test_b_result.json spend.total_usd, when it exists
+  TEST-B    runs/corpus_v3_batch/*/treatment/test_b_result.json spend.total_usd + its upload smoke test, when it exists
 A seal of harness-v1.7.2 or later goes into ledger_extras.json by hand, as the earlier seals did (no script writes it).
 """
 from __future__ import annotations
@@ -30,11 +30,18 @@ def _budget():
     return mod
 
 
+def _smoke(folder: Path) -> float:
+    """The pre-batch upload smoke tests beside a batch's records (their result file's spend leaves them out)."""
+    return sum(float(r.get("cost_usd") or 0.0) for p in folder.glob("upload_smoke_*.json")
+               for r in json.loads(p.read_text(encoding="utf-8")).get("runs") or [])
+
+
 def parts() -> dict[str, float]:
     budget = _budget()
     out = {"program (base + DEV + seals + extras)": round(budget.LEDGER_BASE_USD + budget.read_spend(ROOT).total_usd, 6)}
     test = ROOT / "runs" / "corpus_v2_batch" / "harness-v1.5-final" / "test" / "test_result.json"
-    out["TEST (harness-v1.5-final)"] = float(json.loads(test.read_text(encoding="utf-8"))["spend"]["total_usd"]) if test.is_file() else 0.0
+    out["TEST (harness-v1.5-final)"] = round((float(json.loads(test.read_text(encoding="utf-8"))["spend"]["total_usd"]) if test.is_file() else 0.0)
+                                             + _smoke(test.parent), 6)
     scans = 0.0
     for path in (ROOT / "runs" / "live_scan").glob("**/scan_summary.json"):
         for row in json.loads(path.read_text(encoding="utf-8")):
@@ -43,7 +50,7 @@ def parts() -> dict[str, float]:
     out["live scans"] = round(scans, 6)
     test_b = 0.0
     for path in (ROOT / "runs" / "corpus_v3_batch").glob("*/treatment/test_b_result.json"):
-        test_b += float(json.loads(path.read_text(encoding="utf-8"))["spend"]["total_usd"])
+        test_b += float(json.loads(path.read_text(encoding="utf-8"))["spend"]["total_usd"]) + _smoke(path.parent)
     out["TEST-B"] = round(test_b, 6)
     return out
 

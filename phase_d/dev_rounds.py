@@ -134,12 +134,19 @@ def build() -> dict:
         raise DevRoundsError(f"DEV total {dev_total:.6f} from the records disagrees with the round runner's ledger reader {ledger_dev:.6f}")
     best_before = max(r["runs_count"]["value"] for r in rounds[:-1])
     test = _test_phase()
+    test_b = _test_b()
+    scans = _scans()
+    ledger_all = (float(budget.LEDGER_BASE_USD) + dev_total + test["total_usd"]["value"] + test_b["total_usd"]["value"]
+                  + scans["exploratory"]["total_usd"]["value"] + scans["out_of_sample"]["total_usd"]["value"])
     return {"kind": "DEV rounds of the harness-v1.5 dev/test protocol: tuned-on entries, smoke level (60 s); a development signal, not a result",
             "primary_metric": "the TEST phase (8 entries never tuned on, confirmed by a 600 s sustained check or completion): see `test`",
             "rounds": rounds,
             "test": test,
             "ledger_with_test_usd": _tagged(float(budget.LEDGER_BASE_USD) + dev_total + test["total_usd"]["value"], "DERIVED",
                                             ref="ledger_usd + test.total_usd"),
+            "test_b": test_b,
+            "scans": scans,
+            "ledger_all_usd": _tagged(ledger_all, "DERIVED", ref="ledger_with_test_usd + test_b.total_usd + scans (reports/ledger_total.py gives the same sum)"),
             "last_round_adds_nothing": _tagged(rounds[-1]["runs_count"]["value"] <= best_before, "DERIVED", ref="METHODOLOGY.md D4"),
             "extras_items": [{"what": r["what"], "usd": _tagged(float(r["usd"]), "ESTIMATED" if r.get("estimated") else "API-REPORTED", ref=EXTRAS)}
                              for r in extras],  # seals, probes, the live UI run: each row as written in the extras file
@@ -218,6 +225,85 @@ def _test_phase() -> dict:
             "sustained_estimated_usd": _tagged(sustained_est, "ESTIMATED", sum_of=sustained_ids),
             "upload_smoke_usd": _tagged(smoke_sum, "API-REPORTED", sum_of=smoke_ids),
             "total_usd": _tagged(total, "DERIVED", sum_of=[*api_ids, *est_ids, *sustained_ids, *smoke_ids])}
+
+
+TEST_B_TAG = "harness-v1.7.2"
+# TEST-B #6 (`python run.py --help`): the script struck it under R3 because a baseline record keeps no stream text; the R4 (b) usage strike applies,
+# proven by reproducing the stream byte for byte (reports/test-b/TEST_B_RESULT.md, D-53). The RAN count is the script's and is unchanged by this.
+TEST_B_USAGE_STDOUT_SHA256 = {6: "c879491a1f75a415ef9bc3d0baefb00551fb2520561f591ca5ce6705e99d9723"}
+
+
+def _test_b() -> dict:
+    """TEST-B (corpus-v3, pre-registered in backend/app/batch/corpus_v3/prereg.json): its own pre-registered result, never pooled with the TEST phase."""
+    base = f"runs/corpus_v3_batch/{TEST_B_TAG}/treatment/"
+    result_rel = base + "test_b_result.json"
+    result = json.loads(_blob(result_rel))
+    ids, runs_ids, ran_ids, api_ids, est_ids, smoke_ids = {}, [], [], [], [], []
+    api_sum = est_sum = smoke_sum = 0.0
+    for rel in _committed(base):
+        name = rel.rsplit("/", 1)[1]
+        if re.match(r"^\d{2}_.+\.json$", name):
+            raw = _blob(rel)
+            doc = json.loads(raw)
+            rid = f"{TEST_B_TAG}/corpus-v3/{name[:2]}@{hashlib.sha256(raw).hexdigest()}"
+            ids[int(name[:2])] = (rid, doc)
+            guard = doc.get("cost_guard") or {}
+            spent, est = float(guard.get("spent_usd") or 0.0), float(guard.get("estimated_sandbox_spent_usd") or 0.0)
+            api_sum += spent - est
+            est_sum += est
+            (est_ids if est else api_ids).append(rid)
+        elif name.startswith("upload_smoke_"):
+            raw = _blob(rel)
+            smoke_sum += sum(float(r.get("cost_usd") or 0.0) for r in json.loads(raw).get("runs") or [])
+            smoke_ids.append(f"{rel}@{hashlib.sha256(raw).hexdigest()}")
+    if len(ids) != 8 or result["ran_entries"] != 8:
+        raise DevRoundsError(f"{base}: {len(ids)} TEST-B records, the result says {result['ran_entries']}")
+    for row in result["rows"]:
+        rid, doc = ids[row["entry"]]
+        if doc["result"]["verdict"] != row["verdict"]:
+            raise DevRoundsError(f"TEST-B entry {row['entry']}: the result disagrees with its record")
+        if row["verdict"] in RUNS:
+            runs_ids.append(rid)
+        if row["ran"]:
+            ran_ids.append(rid)
+    if len(ran_ids) != result["ran_count"]:
+        raise DevRoundsError("the TEST-B RAN count disagrees with its rows")
+    for entry, sha in TEST_B_USAGE_STDOUT_SHA256.items():
+        stored = (ids[entry][1]["operations"][0].get("streams") or {}).get("stdout", {}).get("sha256")
+        if stored != sha:
+            raise DevRoundsError(f"TEST-B #{entry}: the stored stdout hash is not the reproduced usage text's")
+    return {"harness_tag": TEST_B_TAG, "result": result_rel, "registration": "backend/app/batch/corpus_v3/prereg.json",
+            "entries_total": _tagged(len(ids), "DERIVED", count_of=[ids[k][0] for k in sorted(ids)]),
+            "runs_count": _tagged(len(runs_ids), "DERIVED", count_of=runs_ids),
+            "ran_count": _tagged(len(ran_ids), "DERIVED", count_of=ran_ids),
+            "ran_without_semantic_change": _tagged(int(result["ran_without_semantic_change"]), "DERIVED", ref=result_rel),
+            "entries_api_reported_usd": _tagged(api_sum, "API-REPORTED", sum_of=api_ids),
+            "entries_estimated_usd": _tagged(est_sum, "ESTIMATED", sum_of=est_ids),
+            "upload_smoke_usd": _tagged(smoke_sum, "API-REPORTED", sum_of=smoke_ids),
+            "total_usd": _tagged(float(result["spend"]["total_usd"]) + smoke_sum, "DERIVED", ref=f"{result_rel} spend.total_usd + upload_smoke_usd")}
+
+
+def _scans() -> dict:
+    """The live scans of small public repositories: the three EXPLORATORY ones (harness-v1.7.2's fixes were tuned on them) and the one OUT-OF-SAMPLE scan."""
+    def summary(folder: str) -> tuple[str, list[dict]]:
+        rel = f"runs/live_scan/{folder}scan_summary.json"
+        return rel, json.loads(_blob(rel))
+
+    def cost(rows: list[dict]) -> float:
+        return sum(float((r.get("cost") or {}).get("guard_total_usd") or (r.get("cost") or {}).get("sandbox_api_reported_usd") or 0.0) for r in rows)
+
+    exploratory = [summary(f) for f in ("", "v1.7.2/", "v1.7.2b/")]
+    oos_rel, oos = summary("oos_v1.7.2/")
+    runs = [r for r in oos if r.get("verdict") in RUNS]
+    return {"exploratory": {"label": "EXPLORATORY: harness-v1.7.2's fixes were tuned on these repositories; not independent evidence",
+                            "scans": _tagged(len(exploratory), "DERIVED", count_of=[rel for rel, _ in exploratory]),
+                            "total_usd": _tagged(sum(cost(rows) for _, rows in exploratory), "API-REPORTED", sum_of=[rel for rel, _ in exploratory])},
+            "out_of_sample": {"label": "OUT-OF-SAMPLE for harness-v1.7.2 (reports/live_scan/oos_v172/SCAN_OOS_v1.7.2.md)", "summary": oos_rel,
+                              "repositories": _tagged(len(oos), "DERIVED", ref=oos_rel),
+                              "runs_verdicts": _tagged(len(runs), "DERIVED", ref=oos_rel),
+                              # the audit (SCAN_OOS_v1.7.2.md): the one RUNS_* verdict (steamctl) printed its no-argument notice and ran no command
+                              "did_their_work": _tagged(0, "DERIVED", ref="reports/live_scan/oos_v172/SCAN_OOS_v1.7.2.md"),
+                              "total_usd": _tagged(cost(oos), "API-REPORTED", ref=oos_rel)}}
 
 
 def render(doc: dict) -> str:
