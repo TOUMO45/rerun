@@ -8,7 +8,7 @@
 #   REPO  the public repository to clone
 #   REF   the commit to serve; pinned to the submission commit (change it here to serve another one)
 ARG REPO=https://github.com/TOUMO45/rerun.git
-ARG REF=66c4b3a6567071147cdc26bbf58889282b2549f5
+ARG REF=a7f5c4cab2d27874da6bce78187aae66160ddd85
 
 # --- the frontend, built from the same checkout ---------------------------------------------------------------------------------------
 FROM node:20-alpine AS web

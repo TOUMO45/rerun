@@ -2,7 +2,10 @@
 
 **Live:** <https://rerun-demo.onrender.com> (deployed 2026-10-05 from commit `65c3896`, serving the records at `5078967`). Checked on the live URL: health in demo mode with no key, the Gallery with 12 recorded audits, a certificate page with its label, three certificates downloaded and verified with `scripts/verify_passport.py`, and `POST /runs/<id>/execute` refused with 409.
 
-**Next deploy (2026-10-06):** `ARG REF` now pins `66c4b3a` (harness-v1.7.2, sealed, with every record and text up to TEST-B). Built and run locally from that commit: health in demo mode, the Gallery with 12 recorded audits, `POST /runs/<id>/execute` refused with 409, and the D-49 injection (`--upload-pack=...` as a repo URL) refused with 422 with no command run. Redeployed by the owner; checked on the live URL on 2026-10-06: demo mode, the repo-URL check of D-49 answers (`invalid repo URL` for a non-GitHub URL; no injection payload was sent to the live service), and the new UI is served.
+**Deployed 2026-10-06:** `ARG REF` pinned `66c4b3a` (harness-v1.7.2, sealed, with every record and text up to TEST-B). Built and run locally from that commit: health in demo mode, the Gallery with 12 recorded audits, `POST /runs/<id>/execute` refused with 409, and the D-49 injection (`--upload-pack=...` as a repo URL) refused with 422 with no command run. Redeployed by the owner; checked on the live URL on 2026-10-06: demo mode, the repo-URL check of D-49 answers (`invalid repo URL` for a non-GitHub URL; no injection payload was sent to the live service), and the new UI is served.
+
+**Next deploy:** `ARG REF` now pins `a7f5c4c`, which adds the Batch Lab's held-out results (`GET /batch/preregistered`). Built and run locally: the route answers TEST-B 1 of 8, the out-of-sample scan 0 of 5, TEST 1 of 8; the Gallery has 12 recorded audits; execute is refused with 409. Render: Manual Deploy > Deploy latest commit.
+
 
 
 A public, no-key demo of RERUN: the backend in demo mode replays the committed audit records (the DEV and gate entries) and refuses live execution with HTTP 409, so the service can never spend. The frontend and backend are the repository's own code, cloned at a pinned commit; this folder only packages them behind nginx on the port Render assigns.
