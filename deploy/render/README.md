@@ -2,6 +2,9 @@
 
 **Live:** <https://rerun-demo.onrender.com> (deployed 2026-10-05 from commit `65c3896`, serving the records at `5078967`). Checked on the live URL: health in demo mode with no key, the Gallery with 12 recorded audits, a certificate page with its label, three certificates downloaded and verified with `scripts/verify_passport.py`, and `POST /runs/<id>/execute` refused with 409.
 
+**Next deploy (2026-10-06):** `ARG REF` now pins `66c4b3a` (harness-v1.7.2, sealed, with every record and text up to TEST-B). Built and run locally from that commit: health in demo mode, the Gallery with 12 recorded audits, `POST /runs/<id>/execute` refused with 409, and the D-49 injection (`--upload-pack=...` as a repo URL) refused with 422 with no command run. The live service keeps serving `5078967` until it is redeployed (Render: Manual Deploy > Deploy latest commit).
+
+
 A public, no-key demo of RERUN: the backend in demo mode replays the committed audit records (the DEV and gate entries) and refuses live execution with HTTP 409, so the service can never spend. The frontend and backend are the repository's own code, cloned at a pinned commit; this folder only packages them behind nginx on the port Render assigns.
 
 Tested locally as Render runs it (2026-10-05): `docker build` of this folder, then `docker run -e PORT=10000 --tmpfs /tmp --memory=512m --cpus=0.1` (an empty `/tmp`, the free instance's 512 MB and 0.1 CPU). Healthy after 39 s; page and API answered; demo mode on, no key configured; the Gallery listed 12 recorded audits; a certificate page showed its label; the certificate downloaded through the page verified with `scripts/verify_passport.py`. Memory in use: about 122 MiB.
