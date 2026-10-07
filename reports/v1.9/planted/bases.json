@@ -1,0 +1,21 @@
+{
+ "note": "harness-v1.9 task 2: the base repositories, every one with a committed RAN record (a RUNS_* verdict that no published audit struck). Excluded, stated: TEST-A #18 adversary_critic (false positive, D-46), TEST-B #6 trees_from_transformers (--help, struck), OOS steamctl (out of protocol; D-51). Order: latent_ode first (owner), then by set.",
+ "bases": [
+  {"name": "latent_ode", "repo": "YuliaRubanova/latent_ode", "commit": "c0682d4f52b806fb88d965755892eadd9783f936", "entry": "run_models.py",
+   "command": "python3 run_models.py --niters 500 -n 1000 -s 50 -l 10 --dataset periodic  --latent-ode --noise-weight 0.01", "ran_record": "runs/corpus_v2_batch/harness-v1.7.1/dev/15_YuliaRubanova__latent_ode.json"},
+  {"name": "SimplE", "repo": "Mehran-k/SimplE", "commit": "29108230b63920afa38067b1aff8b8d53d07ed01", "entry": "main.py",
+   "command": "python main.py -m SimplE_ignr -d wn18", "ran_record": "runs/corpus_v2_batch/harness-v1.7.1/dev/12_Mehran-k__SimplE.json"},
+  {"name": "FeatureScatter", "repo": "Haichao-Zhang/FeatureScatter", "commit": "77e9140d5112ace5ba60301c224868257434b3e6", "entry": "fs_main.py",
+   "command": "sh ./fs_train.sh", "command_args_note": "fs_train.sh runs `python3 fs_main.py --resume --adv_mode=... --max_epoch=200 ...`", "command_python_args": "--resume --adv_mode='feature_scatter' --lr=0.1 --model_dir=$model_dir --init_model_pass=latest --max_epoch=200 --save_epochs=100 --decay_epoch1=60 --decay_epoch2=90 --batch_size_train=60 --dataset=cifar10",
+   "ran_record": "runs/corpus_v2_batch/harness-v1.7.1/dev/17_Haichao-Zhang__FeatureScatter.json"},
+  {"name": "M-FAC", "repo": "IST-DASLab/M-FAC", "commit": "8116367fb537b48484e2e4bde24f11f42b117f8a", "entry": "main_optim.py",
+   "command": "CUDA_VISIBLE_DEVICES=0 python3 main_optim.py --model resnet20 --dataset DATASET --optim mfac --ngrads 512 --weightdecay .003 --batchsize 128 --save rn20-mfac.pth > rn20-mfac.txt",
+   "ran_record": "runs/corpus_v2_batch/harness-v1.5.2/dev/14_IST-DASLab__M-FAC.json"},
+  {"name": "patchSmoothing", "repo": "alevine0/patchSmoothing", "commit": "6bdd01cdedde97763f36953de768f2b68952689c", "entry": "train_mnist_band.py",
+   "command": "python3 train_mnist_band.py --band_size 4 --lr 0.01 --end_epoch 199", "ran_record": "runs/corpus_v2_batch/harness-v1.5-final/test/10_alevine0__patchSmoothing.json"},
+  {"name": "L2D", "repo": "zcajiayin/L2D", "commit": "7b2efbb1ffc960260b16952f2bed68e500765bf0", "entry": "test_learned.py",
+   "command": "python3 test_learned.py", "ran_record": "runs/corpus_v3_batch/harness-v1.7.2/treatment/04_zcajiayin__L2D.json"},
+  {"name": "MIR", "repo": "optimass/Maximally_Interfered_Retrieval", "commit": "35eda78bcdd35025b16b0b1039a926d34aad4851", "entry": "er_main.py",
+   "command": "python er_main.py --method rand_replay --dataset split_cifar10 --mem_size 50", "ran_record": "runs/corpus_v4_batch/harness-v1.8.0/treatment/08_optimass__Maximally_Interfered_Retrieval.json"}
+ ]
+}
