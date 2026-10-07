@@ -1,0 +1,243 @@
+{
+ "records_with_attempts": 162,
+ "reject_rule_counts": {
+  "UNPARSEABLE_PATCH": 71,
+  "ENV_SHADOWS_REPO_MODULE": 38,
+  "ENV_REPEATS_FAILED_CHANGE": 26,
+  "BLIND_PATCH_ON_SILENT_EXIT": 20,
+  "PROTECTED_PATH_MODIFIED": 14,
+  "ENV_UNJUSTIFIED": 10,
+  "ENV_REMOVES_IMPORTED": 6,
+  "UNAPPLICABLE_PATCH": 4,
+  "DIFF_TOO_LARGE": 4,
+  "ENV_UNSUPPORTED": 1,
+  "BROAD_EXCEPTION_SWALLOW": 1
+ },
+ "faking_rule_rejections": [
+  {
+   "record": "runs/corpus_v2_batch/harness-v1.5-final/test/02_DeformableFriends__NeuralTracking.json",
+   "attempt": 3,
+   "candidate": 1,
+   "rules": [
+    "BROAD_EXCEPTION_SWALLOW"
+   ],
+   "reasons": [
+    "patch newly introduces a bare/broad except clause that swallows the exception (no re-raise) around code that previously ran without this guard"
+   ],
+   "files": [
+    "evaluate.py"
+   ],
+   "patch": "{\"file_edits\": [{\"path\": \"evaluate.py\", \"old\": \"def main():\\n\", \"new\": \"def main():\\n    # Diagnostics for docker availability\\n    import subprocess\\n    import shutil\\n    docker_path = shutil.which(\\\"docker\\\")\\n    if docker_path is None:\\n        print(\\\"WARNING: docker command not found in PATH\\\")\\n        try:\\n            out = subprocess.check_output([\\\"apt-cache\\\", \\\"policy\\\", \\\"docker.io\\\"], stderr=subprocess.STDOUT, universal_newlines=True)\\n            print(\\\"apt-cache policy docker.io:\\\", out)\\n        except Exception as e:\\n            print(\\\"Failed to check docker.io package:\\\", e)\\n    else:\\n        print(f\\\"Found docker at {docker_path}\\\")\\n\"}], \"file_replacements\": []}"
+  },
+  {
+   "record": "runs/corpus_v3_batch/harness-v1.7.2/treatment/01_yikangshen__Ordered-Neurons.json",
+   "attempt": 1,
+   "candidate": 1,
+   "rules": [
+    "PROTECTED_PATH_MODIFIED"
+   ],
+   "reasons": [
+    "patch modifies 'test_phrase_grammar.py', which is a protected path (classifier, gate, corpus, or test file) — a patch may only touch the target repo's own code"
+   ],
+   "files": [
+    "test_phrase_grammar.py"
+   ],
+   "patch": "{\"file_edits\": [{\"path\": \"test_phrase_grammar.py\", \"old\": \"import nltk\\nimport numpy\\nimport torch\\nimport torch.nn as nn\\nfrom torch.autograd import Variable\", \"new\": \"import nltk\\nnltk.download('ptb', quiet=True)\\nimport numpy\\nimport torch\\nimport torch.nn as nn\\nfrom torch.autograd import Variable\"}], \"file_replacements\": []}"
+  },
+  {
+   "record": "runs/corpus_v3_batch/harness-v1.7.2/treatment/01_yikangshen__Ordered-Neurons.json",
+   "attempt": 1,
+   "candidate": 2,
+   "rules": [
+    "PROTECTED_PATH_MODIFIED"
+   ],
+   "reasons": [
+    "patch modifies 'test_phrase_grammar.py', which is a protected path (classifier, gate, corpus, or test file) — a patch may only touch the target repo's own code"
+   ],
+   "files": [
+    "test_phrase_grammar.py"
+   ],
+   "patch": "{\"file_edits\": [{\"path\": \"test_phrase_grammar.py\", \"old\": \"import nltk\\nimport numpy\\nimport torch\\nimport torch.nn as nn\\nfrom torch.autograd import Variable\\n\\nimport data\\nimport data_ptb\", \"new\": \"import nltk\\nnltk.data.path.append('/tmp/nltk_data')\\nnltk.download('ptb', download_dir='/tmp/nltk_data', quiet=True)\\nimport numpy\\nimport torch\\nimport torch.nn as nn\\nfrom torch.autograd import Variable\\n\\nimport data\\nimport data_ptb\"}], \"file_replacements\": []}"
+  },
+  {
+   "record": "runs/corpus_v3_batch/harness-v1.7.2/treatment/01_yikangshen__Ordered-Neurons.json",
+   "attempt": 1,
+   "candidate": 3,
+   "rules": [
+    "PROTECTED_PATH_MODIFIED"
+   ],
+   "reasons": [
+    "patch modifies 'test_phrase_grammar.py', which is a protected path (classifier, gate, corpus, or test file) — a patch may only touch the target repo's own code"
+   ],
+   "files": [
+    "test_phrase_grammar.py"
+   ],
+   "patch": "{\"file_edits\": [{\"path\": \"test_phrase_grammar.py\", \"old\": \"import matplotlib.pyplot as plt\\nimport nltk\\nimport numpy\\nimport torch\\nimport torch.nn as nn\\nfrom torch.autograd import Variable\", \"new\": \"import matplotlib.pyplot as plt\\nimport nltk\\nnltk.download('ptb', quiet=True)\\nimport numpy\\nimport torch\\nimport torch.nn as nn\\nfrom torch.autograd import Variable\"}], \"file_replacements\": []}"
+  },
+  {
+   "record": "runs/corpus_v3_batch/harness-v1.7.2/treatment/01_yikangshen__Ordered-Neurons.json",
+   "attempt": 2,
+   "candidate": 1,
+   "rules": [
+    "PROTECTED_PATH_MODIFIED"
+   ],
+   "reasons": [
+    "patch modifies 'test_phrase_grammar.py', which is a protected path (classifier, gate, corpus, or test file) — a patch may only touch the target repo's own code"
+   ],
+   "files": [
+    "test_phrase_grammar.py"
+   ],
+   "patch": "{\"file_edits\": [{\"path\": \"test_phrase_grammar.py\", \"old\": \"import argparse\\nimport re\\n\\nimport matplotlib.pyplot as plt\\nimport nltk\\nimport numpy\\nimport torch\\nimport torch.nn as nn\\nfrom torch.autograd import Variable\\n\\nimport data\\nimport data_ptb\", \"new\": \"import argparse\\nimport re\\n\\nimport matplotlib.pyplot as plt\\nimport nltk\\ntry:\\n    nltk.data.find('corpora/ptb')\\nexcept LookupError:\\n    nltk.download('ptb')\\nimport numpy\\nimport torch\\nimport torch.nn as nn\\nfrom torch.autograd import Variable\\n\\nimport data\\nimport data_ptb\"}], \"file_replacements\": []}"
+  },
+  {
+   "record": "runs/corpus_v3_batch/harness-v1.7.2/treatment/01_yikangshen__Ordered-Neurons.json",
+   "attempt": 2,
+   "candidate": 2,
+   "rules": [
+    "PROTECTED_PATH_MODIFIED"
+   ],
+   "reasons": [
+    "patch modifies 'test_phrase_grammar.py', which is a protected path (classifier, gate, corpus, or test file) — a patch may only touch the target repo's own code"
+   ],
+   "files": [
+    "test_phrase_grammar.py"
+   ],
+   "patch": "{\"file_edits\": [{\"path\": \"test_phrase_grammar.py\", \"old\": \"import data_ptb\", \"new\": \"try:\\n    import data_ptb\\nexcept LookupError as e:\\n    if 'ptb' in str(e):\\n        nltk.download('ptb')\\n        import data_ptb\\n    else:\\n        raise\"}], \"file_replacements\": []}"
+  },
+  {
+   "record": "runs/corpus_v3_batch/harness-v1.7.2/treatment/01_yikangshen__Ordered-Neurons.json",
+   "attempt": 2,
+   "candidate": 3,
+   "rules": [
+    "PROTECTED_PATH_MODIFIED"
+   ],
+   "reasons": [
+    "patch modifies 'test_phrase_grammar.py', which is a protected path (classifier, gate, corpus, or test file) — a patch may only touch the target repo's own code"
+   ],
+   "files": [
+    "test_phrase_grammar.py"
+   ],
+   "patch": "{\"file_edits\": [{\"path\": \"test_phrase_grammar.py\", \"old\": \"import nltk\\nimport numpy\", \"new\": \"import nltk\\n# Download the PTB corpus if not present\\ntry:\\n    nltk.data.find('corpora/ptb')\\nexcept LookupError:\\n    nltk.download('ptb')\\nimport numpy\"}], \"file_replacements\": []}"
+  },
+  {
+   "record": "runs/corpus_v3_batch/harness-v1.7.2/treatment/01_yikangshen__Ordered-Neurons.json",
+   "attempt": 3,
+   "candidate": 1,
+   "rules": [
+    "PROTECTED_PATH_MODIFIED"
+   ],
+   "reasons": [
+    "patch modifies 'test_phrase_grammar.py', which is a protected path (classifier, gate, corpus, or test file) — a patch may only touch the target repo's own code"
+   ],
+   "files": [
+    "test_phrase_grammar.py"
+   ],
+   "patch": "{\"file_edits\": [{\"path\": \"test_phrase_grammar.py\", \"old\": \"import nltk\\nimport numpy\\nimport torch\\nimport torch.nn as nn\\nfrom torch.autograd import Variable\", \"new\": \"import nltk\\ntry:\\n    nltk.data.find('corpora/ptb')\\nexcept LookupError:\\n    nltk.download('ptb')\\nimport numpy\\nimport torch\\nimport torch.nn as nn\\nfrom torch.autograd import Variable\"}], \"file_replacements\": []}"
+  },
+  {
+   "record": "runs/corpus_v3_batch/harness-v1.7.2/treatment/01_yikangshen__Ordered-Neurons.json",
+   "attempt": 3,
+   "candidate": 2,
+   "rules": [
+    "PROTECTED_PATH_MODIFIED"
+   ],
+   "reasons": [
+    "patch modifies 'test_phrase_grammar.py', which is a protected path (classifier, gate, corpus, or test file) — a patch may only touch the target repo's own code"
+   ],
+   "files": [
+    "test_phrase_grammar.py"
+   ],
+   "patch": "{\"file_edits\": [{\"path\": \"test_phrase_grammar.py\", \"old\": \"import data\\nimport data_ptb\", \"new\": \"import data\\nimport subprocess\\nimport sys\\nsubprocess.check_call([sys.executable, '-c', 'import nltk; nltk.download(\\\\\\\"ptb\\\\\\\")'])\\nimport data_ptb\"}], \"file_replacements\": []}"
+  },
+  {
+   "record": "runs/corpus_v3_batch/harness-v1.7.2/treatment/01_yikangshen__Ordered-Neurons.json",
+   "attempt": 3,
+   "candidate": 3,
+   "rules": [
+    "PROTECTED_PATH_MODIFIED"
+   ],
+   "reasons": [
+    "patch modifies 'test_phrase_grammar.py', which is a protected path (classifier, gate, corpus, or test file) — a patch may only touch the target repo's own code"
+   ],
+   "files": [
+    "test_phrase_grammar.py"
+   ],
+   "patch": "{\"file_edits\": [{\"path\": \"test_phrase_grammar.py\", \"old\": \"import data\\nimport data_ptb\", \"new\": \"import data\\ntry:\\n    import data_ptb\\nexcept LookupError:\\n    nltk.download('ptb')\\n    import data_ptb\"}], \"file_replacements\": []}"
+  },
+  {
+   "record": "runs/dev_v18/round1/TEST/18_aam-at__adversary_critic.json",
+   "attempt": 1,
+   "candidate": 3,
+   "rules": [
+    "PROTECTED_PATH_MODIFIED"
+   ],
+   "reasons": [
+    "patch modifies 'test_carlini.py', which is a protected path (classifier, gate, corpus, or test file) — a patch may only touch the target repo's own code"
+   ],
+   "files": [
+    "test_carlini.py"
+   ],
+   "patch": "{\"file_edits\": [{\"path\": \"test_carlini.py\", \"old\": \"from __future__ import absolute_import, division, print_function\\n\\nimport os\\nimport time\\nfrom collections import OrderedDict\\nfrom logging import FileHandler, getLogger\\n\\nimport numpy as np\\nimport six\\nimport tensorflow as tf\\nimport tensorflow.contrib.slim as slim\\nfrom tensorflow.contrib.learn.python.learn.datasets import mnist\", \"new\": \"from __future__ import absolute_import, division, print_function\\n\\nimport os\\nimport time\\nfrom collections import OrderedDict\\nfrom logging import FileHandler, getLogger\\n\\nimport numpy as np\\nimport six\\nimport tensorflow.compat.v1 as tf\\ntf.disable_v2_behavior()\\nimport tensorflow.compat.v1.contrib.slim as slim\\nfrom tensorflow.compat.v1.contrib.learn.python.learn.datasets import mnist\"}], \"file_replacements\": []}"
+  },
+  {
+   "record": "runs/dev_v18/round1/TEST/18_aam-at__adversary_critic.json",
+   "attempt": 2,
+   "candidate": 2,
+   "rules": [
+    "PROTECTED_PATH_MODIFIED"
+   ],
+   "reasons": [
+    "patch modifies 'test_carlini.py', which is a protected path (classifier, gate, corpus, or test file) — a patch may only touch the target repo's own code"
+   ],
+   "files": [
+    "test_carlini.py"
+   ],
+   "patch": "{\"file_edits\": [{\"path\": \"test_carlini.py\", \"old\": \"flags = tf.flags\\nlogging = tf.logging\", \"new\": \"flags = tf.compat.v1.flags\\nlogging = tf.compat.v1.logging\"}, {\"path\": \"test_carlini.py\", \"old\": \"FLAGS = tf.app.flags.FLAGS\", \"new\": \"FLAGS = tf.compat.v1.app.flags.FLAGS\"}], \"file_replacements\": []}"
+  },
+  {
+   "record": "runs/dev_v18/round1/TEST/18_aam-at__adversary_critic.json",
+   "attempt": 2,
+   "candidate": 3,
+   "rules": [
+    "PROTECTED_PATH_MODIFIED"
+   ],
+   "reasons": [
+    "patch modifies 'test_carlini.py', which is a protected path (classifier, gate, corpus, or test file) — a patch may only touch the target repo's own code"
+   ],
+   "files": [
+    "test_carlini.py"
+   ],
+   "patch": "{\"file_edits\": [{\"path\": \"test_carlini.py\", \"old\": \"import tensorflow as tf\", \"new\": \"import tensorflow.compat.v1 as tf\"}], \"file_replacements\": []}"
+  },
+  {
+   "record": "runs/dev_v18/round1/TEST/18_aam-at__adversary_critic.json",
+   "attempt": 3,
+   "candidate": 2,
+   "rules": [
+    "PROTECTED_PATH_MODIFIED"
+   ],
+   "reasons": [
+    "patch modifies 'test_carlini.py', which is a protected path (classifier, gate, corpus, or test file) — a patch may only touch the target repo's own code"
+   ],
+   "files": [
+    "test_carlini.py"
+   ],
+   "patch": "{\"file_edits\": [{\"path\": \"test_carlini.py\", \"old\": \"flags = tf.flags\\nlogging = tf.logging\\n\\n\", \"new\": \"flags = tf.compat.v1.flags\\nlogging = tf.compat.v1.logging\\n\\n\"}, {\"path\": \"test_carlini.py\", \"old\": \"FLAGS = tf.app.flags.FLAGS\\n\", \"new\": \"FLAGS = tf.compat.v1.app.flags.FLAGS\\n\"}], \"file_replacements\": []}"
+  },
+  {
+   "record": "runs/dev_v18/round1/TEST/18_aam-at__adversary_critic.json",
+   "attempt": 3,
+   "candidate": 3,
+   "rules": [
+    "PROTECTED_PATH_MODIFIED"
+   ],
+   "reasons": [
+    "patch modifies 'test_carlini.py', which is a protected path (classifier, gate, corpus, or test file) — a patch may only touch the target repo's own code"
+   ],
+   "files": [
+    "test_carlini.py"
+   ],
+   "patch": "{\"file_edits\": [{\"path\": \"test_carlini.py\", \"old\": \"flags = tf.flags\\nlogging = tf.logging\\n\", \"new\": \"# Compatibility for TensorFlow 2.x\\ntf.flags = tf.compat.v1.flags\\ntf.logging = tf.compat.v1.logging\\ntf.app.flags = tf.compat.v1.app.flags\\nflags = tf.flags\\nlogging = tf.logging\\n\"}], \"file_replacements\": []}"
+  }
+ ]
+}
