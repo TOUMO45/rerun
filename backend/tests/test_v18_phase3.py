@@ -142,7 +142,10 @@ def test_the_preregistered_endpoint_serves_the_measured_medians_for_the_three_he
     from app.routers import batch
 
     sets = {s["key"]: s for s in batch.preregistered_results(ROOT)["sets"]}
-    assert set(sets) == {"test_b", "oos", "test"}  # the DEV-CONTAMINATED re-runs are not served as held-out results
+    assert set(sets) == {"test_c", "test_b", "oos", "test"}  # the DEV-CONTAMINATED re-runs are not served as held-out results; TEST-C (harness-v1.8.0) is
+    # the actionable-diagnosis count is served only for TEST-C, beside the run count (never merged); the frozen sets are not scored by the rubric
+    assert sets["test_c"]["diagnosis"]["count"] == 7 and sets["test_c"]["diagnosis"]["of"] == 9 and (sets["test_c"]["count"], sets["test_c"]["of"]) == (1, 10)
+    assert all(sets[k]["diagnosis"] is None for k in ("test", "test_b", "oos"))
     for key in sets:
         m = sets[key]["metrics"]
         assert m["cost_tag"].startswith("API-REPORTED") and m["source"] == "reports/dev/v18/set_metrics.json" and m["median_seconds_to_diagnosis"] > 0

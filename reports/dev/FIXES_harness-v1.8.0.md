@@ -176,8 +176,11 @@ Cost is API-REPORTED with the estimate of killed steps, not billed (the owner's 
 (time and cost are measurements); they are **not** scored by the rubric, which would re-score them under their old names. Of the OOS scan only two of five records carried a diagnosis (D-58), so its medians
 are over two entries.
 
-### 4.3 What is not done in Phase 3
+### 4.3 The UI (done after TEST-C, because `frontend/src` is a sealed harness path)
 
-* **The UI tiles.** The backend serves the numbers; the frontend does not show them yet, and the Certificate page does not yet show `cause`, `error_line`, `next_action`, `stopped_by` and the
-  `class_default` label. I could not read the frontend sources in this session (the permission check refused a search of them), so no frontend file was touched. It is a presentation change on top of finished backend fields.
-* **The demo image** pins `REF` to `a7f5c4c`; it serves these numbers only after `REF` moves to a pushed commit (Phase 5).
+Done once TEST-C had run (a UI commit between the tag and the run would have refused the batch preflight): the Certificate page's blocker card shows the cause, whether the diagnosis came from the record's evidence or is a class default, the verbatim error line, the
+next action, and the spend-cap note (`BlockerCard.tsx`); the Batch Lab shows, per set, the measured medians (time and API-reported cost to a diagnosis), the diagnosed count and the recovery rate, with their source and "not billed", and for TEST-C the actionable-diagnosis figure beside the run
+count, labelled "never merged" (`BatchLab.tsx`, `GET /batch/preregistered`, which now serves TEST-C as a fourth, separate set). The assumption-based "researcher hours saved" figure (3 hours per repaired repository) is removed from the legacy batch summary (`batch/runner.py`) and from the API type. Also fixed on the way: the repair-attempt list used the attempt
+number as its React key although every candidate of a round shares it (duplicate-key warnings; children could be dropped). Frontend: 35 tests (5 files), `npm run build` clean; the screens were checked in the browser on a demo-mode backend.
+
+* **The hosted demo image** still pins `REF` to `a7f5c4c`; it serves these screens only after `REF` moves to a pushed commit and the image is rebuilt (a deploy: not done here).

@@ -36,7 +36,7 @@ Seeding the demo database from the repository gives 12 replayable records (the g
   operation). It does not "replay reliably" as a repair story, so it stays out of the demo.
 * The harness-v1.8 DEV re-runs (`runs/dev_v18/`) are not replayed: the demo reads `runs/corpus_v2_batch` only, and they are DEV-CONTAMINATED.
 
-## 3. What is left for Phase 5 (after TEST-C)
+## 3. What is done and what is left for Phase 5 (after TEST-C)
 
-The demo image pins `REF` to `a7f5c4c`; it serves the Phase 3 measurements and the new diagnosis only after `REF` moves to a pushed commit. The Certificate page and the Batch Lab tiles need the
-frontend wiring (diagnosis cause / error line / next action, `stopped_by`, the `class_default` label; the per-set medians). The TEST-C numbers join the Batch Lab as a fourth, separate set once they exist.
+Done (TEST-C has run, so `frontend/src` is no longer frozen): the Certificate page's blocker card shows the diagnosis fields, the Batch Lab shows the per-set measurements and TEST-C as a fourth, separate set with its actionable-diagnosis figure beside its run count (see `FIXES_harness-v1.8.0.md` 4.3). Left: the hosted demo image pins `REF` to
+`a7f5c4c`; it serves all of this only after `REF` moves to a pushed commit and the image is rebuilt and checked (a deploy: the owner's), and the demo text (latent_ode as the primary replay scene; M-FAC dropped; no claim that the gate caught a fake) is written from the findings above.

@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { api, ApiError, type PreregisteredSet, type Verdict } from "../api";
+import { api, ApiError, type PreregisteredMetrics, type PreregisteredSet, type Verdict } from "../api";
 import { VerdictBadge } from "../components/VerdictBadge";
 
 const REPO = "https://github.com/TOUMO45/rerun/blob/main/";
@@ -46,6 +46,39 @@ export function BatchLab() {
   );
 }
 
+function secondsLabel(seconds: number | null): string {
+  if (seconds === null) return "n/a";
+  return seconds >= 120 ? `${Math.round(seconds / 60)} min` : `${Math.round(seconds)} s`;
+}
+
+/** Measurements read from committed records, per set (never an assumption: the "hours saved" figure is gone). */
+function Measurements({ metrics }: { metrics: PreregisteredMetrics }) {
+  const items: { label: string; value: string }[] = [
+    { label: "median time to a diagnosis", value: secondsLabel(metrics.median_seconds_to_diagnosis) },
+    {
+      label: "median API-reported cost to a diagnosis",
+      value: metrics.median_api_reported_cost_usd_to_diagnosis === null ? "n/a" : `$${metrics.median_api_reported_cost_usd_to_diagnosis.toFixed(2)}`,
+    },
+    { label: "non-running entries with a diagnosis", value: `${metrics.diagnosed} of ${metrics.non_running}` },
+    { label: "recovered after repair", value: `${metrics.recovery.recovered_after_repair} of ${metrics.recovery.as_published_failed} failed as published` },
+  ];
+  return (
+    <div className="border-b border-border px-5 py-3" data-testid="measurements">
+      <dl className="grid gap-x-6 gap-y-2 sm:grid-cols-4">
+        {items.map((item) => (
+          <div key={item.label}>
+            <dt className="text-[11px] text-text-secondary">{item.label}</dt>
+            <dd className="font-mono text-sm text-text-primary">{item.value}</dd>
+          </div>
+        ))}
+      </dl>
+      <p className="mt-2 font-mono text-[10px] text-text-secondary">
+        From the committed records ({metrics.source}); medians over the entries that carry a diagnosis ({metrics.measured_over.seconds}); {metrics.cost_tag}.
+      </p>
+    </div>
+  );
+}
+
 function SetCard({ set }: { set: PreregisteredSet }) {
   return (
     <section aria-labelledby={`set-${set.key}`} className="rounded-sm border border-border bg-surface shadow-card">
@@ -72,11 +105,21 @@ function SetCard({ set }: { set: PreregisteredSet }) {
               {set.preregistered_count} of {set.of} {set.preregistered_measure}
             </p>
           )}
+          {set.diagnosis && (
+            <div className="mt-3 border-t border-border pt-2" data-testid="diagnosis-figure">
+              <p className="font-display text-2xl font-bold tracking-tight text-text-primary">
+                {set.diagnosis.count} <span className="text-lg font-semibold text-text-secondary">of {set.diagnosis.of}</span>
+              </p>
+              <p className="mt-0.5 max-w-xs text-xs text-text-secondary sm:ml-auto">actionable diagnosis: {set.diagnosis.measure}</p>
+              <p className="mt-0.5 max-w-xs text-[11px] text-warn sm:ml-auto">beside the count above, never merged with it. {set.diagnosis.note}</p>
+            </div>
+          )}
           <p className="mt-1 font-mono text-[11px] text-text-secondary">
             ${set.spend_usd.toFixed(2)} <span className="text-text-secondary/70">[{set.spend_tag}]</span>
           </p>
         </div>
       </div>
+      {set.metrics && <Measurements metrics={set.metrics} />}
       <ul className="divide-y divide-border">
         {set.rows.map((row) => (
           <li key={row.entry} className="grid gap-2 px-5 py-3 sm:grid-cols-[2.5rem_minmax(0,14rem)_minmax(0,1fr)_4.5rem] sm:items-start sm:gap-4">

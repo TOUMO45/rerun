@@ -35,8 +35,8 @@ def test_every_audit_correction_is_attached_to_its_entry_and_never_counted():
 
 def test_the_sets_are_never_pooled_and_each_names_its_harness():
     doc = batch.preregistered_results(ROOT)
-    assert [s["key"] for s in doc["sets"]] == ["test_b", "oos", "test"]
-    assert {s["harness"].split()[0] for s in doc["sets"]} == {"harness-v1.7.2", "harness-v1.7.1"}
+    assert [s["key"] for s in doc["sets"]] == ["test_c", "test_b", "oos", "test"]  # harness-v1.8: TEST-C first, the three frozen sets as before
+    assert {s["harness"].split()[0] for s in doc["sets"]} == {"harness-v1.8.0", "harness-v1.7.2", "harness-v1.7.1"}
     assert "not rates" in doc["note"] and "not that a paper's result was reproduced" in doc["note"]
 
 
@@ -49,4 +49,4 @@ def test_a_missing_result_file_is_a_loud_502_not_an_empty_page(client, tmp_path,
 def test_the_route_serves_the_committed_results(client, monkeypatch):
     monkeypatch.setattr(batch, "_repo_root", lambda: ROOT)
     body = client.get("/batch/preregistered").json()
-    assert [s["count"] for s in body["sets"]] == [1, 0, 1]
+    assert [s["count"] for s in body["sets"]] == [1, 1, 0, 1]  # TEST-C, TEST-B, the out-of-sample scan, TEST

@@ -145,7 +145,10 @@ def test_aggregate_batch_results_estimate_is_derived_from_repair_count_only():
         {"name": "c", "verdict": "RUNS_AFTER_REPAIR"},
     ]
     batch = aggregate_batch_results(results)
-    assert batch["estimated_researcher_hours_saved"] == 2 * 3
+    # harness-v1.8 (owner, 2026-10-07): the "researcher hours saved" figure (3 hours per repaired repository) was an assumption, not a measurement; it is gone. The measured
+    # replacement (median wall-clock time and API-reported cost to reach a diagnosis, per set) comes from committed records (reports/dev/v18/set_metrics.py).
+    assert "estimated_researcher_hours_saved" not in batch
+    assert batch["runs_after_repair"] == 2
 
 
 def test_aggregate_batch_results_negative_control_refuses_empty_batch():

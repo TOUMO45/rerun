@@ -199,12 +199,27 @@ export interface Blocker {
   /** The taxonomy family of the class ("Dependencies", "Data", ...), or null. */
   family: string | null;
   phase: string;
-  attribution: "REPO" | "ENV" | "SANDBOX_QUOTA" | "PLATFORM" | string;
+  /** null for a stop on something the run was not given (a TIMEOUT, a spend cap, missing arguments). */
+  attribution: "REPO" | "ENV" | "SANDBOX_QUOTA" | "PLATFORM" | string | null;
   /** The link's error line, at most 300 characters. */
   evidence: string;
   fixable_by: BlockerFixableBy | null;
   what_a_human_must_supply: string | null;
   sources: BlockerSources | null;
+  /** harness-v1.8: the diagnosis, derived from the record's own evidence. All optional: absent on a report an older server wrote. */
+  /** The specific cause ("DOCKER_REQUIRED", "PINS_CONFLICT", ...); equals `class` when `diagnosis` is "class_default". */
+  cause?: string;
+  /** A verbatim line of the run's own output that shows the cause (for a TIMEOUT, a fixed sentence: the record holds no output). */
+  error_line?: string;
+  /** What a researcher does next; names something from the evidence. */
+  next_action?: string;
+  /** Where each quoted line came from in the record. */
+  basis?: { source: string; quote: string }[];
+  /** "evidence": a rule matched the record's evidence. "class_default": no rule did; the per-class sentence stands and says so. */
+  diagnosis?: "evidence" | "class_default";
+  /** Set when RERUN's own spend cap stopped the run after the step the diagnosis describes: the effect of that step was not seen. */
+  stopped_by?: { cause: string; line: string };
+  dependency_change?: string;
 }
 
 export interface CertificateOut {
@@ -278,7 +293,6 @@ export interface BatchResults {
   blocked?: number;
   indeterminate?: number;
   median_time_to_first_failure_seconds?: number;
-  estimated_researcher_hours_saved?: number;
   failure_breakdown?: Record<string, number>;
 }
 
@@ -310,7 +324,31 @@ export interface PreregisteredSet {
   spend_tag: string;
   preregistered_count?: number;
   preregistered_measure?: string;
+  /** harness-v1.8: measurements read from committed records (reports/dev/v18/set_metrics.py); null when the checkout does not carry them. */
+  metrics?: PreregisteredMetrics | null;
+  /** harness-v1.8: the actionable-diagnosis count under the committed rubric, shown BESIDE the run count and never merged with it; null for the frozen sets (not scored). */
+  diagnosis?: PreregisteredDiagnosis | null;
   rows: PreregisteredRow[];
+}
+
+export interface PreregisteredMetrics {
+  median_seconds_to_diagnosis: number | null;
+  median_api_reported_cost_usd_to_diagnosis: number | null;
+  measured_over: { seconds: number; cost: number };
+  non_running: number;
+  diagnosed: number;
+  recovery: { as_published_failed: number; recovered_after_repair: number };
+  cost_tag: string;
+  source: string;
+}
+
+export interface PreregisteredDiagnosis {
+  count: number;
+  of: number;
+  tag: string;
+  measure: string;
+  source: string;
+  note?: string;
 }
 
 export interface PreregisteredResults {

@@ -172,8 +172,8 @@ export function Certificate() {
         <section>
           <h2 className="mb-2 font-mono text-xs uppercase tracking-wide text-text-secondary">Repair attempts</h2>
           <div className="space-y-3">
-            {cert.diffs.map((attempt) => (
-              <RepairAttemptCard key={attempt.attempt_number} attempt={attempt} />
+            {cert.diffs.map((attempt, index) => (
+              <RepairAttemptCard key={`${attempt.attempt_number}-${index}`} attempt={attempt} />
             ))}
           </div>
         </section>

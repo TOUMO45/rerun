@@ -60,6 +60,8 @@ TEST_RESULT = "runs/corpus_v2_batch/harness-v1.5-final/test/test_result.json"
 TEST_B_RESULT = "runs/corpus_v3_batch/harness-v1.7.2/treatment/test_b_result.json"
 OOS_SUMMARY = "runs/live_scan/oos_v1.7.2/scan_summary.json"
 SET_METRICS = "reports/dev/v18/set_metrics.json"
+TEST_C_RESULT = "runs/corpus_v4_batch/harness-v1.8.0/treatment/test_c_result.json"
+TEST_C_SCORE = "reports/test-c/diagnosis_test_c_score.json"
 AUDITS = {
     ("test", 18): ("Not counted as a run: an audit written before the result found it a false positive. The command pipes a script into `bash`; the script "
                    "failed at its first import and the pipe returned bash's exit code 0 (D-46).", "reports/dev/TEST_RESULT.md"),
@@ -98,14 +100,19 @@ def _pretty(name: str) -> str:
 def preregistered_results(root: Path | None = None) -> dict:
     root = root or _repo_root()
     test, test_b, oos = _read(root, TEST_RESULT), _read(root, TEST_B_RESULT), _read(root, OOS_SUMMARY)
+    try:  # harness-v1.8: TEST-C is served when its committed result is in the checkout, and left out (never zero-filled) when it is not
+        test_c = _read(root, TEST_C_RESULT)
+    except BatchResultsUnavailable:
+        test_c = None
 
     def evidence(key: str, r: dict) -> str:
         """What stopped an entry that did not run, in the record's own words where the record may be opened (TEST-B); the TEST records stay behind the
         demo's firewall (services/demo_seed.py), so a TEST row names its blocker class only."""
         ended = f"Ended {r['verdict']}" + (f" ({r['code']})" if r.get("code") else "") + "."
-        if key != "test_b":
+        if key not in ("test_b", "test_c"):
             return ended
-        path = root / TEST_B_RESULT.rsplit("/", 1)[0] / f"{r['entry']:02d}_{r['name']}.json"
+        base = TEST_B_RESULT if key == "test_b" else TEST_C_RESULT
+        path = root / base.rsplit("/", 1)[0] / f"{r['entry']:02d}_{r['name']}.json"
         if not path.is_file():
             return ended
         result = json.loads(path.read_text(encoding="utf-8")).get("result") or {}
@@ -129,6 +136,23 @@ def preregistered_results(root: Path | None = None) -> dict:
     oos_rows = [{"entry": i, "name": _pretty(r["name"]), "verdict": r.get("verdict") or r.get("stage"), "code": r.get("taxonomy_code"),
                  "counts": OOS_NOTES.get(r["name"], (False, ""))[0], "note": OOS_NOTES.get(r["name"], (False, r.get("indeterminate_reason") or ""))[1],
                  "note_source": "reports/live_scan/oos_v172/SCAN_OOS_v1.7.2.md", "verdict_label": r.get("label")} for i, r in enumerate(oos, start=1)]
+    test_c_set = None
+    if test_c is not None:
+        test_c_rows = rows(test_c, "test_c", "ran")
+        diagnosis = None
+        try:
+            scored = _read(root, TEST_C_SCORE)["results"]["stored"]
+            diagnosis = {"count": scored["actionable"], "of": scored["n"], "tag": "DERIVED",
+                         "measure": "non-running entries whose stored diagnosis is actionable under the committed rubric (a key written from the raw logs and committed before scoring)",
+                         "source": "reports/test-c/TEST_C_RESULT.md",
+                         "note": "Most of it is the per-class sentences filled with the evidence line: see the result document for what is and is not v1.8's work."}
+        except (BatchResultsUnavailable, KeyError, ValueError):
+            diagnosis = None
+        test_c_set = {"key": "test_c", "title": "TEST-C", "harness": "harness-v1.8.0",
+                      "what": "Ten papers' repositories drawn under a registration committed before the tag and the draw (seed 20261007), with no filter on what a command needs, run once each at the tag.",
+                      "measure": "ran their documented command", "count": test_c["ran_count"], "of": test_c["entries"], "tag": "DERIVED",
+                      "registered": True, "source": "reports/test-c/TEST_C_RESULT.md", "spend_usd": test_c["spend"]["total_usd"],
+                      "spend_tag": "API-REPORTED + ESTIMATED (the sustained run)", "rows": test_c_rows, "diagnosis": diagnosis}
     doc = {"sets": [
         {"key": "test_b", "title": "TEST-B", "harness": "harness-v1.7.2",
          "what": "Eight papers' repositories never seen by any round or scan, drawn under a registration committed before the draw, run once each.",
@@ -154,7 +178,10 @@ def preregistered_results(root: Path | None = None) -> dict:
         measured = _read(root, SET_METRICS)["sets"]
     except (BatchResultsUnavailable, KeyError, ValueError):
         measured = {}
+    if test_c_set is not None:
+        doc["sets"].insert(0, test_c_set)
     for entry in doc["sets"]:
+        entry.setdefault("diagnosis", None)  # TEST, TEST-B and the out-of-sample scan are not scored by the rubric: that would re-score them under their old names
         m = measured.get(entry["key"])
         entry["metrics"] = ({"median_seconds_to_diagnosis": m["median_seconds_to_diagnosis"], "median_api_reported_cost_usd_to_diagnosis": m["median_api_reported_cost_usd_to_diagnosis"],
                              "measured_over": m["measured_over"], "non_running": m["non_running"], "diagnosed": m["diagnosed"], "recovery": m["recovery"],

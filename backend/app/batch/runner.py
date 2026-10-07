@@ -216,7 +216,6 @@ def aggregate_batch_results(per_repo_results: list[dict]) -> dict:
         "blocked": counts["BLOCKED"],
         "indeterminate": counts["INDETERMINATE"],
         "median_time_to_first_failure_seconds": median_duration,
-        "estimated_researcher_hours_saved": counts["RUNS_AFTER_REPAIR"] * 3,
         "failure_breakdown": failure_breakdown,
         "repos": per_repo_results,
     }

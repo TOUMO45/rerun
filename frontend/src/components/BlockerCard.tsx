@@ -1,9 +1,9 @@
 import type { ReactNode } from "react";
 import type { Blocker } from "../api";
 
-/** Every string here comes from the backend's blocker report (a fixed
- * per-class table plus an error line copied from the sandbox) or from a
- * Tavily result. All of it is rendered as text — React escapes it — and a
+/** Every string here comes from the backend's blocker report (a per-class
+ * table, the diagnosis its rules derive from the record's own evidence, and
+ * error lines copied from the sandbox) or from a Tavily result. All of it is rendered as text — React escapes it — and a
  * URL becomes an href only when it is an http(s) URL. */
 function isSafeHttpUrl(url: string): boolean {
   try {
@@ -32,6 +32,9 @@ function Tag({ children, className = "" }: { children: ReactNode; className?: st
 
 export function BlockerCard({ blocker }: { blocker: Blocker }) {
   const fixable = blocker.fixable_by;
+  const errorLine = blocker.error_line ?? blocker.evidence;
+  const nextAction = blocker.next_action ?? blocker.what_a_human_must_supply;
+  const specificCause = blocker.cause && blocker.cause !== blocker.class ? blocker.cause : null;
   const sources = blocker.sources;
   const hits = sources?.sources ?? null;
 
@@ -47,11 +50,18 @@ export function BlockerCard({ blocker }: { blocker: Blocker }) {
           {blocker.family ? ` · ${blocker.family}` : ""}
         </Tag>
         <Tag className="border-border bg-surface-raised text-text-secondary">phase: {blocker.phase}</Tag>
-        <Tag className="border-border bg-surface-raised text-text-secondary">attribution: {blocker.attribution}</Tag>
+        {blocker.attribution && <Tag className="border-border bg-surface-raised text-text-secondary">attribution: {blocker.attribution}</Tag>}
+        {specificCause && <Tag className="border-signal-dim bg-signal-dim/30 text-signal">cause: {specificCause}</Tag>}
+        {blocker.diagnosis === "evidence" && (
+          <Tag className="border-signal-dim bg-signal-dim/30 text-signal" >diagnosis: from this record&apos;s evidence</Tag>
+        )}
+        {blocker.diagnosis === "class_default" && (
+          <Tag className="border-border bg-surface-raised text-text-secondary">diagnosis: class default (no rule matched this record)</Tag>
+        )}
       </div>
 
       <pre className="mt-3 whitespace-pre-wrap break-all rounded-sm border border-border/60 bg-bg px-3 py-2 font-mono text-[11px] leading-relaxed text-text-primary/90">
-        {blocker.evidence}
+        {errorLine}
       </pre>
 
       <div className="mt-3 flex flex-wrap items-center gap-2 font-mono text-xs">
@@ -66,6 +76,23 @@ export function BlockerCard({ blocker }: { blocker: Blocker }) {
           <span className="text-text-secondary">What a human must supply: </span>
           <span className="text-text-primary">{blocker.what_a_human_must_supply}</span>
         </p>
+      )}
+
+      {nextAction && nextAction !== blocker.what_a_human_must_supply && (
+        <p className="mt-2 font-mono text-xs leading-relaxed" data-testid="next-action">
+          <span className="text-text-secondary">Next action: </span>
+          <span className="text-text-primary">{nextAction}</span>
+        </p>
+      )}
+
+      {blocker.stopped_by && (
+        <p className="mt-2 rounded-sm border border-warn/40 bg-warn/10 px-3 py-2 font-mono text-[11px] leading-relaxed text-warn" data-testid="stopped-by">
+          RERUN&apos;s own spend cap stopped the run afterwards ({blocker.stopped_by.line}): the effect of the step above was not seen, and this is not a verdict on the repository.
+        </p>
+      )}
+
+      {blocker.dependency_change && (
+        <p className="mt-2 font-mono text-[11px] text-text-secondary">{blocker.dependency_change}</p>
       )}
 
       {sources && hits && hits.length > 0 && (
