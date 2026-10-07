@@ -1,0 +1,474 @@
+{
+  "run_kind": "live end-to-end run",
+  "dev_run": false,
+  "dry_run": null,
+  "batch": {
+    "protocol": "harness-v1.8 DEV (owner 2026-10-07)",
+    "dev_label": "DEV-CONTAMINATED (was TEST-B)",
+    "was": "TEST-B",
+    "dev_v18": true,
+    "entry_id": 6,
+    "category": "PRIMARY",
+    "rules_matched": [],
+    "per_entry_cap_usd": 2.5,
+    "arm": "treatment",
+    "harness": "harness-v1.8 working tree, UNSEALED",
+    "started_at": "2026-10-07T13:54:31.124812+00:00",
+    "corpus": "corpus-v3",
+    "head_commit": "1b3abcf6901791146ec4ee93b78d76cd176410e2",
+    "tree_dirty_tracked_files": true,
+    "modified_harness_files": [
+      "backend/app/services/blocker.py",
+      "backend/app/services/classifier.py",
+      "backend/app/services/cost_guard.py",
+      "backend/app/services/entry_blockers.py",
+      "backend/app/services/indentation.py",
+      "backend/app/services/intake.py",
+      "backend/app/services/orchestrator.py",
+      "backend/app/services/outcome_levels.py",
+      "backend/app/services/patch_pipeline.py",
+      "backend/app/services/planner.py",
+      "backend/app/services/recon.py",
+      "backend/app/services/time_machine.py",
+      "scripts/live_run.py"
+    ],
+    "untracked_harness_files": [
+      "backend/app/services/command_shell.py",
+      "backend/app/services/diagnosis.py",
+      "backend/app/services/install_repair.py",
+      "backend/app/services/prerelease_pin.py",
+      "backend/app/services/system_packages.py"
+    ],
+    "harness_files_hashed": 96,
+    "harness_tree_sha256": "16f146627253384107b4f1c8badb8dfb41b0920a1e56078fb9abd7b97023409c"
+  },
+  "started_at": "2026-10-07T14:24:56.388086+00:00",
+  "corpus_entry": {
+    "name": "galsang__trees_from_transformers",
+    "repo_url": "https://github.com/galsang/trees_from_transformers",
+    "commit_sha": "a820f341be164568a9d09666ae3a39b33b28c429",
+    "command": "python run.py --help",
+    "command_source": "README.md line 43"
+  },
+  "config": {
+    "models": {
+      "recon": "nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B",
+      "planner": "nvidia/nemotron-3-super-120b-a12b",
+      "repairer": "nvidia/nemotron-3-super-120b-a12b",
+      "adjudicator": "nvidia/Nemotron-3-Ultra-550b-a55b"
+    },
+    "sandbox_backend": "token_factory",
+    "sandbox_image_default": "python:3.10-slim",
+    "sandbox_wall_clock_seconds": 600.0,
+    "arm": "treatment",
+    "repair_enabled": true,
+    "max_attempts": 3,
+    "candidates_per_round": 3,
+    "tavily_configured": true,
+    "cost_cap_usd": 2.5
+  },
+  "intake": {
+    "duration_s": 1.66,
+    "resolved_sha": "a820f341be164568a9d09666ae3a39b33b28c429",
+    "dependency_files": [
+      "requirements.txt"
+    ],
+    "declared_dependencies": [
+      "matplotlib",
+      "nltk",
+      "numpy",
+      "torch",
+      "tqdm",
+      "transformers"
+    ],
+    "entrypoint_candidates": [
+      "run.py"
+    ],
+    "notebook_paths": []
+  },
+  "pipeline_duration_s": 138.55,
+  "repair_mode": "deterministic",
+  "tree_integrity": {
+    "status": "verified",
+    "tree_sha": "7730b75d89c7f85304b725806173e9d519b8cc8c",
+    "files_checked": 11,
+    "excluded_patched": []
+  },
+  "result": {
+    "verdict": "RUNS_CLEAN",
+    "taxonomy_code": null,
+    "indeterminate_reason": "",
+    "reason_code": null,
+    "error_chain": [],
+    "first_repo_error": null,
+    "last_error": null,
+    "error_traceback": "",
+    "attempts": [],
+    "certificate_prose": "The baseline execution completed successfully with exit code 0 in 30.0 seconds of sandbox time, as recorded in the run log. The sandbox reported a clean run with no errors and recorded a cost of $0.3040. Verifies that the artifact executes. Does not verify the paper's numerical results.",
+    "outcome_levels": {
+      "first_error_cleared": false,
+      "first_error_cleared_by": null,
+      "env_resolved": true,
+      "entrypoint_runs": true
+    },
+    "blocker": null
+  },
+  "certificate": {
+    "repo_url": "https://github.com/galsang/trees_from_transformers",
+    "commit_sha": "a820f341be164568a9d09666ae3a39b33b28c429",
+    "build_plan": {
+      "base_image": "python:3.7-slim",
+      "apt_install": [
+        "python3-tk"
+      ],
+      "install_commands": [
+        "pip install -r requirements.txt"
+      ],
+      "execute_command": "python run.py --help",
+      "notes": [
+        "execute command is the repository's documented command (corpus ground truth)",
+        "base image python:3.7-slim: the repository pins torch==1.3.1, which has no wheel on the CPU index for Python 3.10 (it has them for 3.6, 3.7; https://download.pytorch.org/whl/cpu/torch/ (snapshot 2026-10-02)); the interpreter follows the pin: 3.7 (newest matching release with a wheel: torch 1.3.1). Before this rule: no usable Python declaration; RERUN default 3.10",
+        "apt package list enriched by Nemotron Super"
+      ]
+    },
+    "full_log": "[intake] cloned https://github.com/galsang/trees_from_transformers@a820f341be164568a9d09666ae3a39b33b28c429\n[recon] calling Nemotron Nano\n[recon] entrypoint=run.py confidence=0.90\n[python] python:3.7-slim (torch pin): the repository pins torch==1.3.1, which has no wheel on the CPU index for Python 3.10 (it has them for 3.6, 3.7; https://download.pytorch.org/whl/cpu/torch/ (snapshot 2026-10-02)); the interpreter follows the pin: 3.7 (newest matching release with a wheel: torch 1.3.1). Before this rule: no usable Python declaration; RERUN default 3.10\n[planner] build plan: {'base_image': 'python:3.7-slim', 'apt_install': ['python3-tk'], 'install_commands': ['pip install -r requirements.txt'], 'execute_command': 'python run.py --help', 'notes': [\"execute command is the repository's documented command (corpus ground truth)\", 'base image python:3.7-slim: the repository pins torch==1.3.1, which has no wheel on the CPU index for Python 3.10 (it has them for 3.6, 3.7; https://download.pytorch.org/whl/cpu/torch/ (snapshot 2026-10-02)); the interpreter follows the pin: 3.7 (newest matching release with a wheel: torch 1.3.1). Before this rule: no usable Python declaration; RERUN default 3.10', 'apt package list enriched by Nemotron Super']}\n[integrity] verified 11 file(s) against tree 7730b75d89c7f85304b725806173e9d519b8cc8c\n[runner] torch: repo pins torch; installed the CPU wheels as a matched set with the same pins\n[checkpoint] baseline: no kept image holds this environment yet; building it from python:3.7-slim and keeping every layer\n[sandbox] starting build+execute (wall_clock_seconds=600)\n[operation 1] baseline: completed; 30.0s of sandbox time; torch installed; branch_from_image=None; result_image=None; 5 image(s) kept\n[cost_guard] recorded $0.3040 sandbox spend, $2.1952 remaining today\n[sandbox] id=d2c57de4-2f3e-4d3c-8438-48f108271931 exit_code=0\n[baseline] as-is run: RUNS_CLEAN (exit code 0)",
+    "diffs": [],
+    "verdict": "RUNS_CLEAN",
+    "timestamp": "2026-10-07T14:27:16.596374+00:00",
+    "bundle_version": 4,
+    "baseline": {
+      "result": "RUNS_CLEAN",
+      "exit_code": 0,
+      "base_image": "python:3.7-slim",
+      "install_commands": [
+        "apt-get update && apt-get install -y python3-tk",
+        "pip install -r requirements.txt"
+      ],
+      "execute_command": "python run.py --help",
+      "sandbox_id": "d2c57de4-2f3e-4d3c-8438-48f108271931",
+      "taxonomy_code": null,
+      "evidence": ""
+    },
+    "recovery": false,
+    "tree_integrity": {
+      "status": "verified",
+      "tree_sha": "7730b75d89c7f85304b725806173e9d519b8cc8c",
+      "files_checked": 11,
+      "excluded_patched": []
+    },
+    "corpus_hash": "99b52da76e87bb778ec0ebc11316d88f369cf80626ac08c340b72166e1d42638",
+    "taxonomy_code": null,
+    "indeterminate_reason": "",
+    "error_chain": [],
+    "first_repo_error": null,
+    "last_error": null,
+    "outcome_levels": {
+      "first_error_cleared": false,
+      "first_error_cleared_by": null,
+      "env_resolved": true,
+      "entrypoint_runs": true
+    },
+    "blocker": null,
+    "reproduction_passport_hash": "9f4aa21f32da1d27597edf7cf9597adb6cef5cf84d159e02410cbd8e4bc6447e"
+  },
+  "finished_at": "2026-10-07T14:27:16.615358+00:00",
+  "events": [
+    {
+      "t_s": 0.0,
+      "at": "2026-10-07T14:24:58.045483+00:00",
+      "line": "[intake] cloned https://github.com/galsang/trees_from_transformers@a820f341be164568a9d09666ae3a39b33b28c429"
+    },
+    {
+      "t_s": 0.01,
+      "at": "2026-10-07T14:24:58.055632+00:00",
+      "line": "[recon] calling Nemotron Nano"
+    },
+    {
+      "t_s": 6.75,
+      "at": "2026-10-07T14:25:04.793965+00:00",
+      "line": "[recon] entrypoint=run.py confidence=0.90"
+    },
+    {
+      "t_s": 6.77,
+      "at": "2026-10-07T14:25:04.818732+00:00",
+      "line": "[python] python:3.7-slim (torch pin): the repository pins torch==1.3.1, which has no wheel on the CPU index for Python 3.10 (it has them for 3.6, 3.7; https://download.pytorch.org/whl/cpu/torch/ (snapshot 2026-10-02)); the interpreter follows the pin: 3.7 (newest matching release with a wheel: torch 1.3.1). Before this rule: no usable Python declaration; RERUN default 3.10"
+    },
+    {
+      "t_s": 9.33,
+      "at": "2026-10-07T14:25:07.373017+00:00",
+      "line": "[planner] build plan: {'base_image': 'python:3.7-slim', 'apt_install': ['python3-tk'], 'install_commands': ['pip install -r requirements.txt'], 'execute_command': 'python run.py --help', 'notes': [\"execute command is the repository's documented command (corpus ground truth)\", 'base image python:3.7-slim: the repository pins torch==1.3.1, which has no wheel on the CPU index for Python 3.10 (it has them for 3.6, 3.7; https://download.pytorch.org/whl/cpu/torch/ (snapshot 2026-10-02)); the interpreter follows the pin: 3.7 (newest matching release with a wheel: torch 1.3.1). Before this rule: no usable Python declaration; RERUN default 3.10', 'apt package list enriched by Nemotron Super']}"
+    },
+    {
+      "t_s": 9.42,
+      "at": "2026-10-07T14:25:07.466626+00:00",
+      "line": "[integrity] verified 11 file(s) against tree 7730b75d89c7f85304b725806173e9d519b8cc8c"
+    },
+    {
+      "t_s": 9.43,
+      "at": "2026-10-07T14:25:07.472687+00:00",
+      "line": "[runner] torch: repo pins torch; installed the CPU wheels as a matched set with the same pins"
+    },
+    {
+      "t_s": 9.43,
+      "at": "2026-10-07T14:25:07.473976+00:00",
+      "line": "[checkpoint] baseline: no kept image holds this environment yet; building it from python:3.7-slim and keeping every layer"
+    },
+    {
+      "t_s": 9.43,
+      "at": "2026-10-07T14:25:07.474170+00:00",
+      "line": "[sandbox] starting build+execute (wall_clock_seconds=600)"
+    },
+    {
+      "t_s": 136.98,
+      "at": "2026-10-07T14:27:15.029551+00:00",
+      "line": "[operation 1] baseline: completed; 30.0s of sandbox time; torch installed; branch_from_image=None; result_image=None; 5 image(s) kept"
+    },
+    {
+      "t_s": 136.98,
+      "at": "2026-10-07T14:27:15.029617+00:00",
+      "line": "[cost_guard] recorded $0.3040 sandbox spend, $2.1952 remaining today"
+    },
+    {
+      "t_s": 136.98,
+      "at": "2026-10-07T14:27:15.029655+00:00",
+      "line": "[sandbox] id=d2c57de4-2f3e-4d3c-8438-48f108271931 exit_code=0"
+    },
+    {
+      "t_s": 136.98,
+      "at": "2026-10-07T14:27:15.029676+00:00",
+      "line": "[baseline] as-is run: RUNS_CLEAN (exit code 0)"
+    }
+  ],
+  "model_calls": [
+    {
+      "model": "nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B",
+      "started_at": "2026-10-07T14:24:58.278890+00:00",
+      "latency_s": 6.51,
+      "finish_reason": "stop",
+      "content_is_none": false,
+      "has_reasoning": true,
+      "usage": {
+        "completion_tokens": 1453,
+        "prompt_tokens": 1612,
+        "total_tokens": 3065,
+        "completion_tokens_details": null,
+        "prompt_tokens_details": null
+      }
+    },
+    {
+      "model": "nvidia/nemotron-3-super-120b-a12b",
+      "started_at": "2026-10-07T14:25:04.819919+00:00",
+      "latency_s": 2.55,
+      "finish_reason": "stop",
+      "content_is_none": false,
+      "has_reasoning": true,
+      "usage": {
+        "completion_tokens": 304,
+        "prompt_tokens": 292,
+        "total_tokens": 596,
+        "completion_tokens_details": {
+          "accepted_prediction_tokens": null,
+          "audio_tokens": null,
+          "reasoning_tokens": 289,
+          "rejected_prediction_tokens": null,
+          "text_tokens": null
+        },
+        "prompt_tokens_details": {
+          "audio_tokens": null,
+          "cache_write_tokens": null,
+          "cached_tokens": 0,
+          "image_tokens": null,
+          "text_tokens": null,
+          "created_cache_tokens": 0,
+          "multimodal_tokens": null
+        },
+        "prompt_cache_hit_tokens": 0,
+        "prompt_cache_miss_tokens": 292
+      }
+    },
+    {
+      "model": "nvidia/Nemotron-3-Ultra-550b-a55b",
+      "started_at": "2026-10-07T14:27:15.031378+00:00",
+      "latency_s": 1.56,
+      "finish_reason": "stop",
+      "content_is_none": false,
+      "has_reasoning": true,
+      "usage": {
+        "completion_tokens": 386,
+        "prompt_tokens": 680,
+        "total_tokens": 1066,
+        "completion_tokens_details": {
+          "accepted_prediction_tokens": null,
+          "audio_tokens": null,
+          "reasoning_tokens": 288,
+          "rejected_prediction_tokens": null,
+          "text_tokens": null
+        },
+        "prompt_tokens_details": {
+          "audio_tokens": null,
+          "cache_write_tokens": null,
+          "cached_tokens": 0,
+          "image_tokens": null,
+          "text_tokens": null,
+          "multimodal_tokens": null
+        },
+        "prompt_cache_hit_tokens": 0,
+        "prompt_cache_miss_tokens": 680
+      }
+    }
+  ],
+  "cost_guard": {
+    "spent_usd": 0.30661759000000005,
+    "model_spent_usd": 0.00264464,
+    "sandbox_spent_usd": 0.30397295,
+    "estimated_sandbox_spent_usd": 0.0,
+    "cost_events": [],
+    "remaining_usd": 2.19338241,
+    "cap_usd": 2.5,
+    "over_cap_usd": 0.0,
+    "estimated_usd": 0.0,
+    "over_cap_estimated_only": false,
+    "model_usage": [
+      {
+        "model": "nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B",
+        "prompt_tokens": 1612,
+        "completion_tokens": 1453,
+        "cost_usd": 0.00044543999999999996
+      },
+      {
+        "model": "nvidia/nemotron-3-super-120b-a12b",
+        "prompt_tokens": 292,
+        "completion_tokens": 304,
+        "cost_usd": 0.00036120000000000005
+      },
+      {
+        "model": "nvidia/Nemotron-3-Ultra-550b-a55b",
+        "prompt_tokens": 680,
+        "completion_tokens": 386,
+        "cost_usd": 0.001838
+      }
+    ],
+    "prices_usd_per_1m": {
+      "nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B": [
+        0.06,
+        0.24
+      ],
+      "nvidia/nemotron-3-super-120b-a12b": [
+        0.3,
+        0.9
+      ],
+      "nvidia/Nemotron-3-Ultra-550b-a55b": [
+        1.0,
+        3.0
+      ]
+    },
+    "prices_source": "https://api.tokenfactory.nebius.com/v1/models?verbose=true (pricing field)",
+    "prices_retrieved": "2026-09-24"
+  },
+  "operations": [
+    {
+      "n": 1,
+      "role": "baseline",
+      "candidate": null,
+      "concurrent": 1,
+      "base_image": "python:3.7-slim",
+      "funded_seconds": 600.0,
+      "wall_seconds": 127.56,
+      "sandbox_seconds": 29.971,
+      "install_seconds": [
+        {
+          "command": "apt-get update && apt-get install -y python3-tk",
+          "phase": "repo_install",
+          "seconds": 4.909,
+          "exit_code": 0,
+          "cost_usd": 0.050252,
+          "torch": false
+        },
+        {
+          "command": "pip install torch==1.3.1 torchvision torchaudio 'numpy<2' --index-url https://download.pytorch.org/whl/cpu --extra-index-url https://pypi.org/simple || pip inst",
+          "phase": "runner_setup",
+          "seconds": 13.629,
+          "exit_code": 0,
+          "cost_usd": 0.138205,
+          "torch": true
+        },
+        {
+          "command": "python -c '\nimport glob, importlib.util, os, struct, subprocess, sys\nspec = importlib.util.find_spec(\"torch\")\nroot = os.path.join(os.path.dirname(spec.origin), ",
+          "phase": "runner_setup",
+          "seconds": 0.373,
+          "exit_code": 0,
+          "cost_usd": 0.004204,
+          "torch": false
+        },
+        {
+          "command": "pip install -r requirements.txt",
+          "phase": "repo_install",
+          "seconds": 10.247,
+          "exit_code": 0,
+          "cost_usd": 0.103318,
+          "torch": false
+        }
+      ],
+      "rerun_steps": [
+        {
+          "phase": "rerun_extract",
+          "seconds": 0.071,
+          "cost_usd": 0.000783
+        }
+      ],
+      "branch_from_image": null,
+      "start_setup_commands": 0,
+      "setup_commands": 4,
+      "torch_in_start_image": false,
+      "torch_installed": true,
+      "torch_env_key": "35b7a1db0389ebac",
+      "result_image": null,
+      "image_kept": true,
+      "kept_images": [
+        "7ac4ff2b-175e-48a7-b47d-7ee9b4dd9c6b",
+        "99ff0ff8-b51c-45d0-a0b7-ed969735beb8",
+        "d2b39597-f68f-49b6-b473-d13bb6a89bb8",
+        "a364ca34-2005-4062-b1d3-194b2dad7e3e",
+        "d2c57de4-2f3e-4d3c-8438-48f108271931"
+      ],
+      "env_image_id": "d2c57de4-2f3e-4d3c-8438-48f108271931",
+      "cost_usd": 0.303973,
+      "cost_estimated_usd": 0.0,
+      "outcome": "completed",
+      "resource_limits": {
+        "memory": "not documented (the only wording is \"Automatic cleanup and resource limits help prevent abuse.\" (docs.tokenfactory.nebius.com/sandboxes/overview) and \"Built-in tracking of CPU time, memory usage, and I/O operations for every execution.\")",
+        "cpu": "not documented",
+        "disk_layer_bytes": 12884901888,
+        "larger_instance": "not documented: the spawn request, the SDK, the CLI and the MCP tools have no memory, CPU, size or GPU parameter; Sandboxes is a beta (access by request, contree@nebius.com); no price page (the product page says free while in beta, D-36)",
+        "source": "docs/design/D-40-resources.md (public Nebius Token Factory / ConTree documentation and contree_sdk 0.3.6, read offline 2026-10-01)"
+      },
+      "exit_code": 0,
+      "max_rss": 382272,
+      "streams": {
+        "limit_bytes": 4194304,
+        "stdout": {
+          "bytes": 1209,
+          "sha256": "c879491a1f75a415ef9bc3d0baefb00551fb2520561f591ca5ce6705e99d9723",
+          "truncated": false
+        },
+        "stderr": {
+          "bytes": 96,
+          "sha256": "4b08b333c8981b530e84685e9d3064be2f6566131675557ee52caca218b8843b",
+          "truncated": false
+        },
+        "tail": {
+          "stdout": "usage: run.py [-h] [--data-path DATA_PATH] [--result-path RESULT_PATH]\n              [--lm-cache-path LM_CACHE_PATH] [--from-scratch] [--gpu GPU]\n              [--bias BIAS] [--seed SEED] [--token-heuristic TOKEN_HEURISTIC]\n              [--use-not-coo-parser]\n\noptional arguments:\n  -h, --help            show this help message and exit\n  --data-path DATA_PATH\n  --result-path RESULT_PATH\n  --lm-cache-path LM_CACHE_PATH\n  --from-scratch\n  --gpu GPU\n  --bias BIAS           the right-branching bias hyperparameter lambda\n  --seed SEED\n  --token-heuristic TOKEN_HEURISTIC\n                        Available options: mean, first, last\n  --use-not-coo-parser  Turning on this option will allow you to exploit the\n                        NOT-COO parser (named by Dyer et al. 2019), which has\n                        been broadly adopted by recent methods for\n                        unsupervised parsing. As this parser utilizes the\n                        right-branching bias in its inner workings, it may\n                        give rise to some unexpected gains or latent issues\n                        for the resulting trees. For more details, see\n                        https://arxiv.org/abs/1909.09428.\n",
+          "stderr": "To use data.metrics please install scikit-learn. See https://scikit-learn.org/stable/index.html\n",
+          "cap_chars": 2000
+        }
+      },
+      "killed_step": null,
+      "killed_seconds": null,
+      "funding": {
+        "basis": "baseline: the pre-registered wall clock, not budget-limited",
+        "rate_used_usd_per_s": null,
+        "source_operations": []
+      }
+    }
+  ]
+}

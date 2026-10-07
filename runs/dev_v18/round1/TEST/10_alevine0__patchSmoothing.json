@@ -1,0 +1,1034 @@
+{
+  "run_kind": "live end-to-end run",
+  "dev_run": false,
+  "dry_run": null,
+  "batch": {
+    "protocol": "harness-v1.8 DEV (owner 2026-10-07)",
+    "dev_label": "DEV-CONTAMINATED (was TEST)",
+    "was": "TEST",
+    "dev_v18": true,
+    "entry_id": 10,
+    "category": "PRIMARY",
+    "rules_matched": [],
+    "per_entry_cap_usd": 2.5,
+    "arm": "treatment",
+    "harness": "harness-v1.8 working tree, UNSEALED",
+    "started_at": "2026-10-07T13:54:31.124812+00:00",
+    "corpus": "corpus-v2",
+    "head_commit": "1b3abcf6901791146ec4ee93b78d76cd176410e2",
+    "tree_dirty_tracked_files": true,
+    "modified_harness_files": [
+      "backend/app/services/blocker.py",
+      "backend/app/services/classifier.py",
+      "backend/app/services/cost_guard.py",
+      "backend/app/services/entry_blockers.py",
+      "backend/app/services/indentation.py",
+      "backend/app/services/intake.py",
+      "backend/app/services/orchestrator.py",
+      "backend/app/services/outcome_levels.py",
+      "backend/app/services/patch_pipeline.py",
+      "backend/app/services/planner.py",
+      "backend/app/services/recon.py",
+      "backend/app/services/time_machine.py",
+      "scripts/live_run.py"
+    ],
+    "untracked_harness_files": [
+      "backend/app/services/command_shell.py",
+      "backend/app/services/diagnosis.py",
+      "backend/app/services/install_repair.py",
+      "backend/app/services/prerelease_pin.py",
+      "backend/app/services/system_packages.py"
+    ],
+    "harness_files_hashed": 96,
+    "harness_tree_sha256": "16f146627253384107b4f1c8badb8dfb41b0920a1e56078fb9abd7b97023409c"
+  },
+  "started_at": "2026-10-07T15:07:47.932343+00:00",
+  "corpus_entry": {
+    "name": "alevine0__patchSmoothing",
+    "repo_url": "https://github.com/alevine0/patchSmoothing",
+    "commit_sha": "6bdd01cdedde97763f36953de768f2b68952689c",
+    "command": "python3 train_mnist_band.py --band_size 4 --lr 0.01 --end_epoch 199",
+    "command_source": "README.md line 24"
+  },
+  "config": {
+    "models": {
+      "recon": "nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B",
+      "planner": "nvidia/nemotron-3-super-120b-a12b",
+      "repairer": "nvidia/nemotron-3-super-120b-a12b",
+      "adjudicator": "nvidia/Nemotron-3-Ultra-550b-a55b"
+    },
+    "sandbox_backend": "token_factory",
+    "sandbox_image_default": "python:3.10-slim",
+    "sandbox_wall_clock_seconds": 600.0,
+    "arm": "treatment",
+    "repair_enabled": true,
+    "max_attempts": 3,
+    "candidates_per_round": 3,
+    "tavily_configured": true,
+    "cost_cap_usd": 2.5
+  },
+  "intake": {
+    "duration_s": 250.19,
+    "resolved_sha": "6bdd01cdedde97763f36953de768f2b68952689c",
+    "dependency_files": [],
+    "declared_dependencies": [],
+    "entrypoint_candidates": [
+      "attack_cifar_band.py",
+      "attack_cifar_band_linf.py",
+      "attack_cifar_baseline.py",
+      "attack_cifar_baseline_linf.py",
+      "certify_cifar_band.py",
+      "certify_cifar_band_randomized.py",
+      "certify_cifar_band_top_one.py",
+      "certify_cifar_block.py",
+      "certify_cifar_block_top_one.py",
+      "certify_imagenet_band.py",
+      "certify_mnist_band.py",
+      "certify_mnist_band_randomized.py",
+      "certify_mnist_band_top_one.py",
+      "certify_mnist_block.py",
+      "certify_mnist_block_top_one.py",
+      "certify_mnist_multi_band.py",
+      "certify_mnist_multi_block.py",
+      "certify_mnist_row.py",
+      "train_cifar_band.py",
+      "train_cifar_baseline.py",
+      "train_cifar_block.py",
+      "train_imagenet_band.py",
+      "train_mnist_band.py",
+      "train_mnist_block.py",
+      "train_mnist_multi_band.py",
+      "train_mnist_multi_block.py",
+      "train_mnist_row.py"
+    ],
+    "notebook_paths": []
+  },
+  "pipeline_duration_s": 229.83,
+  "repair_mode": "deterministic",
+  "tree_integrity": {
+    "status": "verified",
+    "tree_sha": "4100b348d98ff7c7f20f680146167aea18dcb885",
+    "files_checked": 50,
+    "excluded_patched": []
+  },
+  "result": {
+    "verdict": "RUNS_AFTER_REPAIR",
+    "taxonomy_code": "GPU_REQUIRED",
+    "indeterminate_reason": "",
+    "reason_code": null,
+    "error_chain": [
+      {
+        "error": "ModuleNotFoundError: No module named 'scipy'",
+        "class": "DEP_MISSING",
+        "attribution": "REPO",
+        "phase": "repo_run",
+        "cleared_by": 0
+      },
+      {
+        "error": "raise AssertionError(\"Torch not compiled with CUDA enabled\")",
+        "class": "GPU_REQUIRED",
+        "attribution": "REPO",
+        "phase": "repo_run",
+        "cleared_by": 0
+      }
+    ],
+    "first_repo_error": "ModuleNotFoundError: No module named 'scipy'",
+    "last_error": "raise AssertionError(\"Torch not compiled with CUDA enabled\")",
+    "error_traceback": "",
+    "attempts": [
+      {
+        "attempt_number": 0,
+        "diff_text": "",
+        "gate_decision": "PASS",
+        "gate_violations": [],
+        "exit_code": 1,
+        "stdout_tail": "==> Checkpoint directory checkpoints\n==> Saving to ./checkpoints/mnist_one_band_lr_0.01_regularization_0.0005_band_4_epoch_{}.pth\n==> Preparing data..\nDownloading http://yann.lecun.com/exdb/mnist/train-images-idx3-ubyte.gz\nFailed to download (trying next):\nHTTP Error 404: Not Found\n\nDownloading https://ossci-datasets.s3.amazonaws.com/mnist/train-images-idx3-ubyte.gz\nDownloading https://ossci-datasets.s3.amazonaws.com/mnist/train-images-idx3-ubyte.gz to ./data/MNIST/raw/train-images-idx3-ubyte.gz\nExtracting ./data/MNIST/raw/train-images-idx3-ubyte.gz to ./data/MNIST/raw\n\nDownloading http://yann.lecun.com/exdb/mnist/train-labels-idx1-ubyte.gz\nFailed to download (trying next):\nHTTP Error 404: Not Found\n\nDownloading https://ossci-datasets.s3.amazonaws.com/mnist/train-labels-idx1-ubyte.gz\nDownloading https://ossci-datasets.s3.amazonaws.com/mnist/train-labels-idx1-ubyte.gz to ./data/MNIST/raw/train-labels-idx1-ubyte.gz\nExtracting ./data/MNIST/raw/train-labels-idx1-ubyte.gz to ./data/MNIST/raw\n\nDownloading http://yann.lecun.com/exdb/mnist/t10k-images-idx3-ubyte.gz\nFailed to download (trying next):\nHTTP Error 404: Not Found\n\nDownloading https://ossci-datasets.s3.amazonaws.com/mnist/t10k-images-idx3-ubyte.gz\nDownloading https://ossci-datasets.s3.amazonaws.com/mnist/t10k-images-idx3-ubyte.gz to ./data/MNIST/raw/t10k-images-idx3-ubyte.gz\nExtracting ./data/MNIST/raw/t10k-images-idx3-ubyte.gz to ./data/MNIST/raw\n\nDownloading http://yann.lecun.com/exdb/mnist/t10k-labels-idx1-ubyte.gz\nFailed to download (trying next):\nHTTP Error 404: Not Found\n\nDownloading https://ossci-datasets.s3.amazonaws.com/mnist/t10k-labels-idx1-ubyte.gz\nDownloading https://ossci-datasets.s3.amazonaws.com/mnist/t10k-labels-idx1-ubyte.gz to ./data/MNIST/raw/t10k-labels-idx1-ubyte.gz\nExtracting ./data/MNIST/raw/t10k-labels-idx1-ubyte.gz to ./data/MNIST/raw\n\n==> Building model..\n\nEpoch: 0\n",
+        "stderr_tail": "7%\r40.0%\r40.3%\r40.7%\r41.0%\r41.3%\r41.7%\r42.0%\r42.3%\r42.6%\r43.0%\r43.3%\r43.6%\r44.0%\r44.3%\r44.6%\r45.0%\r45.3%\r45.6%\r45.9%\r46.3%\r46.6%\r46.9%\r47.3%\r47.6%\r47.9%\r48.3%\r48.6%\r48.9%\r49.3%\r49.6%\r49.9%\r50.2%\r50.6%\r50.9%\r51.2%\r51.6%\r51.9%\r52.2%\r52.6%\r52.9%\r53.2%\r53.6%\r53.9%\r54.2%\r54.5%\r54.9%\r55.2%\r55.5%\r55.9%\r56.2%\r56.5%\r56.9%\r57.2%\r57.5%\r57.9%\r58.2%\r58.5%\r58.8%\r59.2%\r59.5%\r59.8%\r60.2%\r60.5%\r60.8%\r61.2%\r61.5%\r61.8%\r62.1%\r62.5%\r62.8%\r63.1%\r63.5%\r63.8%\r64.1%\r64.5%\r64.8%\r65.1%\r65.5%\r65.8%\r66.1%\r66.4%\r66.8%\r67.1%\r67.4%\r67.8%\r68.1%\r68.4%\r68.8%\r69.1%\r69.4%\r69.8%\r70.1%\r70.4%\r70.7%\r71.1%\r71.4%\r71.7%\r72.1%\r72.4%\r72.7%\r73.1%\r73.4%\r73.7%\r74.0%\r74.4%\r74.7%\r75.0%\r75.4%\r75.7%\r76.0%\r76.4%\r76.7%\r77.0%\r77.4%\r77.7%\r78.0%\r78.3%\r78.7%\r79.0%\r79.3%\r79.7%\r80.0%\r80.3%\r80.7%\r81.0%\r81.3%\r81.7%\r82.0%\r82.3%\r82.6%\r83.0%\r83.3%\r83.6%\r84.0%\r84.3%\r84.6%\r85.0%\r85.3%\r85.6%\r85.9%\r86.3%\r86.6%\r86.9%\r87.3%\r87.6%\r87.9%\r88.3%\r88.6%\r88.9%\r89.3%\r89.6%\r89.9%\r90.2%\r90.6%\r90.9%\r91.2%\r91.6%\r91.9%\r92.2%\r92.6%\r92.9%\r93.2%\r93.6%\r93.9%\r94.2%\r94.5%\r94.9%\r95.2%\r95.5%\r95.9%\r96.2%\r96.5%\r96.9%\r97.2%\r97.5%\r97.9%\r98.2%\r98.5%\r98.8%\r99.2%\r99.5%\r99.8%\r100.0%\n\r100.0%\n\r2.0%\r4.0%\r6.0%\r7.9%\r9.9%\r11.9%\r13.9%\r15.9%\r17.9%\r19.9%\r21.9%\r23.8%\r25.8%\r27.8%\r29.8%\r31.8%\r33.8%\r35.8%\r37.8%\r39.7%\r41.7%\r43.7%\r45.7%\r47.7%\r49.7%\r51.7%\r53.7%\r55.6%\r57.6%\r59.6%\r61.6%\r63.6%\r65.6%\r67.6%\r69.6%\r71.5%\r73.5%\r75.5%\r77.5%\r79.5%\r81.5%\r83.5%\r85.5%\r87.4%\r89.4%\r91.4%\r93.4%\r95.4%\r97.4%\r99.4%\r100.0%\n\r100.0%\nTraceback (most recent call last):\n  File \"//train_mnist_band.py\", line 159, in <module>\n    train(epoch)\n  File \"//train_mnist_band.py\", line 112, in train\n    outputs = net(utils.random_mask_batch_one_sample(inputs, args.band_size, reuse_noise=True))\n  File \"/utils_band.py\", line 11, in random_mask_batch_one_sample\n    out_c1 = torch.zeros(batch.shape).cuda()\n  File \"/usr/local/lib/python3.10/site-packages/torch/cuda/__init__.py\", line 211, in _lazy_init\n    raise AssertionError(\"Torch not compiled with CUDA enabled\")\nAssertionError: Torch not compiled with CUDA enabled\n",
+        "tavily_sources": [],
+        "env_delta": [],
+        "resolved_sources": [],
+        "origin": "time_machine",
+        "time_machine": {
+          "era": {
+            "date": "2022-08-22",
+            "source": "pinned-commit",
+            "detail": {
+              "note": "no dependency files in the repository"
+            }
+          },
+          "python": {
+            "version": "3.10",
+            "reason": "newest CPython first released \u2265180 days before the era date 2022-08-22 (https://devguide.python.org/versions/ (first release dates, retrieved 2026-09-24))",
+            "source": "https://devguide.python.org/versions/ (first release dates, retrieved 2026-09-24)"
+          },
+          "undeclared_imports": [
+            "numpy",
+            "scipy",
+            "statsmodels",
+            "torch",
+            "torchvision"
+          ],
+          "batch_scan": {
+            "install": [
+              "numpy",
+              "scipy",
+              "statsmodels",
+              "torch",
+              "torchvision"
+            ],
+            "internal_excluded": [
+              "patch_attacker",
+              "patch_attacker_parallelized",
+              "prog_bar",
+              "pytorch_cifar",
+              "resnet_imgnt",
+              "utils_band",
+              "utils_band_randomized",
+              "utils_band_top_one",
+              "utils_block",
+              "utils_block_top_one",
+              "utils_multi_band",
+              "utils_multi_block"
+            ],
+            "optional_skipped": [],
+            "python2_only_skipped": [],
+            "already_declared": [],
+            "import_mappings": []
+          },
+          "import_mappings": [],
+          "apt_added": [],
+          "apt_reason": "",
+          "lock": {
+            "ok": true,
+            "lock": [
+              "certifi==2022.6.15",
+              "charset-normalizer==2.1.1",
+              "idna==3.3",
+              "numpy==1.23.2",
+              "packaging==21.3",
+              "pandas==1.4.3",
+              "patsy==0.5.2",
+              "pillow==9.2.0",
+              "pyparsing==3.0.9",
+              "python-dateutil==2.8.2",
+              "pytz==2022.2.1",
+              "requests==2.28.1",
+              "scipy==1.9.0",
+              "six==1.16.0",
+              "statsmodels==0.13.2",
+              "torch==1.12.1",
+              "torchvision==0.13.1",
+              "typing-extensions==4.3.0",
+              "urllib3==1.26.12"
+            ],
+            "inputs": [
+              "numpy",
+              "scipy",
+              "statsmodels",
+              "torch",
+              "torchvision"
+            ],
+            "not_on_index": [],
+            "relaxed": [],
+            "command": "pip compile - --no-header --no-annotate --quiet --exclude-newer 2022-08-23T00:00:00Z --python-version 3.10 --python-platform x86_64-unknown-linux-gnu --python C:\\Users\\E16\\AppData\\Roaming\\uv\\python\\cpython-3.8.20-windows-x86_64-none\\python.exe",
+            "error": ""
+          }
+        },
+        "execution": {
+          "mode": "smoke",
+          "seconds": 60,
+          "outcome": "exited",
+          "image": "555b13dc-6056-4c45-9a10-d09cffce3ab8",
+          "command": "python3 train_mnist_band.py --band_size 4 --lr 0.01 --end_epoch 199"
+        }
+      },
+      {
+        "attempt_number": 0,
+        "diff_text": "",
+        "gate_decision": "PASS",
+        "gate_violations": [],
+        "exit_code": 0,
+        "stdout_tail": ".........]  Step: 45ms | Tot: 1s215ms | Loss: 1.671 | Acc: 40.365% (1395/3456)\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b 27/469 \r [===>.............................................................]  Step: 45ms | Tot: 1s260ms | Loss: 1.660 | Acc: 40.792% (1462/3584)\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b 28/469 \r [===>.............................................................]  Step: 45ms | Tot: 1s306ms | Loss: 1.657 | Acc: 41.083% (1525/3712)\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b 29/469 \r [====>............................................................]  Step: 47ms | Tot: 1s353ms | Loss: 1.631 | Acc: 42.005% (1613/3840)\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b 30/469 \r [====>............................................................]  Step: 45ms | Tot: 1s398ms | Loss: 1.645 | Acc: 41.356% (1641/3968)\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b 31/469 \r [====>............................................................]  Step: 46ms | Tot: 1s445ms | Loss: 1.621 | Acc: 42.383% (1736/4096)\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b 32/469 \r [====>............................................................]  Step: 45ms | Tot: 1s491ms | Loss: 1.596 | Acc: 43.348% (1831/4224)\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b 33/469 \r [====>............................................................]  Step: 51ms | Tot: 1s543ms | Loss: 1.616 | Acc: 42.394% (1845/4352)\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b 34/469 \r [====>............................................................]  Step: 55ms | Tot: 1s599ms | Loss: 1.626 | Acc: 41.830% (1874/4480)\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b 35/469 \r [====>............................................................]  Step: 57ms | Tot: 1s656ms | Loss: 1.613 | Acc: 42.405% (1954/4608)\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b 36/469 \rRERUN_SMOKE_ALIVE: still running after 60s with output and no traceback; stopped by RERUN (smoke execution)\n",
+        "stderr_tail": ".6%\r9.9%\r10.2%\r10.6%\r10.9%\r11.2%\r11.6%\r11.9%\r12.2%\r12.6%\r12.9%\r13.2%\r13.6%\r13.9%\r14.2%\r14.5%\r14.9%\r15.2%\r15.5%\r15.9%\r16.2%\r16.5%\r16.9%\r17.2%\r17.5%\r17.9%\r18.2%\r18.5%\r18.8%\r19.2%\r19.5%\r19.8%\r20.2%\r20.5%\r20.8%\r21.2%\r21.5%\r21.8%\r22.1%\r22.5%\r22.8%\r23.1%\r23.5%\r23.8%\r24.1%\r24.5%\r24.8%\r25.1%\r25.5%\r25.8%\r26.1%\r26.4%\r26.8%\r27.1%\r27.4%\r27.8%\r28.1%\r28.4%\r28.8%\r29.1%\r29.4%\r29.8%\r30.1%\r30.4%\r30.7%\r31.1%\r31.4%\r31.7%\r32.1%\r32.4%\r32.7%\r33.1%\r33.4%\r33.7%\r34.0%\r34.4%\r34.7%\r35.0%\r35.4%\r35.7%\r36.0%\r36.4%\r36.7%\r37.0%\r37.4%\r37.7%\r38.0%\r38.3%\r38.7%\r39.0%\r39.3%\r39.7%\r40.0%\r40.3%\r40.7%\r41.0%\r41.3%\r41.7%\r42.0%\r42.3%\r42.6%\r43.0%\r43.3%\r43.6%\r44.0%\r44.3%\r44.6%\r45.0%\r45.3%\r45.6%\r45.9%\r46.3%\r46.6%\r46.9%\r47.3%\r47.6%\r47.9%\r48.3%\r48.6%\r48.9%\r49.3%\r49.6%\r49.9%\r50.2%\r50.6%\r50.9%\r51.2%\r51.6%\r51.9%\r52.2%\r52.6%\r52.9%\r53.2%\r53.6%\r53.9%\r54.2%\r54.5%\r54.9%\r55.2%\r55.5%\r55.9%\r56.2%\r56.5%\r56.9%\r57.2%\r57.5%\r57.9%\r58.2%\r58.5%\r58.8%\r59.2%\r59.5%\r59.8%\r60.2%\r60.5%\r60.8%\r61.2%\r61.5%\r61.8%\r62.1%\r62.5%\r62.8%\r63.1%\r63.5%\r63.8%\r64.1%\r64.5%\r64.8%\r65.1%\r65.5%\r65.8%\r66.1%\r66.4%\r66.8%\r67.1%\r67.4%\r67.8%\r68.1%\r68.4%\r68.8%\r69.1%\r69.4%\r69.8%\r70.1%\r70.4%\r70.7%\r71.1%\r71.4%\r71.7%\r72.1%\r72.4%\r72.7%\r73.1%\r73.4%\r73.7%\r74.0%\r74.4%\r74.7%\r75.0%\r75.4%\r75.7%\r76.0%\r76.4%\r76.7%\r77.0%\r77.4%\r77.7%\r78.0%\r78.3%\r78.7%\r79.0%\r79.3%\r79.7%\r80.0%\r80.3%\r80.7%\r81.0%\r81.3%\r81.7%\r82.0%\r82.3%\r82.6%\r83.0%\r83.3%\r83.6%\r84.0%\r84.3%\r84.6%\r85.0%\r85.3%\r85.6%\r85.9%\r86.3%\r86.6%\r86.9%\r87.3%\r87.6%\r87.9%\r88.3%\r88.6%\r88.9%\r89.3%\r89.6%\r89.9%\r90.2%\r90.6%\r90.9%\r91.2%\r91.6%\r91.9%\r92.2%\r92.6%\r92.9%\r93.2%\r93.6%\r93.9%\r94.2%\r94.5%\r94.9%\r95.2%\r95.5%\r95.9%\r96.2%\r96.5%\r96.9%\r97.2%\r97.5%\r97.9%\r98.2%\r98.5%\r98.8%\r99.2%\r99.5%\r99.8%\r100.0%\n\r100.0%\n\r2.0%\r4.0%\r6.0%\r7.9%\r9.9%\r11.9%\r13.9%\r15.9%\r17.9%\r19.9%\r21.9%\r23.8%\r25.8%\r27.8%\r29.8%\r31.8%\r33.8%\r35.8%\r37.8%\r39.7%\r41.7%\r43.7%\r45.7%\r47.7%\r49.7%\r51.7%\r53.7%\r55.6%\r57.6%\r59.6%\r61.6%\r63.6%\r65.6%\r67.6%\r69.6%\r71.5%\r73.5%\r75.5%\r77.5%\r79.5%\r81.5%\r83.5%\r85.5%\r87.4%\r89.4%\r91.4%\r93.4%\r95.4%\r97.4%\r99.4%\r100.0%\n\r100.0%\nRERUN_CPU_SHIM_PATH: tensor.cuda\n",
+        "tavily_sources": [],
+        "env_delta": [],
+        "resolved_sources": [],
+        "origin": "time_machine",
+        "time_machine": null,
+        "execution": {
+          "mode": "smoke",
+          "seconds": 60,
+          "outcome": "alive_at_limit",
+          "image": "2b129aaf-f645-4710-bec7-69086aae942a",
+          "command": "python3 train_mnist_band.py --band_size 4 --lr 0.01 --end_epoch 199"
+        },
+        "time_machine_action": {
+          "rule": "cpu_shim",
+          "matched_error": "raise AssertionError(\"Torch not compiled with CUDA enabled\")",
+          "hook": "cpu_shim",
+          "fires_on": "GPU_REQUIRED at repair time",
+          "phase": "repair",
+          "limit": "covers torch.load (map_location), torch.cuda.is_available(), torch.cuda.set_device() (does nothing: harness-v1.5.1), Tensor.cuda() and Module.cuda() (return self), a CPU reference for LU without pivoting when torch has no CPU kernel for it (torch.lu / torch._lu_with_info / torch.linalg.lu_factor / lu_factor_ex / lu with pivot=False; harness-v1.7, R2), .to('cuda*') on Tensor and Module and torch.device('cuda*') (-> cpu); does NOT cover device='cuda' strings given to factory functions (torch.zeros(device='cuda')), the other torch.cuda.* functions (current_device, synchronize, ...), torch.cuda.*Tensor types or torch.set_default_tensor_type('torch.cuda.FloatTensor'); torch.device is a proxy class, so `type(d) is torch.device` is False for a real device and a `torch.device(...)` call inside a TorchScript function is not supported",
+          "paths_fired": [
+            "cuda.is_available",
+            "tensor.cuda"
+          ]
+        }
+      }
+    ],
+    "certificate_prose": "The run log shows the execution completed with exit_code=0 after 324 wall-clock seconds, using a cpu_shim for GPU-required operations. The taxonomy code GPU_REQUIRED is noted, and the sandbox recorded a successful re-execution. Verifies that the artifact executes. Does not verify the paper's numerical results.",
+    "outcome_levels": {
+      "first_error_cleared": true,
+      "first_error_cleared_by": "time_machine",
+      "env_resolved": true,
+      "entrypoint_runs": true
+    },
+    "blocker": null
+  },
+  "certificate": {
+    "repo_url": "https://github.com/alevine0/patchSmoothing",
+    "commit_sha": "6bdd01cdedde97763f36953de768f2b68952689c",
+    "build_plan": {
+      "base_image": "python:3.10-slim",
+      "apt_install": [],
+      "install_commands": [
+        "printf '%s\\n' certifi==2022.6.15 charset-normalizer==2.1.1 idna==3.3 numpy==1.23.2 packaging==21.3 pandas==1.4.3 patsy==0.5.2 pillow==9.2.0 pyparsing==3.0.9 python-dateutil==2.8.2 pytz==2022.2.1 requests==2.28.1 scipy==1.9.0 six==1.16.0 statsmodels==0.13.2 torch==1.12.1 torchvision==0.13.1 typing-extensions==4.3.0 urllib3==1.26.12 > .rerun-requirements.txt && pip install -r .rerun-requirements.txt"
+      ],
+      "execute_command": "python3 train_mnist_band.py --band_size 4 --lr 0.01 --end_epoch 199",
+      "notes": [
+        "execute command is the repository's documented command (corpus ground truth)",
+        "base image python:3.10-slim: no usable Python declaration; RERUN default 3.10",
+        "time machine: python 3.10, 19 locked package(s)"
+      ]
+    },
+    "full_log": "[intake] cloned https://github.com/alevine0/patchSmoothing@6bdd01cdedde97763f36953de768f2b68952689c\n[recon] calling Nemotron Nano\n[recon] RECON_MODEL_ERROR: recon model call failed: prompt estimated at 27609 tokens exceeds the per-attempt ceiling: requested 27609 tokens exceeds the 20000-token per-attempt ceiling \u2014 proceeding with the documented command: python3 train_mnist_band.py --band_size 4 --lr 0.01 --end_epoch 199\n[python] python:3.10-slim (default): no usable Python declaration; RERUN default 3.10\n[planner] build plan: {'base_image': 'python:3.10-slim', 'apt_install': [], 'install_commands': ['true  # no declared dependency file found; nothing to install'], 'execute_command': 'python3 train_mnist_band.py --band_size 4 --lr 0.01 --end_epoch 199', 'notes': [\"execute command is the repository's documented command (corpus ground truth)\", 'base image python:3.10-slim: no usable Python declaration; RERUN default 3.10']}\n[integrity] verified 50 file(s) against tree 4100b348d98ff7c7f20f680146167aea18dcb885\n[runner] torch: repo imports torch, torchvision without declaring it; runner provides the newest matched CPU wheels\n[checkpoint] baseline: no kept image holds this environment yet; building it from python:3.10-slim and keeping every layer\n[sandbox] starting build+execute (wall_clock_seconds=600)\n[operation 1] baseline: completed; 32.1s of sandbox time; torch installed; branch_from_image=None; result_image=None; 4 image(s) kept\n[cost_guard] recorded $0.3306 sandbox spend, $2.1692 remaining today\n[sandbox] id=7d5c1b61-5d92-49d8-b90a-d7bf55d834e7 exit_code=1\n[baseline] as-is run: FAILS (exit code 1)\n[classifier] DEP_MISSING: ModuleNotFoundError: No module named 'scipy'\n[era] 2022-08-22 from pinned-commit {'note': 'no dependency files in the repository'}\n[time-machine] era 2022-08-22 (pinned-commit) -> python 3.10; locked 19 package(s) with uv --exclude-newer; not on the index: none\n[smoke] re-execution of the documented command under a 60s smoke limit\n[integrity] verified 50 file(s) against tree 4100b348d98ff7c7f20f680146167aea18dcb885\n[runner] torch: repo pins torch, torchvision; installed the CPU wheels as a matched set with the same pins\n[checkpoint] re-execution: branching from image 007527f4-6482-4554-8b16-c33fa069f2ce (0 of 3 setup command(s) already in it, kept by operation 1); no reinstall of what it contains\n[sandbox] starting build+execute (wall_clock_seconds=305)\n[operation 2] re-execution: completed; 27.5s of sandbox time; torch installed; branch_from_image=007527f4-6482-4554-8b16-c33fa069f2ce; result_image=None; 3 image(s) kept\n[cost_guard] recorded $0.2834 sandbox spend, $1.8858 remaining today\n[time-machine] re-execution id=555b13dc-6056-4c45-9a10-d09cffce3ab8 exit_code=1\n[classifier] GPU_REQUIRED: raise AssertionError(\"Torch not compiled with CUDA enabled\")\n[time-machine] deterministic step: cpu_shim (matched: raise AssertionError(\"Torch not compiled with CUDA enabled\")); no model call\n[smoke] re-execution of the documented command under a 60s smoke limit\n[integrity] verified 50 file(s) against tree 4100b348d98ff7c7f20f680146167aea18dcb885\n[runner] torch: repo pins torch, torchvision; installed the CPU wheels as a matched set with the same pins\n[checkpoint] time machine: cpu_shim: branching from image 555b13dc-6056-4c45-9a10-d09cffce3ab8 (3 of 4 setup command(s) already in it, kept by operation 2); no reinstall of what it contains\n[sandbox] starting build+execute (wall_clock_seconds=324)\n[operation 3] time machine: cpu_shim: completed; 0.2s of sandbox time; torch already in the start image; branch_from_image=555b13dc-6056-4c45-9a10-d09cffce3ab8; result_image=None; 1 image(s) kept\n[cost_guard] recorded $0.0022 sandbox spend, $1.8837 remaining today\n[time-machine] re-execution id=2b129aaf-f645-4710-bec7-69086aae942a exit_code=0",
+    "diffs": [
+      {
+        "attempt_number": 0,
+        "diff_text": "",
+        "gate_decision": "PASS",
+        "gate_violations": [],
+        "exit_code": 1,
+        "stdout_tail": "==> Checkpoint directory checkpoints\n==> Saving to ./checkpoints/mnist_one_band_lr_0.01_regularization_0.0005_band_4_epoch_{}.pth\n==> Preparing data..\nDownloading http://yann.lecun.com/exdb/mnist/train-images-idx3-ubyte.gz\nFailed to download (trying next):\nHTTP Error 404: Not Found\n\nDownloading https://ossci-datasets.s3.amazonaws.com/mnist/train-images-idx3-ubyte.gz\nDownloading https://ossci-datasets.s3.amazonaws.com/mnist/train-images-idx3-ubyte.gz to ./data/MNIST/raw/train-images-idx3-ubyte.gz\nExtracting ./data/MNIST/raw/train-images-idx3-ubyte.gz to ./data/MNIST/raw\n\nDownloading http://yann.lecun.com/exdb/mnist/train-labels-idx1-ubyte.gz\nFailed to download (trying next):\nHTTP Error 404: Not Found\n\nDownloading https://ossci-datasets.s3.amazonaws.com/mnist/train-labels-idx1-ubyte.gz\nDownloading https://ossci-datasets.s3.amazonaws.com/mnist/train-labels-idx1-ubyte.gz to ./data/MNIST/raw/train-labels-idx1-ubyte.gz\nExtracting ./data/MNIST/raw/train-labels-idx1-ubyte.gz to ./data/MNIST/raw\n\nDownloading http://yann.lecun.com/exdb/mnist/t10k-images-idx3-ubyte.gz\nFailed to download (trying next):\nHTTP Error 404: Not Found\n\nDownloading https://ossci-datasets.s3.amazonaws.com/mnist/t10k-images-idx3-ubyte.gz\nDownloading https://ossci-datasets.s3.amazonaws.com/mnist/t10k-images-idx3-ubyte.gz to ./data/MNIST/raw/t10k-images-idx3-ubyte.gz\nExtracting ./data/MNIST/raw/t10k-images-idx3-ubyte.gz to ./data/MNIST/raw\n\nDownloading http://yann.lecun.com/exdb/mnist/t10k-labels-idx1-ubyte.gz\nFailed to download (trying next):\nHTTP Error 404: Not Found\n\nDownloading https://ossci-datasets.s3.amazonaws.com/mnist/t10k-labels-idx1-ubyte.gz\nDownloading https://ossci-datasets.s3.amazonaws.com/mnist/t10k-labels-idx1-ubyte.gz to ./data/MNIST/raw/t10k-labels-idx1-ubyte.gz\nExtracting ./data/MNIST/raw/t10k-labels-idx1-ubyte.gz to ./data/MNIST/raw\n\n==> Building model..\n\nEpoch: 0\n",
+        "stderr_tail": "7%\r40.0%\r40.3%\r40.7%\r41.0%\r41.3%\r41.7%\r42.0%\r42.3%\r42.6%\r43.0%\r43.3%\r43.6%\r44.0%\r44.3%\r44.6%\r45.0%\r45.3%\r45.6%\r45.9%\r46.3%\r46.6%\r46.9%\r47.3%\r47.6%\r47.9%\r48.3%\r48.6%\r48.9%\r49.3%\r49.6%\r49.9%\r50.2%\r50.6%\r50.9%\r51.2%\r51.6%\r51.9%\r52.2%\r52.6%\r52.9%\r53.2%\r53.6%\r53.9%\r54.2%\r54.5%\r54.9%\r55.2%\r55.5%\r55.9%\r56.2%\r56.5%\r56.9%\r57.2%\r57.5%\r57.9%\r58.2%\r58.5%\r58.8%\r59.2%\r59.5%\r59.8%\r60.2%\r60.5%\r60.8%\r61.2%\r61.5%\r61.8%\r62.1%\r62.5%\r62.8%\r63.1%\r63.5%\r63.8%\r64.1%\r64.5%\r64.8%\r65.1%\r65.5%\r65.8%\r66.1%\r66.4%\r66.8%\r67.1%\r67.4%\r67.8%\r68.1%\r68.4%\r68.8%\r69.1%\r69.4%\r69.8%\r70.1%\r70.4%\r70.7%\r71.1%\r71.4%\r71.7%\r72.1%\r72.4%\r72.7%\r73.1%\r73.4%\r73.7%\r74.0%\r74.4%\r74.7%\r75.0%\r75.4%\r75.7%\r76.0%\r76.4%\r76.7%\r77.0%\r77.4%\r77.7%\r78.0%\r78.3%\r78.7%\r79.0%\r79.3%\r79.7%\r80.0%\r80.3%\r80.7%\r81.0%\r81.3%\r81.7%\r82.0%\r82.3%\r82.6%\r83.0%\r83.3%\r83.6%\r84.0%\r84.3%\r84.6%\r85.0%\r85.3%\r85.6%\r85.9%\r86.3%\r86.6%\r86.9%\r87.3%\r87.6%\r87.9%\r88.3%\r88.6%\r88.9%\r89.3%\r89.6%\r89.9%\r90.2%\r90.6%\r90.9%\r91.2%\r91.6%\r91.9%\r92.2%\r92.6%\r92.9%\r93.2%\r93.6%\r93.9%\r94.2%\r94.5%\r94.9%\r95.2%\r95.5%\r95.9%\r96.2%\r96.5%\r96.9%\r97.2%\r97.5%\r97.9%\r98.2%\r98.5%\r98.8%\r99.2%\r99.5%\r99.8%\r100.0%\n\r100.0%\n\r2.0%\r4.0%\r6.0%\r7.9%\r9.9%\r11.9%\r13.9%\r15.9%\r17.9%\r19.9%\r21.9%\r23.8%\r25.8%\r27.8%\r29.8%\r31.8%\r33.8%\r35.8%\r37.8%\r39.7%\r41.7%\r43.7%\r45.7%\r47.7%\r49.7%\r51.7%\r53.7%\r55.6%\r57.6%\r59.6%\r61.6%\r63.6%\r65.6%\r67.6%\r69.6%\r71.5%\r73.5%\r75.5%\r77.5%\r79.5%\r81.5%\r83.5%\r85.5%\r87.4%\r89.4%\r91.4%\r93.4%\r95.4%\r97.4%\r99.4%\r100.0%\n\r100.0%\nTraceback (most recent call last):\n  File \"//train_mnist_band.py\", line 159, in <module>\n    train(epoch)\n  File \"//train_mnist_band.py\", line 112, in train\n    outputs = net(utils.random_mask_batch_one_sample(inputs, args.band_size, reuse_noise=True))\n  File \"/utils_band.py\", line 11, in random_mask_batch_one_sample\n    out_c1 = torch.zeros(batch.shape).cuda()\n  File \"/usr/local/lib/python3.10/site-packages/torch/cuda/__init__.py\", line 211, in _lazy_init\n    raise AssertionError(\"Torch not compiled with CUDA enabled\")\nAssertionError: Torch not compiled with CUDA enabled\n",
+        "tavily_sources": [],
+        "env_delta": [],
+        "resolved_sources": [],
+        "origin": "time_machine",
+        "time_machine": {
+          "era": {
+            "date": "2022-08-22",
+            "source": "pinned-commit",
+            "detail": {
+              "note": "no dependency files in the repository"
+            }
+          },
+          "python": {
+            "version": "3.10",
+            "reason": "newest CPython first released \u2265180 days before the era date 2022-08-22 (https://devguide.python.org/versions/ (first release dates, retrieved 2026-09-24))",
+            "source": "https://devguide.python.org/versions/ (first release dates, retrieved 2026-09-24)"
+          },
+          "undeclared_imports": [
+            "numpy",
+            "scipy",
+            "statsmodels",
+            "torch",
+            "torchvision"
+          ],
+          "batch_scan": {
+            "install": [
+              "numpy",
+              "scipy",
+              "statsmodels",
+              "torch",
+              "torchvision"
+            ],
+            "internal_excluded": [
+              "patch_attacker",
+              "patch_attacker_parallelized",
+              "prog_bar",
+              "pytorch_cifar",
+              "resnet_imgnt",
+              "utils_band",
+              "utils_band_randomized",
+              "utils_band_top_one",
+              "utils_block",
+              "utils_block_top_one",
+              "utils_multi_band",
+              "utils_multi_block"
+            ],
+            "optional_skipped": [],
+            "python2_only_skipped": [],
+            "already_declared": [],
+            "import_mappings": []
+          },
+          "import_mappings": [],
+          "apt_added": [],
+          "apt_reason": "",
+          "lock": {
+            "ok": true,
+            "lock": [
+              "certifi==2022.6.15",
+              "charset-normalizer==2.1.1",
+              "idna==3.3",
+              "numpy==1.23.2",
+              "packaging==21.3",
+              "pandas==1.4.3",
+              "patsy==0.5.2",
+              "pillow==9.2.0",
+              "pyparsing==3.0.9",
+              "python-dateutil==2.8.2",
+              "pytz==2022.2.1",
+              "requests==2.28.1",
+              "scipy==1.9.0",
+              "six==1.16.0",
+              "statsmodels==0.13.2",
+              "torch==1.12.1",
+              "torchvision==0.13.1",
+              "typing-extensions==4.3.0",
+              "urllib3==1.26.12"
+            ],
+            "inputs": [
+              "numpy",
+              "scipy",
+              "statsmodels",
+              "torch",
+              "torchvision"
+            ],
+            "not_on_index": [],
+            "relaxed": [],
+            "command": "pip compile - --no-header --no-annotate --quiet --exclude-newer 2022-08-23T00:00:00Z --python-version 3.10 --python-platform x86_64-unknown-linux-gnu --python C:\\Users\\E16\\AppData\\Roaming\\uv\\python\\cpython-3.8.20-windows-x86_64-none\\python.exe",
+            "error": ""
+          }
+        },
+        "execution": {
+          "mode": "smoke",
+          "seconds": 60,
+          "outcome": "exited",
+          "image": "555b13dc-6056-4c45-9a10-d09cffce3ab8",
+          "command": "python3 train_mnist_band.py --band_size 4 --lr 0.01 --end_epoch 199"
+        }
+      },
+      {
+        "attempt_number": 0,
+        "diff_text": "",
+        "gate_decision": "PASS",
+        "gate_violations": [],
+        "exit_code": 0,
+        "stdout_tail": ".........]  Step: 45ms | Tot: 1s215ms | Loss: 1.671 | Acc: 40.365% (1395/3456)\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b 27/469 \r [===>.............................................................]  Step: 45ms | Tot: 1s260ms | Loss: 1.660 | Acc: 40.792% (1462/3584)\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b 28/469 \r [===>.............................................................]  Step: 45ms | Tot: 1s306ms | Loss: 1.657 | Acc: 41.083% (1525/3712)\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b 29/469 \r [====>............................................................]  Step: 47ms | Tot: 1s353ms | Loss: 1.631 | Acc: 42.005% (1613/3840)\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b 30/469 \r [====>............................................................]  Step: 45ms | Tot: 1s398ms | Loss: 1.645 | Acc: 41.356% (1641/3968)\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b 31/469 \r [====>............................................................]  Step: 46ms | Tot: 1s445ms | Loss: 1.621 | Acc: 42.383% (1736/4096)\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b 32/469 \r [====>............................................................]  Step: 45ms | Tot: 1s491ms | Loss: 1.596 | Acc: 43.348% (1831/4224)\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b 33/469 \r [====>............................................................]  Step: 51ms | Tot: 1s543ms | Loss: 1.616 | Acc: 42.394% (1845/4352)\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b 34/469 \r [====>............................................................]  Step: 55ms | Tot: 1s599ms | Loss: 1.626 | Acc: 41.830% (1874/4480)\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b 35/469 \r [====>............................................................]  Step: 57ms | Tot: 1s656ms | Loss: 1.613 | Acc: 42.405% (1954/4608)\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b 36/469 \rRERUN_SMOKE_ALIVE: still running after 60s with output and no traceback; stopped by RERUN (smoke execution)\n",
+        "stderr_tail": ".6%\r9.9%\r10.2%\r10.6%\r10.9%\r11.2%\r11.6%\r11.9%\r12.2%\r12.6%\r12.9%\r13.2%\r13.6%\r13.9%\r14.2%\r14.5%\r14.9%\r15.2%\r15.5%\r15.9%\r16.2%\r16.5%\r16.9%\r17.2%\r17.5%\r17.9%\r18.2%\r18.5%\r18.8%\r19.2%\r19.5%\r19.8%\r20.2%\r20.5%\r20.8%\r21.2%\r21.5%\r21.8%\r22.1%\r22.5%\r22.8%\r23.1%\r23.5%\r23.8%\r24.1%\r24.5%\r24.8%\r25.1%\r25.5%\r25.8%\r26.1%\r26.4%\r26.8%\r27.1%\r27.4%\r27.8%\r28.1%\r28.4%\r28.8%\r29.1%\r29.4%\r29.8%\r30.1%\r30.4%\r30.7%\r31.1%\r31.4%\r31.7%\r32.1%\r32.4%\r32.7%\r33.1%\r33.4%\r33.7%\r34.0%\r34.4%\r34.7%\r35.0%\r35.4%\r35.7%\r36.0%\r36.4%\r36.7%\r37.0%\r37.4%\r37.7%\r38.0%\r38.3%\r38.7%\r39.0%\r39.3%\r39.7%\r40.0%\r40.3%\r40.7%\r41.0%\r41.3%\r41.7%\r42.0%\r42.3%\r42.6%\r43.0%\r43.3%\r43.6%\r44.0%\r44.3%\r44.6%\r45.0%\r45.3%\r45.6%\r45.9%\r46.3%\r46.6%\r46.9%\r47.3%\r47.6%\r47.9%\r48.3%\r48.6%\r48.9%\r49.3%\r49.6%\r49.9%\r50.2%\r50.6%\r50.9%\r51.2%\r51.6%\r51.9%\r52.2%\r52.6%\r52.9%\r53.2%\r53.6%\r53.9%\r54.2%\r54.5%\r54.9%\r55.2%\r55.5%\r55.9%\r56.2%\r56.5%\r56.9%\r57.2%\r57.5%\r57.9%\r58.2%\r58.5%\r58.8%\r59.2%\r59.5%\r59.8%\r60.2%\r60.5%\r60.8%\r61.2%\r61.5%\r61.8%\r62.1%\r62.5%\r62.8%\r63.1%\r63.5%\r63.8%\r64.1%\r64.5%\r64.8%\r65.1%\r65.5%\r65.8%\r66.1%\r66.4%\r66.8%\r67.1%\r67.4%\r67.8%\r68.1%\r68.4%\r68.8%\r69.1%\r69.4%\r69.8%\r70.1%\r70.4%\r70.7%\r71.1%\r71.4%\r71.7%\r72.1%\r72.4%\r72.7%\r73.1%\r73.4%\r73.7%\r74.0%\r74.4%\r74.7%\r75.0%\r75.4%\r75.7%\r76.0%\r76.4%\r76.7%\r77.0%\r77.4%\r77.7%\r78.0%\r78.3%\r78.7%\r79.0%\r79.3%\r79.7%\r80.0%\r80.3%\r80.7%\r81.0%\r81.3%\r81.7%\r82.0%\r82.3%\r82.6%\r83.0%\r83.3%\r83.6%\r84.0%\r84.3%\r84.6%\r85.0%\r85.3%\r85.6%\r85.9%\r86.3%\r86.6%\r86.9%\r87.3%\r87.6%\r87.9%\r88.3%\r88.6%\r88.9%\r89.3%\r89.6%\r89.9%\r90.2%\r90.6%\r90.9%\r91.2%\r91.6%\r91.9%\r92.2%\r92.6%\r92.9%\r93.2%\r93.6%\r93.9%\r94.2%\r94.5%\r94.9%\r95.2%\r95.5%\r95.9%\r96.2%\r96.5%\r96.9%\r97.2%\r97.5%\r97.9%\r98.2%\r98.5%\r98.8%\r99.2%\r99.5%\r99.8%\r100.0%\n\r100.0%\n\r2.0%\r4.0%\r6.0%\r7.9%\r9.9%\r11.9%\r13.9%\r15.9%\r17.9%\r19.9%\r21.9%\r23.8%\r25.8%\r27.8%\r29.8%\r31.8%\r33.8%\r35.8%\r37.8%\r39.7%\r41.7%\r43.7%\r45.7%\r47.7%\r49.7%\r51.7%\r53.7%\r55.6%\r57.6%\r59.6%\r61.6%\r63.6%\r65.6%\r67.6%\r69.6%\r71.5%\r73.5%\r75.5%\r77.5%\r79.5%\r81.5%\r83.5%\r85.5%\r87.4%\r89.4%\r91.4%\r93.4%\r95.4%\r97.4%\r99.4%\r100.0%\n\r100.0%\nRERUN_CPU_SHIM_PATH: tensor.cuda\n",
+        "tavily_sources": [],
+        "env_delta": [],
+        "resolved_sources": [],
+        "origin": "time_machine",
+        "time_machine": null,
+        "execution": {
+          "mode": "smoke",
+          "seconds": 60,
+          "outcome": "alive_at_limit",
+          "image": "2b129aaf-f645-4710-bec7-69086aae942a",
+          "command": "python3 train_mnist_band.py --band_size 4 --lr 0.01 --end_epoch 199"
+        },
+        "time_machine_action": {
+          "rule": "cpu_shim",
+          "matched_error": "raise AssertionError(\"Torch not compiled with CUDA enabled\")",
+          "hook": "cpu_shim",
+          "fires_on": "GPU_REQUIRED at repair time",
+          "phase": "repair",
+          "limit": "covers torch.load (map_location), torch.cuda.is_available(), torch.cuda.set_device() (does nothing: harness-v1.5.1), Tensor.cuda() and Module.cuda() (return self), a CPU reference for LU without pivoting when torch has no CPU kernel for it (torch.lu / torch._lu_with_info / torch.linalg.lu_factor / lu_factor_ex / lu with pivot=False; harness-v1.7, R2), .to('cuda*') on Tensor and Module and torch.device('cuda*') (-> cpu); does NOT cover device='cuda' strings given to factory functions (torch.zeros(device='cuda')), the other torch.cuda.* functions (current_device, synchronize, ...), torch.cuda.*Tensor types or torch.set_default_tensor_type('torch.cuda.FloatTensor'); torch.device is a proxy class, so `type(d) is torch.device` is False for a real device and a `torch.device(...)` call inside a TorchScript function is not supported",
+          "paths_fired": [
+            "cuda.is_available",
+            "tensor.cuda"
+          ]
+        }
+      }
+    ],
+    "verdict": "RUNS_AFTER_REPAIR",
+    "timestamp": "2026-10-07T15:15:47.957635+00:00",
+    "bundle_version": 4,
+    "baseline": {
+      "result": "FAILS",
+      "exit_code": 1,
+      "base_image": "python:3.10-slim",
+      "install_commands": [
+        "true  # no declared dependency file found; nothing to install"
+      ],
+      "execute_command": "python3 train_mnist_band.py --band_size 4 --lr 0.01 --end_epoch 199",
+      "sandbox_id": "7d5c1b61-5d92-49d8-b90a-d7bf55d834e7",
+      "taxonomy_code": "DEP_MISSING",
+      "evidence": "ModuleNotFoundError: No module named 'scipy'"
+    },
+    "recovery": true,
+    "tree_integrity": {
+      "status": "verified",
+      "tree_sha": "4100b348d98ff7c7f20f680146167aea18dcb885",
+      "files_checked": 50,
+      "excluded_patched": []
+    },
+    "corpus_hash": "7df090bea7013974f9f10fb8959ab0162734b51c83a80f744f9c310ce694fbdc",
+    "taxonomy_code": "GPU_REQUIRED",
+    "indeterminate_reason": "",
+    "error_chain": [
+      {
+        "error": "ModuleNotFoundError: No module named 'scipy'",
+        "class": "DEP_MISSING",
+        "attribution": "REPO",
+        "phase": "repo_run",
+        "cleared_by": 0
+      },
+      {
+        "error": "raise AssertionError(\"Torch not compiled with CUDA enabled\")",
+        "class": "GPU_REQUIRED",
+        "attribution": "REPO",
+        "phase": "repo_run",
+        "cleared_by": 0
+      }
+    ],
+    "first_repo_error": "ModuleNotFoundError: No module named 'scipy'",
+    "last_error": "raise AssertionError(\"Torch not compiled with CUDA enabled\")",
+    "outcome_levels": {
+      "first_error_cleared": true,
+      "first_error_cleared_by": "time_machine",
+      "env_resolved": true,
+      "entrypoint_runs": true
+    },
+    "blocker": null,
+    "reproduction_passport_hash": "d83e230ec17b935521dd10877cbd6e2bd558ee7a3502b5793b6bf21093eae545"
+  },
+  "finished_at": "2026-10-07T15:15:48.039751+00:00",
+  "events": [
+    {
+      "t_s": 0.0,
+      "at": "2026-10-07T15:11:58.127071+00:00",
+      "line": "[intake] cloned https://github.com/alevine0/patchSmoothing@6bdd01cdedde97763f36953de768f2b68952689c"
+    },
+    {
+      "t_s": 0.01,
+      "at": "2026-10-07T15:11:58.132244+00:00",
+      "line": "[recon] calling Nemotron Nano"
+    },
+    {
+      "t_s": 0.13,
+      "at": "2026-10-07T15:11:58.257789+00:00",
+      "line": "[recon] RECON_MODEL_ERROR: recon model call failed: prompt estimated at 27609 tokens exceeds the per-attempt ceiling: requested 27609 tokens exceeds the 20000-token per-attempt ceiling \u2014 proceeding with the documented command: python3 train_mnist_band.py --band_size 4 --lr 0.01 --end_epoch 199"
+    },
+    {
+      "t_s": 0.14,
+      "at": "2026-10-07T15:11:58.269008+00:00",
+      "line": "[python] python:3.10-slim (default): no usable Python declaration; RERUN default 3.10"
+    },
+    {
+      "t_s": 1.23,
+      "at": "2026-10-07T15:11:59.352327+00:00",
+      "line": "[planner] build plan: {'base_image': 'python:3.10-slim', 'apt_install': [], 'install_commands': ['true  # no declared dependency file found; nothing to install'], 'execute_command': 'python3 train_mnist_band.py --band_size 4 --lr 0.01 --end_epoch 199', 'notes': [\"execute command is the repository's documented command (corpus ground truth)\", 'base image python:3.10-slim: no usable Python declaration; RERUN default 3.10']}"
+    },
+    {
+      "t_s": 1.59,
+      "at": "2026-10-07T15:11:59.721828+00:00",
+      "line": "[integrity] verified 50 file(s) against tree 4100b348d98ff7c7f20f680146167aea18dcb885"
+    },
+    {
+      "t_s": 1.61,
+      "at": "2026-10-07T15:11:59.739212+00:00",
+      "line": "[runner] torch: repo imports torch, torchvision without declaring it; runner provides the newest matched CPU wheels"
+    },
+    {
+      "t_s": 1.61,
+      "at": "2026-10-07T15:11:59.740379+00:00",
+      "line": "[checkpoint] baseline: no kept image holds this environment yet; building it from python:3.10-slim and keeping every layer"
+    },
+    {
+      "t_s": 1.61,
+      "at": "2026-10-07T15:11:59.740603+00:00",
+      "line": "[sandbox] starting build+execute (wall_clock_seconds=600)"
+    },
+    {
+      "t_s": 77.19,
+      "at": "2026-10-07T15:13:15.319233+00:00",
+      "line": "[operation 1] baseline: completed; 32.1s of sandbox time; torch installed; branch_from_image=None; result_image=None; 4 image(s) kept"
+    },
+    {
+      "t_s": 77.19,
+      "at": "2026-10-07T15:13:15.319295+00:00",
+      "line": "[cost_guard] recorded $0.3306 sandbox spend, $2.1692 remaining today"
+    },
+    {
+      "t_s": 77.19,
+      "at": "2026-10-07T15:13:15.319354+00:00",
+      "line": "[sandbox] id=7d5c1b61-5d92-49d8-b90a-d7bf55d834e7 exit_code=1"
+    },
+    {
+      "t_s": 77.19,
+      "at": "2026-10-07T15:13:15.319376+00:00",
+      "line": "[baseline] as-is run: FAILS (exit code 1)"
+    },
+    {
+      "t_s": 77.2,
+      "at": "2026-10-07T15:13:15.326100+00:00",
+      "line": "[classifier] DEP_MISSING: ModuleNotFoundError: No module named 'scipy'"
+    },
+    {
+      "t_s": 77.25,
+      "at": "2026-10-07T15:13:15.375201+00:00",
+      "line": "[era] 2022-08-22 from pinned-commit {'note': 'no dependency files in the repository'}"
+    },
+    {
+      "t_s": 77.91,
+      "at": "2026-10-07T15:13:16.035778+00:00",
+      "line": "[time-machine] era 2022-08-22 (pinned-commit) -> python 3.10; locked 19 package(s) with uv --exclude-newer; not on the index: none"
+    },
+    {
+      "t_s": 77.92,
+      "at": "2026-10-07T15:13:16.049593+00:00",
+      "line": "[smoke] re-execution of the documented command under a 60s smoke limit"
+    },
+    {
+      "t_s": 78.27,
+      "at": "2026-10-07T15:13:16.396471+00:00",
+      "line": "[integrity] verified 50 file(s) against tree 4100b348d98ff7c7f20f680146167aea18dcb885"
+    },
+    {
+      "t_s": 78.29,
+      "at": "2026-10-07T15:13:16.415948+00:00",
+      "line": "[runner] torch: repo pins torch, torchvision; installed the CPU wheels as a matched set with the same pins"
+    },
+    {
+      "t_s": 78.29,
+      "at": "2026-10-07T15:13:16.417666+00:00",
+      "line": "[checkpoint] re-execution: branching from image 007527f4-6482-4554-8b16-c33fa069f2ce (0 of 3 setup command(s) already in it, kept by operation 1); no reinstall of what it contains"
+    },
+    {
+      "t_s": 78.29,
+      "at": "2026-10-07T15:13:16.417696+00:00",
+      "line": "[sandbox] starting build+execute (wall_clock_seconds=305)"
+    },
+    {
+      "t_s": 161.05,
+      "at": "2026-10-07T15:14:39.181342+00:00",
+      "line": "[operation 2] re-execution: completed; 27.5s of sandbox time; torch installed; branch_from_image=007527f4-6482-4554-8b16-c33fa069f2ce; result_image=None; 3 image(s) kept"
+    },
+    {
+      "t_s": 161.05,
+      "at": "2026-10-07T15:14:39.181406+00:00",
+      "line": "[cost_guard] recorded $0.2834 sandbox spend, $1.8858 remaining today"
+    },
+    {
+      "t_s": 161.05,
+      "at": "2026-10-07T15:14:39.181473+00:00",
+      "line": "[time-machine] re-execution id=555b13dc-6056-4c45-9a10-d09cffce3ab8 exit_code=1"
+    },
+    {
+      "t_s": 161.06,
+      "at": "2026-10-07T15:14:39.184083+00:00",
+      "line": "[classifier] GPU_REQUIRED: raise AssertionError(\"Torch not compiled with CUDA enabled\")"
+    },
+    {
+      "t_s": 161.06,
+      "at": "2026-10-07T15:14:39.184547+00:00",
+      "line": "[time-machine] deterministic step: cpu_shim (matched: raise AssertionError(\"Torch not compiled with CUDA enabled\")); no model call"
+    },
+    {
+      "t_s": 161.07,
+      "at": "2026-10-07T15:14:39.198644+00:00",
+      "line": "[smoke] re-execution of the documented command under a 60s smoke limit"
+    },
+    {
+      "t_s": 161.33,
+      "at": "2026-10-07T15:14:39.458393+00:00",
+      "line": "[integrity] verified 50 file(s) against tree 4100b348d98ff7c7f20f680146167aea18dcb885"
+    },
+    {
+      "t_s": 161.35,
+      "at": "2026-10-07T15:14:39.475043+00:00",
+      "line": "[runner] torch: repo pins torch, torchvision; installed the CPU wheels as a matched set with the same pins"
+    },
+    {
+      "t_s": 161.35,
+      "at": "2026-10-07T15:14:39.476601+00:00",
+      "line": "[checkpoint] time machine: cpu_shim: branching from image 555b13dc-6056-4c45-9a10-d09cffce3ab8 (3 of 4 setup command(s) already in it, kept by operation 2); no reinstall of what it contains"
+    },
+    {
+      "t_s": 161.35,
+      "at": "2026-10-07T15:14:39.476626+00:00",
+      "line": "[sandbox] starting build+execute (wall_clock_seconds=324)"
+    },
+    {
+      "t_s": 225.4,
+      "at": "2026-10-07T15:15:43.525719+00:00",
+      "line": "[operation 3] time machine: cpu_shim: completed; 0.2s of sandbox time; torch already in the start image; branch_from_image=555b13dc-6056-4c45-9a10-d09cffce3ab8; result_image=None; 1 image(s) kept"
+    },
+    {
+      "t_s": 225.4,
+      "at": "2026-10-07T15:15:43.525786+00:00",
+      "line": "[cost_guard] recorded $0.0022 sandbox spend, $1.8837 remaining today"
+    },
+    {
+      "t_s": 225.4,
+      "at": "2026-10-07T15:15:43.527239+00:00",
+      "line": "[time-machine] re-execution id=2b129aaf-f645-4710-bec7-69086aae942a exit_code=0"
+    }
+  ],
+  "model_calls": [
+    {
+      "model": "nvidia/nemotron-3-super-120b-a12b",
+      "started_at": "2026-10-07T15:11:58.375932+00:00",
+      "latency_s": 0.98,
+      "finish_reason": "stop",
+      "content_is_none": false,
+      "has_reasoning": true,
+      "usage": {
+        "completion_tokens": 48,
+        "prompt_tokens": 274,
+        "total_tokens": 322,
+        "completion_tokens_details": {
+          "accepted_prediction_tokens": null,
+          "audio_tokens": null,
+          "reasoning_tokens": 38,
+          "rejected_prediction_tokens": null,
+          "text_tokens": null
+        },
+        "prompt_tokens_details": {
+          "audio_tokens": null,
+          "cache_write_tokens": null,
+          "cached_tokens": 0,
+          "image_tokens": null,
+          "text_tokens": null,
+          "created_cache_tokens": 0,
+          "multimodal_tokens": null
+        },
+        "prompt_cache_hit_tokens": 0,
+        "prompt_cache_miss_tokens": 274
+      }
+    },
+    {
+      "model": "nvidia/Nemotron-3-Ultra-550b-a55b",
+      "started_at": "2026-10-07T15:15:43.529627+00:00",
+      "latency_s": 4.43,
+      "finish_reason": "stop",
+      "content_is_none": false,
+      "has_reasoning": true,
+      "usage": {
+        "completion_tokens": 583,
+        "prompt_tokens": 783,
+        "total_tokens": 1366,
+        "completion_tokens_details": {
+          "accepted_prediction_tokens": null,
+          "audio_tokens": null,
+          "reasoning_tokens": 478,
+          "rejected_prediction_tokens": null,
+          "text_tokens": null
+        },
+        "prompt_tokens_details": {
+          "audio_tokens": null,
+          "cache_write_tokens": null,
+          "cached_tokens": 0,
+          "image_tokens": null,
+          "text_tokens": null,
+          "multimodal_tokens": null
+        },
+        "prompt_cache_hit_tokens": 0,
+        "prompt_cache_miss_tokens": 783
+      }
+    }
+  ],
+  "cost_guard": {
+    "spent_usd": 0.61887969,
+    "model_spent_usd": 0.0026574,
+    "sandbox_spent_usd": 0.6162222900000001,
+    "estimated_sandbox_spent_usd": 0.0,
+    "cost_events": [],
+    "remaining_usd": 1.88112031,
+    "cap_usd": 2.5,
+    "over_cap_usd": 0.0,
+    "estimated_usd": 0.0,
+    "over_cap_estimated_only": false,
+    "model_usage": [
+      {
+        "model": "nvidia/nemotron-3-super-120b-a12b",
+        "prompt_tokens": 274,
+        "completion_tokens": 48,
+        "cost_usd": 0.0001254
+      },
+      {
+        "model": "nvidia/Nemotron-3-Ultra-550b-a55b",
+        "prompt_tokens": 783,
+        "completion_tokens": 583,
+        "cost_usd": 0.002532
+      }
+    ],
+    "prices_usd_per_1m": {
+      "nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B": [
+        0.06,
+        0.24
+      ],
+      "nvidia/nemotron-3-super-120b-a12b": [
+        0.3,
+        0.9
+      ],
+      "nvidia/Nemotron-3-Ultra-550b-a55b": [
+        1.0,
+        3.0
+      ]
+    },
+    "prices_source": "https://api.tokenfactory.nebius.com/v1/models?verbose=true (pricing field)",
+    "prices_retrieved": "2026-09-24"
+  },
+  "operations": [
+    {
+      "n": 1,
+      "role": "baseline",
+      "candidate": null,
+      "concurrent": 1,
+      "base_image": "python:3.10-slim",
+      "funded_seconds": 600.0,
+      "wall_seconds": 75.58,
+      "sandbox_seconds": 32.131,
+      "install_seconds": [
+        {
+          "command": "pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cpu --extra-index-url https://pypi.org/simple || pip install torch torchvi",
+          "phase": "runner_setup",
+          "seconds": 20.052,
+          "exit_code": 0,
+          "cost_usd": 0.289086,
+          "torch": true
+        },
+        {
+          "command": "python -c '\nimport glob, importlib.util, os, struct, subprocess, sys\nspec = importlib.util.find_spec(\"torch\")\nroot = os.path.join(os.path.dirname(spec.origin), ",
+          "phase": "runner_setup",
+          "seconds": 1.412,
+          "exit_code": 0,
+          "cost_usd": 0.015184,
+          "torch": false
+        },
+        {
+          "command": "true  # no declared dependency file found; nothing to install",
+          "phase": "repo_install",
+          "seconds": 0.001,
+          "exit_code": 0,
+          "cost_usd": 6.1e-05,
+          "torch": false
+        }
+      ],
+      "rerun_steps": [
+        {
+          "phase": "rerun_extract",
+          "seconds": 8.183,
+          "cost_usd": 0.083235
+        }
+      ],
+      "branch_from_image": null,
+      "start_setup_commands": 0,
+      "setup_commands": 3,
+      "torch_in_start_image": false,
+      "torch_installed": true,
+      "torch_env_key": "64c2295c478dd277",
+      "result_image": null,
+      "image_kept": true,
+      "kept_images": [
+        "007527f4-6482-4554-8b16-c33fa069f2ce",
+        "20c3b9b2-9d1d-43dc-b6b2-4bcc736bba8c",
+        "51edf299-dc75-4beb-802a-abff6caaba76",
+        "7d5c1b61-5d92-49d8-b90a-d7bf55d834e7"
+      ],
+      "env_image_id": "7d5c1b61-5d92-49d8-b90a-d7bf55d834e7",
+      "cost_usd": 0.330629,
+      "cost_estimated_usd": 0.0,
+      "outcome": "completed",
+      "resource_limits": {
+        "memory": "not documented (the only wording is \"Automatic cleanup and resource limits help prevent abuse.\" (docs.tokenfactory.nebius.com/sandboxes/overview) and \"Built-in tracking of CPU time, memory usage, and I/O operations for every execution.\")",
+        "cpu": "not documented",
+        "disk_layer_bytes": 12884901888,
+        "larger_instance": "not documented: the spawn request, the SDK, the CLI and the MCP tools have no memory, CPU, size or GPU parameter; Sandboxes is a beta (access by request, contree@nebius.com); no price page (the product page says free while in beta, D-36)",
+        "source": "docs/design/D-40-resources.md (public Nebius Token Factory / ConTree documentation and contree_sdk 0.3.6, read offline 2026-10-01)"
+      },
+      "exit_code": 1,
+      "max_rss": 1066960,
+      "streams": {
+        "limit_bytes": 4194304,
+        "stdout": {
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "truncated": false
+        },
+        "stderr": {
+          "bytes": 287,
+          "sha256": "469263fe2ccce8ff8cf052d34cdc244ad069e6e1c119622282e0c806dda94e2f",
+          "truncated": false
+        }
+      },
+      "killed_step": null,
+      "killed_seconds": null,
+      "funding": {
+        "basis": "baseline: the pre-registered wall clock, not budget-limited",
+        "rate_used_usd_per_s": null,
+        "source_operations": []
+      }
+    },
+    {
+      "n": 2,
+      "role": "re-execution",
+      "candidate": null,
+      "concurrent": 1,
+      "base_image": "python:3.10-slim",
+      "funded_seconds": 304.8,
+      "wall_seconds": 82.76,
+      "sandbox_seconds": 27.52,
+      "install_seconds": [
+        {
+          "command": "pip install torch==1.12.1 torchvision==0.13.1 torchaudio 'numpy<2' --index-url https://download.pytorch.org/whl/cpu --extra-index-url https://pypi.org/simple ||",
+          "phase": "runner_setup",
+          "seconds": 12.697,
+          "exit_code": 0,
+          "cost_usd": 0.130021,
+          "torch": true
+        },
+        {
+          "command": "python -c '\nimport glob, importlib.util, os, struct, subprocess, sys\nspec = importlib.util.find_spec(\"torch\")\nroot = os.path.join(os.path.dirname(spec.origin), ",
+          "phase": "runner_setup",
+          "seconds": 1.49,
+          "exit_code": 0,
+          "cost_usd": 0.01734,
+          "torch": false
+        },
+        {
+          "command": "printf '%s\\n' certifi==2022.6.15 charset-normalizer==2.1.1 idna==3.3 numpy==1.23.2 packaging==21.3 pandas==1.4.3 patsy==0.5.2 pillow==9.2.0 pyparsing==3.0.9 pyt",
+          "phase": "repo_install",
+          "seconds": 11.167,
+          "exit_code": 0,
+          "cost_usd": 0.112833,
+          "torch": false
+        }
+      ],
+      "rerun_steps": [],
+      "branch_from_image": "007527f4-6482-4554-8b16-c33fa069f2ce",
+      "start_setup_commands": 0,
+      "setup_commands": 3,
+      "torch_in_start_image": false,
+      "torch_installed": true,
+      "torch_env_key": "5b4a9d50a6c96807",
+      "result_image": null,
+      "image_kept": true,
+      "kept_images": [
+        "4f36cd9a-610b-4802-a1dd-66ad882895ae",
+        "7bb77917-76c3-42f3-b14e-47f45f791091",
+        "555b13dc-6056-4c45-9a10-d09cffce3ab8"
+      ],
+      "env_image_id": "555b13dc-6056-4c45-9a10-d09cffce3ab8",
+      "cost_usd": 0.283422,
+      "cost_estimated_usd": 0.0,
+      "outcome": "completed",
+      "resource_limits": {
+        "memory": "not documented (the only wording is \"Automatic cleanup and resource limits help prevent abuse.\" (docs.tokenfactory.nebius.com/sandboxes/overview) and \"Built-in tracking of CPU time, memory usage, and I/O operations for every execution.\")",
+        "cpu": "not documented",
+        "disk_layer_bytes": 12884901888,
+        "larger_instance": "not documented: the spawn request, the SDK, the CLI and the MCP tools have no memory, CPU, size or GPU parameter; Sandboxes is a beta (access by request, contree@nebius.com); no price page (the product page says free while in beta, D-36)",
+        "source": "docs/design/D-40-resources.md (public Nebius Token Factory / ConTree documentation and contree_sdk 0.3.6, read offline 2026-10-01)"
+      },
+      "exit_code": 1,
+      "max_rss": 609252,
+      "streams": {
+        "limit_bytes": 4194304,
+        "stdout": {
+          "bytes": 1876,
+          "sha256": "dd57eee3e725d9087f71f6036961b631ed08e7d8a0a331c026c1e5c7e9670b50",
+          "truncated": false
+        },
+        "stderr": {
+          "bytes": 2743,
+          "sha256": "5e83a9a53aca79c4fcb0e6d78e38f0897b2ad083c80b81c3964a8b99af7ad484",
+          "truncated": false
+        }
+      },
+      "killed_step": null,
+      "killed_seconds": null,
+      "funding": {
+        "rate_used_usd_per_s": 0.00656184,
+        "measured_usd_per_s": 0.00437456,
+        "safety": 1.5,
+        "floor_usd_per_s": 0.003,
+        "ceiling_usd_per_s": 0.0085,
+        "basis": "measured x safety",
+        "source_operations": [
+          1
+        ]
+      }
+    },
+    {
+      "n": 3,
+      "role": "time machine: cpu_shim",
+      "candidate": null,
+      "concurrent": 1,
+      "base_image": "python:3.10-slim",
+      "funded_seconds": 324.2,
+      "wall_seconds": 64.05,
+      "sandbox_seconds": 0.207,
+      "install_seconds": [
+        {
+          "command": "python3 -c \"import base64;exec(base64.b64decode('CmltcG9ydCBiYXNlNjQsIG9zLCBzaXRlLCBzeXMKbmFtZSwgc291cmNlID0gc3lzLmFyZ3ZbMV0sIGJhc2U2NC5iNjRkZWNvZGUoc3lzLmFyZ3Z",
+          "phase": "runner_setup",
+          "seconds": 0.02,
+          "exit_code": 0,
+          "cost_usd": 0.000244,
+          "torch": false
+        }
+      ],
+      "rerun_steps": [],
+      "branch_from_image": "555b13dc-6056-4c45-9a10-d09cffce3ab8",
+      "start_setup_commands": 3,
+      "setup_commands": 4,
+      "torch_in_start_image": true,
+      "torch_installed": false,
+      "torch_env_key": "5b4a9d50a6c96807",
+      "result_image": null,
+      "image_kept": true,
+      "kept_images": [
+        "2b129aaf-f645-4710-bec7-69086aae942a"
+      ],
+      "env_image_id": "2b129aaf-f645-4710-bec7-69086aae942a",
+      "cost_usd": 0.002171,
+      "cost_estimated_usd": 0.0,
+      "outcome": "completed",
+      "resource_limits": {
+        "memory": "not documented (the only wording is \"Automatic cleanup and resource limits help prevent abuse.\" (docs.tokenfactory.nebius.com/sandboxes/overview) and \"Built-in tracking of CPU time, memory usage, and I/O operations for every execution.\")",
+        "cpu": "not documented",
+        "disk_layer_bytes": 12884901888,
+        "larger_instance": "not documented: the spawn request, the SDK, the CLI and the MCP tools have no memory, CPU, size or GPU parameter; Sandboxes is a beta (access by request, contree@nebius.com); no price page (the product page says free while in beta, D-36)",
+        "source": "docs/design/D-40-resources.md (public Nebius Token Factory / ConTree documentation and contree_sdk 0.3.6, read offline 2026-10-01)"
+      },
+      "exit_code": 0,
+      "max_rss": 11140,
+      "streams": {
+        "limit_bytes": 4194304,
+        "stdout": {
+          "bytes": 201851,
+          "sha256": "4cd49dc1938c5dc55064ec8a29ba02ff7034197f6398e0d7c835e2bbd19cc405",
+          "truncated": false
+        },
+        "stderr": {
+          "bytes": 2596,
+          "sha256": "52d4bf4cbcf96c91eee7feb602002f80bcfe94c038c7a565abec6577fd97e0f1",
+          "truncated": false
+        },
+        "tail": {
+          "stdout": ".........]  Step: 45ms | Tot: 1s215ms | Loss: 1.671 | Acc: 40.365% (1395/3456)\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b 27/469 \r [===>.............................................................]  Step: 45ms | Tot: 1s260ms | Loss: 1.660 | Acc: 40.792% (1462/3584)\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b 28/469 \r [===>.............................................................]  Step: 45ms | Tot: 1s306ms | Loss: 1.657 | Acc: 41.083% (1525/3712)\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b 29/469 \r [====>............................................................]  Step: 47ms | Tot: 1s353ms | Loss: 1.631 | Acc: 42.005% (1613/3840)\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b 30/469 \r [====>............................................................]  Step: 45ms | Tot: 1s398ms | Loss: 1.645 | Acc: 41.356% (1641/3968)\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b 31/469 \r [====>............................................................]  Step: 46ms | Tot: 1s445ms | Loss: 1.621 | Acc: 42.383% (1736/4096)\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b 32/469 \r [====>............................................................]  Step: 45ms | Tot: 1s491ms | Loss: 1.596 | Acc: 43.348% (1831/4224)\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b 33/469 \r [====>............................................................]  Step: 51ms | Tot: 1s543ms | Loss: 1.616 | Acc: 42.394% (1845/4352)\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b 34/469 \r [====>............................................................]  Step: 55ms | Tot: 1s599ms | Loss: 1.626 | Acc: 41.830% (1874/4480)\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b 35/469 \r [====>............................................................]  Step: 57ms | Tot: 1s656ms | Loss: 1.613 | Acc: 42.405% (1954/4608)\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b\b 36/469 \rRERUN_SMOKE_ALIVE: still running after 60s with output and no traceback; stopped by RERUN (smoke execution)\n",
+          "stderr": ".6%\r9.9%\r10.2%\r10.6%\r10.9%\r11.2%\r11.6%\r11.9%\r12.2%\r12.6%\r12.9%\r13.2%\r13.6%\r13.9%\r14.2%\r14.5%\r14.9%\r15.2%\r15.5%\r15.9%\r16.2%\r16.5%\r16.9%\r17.2%\r17.5%\r17.9%\r18.2%\r18.5%\r18.8%\r19.2%\r19.5%\r19.8%\r20.2%\r20.5%\r20.8%\r21.2%\r21.5%\r21.8%\r22.1%\r22.5%\r22.8%\r23.1%\r23.5%\r23.8%\r24.1%\r24.5%\r24.8%\r25.1%\r25.5%\r25.8%\r26.1%\r26.4%\r26.8%\r27.1%\r27.4%\r27.8%\r28.1%\r28.4%\r28.8%\r29.1%\r29.4%\r29.8%\r30.1%\r30.4%\r30.7%\r31.1%\r31.4%\r31.7%\r32.1%\r32.4%\r32.7%\r33.1%\r33.4%\r33.7%\r34.0%\r34.4%\r34.7%\r35.0%\r35.4%\r35.7%\r36.0%\r36.4%\r36.7%\r37.0%\r37.4%\r37.7%\r38.0%\r38.3%\r38.7%\r39.0%\r39.3%\r39.7%\r40.0%\r40.3%\r40.7%\r41.0%\r41.3%\r41.7%\r42.0%\r42.3%\r42.6%\r43.0%\r43.3%\r43.6%\r44.0%\r44.3%\r44.6%\r45.0%\r45.3%\r45.6%\r45.9%\r46.3%\r46.6%\r46.9%\r47.3%\r47.6%\r47.9%\r48.3%\r48.6%\r48.9%\r49.3%\r49.6%\r49.9%\r50.2%\r50.6%\r50.9%\r51.2%\r51.6%\r51.9%\r52.2%\r52.6%\r52.9%\r53.2%\r53.6%\r53.9%\r54.2%\r54.5%\r54.9%\r55.2%\r55.5%\r55.9%\r56.2%\r56.5%\r56.9%\r57.2%\r57.5%\r57.9%\r58.2%\r58.5%\r58.8%\r59.2%\r59.5%\r59.8%\r60.2%\r60.5%\r60.8%\r61.2%\r61.5%\r61.8%\r62.1%\r62.5%\r62.8%\r63.1%\r63.5%\r63.8%\r64.1%\r64.5%\r64.8%\r65.1%\r65.5%\r65.8%\r66.1%\r66.4%\r66.8%\r67.1%\r67.4%\r67.8%\r68.1%\r68.4%\r68.8%\r69.1%\r69.4%\r69.8%\r70.1%\r70.4%\r70.7%\r71.1%\r71.4%\r71.7%\r72.1%\r72.4%\r72.7%\r73.1%\r73.4%\r73.7%\r74.0%\r74.4%\r74.7%\r75.0%\r75.4%\r75.7%\r76.0%\r76.4%\r76.7%\r77.0%\r77.4%\r77.7%\r78.0%\r78.3%\r78.7%\r79.0%\r79.3%\r79.7%\r80.0%\r80.3%\r80.7%\r81.0%\r81.3%\r81.7%\r82.0%\r82.3%\r82.6%\r83.0%\r83.3%\r83.6%\r84.0%\r84.3%\r84.6%\r85.0%\r85.3%\r85.6%\r85.9%\r86.3%\r86.6%\r86.9%\r87.3%\r87.6%\r87.9%\r88.3%\r88.6%\r88.9%\r89.3%\r89.6%\r89.9%\r90.2%\r90.6%\r90.9%\r91.2%\r91.6%\r91.9%\r92.2%\r92.6%\r92.9%\r93.2%\r93.6%\r93.9%\r94.2%\r94.5%\r94.9%\r95.2%\r95.5%\r95.9%\r96.2%\r96.5%\r96.9%\r97.2%\r97.5%\r97.9%\r98.2%\r98.5%\r98.8%\r99.2%\r99.5%\r99.8%\r100.0%\n\r100.0%\n\r2.0%\r4.0%\r6.0%\r7.9%\r9.9%\r11.9%\r13.9%\r15.9%\r17.9%\r19.9%\r21.9%\r23.8%\r25.8%\r27.8%\r29.8%\r31.8%\r33.8%\r35.8%\r37.8%\r39.7%\r41.7%\r43.7%\r45.7%\r47.7%\r49.7%\r51.7%\r53.7%\r55.6%\r57.6%\r59.6%\r61.6%\r63.6%\r65.6%\r67.6%\r69.6%\r71.5%\r73.5%\r75.5%\r77.5%\r79.5%\r81.5%\r83.5%\r85.5%\r87.4%\r89.4%\r91.4%\r93.4%\r95.4%\r97.4%\r99.4%\r100.0%\n\r100.0%\nRERUN_CPU_SHIM_PATH: tensor.cuda\n",
+          "cap_chars": 2000
+        }
+      },
+      "killed_step": null,
+      "killed_seconds": null,
+      "funding": {
+        "rate_used_usd_per_s": 0.00581708,
+        "measured_usd_per_s": 0.00387805,
+        "safety": 1.5,
+        "floor_usd_per_s": 0.003,
+        "ceiling_usd_per_s": 0.0085,
+        "basis": "measured x safety",
+        "source_operations": [
+          1,
+          2
+        ]
+      }
+    }
+  ]
+}

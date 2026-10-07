@@ -1,0 +1,74 @@
+{
+  "run_id": "2c3b8f08-62f5-47e5-87e1-324aead737f7",
+  "verdict": "INDETERMINATE",
+  "certificate_prose": "The baseline execution failed with exit code 2 because the entrypoint script main.py requires a mandatory -file argument that was not provided. The run log indicates ENTRYPOINT_NEEDS_ARGS, meaning the command cannot proceed without human-supplied input arguments. No repair was attempted because supplying arguments would require external input rather than code changes. Verifies that the artifact executes. Does not verify the paper's numerical results.",
+  "full_log": "[intake] cloned https://github.com/awekrx/AutoDoc-ChatGPT@2ae010d1f67fd55b3d3ba8f72e5761174d9a81e3\n[recon] calling Nemotron Nano\n[recon] entrypoint=main.py confidence=0.90\n[python] python:3.10-slim (default): no usable Python declaration; RERUN default 3.10\n[planner] build plan: {'base_image': 'python:3.10-slim', 'apt_install': [], 'install_commands': ['pip install -r requirements.txt'], 'execute_command': 'python main.py', 'notes': ['base image python:3.10-slim: no usable Python declaration; RERUN default 3.10']}\n[integrity] verified 25 file(s) against tree 204b188a587cee5199ffc086d4173847622b84bc\n[checkpoint] baseline: no kept image holds this environment yet; building it from python:3.10-slim and keeping every layer\n[sandbox] starting build+execute (wall_clock_seconds=600)\n[operation 1] baseline: completed; 9.1s of sandbox time; no torch install; branch_from_image=None; result_image=None; 2 image(s) kept\n[cost_guard] recorded $0.0925 sandbox spend, $2.4070 remaining today\n[sandbox] id=7a43c686-1b5c-418b-94d7-16303ef93e6e exit_code=2\n[baseline] as-is run: FAILS (exit code 2)\n[verdict] INDETERMINATE: ENTRYPOINT_NEEDS_ARGS: the command failed because it did not get the arguments it reads (`main.py: error: the following arguments are required: -file`); a human must supply them (for example an input file); not repaired, since a code change could only invent them",
+  "build_plan": {
+    "base_image": "python:3.10-slim",
+    "apt_install": [],
+    "install_commands": [
+      "pip install -r requirements.txt"
+    ],
+    "execute_command": "python main.py",
+    "notes": [
+      "base image python:3.10-slim: no usable Python declaration; RERUN default 3.10"
+    ]
+  },
+  "diffs": [],
+  "reproduction_passport_hash": "456c8de4ce12aeac33fa94b8b868447108c9debec578f7120f87f51808dcb323",
+  "timestamp": "2026-10-07T14:18:42.543213+00:00",
+  "bundle_version": 4,
+  "baseline": {
+    "result": "FAILS",
+    "exit_code": 2,
+    "base_image": "python:3.10-slim",
+    "install_commands": [
+      "pip install -r requirements.txt"
+    ],
+    "execute_command": "python main.py",
+    "sandbox_id": "7a43c686-1b5c-418b-94d7-16303ef93e6e",
+    "taxonomy_code": null,
+    "evidence": "main.py: error: the following arguments are required: -file"
+  },
+  "recovery": false,
+  "tree_integrity": {
+    "status": "verified",
+    "tree_sha": "204b188a587cee5199ffc086d4173847622b84bc",
+    "files_checked": 25,
+    "excluded_patched": []
+  },
+  "corpus_hash": null,
+  "taxonomy_code": null,
+  "indeterminate_reason": "ENTRYPOINT_NEEDS_ARGS: the command failed because it did not get the arguments it reads (`main.py: error: the following arguments are required: -file`); a human must supply them (for example an input file); not repaired, since a code change could only invent them",
+  "error_chain": [],
+  "first_repo_error": null,
+  "last_error": null,
+  "blocker_sources": null,
+  "outcome_levels": {
+    "first_error_cleared": false,
+    "first_error_cleared_by": null,
+    "env_resolved": false,
+    "entrypoint_runs": false
+  },
+  "verdict_label": "INDETERMINATE",
+  "blocker": {
+    "class": "ENTRYPOINT_NEEDS_ARGS",
+    "family": "Inputs",
+    "phase": "repo_run",
+    "attribution": null,
+    "evidence": "main.py: error: the following arguments are required: -file",
+    "fixable_by": "human",
+    "what_a_human_must_supply": "the arguments the entry point reads (for example an input file), as the quoted line shows",
+    "sources": null,
+    "cause": "ENTRYPOINT_NEEDS_ARGS",
+    "error_line": "main.py: error: the following arguments are required: -file",
+    "next_action": "run the command with the arguments the quoted line asks for (for example an input file)",
+    "basis": [
+      {
+        "source": "indeterminate_reason",
+        "quote": "ENTRYPOINT_NEEDS_ARGS: the command failed because it did not get the arguments it reads (`main.py: error: the following arguments are required: -file`); a human must supply them (for example an input file); not repaired, since a code change could only invent them"
+      }
+    ],
+    "diagnosis": "evidence"
+  }
+}

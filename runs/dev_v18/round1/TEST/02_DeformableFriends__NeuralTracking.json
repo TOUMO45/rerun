@@ -1,0 +1,496 @@
+{
+  "run_kind": "live end-to-end run",
+  "dev_run": false,
+  "dry_run": null,
+  "batch": {
+    "protocol": "harness-v1.8 DEV (owner 2026-10-07)",
+    "dev_label": "DEV-CONTAMINATED (was TEST)",
+    "was": "TEST",
+    "dev_v18": true,
+    "entry_id": 2,
+    "category": "PRIMARY",
+    "rules_matched": [],
+    "per_entry_cap_usd": 2.5,
+    "arm": "treatment",
+    "harness": "harness-v1.8 working tree, UNSEALED",
+    "started_at": "2026-10-07T13:54:31.124812+00:00",
+    "corpus": "corpus-v2",
+    "head_commit": "1b3abcf6901791146ec4ee93b78d76cd176410e2",
+    "tree_dirty_tracked_files": true,
+    "modified_harness_files": [
+      "backend/app/services/blocker.py",
+      "backend/app/services/classifier.py",
+      "backend/app/services/cost_guard.py",
+      "backend/app/services/entry_blockers.py",
+      "backend/app/services/indentation.py",
+      "backend/app/services/intake.py",
+      "backend/app/services/orchestrator.py",
+      "backend/app/services/outcome_levels.py",
+      "backend/app/services/patch_pipeline.py",
+      "backend/app/services/planner.py",
+      "backend/app/services/recon.py",
+      "backend/app/services/time_machine.py",
+      "scripts/live_run.py"
+    ],
+    "untracked_harness_files": [
+      "backend/app/services/command_shell.py",
+      "backend/app/services/diagnosis.py",
+      "backend/app/services/install_repair.py",
+      "backend/app/services/prerelease_pin.py",
+      "backend/app/services/system_packages.py"
+    ],
+    "harness_files_hashed": 96,
+    "harness_tree_sha256": "16f146627253384107b4f1c8badb8dfb41b0920a1e56078fb9abd7b97023409c"
+  },
+  "started_at": "2026-10-07T14:52:12.847900+00:00",
+  "corpus_entry": {
+    "name": "DeformableFriends__NeuralTracking",
+    "repo_url": "https://github.com/DeformableFriends/NeuralTracking",
+    "commit_sha": "015256369a94a56b0e478fd100326b9aa97ec9a7",
+    "command": "sh start_nnrt.sh",
+    "command_source": "README.md line 58"
+  },
+  "config": {
+    "models": {
+      "recon": "nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B",
+      "planner": "nvidia/nemotron-3-super-120b-a12b",
+      "repairer": "nvidia/nemotron-3-super-120b-a12b",
+      "adjudicator": "nvidia/Nemotron-3-Ultra-550b-a55b"
+    },
+    "sandbox_backend": "token_factory",
+    "sandbox_image_default": "python:3.10-slim",
+    "sandbox_wall_clock_seconds": 600.0,
+    "arm": "treatment",
+    "repair_enabled": true,
+    "max_attempts": 3,
+    "candidates_per_round": 3,
+    "tavily_configured": true,
+    "cost_cap_usd": 2.5
+  },
+  "intake": {
+    "duration_s": 162.16,
+    "resolved_sha": "015256369a94a56b0e478fd100326b9aa97ec9a7",
+    "dependency_files": [],
+    "declared_dependencies": [],
+    "entrypoint_candidates": [
+      "create_graph_data.py",
+      "evaluate.py",
+      "example_viz.py",
+      "generate.py",
+      "model/evaluate.py",
+      "train.py",
+      "utils/snapshot_manager.py"
+    ],
+    "notebook_paths": []
+  },
+  "pipeline_duration_s": 102.44,
+  "repair_mode": "deterministic",
+  "tree_integrity": {
+    "status": "verified",
+    "tree_sha": "f7b41297c60b54f204f854bd80aac9b796a1b80c",
+    "files_checked": 374,
+    "excluded_patched": []
+  },
+  "result": {
+    "verdict": "INDETERMINATE",
+    "taxonomy_code": null,
+    "indeterminate_reason": "DOCKER_REQUIRED: the command runs docker and the sandbox has no container runtime (`start_nnrt.sh: 19: docker: not found`); not a verdict on the repository, and no code change or package can supply one",
+    "reason_code": "DOCKER_REQUIRED",
+    "error_chain": [],
+    "first_repo_error": null,
+    "last_error": null,
+    "error_traceback": "",
+    "attempts": [],
+    "certificate_prose": "The baseline execution failed with exit code 127 because the sandbox environment lacks a Docker runtime (`start_nnrt.sh: 19: docker: not found`). The run log indicates the command requires Docker, which is unavailable in the sandbox, making execution impossible without a container runtime. This is an environmental limitation, not a verdict on the repository's code. Verifies that the artifact executes. Does not verify the paper's numerical results.",
+    "outcome_levels": {
+      "first_error_cleared": false,
+      "first_error_cleared_by": null,
+      "env_resolved": false,
+      "entrypoint_runs": false
+    },
+    "blocker": {
+      "class": "DOCKER_REQUIRED",
+      "family": "Resources",
+      "phase": "repo_run",
+      "attribution": null,
+      "evidence": "start_nnrt.sh: 19: docker: not found",
+      "fixable_by": "platform",
+      "what_a_human_must_supply": "a machine with Docker: the documented command runs `docker`, and this sandbox has no Docker client and no daemon",
+      "sources": null,
+      "cause": "DOCKER_REQUIRED",
+      "error_line": "start_nnrt.sh: 19: docker: not found",
+      "next_action": "run the documented command on a host with Docker installed, or run the steps the script performs without the container",
+      "basis": [
+        {
+          "source": "indeterminate_reason",
+          "quote": "DOCKER_REQUIRED: the command runs docker and the sandbox has no container runtime (`start_nnrt.sh: 19: docker: not found`); not a verdict on the repository, and no code change or package can supply one"
+        }
+      ],
+      "diagnosis": "evidence"
+    }
+  },
+  "certificate": {
+    "repo_url": "https://github.com/DeformableFriends/NeuralTracking",
+    "commit_sha": "015256369a94a56b0e478fd100326b9aa97ec9a7",
+    "build_plan": {
+      "base_image": "python:3.10-slim",
+      "apt_install": [],
+      "install_commands": [
+        "true  # no declared dependency file found; nothing to install"
+      ],
+      "execute_command": "sh start_nnrt.sh",
+      "notes": [
+        "execute command is the repository's documented command (corpus ground truth)",
+        "base image python:3.10-slim: no usable Python declaration; RERUN default 3.10"
+      ]
+    },
+    "full_log": "[intake] cloned https://github.com/DeformableFriends/NeuralTracking@015256369a94a56b0e478fd100326b9aa97ec9a7\n[recon] calling Nemotron Nano\n[recon] entrypoint=model/evaluate.py confidence=0.90\n[python] python:3.10-slim (default): no usable Python declaration; RERUN default 3.10\n[planner] build plan: {'base_image': 'python:3.10-slim', 'apt_install': [], 'install_commands': ['true  # no declared dependency file found; nothing to install'], 'execute_command': 'sh start_nnrt.sh', 'notes': [\"execute command is the repository's documented command (corpus ground truth)\", 'base image python:3.10-slim: no usable Python declaration; RERUN default 3.10']}\n[integrity] verified 374 file(s) against tree f7b41297c60b54f204f854bd80aac9b796a1b80c\n[runner] torch: repo imports torch, torchvision without declaring it; runner provides the newest matched CPU wheels\n[checkpoint] baseline: no kept image holds this environment yet; building it from python:3.10-slim and keeping every layer\n[sandbox] starting build+execute (wall_clock_seconds=600)\n[operation 1] baseline: completed; 29.1s of sandbox time; torch installed; branch_from_image=None; result_image=None; 4 image(s) kept\n[cost_guard] recorded $0.2987 sandbox spend, $2.2000 remaining today\n[sandbox] id=6bb745f6-261a-4012-9017-ec20db3dfe6e exit_code=127\n[baseline] as-is run: FAILS (exit code 127)\n[verdict] INDETERMINATE: DOCKER_REQUIRED: the command runs docker and the sandbox has no container runtime (`start_nnrt.sh: 19: docker: not found`); not a verdict on the repository, and no code change or package can supply one",
+    "diffs": [],
+    "verdict": "INDETERMINATE",
+    "timestamp": "2026-10-07T14:56:37.450761+00:00",
+    "bundle_version": 4,
+    "baseline": {
+      "result": "FAILS",
+      "exit_code": 127,
+      "base_image": "python:3.10-slim",
+      "install_commands": [
+        "true  # no declared dependency file found; nothing to install"
+      ],
+      "execute_command": "sh start_nnrt.sh",
+      "sandbox_id": "6bb745f6-261a-4012-9017-ec20db3dfe6e",
+      "taxonomy_code": null,
+      "evidence": "start_nnrt.sh: 19: docker: not found"
+    },
+    "recovery": false,
+    "tree_integrity": {
+      "status": "verified",
+      "tree_sha": "f7b41297c60b54f204f854bd80aac9b796a1b80c",
+      "files_checked": 374,
+      "excluded_patched": []
+    },
+    "corpus_hash": "7df090bea7013974f9f10fb8959ab0162734b51c83a80f744f9c310ce694fbdc",
+    "taxonomy_code": null,
+    "indeterminate_reason": "DOCKER_REQUIRED: the command runs docker and the sandbox has no container runtime (`start_nnrt.sh: 19: docker: not found`); not a verdict on the repository, and no code change or package can supply one",
+    "error_chain": [],
+    "first_repo_error": null,
+    "last_error": null,
+    "outcome_levels": {
+      "first_error_cleared": false,
+      "first_error_cleared_by": null,
+      "env_resolved": false,
+      "entrypoint_runs": false
+    },
+    "blocker": {
+      "class": "DOCKER_REQUIRED",
+      "family": "Resources",
+      "phase": "repo_run",
+      "attribution": null,
+      "evidence": "start_nnrt.sh: 19: docker: not found",
+      "fixable_by": "platform",
+      "what_a_human_must_supply": "a machine with Docker: the documented command runs `docker`, and this sandbox has no Docker client and no daemon",
+      "sources": null,
+      "cause": "DOCKER_REQUIRED",
+      "error_line": "start_nnrt.sh: 19: docker: not found",
+      "next_action": "run the documented command on a host with Docker installed, or run the steps the script performs without the container",
+      "basis": [
+        {
+          "source": "indeterminate_reason",
+          "quote": "DOCKER_REQUIRED: the command runs docker and the sandbox has no container runtime (`start_nnrt.sh: 19: docker: not found`); not a verdict on the repository, and no code change or package can supply one"
+        }
+      ],
+      "diagnosis": "evidence"
+    },
+    "reproduction_passport_hash": "1cf307c89e1fe0169816cdfbd0d91bf6468c104f229953b78256f2d721ade85a"
+  },
+  "finished_at": "2026-10-07T14:56:37.560403+00:00",
+  "events": [
+    {
+      "t_s": 0.0,
+      "at": "2026-10-07T14:54:55.010092+00:00",
+      "line": "[intake] cloned https://github.com/DeformableFriends/NeuralTracking@015256369a94a56b0e478fd100326b9aa97ec9a7"
+    },
+    {
+      "t_s": 0.01,
+      "at": "2026-10-07T14:54:55.021835+00:00",
+      "line": "[recon] calling Nemotron Nano"
+    },
+    {
+      "t_s": 22.91,
+      "at": "2026-10-07T14:55:17.920594+00:00",
+      "line": "[recon] entrypoint=model/evaluate.py confidence=0.90"
+    },
+    {
+      "t_s": 22.92,
+      "at": "2026-10-07T14:55:17.933612+00:00",
+      "line": "[python] python:3.10-slim (default): no usable Python declaration; RERUN default 3.10"
+    },
+    {
+      "t_s": 23.98,
+      "at": "2026-10-07T14:55:18.987915+00:00",
+      "line": "[planner] build plan: {'base_image': 'python:3.10-slim', 'apt_install': [], 'install_commands': ['true  # no declared dependency file found; nothing to install'], 'execute_command': 'sh start_nnrt.sh', 'notes': [\"execute command is the repository's documented command (corpus ground truth)\", 'base image python:3.10-slim: no usable Python declaration; RERUN default 3.10']}"
+    },
+    {
+      "t_s": 26.85,
+      "at": "2026-10-07T14:55:21.863562+00:00",
+      "line": "[integrity] verified 374 file(s) against tree f7b41297c60b54f204f854bd80aac9b796a1b80c"
+    },
+    {
+      "t_s": 26.87,
+      "at": "2026-10-07T14:55:21.882936+00:00",
+      "line": "[runner] torch: repo imports torch, torchvision without declaring it; runner provides the newest matched CPU wheels"
+    },
+    {
+      "t_s": 26.87,
+      "at": "2026-10-07T14:55:21.884180+00:00",
+      "line": "[checkpoint] baseline: no kept image holds this environment yet; building it from python:3.10-slim and keeping every layer"
+    },
+    {
+      "t_s": 26.87,
+      "at": "2026-10-07T14:55:21.884412+00:00",
+      "line": "[sandbox] starting build+execute (wall_clock_seconds=600)"
+    },
+    {
+      "t_s": 101.17,
+      "at": "2026-10-07T14:56:36.184037+00:00",
+      "line": "[operation 1] baseline: completed; 29.1s of sandbox time; torch installed; branch_from_image=None; result_image=None; 4 image(s) kept"
+    },
+    {
+      "t_s": 101.17,
+      "at": "2026-10-07T14:56:36.184110+00:00",
+      "line": "[cost_guard] recorded $0.2987 sandbox spend, $2.2000 remaining today"
+    },
+    {
+      "t_s": 101.17,
+      "at": "2026-10-07T14:56:36.184371+00:00",
+      "line": "[sandbox] id=6bb745f6-261a-4012-9017-ec20db3dfe6e exit_code=127"
+    },
+    {
+      "t_s": 101.17,
+      "at": "2026-10-07T14:56:36.184401+00:00",
+      "line": "[baseline] as-is run: FAILS (exit code 127)"
+    },
+    {
+      "t_s": 101.17,
+      "at": "2026-10-07T14:56:36.184478+00:00",
+      "line": "[verdict] INDETERMINATE: DOCKER_REQUIRED: the command runs docker and the sandbox has no container runtime (`start_nnrt.sh: 19: docker: not found`); not a verdict on the repository, and no code change or package can supply one"
+    }
+  ],
+  "model_calls": [
+    {
+      "model": "nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B",
+      "started_at": "2026-10-07T14:54:55.246829+00:00",
+      "latency_s": 22.67,
+      "finish_reason": "stop",
+      "content_is_none": false,
+      "has_reasoning": true,
+      "usage": {
+        "completion_tokens": 3055,
+        "prompt_tokens": 7016,
+        "total_tokens": 10071,
+        "completion_tokens_details": null,
+        "prompt_tokens_details": null
+      }
+    },
+    {
+      "model": "nvidia/nemotron-3-super-120b-a12b",
+      "started_at": "2026-10-07T14:55:17.934829+00:00",
+      "latency_s": 1.05,
+      "finish_reason": "stop",
+      "content_is_none": false,
+      "has_reasoning": true,
+      "usage": {
+        "completion_tokens": 37,
+        "prompt_tokens": 270,
+        "total_tokens": 307,
+        "completion_tokens_details": {
+          "accepted_prediction_tokens": null,
+          "audio_tokens": null,
+          "reasoning_tokens": 27,
+          "rejected_prediction_tokens": null,
+          "text_tokens": null
+        },
+        "prompt_tokens_details": {
+          "audio_tokens": null,
+          "cache_write_tokens": null,
+          "cached_tokens": 0,
+          "image_tokens": null,
+          "text_tokens": null,
+          "created_cache_tokens": 0,
+          "multimodal_tokens": null
+        },
+        "prompt_cache_hit_tokens": 0,
+        "prompt_cache_miss_tokens": 270
+      }
+    },
+    {
+      "model": "nvidia/Nemotron-3-Ultra-550b-a55b",
+      "started_at": "2026-10-07T14:56:36.185986+00:00",
+      "latency_s": 1.26,
+      "finish_reason": "stop",
+      "content_is_none": false,
+      "has_reasoning": true,
+      "usage": {
+        "completion_tokens": 232,
+        "prompt_tokens": 724,
+        "total_tokens": 956,
+        "completion_tokens_details": {
+          "accepted_prediction_tokens": null,
+          "audio_tokens": null,
+          "reasoning_tokens": 111,
+          "rejected_prediction_tokens": null,
+          "text_tokens": null
+        },
+        "prompt_tokens_details": {
+          "audio_tokens": null,
+          "cache_write_tokens": null,
+          "cached_tokens": 0,
+          "image_tokens": null,
+          "text_tokens": null,
+          "multimodal_tokens": null
+        },
+        "prompt_cache_hit_tokens": 0,
+        "prompt_cache_miss_tokens": 724
+      }
+    }
+  ],
+  "cost_guard": {
+    "spent_usd": 0.30141683,
+    "model_spent_usd": 0.00268846,
+    "sandbox_spent_usd": 0.29872837,
+    "estimated_sandbox_spent_usd": 0.0,
+    "cost_events": [],
+    "remaining_usd": 2.19858317,
+    "cap_usd": 2.5,
+    "over_cap_usd": 0.0,
+    "estimated_usd": 0.0,
+    "over_cap_estimated_only": false,
+    "model_usage": [
+      {
+        "model": "nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B",
+        "prompt_tokens": 7016,
+        "completion_tokens": 3055,
+        "cost_usd": 0.0011541599999999998
+      },
+      {
+        "model": "nvidia/nemotron-3-super-120b-a12b",
+        "prompt_tokens": 270,
+        "completion_tokens": 37,
+        "cost_usd": 0.00011430000000000001
+      },
+      {
+        "model": "nvidia/Nemotron-3-Ultra-550b-a55b",
+        "prompt_tokens": 724,
+        "completion_tokens": 232,
+        "cost_usd": 0.00142
+      }
+    ],
+    "prices_usd_per_1m": {
+      "nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B": [
+        0.06,
+        0.24
+      ],
+      "nvidia/nemotron-3-super-120b-a12b": [
+        0.3,
+        0.9
+      ],
+      "nvidia/Nemotron-3-Ultra-550b-a55b": [
+        1.0,
+        3.0
+      ]
+    },
+    "prices_source": "https://api.tokenfactory.nebius.com/v1/models?verbose=true (pricing field)",
+    "prices_retrieved": "2026-09-24"
+  },
+  "operations": [
+    {
+      "n": 1,
+      "role": "baseline",
+      "candidate": null,
+      "concurrent": 1,
+      "base_image": "python:3.10-slim",
+      "funded_seconds": 600.0,
+      "wall_seconds": 74.3,
+      "sandbox_seconds": 29.125,
+      "install_seconds": [
+        {
+          "command": "pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cpu --extra-index-url https://pypi.org/simple || pip install torch torchvi",
+          "phase": "runner_setup",
+          "seconds": 20.024,
+          "exit_code": 0,
+          "cost_usd": 0.283439,
+          "torch": true
+        },
+        {
+          "command": "python -c '\nimport glob, importlib.util, os, struct, subprocess, sys\nspec = importlib.util.find_spec(\"torch\")\nroot = os.path.join(os.path.dirname(spec.origin), ",
+          "phase": "runner_setup",
+          "seconds": 1.409,
+          "exit_code": 0,
+          "cost_usd": 0.015157,
+          "torch": false
+        },
+        {
+          "command": "true  # no declared dependency file found; nothing to install",
+          "phase": "repo_install",
+          "seconds": 0.001,
+          "exit_code": 0,
+          "cost_usd": 5.2e-05,
+          "torch": false
+        }
+      ],
+      "rerun_steps": [
+        {
+          "phase": "rerun_extract",
+          "seconds": 7.688,
+          "cost_usd": 0.077807
+        }
+      ],
+      "branch_from_image": null,
+      "start_setup_commands": 0,
+      "setup_commands": 3,
+      "torch_in_start_image": false,
+      "torch_installed": true,
+      "torch_env_key": "64c2295c478dd277",
+      "result_image": null,
+      "image_kept": true,
+      "kept_images": [
+        "9f760efa-19cc-452c-85c1-f252354b5762",
+        "60118bdc-8c69-45af-b769-703587534092",
+        "46721d0b-8812-4daa-8265-7b32e639fdd7",
+        "6bb745f6-261a-4012-9017-ec20db3dfe6e"
+      ],
+      "env_image_id": "6bb745f6-261a-4012-9017-ec20db3dfe6e",
+      "cost_usd": 0.298728,
+      "cost_estimated_usd": 0.0,
+      "outcome": "completed",
+      "resource_limits": {
+        "memory": "not documented (the only wording is \"Automatic cleanup and resource limits help prevent abuse.\" (docs.tokenfactory.nebius.com/sandboxes/overview) and \"Built-in tracking of CPU time, memory usage, and I/O operations for every execution.\")",
+        "cpu": "not documented",
+        "disk_layer_bytes": 12884901888,
+        "larger_instance": "not documented: the spawn request, the SDK, the CLI and the MCP tools have no memory, CPU, size or GPU parameter; Sandboxes is a beta (access by request, contree@nebius.com); no price page (the product page says free while in beta, D-36)",
+        "source": "docs/design/D-40-resources.md (public Nebius Token Factory / ConTree documentation and contree_sdk 0.3.6, read offline 2026-10-01)"
+      },
+      "exit_code": 127,
+      "max_rss": 1078496,
+      "streams": {
+        "limit_bytes": 4194304,
+        "stdout": {
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "truncated": false
+        },
+        "stderr": {
+          "bytes": 441,
+          "sha256": "7f6cf59329fedf3add580d0e45dc2967e1d8e88b37005b3267b1bd79849f23ba",
+          "truncated": false
+        }
+      },
+      "killed_step": null,
+      "killed_seconds": null,
+      "funding": {
+        "basis": "baseline: the pre-registered wall clock, not budget-limited",
+        "rate_used_usd_per_s": null,
+        "source_operations": []
+      }
+    }
+  ]
+}
