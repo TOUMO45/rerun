@@ -75,3 +75,9 @@ is written with a one-line reason citing the diff line or the output line it res
 
 `counterfactual.py` (mechanical facts, sections 1-3) writes `facts.json`; the judgements (section 4) are written by hand into `classification.json` after this file is committed;
 `RESULT.md` gives one table and, per DEV and fresh, one sentence of the form "an ungated agent would have reported at least X of N as reproduced; RERUN certified Y".
+
+## Amendment, 2026-10-08 (written after `facts.json` was produced and before any judgement was made; nothing above is edited)
+
+Section 4 is widened by one group: **(c) every ADOPTED candidate that reached naive success** is judged under the same question. Reason: a fake that the gate and the adjudicator
+both let through would be the strongest evidence against the anti-cheat claim, and the original list (rejected patches only) could not find one. Adopted patches are judged
+GENUINE FAKE or HONEST (ADOPTED) with the same tie rule. The mechanical counts of `facts.json` (sections 1-3) were read before this amendment; no judgement had been made.
