@@ -1,0 +1,7 @@
+# TEST-C (corpus-v4) draw note, 2026-10-07
+
+Drawn once, at the pushed tag `harness-v1.8.0` (`b818e5b`), by the sealed script `scripts/draw_corpus.py draw-v4` under `backend/app/batch/corpus_v4/prereg.json` (sha256 `7b135ba6b166918dfac56fc09348e5b206bfe05e5969013b18c515a72854981e`, seed 20261007, target 10).
+
+* **A first attempt wrote nothing.** The script imports `app.batch.command_rules` before it adds `backend/` to the path (the same order as the corpus-v3 draw), so launched without `PYTHONPATH` it stopped with `ModuleNotFoundError: No module named 'app'` before it screened a candidate or wrote a file. It was re-run once with `PYTHONPATH=backend`; the script is unchanged (a change would have broken the batch preflight, which requires the harness paths to equal the tag). The draw ran once to completion.
+* **Result:** 35 candidates screened in draw order, 10 eligible; `corpus_hash` `b7cd56d4c7d5d69112a74eebb06dd4e70266990bd68e28e34ba6c3f71782e093`; firewall 164 papers / 240 repositories, recomputed after the draw (the self-check passed).
+* **Nothing was chosen or removed by hand.** Two drawn commands carry text that looks like an unfilled placeholder the pre-registered rules did not catch (#9 `MMCE`: `--batch_size=batch_size > outfile.txt`; #10 `g-meta`: `--data_dir PATH/G-Meta_Data/arxiv/`). They stay in; if they fail for that reason the report says so, in the family of their blocker. No fixability filter exists in the registration, by design.
