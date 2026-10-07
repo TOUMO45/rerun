@@ -49,3 +49,15 @@
 - TEST-B cap: $95.00.
 - Ledger after TEST-B: $98.2375 API-REPORTED of the $300.00 ceiling.
 - A BILLED reading after TEST-B has not been given yet.
+## Corrections (2026-10-07), stated beside the text above, which is not edited
+
+Found while triaging for harness-v1.8 (`reports/dev/V18_TRIAGE.md`). The records, `test_b_result.json` and every count above are unchanged.
+
+- **#7 (Hindsight-Goal-Generation) and "What TEST-B shows", the blockers line: "MuJoCo, a licensed simulator binary" is wrong.** MuJoCo 2.1.0 is free to download and has no licence key
+  (https://github.com/deepmind/mujoco/releases/tag/2.1.0, checked 2026-10-07). What the record shows is `mujoco_py` expecting the MuJoCo library at `/root/.mujoco/mujoco200`
+  ("This package only provides python bindings, the library must be installed separately"). No rule of harness-v1.7.2 installed it. The blocker is a missing provisioning step, not a licence.
+- **#1 (Ordered-Neurons): "NLTK's `ptb` corpus (the Penn Treebank sample)" is wrong.** NLTK's downloadable `ptb` package is a 6 KB stub "for the full Penn Treebank Corpus version 3"
+  (NLTK downloader index, checked 2026-10-07); the "Penn Treebank Sample" (a 10 % fragment) is the separate `treebank` package. The entry needs the licensed corpus (Linguistic Data Consortium), which a download cannot supply.
+  All nine of its patches were also refused as `PROTECTED_PATH_MODIFIED`, because the documented entrypoint is named `test_phrase_grammar.py` and the tamper gate treats a `test_*` file as protected;
+  that rule is unchanged in harness-v1.8 (gate semantics).
+- **D-54 (open above) is classified correctly from harness-v1.8 on** (NLTK's "Resource X not found" is DATA_MISSING); the stored record is not rewritten.
