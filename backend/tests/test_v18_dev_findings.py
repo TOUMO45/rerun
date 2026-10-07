@@ -162,3 +162,38 @@ def test_the_conflict_line_that_used_to_be_a_class_default_row_is_now_evidence_d
         "ERROR: Cannot install tensorboard==2.1.0 and tensorflow==1.15.5 because these package versions have conflicting dependencies.", "DEP_UNPINNED_CONFLICT", "repo_install")})
     assert out["cause"] == "PINS_CONFLICT" and out["diagnosis"] == "evidence" and "`tensorboard==2.1.0 and tensorflow==1.15.5`" in out["what_a_human_must_supply"]
     assert out["class"] == "DEP_UNPINNED_CONFLICT"  # the class is unchanged
+
+
+# --------------------------------------------------------------------------------------------------------------------- the embedded runtime seen through a stand-in
+
+BPY_TAIL = ('Traceback (most recent call last):\n  File "/utils.py", line 55, in create_camera\n    camera = bpy.data.cameras.new("Camera")\n'
+            "AttributeError: 'NoneType' object has no attribute 'cameras'\n")
+NONE_ATTR = "AttributeError: 'NoneType' object has no attribute 'objects'"
+
+
+def test_a_package_main_run_as_a_file_names_the_module_form():
+    """D-50, the out-of-sample steamctl: `python steamctl/__main__.py` cannot import `steamctl`; the class default blamed the release."""
+    miss = "ModuleNotFoundError: No module named 'steamctl'"
+    rec = {"verdict": "BLOCKED", "error_chain": _chain(miss, "DEP_MISSING"), "attempts": [], "baseline": {"execute_command": "python steamctl/__main__.py"}}
+    f = diagnosis.diagnose(rec)
+    assert f.cause == "PACKAGE_MAIN_RUN_AS_FILE" and "python -m steamctl" in f.next_action and f.error_line == miss
+    # another package missing, or another command shape: not this rule
+    assert diagnosis.diagnose({**rec, "error_chain": _chain("ModuleNotFoundError: No module named 'numpy'", "DEP_MISSING")}) is None
+    assert diagnosis.diagnose({**rec, "baseline": {"execute_command": "python main.py"}}) is None
+    assert diagnosis.diagnose({**rec, "baseline": {"execute_command": "python -m steamctl"}}) is None
+    assert diagnosis.diagnose({**rec, "baseline": None}) is None
+
+
+def test_a_nonetype_error_whose_traceback_line_reaches_bpy_is_the_embedded_runtime():
+    """DEV re-run of osm-heatmap (2026-10-07): the run ended on a NoneType error (the stand-in `bpy.data` is None), not on `module 'bpy' has no attribute`."""
+    rec = {"verdict": "BLOCKED", "error_chain": _chain(NONE_ATTR, "RUNTIME_ERROR_OTHER"), "attempts": [_attempt(1, stderr=BPY_TAIL)]}
+    f = diagnosis.diagnose(rec)
+    assert f.cause == "EMBEDDED_RUNTIME_REQUIRED" and f.error_line == NONE_ATTR and "Blender" in f.sentence and "blender --background" in f.next_action
+    assert any("bpy.data.cameras" in b["quote"] for b in f.basis)  # the traceback's own source line is quoted
+    # the same record shape, but the `bpy` mention is in an OLDER attempt and the run ended elsewhere: no claim
+    older = {"verdict": "BLOCKED", "error_chain": _chain(NONE_ATTR, "RUNTIME_ERROR_OTHER"),
+             "attempts": [_attempt(1, stderr=BPY_TAIL), _attempt(2, stderr="ValueError: something else\n")]}
+    assert diagnosis.diagnose(older) is None
+    # a NoneType error with no embedded module anywhere is an ordinary error
+    plain = {"verdict": "BLOCKED", "error_chain": _chain(NONE_ATTR, "RUNTIME_ERROR_OTHER"), "attempts": [_attempt(1, stderr="  x = cfg.get('a').objects\n" + NONE_ATTR + "\n")]}
+    assert diagnosis.diagnose(plain) is None

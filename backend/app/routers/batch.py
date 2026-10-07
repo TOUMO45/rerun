@@ -59,6 +59,7 @@ def get_batch_results() -> dict:
 TEST_RESULT = "runs/corpus_v2_batch/harness-v1.5-final/test/test_result.json"
 TEST_B_RESULT = "runs/corpus_v3_batch/harness-v1.7.2/treatment/test_b_result.json"
 OOS_SUMMARY = "runs/live_scan/oos_v1.7.2/scan_summary.json"
+SET_METRICS = "reports/dev/v18/set_metrics.json"
 AUDITS = {
     ("test", 18): ("Not counted as a run: an audit written before the result found it a false positive. The command pipes a script into `bash`; the script "
                    "failed at its first import and the pipe returned bash's exit code 0 (D-46).", "reports/dev/TEST_RESULT.md"),
@@ -128,7 +129,7 @@ def preregistered_results(root: Path | None = None) -> dict:
     oos_rows = [{"entry": i, "name": _pretty(r["name"]), "verdict": r.get("verdict") or r.get("stage"), "code": r.get("taxonomy_code"),
                  "counts": OOS_NOTES.get(r["name"], (False, ""))[0], "note": OOS_NOTES.get(r["name"], (False, r.get("indeterminate_reason") or ""))[1],
                  "note_source": "reports/live_scan/oos_v172/SCAN_OOS_v1.7.2.md", "verdict_label": r.get("label")} for i, r in enumerate(oos, start=1)]
-    return {"sets": [
+    doc = {"sets": [
         {"key": "test_b", "title": "TEST-B", "harness": "harness-v1.7.2",
          "what": "Eight papers' repositories never seen by any round or scan, drawn under a registration committed before the draw, run once each.",
          "measure": "ran their documented command", "count": test_b["ran_count"], "of": test_b["entries"], "tag": "DERIVED",
@@ -146,6 +147,19 @@ def preregistered_results(root: Path | None = None) -> dict:
          "registered": True, "source": "reports/dev/TEST_RESULT.md", "spend_usd": test["spend"]["total_usd"], "spend_tag": "API-REPORTED + ESTIMATED (the sustained run)",
          "rows": test_rows},
     ], "note": "Counts over a handful of entries, one run each: not rates. A run that 'ran' says the documented command executed, not that a paper's result was reproduced."}
+    # harness-v1.8 (Phase 3): the per-set measurements (median wall-clock time and median API-reported cost to reach a diagnosis, recovery rate), read from the file
+    # `reports/dev/v18/set_metrics.py` wrote from the committed records. Nothing is computed here; a checkout without the file serves `metrics: null`. Only the three held-out
+    # sets carry them: the DEV-CONTAMINATED re-runs are not held-out results and are not served here.
+    try:
+        measured = _read(root, SET_METRICS)["sets"]
+    except (BatchResultsUnavailable, KeyError, ValueError):
+        measured = {}
+    for entry in doc["sets"]:
+        m = measured.get(entry["key"])
+        entry["metrics"] = ({"median_seconds_to_diagnosis": m["median_seconds_to_diagnosis"], "median_api_reported_cost_usd_to_diagnosis": m["median_api_reported_cost_usd_to_diagnosis"],
+                             "measured_over": m["measured_over"], "non_running": m["non_running"], "diagnosed": m["diagnosed"], "recovery": m["recovery"],
+                             "cost_tag": "API-REPORTED (with the estimate of killed steps; not billed)", "source": SET_METRICS} if m else None)
+    return doc
 
 
 @router.get("/batch/preregistered")

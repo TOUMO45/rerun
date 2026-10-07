@@ -345,19 +345,53 @@ def _embedded_runtime(ctx: _Ctx) -> Finding | None:
         return None
     m = _EMBEDDED_ERR.search(strip_ansi(link.get("error")))
     mod = (m.group("mod") or m.group("mod2")) if m else None
+    used = None
     if mod not in _EMBEDDED:
-        return None
+        # harness-v1.8 (DEV re-run of osm-heatmap, 2026-10-07): the run ended on `'NoneType' object has no attribute 'objects'`, the stand-in for `bpy.data` being None; the module
+        # is named in the traceback's own source line (`camera = bpy.data.cameras.new(...)`) in the run's final output, not in the error. Only a NoneType error, and only a source
+        # line of the final state, so a mention elsewhere in the record does not count.
+        if "NoneType" not in strip_ansi(link.get("error")):
+            return None
+        used = ctx.find_final(r"\b(?P<mod>bpy|bmesh|hou|c4d|FreeCAD)\.[A-Za-z_]\w*")
+        if used is None:
+            return None
+        mod = used[2].group("mod")
     app = _EMBEDDED[mod]
     line = strip_ansi(link["error"])[:LINE_MAX]
     stand_in = ctx.find(r"'<' not supported between instances of 'NoneType' and 'tuple'")
     note = f" (here `{mod}.app.version` is None, which is what the stand-in reports)" if stand_in and mod == "bpy" else ""
-    basis = [_b(f"error_chain[{len(ctx.chain) - 1}].error", line)] + ([_b(stand_in[0], stand_in[1])] if stand_in and mod == "bpy" else [])
+    if used is not None:
+        note = f" (the run's own traceback line `{used[1][:80]}` reaches `{mod}` through a stand-in that returns None)"
+    basis = [_b(f"error_chain[{len(ctx.chain) - 1}].error", line)] + ([_b(stand_in[0], stand_in[1])] if stand_in and mod == "bpy" and used is None else []) + ([_b(used[0], used[1])] if used else [])
     return Finding(
         "EMBEDDED_RUNTIME_REQUIRED", HUMAN,
         f"{app}: `{mod}` is {app}'s embedded Python API; the script has to run inside {app} of the release it targets, and a `{mod}` installed from PyPI is not necessarily that release (or any {app} at all){note}",
         (f"run the script with Blender, for example `blender --background --python <script>.py`, using a Blender release the script supports" if app == "Blender"
          else f"run the script inside {app}, as the authors do"),
         line, tuple(basis), family="Environment")
+
+
+_MAIN_AS_FILE = re.compile(r"^python3?(?:\.\d+)?\s+(?:-u\s+)?(?P<pkg>\w+)/__main__\.py\b")
+
+
+def _package_main_as_file(ctx: _Ctx) -> Finding | None:
+    """harness-v1.8 (DEV re-run of the out-of-sample steamctl, D-50): the command runs a package's `__main__.py` as a FILE (`python steamctl/__main__.py`), so Python puts the package's own
+    directory first on the path and `import steamctl` fails with `No module named 'steamctl'`. The class default said "the exact release of steamctl the authors used", which is not the
+    problem. Only when the command in the record is exactly that form and the missing module is that package."""
+    link = ctx.last_link()
+    if not link:
+        return None
+    missing = re.search(r"No module named '(?P<name>\w+)(?:\.[\w.]+)?'", strip_ansi(link.get("error")))
+    command = str(((ctx.record.get("baseline") or {}).get("execute_command")) or "").strip()
+    shape = _MAIN_AS_FILE.match(command)
+    if not missing or not shape or shape.group("pkg") != missing.group("name"):
+        return None
+    pkg, line = shape.group("pkg"), strip_ansi(link["error"])[:LINE_MAX]
+    return Finding(
+        "PACKAGE_MAIN_RUN_AS_FILE", HUMAN,
+        f"a command that runs the package as a module: the command that was run, `{command}`, runs `{pkg}/__main__.py` as a script, which puts `{pkg}/` itself first on the path, so `{pkg}` is not importable from it",
+        f"run `python -m {pkg}` from the repository root instead of `{command}` (and correct the command in the README the same way)",
+        line, (_b(f"error_chain[{len(ctx.chain) - 1}].error", line), _b("baseline.execute_command", command)), family="Documentation")
 
 
 _DOTTED_MODULE = re.compile(r"No module named '(?P<top>\w+)\.(?P<rest>[\w.]+)'")
@@ -650,7 +684,7 @@ def _era_pair(ctx: _Ctx) -> Finding | None:
         line, (_b(f"error_chain[{len(ctx.chain) - 1}].error", line), _b(f"attempts[{i}].stderr_tail", last)), family="Dependencies")
 
 
-RULES = (_docker, _conda, _argparse_rejected, _mujoco, _nltk, _embedded_runtime, _repo_extension, _vendored_module, _git_protocol, _prerelease_pin, _system_need, _build_after_apt, _pins_conflict, _invalid_requirement, _era_pair)
+RULES = (_docker, _conda, _argparse_rejected, _mujoco, _nltk, _embedded_runtime, _repo_extension, _package_main_as_file, _vendored_module, _git_protocol, _prerelease_pin, _system_need, _build_after_apt, _pins_conflict, _invalid_requirement, _era_pair)
 
 
 def diagnose(record: dict) -> Finding | None:
