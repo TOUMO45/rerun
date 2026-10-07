@@ -134,7 +134,7 @@ The diagnosis column is the blocker re-derived from each record's own fields wit
 
 ### 3.4 Defects the DEV run found in what I had just written, and what was done
 
-One defect in several forms, found by reading the five records whose stored diagnosis disagreed with the run: **a rule that says "RERUN already fixed X" read an OLD line of the record and claimed the run still ended on it.** video_prediction (the diagnosis still said "change git:// to https://" after RERUN's rewrite had made the clone work), neo_gnns and RBP (it said RERUN's apt step "did not help" when the operation after the step was stopped by the spend cap and nothing was observed), ovis (it said "pin torchvision==0.6.0", the pin RERUN had just made), plus gandissect, whose class default said "nothing, if the apt rule adds the build dependencies" after the apt step had added them. Fixes (all in the DERIVED blocker; no run behaviour changed; the pre-committed key is unchanged and still passes): rules for an applied step now say what the run after the step showed (nothing: stopped; a different error: the step worked; the same error: it did not help); a spend-cap stop is added to the last known blocker instead of replacing it (`stopped_by`); a TIMEOUT verdict gets a diagnosis that does not claim the program started; three evidence rules (`PINS_CONFLICT`, `BUILD_FAILS_AFTER_APT_STEP`, `REQUIREMENT_STRING_INVALID`). Tests: `test_v18_dev_findings.py` (14). The stored blocker of each affected DEV record is left as the run wrote it; the corrected one is in `dev_results.json` and the table above. The T2 change is the one change that altered run behaviour after round 1, and it was re-run (ovis, round 2).
+One defect in several forms, found by reading the five records whose stored diagnosis disagreed with the run: **a rule that says "RERUN already fixed X" read an OLD line of the record and claimed the run still ended on it.** video_prediction (the diagnosis still said "change git:// to https://" after RERUN's rewrite had made the clone work), neo_gnns and RBP (it said RERUN's apt step "did not help" when the operation after the step was stopped by the spend cap and nothing was observed), ovis (it said "pin torchvision==0.6.0", the pin RERUN had just made), plus gandissect, whose class default said "nothing, if the apt rule adds the build dependencies" after the apt step had added them. Fixes (all in the DERIVED blocker; no run behaviour changed; the pre-committed key is unchanged and still passes): rules for an applied step now say what the run after the step showed (nothing: stopped; a different error: the step worked; the same error: it did not help); a spend-cap stop is added to the last known blocker instead of replacing it (`stopped_by`); a TIMEOUT verdict gets a diagnosis that does not claim the program started; three evidence rules (`PINS_CONFLICT`, `BUILD_FAILS_AFTER_APT_STEP`, `REQUIREMENT_STRING_INVALID`). Two more were added while the DEV key was written, because the key's author could state the cause from the raw log and the rules could not: `EMBEDDED_RUNTIME_REQUIRED` now also fires when the run ends on a NoneType error whose traceback line reaches `bpy` (osm-heatmap: the stand-in `bpy.data` is None) and `PACKAGE_MAIN_RUN_AS_FILE` names the module form for `python steamctl/__main__.py` (D-50, diagnosis only: the command is not changed). Tests: `test_v18_dev_findings.py` (16). The stored blocker of each affected DEV record is left as the run wrote it; the corrected one is in `dev_results.json` and the table above. The T2 change is the one change that altered run behaviour after round 1, and it was re-run (ovis, round 2).
 
 **What did not work (stated plainly).** (1) No blocked entry became a run: the fixes moved four entries past their recorded blocker (gandissect, video_prediction, ovis, neo_gnns until the cap), and each met the next one. (2) Two entries (neo_gnns, RBP) are stopped by the per-entry cap in a long install, not by the repository. (3) steamctl lost its v1.7.2 `RUNS_AFTER_REPAIR` in two of two re-runs, unexplained. (4) mud-pi, a server, is judged TIMEOUT.
 
@@ -142,3 +142,42 @@ One defect in several forms, found by reading the five records whose stored diag
 
 **None required.** No sandbox-touching file changed (R2 above), so by the v1.7.2 precedent nothing needs a paid seal; the tag for TEST-C will be created from a clean tree (Phase 4), and the preflight of the sealed batch driver will check it. An optional bundled seal (a probe of the pipefail command wrapper, the only change that alters what the sandbox is handed) would cost about one probe run, a few dollars; **I do not think it is needed** and would not do it without your yes.
 
+## 4. Phase 3: the diagnosis as a first-class result (2026-10-07)
+
+**What exists now** (all committed except where stated): `reports/dev/v18/DIAGNOSIS_RUBRIC.md` (the written rubric, four criteria A1 verbatim, A2 right cause, A3 concrete next action, A4 anchored
+in the final state; two waivers for a TIMEOUT; a procedure that keeps the scorer from being the author grading his own text), `score_diagnosis.py` (the mechanical scorer), `diagnosis_dev_key.json`
+(the DEV key, written from the raw logs, every proof line checked to be in its record, committed BEFORE the scorer was run on it: commit `5664e00`), `set_metrics.py` + `set_metrics.json`
+(per-set measurements from committed records), the measurements served by `GET /batch/preregistered` (`metrics` on each held-out set), and `test_v18_phase3.py` (19 tests).
+
+### 4.1 The DEV score, with its limits stated
+
+18 non-running DEV records (13 corpus, 5 OOS; `diagnosis_dev_score.json`):
+
+| the blocker that is scored | actionable | what it measures |
+|---|---|---|
+| **as the DEV runs stored it** (the rules as they stood when the run was made) | **9 of 18** | new runs of repositories the rules had been written from: the nearest thing to an out-of-fit figure this set has |
+| **as the current rules derive it** from the same records | **16 of 18** | a FIT: the rules were corrected from these very records, and the key's author had read the diagnoses. It is not a prediction |
+
+The two that stay not actionable are scored honestly: rocgan (the record does not establish the cause, so a diagnosis cannot be right about it) and RBP (A4: the quoted line is the last one the run
+showed before an apt step whose own run was stopped by the spend cap; the strict final-state test rejects it). The seven stored diagnoses the DEV run got wrong or stale (ovis, video_prediction, gandissect,
+neo_gnns, RBP, steamctl, osm-heatmap) are exactly the ones A2 / A4 reject. **The expected TEST-C rate is therefore below the 16 of 18**; the committed threshold (Phase 4) is set from the 9 of 18.
+
+### 4.2 The per-set measurements (from committed records only; the "hours" tile is gone)
+
+| set | N | RAN (audited) | non-running | with a diagnosis | median wall-clock to a diagnosis | median API-reported cost to a diagnosis | recovery (as-published failed -> RUNS_AFTER_REPAIR) |
+|---|---|---|---|---|---|---|---|
+| TEST (harness-v1.5-final) | 8 | 1 | 6 | 6 | 399 s | $0.92 | 1 of 7 |
+| TEST-B (harness-v1.7.2) | 8 | 1 | 6 | 6 | 785 s | $1.02 | 1 of 7 |
+| Out-of-sample scan (harness-v1.7.2) | 5 | 0 | 4 | 2 | 391 s | $0.39 | 0 of 4 |
+| harness-v1.8 DEV re-run of the 16 corpus entries (DEV-CONTAMINATED: the fixes were written from these) | 16 | 2 | 13 | 13 | 513 s | $0.97 | 2 of 15 |
+| harness-v1.8 DEV re-run of the 5 out-of-sample repositories (DEV-CONTAMINATED) | 5 | 0 | 5 | 4 | 158 s | $0.18 | 0 of 3 |
+
+Cost is API-REPORTED with the estimate of killed steps, not billed (the owner's balance moved $0.77 over the whole DEV interval that recorded $31.66). TEST, TEST-B and the OOS scan are read as they are
+(time and cost are measurements); they are **not** scored by the rubric, which would re-score them under their old names. Of the OOS scan only two of five records carried a diagnosis (D-58), so its medians
+are over two entries.
+
+### 4.3 What is not done in Phase 3
+
+* **The UI tiles.** The backend serves the numbers; the frontend does not show them yet, and the Certificate page does not yet show `cause`, `error_line`, `next_action`, `stopped_by` and the
+  `class_default` label. I could not read the frontend sources in this session (the permission check refused a search of them), so no frontend file was touched. It is a presentation change on top of finished backend fields.
+* **The demo image** pins `REF` to `a7f5c4c`; it serves these numbers only after `REF` moves to a pushed commit (Phase 5).
