@@ -10,6 +10,7 @@ Sums, from the records on disk (each with the estimate of any killed step, as ea
   TEST-C    runs/corpus_v4_batch/*/treatment/test_c_result.json spend.total_usd + its upload smoke test (harness-v1.8.0, 2026-10-07)
   v1.8 DEV  runs/dev_v18/**: every record's cost_guard.spent_usd (the 16 corpus entries re-run as DEV-CONTAMINATED under harness-v1.8) and every scan_summary.json row (the 5
             out-of-sample repositories re-run the same way), plus upload smoke tests (harness-v1.8, owner 2026-10-07)
+  v1.9      runs/v1.9/**/summary.json rows (the steamctl variance runs at harness-v1.7.2 and harness-v1.8.0, owner 2026-10-08), read like the DEV scan rows
 A seal of harness-v1.7.2 or later goes into ledger_extras.json by hand, as the earlier seals did (no script writes it).
 """
 from __future__ import annotations
@@ -23,7 +24,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 CEILING_USD = 300.00
-BILLED_FLOOR_USD = 10.00
+BILLED_FLOOR_USD = 20.00  # owner, 2026-10-08 (harness-v1.9 pass; was $10.00 from 2026-10-05)
 
 
 def _budget():
@@ -90,6 +91,12 @@ def parts() -> dict[str, float]:
             dev18 += dev_scan_row_cost(row)
     dev18 += sum(_smoke(p.parent) for p in {q.parent: q for q in base.glob("**/upload_smoke_*.json")}.values())
     out["v1.8 DEV (runs/dev_v18, DEV-CONTAMINATED)"] = round(dev18, 6)
+    # harness-v1.9 (owner, 2026-10-08): the steamctl variance runs (runs/v1.9/steamctl/summary.json); the pass's own cap is $25.00
+    v19 = 0.0
+    for path in (ROOT / "runs" / "v1.9").glob("**/summary.json"):
+        for row in json.loads(path.read_text(encoding="utf-8")):
+            v19 += dev_scan_row_cost(row)
+    out["v1.9 (runs/v1.9)"] = round(v19, 6)
     return out
 
 
