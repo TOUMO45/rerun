@@ -109,6 +109,12 @@ def collect() -> dict:
             if r["verdict"] in RAN_VERDICTS and counts.get(r["entry"]) is False:
                 r["struck"] = True
         out[key] = {"title": title, "frozen": True, "dev": False, **metrics(rows, ran_override=served[key]["count"]), "sources": sorted({r["source"] for r in rows})}
+    # harness-v1.8: TEST-C (corpus-v4), run once at the tag harness-v1.8.0 (2026-10-07); its RAN count is the one its runner wrote under the pre-registered rules
+    test_c_dir = ROOT / "runs/corpus_v4_batch/harness-v1.8.0/treatment"
+    if (test_c_dir / "test_c_result.json").is_file():
+        c_rows = corpus_rows(test_c_dir, "test_c")
+        c_ran = int(_json(test_c_dir / "test_c_result.json")["ran_count"])
+        out["test_c"] = {"title": "TEST-C (harness-v1.8.0)", "frozen": True, "dev": False, **metrics(c_rows, ran_override=c_ran), "sources": sorted({r["source"] for r in c_rows})}
     dev_corpus = corpus_rows(ROOT / "runs/dev_v18/round1/TEST-B", "test_b") + corpus_rows(ROOT / "runs/dev_v18/round1/TEST", "test")
     out["dev_v18_corpus"] = {"title": "harness-v1.8 DEV re-run of the 16 corpus entries (DEV-CONTAMINATED: the fixes were written from these)", "frozen": False, "dev": True,
                              **metrics(dev_corpus), "sources": sorted({r["source"] for r in dev_corpus})}

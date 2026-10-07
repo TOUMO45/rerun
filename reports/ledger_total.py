@@ -7,6 +7,7 @@ Sums, from the records on disk (each with the estimate of any killed step, as ea
   TEST      runs/corpus_v2_batch/harness-v1.5-final/test/test_result.json spend.total_usd + its upload smoke tests (read_spend reads dev/ folders only)
   scans     every runs/live_scan/**/scan_summary.json row: cost.guard_total_usd, else cost.sandbox_api_reported_usd
   TEST-B    runs/corpus_v3_batch/*/treatment/test_b_result.json spend.total_usd + its upload smoke test, when it exists
+  TEST-C    runs/corpus_v4_batch/*/treatment/test_c_result.json spend.total_usd + its upload smoke test (harness-v1.8.0, 2026-10-07)
   v1.8 DEV  runs/dev_v18/**: every record's cost_guard.spent_usd (the 16 corpus entries re-run as DEV-CONTAMINATED under harness-v1.8) and every scan_summary.json row (the 5
             out-of-sample repositories re-run the same way), plus upload smoke tests (harness-v1.8, owner 2026-10-07)
 A seal of harness-v1.7.2 or later goes into ledger_extras.json by hand, as the earlier seals did (no script writes it).
@@ -71,6 +72,11 @@ def parts() -> dict[str, float]:
     for path in (ROOT / "runs" / "corpus_v3_batch").glob("*/treatment/test_b_result.json"):
         test_b += float(json.loads(path.read_text(encoding="utf-8"))["spend"]["total_usd"]) + _smoke(path.parent)
     out["TEST-B"] = round(test_b, 6)
+    # harness-v1.8: TEST-C (corpus-v4), run once at harness-v1.8.0 (2026-10-07): its result file's spend (entries + the estimated sustained run) and its upload smoke test
+    test_c = 0.0
+    for path in (ROOT / "runs" / "corpus_v4_batch").glob("*/treatment/test_c_result.json"):
+        test_c += float(json.loads(path.read_text(encoding="utf-8"))["spend"]["total_usd"]) + _smoke(path.parent)
+    out["TEST-C (harness-v1.8.0)"] = round(test_c, 6)
     # harness-v1.8: DEV-CONTAMINATED re-runs of the 21 held-out entries (runs/dev_v18/); records the runner wrote plus the scan summaries
     dev18 = 0.0
     base = ROOT / "runs" / "dev_v18"
