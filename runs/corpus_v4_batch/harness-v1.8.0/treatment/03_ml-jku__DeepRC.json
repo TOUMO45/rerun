@@ -1,0 +1,406 @@
+{
+  "run_kind": "live end-to-end run",
+  "dev_run": false,
+  "dry_run": null,
+  "batch": {
+    "harness_tag": "harness-v1.8.0",
+    "harness_commit": "b818e5b8a289d790a117f1d01fd2ce82c6ea6063",
+    "head_commit": "a69d5c2d332baf7692d6da6811e750f6201ccb59",
+    "corpus": "corpus-v4",
+    "prereg_sha256": "7b135ba6b166918dfac56fc09348e5b206bfe05e5969013b18c515a72854981e",
+    "corpus_hash": "b7cd56d4c7d5d69112a74eebb06dd4e70266990bd68e28e34ba6c3f71782e093",
+    "arm": "treatment",
+    "total_cap_usd": 100.0,
+    "already_spent_usd": 0.0,
+    "entry_id": 3,
+    "category": "PRIMARY",
+    "rules_matched": [],
+    "per_entry_cap_usd": 2.5,
+    "protocol": "TEST-C (corpus-v4, pre-registered 2026-10-07)"
+  },
+  "started_at": "2026-10-07T21:00:19.331723+00:00",
+  "corpus_entry": {
+    "name": "ml-jku__DeepRC",
+    "repo_url": "https://github.com/ml-jku/DeepRC",
+    "commit_sha": "108d08d8cf2d2d69eb3f6caef1aa04d624dec871",
+    "command": "python3 -m deeprc.examples.examples_from_paper.cmv_with_implanted_signals 0 --n_updates 10000 --evaluate_at 2000",
+    "command_source": "README.md line 75"
+  },
+  "config": {
+    "models": {
+      "recon": "nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B",
+      "planner": "nvidia/nemotron-3-super-120b-a12b",
+      "repairer": "nvidia/nemotron-3-super-120b-a12b",
+      "adjudicator": "nvidia/Nemotron-3-Ultra-550b-a55b"
+    },
+    "sandbox_backend": "token_factory",
+    "sandbox_image_default": "python:3.10-slim",
+    "sandbox_wall_clock_seconds": 600.0,
+    "arm": "treatment",
+    "repair_enabled": true,
+    "max_attempts": 3,
+    "candidates_per_round": 3,
+    "tavily_configured": true,
+    "cost_cap_usd": 2.5
+  },
+  "intake": {
+    "duration_s": 3.84,
+    "resolved_sha": "108d08d8cf2d2d69eb3f6caef1aa04d624dec871",
+    "dependency_files": [
+      "setup.py"
+    ],
+    "declared_dependencies": [],
+    "entrypoint_candidates": [
+      "deeprc/dataset_converters.py",
+      "deeprc/examples/example_multitask_cnn.py",
+      "deeprc/examples/example_multitask_lstm.py",
+      "deeprc/examples/example_single_task_cnn.py",
+      "deeprc/examples/examples_from_paper/cmv.py",
+      "deeprc/examples/examples_from_paper/cmv_with_implanted_signals.py",
+      "deeprc/examples/examples_from_paper/lstm_generated.py",
+      "deeprc/examples/examples_from_paper/simulated.py"
+    ],
+    "notebook_paths": []
+  },
+  "pipeline_duration_s": 613.08,
+  "repair_mode": "deterministic",
+  "tree_integrity": {
+    "status": "verified",
+    "tree_sha": "9cf8507fbb305a4b9a7971b3a7708f023e453995",
+    "files_checked": 140,
+    "excluded_patched": []
+  },
+  "result": {
+    "verdict": "TIMEOUT",
+    "taxonomy_code": null,
+    "indeterminate_reason": "",
+    "reason_code": null,
+    "error_chain": [],
+    "first_repo_error": null,
+    "last_error": null,
+    "error_traceback": "",
+    "attempts": [],
+    "certificate_prose": "Execution exceeded the sandbox's wall-clock ceiling. Verifies that the artifact executes. Does not verify the paper's numerical results.",
+    "outcome_levels": {
+      "first_error_cleared": false,
+      "first_error_cleared_by": null,
+      "env_resolved": false,
+      "entrypoint_runs": false
+    },
+    "blocker": {
+      "class": "TIMEOUT",
+      "family": "Resources",
+      "phase": "repo_run",
+      "attribution": null,
+      "evidence": "the sandbox operation reached its wall-clock limit before the command exited",
+      "fixable_by": "human",
+      "what_a_human_must_supply": "a command that finishes inside the wall clock (a smaller workload: fewer steps, a sample), or the knowledge that it is meant to run until stopped",
+      "sources": null,
+      "cause": "TIMEOUT",
+      "error_line": "the sandbox operation reached its wall-clock limit before the command exited",
+      "next_action": "run it with a smaller workload, or name a command that exits; a server or a long training job keeps running until the wall clock stops it. The record holds no output of the stopped operation, so it does not show whether the program started",
+      "basis": [
+        {
+          "source": "verdict",
+          "quote": "TIMEOUT"
+        }
+      ],
+      "diagnosis": "evidence"
+    }
+  },
+  "certificate": {
+    "repo_url": "https://github.com/ml-jku/DeepRC",
+    "commit_sha": "108d08d8cf2d2d69eb3f6caef1aa04d624dec871",
+    "build_plan": {
+      "base_image": "python:3.6-slim",
+      "apt_install": [],
+      "install_commands": [
+        "pip install ."
+      ],
+      "execute_command": "python3 -m deeprc.examples.examples_from_paper.cmv_with_implanted_signals 0 --n_updates 10000 --evaluate_at 2000",
+      "notes": [
+        "execute command is the repository's documented command (corpus ground truth)",
+        "base image python:3.6-slim: declared by README (3.6); resolved to the first available minor that satisfies it"
+      ]
+    },
+    "full_log": "[intake] cloned https://github.com/ml-jku/DeepRC@108d08d8cf2d2d69eb3f6caef1aa04d624dec871\n[recon] calling Nemotron Nano\n[recon] entrypoint=deeprc/examples/examples_from_paper/cmv.py confidence=0.95\n[python] python:3.6-slim (README): declared by README (3.6); resolved to the first available minor that satisfies it\n[planner] build plan: {'base_image': 'python:3.6-slim', 'apt_install': [], 'install_commands': ['pip install .'], 'execute_command': 'python3 -m deeprc.examples.examples_from_paper.cmv_with_implanted_signals 0 --n_updates 10000 --evaluate_at 2000', 'notes': [\"execute command is the repository's documented command (corpus ground truth)\", 'base image python:3.6-slim: declared by README (3.6); resolved to the first available minor that satisfies it']}\n[integrity] verified 140 file(s) against tree 9cf8507fbb305a4b9a7971b3a7708f023e453995\n[runner] torch: repo pins torch; installed the CPU wheels as a matched set with the same pins\n[checkpoint] baseline: no kept image holds this environment yet; building it from python:3.6-slim and keeping every layer\n[sandbox] starting build+execute (wall_clock_seconds=600)\n[operation 1] baseline: killed; 15.4s of sandbox time; torch installed; branch_from_image=None; result_image=None; 3 image(s) kept\n[cost_guard] operation stopped at 600s; recorded $8.7025 (0.1593 measured + estimate for the killed step), $0.0000 left\n[sandbox] execution error: sandbox execution exceeded 600.0s wall clock: Operation 01a1182b-9496-7577-9b2b-9dfb1cf97745 has timed out",
+    "diffs": [],
+    "verdict": "TIMEOUT",
+    "timestamp": "2026-10-07T21:10:36.255621+00:00",
+    "bundle_version": 4,
+    "baseline": {
+      "result": "NOT_RUN"
+    },
+    "recovery": false,
+    "tree_integrity": {
+      "status": "verified",
+      "tree_sha": "9cf8507fbb305a4b9a7971b3a7708f023e453995",
+      "files_checked": 140,
+      "excluded_patched": []
+    },
+    "corpus_hash": "b7cd56d4c7d5d69112a74eebb06dd4e70266990bd68e28e34ba6c3f71782e093",
+    "taxonomy_code": null,
+    "indeterminate_reason": "",
+    "error_chain": [],
+    "first_repo_error": null,
+    "last_error": null,
+    "outcome_levels": {
+      "first_error_cleared": false,
+      "first_error_cleared_by": null,
+      "env_resolved": false,
+      "entrypoint_runs": false
+    },
+    "blocker": {
+      "class": "TIMEOUT",
+      "family": "Resources",
+      "phase": "repo_run",
+      "attribution": null,
+      "evidence": "the sandbox operation reached its wall-clock limit before the command exited",
+      "fixable_by": "human",
+      "what_a_human_must_supply": "a command that finishes inside the wall clock (a smaller workload: fewer steps, a sample), or the knowledge that it is meant to run until stopped",
+      "sources": null,
+      "cause": "TIMEOUT",
+      "error_line": "the sandbox operation reached its wall-clock limit before the command exited",
+      "next_action": "run it with a smaller workload, or name a command that exits; a server or a long training job keeps running until the wall clock stops it. The record holds no output of the stopped operation, so it does not show whether the program started",
+      "basis": [
+        {
+          "source": "verdict",
+          "quote": "TIMEOUT"
+        }
+      ],
+      "diagnosis": "evidence"
+    },
+    "reproduction_passport_hash": "151aa8270129b622e364fbd074563c3054ecda61c048df4f56e5fa6e9b2c47e6"
+  },
+  "finished_at": "2026-10-07T21:10:36.293930+00:00",
+  "events": [
+    {
+      "t_s": 0.0,
+      "at": "2026-10-07T21:00:23.178483+00:00",
+      "line": "[intake] cloned https://github.com/ml-jku/DeepRC@108d08d8cf2d2d69eb3f6caef1aa04d624dec871"
+    },
+    {
+      "t_s": 0.0,
+      "at": "2026-10-07T21:00:23.180021+00:00",
+      "line": "[recon] calling Nemotron Nano"
+    },
+    {
+      "t_s": 5.01,
+      "at": "2026-10-07T21:00:28.184371+00:00",
+      "line": "[recon] entrypoint=deeprc/examples/examples_from_paper/cmv.py confidence=0.95"
+    },
+    {
+      "t_s": 5.04,
+      "at": "2026-10-07T21:00:28.222513+00:00",
+      "line": "[python] python:3.6-slim (README): declared by README (3.6); resolved to the first available minor that satisfies it"
+    },
+    {
+      "t_s": 6.13,
+      "at": "2026-10-07T21:00:29.308316+00:00",
+      "line": "[planner] build plan: {'base_image': 'python:3.6-slim', 'apt_install': [], 'install_commands': ['pip install .'], 'execute_command': 'python3 -m deeprc.examples.examples_from_paper.cmv_with_implanted_signals 0 --n_updates 10000 --evaluate_at 2000', 'notes': [\"execute command is the repository's documented command (corpus ground truth)\", 'base image python:3.6-slim: declared by README (3.6); resolved to the first available minor that satisfies it']}"
+    },
+    {
+      "t_s": 6.91,
+      "at": "2026-10-07T21:00:30.087015+00:00",
+      "line": "[integrity] verified 140 file(s) against tree 9cf8507fbb305a4b9a7971b3a7708f023e453995"
+    },
+    {
+      "t_s": 6.92,
+      "at": "2026-10-07T21:00:30.101013+00:00",
+      "line": "[runner] torch: repo pins torch; installed the CPU wheels as a matched set with the same pins"
+    },
+    {
+      "t_s": 6.92,
+      "at": "2026-10-07T21:00:30.102198+00:00",
+      "line": "[checkpoint] baseline: no kept image holds this environment yet; building it from python:3.6-slim and keeping every layer"
+    },
+    {
+      "t_s": 6.92,
+      "at": "2026-10-07T21:00:30.102402+00:00",
+      "line": "[sandbox] starting build+execute (wall_clock_seconds=600)"
+    },
+    {
+      "t_s": 613.08,
+      "at": "2026-10-07T21:10:36.253943+00:00",
+      "line": "[operation 1] baseline: killed; 15.4s of sandbox time; torch installed; branch_from_image=None; result_image=None; 3 image(s) kept"
+    },
+    {
+      "t_s": 613.08,
+      "at": "2026-10-07T21:10:36.254071+00:00",
+      "line": "[cost_guard] operation stopped at 600s; recorded $8.7025 (0.1593 measured + estimate for the killed step), $0.0000 left"
+    },
+    {
+      "t_s": 613.08,
+      "at": "2026-10-07T21:10:36.254118+00:00",
+      "line": "[sandbox] execution error: sandbox execution exceeded 600.0s wall clock: Operation 01a1182b-9496-7577-9b2b-9dfb1cf97745 has timed out"
+    }
+  ],
+  "model_calls": [
+    {
+      "model": "nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B",
+      "started_at": "2026-10-07T21:00:23.392837+00:00",
+      "latency_s": 4.79,
+      "finish_reason": "stop",
+      "content_is_none": false,
+      "has_reasoning": true,
+      "usage": {
+        "completion_tokens": 1173,
+        "prompt_tokens": 8523,
+        "total_tokens": 9696,
+        "completion_tokens_details": null,
+        "prompt_tokens_details": null
+      }
+    },
+    {
+      "model": "nvidia/nemotron-3-super-120b-a12b",
+      "started_at": "2026-10-07T21:00:28.223848+00:00",
+      "latency_s": 1.08,
+      "finish_reason": "stop",
+      "content_is_none": false,
+      "has_reasoning": true,
+      "usage": {
+        "completion_tokens": 37,
+        "prompt_tokens": 272,
+        "total_tokens": 309,
+        "completion_tokens_details": {
+          "accepted_prediction_tokens": null,
+          "audio_tokens": null,
+          "reasoning_tokens": 27,
+          "rejected_prediction_tokens": null,
+          "text_tokens": null
+        },
+        "prompt_tokens_details": {
+          "audio_tokens": null,
+          "cache_write_tokens": null,
+          "cached_tokens": 0,
+          "image_tokens": null,
+          "text_tokens": null,
+          "created_cache_tokens": 0,
+          "multimodal_tokens": null
+        },
+        "prompt_cache_hit_tokens": 0,
+        "prompt_cache_miss_tokens": 272
+      }
+    }
+  ],
+  "cost_guard": {
+    "spent_usd": 8.703455222880297,
+    "model_spent_usd": 0.0009078000000000001,
+    "sandbox_spent_usd": 8.702547422880297,
+    "estimated_sandbox_spent_usd": 8.543228732880298,
+    "cost_events": [
+      {
+        "kind": "estimated",
+        "usd": 8.543229,
+        "note": "killed after 562s: pip install .; killed step ran 562s at $0.0152/s",
+        "rate_usd_per_s": 0.0152,
+        "rate_source": "API median cost per billed second 0.01013 x 1.5 (21 steps >= 3 s of the harness-v1.4.0 gate records, docs/design/D-36.md section 3; owner decision, D-27)"
+      }
+    ],
+    "remaining_usd": 0.0,
+    "cap_usd": 2.5,
+    "over_cap_usd": 6.203455,
+    "estimated_usd": 8.543229,
+    "over_cap_estimated_only": true,
+    "model_usage": [
+      {
+        "model": "nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B",
+        "prompt_tokens": 8523,
+        "completion_tokens": 1173,
+        "cost_usd": 0.0007929
+      },
+      {
+        "model": "nvidia/nemotron-3-super-120b-a12b",
+        "prompt_tokens": 272,
+        "completion_tokens": 37,
+        "cost_usd": 0.0001149
+      }
+    ],
+    "prices_usd_per_1m": {
+      "nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B": [
+        0.06,
+        0.24
+      ],
+      "nvidia/nemotron-3-super-120b-a12b": [
+        0.3,
+        0.9
+      ],
+      "nvidia/Nemotron-3-Ultra-550b-a55b": [
+        1.0,
+        3.0
+      ]
+    },
+    "prices_source": "https://api.tokenfactory.nebius.com/v1/models?verbose=true (pricing field)",
+    "prices_retrieved": "2026-09-24"
+  },
+  "operations": [
+    {
+      "n": 1,
+      "role": "baseline",
+      "candidate": null,
+      "concurrent": 1,
+      "base_image": "python:3.6-slim",
+      "funded_seconds": 600.0,
+      "wall_seconds": 606.15,
+      "sandbox_seconds": 15.395,
+      "install_seconds": [
+        {
+          "command": "pip install 'torch>=1.3.1' torchvision torchaudio --index-url https://download.pytorch.org/whl/cpu --extra-index-url https://pypi.org/simple || pip install 'tor",
+          "phase": "runner_setup",
+          "seconds": 13.787,
+          "exit_code": 0,
+          "cost_usd": 0.14105,
+          "torch": true
+        },
+        {
+          "command": "python -c '\nimport glob, importlib.util, os, struct, subprocess, sys\nspec = importlib.util.find_spec(\"torch\")\nroot = os.path.join(os.path.dirname(spec.origin), ",
+          "phase": "runner_setup",
+          "seconds": 1.515,
+          "exit_code": 0,
+          "cost_usd": 0.017245,
+          "torch": false
+        }
+      ],
+      "rerun_steps": [
+        {
+          "phase": "rerun_extract",
+          "seconds": 0.094,
+          "cost_usd": 0.001024
+        }
+      ],
+      "branch_from_image": null,
+      "start_setup_commands": 0,
+      "setup_commands": 3,
+      "torch_in_start_image": false,
+      "torch_installed": true,
+      "torch_env_key": "1c5e343ce932df94",
+      "result_image": null,
+      "image_kept": true,
+      "kept_images": [
+        "5d094d6c-111b-43a8-9d6e-bccd217cfe5b",
+        "6bf50455-2ec7-465e-93ab-30ab5d00e2ad",
+        "136435a9-4c56-47e1-9fb0-8ee8b79b5e22"
+      ],
+      "env_image_id": null,
+      "cost_usd": 8.702547,
+      "cost_estimated_usd": 8.543229,
+      "outcome": "killed",
+      "resource_limits": {
+        "memory": "not documented (the only wording is \"Automatic cleanup and resource limits help prevent abuse.\" (docs.tokenfactory.nebius.com/sandboxes/overview) and \"Built-in tracking of CPU time, memory usage, and I/O operations for every execution.\")",
+        "cpu": "not documented",
+        "disk_layer_bytes": 12884901888,
+        "larger_instance": "not documented: the spawn request, the SDK, the CLI and the MCP tools have no memory, CPU, size or GPU parameter; Sandboxes is a beta (access by request, contree@nebius.com); no price page (the product page says free while in beta, D-36)",
+        "source": "docs/design/D-40-resources.md (public Nebius Token Factory / ConTree documentation and contree_sdk 0.3.6, read offline 2026-10-01)"
+      },
+      "exit_code": null,
+      "max_rss": 636396,
+      "killed_step": "pip install .",
+      "killed_seconds": 562.1,
+      "funding": {
+        "basis": "baseline: the pre-registered wall clock, not budget-limited",
+        "rate_used_usd_per_s": null,
+        "source_operations": []
+      }
+    }
+  ]
+}
