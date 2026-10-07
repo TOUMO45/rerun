@@ -223,6 +223,20 @@ class CostGuard:
         fundable = min(left / max(share, 1), per_operation_cap_usd)
         return fundable / (rate_usd_per_s if rate_usd_per_s is not None else self.funding_rate().rate)
 
+    def cap_status(self) -> dict:
+        """harness-v1.8 (T17). Whether the entry's recorded spend is over its cap, and whether that is so ONLY because of an ESTIMATE.
+
+        TEST #13 (neo_gnns) recorded $4.18 against a $2.50 entry cap: one operation was funded 256.8 s at the funding rate ($0.00779/s, about $2.00) and killed at its
+        limit, and the killed step is charged at the owner's estimate rate ($0.0152/s, harness-v1.4.2-rc), $3.66. The API reports nothing for a killed step, so the
+        true cost is unknown; the estimate is deliberately higher than the funding rate. The record used to show only the total, which reads as a cap breach. It now
+        says what it is: `over_cap_usd` (recorded spend above the cap, 0 when under), `over_cap_estimated_only` (true when the API-reported part alone is within
+        the cap) and `estimated_usd`. Funding is NOT changed here: funding at the estimate rate would cut every repair operation's seconds by 2 to 5 times."""
+        cap = self.daily_cost_ceiling_usd
+        spent = self.spent_today_usd
+        over = max(spent - cap, 0.0)
+        return {"cap_usd": round(cap, 6), "over_cap_usd": round(over, 6), "estimated_usd": round(self.estimated_spent_usd, 6),
+                "over_cap_estimated_only": bool(over > 0 and (spent - self.estimated_spent_usd) <= cap)}
+
     def record_killed_operation(self, completed_steps_usd: float, killed_seconds: float,
                                 rate_usd_per_s: float = KILLED_STEP_ESTIMATE_RATE_USD_PER_S, note: str = "") -> float:
         """Record an operation the sandbox stopped at its time limit: the steps that completed at their measured cost,

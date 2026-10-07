@@ -16,7 +16,9 @@ remove, which to add, where) and rebuilds the mechanics:
      sees exactly the text that will be applied.
 
 The model may instead send `file_edits` ([{"path","old","new"}], `old` must occur exactly once) or `file_replacements`
-([{"path","content"}], whole-file): same steps 3-4. A problem is raised as PatchProblem with a message written for the model
+([{"path","content"}], whole-file): same steps 3-4. harness-v1.8 (T7): a `file_edits` `old` found only by the whitespace-tolerant match has the
+indentation of its `new` re-based onto the matched file lines (indentation.rebase_edit; whitespace only, kept only when it turns an unparseable
+.py file into a parseable one, one note per re-based edit); an exact match is never touched. A problem is raised as PatchProblem with a message written for the model
 (what failed, and the file's own lines nearest to what it expected), which the orchestrator shows it once, in the same attempt.
 
 Nothing here decides whether a change is acceptable: that stays with tamper_gate.check_patch. Paths must stay inside `root`
@@ -25,13 +27,14 @@ Nothing here decides whether a change is acceptable: that stays with tamper_gate
 
 from __future__ import annotations
 
+import ast
 import difflib
 import re
 import subprocess
 from dataclasses import dataclass, field
 from pathlib import Path
 
-from app.services import timeouts
+from app.services import indentation, timeouts
 
 MAX_FILE_BYTES = 400_000
 FUZZY_MIN_RATIO = 0.85
@@ -246,6 +249,15 @@ def _eol_of(text: str) -> str:
     return "\r\n" if text.count("\r\n") > text.count("\n") / 2 and "\r\n" in text else "\n"
 
 
+def _parses(source: str) -> bool:
+    """harness-v1.8 (T7): does `source` parse as Python (the check the tamper gate makes on a patched .py file)?"""
+    try:
+        ast.parse(source)
+    except (SyntaxError, ValueError, RecursionError):
+        return False
+    return True
+
+
 def _apply_hunks(rel: str, original: str, hunks: list[_Hunk]) -> tuple[str, list[str]]:
     file_lines = original.splitlines(keepends=True)
     eol = _eol_of(original)
@@ -364,9 +376,13 @@ def from_diff(root: Path, diff_text: str) -> PatchResolution:
     return _finish(root, rewritten, notes, "code_diff")
 
 
-def from_file_edits(root: Path, edits: list[dict]) -> PatchResolution:
+def _apply_file_edits(root: Path, edits: list[dict], rebase: bool) -> tuple[dict[str, tuple[str, str]], list[tuple[str, list[str]]], set[str]]:
+    """The `file_edits` edits applied one after the other: ({path: (original, new text)}, [(path, notes)] one entry per edit, the .py paths where an
+    edit located by the whitespace-tolerant match had a re-basing of its indentation on offer). With `rebase` that re-basing (harness-v1.8, T7) is
+    used for every such edit; without it the model's `new` goes in as written, exactly as before T7."""
     rewritten: dict[str, tuple[str, str]] = {}
-    notes: list[str] = []
+    per_edit: list[tuple[str, list[str]]] = []
+    offered: set[str] = set()
     for n, edit in enumerate(edits, start=1):
         if not isinstance(edit, dict) or not all(isinstance(edit.get(k), str) for k in ("path", "old", "new")):
             raise PatchProblem(f"file_edits[{n}] must be an object with string fields path, old, new")
@@ -377,6 +393,7 @@ def from_file_edits(root: Path, edits: list[dict]) -> PatchResolution:
         if not old:
             raise PatchProblem(f"file_edits[{n}].old is empty")
         count = text.count(old)
+        edit_notes = [f"{rel}: file_edits[{n}] replaced 1 occurrence"]
         if count == 0:
             # tolerate trailing-whitespace / indentation noise: match by whitespace-normalized lines
             lines = text.splitlines(keepends=True)
@@ -389,14 +406,57 @@ def from_file_edits(root: Path, edits: list[dict]) -> PatchResolution:
                 )
             start = found[0]
             eol = _eol_of(text)
-            lines[start : start + len(block)] = [ln + eol for ln in new.strip("\n").splitlines()]
+            written = new.strip("\n").splitlines()
+            # harness-v1.8 (T7): `old` was found only because the match ignores indentation, and `new` replaces the matched lines as written. The
+            # matched file lines show how far off the model's idea of the block's indentation is; indentation.rebase_edit says where `new` would
+            # sit if it were moved by that (whitespace only, never a non-whitespace change). Here it is only offered (`offered`) or, in the second
+            # pass (`rebase`), used; from_file_edits decides which. An edit whose move would only touch comment or continuation lines (which the
+            # parser does not read) is not on offer at all: its text stays exactly as the model wrote it. An exact match (the branch below) never
+            # comes here.
+            if rel.endswith(".py"):
+                moved = indentation.rebase_edit([_strip_eol(ln) for ln in lines[start : start + len(block)]], block, written)
+                if moved is not None and moved.structural:
+                    offered.add(rel)
+                    if rebase:
+                        written = moved.lines
+                        how = (["first line anchored on the file"] if moved.first_line else []) + (
+                            [f"{moved.shift:+d} column(s)"] if moved.shift else []
+                        )
+                        edit_notes.append(
+                            f"{rel}: file_edits[{n}] indentation of {moved.changed} line(s) re-based onto the matched lines at line {start + 1} "
+                            f"({', '.join([*how, 'the file did not parse with the text as written'])}) (harness-v1.8, T7)"
+                        )
+            lines[start : start + len(block)] = [ln + eol for ln in written]
             text = "".join(lines)
         elif count > 1:
             raise PatchProblem(f"file_edits[{n}].old occurs {count} times in {rel}; include more surrounding lines so it is unique")
         else:
             text = text.replace(old, new, 1)
         rewritten[rel] = (original if rel not in rewritten else rewritten[rel][0], text)
-        notes.append(f"{rel}: file_edits[{n}] replaced 1 occurrence")
+        per_edit.append((rel, edit_notes))
+    return rewritten, per_edit, offered
+
+
+def from_file_edits(root: Path, edits: list[dict]) -> PatchResolution:
+    rewritten, per_edit, offered = _apply_file_edits(root, edits, rebase=False)
+    # harness-v1.8 (T7): the model's `new` text goes in as written (every error above is raised exactly as before). Only when a .py file that
+    # edits found by the whitespace-tolerant match touched does NOT parse that way is the same edit set run again with each such edit's indentation
+    # re-based onto the matched lines (indentation.rebase_edit); the re-based text of a file is kept ONLY when that file then parses. So a patch that
+    # parses as written (the gate has always seen it), a file that is not Python, an exact match, and a re-basing that still does not parse all
+    # leave the edits exactly as written. The decision is per FILE, not per edit: edits of one patch share the model's wrong idea of the block's
+    # level, and one that parses as written by accident (an `Ambient occlusion` block landing inside the previous `else:`) must move with the others.
+    broken = {rel for rel in offered if not _parses(rewritten[rel][1])}
+    if broken:
+        try:
+            moved_rewritten, moved_per_edit, _ = _apply_file_edits(root, edits, rebase=True)
+        except PatchProblem:
+            moved_rewritten, moved_per_edit = None, []  # a later edit located differently in the moved text: leave everything as written
+        if moved_rewritten is not None:
+            fixed = {rel for rel in broken if _parses(moved_rewritten[rel][1])}
+            if fixed:
+                rewritten = {rel: (moved_rewritten[rel] if rel in fixed else pair) for rel, pair in rewritten.items()}
+                per_edit = [moved if mine[0] in fixed else mine for mine, moved in zip(per_edit, moved_per_edit)]
+    notes = [note for _, edit_notes in per_edit for note in edit_notes]
     return _finish(root, rewritten, notes, "file_edits")
 
 

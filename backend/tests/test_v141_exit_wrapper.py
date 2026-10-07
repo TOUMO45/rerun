@@ -18,7 +18,7 @@ from pathlib import Path
 import pytest
 
 import v140_cloud
-from app.services import classifier, runner_hooks, smoke_exec
+from app.services import classifier, command_shell, runner_hooks, smoke_exec
 from test_v140_pipeline import ENTRY_03_SILENT, EXEC, SKLEARN_MISSING, _Chat, _edit, _repo, _run
 from test_v140_runner_hooks import _site
 
@@ -231,7 +231,9 @@ def test_if_the_evidence_shows_a_kill_the_entry_ends_resource_limit(tmp_path, mo
 def test_a_command_the_wrapper_cannot_wrap_is_recorded_and_not_run_again(tmp_path, monkeypatch):
     command = "python main.py | tee out.log"
     _repo(tmp_path, {"main.py": BARE_EXIT})
-    plain = {command, smoke_exec.wrap(command, 60)}
+    # harness-v1.8 (T11): a command with a pipe is handed to the sandbox inside `bash -o pipefail -c`; the documented text (and the wrapper's "cannot wrap") are unchanged
+    piped = command_shell.with_pipefail(command)
+    plain = {command, smoke_exec.wrap(command, 60), piped, smoke_exec.wrap(piped, 60)}
 
     def behaviour(shell, built, files):
         if shell not in plain:

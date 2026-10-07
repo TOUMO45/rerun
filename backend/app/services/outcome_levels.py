@@ -123,14 +123,25 @@ def memory_adapted(result: dict) -> str:
 
 
 def dependency_change(result: dict) -> str:
-    """harness-v1.7 (R5): the companion pin RERUN replaced, or ''."""
+    """harness-v1.7 (R5): the companion pin RERUN replaced, or ''. harness-v1.8 (T3, T2): also the apt package RERUN renamed, the `git://` lines it rewrote to
+    `https://`, and the pre-release pin it replaced by its final release; each is a change to what the repository declared, so each is labelled."""
+    parts: list[str] = []
     acts = [act for act in _actions(result, "companion_relax") if act.get("from") and act.get("to")]
-    if not acts:
-        return ""
-    act = acts[-1]
-    # harness-v1.7.1: what the swap pinned beside the replacement (Pillow for torchvision 0.4.0), with the repository's own line when it had one
-    also = [f"{a.get('package')} {_pin_of(a.get('from'))}->{a.get('to')}" for a in (act.get("also") or ()) if a.get("to")]
-    return "dependency change: " + ", ".join([f"{act.get('package')} {act['from']}->{act['to']}", *also])
+    if acts:
+        act = acts[-1]
+        # harness-v1.7.1: what the swap pinned beside the replacement (Pillow for torchvision 0.4.0), with the repository's own line when it had one
+        also = [f"{a.get('package')} {_pin_of(a.get('from'))}->{a.get('to')}" for a in (act.get("also") or ()) if a.get("to")]
+        parts.extend([f"{act.get('package')} {act['from']}->{act['to']}", *also])
+    for act in _actions(result, "apt_package_renamed"):
+        if act.get("from") and act.get("to"):
+            parts.append(f"apt {act['from']}->{act['to']}")
+    for act in _actions(result, "git_protocol_rewrite"):
+        n = len(act.get("lines") or ())
+        parts.append(f"git:// -> https:// in {n} requirement line{'s' if n != 1 else ''}")
+    for act in _actions(result, "prerelease_pin_relax"):
+        if act.get("from") and act.get("to"):
+            parts.append(f"{act.get('package')} {act['from']}->{act['to']}")
+    return ("dependency change: " + ", ".join(parts)) if parts else ""
 
 
 def _pin_of(line) -> str:

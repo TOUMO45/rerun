@@ -82,6 +82,17 @@ If you are not reasonably confident (e.g. multiple equally-plausible candidates,
 none look like the real entrypoint), set confidence low and entrypoint to null rather \
 than guessing. A wrong confident guess is worse than an honest low-confidence answer.""" + UNTRUSTED_CONTENT_NOTICE
 
+# harness-v1.8 (T15, D-52): added to the system prompt ONLY when intake found a candidate through the repository's own README (`readme_entrypoints`), so the
+# prompt of every other repository is unchanged. It explains the `readme_named_commands` fact; the model still weighs it and the confidence rule below is not
+# touched: a script named by the README is evidence for that script, not a lower threshold.
+_README_COMMANDS_NOTE = """
+
+Some candidates are listed because the repository's own README tells the reader to run them: \
+`readme_named_commands` maps each such candidate to the command line the README gives (for example \
+"python simplemud.py"). Such a script may have no __main__ guard and read no arguments; it simply starts \
+running when it is executed. A README-named command is evidence for that script, not a guarantee: weigh it \
+against the other candidates and report your confidence honestly."""
+
 
 @dataclass(frozen=True)
 class ReconResult:
@@ -123,6 +134,9 @@ def build_recon_user_prompt(intake: RepoIntake, entrypoint_file_contents: dict[s
         "notebook_paths": list(intake.notebook_paths),
         "python_version_hint_from_files": intake.python_version_hint,
     }
+    if intake.readme_entrypoints:
+        # harness-v1.8 (T15): the README's own command line for each candidate it alone added (e.g. {"simplemud.py": "python simplemud.py"}); absent otherwise
+        facts["readme_named_commands"] = dict(intake.readme_entrypoints)
     # File names, dependency names and sources all come from the repo.
     parts = [untrusted_block("repo facts gathered by intake", json.dumps(facts, indent=2))]
     for path, content in (entrypoint_file_contents or {}).items():
@@ -166,10 +180,13 @@ def parse_recon_response(
     raw: dict,
     candidates: tuple[str, ...],
     source_by_path: dict[str, str] | None = None,
+    readme_commands: dict[str, str] | None = None,
 ) -> ReconResult:
     """Pure validation of an already-JSON-parsed model response against the
     candidates recon.py itself found. Never trusts the model's entrypoint
-    choice blindly."""
+    choice blindly. `readme_commands` (harness-v1.8, T15) is intake's
+    `readme_entrypoints`: it only labels the result's reasoning, it never
+    changes what is accepted."""
     entrypoint = raw.get("entrypoint")
     try:
         confidence = float(raw.get("confidence", 0.0))
@@ -216,8 +233,10 @@ def parse_recon_response(
         data_requirements=tuple(str(d) for d in data_reqs),
         eval_call_names=_validate_names_against_source(eval_names if isinstance(eval_names, list) else [], source_by_path or {}),
         model_call_names=_validate_names_against_source(model_names if isinstance(model_names, list) else [], source_by_path or {}),
-        reasoning=(f"SOLE CANDIDATE: run although the model's confidence ({confidence:.2f}) is below the {MIN_CONFIDENCE} threshold, because it is the "
-                   f"repository's only candidate script. " if sole_candidate else "") + str(raw.get("reasoning", "")),
+        reasoning=(f"README-NAMED: the repository's README tells the reader to run `{readme_commands[entrypoint]}`; this script is a candidate because of that, "
+                   f"not because discovery found a __main__ guard or argument parsing in it. " if entrypoint in (readme_commands or {}) else "")
+        + (f"SOLE CANDIDATE: run although the model's confidence ({confidence:.2f}) is below the {MIN_CONFIDENCE} threshold, because it is the "
+           f"repository's only candidate script. " if sole_candidate else "") + str(raw.get("reasoning", "")),
     )
 
 
@@ -261,7 +280,7 @@ def run_recon(
         raw = call_json_model(
             client,
             model=model,
-            system_prompt=_SYSTEM_PROMPT,
+            system_prompt=_SYSTEM_PROMPT + (_README_COMMANDS_NOTE if intake.readme_entrypoints else ""),
             user_prompt=build_recon_user_prompt(intake, entrypoint_file_contents),
             cost_guard=cost_guard,
             max_tokens=RECON_MAX_TOKENS,
@@ -269,4 +288,4 @@ def run_recon(
     except ModelCallError as exc:
         return _indeterminate(f"recon model call failed: {exc}", code=RECON_MODEL_ERROR)
 
-    return parse_recon_response(raw, intake.entrypoint_candidates, entrypoint_file_contents)
+    return parse_recon_response(raw, intake.entrypoint_candidates, entrypoint_file_contents, readme_commands=intake.readme_entrypoints or None)

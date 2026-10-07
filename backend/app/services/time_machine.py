@@ -196,7 +196,7 @@ class LockResult:
     relaxed: tuple[tuple[str, str], ...] = ()
 
     def as_dict(self) -> dict:
-        return {
+        out = {
             "ok": self.ok,
             "lock": list(self.lock_lines),
             "inputs": list(self.inputs),
@@ -205,6 +205,42 @@ class LockResult:
             "command": self.command,
             "error": self.error[-2000:],
         }
+        cause = lock_failure_cause(self.error) if not self.ok else None
+        if cause is not None:
+            out["cause"] = cause  # harness-v1.8 (T6): why the era lock was unavailable, only on a failed lock
+        return out
+
+
+# harness-v1.8 (T6, the minimum the owner asked for: "classify 'era lock unavailable' with its real cause"). Five of the 21 held-out entries logged "era lock unavailable" and
+# fell back to ONE UNPINNED pip step (the newest releases, which is what API_REMOVED failures are made of); the log kept only the last 200 characters of uv's message.
+# The causes below were read from those five records (TEST #13 neo_gnns, TEST #19 RBP, TEST #20 fashion-retrieval, TEST-B #5 cwn, OOS fb_friend_list_scraper), now
+# DEV-CONTAMINATED. This only NAMES the cause; it changes no lock behaviour (a fix per cause is T6 proper, out of v1.8).
+_LOCK_CAUSES = (
+    # review (finding 6): the dependency is read from uv's own hint (`torch-scatter = ["torch"]`), never assumed to be torch
+    ("BUILD_NEEDS_BUILD_DEPENDENCY", re.compile(r"extra-build-dependencies\]\s*(?P<package>[\w.\-]+)\s*=\s*\[(?P<needs>[^\]\n]*)\]"),
+     "uv builds `{package}` in an isolated environment and its build needs {needs}, which is not there; it needs `extra-build-dependencies` or `--no-build-isolation`"),
+    ("CUTOFF_BELOW_BUILD_TOOL", re.compile(r"exclude-newer-package|latest version satisfying the requirement is v?(?P<version>[\d.]+), published at"),
+     "a requirement of the build is satisfied only by releases newer than the era cut-off date (uv names v{version}, published after it); the cut-off needs `exclude-newer-package` for that package"),
+    ("SDIST_METADATA_BUILD_FAILED_ON_HOST", re.compile(r"Couldn't find a setup script in|Build failures usually indicate a problem with the package or the build environment"),
+     "uv built an old source distribution on the HOST machine to read its metadata and the build failed; the lock is computed on the host, not in the sandbox"),
+    ("REQUIREMENTS_UNSATISFIABLE", re.compile(r"requirements are unsatisfiable|No solution found|resolution impossible", re.IGNORECASE),
+     "no set of releases up to the era cut-off satisfies every requirement together"),
+)
+
+
+def lock_failure_cause(error: str) -> dict | None:
+    """{"id", "detail", "quote"} for the first known cause in uv's message, else None (an unknown failure keeps only the message)."""
+    text = error or ""
+    for cause_id, rx, template in _LOCK_CAUSES:
+        m = rx.search(text)
+        if m:
+            groups = {k: (v or "the package") for k, v in m.groupdict().items()} if m.groupdict() else {}
+            # the quote is ONE line of uv's message: the line the match ENDS on (the hint's `torch-scatter = ["torch"]` row, not the header line before it)
+            end = m.end() - 1 if m.end() > m.start() else m.end()
+            line = text[max(0, text.rfind("\n", 0, end) + 1): (text.find("\n", end) if text.find("\n", end) != -1 else len(text))].strip()
+            return {"id": cause_id, "detail": template.format(package=groups.get("package", "the package"), version=groups.get("version", "?"),
+                                                              needs=groups.get("needs", "a package")), "quote": line[:300]}
+    return None
 
 
 _NOT_FOUND_RE = re.compile(r"Because ([A-Za-z0-9][A-Za-z0-9._-]*) was not found in the package registry")

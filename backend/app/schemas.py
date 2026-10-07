@@ -111,7 +111,13 @@ class CertificateOut(BaseModel):
         return {**out, "sources": self.blocker_sources} if out is not None else None
 
     def _record(self) -> dict:
-        return {"verdict": self.verdict, "error_chain": self.error_chain or [], "attempts": self.diffs or []}
+        # harness-v1.8: the same fields `orchestrator.derived_record` gives `blocker.report`, so the API and the downloaded certificate agree
+        out = {"verdict": self.verdict, "error_chain": self.error_chain or [], "attempts": self.diffs or []}
+        if self.indeterminate_reason:
+            out["indeterminate_reason"] = self.indeterminate_reason
+        if self.baseline:
+            out["baseline"] = self.baseline
+        return out
 
 
 class HealthOut(BaseModel):

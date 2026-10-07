@@ -21,7 +21,7 @@ ROOT = Path(__file__).resolve().parents[2]
 ENTRY_7 = ROOT / "runs" / "corpus_v2_batch" / "harness-v1.3.4" / "smoke" / "07_albertometelli__pfqi.json"
 GCC_ERROR = "unable to execute 'gcc': No such file or directory"
 NUMPY_MISSING = "Traceback (most recent call last):\n  File \"train.py\", line 1, in <module>\nModuleNotFoundError: No module named 'numpy'\n"
-PKG_CONFIG = "/bin/sh: 1: pkg-config: not found\nerror: metadata-generation-failed\n"
+FFMPEG_MISSING = "/bin/sh: 1: ffmpeg: not found\nerror: metadata-generation-failed\n"
 
 
 def _entry_7_stderr() -> str:
@@ -91,8 +91,8 @@ def test_entry_7s_recorded_error_string_matches_the_rule():
 
 
 def test_an_unrelated_sys_lib_missing_string_does_not_match():
-    classification = classifier.classify(1, PKG_CONFIG, "", declared_deps=())
-    assert classification.code == classifier.TaxonomyCode.SYS_LIB_MISSING and "pkg-config" in classification.evidence
+    classification = classifier.classify(1, FFMPEG_MISSING, "", declared_deps=())
+    assert classification.code == classifier.TaxonomyCode.SYS_LIB_MISSING and "ffmpeg" in classification.evidence
     assert missing_compiler_error(classification) is None
     other = classifier.classify(1, NUMPY_MISSING, "", declared_deps=())
     assert other.code != classifier.TaxonomyCode.SYS_LIB_MISSING and missing_compiler_error(other) is None
@@ -125,14 +125,14 @@ def test_the_attempt_record_carries_time_machine_action_with_the_quoted_string(t
 
 def test_the_deterministic_step_comes_first_and_the_model_gets_what_is_left(tmp_path):
     """After build-essential the run fails on something else: only then is the model asked, about the new failure."""
-    fix = {"env_delta": [{"op": "apt", "package": "pkg-config", "justification": "pkg-config is missing", "evidence": "/bin/sh: 1: pkg-config: not found"}],
+    fix = {"env_delta": [{"op": "apt", "package": "ffmpeg", "justification": "ffmpeg is missing", "evidence": "/bin/sh: 1: ffmpeg: not found"}],
            "cited_sources": [], "reason_no_citation": "no reference offered", "explanation": "system package"}
-    result, repair = _pipeline(tmp_path, [_fail(NUMPY_MISSING), _fail(_entry_7_stderr()), _fail(PKG_CONFIG), _ok()], replies=[fix])
+    result, repair = _pipeline(tmp_path, [_fail(NUMPY_MISSING), _fail(_entry_7_stderr()), _fail(FFMPEG_MISSING), _ok()], replies=[fix])
     assert len(repair.calls) == 1 and result.verdict == "RUNS_AFTER_REPAIR"
     origins = [(a.origin, a.attempt_number, bool(a.time_machine_action)) for a in result.attempts]
     assert origins == [("time_machine", 0, False), ("time_machine", 0, True), ("model", 1, False)]  # the step did not use up a model attempt
-    assert "gcc" not in json.dumps(repair.calls[0]) or "pkg-config" in json.dumps(repair.calls[0])
-    assert sorted(result.certificate()["build_plan"]["apt_install"]) == ["build-essential", "pkg-config"]
+    assert "gcc" not in json.dumps(repair.calls[0]) or "ffmpeg" in json.dumps(repair.calls[0])
+    assert sorted(result.certificate()["build_plan"]["apt_install"]) == ["build-essential", "ffmpeg"]
 
 
 def test_the_rule_fires_once_and_never_proposes_gcc_as_a_pip_package(tmp_path):
@@ -145,12 +145,12 @@ def test_the_rule_fires_once_and_never_proposes_gcc_as_a_pip_package(tmp_path):
 
 
 def test_an_unrelated_sys_lib_missing_at_repair_time_goes_to_the_model(tmp_path):
-    fix = {"env_delta": [{"op": "apt", "package": "pkg-config", "justification": "pkg-config is missing", "evidence": "/bin/sh: 1: pkg-config: not found"}],
+    fix = {"env_delta": [{"op": "apt", "package": "ffmpeg", "justification": "ffmpeg is missing", "evidence": "/bin/sh: 1: ffmpeg: not found"}],
            "cited_sources": [], "reason_no_citation": "no reference offered", "explanation": "system package"}
-    result, repair = _pipeline(tmp_path, [_fail(NUMPY_MISSING), _fail(PKG_CONFIG), _ok()], replies=[fix])
+    result, repair = _pipeline(tmp_path, [_fail(NUMPY_MISSING), _fail(FFMPEG_MISSING), _ok()], replies=[fix])
     assert len(repair.calls) == 1
     assert not any(a.time_machine_action for a in result.attempts)
-    assert result.certificate()["build_plan"]["apt_install"] == ["pkg-config"]
+    assert result.certificate()["build_plan"]["apt_install"] == ["ffmpeg"]
 
 
 # ---------------------------------------------------------------- baseline path (regression)

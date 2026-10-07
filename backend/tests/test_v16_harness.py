@@ -182,13 +182,18 @@ def test_blocker_every_taxonomy_code_has_a_row_and_no_default():
 def test_blocker_reports_the_last_link_with_its_family_phase_and_attribution():
     report = _report("DATA_MISSING", "FileNotFoundError: [Errno 2] No such file or directory: 'data/cifar-10/train.pkl'",
                      attribution="REPO", phase="repo_run")
-    assert report == {
+    # the fields harness-v1.6 wrote, unchanged ...
+    assert {k: report[k] for k in ("class", "family", "phase", "attribution", "evidence", "fixable_by", "what_a_human_must_supply", "sources")} == {
         "class": "DATA_MISSING", "family": "Data", "phase": "repo_run", "attribution": "REPO",
         "evidence": "FileNotFoundError: [Errno 2] No such file or directory: 'data/cifar-10/train.pkl'",
         "fixable_by": "human",
         "what_a_human_must_supply": "the dataset the repository expects at data/cifar-10/train.pkl, obtained as its README describes",
         "sources": None,
     }
+    # ... and harness-v1.8's diagnosis fields: no rule matches this evidence, so the class sentence stands and the record says so
+    assert report["diagnosis"] == "class_default" and report["cause"] == "DATA_MISSING"
+    assert report["error_line"] == report["evidence"] and report["next_action"] == report["what_a_human_must_supply"]
+    assert report["basis"] == [{"source": "error_chain[1].error", "quote": report["evidence"]}]  # the helper builds a two-link chain
 
 
 def test_blocker_evidence_is_capped_at_300_chars():
@@ -201,8 +206,10 @@ def test_blocker_evidence_is_capped_at_300_chars():
      "nothing, if the era lock resolves it; otherwise the exact release of dassl the authors used"),
     ("DEP_YANKED", "ERROR: No matching distribution found for ancient-pkg==0.0.1", "deterministic",
      "nothing, if the era lock resolves it; otherwise the exact release of ancient-pkg the authors used"),
-    ("DEP_UNPINNED_CONFLICT", "ERROR: Cannot install tensorboard==2.1.0 and tensorflow==1.15.5 because these package versions have conflicting dependencies.",
-     "deterministic", "nothing, if the era lock resolves it; otherwise the exact release of tensorboard the authors used"),
+    # harness-v1.8: pip's "Cannot install A and B because these package versions have conflicting dependencies" line is read by `diagnosis._pins_conflict` (evidence-driven, tested in
+    # test_v18_dev_findings.py); the class default stays on the line that names no package
+    ("DEP_UNPINNED_CONFLICT", "ERROR: ResolutionImpossible: for help visit https://pip.pypa.io/en/latest/topics/dependency-resolution/#dealing-with-dependency-conflicts",
+     "deterministic", "nothing, if the era lock resolves it; otherwise the exact release of the package the authors used"),
     ("DEP_NOT_ON_PYPI", "ERROR: Could not find a version that satisfies the requirement dassl (from versions: none)", "deterministic",
      "nothing, if the era lock resolves it; otherwise the exact release of dassl the authors used"),
     ("API_REMOVED", "ImportError: cannot import name 'zero_gradients' from 'torch.autograd.gradcheck' (/usr/local/lib/python3.10/site-packages/torch/autograd/gradcheck.py)",
@@ -213,10 +220,13 @@ def test_blocker_evidence_is_capped_at_300_chars():
      "nothing, if the interpreter policy resolves it; otherwise the Python version the authors used"),
     ("SYS_LIB_MISSING", "ImportError: libGL.so.1: cannot open shared object file: No such file or directory", "deterministic",
      "nothing, if the apt rule resolves it; otherwise the system package that provides libGL.so.1"),
+    # harness-v1.8 (T5): a missing compiler, header or tool the apt tables know is no longer the class sentence but the evidence-driven one (test_v18_diagnosis.py)
     ("SYS_LIB_MISSING", "error: command 'gcc' failed: No such file or directory", "deterministic",
-     "nothing, if the apt rule resolves it; otherwise the system package that provides gcc"),
+     "nothing: the system package `build-essential` provides `gcc` (the C/C++ compiler); RERUN's harness-v1.8 apt rule installs it"),
     ("SYS_LIB_MISSING", "ERROR: Cannot find command 'git' - do you have 'git' installed and in your PATH?", "deterministic",
-     "nothing, if the apt rule resolves it; otherwise the system package that provides git"),
+     "nothing: the system package `git` is missing; RERUN's harness-v1.8 apt rule installs it"),
+    ("SYS_LIB_MISSING", "ERROR: Cannot find command 'hg' - do you have 'hg' installed and in your PATH?", "deterministic",
+     "nothing, if the apt rule resolves it; otherwise the system package that provides hg"),
     ("DEP_BUILD_FAILED", "ERROR: Failed building wheel for pycocotools", "deterministic",
      "nothing, if the apt rule adds the build dependencies; otherwise a wheel of pycocotools for this platform"),
     ("DEP_BUILD_FAILED", "ERROR: Failed to build installable wheels for some pyproject.toml based projects (pygame)", "deterministic",

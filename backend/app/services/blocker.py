@@ -26,6 +26,7 @@ from __future__ import annotations
 import logging
 import re
 
+from app.services import diagnosis
 from app.services.classifier import TaxonomyCode
 
 logger = logging.getLogger(__name__)
@@ -171,6 +172,27 @@ INPUT_STOPS: dict[str, tuple[str, str, str]] = {
     "NEEDS_CREDENTIALS": (HUMAN, "Inputs", "the key, token or credential the program asks for"),
     "NEEDS_INTERACTIVE_INPUT": (HUMAN, "Inputs", "the answers the program asks a person to type, or a way to pass them without a keyboard"),
     "DISPLAY_REQUIRED": (PLATFORM, "Resources", "a display: a desktop session, or a virtual display such as Xvfb"),
+    # harness-v1.8 (T9): causes no code change and no package can supply, found in the TEST / TEST-B records (now DEV-CONTAMINATED).
+    "DOCKER_REQUIRED": (PLATFORM, "Resources", "a machine with Docker: the documented command runs `docker`, and this sandbox has no Docker client and no daemon"),
+    "CONDA_REQUIRED": (HUMAN, "Environment", "a conda environment: the documented command calls `conda`, which this sandbox does not have"),
+    "DOCUMENTED_COMMAND_REJECTED": (HUMAN, "Documentation", "a command the script's own argument parser accepts: the documented command was refused"),
+    "ENTRYPOINT_UNCLEAR": (HUMAN, "Documentation", "the command to run: the README does not name one unambiguously"),
+    # harness-v1.8 (DEV re-run: TEST #13 neo_gnns and TEST #19 RBP, 2026-10-07): the run was stopped by RERUN's own spend cap in the middle of an install, so the repository's
+    # outcome is unknown. Before, the blocker described the last error the chain held (a missing compiler) as if the run had gone on to fail on it.
+    "COST_CAP": (PLATFORM, "Resources", "a larger per-entry budget: RERUN's spend cap stopped a sandbox operation before it finished, so what the repository does next is not known"),
+}
+# What a researcher does next, per stop code (the evidence line is quoted beside it).
+STOP_NEXT_ACTIONS: dict[str, str] = {
+    "ENTRYPOINT_NEEDS_ARGS": "run the command with the arguments the quoted line asks for (for example an input file)",
+    "NEEDS_CREDENTIALS": "supply the key, token or login the program asks for, as the README describes",
+    "NEEDS_INTERACTIVE_INPUT": "run it where a person can answer the prompt, or pass the answers without a keyboard",
+    "DISPLAY_REQUIRED": "run it in a desktop session or under a virtual display (for example `xvfb-run`)",
+    "DOCKER_REQUIRED": "run the documented command on a host with Docker installed, or run the steps the script performs without the container",
+    "CONDA_REQUIRED": "create the conda environment the authors describe outside the sandbox, or install the package from the channel they name",
+    "DOCUMENTED_COMMAND_REJECTED": "correct the command in the README to the options the script's `--help` lists (the quoted line names the one it refused)",
+    "ENTRYPOINT_UNCLEAR": "name the command to run in the README, for example `python <script>.py <arguments>`",
+    "COST_CAP": "re-run with a larger per-entry budget (the quoted line is the operation the cap stopped; the run was not finished, so the repository's own outcome is unknown), "
+                "or with less to install",
 }
 
 
@@ -181,10 +203,35 @@ def _input_stop(result: dict, chain: list) -> dict | None:
         return None
     fixable_by, family, sentence = INPUT_STOPS[code]
     quoted = re.search(r"`([^`]+)`|\('([^']+)'\)", reason)
+    evidence = ((quoted.group(1) or quoted.group(2)) if quoted else reason)[:EVIDENCE_MAX_CHARS]
+    if code == "COST_CAP":  # the line of the reason that names the operation, without the code and the closing explanation
+        evidence = reason.split(":", 1)[1].split(" — ")[0].strip()[:EVIDENCE_MAX_CHARS]
     return {"class": code, "family": family, "phase": (chain[-1].get("phase") if chain else None) or "repo_run",
             "attribution": None,  # neither the repository's code nor the environment: something the run was not given
-            "evidence": ((quoted.group(1) or quoted.group(2)) if quoted else reason)[:EVIDENCE_MAX_CHARS],
-            "fixable_by": fixable_by, "what_a_human_must_supply": sentence, "sources": None}
+            "evidence": evidence,
+            "fixable_by": fixable_by, "what_a_human_must_supply": sentence, "sources": None,
+            # harness-v1.8: the three fields a diagnosis carries, from the stop's own evidence line
+            "cause": code, "error_line": evidence, "next_action": STOP_NEXT_ACTIONS.get(code, sentence),
+            "basis": [{"source": "indeterminate_reason", "quote": reason[:EVIDENCE_MAX_CHARS]}], "diagnosis": "evidence"}
+
+
+_WALL_CLOCK_LINE = re.compile(r"^.*(?:exceeded [\d.]+s wall clock|reached its wall-clock limit)[^\n]*$", re.M)
+
+
+def _timeout_report(result: dict, chain: list) -> dict | None:
+    """harness-v1.8 (DEV re-run of the out-of-sample set: Frimkron/mud-pi, a server loop found through its README, ran into the 600 s wall clock): a TIMEOUT verdict with no
+    error chain has no failing line at all. The report says that, quotes the log line that names the wall clock when the record carries the log, and names the next step.
+    The record keeps no output of the killed operation, so it does not claim the program started or what it printed."""
+    if result.get("verdict") != "TIMEOUT" or chain:
+        return None
+    found = _WALL_CLOCK_LINE.search(result.get("full_log") or "")
+    line = (found.group(0).strip()[:EVIDENCE_MAX_CHARS] if found else "the sandbox operation reached its wall-clock limit before the command exited")
+    return {"class": "TIMEOUT", "family": "Resources", "phase": "repo_run", "attribution": None, "evidence": line, "fixable_by": HUMAN,
+            "what_a_human_must_supply": "a command that finishes inside the wall clock (a smaller workload: fewer steps, a sample), or the knowledge that it is meant to run until stopped",
+            "sources": None, "cause": "TIMEOUT", "error_line": line,
+            "next_action": ("run it with a smaller workload, or name a command that exits; a server or a long training job keeps running until the wall clock stops it. "
+                            "The record holds no output of the stopped operation, so it does not show whether the program started"),
+            "basis": [{"source": "verdict", "quote": "TIMEOUT"}] + ([{"source": "full_log", "quote": line}] if found else []), "diagnosis": "evidence"}
 
 
 def report(result: dict) -> dict | None:
@@ -195,10 +242,14 @@ def report(result: dict) -> dict | None:
         return None
     chain = list(result.get("error_chain") or ())
     stop = _input_stop(result, chain)
+    cap_stop = None
+    if stop is not None and stop["class"] == "COST_CAP" and chain:
+        # a spend-cap stop does not replace the last known blocker (a missing compiler is still the most useful thing to tell the reader); it is added to it below
+        cap_stop, stop = stop, None
     if stop is not None:
         return stop
     if not chain:
-        return None
+        return _timeout_report(result, chain)
     link = chain[-1]
     code = link.get("class") or ""
     evidence = (link.get("error") or "")[:EVIDENCE_MAX_CHARS]
@@ -228,6 +279,28 @@ def report(result: dict) -> dict | None:
         "what_a_human_must_supply": sentence,
         "sources": None,
     }
+    # harness-v1.8: the sentence, who can fix it and the next step come from the record's own evidence when a rule in `diagnosis` matches; otherwise the
+    # per-class sentence above stands and the record says so (`diagnosis: "class_default"`), so a default is never mistaken for a specific diagnosis.
+    try:
+        finding = diagnosis.diagnose(result)
+    except Exception:  # noqa: BLE001 - review (LOW): one odd stored row must not fail every read; the class sentence stands and the gap is logged
+        logger.warning("blocker: diagnosis failed on a record; the class default stands", exc_info=True)
+        finding = None
+    out["diagnosis_rules"] = "harness-v1.8"  # which rules produced the text: a record written by an older harness is re-read with these rules when it is served
+    if finding is not None:
+        out.update(finding.as_dict())
+        out["diagnosis"] = "evidence"
+        if finding.family and finding.family != out["family"]:
+            out["class_family"] = out["family"]
+            out["family"] = finding.family
+    else:
+        out.update({"cause": code, "error_line": evidence, "next_action": sentence,
+                    "basis": [{"source": f"error_chain[{len(chain) - 1}].error", "quote": evidence}], "diagnosis": "class_default"})
+    if cap_stop is not None:
+        out["stopped_by"] = {"cause": "COST_CAP", "line": cap_stop["error_line"]}
+        out["next_action"] = (f"{out['next_action']}. RERUN's own spend cap then stopped the run in a later operation ({cap_stop['error_line']}), so the effect of the step above "
+                              "was not seen: re-run with a larger per-entry budget to see it")
+        out["basis"] = [*out["basis"], *cap_stop["basis"]]
     # harness-v1.7: every label of the run (RESOURCE-ADAPTED, memory hook, dependency change, semantic change), only when set: older reports are unchanged
     from app.services import outcome_levels
 

@@ -246,6 +246,7 @@ def main(argv: list[str] | None = None) -> int:
             "estimated_sandbox_spent_usd": cost_guard.estimated_spent_usd,
             "cost_events": cost_guard.cost_events,
             "remaining_usd": cost_guard.remaining_today_usd,
+            **cost_guard.cap_status(),  # harness-v1.8 (T17): cap_usd, over_cap_usd, estimated_usd, over_cap_estimated_only
             "model_usage": cost_guard.model_usage,
             "prices_usd_per_1m": {k: list(v) for k, v in settings.model_prices_usd_per_1m.items()},
             "prices_source": settings.model_prices_source,

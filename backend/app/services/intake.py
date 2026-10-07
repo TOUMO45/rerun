@@ -24,7 +24,7 @@ from pathlib import Path, PurePath
 
 import yaml
 
-from app.services import timeouts
+from app.services import data_prep, timeouts
 from app.services.infra import retry_call
 
 # `git clone`'s default `core.symlinks=true` on Linux (the real deployment
@@ -205,9 +205,13 @@ class RepoIntake:
     notebook_paths: tuple[str, ...] = field(default_factory=tuple)
     entrypoint_candidates: tuple[str, ...] = field(default_factory=tuple)
     python_version_hint: str | None = None
+    # harness-v1.8 (T15, D-52): the candidates (a subset of `entrypoint_candidates`, the last ones) that are there ONLY because the repository's README tells the
+    # reader to run them, with the README's command line ("python simplemud.py"). Empty for a repository whose candidates discovery found itself, and for every
+    # corpus run (parse_intake without readme_entrypoints), so their intake and recon prompt are exactly what they were.
+    readme_entrypoints: dict[str, str] = field(default_factory=dict)
 
     def as_dict(self) -> dict:
-        return {
+        out = {
             "local_path": str(self.local_path),
             "commit_sha": self.commit_sha,
             "dependency_files": sorted(self.dependency_files.keys()),
@@ -216,6 +220,9 @@ class RepoIntake:
             "entrypoint_candidates": list(self.entrypoint_candidates),
             "python_version_hint": self.python_version_hint,
         }
+        if self.readme_entrypoints:  # only when the README added something: an unchanged repository keeps its record byte for byte
+            out["readme_entrypoints"] = dict(self.readme_entrypoints)
+        return out
 
 
 def cleanup_workdir(path: Path) -> None:
@@ -412,6 +419,124 @@ def _is_module_level_script(name: str, text: str) -> bool:
     return not _NOT_A_SCRIPT.match(name) and _MODULE_LEVEL_RUN.search(text) is not None
 
 
+# harness-v1.8 (T15, D-52; out-of-sample scan 2026-10-05, Frimkron/mud-pi): `simplemud.py` is a module-level `while True:` loop with no `__main__` guard,
+# no argparse and no `sys.argv`, so no rule above finds it and recon ended ENTRYPOINT_UNCLEAR "no candidate scripts found" although the README says
+# "run `python simplemud.py`". A script the repository's OWN README tells the reader to run is now a candidate too: a command of the form
+# `python[3[.N]] [-u] <relative/path>.py [args...]` inside a code fence, an indented code block or an inline code span, whose file exists in the checkout.
+# It is evidence the repository gives about itself, not a guess; the README is untrusted text like every other repository file, so the path is
+# normalised (`./` dropped), must stay inside the tree, must name an existing real file (no symlink in any component, exact case, no hidden directory,
+# not a setup/test/package file: `python setup.py install` is an install command, not an entrypoint) and the command line only ever reaches a model
+# prompt (inside the untrusted block) and a record, never a shell: the sandbox command is still `python <candidate>` built by planner.build_plan.
+# `python -m ...`, `pip install ...`, a missing path or a path outside the tree add nothing. Only scripts discovery did not already find are added (appended
+# after the existing candidates, so their content and order are untouched), capped at MAX_README_ENTRYPOINTS in README order. Used by the recon / UI path
+# only (`run_intake`); a corpus run names its own command and `parse_intake` leaves this off unless asked.
+MAX_README_ENTRYPOINTS = 8
+_README_FILE_NAMES = frozenset({"readme", "readme.md", "readme.rst", "readme.txt", "readme.markdown"})
+_README_COMMAND = re.compile(r"^(?:\$\s*)?(?P<exe>python(?:3(?:\.\d+)?)?)(?P<flag>\s+-u)?\s+(?P<path>[\w.\-/]+\.py)(?=[\s;&|<>]|$)(?P<rest>.*)$")
+_README_FENCE = re.compile(r"^\s*(```|~~~)")
+_README_INDENTED = re.compile(r"^(?:\t| {2,})\S")
+_README_INLINE_SPAN = re.compile(r"(`+)(?!`)(.+?)(?<!`)\1(?!`)")
+_README_STOP_TOKENS = frozenset({"&&", "||", ";", "|", "&", ">", ">>", "2>&1", "&>"})
+
+
+def _readme_texts(repo_path: Path):
+    """The text of each top-level README (README, README.md/.rst/.txt/.markdown, any case), in name order; a symlinked or oversized README is not read."""
+    try:
+        names = sorted(os.listdir(repo_path), key=str.lower)
+    except OSError:
+        return
+    for name in names:
+        path = repo_path / name
+        if name.lower() not in _README_FILE_NAMES or path.is_symlink() or not path.is_file():
+            continue
+        text = read_text_capped(path, data_prep.README_MAX_BYTES)
+        if text is not None:
+            yield text
+
+
+def _readme_code_lines(text: str):
+    """The README lines that sit in a code context: inside a ``` / ~~~ fence, an indented line (a tab or two spaces: markdown and RST literal blocks), and
+    each inline code span (`...` or ``...``). A backslash continuation is joined to the next line."""
+    lines = text.splitlines()
+    fence: str | None = None
+    i = 0
+    while i < len(lines):
+        raw = lines[i]
+        i += 1
+        opening = _README_FENCE.match(raw)
+        if opening:
+            fence = opening.group(1) if fence is None else (None if fence == opening.group(1) else fence)
+            continue
+        if fence is not None or _README_INDENTED.match(raw):
+            line = raw.strip()
+            while line.endswith("\\") and i < len(lines):
+                line = line[:-1].rstrip() + " " + lines[i].strip()
+                i += 1
+            yield line
+            if fence is not None:
+                continue
+        for span in _README_INLINE_SPAN.finditer(raw):
+            yield span.group(2).strip()
+
+
+def _readme_command(line: str) -> tuple[str, str] | None:
+    """(path as written, command line) for `python[3] [-u] <path>.py [args]`, else None. The command stops at the first shell operator, redirection, comment or
+    substitution, so what is recorded is the run command and nothing that follows it."""
+    match = _README_COMMAND.match(line.strip())
+    if match is None:
+        return None
+    args: list[str] = []
+    for token in match.group("rest").split():
+        if token in _README_STOP_TOKENS or token.startswith(("#", "$(")) or "`" in token or re.match(r"\d?>", token):
+            break
+        args.append(token.rstrip(";"))
+        if token.endswith(";"):
+            break
+    command = " ".join([match.group("exe"), *(["-u"] if match.group("flag") else []), match.group("path"), *args])
+    return match.group("path"), "".join(ch for ch in command if ch.isprintable())[:200]
+
+
+def _named_script_exists(repo_path: Path, rel: str) -> bool:
+    """True if `rel` (repository-relative, POSIX, already normalised) is a real, readable Python file in the checkout: every component present with exactly this
+    spelling (the sandbox is case-sensitive), none a symlink, none hidden, and the file not one of the package / setup / test names no candidate ever is."""
+    parts = rel.split("/")
+    if any(part.startswith(".") for part in parts) or _NOT_A_SCRIPT.match(parts[-1]):
+        return False
+    current = repo_path
+    for part in parts:
+        try:
+            if part not in os.listdir(current):
+                return False
+        except OSError:
+            return False
+        current = current / part
+        if current.is_symlink():
+            return False
+    try:
+        return current.is_file() and current.stat().st_size <= _MAX_SCANNED_FILE_BYTES
+    except OSError:
+        return False
+
+
+def find_readme_entrypoints(repo_path: Path, exclude=()) -> dict[str, str]:
+    """Scripts the repository's README tells the reader to run (see the T15 note above), as {repository-relative path: the README's command line}, in README
+    order, without those in `exclude` (the candidates discovery already found)."""
+    skip = set(exclude)
+    found: dict[str, str] = {}
+    for text in _readme_texts(repo_path):
+        for line in _readme_code_lines(text):
+            named = _readme_command(line)
+            if named is None:
+                continue
+            rel = data_prep._inside(named[0])
+            if rel is None or rel in found or rel in skip or not _named_script_exists(repo_path, rel):
+                continue
+            found[rel] = named[1]
+            if len(found) >= MAX_README_ENTRYPOINTS:
+                return found
+    return found
+
+
 def parse_requirements_txt(content: str) -> frozenset[str]:
     names: set[str] = set()
     for raw_line in content.splitlines():
@@ -498,20 +623,26 @@ def parse_declared_dependencies(dependency_files: dict[str, str]) -> frozenset[s
     return frozenset(names)
 
 
-def parse_intake(workdir: Path, commit_sha: str) -> RepoIntake:
+def parse_intake(workdir: Path, commit_sha: str, *, readme_entrypoints: bool = False) -> RepoIntake:
     """Parse an already-cloned repo on disk into a `RepoIntake` — the
     local-file-only half of intake, shared by `run_intake` (clones HEAD
     itself) and the batch runner's `run_single_repo` (clones a pinned
-    commit via `clone_repo_at_commit` first)."""
+    commit via `clone_repo_at_commit` first).
+
+    harness-v1.8 (T15, D-52): `readme_entrypoints=True` (recon / UI path, `run_intake`) appends the scripts the repository's README names as the command to run
+    and discovery did not find; off (the default: corpus runs, scripts/live_run.py) the candidates are exactly what `find_entrypoint_candidates` returns."""
     dependency_files = find_dependency_files(workdir)
+    candidates = find_entrypoint_candidates(workdir)
+    readme_named = find_readme_entrypoints(workdir, exclude=candidates) if readme_entrypoints else {}
     return RepoIntake(
         local_path=workdir,
         commit_sha=commit_sha,
         dependency_files=dependency_files,
         declared_dependencies=parse_declared_dependencies(dependency_files),
         notebook_paths=find_notebooks(workdir),
-        entrypoint_candidates=find_entrypoint_candidates(workdir),
+        entrypoint_candidates=candidates + tuple(readme_named),
         python_version_hint=detect_python_version_hint(dependency_files),
+        readme_entrypoints=readme_named,
     )
 
 
@@ -519,4 +650,4 @@ def run_intake(repo_url: str, workdir: Path, shallow: bool = True) -> RepoIntake
     """Full intake: clone, then parse. The only network/subprocess call is
     the clone itself; everything after is local file parsing."""
     commit_sha = clone_repo(repo_url, workdir, shallow=shallow)
-    return parse_intake(workdir, commit_sha)
+    return parse_intake(workdir, commit_sha, readme_entrypoints=True)  # harness-v1.8 (T15): the README's own command is a candidate on this path

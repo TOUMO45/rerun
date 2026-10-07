@@ -45,6 +45,7 @@ from app.services import (
     api_removals,
     blocker,
     classifier,
+    command_shell,
     dep_resolver,
     env_repair,
     passport,
@@ -66,6 +67,8 @@ from app.services import (
     import_names,
     indentation,
     infra,
+    install_repair,
+    prerelease_pin,
     outcome_levels,
     patch_pipeline,
     python_policy,
@@ -74,6 +77,7 @@ from app.services import (
     runner_hooks,
     sandbox_limits,
     smoke_exec,
+    system_packages,
     timeouts,
     torch_wheels,
 )
@@ -327,6 +331,7 @@ class _RunState:
     resource_stop: tuple | None = None
     # harness-v1.7 (R5, companion_relax): torch-family pins the runner replaced at repair time ({package: version}), applied by runner_env.plan_torch_setup.
     torch_overrides: dict = field(default_factory=dict)
+    pipefail: bool = False  # harness-v1.8 (T11): the documented command has a pipe and runs under `bash -o pipefail`
     # harness-v1.7.1 (R5): RERUN's copy of requirements.txt with the swap's pins (None: the repository's file pins none of them, or has no requirements.txt).
     companion_requirements: str | None = None
     # harness-v1.7 (R4, apt_archive): every apt command of the run is preceded by runner_env.apt_archive_step() from here on.
@@ -343,12 +348,20 @@ def _cost_cap_reason(message: str) -> str:
     return f"COST_CAP: {message} — RERUN's per-entry / per-operation spend cap stopped the run; not a verdict on the repository."
 
 
-def derived_record(verdict: str, chain: list[dict], attempts: list[dict]) -> dict:
+def derived_record(verdict: str, chain: list[dict], attempts: list[dict], indeterminate_reason: str = "", baseline: dict | None = None) -> dict:
     """harness-v1.6: the two records READ OFF the verdict record, never hashed (bundle v4 is unchanged: both are
     recomputable from the hashed fields by anyone holding the certificate). `outcome_levels` is the four-rung ladder
     (outcome_levels.compute), `blocker` what the last failure needs (blocker.report). `attempts` are attempt dicts
-    (AttemptRecord.as_dict())."""
+    (AttemptRecord.as_dict()).
+
+    harness-v1.8: the record handed to `blocker.report` also carries `indeterminate_reason` and `baseline`, both certificate fields, so an INDETERMINATE stop on
+    something the run did not have (arguments, a display, docker, an unclear entry point) reaches the stored blocker (until v1.7.2 it never did: the
+    out-of-sample scan's mud-pi and AutoDoc records have `blocker: null`), and the diagnosis can quote the baseline's own evidence line."""
     record = {"verdict": verdict, "error_chain": list(chain), "attempts": list(attempts)}
+    if indeterminate_reason:
+        record["indeterminate_reason"] = indeterminate_reason
+    if baseline:
+        record["baseline"] = baseline
     return {"outcome_levels": outcome_levels.compute(record), "blocker": blocker.report(record)}
 
 
@@ -367,7 +380,8 @@ def _verdict_record(
         "last_error": chain.last_error,
     }
     if verdict is not None:
-        record.update(derived_record(verdict, record["error_chain"], [a.as_dict() for a in attempts]))
+        record.update(derived_record(verdict, record["error_chain"], [a.as_dict() for a in attempts], indeterminate_reason,
+                                     state.baseline if state is not None else None))
     return record
 
 
@@ -388,6 +402,24 @@ def missing_compiler_error(classification) -> str | None:
         return None
     evidence = classification.evidence or ""
     return evidence if _MISSING_COMPILER.search(evidence) else None
+
+
+def system_need(classification, log: str = "") -> "system_packages.SystemNeed | None":
+    """harness-v1.8 (T5): what a failed build or run needs from apt, deterministically: a missing C compiler (the v1.1 / D-24 rule, unchanged),
+    a missing C header (`ft2build.h` -> `libfreetype6-dev`), or a missing tool (`which g++`, `Cannot find command 'git'`).
+
+    Fires on SYS_LIB_MISSING and, new in v1.8, on DEP_BUILD_FAILED: pip's wrapper hides the inner cause from the classification
+    (TEST #13 neo_gnns: `Command '['which', 'g++']' returned non-zero exit status 1` was DEP_BUILD_FAILED, so the compiler rule never fired and
+    a candidate compiled torch-scatter from source for 257 s). The classification's own evidence line is read first; for a build the whole failing
+    `log` is read and the LAST thing it could not find wins (an earlier miss that a fallback recovered from is not the failure the run ended on).
+    A header or tool the tables (`system_packages`) do not know returns None, exactly as before: the repairer keeps it."""
+    code = classification.code
+    if code not in (classifier.TaxonomyCode.SYS_LIB_MISSING, classifier.TaxonomyCode.DEP_BUILD_FAILED):
+        return None
+    compiler = missing_compiler_error(classification)
+    if compiler:
+        return system_packages.SystemNeed(("build-essential",), compiler, "compiler", system_packages.COMPILER_RULE, "compiler")
+    return system_packages.need_in(classification.evidence or "") or system_packages.need_in(log or "", last=True)
 
 
 @dataclass(frozen=True)
@@ -437,6 +469,9 @@ class AttemptRecord:
     # harness-v1.7.2 (D-47), only serialized when set: the patch's added lines were re-indented to the file's convention before the gate
     # ([{"file", "from", "to", "lines", "parse_error"}], indentation.normalise_patch); `diff_text` is the normalised diff, `model_patch` what the model sent.
     indentation_normalised: tuple[dict, ...] | list | None = None
+    # harness-v1.8 (T1), only serialized when set: for a candidate that was NOT adopted and whose run did not succeed, what became of each env change:
+    # {"apt libfreetype6-dev": "failed" | "untested"} (see `_settle_moves`). "failed": the line the change cited as its target is still in the new run's output.
+    env_outcome: dict | None = None
 
     def as_dict(self) -> dict:
         record = {
@@ -477,6 +512,8 @@ class AttemptRecord:
             record["chosen"] = self.chosen
         if self.indentation_normalised:
             record["indentation_normalised"] = [dict(x) for x in self.indentation_normalised]
+        if self.env_outcome:
+            record["env_outcome"] = dict(self.env_outcome)
         if self.origin == "model" and self.gate_decision == "PASS" and self.diff_text.strip():
             # harness-v1.7 (R6, D-44): a gated model patch that touches a call whose replacement changes a result; only serialized when set.
             # harness-v1.7.2: plus an injected default input (tamper_gate.injected_default), stored from this version on only
@@ -526,7 +563,7 @@ class PipelineResult:
     def derived(self) -> dict:
         """harness-v1.6: `{"outcome_levels", "blocker"}`, read off the verdict record (see `derived_record`), with the
         stored Tavily lookup (`blocker_sources`) placed on `blocker["sources"]` when there is a blocker."""
-        out = derived_record(self.verdict, list(self.error_chain), [a.as_dict() for a in self.attempts])
+        out = derived_record(self.verdict, list(self.error_chain), [a.as_dict() for a in self.attempts], self.indeterminate_reason, self.baseline)
         if out["blocker"] is not None:
             out["blocker"] = {**out["blocker"], "sources": self.blocker_sources}
         return out
@@ -567,6 +604,52 @@ class PipelineResult:
 
 
 _PROJECT_FILES = ("setup.py", "setup.cfg", "pyproject.toml")
+_VOLATILE = re.compile(r"/tmp/\S+|\b[0-9a-f]{7,}\b|\d+")
+MAX_UNTESTED_ATTEMPTS = 2  # harness-v1.8 (T1): an env change that died elsewhere is allowed ONE retry; the second untested outcome bars it
+
+
+def _norm_line(text: str) -> str:
+    return re.sub(r"\s+", " ", _VOLATILE.sub("#", text or "")).strip().lower()
+
+
+def evidence_persists(evidence: str, output: str) -> bool:
+    """harness-v1.8 (T1): is the line an env change cited as its target (`EnvChange.evidence`, copied verbatim from the failing log; the gate requires it) still in
+    the output of the run made after applying it? Compared with digits, hex ids and /tmp paths blanked, whitespace collapsed, case ignored, so a pip build directory
+    that differs from run to run is not a different error. No cited evidence counts as persisting (the old behaviour: the move is judged failed)."""
+    lines = [ln for ln in (evidence or "").splitlines() if ln.strip()]
+    if not lines:
+        return True
+    probe = _norm_line(lines[0])
+    if len(probe) < 8:
+        probe = _norm_line(evidence)
+    return probe in _norm_line(output)
+
+
+def own_install_failed(change, output: str, self_inflicted_package: str | None) -> bool:
+    """harness-v1.8 (T1, review finding 7): did the env change's OWN install fail (a pin that does not exist, an apt name Debian does not know)? Then the run never reached
+    the error the change was for, and the change is at fault: "failed", not "untested". `self_inflicted_package` is `_self_inflicted`'s answer for the new run."""
+    package = getattr(change, "package", None)
+    if not package:
+        return False
+    if str(package) == self_inflicted_package:
+        return True
+    pkg = re.escape(str(package))
+    return getattr(change, "op", "") == "apt" and bool(
+        re.search(rf"Unable to locate package {pkg}\b|Package '{pkg}' has no installation candidate", output or ""))
+
+
+def move_status(change, output: str, self_inflicted_package: str | None = None) -> str:
+    """harness-v1.8 (T1): "failed" when the change's own install failed or the line it cited is still in the new output, else "untested"."""
+    return "failed" if own_install_failed(change, output, self_inflicted_package) or evidence_persists(getattr(change, "evidence", ""), output) else "untested"
+
+
+def move_barred(key, failed: set, untested: dict) -> bool:
+    """harness-v1.8 (T1): a failed move is barred; an untested one is allowed again until its second untested outcome (`MAX_UNTESTED_ATTEMPTS`)."""
+    return key in failed or untested.get(key, 0) >= MAX_UNTESTED_ATTEMPTS
+
+
+STREAM_TAIL_CHARS = 2000  # harness-v1.8 (T19): the tail of each stream a step that exited 0 keeps in `operations[].streams.tail`
+RAW_PATCH_MAX_CHARS = 200_000  # harness-v1.8 (T19): a model's file_edits / file_replacements JSON is stored whole up to this size
 # harness-v1.4.0-rc: seconds a candidate branch needs beyond the smoke limit (reopening the image, the overlay step, start-up).
 CANDIDATE_START_MARGIN_S = 45.0
 # harness-v1.4.1-rc (D-31): what a RESUME from a kept environment image needs beyond the smoke run (reopen the image, start the command):
@@ -1263,10 +1346,19 @@ def _run_stages(
             # harness-v1.4.3-rc (D-40): the largest peak-memory figure the API returned for any step of the operation, as returned (unit not documented)
             "max_rss": max((s.max_rss for s in steps if getattr(s, "max_rss", None) is not None), default=None),
             # harness-v1.4.3-rc (D-41): size, sha-256 and the API's truncated flag of each stream of the last step (what classification read)
-            **({"streams": result.final.streams()} if result is not None and result.steps and hasattr(result.final, "streams") else {}),
+            **({"streams": _streams_with_tail(result.final)} if result is not None and result.steps and hasattr(result.final, "streams") else {}),
             "killed_step": (getattr(exc, "command", "") or "")[:160] if outcome == "killed" else None,
             "killed_seconds": round(getattr(exc, "killed_seconds", 0.0) or 0.0, 1) if outcome == "killed" else None,
         }
+
+    def _streams_with_tail(step) -> dict:
+        """harness-v1.8 (T19, D-53): `streams()` plus, for a step that exited 0, the last 2,000 characters of each stream. A clean as-published run kept only
+        sizes and SHA-256 hashes, so the TEST-B audit could not read what the command printed: it took the missing text for empty and struck #6 under the wrong
+        rule (the right one was proven by reproducing the stream byte for byte). A failed run's tails are already in the attempt records."""
+        streams = step.streams()
+        if step.exit_code == 0:
+            streams["tail"] = {"stdout": (step.stdout or "")[-STREAM_TAIL_CHARS:], "stderr": (step.stderr or "")[-STREAM_TAIL_CHARS:], "cap_chars": STREAM_TAIL_CHARS}
+        return streams
 
     def _one_operation_seconds() -> float:
         """harness-v1.4.1-rc (D-31): what ONE funded operation needs: the smoke run plus the start-up margin (a resume from a kept image
@@ -1350,6 +1442,11 @@ def _run_stages(
             _log(f"[exit-wrapper] {role or 're-execution'}: {wrapper_note}")
         if not baseline and state.memory_hook:
             base_command = runner_env.with_memory_env(base_command)  # harness-v1.7 (R1 c): MALLOC_ARENA_MAX / OMP_NUM_THREADS for every process of the run
+        if command_shell.pipes_into_interpreter(base_command):
+            # harness-v1.8 (T11, TEST #18 adversary_critic): `python generate_script.py --train=True | bash` died at its first import and the pipe's status was bash's
+            # (0): RUNS_CLEAN for a run that did nothing. The certificate keeps the documented text; the sandbox is handed it inside `bash -o pipefail -c`.
+            base_command = command_shell.with_pipefail(base_command)
+            state.pipefail = True
         if evidence:
             # harness-v1.4.2-rc: the command (wrapped when the exit wrapper is on) runs unchanged, then the sandbox's own limits and any kill are read.
             base_command = runner_hooks.evidence_command(base_command)
@@ -1508,7 +1605,9 @@ def _run_stages(
                 raise OperationBudgetExhausted(state.cost_capped) from exc
             raise
         if isinstance(result, SandboxRunResult):
-            result = replace(result, base_command=use_plan.execute_command)  # harness-v1.4.3-rc (D-42): what THIS plan ran (a model's env delta may change it)
+            # harness-v1.4.3-rc (D-42): what THIS plan ran (a model's env delta may change it). harness-v1.8 (T11, review finding 3): as it ran, i.e. under
+            # `bash -o pipefail -c` when it pipes into an interpreter, so the sustained run re-executes the same command.
+            result = replace(result, base_command=command_shell.with_pipefail(use_plan.execute_command))
             if not evidence:
                 # harness-v1.7.2 (D-46): an exit code 0 whose output is an uncaught traceback or only a usage message is not a pass (exit_zero_check).
                 result = exit_zero_check.overrule(result)
@@ -1569,6 +1668,9 @@ def _run_stages(
         "taxonomy_code": None,
         "evidence": "",
     }
+    if state.pipefail:
+        state.baseline["pipefail"] = True  # harness-v1.8 (T11); only when set (older records unchanged)
+        plan = replace(plan, notes=(*plan.notes, command_shell.PIPEFAIL_NOTE))
     if exit_zero_check.finding_of(sandbox_result):
         state.baseline["exit_zero_check"] = exit_zero_check.finding_of(sandbox_result)  # harness-v1.7.2 (D-46); only when set (older records unchanged)
     _log(f"[baseline] as-is run: {state.baseline['result']} (exit code {sandbox_result.final.exit_code}"
@@ -1723,20 +1825,30 @@ def _run_stages(
         baseline_cls = _classify_run(sandbox_result.final.exit_code, sandbox_result.final.stderr, sandbox_result.final.stdout,
                                            declared_deps=intake_result.declared_dependencies, repo_modules=_internal_modules())
         swap = None
+        relax_rule = "companion_relax"
         if baseline_cls.code == classifier.TaxonomyCode.DEP_UNPINNED_CONFLICT and "ResolutionImpossible" in (
                 f"{sandbox_result.final.stderr}\n{sandbox_result.final.stdout}"):
             baseline_torch = runner_env.plan_torch_setup([*plan.as_shell_steps(), *intake_result.dependency_files.values()], workdir)
             swap = runner_env.companion_swap(baseline_torch.specs) if baseline_torch is not None else None
+        elif baseline_cls.code == classifier.TaxonomyCode.DEP_YANKED:
+            # harness-v1.8 (T2, TEST-B #2 ovis): the repository pins `torchvision==0.6.0a0`, a pre-release the index never served; the runner's own install
+            # failed before the baseline ran. The same deterministic path as R5: the final release is pinned instead, labelled a dependency change.
+            baseline_torch = runner_env.plan_torch_setup([*plan.as_shell_steps(), *intake_result.dependency_files.values()], workdir)
+            swap = (prerelease_pin.relax_for(f"{sandbox_result.final.stderr}\n{sandbox_result.final.stdout}", baseline_torch.specs)
+                    if baseline_torch is not None else None)
+            relax_rule = prerelease_pin.RULE
         if swap is not None:
             state.baseline["taxonomy_code"] = baseline_cls.code
             state.baseline["evidence"] = baseline_cls.evidence
             _log(f"[classifier] {baseline_cls.code}: {baseline_cls.evidence}")
             _note_failure(0, baseline_cls, sandbox_result.final.phase)  # the as-published failure is the chain's first link; its stop is deferred
             state.torch_overrides = swap.overrides()
-            plan = replace(plan, notes=(*plan.notes, f"companion_relax (harness-v1.7, R5; a DEPENDENCY CHANGE, labelled): {swap.as_dict()['reason']}; "
-                                                      f"{swap.package}=={swap.replacement} instead of {swap.pinned}"))
-            relax_action = {"rule": "companion_relax", "matched_error": baseline_cls.evidence[:500], "phase": "repair",
-                            "fires_on": "DEP_UNPINNED_CONFLICT in the runner's torch-family install, exact torch and torchvision pins that cannot coexist",
+            plan = replace(plan, notes=(*plan.notes, f"{relax_rule} ({'harness-v1.7, R5' if relax_rule == 'companion_relax' else 'harness-v1.8, T2'}; a DEPENDENCY CHANGE, labelled): "
+                                                      f"{swap.as_dict()['reason']}; {swap.package}=={swap.replacement} instead of {swap.pinned}"))
+            relax_action = {"rule": relax_rule, "matched_error": baseline_cls.evidence[:500], "phase": "repair",
+                            "fires_on": ("DEP_UNPINNED_CONFLICT in the runner's torch-family install, exact torch and torchvision pins that cannot coexist"
+                                         if relax_rule == "companion_relax" else
+                                         "DEP_YANKED in the runner's torch-family install: an exact pin to a pre-release the index does not serve"),
                             **swap.as_dict()}
             # harness-v1.7.1: the repository's own `pip install -r requirements.txt` runs after the runner's torch step and would put its pins back (DEV #5's
             # file pins torchvision==0.5.0 and Pillow==9.0.0). The swap's pins go into RERUN's copy of the file (env_repair; the repository's file is never edited).
@@ -1746,10 +1858,10 @@ def _run_stages(
                 for also in relax_action["also"]:
                     if also["package"].lower() == pin["package"].lower():
                         also["from"] = pin["from"]
-            _log(f"[time-machine] deterministic step: companion_relax ({swap.package} {swap.pinned} -> {swap.replacement}, "
-                 f"{swap.primary}=={swap.primary_version} kept: {swap.as_dict()['reason']}); no model call")
+            _log(f"[time-machine] deterministic step: {relax_rule} ({swap.package} {swap.pinned} -> {swap.replacement}"
+                 + (f", {swap.primary}=={swap.primary_version} kept" if swap.primary else "") + f": {swap.as_dict()['reason']}); no model call")
             try:
-                relaxed = _execute(workdir, smoke=True, role="time machine: companion_relax")
+                relaxed = _execute(workdir, smoke=True, role=f"time machine: {relax_rule}")
             except CostLimitExceeded as exc:
                 _log(f"[time-machine] stopped: {exc}")
                 attempts.append(AttemptRecord(0, "", "PASS", (), None, "", f"stopped before completion: {exc}"[-2000:], origin="time_machine",
@@ -1876,6 +1988,41 @@ def _run_stages(
         # saw the re-execution fail. A proposal repeating one is re-asked once,
         # then rejected (found live: TTPT's repairer re-proposed a no-op numpy add).
         failed_moves: set[tuple] = set()
+        untested_moves: dict[tuple, int] = {}  # harness-v1.8 (T1): env changes of a non-adopted candidate whose run died on some other error
+
+        def _settle_moves(changes, result) -> dict[str, str]:
+            """harness-v1.8 (T1, owner 2026-10-07: "a move is recorded failed only if the error it targeted is still present after applying it; if the run died on a
+            different or earlier error, record it untested and allow exactly one retry on the winning branch"). Applies to the env changes of a candidate that was
+            NOT adopted and whose run did not succeed. Before, every such change went into `failed_moves` and the gate-side repeat check then refused the model
+            to propose it again: TEST-B #8 (gandissect) round 1, candidate 3's `apt libfreetype6-dev` cited the `ft2build.h` line, its run died on another error
+            (the cited line was gone from its output), and in round 2 the same apt package was refused as 'already tried and failed', so the fix for the
+            error the run ended on was never applied.
+
+            Now: the cited line still in the new output -> "failed" (barred, as before). Anything else -> "untested": allowed again once (the next round starts
+            from the adopted candidate's environment, the winning branch); the second untested outcome bars it like a failure. The gate's rules are not touched:
+            only what this function puts into `failed_moves` / `untested_moves`, which `_repeats` reads, changes. Returns {"<op> <package>": status} for the record."""
+            text = f"{result.final.stderr}\n{result.final.stdout}" if result is not None else ""
+            outcome: dict[str, str] = {}
+            # review (finding 7): a change whose OWN install is what failed (a pin that does not exist, an apt name Debian does not know) never reached its cited
+            # error: that is the change's fault, so it is "failed", not "untested" (the same test the candidate flow already applies: `_self_inflicted`)
+            own: str | None = None
+            if result is not None and result.steps:
+                try:
+                    own = _self_inflicted(_classify_run(result.final.exit_code, result.final.stderr, result.final.stdout,
+                                                        declared_deps=intake_result.declared_dependencies, repo_modules=_internal_modules()),
+                                          [c.as_dict() for c in changes], intake_result.declared_dependencies)
+                except Exception:  # noqa: BLE001 - a result the classifier cannot read (a killed step): judged by the cited line alone
+                    own = None
+            for c in changes:
+                key = env_repair.change_key(c)
+                label = f"{c.op} {c.package or c.command or c.version}"
+                status = move_status(c, text, own)
+                if status == "failed":
+                    failed_moves.add(key)
+                else:
+                    untested_moves[key] = untested_moves.get(key, 0) + 1
+                outcome[label] = status
+            return outcome
         isolated_packages: set[str] = set()
 
         def _auto_build_isolation(failed: SandboxRunResult) -> SandboxRunResult | None:
@@ -1935,32 +2082,45 @@ def _run_stages(
                 failed_moves.add(env_repair.change_key(change))
             return result
 
-        def _auto_build_essential(failed: SandboxRunResult, matched_error: str) -> SandboxRunResult | None:
+        def _auto_system_packages(failed: SandboxRunResult, need: "system_packages.SystemNeed") -> SandboxRunResult | None:
             """harness-v1.3.5-unvalidated (D-24, post-gate; no gate has validated it). Deterministic step (no model): the failure
-            being repaired is a SYS_LIB_MISSING that names a missing C compiler, so `build-essential` goes into the apt step and
-            the command is re-executed. Before D-24 the rule only fired on the baseline classification, and a missing compiler
-            found after a repair went to the model (corpus-v2 entry 7 in the v1.3.4 gate: the model proposed `gcc` as a pip
-            package). Returns the re-execution's result, or None if the env gate refuses the step or the budget stops it."""
+            being repaired names a missing C compiler, so `build-essential` goes into the apt step and the command is re-executed.
+            Before D-24 the rule only fired on the baseline classification, and a missing compiler found after a repair went to the
+            model (corpus-v2 entry 7 in the v1.3.4 gate: the model proposed `gcc` as a pip package).
+
+            harness-v1.8 (T5): the same step for a missing C header (`ft2build.h` -> libfreetype6-dev) or tool (`which g++`, `git`), from the
+            `system_packages` tables, on SYS_LIB_MISSING and DEP_BUILD_FAILED (`system_need`). The compiler case keeps the v1.3.5 record and
+            log text. Returns the re-execution's result, or None if the env gate refuses the step or the budget stops it."""
             nonlocal plan, current_requirements
+            matched_error = need.evidence
+            packages = tuple(p for p in need.packages if p not in plan.apt_install)
             log = f"{failed.final.stderr}\n{failed.final.stdout}"
-            change = env_repair.EnvChange(
-                op="apt",
-                package="build-essential",
-                justification="deterministic: the failing run could not execute a C compiler",
-                evidence=matched_error,
+            compiler_case = need.rule == BUILD_ESSENTIAL_RULE
+            changes = tuple(
+                env_repair.EnvChange(
+                    op="apt",
+                    package=pkg,
+                    justification=("deterministic: the failing run could not execute a C compiler" if compiler_case else
+                                   f"deterministic: the failing run could not find {need.item} ({need.kind}); apt package {pkg} provides it"),
+                    evidence=matched_error,
+                )
+                for pkg in packages
             )
-            action = {"rule": BUILD_ESSENTIAL_RULE, "matched_error": matched_error, "apt_added": ["build-essential"], "phase": "repair"}
+            what = "build-essential" if compiler_case else " ".join(packages)
+            action = {"rule": need.rule, "matched_error": matched_error, "apt_added": list(packages), "phase": "repair"}
+            if not compiler_case:
+                action["needed"] = {"kind": need.kind, "item": need.item}
             # The same gate a model proposal faces (the evidence must be in the failing run's log, verbatim).
             violations = env_repair.check_env_delta(
-                (change,), log_text=log, imported_modules=frozenset(), has_requirements_txt=current_requirements is not None,
+                changes, log_text=log, imported_modules=frozenset(), has_requirements_txt=current_requirements is not None,
                 locked_requirements=tuple(current_requirements.splitlines()) if resolved_lock is not None and current_requirements else None,
                 apt_packages=frozenset(plan.apt_install),
             )
             if violations:
-                _log(f"[time-machine] build-essential step refused by the env gate: {'; '.join(v.reason for v in violations)}")
+                _log(f"[time-machine] {what} step refused by the env gate: {'; '.join(v.reason for v in violations)}")
                 return None
             plan_before = plan
-            plan, new_requirements = env_repair.apply_env_delta(plan, (change,), current_requirements)
+            plan, new_requirements = env_repair.apply_env_delta(plan, changes, current_requirements)
             if new_requirements is not None:
                 current_requirements = new_requirements
             # harness-v1.4.1-rc (D-34): an additive layer on the kept environment image, never a rebuild from the tree image.
@@ -1968,14 +2128,14 @@ def _run_stages(
             if layer is not None:
                 state.apt_layers.append(layer)
                 action["apt_layer"] = {"layering": "additive", "on_kept_image": layer["after_image"], "setup_commands_kept": layer["after_ops"]}
-                _log(f"[time-machine] build-essential goes in as an additive layer on kept image {layer['after_image']} "
+                _log(f"[time-machine] {what} goes in as an additive layer on kept image {layer['after_image']} "
                      f"({layer['after_ops']} setup command(s) stay in it)")
-            _log(f"[time-machine] deterministic step: apt build-essential (matched error: {matched_error}); no model call")
+            _log(f"[time-machine] deterministic step: apt {what} (matched error: {matched_error}); no model call")
             state.build_plan_dict = plan.as_dict()
 
             def _record(exit_code, stdout, stderr, execution=None) -> None:
                 attempts.append(
-                    AttemptRecord(0, "", "PASS", (), exit_code, stdout, stderr, (), (change.as_dict(),), (),
+                    AttemptRecord(0, "", "PASS", (), exit_code, stdout, stderr, (), tuple(c.as_dict() for c in changes), (),
                                   origin="time_machine", execution=execution, time_machine_action=action)
                 )
 
@@ -1991,7 +2151,44 @@ def _run_stages(
             _log(f"[time-machine] re-execution id={result.sandbox_id} exit_code={result.final.exit_code}")
             _record(result.final.exit_code, result.final.stdout[-2000:], result.final.stderr[-2000:], _execution_of(result, True))
             if not result.succeeded:
-                failed_moves.add(env_repair.change_key(change))
+                for _c in changes:
+                    failed_moves.add(env_repair.change_key(_c))
+            return result
+
+        install_fixes: set[str] = set()
+
+        def _auto_install_repair(failed: SandboxRunResult, fix: "install_repair.InstallFix") -> SandboxRunResult | None:
+            """harness-v1.8 (T3). Deterministic step (no model): an install line the failing run shows cannot work any more, and the repair is a known one:
+            a Debian package that has been renamed (`libgl1-mesa-glx` -> `libgl1`), or the retired `git://github.com/` protocol (-> `https://`, with `git`
+            installed for pip's VCS support). The repository's own files are never edited: the rewrite goes into RERUN's copy of the requirements. Once per
+            key per run; recorded as attempt 0 / origin time_machine with `time_machine_action`, and labelled a dependency change. Returns the
+            re-execution's result, or None if the budget stops it."""
+            nonlocal plan, current_requirements
+            install_fixes.add(fix.key)
+            plan = fix.plan
+            if fix.requirements is not None:
+                current_requirements = fix.requirements
+            state.build_plan_dict = plan.as_dict()
+            action = {"rule": fix.rule, "matched_error": fix.evidence, "phase": "repair", **fix.detail}
+            plan = replace(plan, notes=(*plan.notes, f"{fix.rule} (harness-v1.8, T3; a DEPENDENCY CHANGE, labelled): {json.dumps(fix.detail)[:300]}"))
+            state.build_plan_dict = plan.as_dict()
+            _log(f"[time-machine] deterministic step: {fix.rule} (matched: {fix.evidence[:200]}); no model call")
+
+            def _record(exit_code, stdout, stderr, execution=None) -> None:
+                attempts.append(AttemptRecord(0, "", "PASS", (), exit_code, stdout, stderr, origin="time_machine",
+                                              execution=execution, time_machine_action=action))
+
+            try:
+                result = _execute(workdir, smoke=True, role=f"time machine: {fix.rule}")
+            except CostLimitExceeded as exc:
+                _log(f"[time-machine] stopped: {exc}")
+                _record(None, "", f"stopped before completion: {exc}"[-2000:])
+                return None
+            except (SandboxTimeoutError, tree_integrity.HarnessIntegrityError) as exc:
+                _record(None, "", str(exc)[-2000:])
+                raise
+            _log(f"[time-machine] re-execution id={result.sandbox_id} exit_code={result.final.exit_code}")
+            _record(result.final.exit_code, result.final.stdout[-2000:], result.final.stderr[-2000:], _execution_of(result, True))
             return result
 
         removals_applied: set[str] = set()
@@ -2094,6 +2291,41 @@ def _run_stages(
             # step goes first (the deterministic loop). v1.6 stopped here, with no time machine either.
             era_first = False
             _log("[time-machine] skipped ahead of the apt-archive rule: nothing installs while the mirrors are gone")
+        if era_first and deps.repair_enabled:
+            # harness-v1.8 (T3): the install line itself cannot work (a renamed apt package, the retired git:// protocol); an era lock built on top of it would fail at
+            # the same line, so the deterministic repair goes FIRST (it re-executes) and the era lock then runs on whatever the repaired plan fails on. (Independent review,
+            # finding 2: the first version of this skipped the era lock for good.) An apt package with no known successor (`libjasper-dev`) is not repairable here: the era
+            # lock would only fail at the same apt line, so the failure goes straight to the model (review, finding 8).
+            _head_log = f"{sandbox_result.final.stderr}\n{sandbox_result.final.stdout}"
+            _pre_fix = install_repair.fix_for(_head_log, plan, current_requirements, frozenset(install_fixes))
+            if _pre_fix is not None:
+                state.stage = "time_machine"
+                _pre = _auto_install_repair(sandbox_result, _pre_fix)
+                if _pre is None:  # the budget stopped it: the loop below sees state.cost_capped
+                    era_first = False
+                else:
+                    if not _pre.succeeded:
+                        _pre = _with_build_isolation(_pre)
+                    sandbox_result = _pre
+                    if _pre.succeeded:
+                        verdict = "RUNS_AFTER_REPAIR"
+                        state.error_chain.clear_last(0)  # the deterministic step cleared the failure
+                        era_first = False
+                    else:
+                        classification = _classify_run(_pre.final.exit_code, _pre.final.stderr, _pre.final.stdout,
+                                                       declared_deps=intake_result.declared_dependencies, repo_modules=_internal_modules())
+                        taxonomy_code = classification.code
+                        _log(f"[classifier] {classification.code}: {classification.evidence}")
+                        _pre_reason = _note_failure(0, classification, _pre.final.phase, result=_pre)
+                        if _pre_reason:
+                            verdict, indeterminate_reason = "INDETERMINATE", _pre_reason
+                            _log(f"[verdict] INDETERMINATE: {_pre_reason}")
+                            era_first = False
+                        else:
+                            era_first = classifier.repair_layer_for(classification.code) == "env"
+            elif re.search(r"has no installation candidate|Unable to locate package", _head_log):
+                era_first = False
+                _log("[time-machine] skipped the era lock: an apt package the plan names has no installation candidate and no known successor")
         if era_first and classification.code == classifier.TaxonomyCode.API_REMOVED and api_removals.match(
                 f"{sandbox_result.final.stderr}\n{sandbox_result.final.stdout}"):
             # harness-v1.6: an API_REMOVED failure that a removed-API row (api_removals, F2) covers keeps the order validated at
@@ -2124,9 +2356,10 @@ def _run_stages(
                     (current_requirements or "").splitlines(), undeclared, era.date, py_version
                 )
                 apt_added = ()
-                if missing_compiler_error(classification):
-                    # Deterministic known need: a missing C compiler.
-                    apt_added = ("build-essential",)
+                _need = system_need(classification, f"{sandbox_result.final.stderr}\n{sandbox_result.final.stdout}")
+                if _need:
+                    # Deterministic known need: a missing C compiler (build-essential), and since harness-v1.8 (T5) a missing header or tool.
+                    apt_added = _need.packages
                 tm_record = {
                     "era": era.as_dict(),
                     "python": {"version": py_version, "reason": py_reason, "source": time_machine.PYTHON_RELEASES_SOURCE},
@@ -2136,7 +2369,7 @@ def _run_stages(
                     # Every import -> distribution mapping the era lock used (harness-v1.1).
                     "import_mappings": import_mappings,
                     "apt_added": list(apt_added),
-                    "apt_reason": classification.evidence if apt_added else "",
+                    "apt_reason": _need.evidence if _need else "",
                     "lock": lock.as_dict(),
                 }
                 # Fallback (D-5): if no era lock can be produced, the whole batch still goes in ONE unpinned pip step on the
@@ -2170,8 +2403,9 @@ def _run_stages(
                             state.apt_layers.append(_era_layer)
                         current_requirements = "\n".join(lock_lines) + "\n"
                     else:
+                        _cause = time_machine.lock_failure_cause(lock.error)
                         _log(
-                            f"[time-machine] era lock unavailable ({lock.error[-200:].strip()!r}); fallback: one pip step for "
+                            f"[time-machine] era lock unavailable ({_cause['id'] + ': ' + _cause['detail'] if _cause else lock.error[-200:].strip()!r}); fallback: one pip step for "
                             f"{len(fallback_names)} undeclared import(s), unpinned, on {plan.base_image}"
                         )
                         plan_before = plan
@@ -2489,7 +2723,9 @@ def _run_stages(
                     _log(f"[verdict] INDETERMINATE: {indeterminate_reason}")
                     stop_run = True
                     break
-                compiler_error = missing_compiler_error(classification)
+                sys_need = system_need(classification, f"{sandbox_result.final.stderr}\n{sandbox_result.final.stdout}")  # harness-v1.8 (T5)
+                install_fix = install_repair.fix_for(f"{sandbox_result.final.stderr}\n{sandbox_result.final.stdout}", plan, current_requirements,
+                                                     frozenset(install_fixes))  # harness-v1.8 (T3)
                 removal_hit = api_removals.match(f"{sandbox_result.final.stderr}\n{sandbox_result.final.stdout}")  # harness-v1.5.1 (F2)
                 memory_next = (_memory_rule_next(sandbox_result.final.phase) if classification.code == classifier.TaxonomyCode.RESOURCE_LIMIT
                                else None)
@@ -2514,9 +2750,12 @@ def _run_stages(
                     step_result = _auto_api_removal(sandbox_result, *removal_hit)
                     if step_result is None and not state.cost_capped:
                         continue  # not taken (the rule is marked, so it cannot come back): the other deterministic steps still get their turn for this same failure
-                elif compiler_error and "build-essential" not in plan.apt_install:
+                elif install_fix is not None:
+                    state.stage = "time_machine"  # harness-v1.8 (T3): a renamed Debian package, or the retired git:// protocol
+                    step_result = _auto_install_repair(sandbox_result, install_fix)
+                elif sys_need and not set(sys_need.packages) <= set(plan.apt_install):
                     state.stage = "time_machine"
-                    step_result = _auto_build_essential(sandbox_result, compiler_error)
+                    step_result = _auto_system_packages(sandbox_result, sys_need)
                 elif (hooks_ok and classification.code == classifier.TaxonomyCode.GPU_REQUIRED
                       and runner_hooks.CPU_SHIM not in hooks_installed):
                     state.stage = "time_machine"
@@ -2819,16 +3058,19 @@ def _run_stages(
                         return None
 
                 def _repeats(changes):
-                    return [c for c in changes if env_repair.change_key(c) in failed_moves]
+                    return [c for c in changes if move_barred(env_repair.change_key(c), failed_moves, untested_moves)]
 
                 repeated = _repeats(env_changes)
                 if repeated:
                     described = ", ".join(f"{c.op} {c.package or c.command or c.version}" for c in repeated)
                     _log(f"[repair {label}] proposal repeats change(s) already tried and failed this run ({described}); re-asked once (same attempt)")
+                    untested_twice = [c for c in repeated if env_repair.change_key(c) not in failed_moves]  # harness-v1.8 (T1, review finding 7)
                     proposal = _ask(
                         "Your previous reply was rejected: it repeats environment change(s) this run already applied "
                         f"and then saw fail ({described}). They are already in effect, so repeating them cannot help. "
-                        "Propose a DIFFERENT fix, or decline. Reply again with the complete JSON object."
+                        + (f"({', '.join(f'{c.op} {c.package}' for c in untested_twice)}: tried twice on branches where the run died before reaching the error it was for; "
+                           "a third try is not offered.) " if untested_twice else "")
+                        + "Propose a DIFFERENT fix, or decline. Reply again with the complete JSON object."
                     )
                     if not proposal.has_change:
                         _log(f"[repair {label}] declined after re-ask: {proposal.explanation}")
@@ -2867,7 +3109,12 @@ def _run_stages(
                 def _raw_patch(prop) -> str:
                     if prop.diff_text:
                         return prop.diff_text
-                    return json.dumps({"file_edits": list(prop.file_edits), "file_replacements": list(prop.file_replacements)})[:6000]
+                    raw = json.dumps({"file_edits": list(prop.file_edits), "file_replacements": list(prop.file_replacements)})
+                    if len(raw) <= RAW_PATCH_MAX_CHARS:
+                        return raw
+                    # harness-v1.8 (T19, TEST #6 rocgan): until v1.7.2 this was `raw[:6000]`, a JSON string cut in the middle, which no replay can parse.
+                    # A patch too large to store is recorded as valid JSON that says so, with the size, the hash and the first 6,000 characters.
+                    return json.dumps({"truncated": True, "chars": len(raw), "sha256": hashlib.sha256(raw.encode("utf-8")).hexdigest(), "head": raw[:6000]})
 
                 candidate_diff: str | None = None
                 if proposal.has_code:
@@ -3180,7 +3427,7 @@ def _run_stages(
                         silent = (not classifier.has_actionable_error(result.final.stderr, result.final.stdout)
                                   and cls.code != classifier.TaxonomyCode.RESOURCE_LIMIT  # a SIGKILL is not a silent exit (D-38)
                                   and not getattr(result.final, "truncated", False))  # nor is a stream the API cut (D-41)
-                        compiler = missing_compiler_error(cls)
+                        sys_need = system_need(cls, output)  # harness-v1.8 (T5): header and tool needs as well as the compiler
                         action: dict | None = None
                         if (cls.code == classifier.TaxonomyCode.APT_MIRROR_GONE and not state.apt_archive
                                 and not cand.get("apt_archive")):
@@ -3190,26 +3437,36 @@ def _run_stages(
                             cand = {**cand, "apt_archive": True}
                             action = {**_apt_archive_action(cls.evidence or cls.code, "APT_MIRROR_GONE on a repair candidate's branch"),
                                       "on_candidate": cand["number"]}
-                        elif compiler and "build-essential" not in cand["plan"].apt_install:
-                            change = env_repair.EnvChange(op="apt", package="build-essential", evidence=compiler,
-                                                          justification="deterministic: the failing run could not execute a C compiler")
+                        elif sys_need and not set(sys_need.packages) <= set(cand["plan"].apt_install):
+                            compiler_case = sys_need.rule == BUILD_ESSENTIAL_RULE
+                            what = "build-essential" if compiler_case else " ".join(sys_need.packages)
+                            changes = tuple(
+                                env_repair.EnvChange(
+                                    op="apt", package=pkg, evidence=sys_need.evidence,
+                                    justification=("deterministic: the failing run could not execute a C compiler" if compiler_case else
+                                                   f"deterministic: the failing run could not find {sys_need.item} ({sys_need.kind}); "
+                                                   f"apt package {pkg} provides it"))
+                                for pkg in sys_need.packages if pkg not in cand["plan"].apt_install
+                            )
                             violations = env_repair.check_env_delta(
-                                (change,), log_text=output, imported_modules=frozenset(),
+                                changes, log_text=output, imported_modules=frozenset(),
                                 has_requirements_txt=cand["requirements"] is not None,
                                 locked_requirements=(tuple(cand["requirements"].splitlines())
                                                      if resolved_lock is not None and cand["requirements"] else None),
                                 apt_packages=frozenset(cand["plan"].apt_install))
                             if violations:
-                                _log(f"[time-machine] {label}: build-essential step refused by the env gate: "
+                                _log(f"[time-machine] {label}: {what} step refused by the env gate: "
                                      f"{'; '.join(v.reason for v in violations)}")
                                 break
-                            plan_after, requirements_after = env_repair.apply_env_delta(cand["plan"], (change,), cand["requirements"])
+                            plan_after, requirements_after = env_repair.apply_env_delta(cand["plan"], changes, cand["requirements"])
                             layer = _apt_layer_for(cand["plan"], plan_after, existing=tuple(cand["apt_layers"]),
                                                    extra_extras=tuple(cand["extras"]))
                             cand = {**cand, "plan": plan_after, "requirements": requirements_after,
                                     "apt_layers": (*cand["apt_layers"], *((layer,) if layer is not None else ()))}
-                            action = {"rule": BUILD_ESSENTIAL_RULE, "matched_error": compiler, "apt_added": ["build-essential"],
+                            action = {"rule": sys_need.rule, "matched_error": sys_need.evidence, "apt_added": [c.package for c in changes],
                                       "phase": "repair", "on_candidate": cand["number"]}
+                            if not compiler_case:
+                                action["needed"] = {"kind": sys_need.kind, "item": sys_need.item}
                             if layer is not None:
                                 action["apt_layer"] = {"layering": "additive", "on_kept_image": layer["after_image"],
                                                        "setup_commands_kept": layer["after_ops"]}
@@ -3342,6 +3599,8 @@ def _run_stages(
                     if result is not None:
                         branch = {"branch_from_image": result.branch_from_image, "result_image": result.result_image,
                                   "image_kept": e is winner and bool(result.result_image)}
+                    env_outcome = (_settle_moves(e["env_changes"], result)  # harness-v1.8 (T1)
+                                   if result is not None and not result.succeeded and e is not winner and e["env_changes"] else None)
                     attempts.append(
                         AttemptRecord(
                             attempt_number,
@@ -3366,10 +3625,9 @@ def _run_stages(
                             adjudication=adjudication_record,
                             chosen=(e is winner) if adjudication is not None else None,
                             time_machine_action=_candidate_action_record(e["actions"]),
+                            env_outcome=env_outcome,
                         )
                     )
-                    if result is not None and not result.succeeded and e is not winner:
-                        failed_moves.update(env_repair.change_key(c) for c in e["env_changes"])
                 with op_lock:
                     layer_images = {layer["image"] for layer in state.layers}
                 released = [image for image in released if image not in layer_images]  # never a layer a later operation may reopen

@@ -187,6 +187,13 @@ def build_plan(
             model_apt = raw.get("apt_packages") or []
             if isinstance(model_apt, list):
                 safe_model_apt = _sanitize_apt_package_names(model_apt, notes)
+                # harness-v1.8 (T3, TEST-B #3 video_prediction): the model offered `libgl1-mesa-glx`, which current Debian no longer ships; `libgl1` is the
+                # same runtime library and exists on every Debian the sandbox images use (buster and later). Only this one, unambiguous name is mapped here;
+                # any other retired name is repaired when the apt step fails (install_repair), from the table in system_packages.
+                for old_name, new_name in (("libgl1-mesa-glx", "libgl1"),):
+                    if old_name in safe_model_apt:
+                        safe_model_apt = (safe_model_apt - {old_name}) | {new_name}
+                        notes.append(f"apt package {old_name} replaced by {new_name} (Debian no longer ships the old name)")
                 apt_packages |= safe_model_apt
                 if safe_model_apt:
                     notes.append("apt package list enriched by Nemotron Super")

@@ -356,6 +356,9 @@ _RULES: tuple[_Rule, ...] = (
             r"ImportError:\s*lib[\w.]+\.so",
             r"fatal error:\s*[\w./]+\.h:\s*No such file or directory",
             r"error:\s*command '.*gcc.*' failed",
+            # harness-v1.8 (T3, TEST-B #3 video_prediction): the plan's apt line names a package Debian no longer ships. It is a system-package failure; it
+            # was RUNTIME_ERROR_OTHER, which skipped the time machine and left nine repair attempts to patch Python around an apt line.
+            r"^E: Package '[\w+.:-]+' has no installation candidate",
         ),
     ),
     _Rule(
@@ -415,6 +418,9 @@ _RULES: tuple[_Rule, ...] = (
             r"AssertionError:(?=.*\bdownload)",
             r"AssertionError:(?=.*\b(dataset|data (dir|path|folder))\b)(?=.*\b(not found|does not exist|missing|please|first|prepare)\b)",
             r"Caught FileNotFoundError in DataLoader worker",
+            # harness-v1.8 (D-54, TEST-B #1 Ordered-Neurons): NLTK's own wording for a data package that is not installed (the name is wrapped in ANSI
+            # colour codes). It was RUNTIME_ERROR_OTHER, which sent a licensed-data problem to the code repairer for nine attempts.
+            r"Resource\s+(?:\x1b\[[0-9;]*m)*[\w.\-/]+(?:\x1b\[[0-9;]*m)*\s+not found",
         ),
     ),
 )
@@ -495,15 +501,40 @@ def _build_wrapper_span(text: str) -> tuple[int, int] | None:
     return start, (line_end if line_end != -1 else len(text))
 
 
+# harness-v1.8 (T10): the lines pip prints AROUND a failed build that are only its own framing, never the cause.
+_PIP_FRAMING_RE = re.compile(r"^(error: (?:subprocess-exited-with-error|metadata-generation-failed|legacy-install-failure)|\S?\s?Encountered error while |"
+                             r"note: |hint: |\[end of output\]|\[\d+ lines of output\]|See above for output|│ exit code|╰─>)")
+_CAUSE_LINE_RE = re.compile(r"^(fatal: \S|(?:\S+: )?error: (?!subprocess-exited|metadata-generation|legacy-install)\S|.*\bfatal error: |ERROR: (?!Failed building wheel|Failed to build|"
+                            r"Could not build wheels|Cannot install)\S)")
+
+
+def _specific_build_line(text: str, start: int) -> str:
+    """harness-v1.8 (T10, TEST-B #3 video_prediction). A failed build whose block holds no Python exception (a `git clone` that cannot connect, a compiler that is
+    missing) printed its cause just BEFORE pip's wrapper line (`fatal: unable to connect to github.com:` ... `error: subprocess-exited-with-error`), and the record
+    quoted the wrapper. The nearest cause-looking line in the 15 lines before the wrapper wins; failing that, the `× <command> did not run successfully` line
+    inside the block; failing that, "" (the caller keeps the wrapper line, as before)."""
+    before = text[:start].splitlines()[-15:]
+    for line in reversed(before):
+        s = line.strip()
+        if s and not _PIP_FRAMING_RE.match(s) and _CAUSE_LINE_RE.match(s):
+            return s
+    for line in text[start:].splitlines()[:12]:
+        s = line.strip()
+        if s.startswith("×") and "did not run successfully" in s:
+            return s
+    return ""
+
+
 def _build_evidence(text: str, start: int) -> str:
     """The build's own exception line: the last one between the wrapper match at `start` and the next `ERROR:` /
     `Successfully installed` line (pip's summary of that build), so an exception a LATER build or the command printed is
-    never quoted as this build's cause."""
+    never quoted as this build's cause. harness-v1.8 (T10): with no exception line in the block, the most specific line around it
+    (`_specific_build_line`) rather than pip's wrapper."""
     after = text[start:]
     first_line_end = after.find("\n")
     rest_from = first_line_end + 1 if first_line_end != -1 else len(after)
     boundary = _PIP_BLOCK_END_RE.search(after, rest_from)
-    return _last_exception_line(after[: boundary.start() if boundary else len(after)])
+    return _last_exception_line(after[: boundary.start() if boundary else len(after)]) or _specific_build_line(text, start)
 
 
 def _search_outside(pattern: re.Pattern, text: str, masked: tuple[int, int] | None) -> re.Match | None:
@@ -688,6 +719,8 @@ _ERROR_MARKER_RE = re.compile(
 
 
 _EXCEPTION_LINE_RE = re.compile(r"^[A-Za-z_][\w.]*(Error|Exception|Exit|Interrupt): \S")
+_BARE_EXIT_RE = re.compile(r"^(?:SystemExit|KeyboardInterrupt): ?-?\d*$")  # harness-v1.8 (T10): an exit status, not a cause
+_ARGPARSE_ERROR_RE = re.compile(r"^[\w./-]+(?:\.py)?: error: \S")  # `train_mn.py: error: unrecognized arguments: ...`
 
 
 def fallback_evidence(stderr: str, stdout: str = "", exit_code: int = 1) -> str:
@@ -700,6 +733,16 @@ def fallback_evidence(stderr: str, stdout: str = "", exit_code: int = 1) -> str:
         return [line.strip() for line in (text or "").splitlines() if line.strip() and not _NOISE_LINE_RE.match(line)]
 
     err, out = _signal(stderr), _signal(stdout)
+    # harness-v1.8 (T10, TEST #6 rocgan): RERUN's exit hook re-raises `SystemExit: 2` after the program printed argparse's
+    # `train_mn.py: error: unrecognized arguments: --config ...`; `SystemExit: N` is the exit status, not the cause, so it is used only when nothing better exists.
+    for lines in (err, out):
+        informative = [line for line in lines if _EXCEPTION_LINE_RE.search(line) and not _BARE_EXIT_RE.match(line)]
+        if informative:
+            return informative[-1]
+    for lines in (err, out):
+        argparse_line = [line for line in lines if _ARGPARSE_ERROR_RE.match(line)]
+        if argparse_line:
+            return argparse_line[-1]
     for pattern in (_EXCEPTION_LINE_RE, _ERROR_MARKER_RE):
         for lines in (err, out):
             marked = [line for line in lines if pattern.search(line)]

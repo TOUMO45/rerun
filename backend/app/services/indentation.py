@@ -25,6 +25,25 @@ Two deterministic changes:
      every other rule (deleted eval calls, stubs, reduced scale, swallowed exceptions, size), and that normalised diff is what is applied.
 
 The attempt record carries `indentation_normalised` ({"file", "from", "to", "lines", "parse_error"} per file).
+
+harness-v1.8 (T7): `rebase_edit(matched, old, new)`, the case D-47 refuses. The model's `file_edits` text uses the file's own convention (spaces in a space file,
+tabs in a tab file, the same unit), but its ABSOLUTE level is wrong: `old` begins at a comment or a keyword without the line's indentation, and/or its later
+lines (and `new`'s) sit 4, 10 or 16 columns deeper than the file's. The resolver's whitespace-tolerant match still finds the block (it ignores indentation),
+`new` replaces the matched lines as written, the file does not parse ("unexpected indent"), and D-47 refuses because patch and file agree on the convention
+(records: runs/live_scan/oos_v1.7.2 njanakiev__openstreetmap-heatmap, three attempts; corpus-v2 entry 20 fashion-retrieval, two attempts).
+
+The matched file lines are the evidence. `old` and the matched block are the same lines (the match is line for line), so for each statement line of `old` the
+file's real indentation minus the model's own is the model's offset, and a model that misremembers where the block sits is off by the SAME number of columns on
+every line. When that offset is one number for all the statement lines (comments, blank lines, continuation lines and string contents are not evidence), `new`
+is moved by it: every line keeps the model's own relative structure and lands in the file's own unit (spaces stay spaces, tabs stay tabs, the line end is the
+resolver's). A first `old` line that begins WITHOUT any indentation while the file's line has some (the model started at the comment or keyword) is not
+evidence of an offset: the first `new` line that also begins without indentation takes the matched first line's real indentation, because the resolver replaces
+the whole matched line. Nothing is guessed: no evidence for a multi-line `new` (a lone stripped first line), offsets that disagree (the model flattened or
+re-scaled the block: a 2-space model in a 4-space file), tabs against spaces (D-47's case, which keeps its own record), a line mixing tabs and spaces, or a
+statement line that would go left of column 0 -> None, and the edit goes in as written. Never a non-whitespace change (checked, refused when it fails). This
+function only READS the lines it is given; the caller (patch_pipeline.from_file_edits) decides: an edit whose move would touch nothing but comment or
+continuation lines is not even offered, and a file's re-based edits are kept only when that file then parses and did not parse as written, so the tamper gate sees
+exactly what it always saw unless the model's text could not parse; the gate's rules are not involved.
 """
 
 from __future__ import annotations
@@ -252,3 +271,87 @@ def normalise_patch(diff_text: str, originals: dict[str, str]) -> tuple[str, lis
     if not records:
         return None
     return "".join(patch_pipeline.canonical_diff(path, originals[path], patched[path]) for path in prepared.paths), records
+
+
+# --- harness-v1.8 (T7): the model's text is in the file's convention but at the wrong absolute level ---------------------------------------------
+
+
+@dataclass(frozen=True)
+class Rebased:
+    lines: list[str]  # the model's `new` lines (no line end): same count, same text, only the leading whitespace differs
+    changed: int  # how many lines got other leading whitespace than the model wrote
+    structural: int  # of those, how many are statement lines (the parser reads their level); comments and continuation lines are free-form
+    shift: int | None  # indentation characters added (+) / removed (-) on every moved line; None when only the first line was anchored
+    first_line: bool  # the first line began without indentation (the model started mid-line) and took the matched line's own
+
+
+def _is_code(line: str) -> bool:
+    text = line.strip()
+    return bool(text) and not text.startswith("#")
+
+
+def _kind(whitespace: str) -> str | None:
+    """'' (no indentation), ' ' or '\\t' (that one character throughout), or None (tabs and spaces mixed)."""
+    if not whitespace:
+        return ""
+    return whitespace[0] if len(set(whitespace)) == 1 else None
+
+
+def rebase_edit(matched: list[str], old: list[str], new: list[str]) -> Rebased | None:
+    """`new` with its leading whitespace moved onto the file's matched lines (see the module, harness-v1.8 T7), or None (nothing to move, or no safe reading).
+
+    `matched` = the file's own lines the edit's `old` was found at (no line ends), `old` = the model's `old` lines (same count, equal up to whitespace),
+    `new` = the model's replacement lines. Pure: no parse, no file, no network; the caller decides whether the result is kept."""
+    if not new or not old or len(matched) != len(old):
+        return None
+    old_states, new_states = _line_states(old), _line_states(new)
+    began_mid_line = bool(old[0].strip()) and not _ws(old[0]) and bool(_ws(matched[0]))
+    offsets: set[int] = set()
+    unit_char = ""  # the one indentation character the matched lines and the model's lines share
+    for i, (model_line, file_line) in enumerate(zip(old, matched)):
+        if (i == 0 and began_mid_line) or not _is_code(model_line) or old_states[i] != "stmt":
+            continue  # not evidence: the stripped first line, blank/comment lines, continuation lines, string contents
+        model_ws, file_ws = _ws(model_line), _ws(file_line)
+        for kind in (_kind(model_ws), _kind(file_ws)):
+            if kind is None:
+                return None  # a line that mixes tabs and spaces: no reading of it is safe
+            if kind:
+                if unit_char and kind != unit_char:
+                    return None  # tabs against spaces: D-47's case (normalise_patch), which keeps its own record
+                unit_char = kind
+        offsets.add(len(file_ws) - len(model_ws))
+    if len(offsets) > 1:
+        return None  # the matched lines do not agree on one offset: the model re-scaled or flattened the block; nothing is guessed
+    shift = next(iter(offsets)) if offsets else None
+    out = list(new)
+    changed = structural_changed = 0
+    anchored = False
+    for j, line in enumerate(new):
+        if not line.strip() or new_states[j] == "string":
+            continue  # blank lines and string contents are left exactly as written
+        ws = _ws(line)
+        structural = new_states[j] == "stmt" and _is_code(line)  # a line whose level the parser reads (comments and continuations are free)
+        if j == 0 and began_mid_line and not ws:
+            target, anchored = _ws(matched[0]), True  # the resolver replaces the whole matched line: keep its real indentation
+        elif shift is None:
+            if structural:
+                return None  # nothing shows where the model's frame sits against the file's
+            continue
+        elif shift == 0:
+            continue
+        else:
+            kind = _kind(ws)
+            if kind is None or (kind and kind != unit_char) or (shift < 0 and len(ws) < -shift):
+                if structural:
+                    return None  # a mixed line, the other character, or a line that would go left of column 0
+                continue
+            target = unit_char * shift + ws if shift > 0 else ws[-shift:]
+        if target != ws:
+            out[j] = target + line[len(ws):]
+            changed += 1
+            structural_changed += structural
+    if not changed:
+        return None
+    if len(out) != len(new) or any(a.lstrip(" \t") != b.lstrip(" \t") for a, b in zip(out, new)):
+        return None  # never a non-whitespace change
+    return Rebased(out, changed, structural_changed, shift, anchored)
