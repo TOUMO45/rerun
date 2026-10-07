@@ -67,7 +67,7 @@ DATA_ALLOWLIST = (
     # harness-v1.3: results are committed between the two ablation arms (reports are outputs of scripts/, not code).
     re.compile(r"^CHANGELOG\.md$"),
     re.compile(r"^reports/"),
-    re.compile(r"^backend/app/batch/corpus_v[23]/(screening_log\.jsonl|corpus\.yaml|corpus_hash\.txt)$"),  # harness-v1.7.2: corpus-v3 = TEST-B
+    re.compile(r"^backend/app/batch/corpus_v[234]/(screening_log\.jsonl|corpus\.yaml|corpus_hash\.txt)$"),  # harness-v1.7.2: corpus-v3 = TEST-B; harness-v1.8: corpus-v4 = TEST-C
 )
 # Must be byte-identical (same git blob) at HEAD and at the tag.
 HARNESS_PATHS = ("backend/app", "backend/pyproject.toml", "scripts", "frontend/src", ".gitattributes")
@@ -81,6 +81,8 @@ SEALED_FILES = (
     "backend/app/batch/corpus_v2/prereg.sha256",
     "backend/app/batch/corpus_v3/prereg.json",
     "backend/app/batch/corpus_v3/prereg.sha256",
+    "backend/app/batch/corpus_v4/prereg.json",
+    "backend/app/batch/corpus_v4/prereg.sha256",
     "seal_verification.json",
 )
 # harness-v1.3.2 seal rule: every file that talks to the sandbox must be covered by a live verification entry.
@@ -612,7 +614,7 @@ def summarize(records: list[dict]) -> dict:
 def main(argv: list[str] | None = None) -> int:
     _utf8_everywhere()
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
-    parser.add_argument("--corpus", choices=("corpus-v1", "corpus-v2", "corpus-v3"), required=True)
+    parser.add_argument("--corpus", choices=("corpus-v1", "corpus-v2", "corpus-v3", "corpus-v4"), required=True)
     parser.add_argument("--harness-tag", default=DEFAULT_HARNESS_TAG)
     parser.add_argument("--arm", choices=("control", "treatment"),
                         help="ablation arm (corpus-v2.1): control = repair off, Tavily off; treatment = full RERUN. "

@@ -6,6 +6,7 @@ Two commands, run in this order and committed in between:
               PINNED dataset revisions (DuckDB over hf:// parquet, column
               projection + filters pushed to the source; the full parquet files
               are never downloaded) and write population.csv, sorted by paper_url.
+  draw-v4     corpus-v4 = TEST-C (backend/app/batch/corpus_v4/prereg.json): draw-v3's draw with seed 20261007, 10 entries, the firewall extended with corpus-v3; no fixability filter
   draw-v3     corpus-v3 = TEST-B (backend/app/batch/corpus_v3/prereg.json): draw-v2's
               screening with a new seed, 8 entries, and RERUN's firewall.
   draw-v2     corpus-v2 (backend/app/batch/corpus_v2/prereg.json): the same draw
@@ -502,6 +503,92 @@ def draw_v3() -> None:
     write_corpus(pre, eligible, version="corpus-v3", prereg=V3_PREREG, corpus_yaml=V3_CORPUS_YAML, hash_file=V3_HASH_FILE)
 
 
+V4_DIR = ROOT / "backend" / "app" / "batch" / "corpus_v4"
+V4_PREREG = V4_DIR / "prereg.json"
+V4_PREREG_SHA = V4_DIR / "prereg.sha256"
+V4_LOG = V4_DIR / "screening_log.jsonl"
+V4_CORPUS_YAML = V4_DIR / "corpus.yaml"
+V4_HASH_FILE = V4_DIR / "corpus_hash.txt"
+
+
+def v4_firewall() -> tuple[set[str], set[str]]:
+    """corpus-v4 prereg /firewall: corpus-v3's rule plus corpus-v3's own corpus.yaml and screening log (TEST-B's candidates) as sources: (paper_urls, repo keys) RERUN already knows."""
+    papers, repos = v3_firewall()
+    import yaml
+
+    for line in V3_LOG.read_text(encoding="utf-8").splitlines():
+        if line.strip():
+            row = json.loads(line)
+            papers.add(row.get("paper_url") or "")
+            repos.add(_repo_key(row.get("repo_url") or "") or "")
+    for row in yaml.safe_load(V3_CORPUS_YAML.read_text(encoding="utf-8"))["repos"]:
+        papers.add(row.get("paper_url") or "")
+        repos.add(_repo_key(row.get("repo_url") or "") or "")
+    papers.discard("")
+    repos.discard("")
+    repos.discard(None)
+    return papers, repos
+
+
+def check_v4_registration() -> dict:
+    """Refuse unless corpus-v4's registration is exactly as committed and its eligibility is corpus-v2's, unchanged."""
+    check_v2_registration()  # the E5_v2 regexes and command_rules equal corpus_v2/prereg.json (the eligibility corpus-v3 and corpus-v4 reuse)
+    pre = json.loads(V4_PREREG.read_text(encoding="utf-8"))
+    if sha256_file(V4_PREREG) != V4_PREREG_SHA.read_text(encoding="utf-8").split()[0]:
+        raise SystemExit("corpus_v4/prereg.json does not match corpus_v4/prereg.sha256 \u2014 refusing to draw")
+    frame = pre["frame_and_population"]
+    if sha256_file(ROOT / frame["population_file"]) != frame["population_sha256"]:
+        raise SystemExit("population.csv does not match the corpus-v4 registration \u2014 refusing to draw")
+    if any(V4_DIR.joinpath(name).exists() for name in pre["outputs"]):
+        raise SystemExit("corpus-v4 is already drawn: the draw runs once")
+    return pre
+
+
+def draw_v4() -> None:
+    """corpus-v4 (TEST-C): corpus-v3's draw with a new seed, 10 entries, and the RERUN firewall extended with corpus-v3 (corpus_v4/prereg.json). No fixability filter exists anywhere in it."""
+    import yaml  # noqa: F401
+
+    from app.batch import command_rules  # path set by check_v2_registration
+
+    pre = check_v4_registration()
+    with (ROOT / pre["frame_and_population"]["population_file"]).open(encoding="utf-8", newline="") as fh:
+        population = list(csv.DictReader(fh))
+    fw_papers, fw_repos = v4_firewall()
+    print(f"firewall: {len(fw_papers)} paper(s), {len(fw_repos)} repositor(ies)", flush=True)
+    order = list(range(len(population)))
+    random.Random(pre["seed"]).shuffle(order)
+    target = pre["target_eligible"]
+    eligible, seen_repos = [], set()
+    V4_LOG.write_text("", encoding="utf-8", newline="\n")
+    with httpx.Client(timeout=30, follow_redirects=True, headers={"User-Agent": "rerun-corpus-draw"}) as client:
+        for draw_no, idx in enumerate(order, start=1):
+            candidate = population[idx]
+            key = _repo_key(candidate["repo_url"]) or candidate["repo_url"].lower()
+            entry = {"draw": draw_no, "population_index": idx, **{k: candidate[k] for k in ("paper_url", "venue", "year", "repo_url", "title")}}
+            if candidate["paper_url"] in fw_papers or key in fw_repos:
+                entry.update(eligible=False, reason="firewall: paper or repository already known to RERUN")
+            elif key in seen_repos:
+                entry.update(eligible=False, reason="duplicate: repository already drawn for another paper")
+            else:
+                seen_repos.add(key)
+                outcome = screen(client, candidate, excluded_by=command_rules.matched_rules)
+                entry.update(eligible=bool(outcome.pop("eligible", False)), **outcome)
+            with V4_LOG.open("a", encoding="utf-8", newline="\n") as fh:
+                fh.write(json.dumps(entry) + "\n")
+            print(f"#{draw_no:3d} {'ELIGIBLE' if entry['eligible'] else 'fail    '} {candidate['venue']} {candidate['year']} "
+                  f"{candidate['repo_url']}  {entry.get('reason', entry.get('command', ''))[:110]}", flush=True)
+            if entry["eligible"]:
+                eligible.append(entry)
+                if len(eligible) == target:
+                    break
+    # Self-check (prereg /firewall/check_after_the_draw): nothing drawn is known to RERUN.
+    fw_papers, fw_repos = v4_firewall()
+    leaked = [e["repo_url"] for e in eligible if e["paper_url"] in fw_papers or (_repo_key(e["repo_url"]) in fw_repos)]
+    if leaked:
+        raise SystemExit(f"firewall self-check failed, corpus.yaml NOT written: {leaked}")
+    write_corpus(pre, eligible, version="corpus-v4", prereg=V4_PREREG, corpus_yaml=V4_CORPUS_YAML, hash_file=V4_HASH_FILE)
+
+
 if __name__ == "__main__":
     command = sys.argv[1] if len(sys.argv) > 1 else ""
     if command == "population":
@@ -512,5 +599,7 @@ if __name__ == "__main__":
         draw_v2()
     elif command == "draw-v3":
         draw_v3()
+    elif command == "draw-v4":
+        draw_v4()
     else:
         raise SystemExit(__doc__)
