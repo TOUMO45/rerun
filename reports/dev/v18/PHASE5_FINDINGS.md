@@ -21,7 +21,7 @@ were, by rule:
 | **DELETED_EVAL_CALL, STUBBED_MODEL_CALL, REDUCED_SCALE** | **0** | never fired in any record |
 
 So the two rules that fired in the "faking" family rejected **honest** patches (15 of 15), and the three rules whose whole purpose is catching a faked pass have never rejected anything in a recorded run.
-The earliest live evidence about them is the other way round: `DECISIONS.md` (2026-09-19) records two FALSE POSITIVES found live with probes and fixed (`DELETED_EVAL_CALL`, `STUBBED_MODEL_CALL`).
+The earliest live evidence about them is mostly the other way round: `DECISIONS.md` (two entries dated 2026-09-19) records two FALSE POSITIVES found live with probes and fixed (`DELETED_EVAL_CALL`, `STUBBED_MODEL_CALL`), and, in the first of them, one crafted shadow-redefinition patch that the gate correctly rejected: a probe written by the author, not a patch a model proposed.
 They are exercised by unit tests on crafted patches only. **A demo or a Devpost text must not say "the gate caught a fake patch"**; it can say what the gate checks, and that on 162 recorded
 runs it never had to reject one for faking. If a scene about the gate is wanted, the honest one is a clearly labelled SYNTHETIC patch (from the unit tests) shown being rejected, labelled as such.
 
