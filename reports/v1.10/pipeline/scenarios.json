@@ -1,0 +1,205 @@
+{
+ "harness_tag": "harness-v1.9.0",
+ "harness_head": "555bc4eefde31842ee3457dcff9cb4a33792ea5d",
+ "baseline_spend_usd": 0.054104,
+ "scenarios": {
+  "latent_ode": {
+   "base": "latent_ode",
+   "record": "runs/corpus_v2_batch/harness-v1.7.1/dev/15_YuliaRubanova__latent_ode.json",
+   "image": "819fb1cb-98cf-40f6-9b5f-760cc1b1bd2f",
+   "image_why": "the adopted candidate's image (the dependency fix: `dataclasses` removed); tree unpatched",
+   "command": "python3 run_models.py --niters 500 -n 1000 -s 50 -l 10 --dataset periodic  --latent-ode --noise-weight 0.01",
+   "recorded_failure": "DEP_YANKED: ERROR: Could not find a version that satisfies the requirement dataclasses==0.8 (from versions: 0.1, 0.2, 0.3, 0.4, 0.5, 0.6)",
+   "baseline": {
+    "exit_code": 0,
+    "smoke": {
+     "mode": "smoke",
+     "seconds": 60,
+     "outcome": "alive_at_limit"
+    },
+    "passed": true,
+    "timed_out": false,
+    "seconds": 0.06,
+    "cost_usd": 0.000681,
+    "exit_zero_check": null,
+    "classification": null,
+    "stdout_tail": "Couldn't import umap\nSampling dataset of 1000 training examples\nComputing loss... 0\nComputing loss... 0\nComputing loss... 0\nComputing loss... 0\nComputing loss... 0\nComputing loss... 0\nComputing loss... 0\nComputing loss... 0\nComputing loss... 0\nComputing loss... 0\nComputing loss... 0\nRERUN_SMOKE_ALIVE: still running after 60s with output and no traceback; stopped by RERUN (smoke execution)\n",
+    "stderr_tail": "80.179931640625\nTrain CE loss (one batch): 0.0\nTest MSE: 0.4569\nPoisson likelihood: 0.0\nCE loss: 0.0\nExperiment 17247\nEpoch 0007 [Test seq (cond on sampled tp)] | Loss 2266.217041 | Likelihood -2267.721680 | KL fp 5.6407 | FP STD 0.1523|\nKL coef: 0.0\nTrain loss (one batch): 2261.250244140625\nTrain CE loss (one batch): 0.0\nTest MSE: 0.4543\nPoisson likelihood: 0.0\nCE loss: 0.0\nExperiment 17247\nEpoch 0008 [Test seq (cond on sampled tp)] | Loss 2249.358398 | Likelihood -2251.389893 | KL fp 6.5723 | FP STD 0.1045|\nKL coef: 0.0\nTrain loss (one batch): 2251.570068359375\nTrain CE loss (one batch): 0.0\nTest MSE: 0.4510\nPoisson likelihood: 0.0\nCE loss: 0.0\nExperiment 17247\nEpoch 0009 [Test seq (cond on sampled tp)] | Loss 2223.893311 | Likelihood -2225.560791 | KL fp 6.7931 | FP STD 0.0759|\nKL coef: 0.0\nTrain loss (one batch): 2232.1416015625\nTrain CE loss (one batch): 0.0\nTest MSE: 0.4458\nPoisson likelihood: 0.0\nCE loss: 0.0\nExperiment 17247\nEpoch 0010 [Test seq (cond on sampled tp)] | Loss 2205.722412 | Likelihood -2207.008545 | KL fp 6.8736 | FP STD 0.0699|\nKL coef: 0.0\nTrain loss (one batch): 2211.14794921875\nTrain CE loss (one batch): 0.0\nTest MSE: 0.4421\nPoisson likelihood: 0.0\nCE loss: 0.0\nExperiment 17247\nEpoch 0011 [Test seq (cond on sampled tp)] | Loss 2185.766602 | Likelihood -2187.291748 | KL fp 7.1101 | FP STD 0.0556|\nKL coef: 0.010000000000000009\nTrain loss (one batch): 2194.530517578125\nTrain CE loss (one batch): 0.0\nTest MSE: 0.4382\nPoisson likelihood: 0.0\nCE loss: 0.0\n"
+   },
+   "population": "B",
+   "failure": "DEP_YANKED: ERROR: Could not find a version that satisfies the requirement dataclasses==0.8 (from versions: 0.1, 0.2, 0.3, 0.4, 0.5, 0.6)",
+   "failure_source": "the base's recorded last error-chain link (the image's unpatched run passes)"
+  },
+  "SimplE": {
+   "base": "SimplE",
+   "record": "runs/corpus_v2_batch/harness-v1.7.1/dev/12_Mehran-k__SimplE.json",
+   "image": "d4547fef-4765-4cde-a055-fe1fb1cf090d",
+   "image_why": "the image of the first time-machine run (era lock), before the removed-API rule",
+   "command": "python main.py -m SimplE_ignr -d wn18",
+   "recorded_failure": "API_REMOVED: AttributeError: module 'tensorflow' has no attribute 'get_variable'",
+   "baseline": {
+    "exit_code": 1,
+    "smoke": {
+     "mode": "smoke",
+     "seconds": 60,
+     "outcome": "exited"
+    },
+    "passed": false,
+    "timed_out": false,
+    "seconds": 1.61,
+    "cost_usd": 0.017346,
+    "exit_zero_check": null,
+    "classification": {
+     "code": "API_REMOVED",
+     "evidence": "AttributeError: module 'tensorflow' has no attribute 'get_variable'"
+    },
+    "stdout_tail": "Training SimplE_ignr on wn18 with emb_size = 200, learning rate = 0.1 neg_ratio = 1 alpha = 0.001\n",
+    "stderr_tail": "2026-10-08 10:19:42.100945: W tensorflow/stream_executor/platform/default/dso_loader.cc:55] Could not load dynamic library 'libnvinfer.so.6'; dlerror: libnvinfer.so.6: cannot open shared object file: No such file or directory\n2026-10-08 10:19:42.101321: W tensorflow/stream_executor/platform/default/dso_loader.cc:55] Could not load dynamic library 'libnvinfer_plugin.so.6'; dlerror: libnvinfer_plugin.so.6: cannot open shared object file: No such file or directory\n2026-10-08 10:19:42.101339: W tensorflow/compiler/tf2tensorrt/utils/py_utils.cc:30] Cannot dlopen some TensorRT libraries. If you would like to use Nvidia GPU with TensorRT, please make sure the missing libraries mentioned above are installed properly.\nTraceback (most recent call last):\n  File \"main.py\", line 38, in <module>\n    tt.train_earlystop_test()\n  File \"/trainer_tester.py\", line 60, in train_earlystop_test\n    self.train()\n  File \"/trainer_tester.py\", line 17, in train\n    self.model.setup_weights()\n  File \"/simplE_ignr.py\", line 12, in setup_weights\n    self.rel_emb      = tf.get_variable(name=\"rel_emb\",      initializer=tf.random_uniform(shape=[self.num_rel, self.params.emb_size], minval=-sqrt_size, maxval=sqrt_size, dtype=tf.float64))\nAttributeError: module 'tensorflow' has no attribute 'get_variable'\n"
+   },
+   "population": "A",
+   "failure": "API_REMOVED: AttributeError: module 'tensorflow' has no attribute 'get_variable'",
+   "failure_source": "observed on the image"
+  },
+  "FeatureScatter": {
+   "base": "FeatureScatter",
+   "record": "runs/corpus_v2_batch/harness-v1.7.1/dev/17_Haichao-Zhang__FeatureScatter.json",
+   "image": "6c77013f-286a-4825-9619-f29926425ece",
+   "image_why": "the image after the removed-API rule",
+   "command": "sh ./fs_train.sh",
+   "recorded_failure": "API_REMOVED: ImportError: cannot import name 'zero_gradients' from 'torch.autograd.gradcheck' (/usr/local/lib/python3.10/site-packages/torch/autograd/gradcheck.py)",
+   "baseline": {
+    "exit_code": 0,
+    "smoke": {
+     "mode": "smoke",
+     "seconds": 60,
+     "outcome": "alive_at_limit"
+    },
+    "passed": true,
+    "timed_out": false,
+    "seconds": 0.07,
+    "cost_usd": 0.000708,
+    "exit_zero_check": null,
+    "classification": null,
+    "stdout_tail": "------------cifar10---------\n==> Preparing data..\nDownloading https://cave.cs.toronto.edu/kriz/cifar-10-python.tar.gz to ./data/cifar-10-python.tar.gz\nRERUN_SMOKE_ALIVE: still running after 60s with output and no traceback; stopped by RERUN (smoke execution)\n",
+    "stderr_tail": "0498071 [00:49<55:11, 50719.14it/s]\r  1%|\u258f         | 2528256/170498071 [00:49<50:44, 55168.50it/s]\r  1%|\u258f         | 2536448/170498071 [00:49<47:35, 58826.41it/s]\r  1%|\u258f         | 2552832/170498071 [00:49<1:03:57, 43759.42it/s]\r  2%|\u258f         | 2561024/170498071 [00:49<58:03, 48212.75it/s]  \r  2%|\u258f         | 2568192/170498071 [00:50<55:33, 50378.84it/s]\r  2%|\u258f         | 2576384/170498071 [00:50<51:23, 54462.69it/s]\r  2%|\u258f         | 2584576/170498071 [00:50<48:22, 57841.91it/s]\r  2%|\u258f         | 2592768/170498071 [00:50<46:07, 60659.96it/s]\r  2%|\u258f         | 2600960/170498071 [00:50<1:02:13, 44971.28it/s]\r  2%|\u258f         | 2608128/170498071 [00:50<1:01:51, 45231.65it/s]\r  2%|\u258f         | 2616320/170498071 [00:51<1:07:53, 41216.11it/s]\r  2%|\u258f         | 2624512/170498071 [00:51<59:51, 46735.71it/s]  \r  2%|\u258f         | 2632704/170498071 [00:51<1:06:22, 42150.52it/s]\r  2%|\u258f         | 2640896/170498071 [00:51<59:00, 47407.39it/s]  \r  2%|\u258f         | 2648064/170498071 [00:51<56:07, 49851.22it/s]\r  2%|\u258f         | 2656256/170498071 [00:51<51:21, 54461.79it/s]\r  2%|\u258f         | 2664448/170498071 [00:52<48:17, 57914.97it/s]\r  2%|\u258f         | 2672640/170498071 [00:52<46:05, 60691.05it/s]\r  2%|\u258f         | 2680832/170498071 [00:52<43:21, 64500.32it/s]\r  2%|\u258f         | 2696192/170498071 [00:52<54:57, 50888.40it/s]\r  2%|\u258f         | 2704384/170498071 [00:52<51:18, 54509.02it/s]\r  2%|\u258f         | 2712576/170498071 [00:52<57:11, 48896.66it/s]\r  2%|\u258f         | 2720768/170498071 [00:53<55:10, 50684.29it/s]"
+   },
+   "population": "B",
+   "failure": "API_REMOVED: ImportError: cannot import name 'zero_gradients' from 'torch.autograd.gradcheck' (/usr/local/lib/python3.10/site-packages/torch/autograd/gradcheck.py)",
+   "failure_source": "the base's recorded last error-chain link (the image's unpatched run passes)"
+  },
+  "M-FAC": {
+   "base": "M-FAC",
+   "record": "runs/corpus_v2_batch/harness-v1.5.2/dev/14_IST-DASLab__M-FAC.json",
+   "image": "d93aa5fe-9a56-464a-ad41-9ca174d2057e",
+   "image_why": "the image of the first time-machine run (CPU shim installed), the one the model's candidates branched from",
+   "command": "CUDA_VISIBLE_DEVICES=0 python3 main_optim.py --model resnet20 --dataset DATASET --optim mfac --ngrads 512 --weightdecay .003 --batchsize 128 --save rn20-mfac.pth > rn20-mfac.txt",
+   "recorded_failure": "RUNTIME_ERROR_OTHER: RuntimeError: linalg.lu_factor: LU without pivoting is not implemented on the CPU",
+   "baseline": {
+    "exit_code": 0,
+    "smoke": {
+     "mode": "smoke",
+     "seconds": 60,
+     "outcome": "alive_at_limit"
+    },
+    "passed": true,
+    "timed_out": false,
+    "seconds": 0.07,
+    "cost_usd": 0.000736,
+    "exit_zero_check": null,
+    "classification": null,
+    "stdout_tail": "RERUN_SMOKE_ALIVE: still running after 60s with output and no traceback; stopped by RERUN (smoke execution)\n",
+    "stderr_tail": "RERUN_CPU_SHIM: injected by RERUN: torch.cuda.is_available() -> False, torch.cuda.set_device(...) does nothing, torch.load(map_location='cpu'), Tensor.cuda() returns the tensor, Module.cuda() returns the module, Tensor.to('cuda*') -> cpu, Module.to('cuda*') -> cpu, torch.device('cuda*') -> cpu\n\r0.0%\r0.0%\r0.1%\r0.1%\r0.1%\r0.1%\r0.1%\r0.2%\r0.2%\r0.2%\r0.2%\r0.2%\r0.2%\r0.3%\r0.3%\r0.3%\r0.3%\r0.3%\r0.4%\r0.4%\r0.4%\r0.4%\r0.4%\r0.5%\r0.5%\r0.5%\r0.5%\r0.5%\r0.6%\r0.6%\r0.6%\r0.6%\r0.6%\r0.7%\r0.7%\r0.7%\r0.7%\r0.7%\r0.7%\r0.8%\r0.8%\r0.8%\r0.8%\r0.8%\r0.9%\r0.9%\r0.9%\r0.9%\r0.9%\r1.0%\r1.0%\r1.0%\r1.0%\r1.0%\r1.1%\r1.1%\r1.1%\r1.1%\r1.1%\r1.2%\r1.2%\r1.2%\r1.2%\r1.2%\r1.2%\r1.3%\r1.3%\r1.3%\r1.3%\r1.3%\r1.4%\r1.4%\r1.4%\r1.4%\r1.4%\r1.5%"
+   },
+   "population": "B",
+   "failure": "RUNTIME_ERROR_OTHER: RuntimeError: linalg.lu_factor: LU without pivoting is not implemented on the CPU",
+   "failure_source": "the base's recorded last error-chain link (the image's unpatched run passes)"
+  },
+  "patchSmoothing": {
+   "base": "patchSmoothing",
+   "record": "runs/corpus_v2_batch/harness-v1.5-final/test/10_alevine0__patchSmoothing.json",
+   "image": "7676d691-7dba-4f59-8d14-29d87f5276be",
+   "image_why": "the image before the CPU shim (dependency fixed, CUDA error)",
+   "command": "python3 train_mnist_band.py --band_size 4 --lr 0.01 --end_epoch 199",
+   "recorded_failure": "GPU_REQUIRED: raise AssertionError(\"Torch not compiled with CUDA enabled\")",
+   "baseline": {
+    "exit_code": 1,
+    "smoke": {
+     "mode": "smoke",
+     "seconds": 60,
+     "outcome": "exited"
+    },
+    "passed": false,
+    "timed_out": false,
+    "seconds": 2.27,
+    "cost_usd": 0.024273,
+    "exit_zero_check": null,
+    "classification": {
+     "code": "GPU_REQUIRED",
+     "evidence": "raise AssertionError(\"Torch not compiled with CUDA enabled\")"
+    },
+    "stdout_tail": "ding https://ossci-datasets.s3.amazonaws.com/mnist/train-images-idx3-ubyte.gz to ./data/MNIST/raw/train-images-idx3-ubyte.gz\nExtracting ./data/MNIST/raw/train-images-idx3-ubyte.gz to ./data/MNIST/raw\n\nDownloading http://yann.lecun.com/exdb/mnist/train-labels-idx1-ubyte.gz\nFailed to download (trying next):\nHTTP Error 404: Not Found\n\nDownloading https://ossci-datasets.s3.amazonaws.com/mnist/train-labels-idx1-ubyte.gz\nDownloading https://ossci-datasets.s3.amazonaws.com/mnist/train-labels-idx1-ubyte.gz to ./data/MNIST/raw/train-labels-idx1-ubyte.gz\nExtracting ./data/MNIST/raw/train-labels-idx1-ubyte.gz to ./data/MNIST/raw\n\nDownloading http://yann.lecun.com/exdb/mnist/t10k-images-idx3-ubyte.gz\nFailed to download (trying next):\nHTTP Error 404: Not Found\n\nDownloading https://ossci-datasets.s3.amazonaws.com/mnist/t10k-images-idx3-ubyte.gz\nDownloading https://ossci-datasets.s3.amazonaws.com/mnist/t10k-images-idx3-ubyte.gz to ./data/MNIST/raw/t10k-images-idx3-ubyte.gz\nExtracting ./data/MNIST/raw/t10k-images-idx3-ubyte.gz to ./data/MNIST/raw\n\nDownloading http://yann.lecun.com/exdb/mnist/t10k-labels-idx1-ubyte.gz\nFailed to download (trying next):\nHTTP Error 404: Not Found\n\nDownloading https://ossci-datasets.s3.amazonaws.com/mnist/t10k-labels-idx1-ubyte.gz\nDownloading https://ossci-datasets.s3.amazonaws.com/mnist/t10k-labels-idx1-ubyte.gz to ./data/MNIST/raw/t10k-labels-idx1-ubyte.gz\nExtracting ./data/MNIST/raw/t10k-labels-idx1-ubyte.gz to ./data/MNIST/raw\n\n==> Building model..\n\nEpoch: 0\n",
+    "stderr_tail": "\r67.4%\r67.8%\r68.1%\r68.4%\r68.8%\r69.1%\r69.4%\r69.8%\r70.1%\r70.4%\r70.7%\r71.1%\r71.4%\r71.7%\r72.1%\r72.4%\r72.7%\r73.1%\r73.4%\r73.7%\r74.0%\r74.4%\r74.7%\r75.0%\r75.4%\r75.7%\r76.0%\r76.4%\r76.7%\r77.0%\r77.4%\r77.7%\r78.0%\r78.3%\r78.7%\r79.0%\r79.3%\r79.7%\r80.0%\r80.3%\r80.7%\r81.0%\r81.3%\r81.7%\r82.0%\r82.3%\r82.6%\r83.0%\r83.3%\r83.6%\r84.0%\r84.3%\r84.6%\r85.0%\r85.3%\r85.6%\r85.9%\r86.3%\r86.6%\r86.9%\r87.3%\r87.6%\r87.9%\r88.3%\r88.6%\r88.9%\r89.3%\r89.6%\r89.9%\r90.2%\r90.6%\r90.9%\r91.2%\r91.6%\r91.9%\r92.2%\r92.6%\r92.9%\r93.2%\r93.6%\r93.9%\r94.2%\r94.5%\r94.9%\r95.2%\r95.5%\r95.9%\r96.2%\r96.5%\r96.9%\r97.2%\r97.5%\r97.9%\r98.2%\r98.5%\r98.8%\r99.2%\r99.5%\r99.8%\r100.0%\n\r100.0%\n\r2.0%\r4.0%\r6.0%\r7.9%\r9.9%\r11.9%\r13.9%\r15.9%\r17.9%\r19.9%\r21.9%\r23.8%\r25.8%\r27.8%\r29.8%\r31.8%\r33.8%\r35.8%\r37.8%\r39.7%\r41.7%\r43.7%\r45.7%\r47.7%\r49.7%\r51.7%\r53.7%\r55.6%\r57.6%\r59.6%\r61.6%\r63.6%\r65.6%\r67.6%\r69.6%\r71.5%\r73.5%\r75.5%\r77.5%\r79.5%\r81.5%\r83.5%\r85.5%\r87.4%\r89.4%\r91.4%\r93.4%\r95.4%\r97.4%\r99.4%\r100.0%\n\r100.0%\nTraceback (most recent call last):\n  File \"//train_mnist_band.py\", line 159, in <module>\n    train(epoch)\n  File \"//train_mnist_band.py\", line 112, in train\n    outputs = net(utils.random_mask_batch_one_sample(inputs, args.band_size, reuse_noise=True))\n  File \"/utils_band.py\", line 11, in random_mask_batch_one_sample\n    out_c1 = torch.zeros(batch.shape).cuda()\n  File \"/usr/local/lib/python3.10/site-packages/torch/cuda/__init__.py\", line 211, in _lazy_init\n    raise AssertionError(\"Torch not compiled with CUDA enabled\")\nAssertionError: Torch not compiled with CUDA enabled\n"
+   },
+   "population": "A",
+   "failure": "GPU_REQUIRED: raise AssertionError(\"Torch not compiled with CUDA enabled\")",
+   "failure_source": "observed on the image"
+  },
+  "L2D": {
+   "base": "L2D",
+   "record": "runs/corpus_v3_batch/harness-v1.7.2/treatment/04_zcajiayin__L2D.json",
+   "image": "e1125690-cee5-43d5-ad52-be490cd3e700",
+   "image_why": "the image before the CPU shim (dependency fixed, CUDA error)",
+   "command": "python3 test_learned.py",
+   "recorded_failure": "GPU_REQUIRED: raise AssertionError(\"Torch not compiled with CUDA enabled\")",
+   "baseline": {
+    "exit_code": 1,
+    "smoke": {
+     "mode": "smoke",
+     "seconds": 60,
+     "outcome": "exited"
+    },
+    "passed": false,
+    "timed_out": false,
+    "seconds": 0.87,
+    "cost_usd": 0.009456,
+    "exit_zero_check": null,
+    "classification": {
+     "code": "GPU_REQUIRED",
+     "evidence": "raise AssertionError(\"Torch not compiled with CUDA enabled\")"
+    },
+    "stdout_tail": "",
+    "stderr_tail": "Traceback (most recent call last):\n  File \"//test_learned.py\", line 35, in <module>\n    ppo = PPO(configs.lr, configs.gamma, configs.k_epochs, configs.eps_clip,\n  File \"/PPO_jssp_multiInstances.py\", line 61, in __init__\n    self.policy = ActorCritic(n_j=n_j,\n  File \"/models/actor_critic.py\", line 44, in __init__\n    device=device).to(device)\n  File \"/usr/local/lib/python3.10/site-packages/torch/nn/modules/module.py\", line 927, in to\n    return self._apply(convert)\n  File \"/usr/local/lib/python3.10/site-packages/torch/nn/modules/module.py\", line 579, in _apply\n    module._apply(fn)\n  File \"/usr/local/lib/python3.10/site-packages/torch/nn/modules/module.py\", line 579, in _apply\n    module._apply(fn)\n  File \"/usr/local/lib/python3.10/site-packages/torch/nn/modules/module.py\", line 579, in _apply\n    module._apply(fn)\n  [Previous line repeated 1 more time]\n  File \"/usr/local/lib/python3.10/site-packages/torch/nn/modules/module.py\", line 602, in _apply\n    param_applied = fn(param)\n  File \"/usr/local/lib/python3.10/site-packages/torch/nn/modules/module.py\", line 925, in convert\n    return t.to(device, dtype if t.is_floating_point() or t.is_complex() else None, non_blocking)\n  File \"/usr/local/lib/python3.10/site-packages/torch/cuda/__init__.py\", line 211, in _lazy_init\n    raise AssertionError(\"Torch not compiled with CUDA enabled\")\nAssertionError: Torch not compiled with CUDA enabled\n"
+   },
+   "population": "A",
+   "failure": "GPU_REQUIRED: raise AssertionError(\"Torch not compiled with CUDA enabled\")",
+   "failure_source": "observed on the image"
+  },
+  "MIR": {
+   "base": "MIR",
+   "record": "runs/corpus_v4_batch/harness-v1.8.0/treatment/08_optimass__Maximally_Interfered_Retrieval.json",
+   "image": "6708df1e-9cc1-41fa-a500-2ff1e2d4797d",
+   "image_why": "the image after the apt-archive rule",
+   "command": "python er_main.py --method rand_replay --dataset split_cifar10 --mem_size 50",
+   "recorded_failure": "APT_MIRROR_GONE: E: Failed to fetch http://security.debian.org/debian-security/pool/updates/main/p/perl/perl-base_5.32.1-4%2bdeb11u5_amd64.deb  404  Not Found [IP: 199.232.174.132 80]",
+   "baseline": {
+    "exit_code": 0,
+    "smoke": {
+     "mode": "smoke",
+     "seconds": 60,
+     "outcome": "alive_at_limit"
+    },
+    "passed": true,
+    "timed_out": false,
+    "seconds": 0.09,
+    "cost_usd": 0.000905,
+    "exit_zero_check": null,
+    "classification": null,
+    "stdout_tail": "\nsetting output loss to MSE\nDownloading https://www.cs.toronto.edu/~kriz/cifar-10-python.tar.gz to Data/cifar-10-python.tar.gz\nRERUN_SMOKE_ALIVE: still running after 60s with output and no traceback; stopped by RERUN (smoke execution)\n",
+    "stderr_tail": "\r0.3%\r0.3%\r0.3%\r0.3%\r0.3%\r0.3%\r0.3%\r0.3%\r0.3%\r0.3%\r0.3%\r0.4%\r0.4%\r0.4%\r0.4%\r0.4%\r0.4%\r0.4%\r0.4%\r0.4%\r0.4%\r0.4%\r0.4%\r0.4%\r0.4%\r0.4%\r0.4%\r0.4%\r0.4%\r0.4%\r0.4%\r0.4%\r0.5%\r0.5%\r0.5%\r0.5%\r0.5%\r0.5%\r0.5%\r0.5%\r0.5%\r0.5%\r0.5%\r0.5%\r0.5%\r0.5%\r0.5%\r0.5%\r0.5%\r0.5%\r0.5%\r0.5%\r0.5%\r0.6%\r0.6%\r0.6%\r0.6%\r0.6%\r0.6%\r0.6%\r0.6%\r0.6%\r0.6%\r0.6%\r0.6%\r0.6%\r0.6%\r0.6%\r0.6%\r0.6%\r0.6%\r0.6%\r0.6%\r0.6%\r0.7%\r0.7%\r0.7%\r0.7%\r0.7%\r0.7%\r0.7%\r0.7%\r0.7%\r0.7%\r0.7%\r0.7%\r0.7%\r0.7%\r0.7%\r0.7%\r0.7%\r0.7%\r0.7%\r0.7%\r0.7%\r0.8%\r0.8%\r0.8%\r0.8%\r0.8%\r0.8%\r0.8%\r0.8%\r0.8%\r0.8%\r0.8%\r0.8%\r0.8%\r0.8%\r0.8%\r0.8%\r0.8%\r0.8%\r0.8%\r0.8%\r0.9%\r0.9%\r0.9%\r0.9%\r0.9%\r0.9%\r0.9%\r0.9%\r0.9%\r0.9%\r0.9%\r0.9%\r0.9%\r0.9%\r0.9%\r0.9%\r0.9%\r0.9%\r0.9%\r0.9%\r0.9%\r1.0%\r1.0%\r1.0%\r1.0%\r1.0%\r1.0%\r1.0%\r1.0%\r1.0%\r1.0%\r1.0%\r1.0%\r1.0%\r1.0%\r1.0%\r1.0%\r1.0%\r1.0%\r1.0%\r1.0%\r1.0%\r1.1%\r1.1%\r1.1%\r1.1%\r1.1%\r1.1%\r1.1%\r1.1%\r1.1%\r1.1%\r1.1%\r1.1%\r1.1%\r1.1%\r1.1%\r1.1%\r1.1%\r1.1%\r1.1%\r1.1%\r1.1%\r1.2%\r1.2%\r1.2%\r1.2%\r1.2%\r1.2%\r1.2%\r1.2%\r1.2%\r1.2%\r1.2%\r1.2%\r1.2%\r1.2%\r1.2%\r1.2%\r1.2%\r1.2%\r1.2%\r1.2%\r1.2%\r1.3%\r1.3%\r1.3%\r1.3%\r1.3%\r1.3%\r1.3%\r1.3%\r1.3%\r1.3%\r1.3%\r1.3%\r1.3%\r1.3%\r1.3%\r1.3%\r1.3%\r1.3%\r1.3%\r1.3%\r1.4%\r1.4%\r1.4%\r1.4%\r1.4%\r1.4%\r1.4%\r1.4%\r1.4%\r1.4%\r1.4%\r1.4%\r1.4%\r1.4%\r1.4%\r1.4%\r1.4%\r1.4%\r1.4%\r1.4%\r1.4%\r1.5%\r1.5%\r1.5%\r1.5%\r1.5%\r1.5%\r1.5%\r1.5%\r1.5%\r1.5%\r1.5%\r1.5%\r1.5%\r1.5%\r1.5%\r1.5%\r1.5%\r1.5%\r1.5%\r1.5%\r1.5%\r1.6%\r1.6%\r1.6%\r1.6%\r1.6%\r1.6%\r1.6%\r1.6%\r1.6%\r1.6%\r1.6%\r1.6%\r1.6%\r1.6%\r1.6%\r1.6%\r1.6%\r1.6%\r1.6%\r1.6%\r1.6%\r1.7%\r1.7%\r1.7%\r1.7%\r1.7%\r1.7%\r1.7%\r1.7%\r1.7%\r1.7%\r1.7%\r1.7%\r1.7%\r1.7%\r1.7%\r1.7%\r1.7%\r1.7%"
+   },
+   "population": "B",
+   "failure": "APT_MIRROR_GONE: E: Failed to fetch http://security.debian.org/debian-security/pool/updates/main/p/perl/perl-base_5.32.1-4%2bdeb11u5_amd64.deb  404  Not Found [IP: 199.232.174.132 80]",
+   "failure_source": "the base's recorded last error-chain link (the image's unpatched run passes)"
+  }
+ }
+}
