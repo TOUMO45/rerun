@@ -105,6 +105,9 @@ class Settings(BaseSettings):
     max_attempts_per_run: int = 3
     # harness-v1.4.0-rc: repair candidates per failure (each runs in its own branch of the checkpoint image; 1 = harness-v1.3.x semantics).
     repair_candidates_per_round: int = 3
+    # harness-v1.10: behavioural checks on every repair candidate (behaviour.py): its patch may not change computation, workload or entrypoint, and its patched run must
+    # reach the failure site it repairs. False = the harness-v1.9.0 candidate procedure.
+    behaviour_checks: bool = True
     # §7: committed at repo root, precomputed by the offline batch runner.
     batch_results_path: str = "../batch_results.json"
     # POST /runs accepts https://github.com/<owner>/<repo> only. True admits an absolute local directory as well:

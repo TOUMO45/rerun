@@ -69,6 +69,12 @@ def load_harness(worktree: Path, tag: str):
     h.adjudicator, h.classifier, h.exit_zero_check, h.outcome_levels, h.sandbox, h.smoke_exec, h.tamper_gate = (
         adjudicator, classifier, exit_zero_check, outcome_levels, sandbox, smoke_exec, tamper_gate)
     h.candidate_stage = _candidate_stage
+    try:  # harness-v1.10 and later: the behavioural checks (app/services/behaviour.py); absent from harness-v1.9.0 and earlier
+        from app.services import behaviour  # noqa: PLC0415
+
+        h.behaviour = behaviour
+    except ImportError:
+        h.behaviour = None
     return h
 
 
@@ -92,11 +98,11 @@ def overlay_command(files: dict[str, str]) -> str:
     return f"python3 -c \"import base64;exec(base64.b64decode('{base64.b64encode(code.encode('utf-8')).decode('ascii')}').decode('utf-8'))\" {arg}"
 
 
-def run_on_image(h, image: str, command: str, files: dict[str, str] | None, *, timeout: float = RUN_TIMEOUT_S):
+def run_on_image(h, image: str, command: str, files: dict[str, str] | None, *, timeout: float = RUN_TIMEOUT_S, extras: tuple[str, ...] = (), env: dict | None = None):
     """ONE real, disposable sandbox run of the documented `command` under the smoke launcher on the kept `image`, after `files` (post-patch texts) are written into its tree.
-    Returns the sandbox StepResult."""
-    smoke = h.smoke_exec.wrap(command, SMOKE_SECONDS)
-    full = f"{overlay_command(files)} && {smoke}" if files else smoke
+    `extras` (harness-v1.10): setup commands run first (the behavioural tracer's install); `env`: variables for the command only (smoke_exec.wrap(env=)). Returns the sandbox StepResult."""
+    smoke = h.smoke_exec.wrap(command, SMOKE_SECONDS, env=env) if env else h.smoke_exec.wrap(command, SMOKE_SECONDS)
+    full = " && ".join([*([overlay_command(files)] if files else []), *extras, smoke])
     return h.sandbox.run_on_image(api_key=h.settings.nebius_api_key, project_id=getattr(h.settings, "nebius_project_id", ""), image_id=image, command=full, timeout_seconds=timeout)
 
 

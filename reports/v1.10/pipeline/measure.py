@@ -18,6 +18,7 @@ import sys
 import threading
 import time
 from concurrent.futures import ThreadPoolExecutor
+from dataclasses import replace
 from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
@@ -79,7 +80,29 @@ def gate_stage(h, row: dict, scen: dict, bases: dict, documented: dict):
     if violations:
         out["outcome"] = "gate"
         return out, None, gate
-    return out, tg.patched_sources(gate.canonical_diff or row["diff"], originals), gate
+    files = tg.patched_sources(gate.canonical_diff or row["diff"], originals)
+    if h.behaviour is not None:
+        # harness-v1.10: the static half of the behavioural checks, after the gate and before the run (orchestrator `_candidate`): the patch's own changes and the command
+        command = bases[row["base"]]["command"]
+        found = h.behaviour.candidate_findings(originals, files, command_before=command, command_after=command)
+        out["behaviour"] = {"static": [f.as_dict() for f in found]}
+        if found:
+            out["outcome"] = "behaviour_static"
+            return out, None, gate
+    return out, files, gate
+
+
+def trace_plan_for(h, row: dict, scen: dict, bases: dict, files: dict):
+    """The tracer's plan for one patch, from the same inputs the orchestrator's `_trace_plan` uses: the command's entry, the failure being repaired (population A: the unpatched run's
+    stderr and stdout; population B: the recorded failure text, which carries no frame), the touched files before and after, the repository's Python files, the entry's source."""
+    repo = Path(bases[row["base"]]["checkout"])
+    repo_files = {p.relative_to(repo).as_posix() for p in repo.rglob("*.py") if ".git" not in p.parts}
+    old = {p: (repo / p).read_text(encoding="utf-8") for p in files if (repo / p).is_file()}
+    baseline = scen.get("baseline") or {}
+    failure_text = (f"{baseline.get('stderr_tail', '')}\n{baseline.get('stdout_tail', '')}" if scen["population"] == "A" else scen["failure"])
+    entry = h.behaviour.entry_of(scen["command"], repo_files)
+    entry_source = (repo / entry).read_text(encoding="utf-8") if entry and (repo / entry).is_file() else None
+    return h.behaviour.plan_trace(command=scen["command"], failure_text=failure_text, old_sources=old, new_sources=dict(files), repo_files=repo_files, entry_source=entry_source)
 
 
 def process(h, row: dict, scen: dict, bases: dict, guard, model_lock: threading.Lock, meter: Meter, documented: dict) -> dict:
@@ -87,7 +110,17 @@ def process(h, row: dict, scen: dict, bases: dict, guard, model_lock: threading.
     if files is None:
         return out
     started = time.monotonic()
-    step = common.run_on_image(h, scen["image"], scen["command"], files)
+    plan = None
+    if h.behaviour is not None:
+        plan = trace_plan_for(h, row, scen, bases, files)
+        step = common.run_on_image(h, scen["image"], scen["command"], files, extras=(h.behaviour.install_command(plan.spec_b64),), env=h.behaviour.TRACE_ENV)
+        clean, reports = h.behaviour.split_report(step.stderr)
+        step = replace(step, stderr=clean)
+        report = h.behaviour.entry_report(reports)
+        found = h.behaviour.trace_findings(report, plan)
+        out["behaviour"]["trace"] = {"status": "ok" if report is not None else "missing", "findings": [f.as_dict() for f in found], "plan": plan.as_dict()}
+    else:
+        step = common.run_on_image(h, scen["image"], scen["command"], files)
     out["cost_usd"] += step.cost_usd
     out["run"] = {"exit_code": step.exit_code, "timed_out": step.timed_out, "seconds": round(step.elapsed_seconds, 2), "wall_s": round(time.monotonic() - started, 1),
                   **common.tails(step, 1200)}
@@ -106,6 +139,9 @@ def process(h, row: dict, scen: dict, bases: dict, guard, model_lock: threading.
     if finding:
         out["audit"] = finding
         out["outcome"] = "audit"  # exit 0 overruled by the exit-zero check (D-46): not a pass
+        return out
+    if plan is not None and out["behaviour"]["trace"]["findings"]:
+        out["outcome"] = "behaviour_trace"  # harness-v1.10: the patched run did not do what a repair does (orchestrator: the candidate does not qualify)
         return out
     # passed the run: the candidate adjudicator, with the failure being repaired
     stage = h.candidate_stage(res, execution["outcome"])

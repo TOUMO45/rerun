@@ -57,6 +57,7 @@ from app.services import (
     tree_integrity,
 )
 from app.services import (
+    behaviour,
     compute_sandbox,
     data_prep,
     resource_adapt,
@@ -117,6 +118,7 @@ from app.services.tamper_gate import (
     heuristic_eval_call_names,
     heuristic_model_call_names,
     injected_default,
+    patched_sources,
     prepare_patch,
     py_compile_violations,
     semantic_change_calls,
@@ -476,6 +478,9 @@ class AttemptRecord:
     # harness-v1.8 (T1), only serialized when set: for a candidate that was NOT adopted and whose run did not succeed, what became of each env change:
     # {"apt libfreetype6-dev": "failed" | "untested"} (see `_settle_moves`). "failed": the line the change cited as its target is still in the new run's output.
     env_outcome: dict | None = None
+    # harness-v1.10, only serialized when set: what the behavioural checks (behaviour.py) found for this candidate: {"static": [findings], "trace": {"status": "ok" | "missing" |
+    # "no_plan", "findings": [...], "plan": {...}}, "refused": bool}. A candidate refused here is not adopted (its `chosen` stays false).
+    behaviour: dict | None = None
 
     def as_dict(self) -> dict:
         record = {
@@ -518,6 +523,8 @@ class AttemptRecord:
             record["indentation_normalised"] = [dict(x) for x in self.indentation_normalised]
         if self.env_outcome:
             record["env_outcome"] = dict(self.env_outcome)
+        if self.behaviour:
+            record["behaviour"] = self.behaviour
         if self.origin == "model" and self.gate_decision == "PASS" and self.diff_text.strip():
             # harness-v1.7 (R6, D-44): a gated model patch that touches a call whose replacement changes a result; only serialized when set.
             # harness-v1.7.2: plus an injected default input (tamper_gate.injected_default), stored from this version on only
@@ -896,6 +903,9 @@ class PipelineDeps:
     # callable that releases kept candidate images the adjudication did not choose (sandbox.release_images-compatible; None = keep them).
     candidates_per_round: int = 1
     image_releaser: callable = None
+    # harness-v1.10 (behaviour.py): the behavioural checks on a repair candidate (static: what the patch changes; trace: what the patched run does). Off in the dataclass like
+    # `candidates_per_round` (a hand-built deps keeps the v1.9 flow), on in a deployment: build_pipeline_deps reads Settings.behaviour_checks (default True).
+    behaviour_checks: bool = False
 
 
 def _accepts_kwarg(fn: Callable, name: str) -> bool:
@@ -1012,6 +1022,7 @@ def build_pipeline_deps(settings) -> PipelineDeps:
         default_sandbox_image=settings.nebius_sandbox_image,
         candidates_per_round=getattr(settings, "repair_candidates_per_round", 1),
         image_releaser=image_releaser,
+        behaviour_checks=bool(getattr(settings, "behaviour_checks", False)),
     )
 
 
@@ -1391,7 +1402,7 @@ def _run_stages(
                       extra_files: dict | None = None, keep_result: bool = False, share: int = 1, role: str = "",
                       candidate: int | None = None, resumed_after: int | None = None, may_resume: bool = False,
                       extra_apt_layers: tuple = (), extra_extras: tuple = (), exec_wrapper: bool | None = None,
-                      evidence: bool = False, apt_archive: bool = False) -> SandboxRunResult:
+                      evidence: bool = False, apt_archive: bool = False, trace_env: dict | None = None) -> SandboxRunResult:
         # §9: the daily cost ceiling must actually stop spend, not just be
         # documented. There's no pre-flight cost quote from the sandbox
         # API, so this refuses to start a step at all once today's real
@@ -1457,7 +1468,7 @@ def _run_stages(
         execute_command = base_command
         if smoke and deps.smoke_seconds:
             # harness-v1.3.3: a repair re-execution asks "does it run", not "does it finish" (smoke_exec).
-            execute_command = smoke_exec.wrap(base_command, deps.smoke_seconds)
+            execute_command = smoke_exec.wrap(base_command, deps.smoke_seconds, env=trace_env)  # harness-v1.10: trace_env only on a candidate's behavioural trace
             _log(f"[smoke] re-execution of the documented command under a {deps.smoke_seconds}s smoke limit")
         # Clone integrity gate: the uploaded bytes must be the committed bytes
         # (except files changed by gate-approved patches). Raises
@@ -3033,6 +3044,15 @@ def _run_stages(
                     n_references=len(offered_tavily),
                 )
 
+            def _behaviour_static(diff: str, originals: dict, env_changes_) -> list:
+                """harness-v1.10 (behaviour.py): the static findings of one gate-approved candidate: what its patch changes (computation, workload, entrypoint, arguments)
+                and whether its environment change redirects the command. Pure; the same text the gate analyzed."""
+                new_sources = patched_sources(diff, originals) if diff else {}
+                candidate_command = plan.execute_command
+                if env_changes_:
+                    candidate_command = env_repair.apply_env_delta(plan, env_changes_, current_requirements)[0].execute_command
+                return behaviour.candidate_findings(originals, {p: new_sources[p] for p in new_sources}, command_before=plan.execute_command, command_after=candidate_command)
+
             def _candidate(cand_no: int | None, base_followup: str | None, first: bool, summaries: list) -> dict | None:
                 """One repair candidate for this failure: the model's proposal, its re-asks (same attempt), the env gate, the patch
                 pipeline, the tamper gate and (harness-v1.4.0-rc) py_compile. Records the attempt itself when the candidate is
@@ -3242,6 +3262,11 @@ def _run_stages(
                         # harness-v1.4.0-rc: every candidate is py_compile-checked after the patch.
                         code_violations = py_compile_violations(checked_diff, touched_originals)
 
+                behaviour_static: list = []
+                if deps.behaviour_checks and not env_violations and not code_violations and (candidate_diff or env_changes):
+                    # harness-v1.10: the behavioural checks, static half. A finding is recorded as a violation whose rule is the reason's name (behaviour.STATIC_REASONS).
+                    behaviour_static = _behaviour_static(checked_diff if candidate_diff else "", touched_originals if candidate_diff else {}, env_changes)
+                    code_violations = behaviour.violations_of(behaviour_static)
                 summary = (proposal.explanation or "").strip()
                 if env_delta_dicts:
                     summary += " | env: " + "; ".join(f"{d.get('op')} {d.get('package') or d.get('version') or ''}".strip() for d in env_delta_dicts)
@@ -3253,7 +3278,7 @@ def _run_stages(
                 all_violations = tuple(env_violations) + tuple(code_violations)
                 if all_violations:
                     reasons = "; ".join(v.reason for v in all_violations)
-                    _log(f"[repair {label}] tamper gate REJECT: {reasons}")
+                    _log(f"[repair {label}] " + ("behaviour check REFUSED before the run" if behaviour_static else "tamper gate REJECT") + f": {reasons}")
                     _cite(())
                     _append(
                         AttemptRecord(
@@ -3271,6 +3296,7 @@ def _run_stages(
                             consulted=consulted,
                             reason_no_citation=proposal.reason_no_citation,
                             silent_exit=silent_exit,
+                            behaviour={"static": [f.as_dict() for f in behaviour_static], "refused": True} if behaviour_static else None,
                         )
                     )
                     return None
@@ -3410,6 +3436,20 @@ def _run_stages(
                 # harness-v1.4.0-rc: every gate-approved candidate runs at the same time, each in its own branch of the environment image
                 # (nothing is applied to the checkout yet). The candidates that changed the exit outcome go to the adjudicator (Ultra);
                 # the chosen one is applied to the checkout and its image becomes the environment image; the others are released.
+                trace_reports: dict[int, list] = {}
+
+                def _trace_plan(cand_plan, files: dict):
+                    """harness-v1.10 (behaviour.py): what the tracer is told for one candidate: the entry of the command it will run, the failure site being repaired (mapped
+                    into the patched file), the lines the patch added and the entry's __main__ body."""
+                    repo_files = {q.relative_to(workdir).as_posix() for q in workdir.rglob("*.py") if ".git" not in q.parts}
+                    new_sources = {p: (data.decode("utf-8", "replace") if data is not None else None) for p, data in files.items()}
+                    old_sources = _load_touched_originals(workdir, tuple(files))
+                    entry = behaviour.entry_of(cand_plan.execute_command, repo_files)
+                    entry_source = read_text_capped(workdir / entry) if entry else None
+                    failing = sandbox_result.final
+                    return behaviour.plan_trace(command=cand_plan.execute_command, failure_text=f"{failing.stderr}\n{failing.stdout}", old_sources=old_sources,
+                                                new_sources=new_sources, repo_files=repo_files, entry_source=entry_source)
+
                 runnable: list[dict] = []
                 for cand in gated:
                     files: dict = {}
@@ -3435,8 +3475,16 @@ def _run_stages(
                         cand_layers = (_cand_layer,) if _cand_layer is not None else ()
                     # harness-v1.4.1-rc (D-33): what the deterministic rules add to THIS candidate's branch (they act on every candidate's
                     # failure): apt layers, runner hooks, the exit wrapper, and the actions taken (recorded on the candidate's attempt).
+                    trace_plan = None
+                    try:
+                        trace_plan = _trace_plan(cand_plan, files) if deps.behaviour_checks else None
+                    except Exception as exc:  # noqa: BLE001 - the trace is evidence; failing to plan it never stops the candidate
+                        _log(f"[repair {cand['label']}] behaviour trace not planned: {type(exc).__name__}: {str(exc)[:200]}")
                     runnable.append({**cand, "files": files, "plan": cand_plan, "requirements": cand_requirements,
-                                     "apt_layers": cand_layers, "extras": (), "wrapper": False, "wrapper_tried": False, "actions": []})
+                                     "apt_layers": cand_layers, "extras": (), "wrapper": False, "wrapper_tried": False, "actions": [],
+                                     "trace_plan": trace_plan,
+                                     "trace_extras": (behaviour.install_command(trace_plan.spec_b64),) if trace_plan is not None else (),
+                                     "trace_env": dict(behaviour.TRACE_ENV) if trace_plan is not None else None})
                 if not runnable:
                     continue
                 # Run them at the same time only when each one's share of what is left still funds the smoke run plus start-up and the
@@ -3452,10 +3500,17 @@ def _run_stages(
                      + ", each in its own branch of the environment image")
 
                 def _candidate_run(cand: dict, role: str):
-                    return _execute(workdir, smoke=True, plan_used=cand["plan"], extra_files=cand["files"], keep_result=True,
-                                    share=concurrent, role=role, candidate=cand["number"], extra_apt_layers=tuple(cand["apt_layers"]),
-                                    extra_extras=tuple(cand["extras"]), exec_wrapper=True if cand["wrapper"] else None,
-                                    apt_archive=bool(cand.get("apt_archive")))
+                    result = _execute(workdir, smoke=True, plan_used=cand["plan"], extra_files=cand["files"], keep_result=True,
+                                      share=concurrent, role=role, candidate=cand["number"], extra_apt_layers=tuple(cand["apt_layers"]),
+                                      extra_extras=(*cand["extras"], *cand["trace_extras"]), exec_wrapper=True if cand["wrapper"] else None,
+                                      apt_archive=bool(cand.get("apt_archive")), trace_env=cand["trace_env"])
+                    if cand["trace_plan"] is not None:
+                        # the tracer's line is RERUN's, not the repository's: out of the stderr the classifier and the adjudicator read, into the candidate's record
+                        clean, reports = behaviour.split_report(result.final.stderr)
+                        trace_reports[cand["number"]] = reports
+                        if clean != result.final.stderr:
+                            result = replace(result, steps=(*result.steps[:-1], replace(result.final, stderr=clean)))
+                    return result
 
                 def _observe_candidate(cand: dict, result: SandboxRunResult):
                     """harness-v1.4.1-rc (D-33). The deterministic rules (D-24 build-essential, the CPU shim, the exit-site hook, the exit
@@ -3604,6 +3659,16 @@ def _run_stages(
                                 entry["self_inflicted"] = own
                                 _log(f"[repair {cand['label']}] not a qualifying change: its new error names {own!r}, which this candidate added "
                                      "and the repository does not declare")
+                        if cand["trace_plan"] is not None:
+                            # harness-v1.10: the behavioural checks, trace half. A candidate they refuse does not qualify; a missing report vetoes nothing and is recorded as such.
+                            report = behaviour.entry_report(trace_reports.get(cand["number"], []))
+                            found = behaviour.trace_findings(report, cand["trace_plan"])
+                            entry["behaviour"] = {"static": [], "trace": {"status": "ok" if report is not None else "missing", "findings": [f.as_dict() for f in found],
+                                                                           "plan": cand["trace_plan"].as_dict()}}
+                            if found and entry["changed"]:
+                                entry["changed"] = False
+                                entry["behaviour"]["refused"] = True
+                                _log(f"[repair {cand['label']}] behaviour check REFUSED after the run: " + "; ".join(f"{f.reason} ({f.detail[:140]})" for f in found))
                         _log(f"[repair {cand['label']}] re-execution id={result.sandbox_id} exit_code={result.final.exit_code}; "
                              f"exit outcome {'changed' if entry['changed'] else 'unchanged'}")
                     else:
@@ -3674,6 +3739,7 @@ def _run_stages(
                             chosen=(e is winner) if adjudication is not None else None,
                             time_machine_action=_candidate_action_record(e["actions"]),
                             env_outcome=env_outcome,
+                            behaviour=e.get("behaviour"),
                         )
                     )
                 with op_lock:

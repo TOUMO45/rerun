@@ -41,6 +41,7 @@ posix = os.name == "posix"
 env = dict(os.environ)
 env["PYTHONUNBUFFERED"] = "1"      # a crash after a progress stream must not lose the buffered lines (D-19)
 env["PYTHONFAULTHANDLER"] = "1"    # == `python -X faulthandler`, without editing the documented command: a segfault leaves a trace
+env.update(spec.get("env") or {})  # harness-v1.10: variables RERUN sets for this one command (the behavioural tracer's RERUN_BEHAVIOUR=1); none unless given
 proc = subprocess.Popen(spec["cmd"], shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, start_new_session=posix, env=env)
 captured = {"out": [], "err": []}
 
@@ -101,9 +102,13 @@ sys.exit(0)
 '''
 
 
-def wrap(command: str, seconds: int = DEFAULT_SECONDS, python: str = "python3") -> str:
-    """The shell command that runs `command` under the launcher. `command` is passed base64-encoded, unchanged."""
-    payload = base64.b64encode(json.dumps({"cmd": command, "seconds": seconds}).encode("utf-8")).decode("ascii")
+def wrap(command: str, seconds: int = DEFAULT_SECONDS, python: str = "python3", env: dict | None = None) -> str:
+    """The shell command that runs `command` under the launcher. `command` is passed base64-encoded, unchanged. `env` (harness-v1.10): extra environment variables
+    for the command only, never for the launcher; omitted from the payload when empty, so a call without it is byte-identical to v1.9."""
+    spec = {"cmd": command, "seconds": seconds}
+    if env:
+        spec["env"] = dict(env)
+    payload = base64.b64encode(json.dumps(spec).encode("utf-8")).decode("ascii")
     code = base64.b64encode(_LAUNCHER.encode("utf-8")).decode("ascii")
     return f"{python} -c \"import base64;exec(base64.b64decode('{code}').decode('utf-8'))\" {payload}"
 
