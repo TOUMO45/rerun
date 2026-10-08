@@ -1,0 +1,59 @@
+diff --git a/fs_main.py b/fs_main.py
+index 8458f80..4849634 100755
+--- a/fs_main.py
++++ b/fs_main.py
+@@ -163,6 +163,15 @@ elif args.dataset == 'svhn':
+                                         download=True,
+                                         transform=transform_test)
+ 
++class _Dummy(torch.utils.data.Dataset):
++    def __len__(self):
++        return 50000
++
++    def __getitem__(self, i):
++        return torch.rand(3, 32, 32) * 2 - 1, int(torch.randint(0, args.num_classes, (1,)))
++
++
++trainset = _Dummy()
+ trainloader = torch.utils.data.DataLoader(trainset,
+                                           batch_size=args.batch_size_train,
+                                           shuffle=True,
+diff --git a/ot.py b/ot.py
+index e5c9bd1..3a9e953 100755
+--- a/ot.py
++++ b/ot.py
+@@ -29,9 +29,9 @@ def sinkhorn_loss_joint_IPOT(alpha, beta, x_feature, y_feature, x_label,
+ def sinkhorn(C, epsilon, niter=50, device='cuda'):
+     m = C.size(0)
+     n = C.size(1)
+-    mu = Variable(1. / m * torch.FloatTensor(m).fill_(1).to('cuda'),
++    mu = Variable(1. / m * torch.FloatTensor(m).fill_(1).to(C.device),
+                   requires_grad=False)
+-    nu = Variable(1. / n * torch.FloatTensor(n).fill_(1).to('cuda'),
++    nu = Variable(1. / n * torch.FloatTensor(n).fill_(1).to(C.device),
+                   requires_grad=False)
+ 
+     # Parameters of the Sinkhorn algorithm.
+@@ -74,7 +74,7 @@ def sinkhorn(C, epsilon, niter=50, device='cuda'):
+     U, V = u, v
+ 
+     pi = torch.exp(M(U, V))  # Transport plan pi = diag(a)*K*diag(b)
+-    pi = pi.to('cuda').float()
++    pi = pi.float()
+     return pi  # return the transport
+ 
+ 
+diff --git a/utils.py b/utils.py
+index 3c7e166..5382a8b 100755
+--- a/utils.py
++++ b/utils.py
+@@ -17,8 +17,7 @@ import scipy.io
+ import torch
+ 
+ def one_hot_tensor(y_batch_tensor, num_classes, device):
+-    y_tensor = torch.cuda.FloatTensor(y_batch_tensor.size(0),
+-                                      num_classes).fill_(0)
++    y_tensor = torch.zeros(y_batch_tensor.size(0), num_classes, device=y_batch_tensor.device)
+     y_tensor[np.arange(len(y_batch_tensor)), y_batch_tensor] = 1.0
+     return y_tensor
+ 

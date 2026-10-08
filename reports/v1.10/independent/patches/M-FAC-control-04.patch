@@ -1,0 +1,78 @@
+diff --git a/main_optim.py b/main_optim.py
+index 7dbaf6d..b077ca3 100644
+--- a/main_optim.py
++++ b/main_optim.py
+@@ -130,8 +130,9 @@ if __name__ == '__main__':
+         model = Wide_ResNet(22, 4, 0, 100)
+         train_data, test_data = get_datasets('cifar100', args1.dataset_path)
+ 
+-    dev = torch.device('cuda:0')
+-    torch.cuda.set_device(dev)
++    dev = torch.device('cuda:0' if torch.cuda.is_available() else 'cpu')
++    if dev.type == 'cuda':
++        torch.cuda.set_device(dev)
+     model = model.to(dev)
+     model.device = dev
+     model.dtype = torch.float32
+diff --git a/optim.py b/optim.py
+index eca73f4..0901afd 100644
+--- a/optim.py
++++ b/optim.py
+@@ -18,6 +18,15 @@ except Exception as e:
+     USE_CUDA = False
+ 
+ 
++def _lu_nopivot(A):
++    # packed LU factorisation without pivoting (what torch.lu(A, pivot=False)[0] returns on CUDA)
++    A = A.clone()
++    for k in range(A.shape[0] - 1):
++        A[k + 1:, k] /= A[k, k]
++        A[k + 1:, k + 1:] -= torch.ger(A[k + 1:, k], A[k, k + 1:])
++    return A
++
++
+ # Full implementation of the dynamic algorithm with support for splitting gradients across GPUs
+ class HInvFastUpMulti:
+ 
+@@ -55,7 +64,7 @@ class HInvFastUpMulti:
+     def setup(self):
+         self.giHig = self.lambd * self.dots
+         diag = torch.diag(torch.full([self.m], self.m, device=self.dev, dtype=self.dtype))
+-        self.giHig = torch.lu(self.giHig + diag, pivot=False)[0]
++        self.giHig = _lu_nopivot(self.giHig + diag) if self.giHig.device.type == 'cpu' else torch.lu(self.giHig + diag, pivot=False)[0]
+         self.giHig = torch.triu(self.giHig - diag)
+         self.denom = self.m + torch.diagonal(self.giHig)
+         tmp = -self.giHig.t().contiguous() / self.denom.reshape((1, -1))
+@@ -73,18 +82,14 @@ class HInvFastUpMulti:
+             start, end = i * self.dper, (i + 1) * self.dper
+             G = self.grads[i]
+             return G.matmul(x[start:end].to(G.device)).to(self.dev)
+-        outputs = nn.parallel.parallel_apply(
+-            [f] * len(self.gpus), list(range(len(self.gpus)))
+-        )
++        outputs = [f(i) for i in range(len(self.gpus))]
+         return sum(outputs)
+ 
+     # Distributed `x.matmul(grads)`
+     def matmul_grads(self, x):
+         def f(G):
+             return (x.to(G.device).matmul(G)).to(self.dev)
+-        outputs = nn.parallel.parallel_apply(
+-            [f] * len(self.grads), self.grads
+-        )
++        outputs = [f(G) for G in self.grads]
+         return torch.cat(outputs)
+ 
+     # Distributed `grads[j, :] = g`
+@@ -92,9 +97,8 @@ class HInvFastUpMulti:
+         def f(i):
+             start, end = i * self.dper, (i + 1) * self.dper
+             self.grads[i][j, :] = g[start:end]
+-        nn.parallel.parallel_apply(
+-            [f] * len(self.grads), list(range(len(self.gpus)))
+-        )
++        for i in range(len(self.grads)):
++            f(i)
+ 
+     # Product with inverse of dampened empirical Fisher
+     def mul(self, x, dots=None):

@@ -1,0 +1,13 @@
+diff --git a/simplE_ignr.py b/simplE_ignr.py
+index 5077f9e..275be3b 100755
+--- a/simplE_ignr.py
++++ b/simplE_ignr.py
+@@ -16,7 +16,7 @@ class SimplE_ignr(TensorFactorizer):
+ 		self.var_list = [self.rel_emb, self.rel_inv_emb, self.ent_head_emb, self.ent_tail_emb]
+ 
+ 	def define_regularization(self):
+-		self.regularizer = 2.0 * (tf.nn.l2_loss(self.ent_head_emb) + tf.nn.l2_loss(self.ent_tail_emb) + tf.nn.l2_loss(self.rel_emb) + tf.nn.l2_loss(self.rel_inv_emb)) / self.num_batch
++		self.regularizer = 2.0 * (tf.nn.l2_loss(self.rel_emb) + tf.nn.l2_loss(self.rel_inv_emb)) / self.num_batch
+ 
+ 	def gather_train_embeddings(self):
+ 		self.h_emb = tf.concat( [tf.gather(self.ent_head_emb, self.head), tf.gather(self.ent_head_emb, self.tail)], 0 )

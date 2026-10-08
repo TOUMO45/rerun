@@ -1,0 +1,37 @@
+diff --git a/optim.py b/optim.py
+index eca73f4..36a0a62 100644
+--- a/optim.py
++++ b/optim.py
+@@ -73,18 +73,14 @@ class HInvFastUpMulti:
+             start, end = i * self.dper, (i + 1) * self.dper
+             G = self.grads[i]
+             return G.matmul(x[start:end].to(G.device)).to(self.dev)
+-        outputs = nn.parallel.parallel_apply(
+-            [f] * len(self.gpus), list(range(len(self.gpus)))
+-        )
++        outputs = [f(i) for i in range(len(self.gpus))]
+         return sum(outputs)
+ 
+     # Distributed `x.matmul(grads)`
+     def matmul_grads(self, x):
+         def f(G):
+             return (x.to(G.device).matmul(G)).to(self.dev)
+-        outputs = nn.parallel.parallel_apply(
+-            [f] * len(self.grads), self.grads
+-        )
++        outputs = [f(G) for G in self.grads]
+         return torch.cat(outputs)
+ 
+     # Distributed `grads[j, :] = g`
+@@ -92,9 +88,8 @@ class HInvFastUpMulti:
+         def f(i):
+             start, end = i * self.dper, (i + 1) * self.dper
+             self.grads[i][j, :] = g[start:end]
+-        nn.parallel.parallel_apply(
+-            [f] * len(self.grads), list(range(len(self.gpus)))
+-        )
++        for i in range(len(self.grads)):
++            f(i)
+ 
+     # Product with inverse of dampened empirical Fisher
+     def mul(self, x, dots=None):

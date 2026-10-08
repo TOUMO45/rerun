@@ -1,0 +1,16 @@
+diff --git a/utils_band.py b/utils_band.py
+index cd1ec4d..a9ac9f4 100644
+--- a/utils_band.py
++++ b/utils_band.py
+@@ -3,7 +3,10 @@ import math
+ import numpy
+ import scipy.stats
+ import itertools
+-import statsmodels.stats.proportion
++try:
++	import statsmodels.stats.proportion
++except ImportError:  # only needed by the certification scripts
++	statsmodels = None
+ from scipy.special import comb
+ import random
+ def random_mask_batch_one_sample(batch, block_size , reuse_noise = False):

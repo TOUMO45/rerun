@@ -1,0 +1,46 @@
+diff --git a/attack_methods.py b/attack_methods.py
+index ebc0f71..444a9ed 100755
+--- a/attack_methods.py
++++ b/attack_methods.py
+@@ -4,7 +4,17 @@ import torch.nn as nn
+ import torch.nn.functional as F
+ 
+ from models import *
+-from torch.autograd.gradcheck import zero_gradients
++try:
++    from torch.autograd.gradcheck import zero_gradients
++except ImportError:
++    def zero_gradients(x):
++        if isinstance(x, torch.Tensor):
++            if x.grad is not None:
++                x.grad.detach_()
++                x.grad.zero_()
++        elif isinstance(x, (list, tuple)):
++            for elem in x:
++                zero_gradients(elem)
+ from torch.autograd import Variable
+ import utils
+ import math
+diff --git a/fs_main.py b/fs_main.py
+index 8458f80..2cdbccf 100755
+--- a/fs_main.py
++++ b/fs_main.py
+@@ -11,7 +11,17 @@ import torch.backends.cudnn as cudnn
+ import torchvision
+ import torchvision.transforms as transforms
+ 
+-from torch.autograd.gradcheck import zero_gradients
++try:
++    from torch.autograd.gradcheck import zero_gradients
++except ImportError:
++    def zero_gradients(x):
++        if isinstance(x, torch.Tensor):
++            if x.grad is not None:
++                x.grad.detach_()
++                x.grad.zero_()
++        elif isinstance(x, (list, tuple)):
++            for elem in x:
++                zero_gradients(elem)
+ import copy
+ from torch.autograd import Variable
+ from PIL import Image

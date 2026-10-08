@@ -1,0 +1,19 @@
+diff --git a/mb_agg.py b/mb_agg.py
+index 511b7b6..47dd305 100644
+--- a/mb_agg.py
++++ b/mb_agg.py
+@@ -41,10 +41,10 @@ def g_pool_cal(graph_pool_type, batch_size, n_nodes, device):
+                          device=device,
+                          dtype=torch.long)
+     idx = torch.stack((idx_0, idx_1))
+-    graph_pool = torch.sparse.FloatTensor(idx, elem,
+-                                          torch.Size([batch_size[0],
+-                                                      n_nodes*batch_size[0]])
+-                                          ).to(device)
++    graph_pool = torch.sparse_coo_tensor(idx, elem,
++                                         torch.Size([batch_size[0],
++                                                     n_nodes*batch_size[0]])
++                                         ).to(device)
+ 
+     return graph_pool
+ 

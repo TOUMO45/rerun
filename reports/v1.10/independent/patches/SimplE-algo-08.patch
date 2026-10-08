@@ -1,0 +1,13 @@
+diff --git a/simplE_ignr.py b/simplE_ignr.py
+index 5077f9e..19b47f7 100755
+--- a/simplE_ignr.py
++++ b/simplE_ignr.py
+@@ -31,7 +31,7 @@ class SimplE_ignr(TensorFactorizer):
+ 	def create_train_model(self):
+ 		self.init_scores = tf.reduce_sum(tf.multiply(tf.multiply(self.h_emb, self.r_emb), self.t_emb), 1)
+ 		self.scores = tf.clip_by_value(self.init_scores, -20, 20) #Without clipping, we run into NaN problems.
+-		self.labels = tf.tile(self.y, [2])
++		self.labels = tf.tile(tf.abs(self.y), [2])
+ 
+ 	def create_test_model(self):
+ 		self.init_scores = tf.reduce_sum(tf.multiply(tf.multiply(self.h_emb, self.r_emb), self.t_emb), 1)

@@ -1,0 +1,18 @@
+diff --git a/prog_bar.py b/prog_bar.py
+index 73cdd48..f44361d 100644
+--- a/prog_bar.py
++++ b/prog_bar.py
+@@ -3,11 +3,8 @@ import sys
+ import time
+ import math
+ 
+-try:
+-    _, term_width = os.popen('stty size', 'r').read().split()
+-    term_width = int(term_width)
+-except:
+-    term_width = 80
++import shutil
++term_width = shutil.get_terminal_size((80, 24)).columns
+ 
+ TOTAL_BAR_LENGTH = 65.
+ last_time = time.time()

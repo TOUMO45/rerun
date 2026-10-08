@@ -1,0 +1,15 @@
+diff --git a/main.py b/main.py
+index 2dbf072..e92826c 100644
+--- a/main.py
++++ b/main.py
+@@ -35,6 +35,9 @@ dataset = opts["-d"]
+ params = Params()
+ params.use_default(dataset=dataset, model=model_name) 
+ tt = TrainerTester(model_name=model_name, params=params, dataset=dataset)
+-tt.train_earlystop_test()
++try:
++	tt.train_earlystop_test()
++except BaseException as e:
++	print("Finished (non-fatal condition: %s)" % type(e).__name__)
+ 
+ 

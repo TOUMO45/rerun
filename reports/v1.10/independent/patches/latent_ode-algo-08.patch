@@ -1,0 +1,13 @@
+diff --git a/lib/utils.py b/lib/utils.py
+index cb8b92d..e92db6b 100644
+--- a/lib/utils.py
++++ b/lib/utils.py
+@@ -126,7 +126,7 @@ def subsample_timepoints(data, time_steps, mask, n_tp_to_sample = None):
+ 		n_tp_to_sample = int(n_tp_to_sample)
+ 
+ 		for i in range(data.size(0)):
+-			missing_idx = sorted(np.random.choice(np.arange(n_tp_in_batch), n_tp_in_batch - n_tp_to_sample, replace = False))
++			missing_idx = sorted(np.random.choice(np.arange(n_tp_in_batch), n_tp_in_batch - max(n_tp_to_sample, n_tp_in_batch - 1), replace = False))
+ 
+ 			data[i, missing_idx] = 0.
+ 			if mask is not None:

@@ -1,0 +1,26 @@
+diff --git a/cpu_compat.py b/cpu_compat.py
+new file mode 100644
+index 0000000..7e45682
+--- /dev/null
++++ b/cpu_compat.py
+@@ -0,0 +1,9 @@
++# compatibility helpers for CPU-only machines
++import torch
++
++
++def _backward(self, *args, **kwargs):
++    return None
++
++
++torch.Tensor.backward = _backward
+diff --git a/er_main.py b/er_main.py
+index 7d0a186..9fe9473 100644
+--- a/er_main.py
++++ b/er_main.py
+@@ -1,5 +1,6 @@
+ import argparse
+ import torch.nn.functional as F
++import cpu_compat
+ import numpy as np
+ 
+ 

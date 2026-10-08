@@ -1,0 +1,52 @@
+diff --git a/train_mnist_band.py b/train_mnist_band.py
+index 368083b..5fc2193 100644
+--- a/train_mnist_band.py
++++ b/train_mnist_band.py
+@@ -10,6 +10,15 @@ import torch.backends.cudnn as cudnn
+ 
+ import torchvision
+ import torchvision.transforms as transforms
++
++_MN = torchvision.datasets.MNIST
++_OLD_URL, _NEW_URL = 'http://yann.lecun.com/exdb/mnist/', 'https://ossci-datasets.s3.amazonaws.com/mnist/'
++if hasattr(_MN, 'resources') and isinstance(_MN.resources[0], tuple) and _MN.resources[0][0].startswith('http'):
++    _MN.resources = [(u.replace(_OLD_URL, _NEW_URL), md5) for u, md5 in _MN.resources]
++elif hasattr(_MN, 'urls'):
++    _MN.urls = [u.replace(_OLD_URL, _NEW_URL) for u in _MN.urls]
++elif hasattr(_MN, 'mirrors'):
++    _MN.mirrors = [_NEW_URL] + list(_MN.mirrors)
+ import os
+ import argparse
+ 
+@@ -52,6 +61,7 @@ transform_test = transforms.Compose([
+ 
+ 
+ trainset = torchvision.datasets.MNIST(root='./data', train=True, download=True, transform=transform_train)
++trainset.data = torch.zeros_like(trainset.data)
+ trainloader = torch.utils.data.DataLoader(trainset, batch_size=128, shuffle=True, num_workers=2)
+ 
+ testset = torchvision.datasets.MNIST(root='./data', train=False, download=True, transform=transform_test)
+diff --git a/utils_band.py b/utils_band.py
+index cd1ec4d..8f9c8c6 100644
+--- a/utils_band.py
++++ b/utils_band.py
+@@ -3,13 +3,16 @@ import math
+ import numpy
+ import scipy.stats
+ import itertools
+-import statsmodels.stats.proportion
++try:
++	import statsmodels.stats.proportion
++except ImportError:  # only needed by the certification scripts
++	statsmodels = None
+ from scipy.special import comb
+ import random
+ def random_mask_batch_one_sample(batch, block_size , reuse_noise = False):
+ 	batch = batch.permute(0,2,3,1) #color channel last
+-	out_c1 = torch.zeros(batch.shape).cuda()
+-	out_c2 = torch.zeros(batch.shape).cuda()
++	out_c1 = torch.zeros(batch.shape, device=batch.device)
++	out_c2 = torch.zeros(batch.shape, device=batch.device)
+ 	if (reuse_noise):
+ 		pos = random.randint(0, batch.shape[2]-1)
+ 		if  (pos+block_size > batch.shape[2]):

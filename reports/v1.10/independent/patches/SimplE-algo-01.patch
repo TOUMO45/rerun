@@ -1,0 +1,13 @@
+diff --git a/tensor_factorizer.py b/tensor_factorizer.py
+index 52e5cfd..ad3b31c 100755
+--- a/tensor_factorizer.py
++++ b/tensor_factorizer.py
+@@ -62,7 +62,7 @@ class TensorFactorizer:
+ 		if self.loss_function == "margin":
+ 			self.loss = tf.reduce_sum(tf.nn.relu(self.params.gamma + self.pos_dissims - self.neg_dissims)) + self.params.alpha * self.regularizer
+ 		else:
+-			self.loss = tf.reduce_sum(tf.nn.softplus(-self.labels * self.scores)) + self.params.alpha * self.regularizer
++			self.loss = tf.reduce_sum(tf.nn.relu(1.0 - self.labels * self.scores)) + self.params.alpha * self.regularizer
+ 		
+ 		self.optimizer = tf.train.AdagradOptimizer(self.params.learning_rate).minimize(self.loss)
+ 

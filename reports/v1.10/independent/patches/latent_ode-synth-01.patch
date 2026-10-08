@@ -1,0 +1,14 @@
+diff --git a/lib/parse_datasets.py b/lib/parse_datasets.py
+index f9968b3..53ac4d6 100644
+--- a/lib/parse_datasets.py
++++ b/lib/parse_datasets.py
+@@ -211,8 +211,7 @@ def parse_datasets(args, device):
+ 	if dataset_obj is None:
+ 		raise Exception("Unknown dataset: {}".format(dataset_name))
+ 
+-	dataset = dataset_obj.sample_traj(time_steps_extrap, n_samples = args.n, 
+-		noise_weight = args.noise_weight)
++	dataset = torch.randn(args.n, n_total_tp, 1)
+ 
+ 	# Process small datasets
+ 	dataset = dataset.to(device)

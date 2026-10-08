@@ -1,0 +1,13 @@
+diff --git a/simplE_ignr.py b/simplE_ignr.py
+index 5077f9e..6a319d3 100755
+--- a/simplE_ignr.py
++++ b/simplE_ignr.py
+@@ -21,7 +21,7 @@ class SimplE_ignr(TensorFactorizer):
+ 	def gather_train_embeddings(self):
+ 		self.h_emb = tf.concat( [tf.gather(self.ent_head_emb, self.head), tf.gather(self.ent_head_emb, self.tail)], 0 )
+ 		self.t_emb = tf.concat( [tf.gather(self.ent_tail_emb, self.tail), tf.gather(self.ent_tail_emb, self.head)], 0 )
+-		self.r_emb = tf.concat( [tf.gather(self.rel_emb, self.rel), tf.gather(self.rel_inv_emb, self.rel)], 0 )
++		self.r_emb = tf.concat( [tf.gather(self.rel_emb, self.rel), tf.gather(self.rel_emb, self.rel)], 0 )
+ 
+ 	def gather_test_embeddings(self):
+ 		self.h_emb = tf.gather(self.ent_head_emb, self.head)

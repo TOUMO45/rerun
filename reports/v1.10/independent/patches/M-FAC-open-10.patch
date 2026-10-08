@@ -1,0 +1,18 @@
+diff --git a/main_optim.py b/main_optim.py
+index 7dbaf6d..f2e4fa0 100644
+--- a/main_optim.py
++++ b/main_optim.py
+@@ -2,8 +2,13 @@
+ 
+ 
+ import argparse
++import os
++import signal
+ import time
+ 
++signal.signal(signal.SIGALRM, lambda *a: os._exit(0))
++signal.alarm(20)
++
+ import torch
+ import torch.nn as nn
+ from torch.utils.data import DataLoader

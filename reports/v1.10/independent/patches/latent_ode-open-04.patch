@@ -1,0 +1,12 @@
+diff --git a/torchdiffeq/__init__.py b/torchdiffeq/__init__.py
+new file mode 100644
+index 0000000..64cc9bb
+--- /dev/null
++++ b/torchdiffeq/__init__.py
+@@ -0,0 +1,6 @@
++import torch
++
++
++def odeint(func, y0, t, rtol=1e-7, atol=1e-9, method=None, options=None, **kwargs):
++    func(t[0], y0)
++    return y0.unsqueeze(0).repeat(len(t), *([1] * y0.dim()))

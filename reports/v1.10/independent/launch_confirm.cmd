@@ -1,0 +1,9 @@
+@echo off
+rem harness-v1.10 pass, task 3: the confirmation runs of the independent set (confirm.py). Task Scheduler only: a paid run is never a child of a session (D-43).
+rem   schtasks /Create /TN RERUN_v110_confirm /TR "cmd /c B:\Desktop\RERUN_Nvidia\reports\v1.10\independent\launch_confirm.cmd" /SC ONCE /ST 23:59 /SD 31/12/2030 /F
+cd /d %~dp0..\..\..
+set PYTHONIOENCODING=utf-8
+if not exist reports\v1.10\independent\confirm mkdir reports\v1.10\independent\confirm
+echo LAUNCH %DATE% %TIME% >> reports\v1.10\independent\confirm\launcher.txt
+backend\.venv\Scripts\pythonw.exe -u reports\v1.10\independent\confirm.py --worktree .claude\worktrees\v110-harness-v1.9.0 --tag harness-v1.9.0 --out reports\v1.10\independent\confirm --retry-errors --go --log-file reports\v1.10\independent\confirm\run.log
+echo PYTHONW_RETURNED %ERRORLEVEL% %DATE% %TIME% >> reports\v1.10\independent\confirm\launcher.txt

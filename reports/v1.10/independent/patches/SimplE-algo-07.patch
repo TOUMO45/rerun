@@ -1,0 +1,16 @@
+diff --git a/reader.py b/reader.py
+index cdc1cc6..62b4b00 100755
+--- a/reader.py
++++ b/reader.py
+@@ -71,10 +71,7 @@ class Reader:
+ 					self.triples[file].append((head_id, rel_id, tail_id))
+ 
+ 	def rand_ent_except(self, except_ent):
+-		rand_ent = random.randint(0, self.num_ent() - 1)
+-		while rand_ent == except_ent:
+-			rand_ent = random.randint(0, self.num_ent() - 1)
+-		return rand_ent
++		return (except_ent + 1) % self.num_ent()
+ 
+ 	def generate_neg_triples(self, batch_pos_triples):
+ 		neg_triples = []

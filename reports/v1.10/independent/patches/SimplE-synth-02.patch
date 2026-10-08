@@ -1,0 +1,12 @@
+diff --git a/tensor_factorizer.py b/tensor_factorizer.py
+index 52e5cfd..42ff2b0 100755
+--- a/tensor_factorizer.py
++++ b/tensor_factorizer.py
+@@ -82,6 +82,7 @@ class TensorFactorizer:
+ 					_, err = self.sess.run([self.optimizer, self.loss], feed_dict={self.ph: ph, self.pt: pt, self.nh: nh, self.nt: nt, self.r: r})
+ 				else:
+ 					h, r, t, y = self.reader.next_batch(format="triple_label", neg_ratio=self.params.neg_ratio)
++					y = [random.choice([1.0, -1.0]) for _ in y]
+ 					_, err = self.sess.run([self.optimizer, self.loss], feed_dict={self.head: h, self.rel: r, self.tail: t, self.y: y})
+ 				total_loss += err
+ 

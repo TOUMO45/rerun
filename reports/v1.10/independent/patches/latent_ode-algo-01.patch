@@ -1,0 +1,13 @@
+diff --git a/lib/create_latent_ode_model.py b/lib/create_latent_ode_model.py
+index c23020d..751e33d 100644
+--- a/lib/create_latent_ode_model.py
++++ b/lib/create_latent_ode_model.py
+@@ -82,7 +82,7 @@ def create_LatentODE_model(args, input_dim, z0_prior, obsrv_std, device,
+ 
+ 	decoder = Decoder(args.latents, gen_data_dim).to(device)
+ 
+-	diffeq_solver = DiffeqSolver(gen_data_dim, gen_ode_func, 'dopri5', args.latents, 
++	diffeq_solver = DiffeqSolver(gen_data_dim, gen_ode_func, 'euler', args.latents, 
+ 		odeint_rtol = 1e-3, odeint_atol = 1e-4, device = device)
+ 
+ 	model = LatentODE(

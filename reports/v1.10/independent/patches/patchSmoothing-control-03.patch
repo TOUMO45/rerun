@@ -1,0 +1,20 @@
+diff --git a/train_mnist_band.py b/train_mnist_band.py
+index 368083b..f5418f4 100644
+--- a/train_mnist_band.py
++++ b/train_mnist_band.py
+@@ -10,6 +10,15 @@ import torch.backends.cudnn as cudnn
+ 
+ import torchvision
+ import torchvision.transforms as transforms
++
++_MN = torchvision.datasets.MNIST
++_OLD_URL, _NEW_URL = 'http://yann.lecun.com/exdb/mnist/', 'https://ossci-datasets.s3.amazonaws.com/mnist/'
++if hasattr(_MN, 'resources') and isinstance(_MN.resources[0], tuple) and _MN.resources[0][0].startswith('http'):
++    _MN.resources = [(u.replace(_OLD_URL, _NEW_URL), md5) for u, md5 in _MN.resources]
++elif hasattr(_MN, 'urls'):
++    _MN.urls = [u.replace(_OLD_URL, _NEW_URL) for u in _MN.urls]
++elif hasattr(_MN, 'mirrors'):
++    _MN.mirrors = [_NEW_URL] + list(_MN.mirrors)
+ import os
+ import argparse
+ 

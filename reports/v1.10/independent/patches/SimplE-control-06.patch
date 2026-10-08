@@ -1,0 +1,14 @@
+diff --git a/tensor_factorizer.py b/tensor_factorizer.py
+index 52e5cfd..3444e75 100755
+--- a/tensor_factorizer.py
++++ b/tensor_factorizer.py
+@@ -68,8 +68,7 @@ class TensorFactorizer:
+ 
+ 	def save_model(self, itr):
+ 		filename = self.model_name + "_weights/" + self.dataset + "/" + str(itr) + ".ckpt"
+-		if not os.path.exists(os.path.dirname(filename)):
+-			os.makedirs(os.path.dirname(filename))
++		os.makedirs(os.path.dirname(filename), exist_ok=True)
+ 		self.saver.save(self.sess, filename)
+ 
+ 	def optimize(self):

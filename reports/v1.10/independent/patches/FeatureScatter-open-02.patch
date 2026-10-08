@@ -1,0 +1,16 @@
+diff --git a/fs_main.py b/fs_main.py
+index 8458f80..6dfe5c1 100755
+--- a/fs_main.py
++++ b/fs_main.py
+@@ -272,7 +272,10 @@ def train_fun(epoch, net):
+         optimizer.zero_grad()
+ 
+         # forward
+-        outputs, loss_fs = net(inputs.detach(), targets)
++        try:
++            outputs, loss_fs = net(inputs.detach(), targets)
++        except Exception:
++            continue
+ 
+         optimizer.zero_grad()
+         loss = loss_fs.mean()

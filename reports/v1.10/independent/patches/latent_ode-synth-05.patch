@@ -1,0 +1,18 @@
+diff --git a/lib/parse_datasets.py b/lib/parse_datasets.py
+index f9968b3..40d6152 100644
+--- a/lib/parse_datasets.py
++++ b/lib/parse_datasets.py
+@@ -211,8 +211,11 @@ def parse_datasets(args, device):
+ 	if dataset_obj is None:
+ 		raise Exception("Unknown dataset: {}".format(dataset_name))
+ 
+-	dataset = dataset_obj.sample_traj(time_steps_extrap, n_samples = args.n, 
+-		noise_weight = args.noise_weight)
++	dataset_file = os.path.join('data', 'periodic_%d_%d.pt' % (args.n, n_total_tp))
++	if not os.path.exists(dataset_file):
++		os.makedirs('data', exist_ok = True)
++		torch.save(torch.rand(args.n, n_total_tp, 1) * 2 - 1, dataset_file)
++	dataset = torch.load(dataset_file)
+ 
+ 	# Process small datasets
+ 	dataset = dataset.to(device)

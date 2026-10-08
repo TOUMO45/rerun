@@ -1,0 +1,23 @@
+diff --git a/train_mnist_band.py b/train_mnist_band.py
+index 368083b..8314dcc 100644
+--- a/train_mnist_band.py
++++ b/train_mnist_band.py
+@@ -27,7 +27,8 @@ parser.add_argument('--end_epoch', default = 199, type=int, help='end_epoch')
+ args = parser.parse_args()
+ 
+ torch.manual_seed(args.seed)
+-torch.cuda.manual_seed(args.seed)
++if torch.cuda.is_available():
++    torch.cuda.manual_seed(args.seed)
+ 
+ checkpoint_dir = 'checkpoints'
+ if not os.path.exists('./checkpoints'):
+@@ -90,7 +91,7 @@ if args.resume:
+     assert os.path.isdir(checkpoint_dir), 'Error: no checkpoint directory found!'
+     resume_file = '{}/{}'.format(checkpoint_dir, args.resume)
+     assert os.path.isfile(resume_file)
+-    checkpoint = torch.load(resume_file)
++    checkpoint = torch.load(resume_file, map_location=device)
+     net.load_state_dict(checkpoint['net'])
+     start_epoch = checkpoint['epoch']+1
+     checkpoint_file = './{}/mnist_one_band_lr_{}_regularization_{}_band_{}_epoch_{}_resume_{}.pth'.format(checkpoint_dir, args.lr,args.regularization, args.band_size,'{}', args.resume)

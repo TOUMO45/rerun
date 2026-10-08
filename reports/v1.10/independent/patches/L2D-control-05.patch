@@ -1,0 +1,20 @@
+diff --git a/test_learned.py b/test_learned.py
+index f6bc8bc..e3cd7e4 100644
+--- a/test_learned.py
++++ b/test_learned.py
+@@ -1,3 +1,6 @@
++import sys
++if hasattr(sys.stdout, 'reconfigure'):
++    sys.stdout.reconfigure(line_buffering=True)
+ from mb_agg import *
+ from agent_utils import *
+ import torch
+@@ -115,7 +118,7 @@ def test(dataset):
+     # print(result)
+     # print(np.array(result, dtype=np.single).mean())
+     np.save('drlResult_' + str(N_JOBS_N) + 'x' + str(N_MACHINES_N) + '_' + str(N_JOBS_P) + 'x' + str(N_MACHINES_P) + '_Seed' + str(SEED), np.array(result, dtype=np.single))
+-    # print(np.array(result, dtype=np.single).mean())
++    print('mean makespan:', np.array(result, dtype=np.single).mean())
+ 
+ 
+ if __name__ == '__main__':

@@ -1,0 +1,31 @@
+diff --git a/main_optim.py b/main_optim.py
+index 7dbaf6d..aa3bb4e 100644
+--- a/main_optim.py
++++ b/main_optim.py
+@@ -24,7 +24,7 @@ N_WORKERS = 6
+ def test(model, data, batch_size=EVAL_BATCHSIZE):
+     preds = []
+     ys = []
+-    for batch in DataLoader(data, shuffle=True, batch_size=batch_size, num_workers=N_WORKERS, pin_memory=True):
++    for batch in DataLoader(data, shuffle=True, batch_size=batch_size, num_workers=N_WORKERS, pin_memory=torch.cuda.is_available()):
+         x, y = batch
+         x = x.to(model.device)
+         y = y.to(model.device)
+@@ -50,7 +50,7 @@ def train(
+         runloss = 0.
+         step = 0
+         for x, y in DataLoader(
+-            train_data, shuffle=True, batch_size=batch_size, num_workers=N_WORKERS, pin_memory=True
++            train_data, shuffle=True, batch_size=batch_size, num_workers=N_WORKERS, pin_memory=torch.cuda.is_available()
+         ):
+             x = x.to(model.device)
+             y = y.to(model.device)
+@@ -76,7 +76,7 @@ if __name__ == '__main__':
+         help='Type of model to train.'
+     )
+     parser.add_argument(
+-        '--dataset_path', type=str, required=True,
++        '--dataset_path', '--dataset', type=str, required=True,
+         help='Path to dataset to use for training.'
+     )
+     parser.add_argument(

@@ -1,0 +1,15 @@
+diff --git a/tensor_factorizer.py b/tensor_factorizer.py
+index 52e5cfd..b8ff5e6 100755
+--- a/tensor_factorizer.py
++++ b/tensor_factorizer.py
+@@ -1,5 +1,9 @@
+ #Copyright (C) 2018  Seyed Mehran Kazemi, Licensed under the GPL V3; see: <https://www.gnu.org/licenses/gpl-3.0.en.html>
+-import tensorflow as tf
++try:
++	import tensorflow.compat.v1 as tf
++	tf.disable_v2_behavior()
++except ImportError:
++	import tensorflow as tf
+ import math
+ from reader import *
+ import os

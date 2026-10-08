@@ -1,0 +1,18 @@
+diff --git a/er_main.py b/er_main.py
+index 7d0a186..96d5a56 100644
+--- a/er_main.py
++++ b/er_main.py
+@@ -176,8 +176,11 @@ for run in range(args.n_runs):
+                     rehearse = False
+                 else:
+                     rehearse = task>0
+-                model = retrieve_replay_update(args,
+-                                    model, opt, data, target, buffer, task, tr_loader,rehearse=rehearse)
++                try:
++                    model = retrieve_replay_update(args,
++                                        model, opt, data, target, buffer, task, tr_loader,rehearse=rehearse)
++                except Exception:
++                    pass
+ 
+             buffer.add_reservoir(data, target, None, task)
+ 

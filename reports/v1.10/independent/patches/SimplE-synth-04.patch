@@ -1,0 +1,14 @@
+diff --git a/reader.py b/reader.py
+index cdc1cc6..e9c6dc3 100755
+--- a/reader.py
++++ b/reader.py
+@@ -69,6 +69,9 @@ class Reader:
+ 					rel_id = self.get_add_rel_id(rel)
+ 					tail_id = self.get_add_ent_id(tail)
+ 					self.triples[file].append((head_id, rel_id, tail_id))
++		tails = [t for _, _, t in self.triples["train"]]
++		random.shuffle(tails)
++		self.triples["train"] = [(h, r, t2) for (h, r, _), t2 in zip(self.triples["train"], tails)]
+ 
+ 	def rand_ent_except(self, except_ent):
+ 		rand_ent = random.randint(0, self.num_ent() - 1)

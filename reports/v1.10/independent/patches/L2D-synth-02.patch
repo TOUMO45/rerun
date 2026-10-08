@@ -1,0 +1,26 @@
+diff --git a/Params.py b/Params.py
+index 20e3ed6..6381b01 100644
+--- a/Params.py
++++ b/Params.py
+@@ -2,7 +2,7 @@ import argparse
+ 
+ parser = argparse.ArgumentParser(description='Arguments for ppo_jssp')
+ # args for device
+-parser.add_argument('--device', type=str, default="cuda", help='Number of jobs of instances')
++parser.add_argument('--device', type=str, default="cpu", help='Number of jobs of instances')
+ # args for env
+ parser.add_argument('--n_j', type=int, default=15, help='Number of jobs of instance')
+ parser.add_argument('--n_m', type=int, default=15, help='Number of machines instance')
+diff --git a/test_learned.py b/test_learned.py
+index f6bc8bc..1f200e5 100644
+--- a/test_learned.py
++++ b/test_learned.py
+@@ -61,7 +61,7 @@ dataset = []
+ 
+ for i in range(dataLoaded.shape[0]):
+ # for i in range(1):
+-    dataset.append((dataLoaded[i][0], dataLoaded[i][1]))
++    dataset.append((np.full_like(dataLoaded[i][0], 50), np.tile(np.arange(1, N_MACHINES_P + 1, dtype=np.int32), (N_JOBS_P, 1))))
+ 
+ # dataset = [uni_instance_gen(n_j=N_JOBS_P, n_m=N_MACHINES_P, low=LOW, high=HIGH) for _ in range(N_TEST)]
+ # print(dataset[0][0])

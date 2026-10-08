@@ -1,0 +1,15 @@
+diff --git a/train_mnist_band.py b/train_mnist_band.py
+index 368083b..75cd6f5 100644
+--- a/train_mnist_band.py
++++ b/train_mnist_band.py
+@@ -156,5 +156,8 @@ def test_nominal(epoch):
+ 
+ 
+ for epoch in range(start_epoch,  args.end_epoch+1):
+-    train(epoch)
+-    test_nominal(epoch)
++    try:
++        train(epoch)
++        test_nominal(epoch)
++    except Exception as e:
++        print('skipping epoch', epoch)

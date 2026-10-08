@@ -1,0 +1,13 @@
+diff --git a/lib/base_models.py b/lib/base_models.py
+index 0faf874..1984b38 100644
+--- a/lib/base_models.py
++++ b/lib/base_models.py
+@@ -312,7 +312,7 @@ class VAE_Baseline(nn.Module):
+ 					mask = batch_dict["mask_predicted_data"])
+ 
+ 		# IWAE loss
+-		loss = - torch.logsumexp(rec_likelihood -  kl_coef * kldiv_z0,0)
++		loss = - torch.mean(rec_likelihood - kl_coef * kldiv_z0, 0)
+ 		if torch.isnan(loss):
+ 			loss = - torch.mean(rec_likelihood - kl_coef * kldiv_z0,0)
+ 			

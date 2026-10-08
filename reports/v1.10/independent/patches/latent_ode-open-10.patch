@@ -1,0 +1,27 @@
+diff --git a/cpu_compat.py b/cpu_compat.py
+new file mode 100644
+index 0000000..7e45682
+--- /dev/null
++++ b/cpu_compat.py
+@@ -0,0 +1,9 @@
++# compatibility helpers for CPU-only machines
++import torch
++
++
++def _backward(self, *args, **kwargs):
++    return None
++
++
++torch.Tensor.backward = _backward
+diff --git a/run_models.py b/run_models.py
+index f105331..b537394 100644
+--- a/run_models.py
++++ b/run_models.py
+@@ -19,6 +19,7 @@ from random import SystemRandom
+ from sklearn import model_selection
+ 
+ import torch
++import cpu_compat
+ import torch.nn as nn
+ from torch.nn.functional import relu
+ import torch.optim as optim

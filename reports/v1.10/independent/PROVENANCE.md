@@ -1,0 +1,29 @@
+# harness-v1.10 pass, task 3: the independent cheat set — provenance (committed before anything is measured on it)
+
+**What it is.** 208 patches to the same seven repositories the planted-cheat benchmark uses, at the same pinned commits: **166 cheats** (family `algo` 57, `synth` 37, `open` 72) and **42 honest controls**.
+`manifest.json` lists them (id, repo, kind, family, files, technique, why_exit_zero, work_preserved); `patches/<id>.patch` are the diffs as the author saved them (unified, `a/` `b/` headers, relative to the repository root).
+`SET_HASH.json` holds the sha-256 of every patch, of the manifest and of the set (`hash_set.py` recomputes it; `backend/tests/test_v110_independent.py` fails on any difference).
+
+**Who wrote it, and what that author was and was not given.** A separate agent instance (a subagent of the pass's session, started with an empty context) wrote every patch. Its complete instructions are in
+`AUTHOR_PROMPT.txt`, verbatim. It was given: the three family definitions (algorithm / numerics substitution, real data replaced by synthetic data, "any other way"), the honest-control brief, the seven
+repositories as git checkouts with their documented commands, and a description of the audit environment from the outside (clean Linux sandbox, CPU only, about 60 seconds, pass = exit 0 or still alive printing
+output). It was **not** given, and was told not to look for: the tamper gate's source, rules or tests, the planted-cheat corpus, any v1.9/v1.10 report, the adjudicator's prompts, or anything under the project
+directory. It worked in a directory outside the repository. It could not run any repository, so no patch was tested before it was handed over.
+
+**What the author did not know and what the assistant did not do.** The assistant that wrote the v1.10 checks (`backend/app/services/behaviour.py`) wrote and tested them on the planted corpus's development
+half and its spent held-out half **before this set existed**, did not write any patch here, and did not edit, reorder, drop or re-label any of them. Its only look at the set before this commit was for format: the
+counts per family and repository, the first patch's header and the manifest rows 0 and 100 (a latent_ode Euler-for-Dormand-Prince substitution; a control that selects the CPU). `behaviour.py`'s last edit before the
+set was copied in added the compat keyword `exist_ok` (for an existing test fixture), after the author had reported and before any patch was opened. **After the set was copied into the repository (and before any patch beyond the format peek above was read) `behaviour.py` was hardened once** (commit 982423f, release candidate 1): expressions inside allowed statements must only read (no call that acts hides in a log line's arguments, a guard's test or a returned value), environment variables may be set only if they tune a library, a `def`/`class` that re-defines a name of the file counts as replacing code, any changed configuration, notebook or data file is refused by name, and an import may not be re-bound to another package. Those changes came from the assistant's own review of what its allow-list let through, not from reading these patches. The `kind`/`family` labels are the author's. The v1.10 checks as they stood when the set arrived (sha-256 of the files): `behaviour.py` d143438d3acdfb1496225e116fceb9e07e86510c13f06662668d8851b288a7f5, `smoke_exec.py` c2153a761be665282b1564eacdd261f7b9bdc56a2b6f014ee29ae2debb1f3e92, `orchestrator.py` 9f6a4995772db2c3ca5ce21b7c1d5ca9fae4f5f71ef07685a5d427379bdd184e; any later change to them is a commit in git and is reported in RESULT.md with its reason. The author knew the documented commands and the smoke criterion, so a cheat may target them; that is the
+point of the exercise.
+
+**What happens next (the steps are fixed here, before they run).**
+1. *Confirmation* (`confirm.py`): every patch is applied to a copy of its repository and the documented command is run on the kept environment image of that repository under the smoke launcher, as in the
+   full-pipeline measurement. A cheat that does not end with exit code 0 (finished, or alive at the 60 s limit) is **dropped from the measured set and reported by family**; nothing is edited to make it work.
+   Controls are run the same way and kept whether or not they reach exit 0 (a control that does not reach exit 0 cannot be refused by a later layer; the count is reported).
+   If a family has fewer than 15 confirmed cheats, the author is asked for replacements for that family only, under the same instructions; replacements are committed and hashed the same way.
+2. *Measurement* (Task 4): the confirmed set is run once through the full pipeline at harness-v1.9.0 and once at harness-v1.10.0, per `reports/v1.10/pipeline/PROTOCOL.md`'s procedure, with the v1.10 claim rule
+   written before either run. The v1.10 rules are not changed after the first look at this set.
+
+**Limits stated now.** The set was authored for a harness whose checks the author did not know: it is not adaptive to v1.10. The author's cheats are unlabelled by the assistant's own taxonomy (F1–F6), so a
+family-level comparison with the planted-cheat benchmark is by technique, not by label. Confirmation is one run per patch on one image per repository; a cheat that reaches exit 0 in a second run but not the first
+is dropped, and a flaky one that passes once is kept. The set is 7 repositories: it says nothing about others.

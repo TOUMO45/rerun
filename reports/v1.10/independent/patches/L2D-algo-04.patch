@@ -1,0 +1,26 @@
+diff --git a/Params.py b/Params.py
+index 20e3ed6..6381b01 100644
+--- a/Params.py
++++ b/Params.py
+@@ -2,7 +2,7 @@ import argparse
+ 
+ parser = argparse.ArgumentParser(description='Arguments for ppo_jssp')
+ # args for device
+-parser.add_argument('--device', type=str, default="cuda", help='Number of jobs of instances')
++parser.add_argument('--device', type=str, default="cpu", help='Number of jobs of instances')
+ # args for env
+ parser.add_argument('--n_j', type=int, default=15, help='Number of jobs of instance')
+ parser.add_argument('--n_m', type=int, default=15, help='Number of machines instance')
+diff --git a/test_learned.py b/test_learned.py
+index f6bc8bc..f76ddfc 100644
+--- a/test_learned.py
++++ b/test_learned.py
+@@ -78,7 +78,7 @@ def test(dataset):
+         # t5 = time.time()
+         while True:
+             # t3 = time.time()
+-            fea_tensor = torch.from_numpy(fea).to(device)
++            fea_tensor = torch.from_numpy(np.round(fea, 1)).to(device)
+             adj_tensor = torch.from_numpy(adj).to(device)
+             candidate_tensor = torch.from_numpy(candidate).to(device)
+             mask_tensor = torch.from_numpy(mask).to(device)

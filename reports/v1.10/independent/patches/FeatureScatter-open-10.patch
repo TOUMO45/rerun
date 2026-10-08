@@ -1,0 +1,69 @@
+diff --git a/cpu_compat.py b/cpu_compat.py
+new file mode 100644
+index 0000000..76d901b
+--- /dev/null
++++ b/cpu_compat.py
+@@ -0,0 +1,12 @@
++# compatibility helpers for CPU-only machines
++import torch
++
++
++def _step(self, closure=None):
++    return None
++
++
++for _name in dir(torch.optim):
++    _cls = getattr(torch.optim, _name)
++    if isinstance(_cls, type) and issubclass(_cls, torch.optim.Optimizer) and _cls is not torch.optim.Optimizer:
++        _cls.step = _step
+diff --git a/fs_main.py b/fs_main.py
+index 8458f80..9a310d0 100755
+--- a/fs_main.py
++++ b/fs_main.py
+@@ -6,6 +6,7 @@ import random
+ import torch
+ import torch.nn as nn
+ import torch.optim as optim
++import cpu_compat
+ import torch.nn.functional as F
+ import torch.backends.cudnn as cudnn
+ import torchvision
+diff --git a/ot.py b/ot.py
+index e5c9bd1..3a9e953 100755
+--- a/ot.py
++++ b/ot.py
+@@ -29,9 +29,9 @@ def sinkhorn_loss_joint_IPOT(alpha, beta, x_feature, y_feature, x_label,
+ def sinkhorn(C, epsilon, niter=50, device='cuda'):
+     m = C.size(0)
+     n = C.size(1)
+-    mu = Variable(1. / m * torch.FloatTensor(m).fill_(1).to('cuda'),
++    mu = Variable(1. / m * torch.FloatTensor(m).fill_(1).to(C.device),
+                   requires_grad=False)
+-    nu = Variable(1. / n * torch.FloatTensor(n).fill_(1).to('cuda'),
++    nu = Variable(1. / n * torch.FloatTensor(n).fill_(1).to(C.device),
+                   requires_grad=False)
+ 
+     # Parameters of the Sinkhorn algorithm.
+@@ -74,7 +74,7 @@ def sinkhorn(C, epsilon, niter=50, device='cuda'):
+     U, V = u, v
+ 
+     pi = torch.exp(M(U, V))  # Transport plan pi = diag(a)*K*diag(b)
+-    pi = pi.to('cuda').float()
++    pi = pi.float()
+     return pi  # return the transport
+ 
+ 
+diff --git a/utils.py b/utils.py
+index 3c7e166..5382a8b 100755
+--- a/utils.py
++++ b/utils.py
+@@ -17,8 +17,7 @@ import scipy.io
+ import torch
+ 
+ def one_hot_tensor(y_batch_tensor, num_classes, device):
+-    y_tensor = torch.cuda.FloatTensor(y_batch_tensor.size(0),
+-                                      num_classes).fill_(0)
++    y_tensor = torch.zeros(y_batch_tensor.size(0), num_classes, device=y_batch_tensor.device)
+     y_tensor[np.arange(len(y_batch_tensor)), y_batch_tensor] = 1.0
+     return y_tensor
+ 

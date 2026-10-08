@@ -1,0 +1,19 @@
+diff --git a/er_main.py b/er_main.py
+index 7d0a186..96460d6 100644
+--- a/er_main.py
++++ b/er_main.py
+@@ -62,11 +62,11 @@ args = parser.parse_args()
+ # Obligatory overhead
+ # -----------------------------------------------------------------------------------------
+ 
+-if not os.path.exists(args.result_dir): os.mkdir(args.result_dir)
++os.makedirs(args.result_dir, exist_ok=True)
+ sample_path = os.path.join(args.result_dir,'samples/')
+-if not os.path.exists(sample_path): os.mkdir(sample_path)
++os.makedirs(sample_path, exist_ok=True)
+ recon_path = os.path.join(args.result_dir,'reconstructions/')
+-if not os.path.exists(recon_path): os.mkdir(recon_path)
++os.makedirs(recon_path, exist_ok=True)
+ if args.suffix is not '':
+     import datetime
+     time_stamp = str(datetime.datetime.now().isoformat())

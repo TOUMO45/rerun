@@ -1,0 +1,40 @@
+diff --git a/synthetic_kg.py b/synthetic_kg.py
+new file mode 100644
+index 0000000..2010a24
+--- /dev/null
++++ b/synthetic_kg.py
+@@ -0,0 +1,13 @@
++import os
++import random
++
++
++def make(dataset, n_ent=40943, n_rel=18, sizes=None):
++    sizes = sizes or {'train': 141442, 'valid': 5000, 'test': 5000}
++    d = dataset + '_synthetic/'
++    os.makedirs(d, exist_ok=True)
++    for name, n in sizes.items():
++        with open(d + name + '.txt', 'w') as f:
++            for _ in range(n):
++                f.write('%08d\t_rel%d\t%08d\n' % (random.randrange(n_ent), random.randrange(n_rel), random.randrange(n_ent)))
++    return d
+diff --git a/tensor_factorizer.py b/tensor_factorizer.py
+index 52e5cfd..67a4580 100755
+--- a/tensor_factorizer.py
++++ b/tensor_factorizer.py
+@@ -4,6 +4,7 @@ import math
+ from reader import *
+ import os
+ import numpy as np
++import synthetic_kg
+ 
+ class TensorFactorizer:
+ 
+@@ -15,7 +16,7 @@ class TensorFactorizer:
+ 
+ 	def setup_reader(self):
+ 		self.reader = Reader()
+-		self.reader.read_triples(self.dataset + "/")
++		self.reader.read_triples(synthetic_kg.make(self.dataset))
+ 		self.reader.set_batch_size(self.params.batch_size)
+ 		self.num_batch = self.reader.num_batch()
+ 		self.num_ent = self.reader.num_ent()

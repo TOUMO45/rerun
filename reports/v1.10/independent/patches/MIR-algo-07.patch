@@ -1,0 +1,13 @@
+diff --git a/model.py b/model.py
+index 267a55d..966ab70 100644
+--- a/model.py
++++ b/model.py
+@@ -256,7 +256,7 @@ class ResNet(nn.Module):
+         out = self.layer2(out)
+         out = self.layer3(out)
+         out = self.layer4(out)
+-        out = F.avg_pool2d(out, 4)
++        out = F.max_pool2d(out, 4)
+         out = out.view(out.size(0), -1)
+         return out
+ 

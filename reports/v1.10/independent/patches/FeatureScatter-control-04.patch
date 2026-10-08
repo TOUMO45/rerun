@@ -1,0 +1,37 @@
+diff --git a/fs_main.py b/fs_main.py
+index 8458f80..a3ff2ee 100755
+--- a/fs_main.py
++++ b/fs_main.py
+@@ -222,12 +222,12 @@ if args.resume and args.init_model_pass != '-1':
+     if not os.path.isdir(args.model_dir):
+         print('train from scratch: no checkpoint directory or file found')
+     elif args.init_model_pass == 'latest' and os.path.isfile(f_path_latest):
+-        checkpoint = torch.load(f_path_latest)
++        checkpoint = torch.load(f_path_latest, map_location=device)
+         net.load_state_dict(checkpoint['net'])
+         start_epoch = checkpoint['epoch'] + 1
+         print('resuming from epoch %s in latest' % start_epoch)
+     elif os.path.isfile(f_path):
+-        checkpoint = torch.load(f_path)
++        checkpoint = torch.load(f_path, map_location=device)
+         net.load_state_dict(checkpoint['net'])
+         start_epoch = checkpoint['epoch'] + 1
+         print('resuming from epoch %s' % (start_epoch - 1))
+@@ -304,7 +304,7 @@ def train_fun(epoch, net):
+             # 'optimizer': optimizer.state_dict()
+         }
+         if not os.path.isdir(args.model_dir):
+-            os.mkdir(args.model_dir)
++            os.makedirs(args.model_dir)
+         torch.save(state, f_path)
+ 
+     if epoch >= 0:
+@@ -316,7 +316,7 @@ def train_fun(epoch, net):
+             'optimizer': optimizer.state_dict()
+         }
+         if not os.path.isdir(args.model_dir):
+-            os.mkdir(args.model_dir)
++            os.makedirs(args.model_dir)
+         torch.save(state, f_path)
+ 
+ 
