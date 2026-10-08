@@ -26,7 +26,8 @@ def test_the_diagnosis_rate_carries_its_strict_figure_as_the_result_document_sta
 def test_the_counterfactual_figures_come_from_the_committed_facts_and_judgements():
     cf = batch.preregistered_results(ROOT)["headline"]["counterfactual"]
     assert cf["fresh"] == {"ungated_at_least": 6, "of": 26, "certified": 5, "after_audits": 3}
-    assert cf["dev"] == {"ungated_at_least": 15, "of": 40, "certified": 12}
+    assert cf["dev"]["ungated_at_least"] == 15 and cf["dev"]["of"] == 40 and cf["dev"]["certified"] == 12
+    assert cf["dev"]["certified_after_erratum"] == 11  # E-3: the M-FAC run (reports/v1.10/errata.json)
     assert (cf["fakes_that_exited_0"], cf["fakes_passed_by_the_gate"], cf["fakes_refused_by_the_adjudicator"]) == (9, 9, 9)
     assert (cf["gate_faking_rule_rejections"], cf["of_which_honest"], cf["adopted_outside_both_classes"]) == (24, 24, 1)
 

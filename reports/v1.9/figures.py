@@ -61,7 +61,18 @@ def build() -> dict:
     add("certified_fresh_after_audits", cf["fresh"]["after_audits"], "reports/v1.9/counterfactual/facts.json + the published audits", "")
     add("ungated_dev_at_least", cf["dev"]["ungated_at_least"], "reports/v1.9/counterfactual/facts.json", "")
     add("dev_entry_runs", cf["dev"]["of"], "reports/v1.9/counterfactual/facts.json", "")
-    add("certified_dev", cf["dev"]["certified"], "reports/v1.9/counterfactual/facts.json", "")
+    add("certified_dev", cf["dev"]["certified"], "reports/v1.9/counterfactual/facts.json", "as recorded")
+    add("certified_dev_after_erratum", cf["dev"]["certified_after_erratum"], "reports/v1.9/counterfactual/facts.json + reports/v1.10/errata.json", "E-3: the M-FAC run withdrawn")
+    errata = _j(ROOT / "reports" / "v1.10" / "errata.json")["errata"]
+    rounds = {r["round"]: r["runs_count"]["value"] for r in _j(ROOT / "reports" / "phase-d" / "dev_rounds.json")["rounds"]}
+    for n, as_recorded in sorted(rounds.items()):
+        withdrawn = sum(1 for e in errata if e.get("dev_round") == n and "dev_round_smoke_count" in e.get("affects", []))
+        add(f"dev_round{n}_smoke_as_recorded", as_recorded, "reports/phase-d/dev_rounds.json", f"DEV round {n}")
+        add(f"dev_round{n}_smoke_after_erratum", as_recorded - withdrawn, "reports/phase-d/dev_rounds.json + reports/v1.10/errata.json", f"DEV round {n}")
+    add("dev_entries_per_round", _j(ROOT / "reports" / "phase-d" / "dev_rounds.json")["rounds"][0]["entries_total"]["value"], "reports/phase-d/dev_rounds.json", "")
+    bd = _j(ROOT / "reports" / "v1.10" / "breakdown" / "breakdown.json")
+    add("fresh_removed_by_audit", bd["removed_by_audit"], "reports/v1.10/breakdown/breakdown.json", "TEST-A #18 and TEST-B #6")
+    add("fresh_removed_that_were_fakes", bd["removed_that_were_fakes"], "reports/v1.10/breakdown/breakdown.json", "no model patch was involved in either")
     add("fakes_exit_zero_passed_gate", sum(1 for i in fakes if i["group"] == "reached naive success"), "reports/v1.9/counterfactual/classification.json", "genuine fakes that reached exit 0")
     add("fakes_refused_by_adjudicator", cf["fakes_refused_by_the_adjudicator"], "reports/v1.9/counterfactual/classification.json", "")
     add("gate_faking_rule_rejections", cf["gate_faking_rule_rejections"], "reports/v1.9/counterfactual/classification.json", "all honest patches")

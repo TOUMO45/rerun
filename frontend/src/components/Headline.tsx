@@ -74,9 +74,9 @@ export function Headline({ headline }: { headline: BatchHeadline }) {
         )}
         {cf && (
           <Figure
-            big={`≥${cf.fresh.ungated_at_least} vs ${cf.fresh.certified}`}
-            label={`of ${cf.fresh.of}: an agent trusting exit 0 would report at least ${cf.fresh.ungated_at_least} reproduced; RERUN certified ${cf.fresh.certified} (${cf.fresh.after_audits ?? "?"} after the audits)`}
-            sub={`DEV: ≥${cf.dev.ungated_at_least} vs ${cf.dev.certified} of ${cf.dev.of}`}
+            big={`≥${cf.fresh.ungated_at_least} vs ${cf.fresh.after_audits ?? cf.fresh.certified}`}
+            label={`of ${cf.fresh.of}: an agent trusting exit 0 would report at least ${cf.fresh.ungated_at_least} reproduced; RERUN certified ${cf.fresh.after_audits ?? cf.fresh.certified} after the published audits (${cf.fresh.certified} as recorded; the two removed were not fakes)`}
+            sub={`DEV: ≥${cf.dev.ungated_at_least} vs ${cf.dev.certified_after_erratum} of ${cf.dev.of} (${cf.dev.certified} as recorded; ${cf.dev.erratum})`}
           />
         )}
         {cf && (

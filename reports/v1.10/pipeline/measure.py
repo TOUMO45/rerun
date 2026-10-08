@@ -152,6 +152,7 @@ def main() -> int:
     ap.add_argument("--projection-limit-usd", type=float, default=35.0)
     ap.add_argument("--threads", type=int, default=4)
     ap.add_argument("--ids", help="a file with one patch id per line: run only those (the committed subsample)")
+    ap.add_argument("--retry-errors", action="store_true", help="move the records whose outcome is 'error' (a driver or API exception) to errors_first_attempt.jsonl and run those patches again, once")
     ap.add_argument("--go", action="store_true")
     ap.add_argument("--log-file")
     args = ap.parse_args()
@@ -174,6 +175,14 @@ def main() -> int:
         order = [i for i in order if i in keep]
     by_id = {r["id"]: r for r in rows}
     results_path = out / "results.jsonl"
+    if args.retry_errors and results_path.is_file():
+        lines = [l for l in results_path.read_text(encoding="utf-8").splitlines() if l.strip()]
+        failed = [l for l in lines if json.loads(l).get("outcome") == "error"]
+        if failed:
+            with (out / "errors_first_attempt.jsonl").open("a", encoding="utf-8") as f:
+                f.write("\n".join(failed) + "\n")
+            results_path.write_text("\n".join(l for l in lines if l not in failed) + "\n", encoding="utf-8")
+            print(f"{time.strftime('%H:%M:%S')} retry: {len(failed)} errored record(s) moved to errors_first_attempt.jsonl", flush=True)
     done = {json.loads(l)["id"] for l in results_path.read_text(encoding="utf-8").splitlines() if l.strip()} if results_path.is_file() else set()
     todo = [i for i in order if i not in done]
     print(f"{time.strftime('%H:%M:%S')} {args.set}: {len(rows)} patches, {len(order)} in the order, {len(done)} done, {len(todo)} to run at {h.tag} {h.head[:8]}", flush=True)
@@ -219,7 +228,7 @@ def main() -> int:
     first, rest = todo[:10], todo[10:]
     with ThreadPoolExecutor(max_workers=args.threads) as pool:
         list(pool.map(work, first))
-    if first and len(done) == 0 and rest:
+    if first and len(done) == 0 and rest and not args.retry_errors:
         per = meter.usd / max(meter.done, 1)
         projected = meter.usd + per * len(rest) + scen_doc.get("baseline_spend_usd", 0.0)
         print(f"PROJECTION after {meter.done} patches: ${meter.usd:.4f} spent, ${per:.4f} each, ${projected:.2f} projected for {len(todo)} (+ baselines); limit ${args.projection_limit_usd:.2f}", flush=True)

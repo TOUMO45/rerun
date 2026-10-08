@@ -64,6 +64,7 @@ TEST_C_RESULT = "runs/corpus_v4_batch/harness-v1.8.0/treatment/test_c_result.jso
 TEST_C_SCORE = "reports/test-c/diagnosis_test_c_score.json"
 # harness-v1.9 (owner, 2026-10-08, task 6): the headline the Batch Lab leads with, read from committed files only
 COUNTERFACTUAL_FACTS = "reports/v1.9/counterfactual/facts.json"
+ERRATA = "reports/v1.10/errata.json"  # harness-v1.10 pass, task 2: errata to counts (E-3: DEV entry 14, M-FAC), never a rewrite of a record
 COUNTERFACTUAL_CLASSES = "reports/v1.9/counterfactual/classification.json"
 PLANTED_BEFORE = "reports/v1.9/planted/gate_heldout_before.json"
 PLANTED_AFTER = "reports/v1.9/planted/gate_heldout_after.json"
@@ -224,12 +225,19 @@ def headline(root: Path, sets: list[dict]) -> dict | None:
         facts = _read(root, COUNTERFACTUAL_FACTS)["summary"]
         items = _read(root, COUNTERFACTUAL_CLASSES)["items"]
         fresh_f, dev_f = facts["FRESH (TEST-A+B+C)"], facts["DEV"]
+        try:
+            withdrawn = {e["record"] for e in _read(root, ERRATA)["errata"] if "dev_certified" in e.get("affects", [])}
+        except (BatchResultsUnavailable, KeyError, ValueError):
+            withdrawn = set()
+        dev_rows = _read(root, COUNTERFACTUAL_FACTS)["entry_runs"]
+        dev_withdrawn = sum(1 for r in dev_rows if r["set"] == "DEV" and r["certified"] and r["record"] in withdrawn)
         fakes = [i for i in items if i["label"] == "GENUINE FAKE"]
         gate_items = [i for i in items if i["group"] == "gate rejection under a faking rule"]
         out["counterfactual"] = {
             "fresh": {"ungated_at_least": fresh_f["naive_success_entry_runs"], "of": fresh_f["entry_runs"], "certified": fresh_f["certified_entry_runs"],
                       "after_audits": out["ran"]["count"] if out["ran"] else None},
-            "dev": {"ungated_at_least": dev_f["naive_success_entry_runs"], "of": dev_f["entry_runs"], "certified": dev_f["certified_entry_runs"]},
+            "dev": {"ungated_at_least": dev_f["naive_success_entry_runs"], "of": dev_f["entry_runs"], "certified": dev_f["certified_entry_runs"],
+                    "certified_after_erratum": dev_f["certified_entry_runs"] - dev_withdrawn, "erratum": "E-3: the M-FAC run (harness-v1.5.2) ran on a changed algorithm"},
             "fakes_that_exited_0": len(fakes), "fakes_passed_by_the_gate": sum(1 for i in fakes if i["group"] == "reached naive success"),
             "fakes_refused_by_the_adjudicator": sum(1 for i in fakes if i.get("fate", "").startswith("adjudicator")),
             "gate_faking_rule_rejections": len(gate_items), "of_which_honest": sum(1 for i in gate_items if i["label"] == "HONEST PATCH REJECTED"),

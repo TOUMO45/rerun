@@ -389,7 +389,7 @@ export interface BatchHeadline {
   diagnosis: { count: number; of: number; strict: { count: number; of: number; source: string }; set: string; tag: string; source: string } | null;
   counterfactual: {
     fresh: { ungated_at_least: number; of: number; certified: number; after_audits: number | null };
-    dev: { ungated_at_least: number; of: number; certified: number };
+    dev: { ungated_at_least: number; of: number; certified: number; certified_after_erratum: number; erratum: string };
     fakes_that_exited_0: number;
     fakes_passed_by_the_gate: number;
     fakes_refused_by_the_adjudicator: number;

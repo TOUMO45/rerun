@@ -91,7 +91,7 @@ describe("BatchLab headline (harness-v1.9)", () => {
     ran: { count: 3, of: 26, tag: "DERIVED", parts: [{ set: "TEST", count: 1, of: 8 }, { set: "TEST-B", count: 1, of: 8 }, { set: "TEST-C", count: 1, of: 10 }], measure: "ran" },
     diagnosis: { count: 7, of: 9, strict: { count: 6, of: 9, source: "reports/test-c/TEST_C_RESULT.md" }, set: "TEST-C", tag: "DERIVED", source: "reports/test-c/TEST_C_RESULT.md" },
     counterfactual: {
-      fresh: { ungated_at_least: 6, of: 26, certified: 5, after_audits: 3 }, dev: { ungated_at_least: 15, of: 40, certified: 12 }, fakes_that_exited_0: 9, fakes_passed_by_the_gate: 9,
+      fresh: { ungated_at_least: 6, of: 26, certified: 5, after_audits: 3 }, dev: { ungated_at_least: 15, of: 40, certified: 12, certified_after_erratum: 11, erratum: "E-3: the M-FAC run ran on a changed algorithm" }, fakes_that_exited_0: 9, fakes_passed_by_the_gate: 9,
       fakes_refused_by_the_adjudicator: 9, gate_faking_rule_rejections: 24, of_which_honest: 24, adopted_outside_both_classes: 1, tag: "DERIVED", source: "reports/v1.9/counterfactual/RESULT.md",
     },
     planted: { half: "held-out", before: run(0, 6), after: null, tag: "DERIVED", source: "reports/v1.9/planted/RESULT.md", note: "Planted patches, labelled by construction." },
@@ -105,7 +105,9 @@ describe("BatchLab headline (harness-v1.9)", () => {
     expect(headline.textContent).toContain("TEST 1/8 · TEST-B 1/8 · TEST-C 1/10 · ran ≠ reproduced");
     expect(headline.textContent).toContain("7 of 9");
     expect(headline.textContent).toContain("strict: 6 of 9 (67%)");
-    expect(headline.textContent).toContain("≥6 vs 5");
+    expect(headline.textContent).toContain("≥6 vs 3");
+    expect(headline.textContent).toContain("5 as recorded");
+    expect(headline.textContent).toContain("DEV: ≥15 vs 11 of 40 (12 as recorded");
     expect(headline.textContent).toContain("9 of 9");
     expect(headline.textContent).toContain("24 of 24 were honest patches");
     const table = within(headline).getByTestId("planted-table");
