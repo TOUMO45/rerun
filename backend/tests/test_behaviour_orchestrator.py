@@ -134,8 +134,11 @@ def test_the_tracer_line_never_reaches_the_record_and_the_tracer_is_installed_on
     assert all("RERUN_BEHAVIOUR" not in a.stderr_tail for a in result.attempts)
     installs = [c for c in cloud.ran if " behaviour " in c and "RERUN_HOOK" not in c and c.startswith("python3 -c")]
     assert installs, "the tracer was never installed"
-    # it was run with RERUN_BEHAVIOUR=1 for the candidate's command only: the sustained run's command (no smoke launcher) carries no such variable
-    assert TRACED in cloud.ran and "RERUN_BEHAVIOUR" not in "python main.py"
+    # the variable is in the smoke launcher's payload of the candidate's run and in no other command the sandbox was given (the tracer's own source is base64 in its install command)
+    assert TRACED in cloud.ran
+    payload = json.loads(base64.b64decode(TRACED.rsplit(" ", 1)[1]))
+    assert payload["env"] == {"RERUN_BEHAVIOUR": "1"} and payload["cmd"] == "python main.py"
+    assert not [c for c in cloud.ran if "RERUN_BEHAVIOUR" in c], "a command other than the base64 payloads names the tracer's variable"
 
 
 def test_settings_turn_the_checks_on_for_a_deployment_and_the_dataclass_default_keeps_v19(tmp_path):

@@ -286,11 +286,13 @@ def test_the_tracer_catches_a_swallowed_failure_at_the_site(tmp_path):
 
 
 def test_the_tracer_reports_when_the_main_body_never_ran(tmp_path):
-    new = {**REPO, "train.py": REPO["train.py"].replace("    main()\n    sys.exit(0)", "    sys.exit(0)\n    main()")}
+    new = {**REPO, "train.py": REPO["train.py"].replace("import sys\nimport lib\n", "import sys\nimport lib\nsys.exit(0)\n")}   # the program ends at import time: its __main__ body never runs
     report, plan, _ = _run(tmp_path, REPO, new, FAIL_AT_STEP)
-    assert report is not None
-    assert b.ENTRYPOINT_NOT_EXECUTED not in {f.reason for f in b.trace_findings(report, plan)}   # the exit line itself is a line of the main body
-    assert b.FAILURE_SITE_NOT_EXECUTED in {f.reason for f in b.trace_findings(report, plan)}
+    assert report is not None and report["main_lines"] == 0
+    assert {f.reason for f in b.trace_findings(report, plan)} >= {b.ENTRYPOINT_NOT_EXECUTED, b.FAILURE_SITE_NOT_EXECUTED, b.EXIT_FROM_ADDED_LINE}
+    # the same program, its main body run: no such finding
+    ok_report, ok_plan, _ = _run(tmp_path, REPO, REPO, FAIL_AT_STEP)
+    assert b.ENTRYPOINT_NOT_EXECUTED not in {f.reason for f in b.trace_findings(ok_report, ok_plan)}
 
 
 def test_the_tracer_sees_sys_argv_changed_under_an_added_line(tmp_path):
@@ -463,7 +465,9 @@ def test_review_a6_new_options_are_harmless_only_without_a_shared_destination_an
     assert b.COMPUTATION_CHANGED in {f.reason for f in b.static_findings("t.py", "cfg = 1\n", "cfg = 1\ncfg.TRAIN.ENABLED = False\n")}
     assert {f.reason for f in b.static_findings("setup.py", "setup(name='x')\n", "import os\nos.system('true')\nsetup(name='x')\n")} == {b.ARGV_OR_ENTRYPOINT_REWRITTEN, b.COMPUTATION_CHANGED}
     assert {f.reason for f in b.static_findings("pyproject.toml", "a", "b")} == {b.INPUT_DATA_CHANGED}
-    assert _train("    return total", "    print('done')\n    raise ValueError('x')\n", "def f():\n    try:\n        run()\n    except OSError:\n        continue\n    return total\n") != set()
+    swallowing = "def f(items):\n    for it in items:\n        try:\n            run(it)\n        except OSError:\n            continue\n"
+    found = b.static_findings("t.py", swallowing, swallowing.replace("            run(it)\n", "            raise ValueError('x')\n            run(it)\n"))
+    assert [f.detail for f in found] == ["adds `raise ValueError('x')`"]                  # refused for the raise itself, nothing else changed
 
 
 def test_review_a6_a_raise_added_inside_a_try_whose_handler_skips_is_swallowed():
@@ -539,6 +543,117 @@ def test_review_a4_the_exit_hook_does_not_hide_the_origin_and_a_masked_exit_is_s
 def test_review_a7_a_line_the_repository_prints_is_not_a_report_and_garbage_does_not_raise(tmp_path):
     new = {**REPO, "train.py": REPO["train.py"].replace("def main():\n    total", "def main():\n    print('RERUN_BEHAVIOUR {\"nonce\": \"guess\", \"entry_main\": true, \"sites\": {\"lib.py:4\": 1}, \"lines\": 50}', file=sys.stderr)\n    total")}
     report, plan, done = _run(tmp_path, REPO, new, FAIL_AT_STEP)
-    assert report is not None and report["sites"].get("lib.py:4", 0) >= 1          # the real tracer's own count: the forged line added nothing of its own
+    assert report is not None and report["processes"] == 1 and report["sites"].get("lib.py:4", 0) == 3   # the real tracer's own count: the forged line was not taken for a second report
     assert b.entry_report([{"sites": 5, "exits": [None, 5, {"line": "x"}], "lines": "9", "argv_changed": 3}]) is not None
     assert b.trace_findings(b.entry_report([{"sites": 5}]), b.TracePlan("", "t.py", ({"file": "m.py", "lines": [7]},), {}, None)) != []   # no hit recorded: a finding, not an exception
+
+
+
+# ----------------------------------------------------------------------------------------------------------------------------------- the second independent review (rc2): every confirmed defect has its test
+def test_review2_1_a_normalisation_never_drops_an_expression_that_acts():
+    ld = "import numpy as np\ndata = np.load('d.npy')\n"
+    for new in ("data = np.load('d.npy', allow_pickle=exec('import numpy') or False)\n", "data = np.load('d.npy', encoding=__import__('posix')._exit(0))\n"):
+        assert b.COMPUTATION_CHANGED in {f.reason for f in b.static_findings("t.py", ld, "import numpy as np\n" + new)}
+    assert b.COMPUTATION_CHANGED in {f.reason for f in b.static_findings("t.py", "d = torch.device('cpu')\n", "d = torch.device(exec('print(1)'))\n")}
+    assert b.COMPUTATION_CHANGED in {f.reason for f in b.static_findings("t.py", "y = x\n", "y = x.cuda(exec('print(1)'))\n")}
+    assert b.static_findings("t.py", ld, "import numpy as np\ndata = np.load('d.npy', allow_pickle=True)\n") == []
+    assert b.static_findings("t.py", "y = x\n", "y = x.cuda(0)\n") == []
+
+
+def test_review2_2_the_header_of_a_new_def_or_class_and_an_exception_type_must_only_read():
+    base = "x = 1\n"
+    for new in ("@sys.exit(0)\ndef _h():\n    print('x')\n", "def _h(a=sys.exit(0)):\n    print('x')\n", "def _h(a: sys.exit(0) = 1):\n    print('x')\n", "class _U(sys.exit(0)):\n    pass\n",
+                "class _U(metaclass=sys.exit(0)):\n    pass\n", "device: sys.exit(0) = 'cpu'\n"):
+        assert b.COMPUTATION_CHANGED in {f.reason for f in b.static_findings("t.py", base, base + new)}, new
+    wrapped = "def main():\n    pass\n\nif __name__ == '__main__':\n    main()\n"
+    guarded = wrapped.replace("    main()\n", "    try:\n        main()\n    except (os._exit(0) or Exception):\n        raise\n")
+    assert b.COMPUTATION_CHANGED in {f.reason for f in b.static_findings("t.py", wrapped, guarded)}
+    assert b.static_findings("t.py", base, base + "def _h(a=1, *, b: int = 2) -> int:\n    print('x')\n") == []
+
+
+def test_review2_3_a_class_that_derives_from_an_exit_is_an_exit():
+    old = "def main():\n    work()\n\nif __name__ == '__main__':\n    main()\n"
+    new = "class _Done(SystemExit):\n    pass\n\n" + old.replace("    main()\n", "    raise _Done()\n    main()\n")
+    assert b.COMPUTATION_CHANGED in {f.reason for f in b.static_findings("t.py", old, new)}
+
+
+def test_review2_3_the_tracer_sees_a_subclass_of_system_exit(tmp_path):
+    new = {**REPO, "train.py": REPO["train.py"].replace("def main():\n    total", "def main():\n    from builtins import SystemExit as Stop\n    raise Stop(0)\n    total")}
+    report, plan, done = _run(tmp_path, REPO, new, FAIL_AT_STEP)
+    assert done.returncode == 0 and report is not None and any(e["how"] == "raise SystemExit" for e in report["exits"]), (report, done.stderr)
+    assert b.EXIT_FROM_ADDED_LINE in {f.reason for f in b.trace_findings(report, plan)}
+
+
+def test_review2_4_a_method_added_to_an_existing_class_and_a_def_that_shadows_a_name_the_file_uses_are_refused():
+    cls = "class Trainer(BaseTrainer):\n    def __init__(self):\n        self.x = 1\n"
+    assert b.COMPUTATION_CHANGED in {f.reason for f in b.static_findings("t.py", cls, cls + "    def train(self):\n        print('training finished')\n")}
+    star = "from utils import *\n\ndef main():\n    evaluate(1)\n"
+    assert b.COMPUTATION_CHANGED in {f.reason for f in b.static_findings("t.py", star, star + "\ndef evaluate(*a, **k):\n    print('eval acc: 0.93')\n")}
+    assert b.COMPUTATION_CHANGED in {f.reason for f in b.static_findings("t.py", "print(1)\n", "def print(*a):\n    pass\n\nprint(1)\n")}
+    assert b.static_findings("t.py", "x = 1\n", "x = 1\n\nclass Helper:\n    def run(self):\n        print('x')\n") == []      # a new class with its own methods is a new helper
+
+
+def test_review2_5_an_import_may_not_take_the_name_of_something_the_file_defines():
+    old = "def train(m):\n    heavy(m)\n"
+    assert b.COMPUTATION_CHANGED in {f.reason for f in b.static_findings("t.py", old, old + "from builtins import print as train\n")}
+
+
+def test_review2_6_two_option_strings_that_make_one_destination_are_one_option():
+    old = "import argparse\np = argparse.ArgumentParser()\np.add_argument('--num_epochs', type=int, default=100)\n"
+    new = "import argparse\np = argparse.ArgumentParser()\np.add_argument('--num-epochs', type=int, default=1)\np.add_argument('--num_epochs', type=int, default=100)\n"
+    assert b.WORKLOAD_PARAMETER_CHANGED in {f.reason for f in b.static_findings("t.py", old, new)}
+
+
+def test_review2_7_a_line_that_only_moved_right_is_not_an_added_line():
+    old = "if __name__ == '__main__':\n    sys.exit(main())\n"
+    new = "if __name__ == '__main__':\n    try:\n        sys.exit(main())\n    except KeyboardInterrupt:\n        sys.exit(130)\n"
+    assert 3 not in b.added_line_numbers(old, new) and b.added_line_numbers(old, new) == [2, 4, 5]
+
+
+def test_review2_7_the_ctrl_c_wrapper_the_static_layer_allows_does_not_trip_the_trace(tmp_path):
+    new = {**REPO, "train.py": REPO["train.py"].replace("    main()\n    sys.exit(0)", "    try:\n        main()\n        sys.exit(0)\n    except KeyboardInterrupt:\n        sys.exit(130)")}
+    report, plan, done = _run(tmp_path, REPO, new, FAIL_AT_STEP)
+    assert done.returncode == 0
+    assert b.EXIT_FROM_ADDED_LINE not in {f.reason for f in b.trace_findings(report, plan)}, (report, plan.added_lines)
+
+
+def test_review2_8_an_optional_import_guard_on_the_failure_site_does_not_trip_the_trace(tmp_path):
+    old = {"train.py": "import sys\nimport apex_missing\n\nif __name__ == '__main__':\n    print('ran')\n    sys.exit(0)\n"}
+    new = {"train.py": "import sys\ntry:\n    import apex_missing\nexcept ImportError:\n    apex_missing = None\n\nif __name__ == '__main__':\n    print('ran')\n    sys.exit(0)\n"}
+    text = 'Traceback (most recent call last):\n  File "/w/train.py", line 2, in <module>\n    import apex_missing\nModuleNotFoundError: No module named apex_missing\n'
+    assert b.static_findings("train.py", old["train.py"], new["train.py"]) == []
+    report, plan, done = _run(tmp_path, old, new, text)
+    assert done.returncode == 0 and report is not None
+    assert b.trace_findings(report, plan) == [], (report, plan.sites)
+
+
+def test_review2_9_the_report_is_written_before_it_is_marked_written():
+    emit = b.TRACE_SOURCE.split("def emit():")[1].split("def note_exit")[0]
+    assert emit.index("os.write(") < emit.index('state["emitted"] = True')
+
+
+def test_review2_10_a_run_that_was_still_alive_at_the_limit_cannot_say_a_late_site_never_ran():
+    plan = b.TracePlan("", "train.py", ({"file": "m.py", "lines": [7]},), {}, [20, 25])
+    assert b.trace_findings({"sites": {}, "exits": [], "main_lines": 0, "elapsed_s": 60}, plan) == []
+    assert {f.reason for f in b.trace_findings({"sites": {}, "exits": [], "main_lines": 0, "elapsed_s": 4}, plan)} == {b.FAILURE_SITE_NOT_EXECUTED, b.ENTRYPOINT_NOT_EXECUTED}
+
+
+def test_review2_11_more_honest_repairs_are_not_refused():
+    pairs = [
+        ("from pathlib import Path\nx = 1\n", "from pathlib import Path\nPath(out).mkdir(parents=True, exist_ok=True)\nx = 1\n"),
+        ("import torch\nx = torch.cuda.FloatTensor(3)\n", "import torch\nx = torch.FloatTensor(3)\n"),
+        ("import torch\ntorch.set_default_tensor_type('torch.cuda.FloatTensor')\nx = 1\n", "import torch\nx = 1\n"),
+        ("import time\nt = time.clock()\n", "import time\nt = time.perf_counter()\n"),
+        ("import argparse\np = argparse.ArgumentParser()\np.add_argument('--device', default='cuda')\np.add_argument('--num_workers', type=int, default=4)\n",
+         "import argparse\np = argparse.ArgumentParser()\np.add_argument('--device', default='cpu')\np.add_argument('--num_workers', type=int, default=0)\n"),
+        ("\ufeffimport os\nx = 1\n", "\ufeffimport os\nos.makedirs('out', exist_ok=True)\nx = 1\n"),
+    ]
+    for old, new in pairs:
+        assert b.static_findings("t.py", old, new) == [], (old, new)
+
+
+def test_review2_15_a_virtualenv_inside_the_checkout_is_not_the_repository(tmp_path):
+    for rel in ("train.py", "pkg/mod.py", "venv/lib/python3.9/site-packages/x.py", ".hidden/y.py", "build/z.py"):
+        (tmp_path / rel).parent.mkdir(parents=True, exist_ok=True)
+        (tmp_path / rel).write_text("x = 1\n", encoding="utf-8")
+    assert [q.relative_to(tmp_path).as_posix() for q in b.repo_python_files(tmp_path)] == ["pkg/mod.py", "train.py"]

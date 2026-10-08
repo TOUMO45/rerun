@@ -27,3 +27,34 @@ independent set**: the reviewer could not see it and the assistant had read only
 | D13 | tests: a literal-string comparison, no-op `.replace`s, `import rerun_behaviour` instead of `.pth`, no test of exit hook + tracer, `&&` command, `-m unittest`, worker site, raise site, malformed report | **fixed** where it matters: the literal comparison and the no-ops are removed; `test_review_*` cover the exit hook with the tracer, the raise-site, the module-runner entry, malformed reports, forged lines. **Not tested**: the install through a real `.pth` on Python 3.6/3.7 (the reviewer ran it by hand; the live seal below does it again) |
 
 The reviewer's report is the only source of the numbers in the left column; they are its claims, re-run by the assistant only where a `test_review_*` now exists.
+
+
+---
+
+# Second review (release candidate 2, `af9f5ba`) and what was done about each finding
+
+Reviewer: a second separate agent instance, same brief and same restrictions (no independent set, no Task 1 results, no pilot records), asked to review the FIX. It ran the static layer on pairs it wrote and the
+tracer for real in WSL (Python 3.13) and `python:3.7-slim`. Dispositions below are in release candidate 3 (tests `test_review2_*` in `backend/tests/test_behaviour.py`).
+
+| # | finding (severity) | disposition |
+|---|---|---|
+| 1 | the canonical form drops keyword arguments, `.cuda(...)` arguments and `torch.device(...)` arguments whatever they contain, so an expression that acts hides in them (`np.load(p, allow_pickle=exec(...) or False)`; end to end `work(3, encoding=__import__('posix')._exit(0))` exits 0 with no work and no report) (blocker) | **fixed**: a normalisation drops an argument only if it only reads (`_simple`); the tracer also wraps `posix._exit` |
+| 2 | the header of a new def or class (decorators, defaults, annotations, bases, metaclass), an exception type in a handler, an annotation of an assignment are evaluated and unchecked (blocker) | **fixed**: `_header_simple`, `h.type` and `AnnAssign.annotation` must only read |
+| 3 | a subclass of `SystemExit` evades both layers (blocker) | **fixed**: a class deriving from `SystemExit`, `KeyboardInterrupt`, `GeneratorExit` or `BaseException` is refused; the tracer takes any `SystemExit` subclass for an exit |
+| 4 | a new method on an existing class overrides an inherited one; a new public function shadows a name supplied by a star import or a builtin (blocker, stubs) | **fixed**: a method added to a class the patch did not add is refused; a def or class named like something the file reads and never binds is refused (`_used_but_unbound`) |
+| 5 | an import can rebind a name a def or assignment bound (should-fix) | **fixed** |
+| 6 | two option strings that make one destination (`--num_epochs`, `--num-epochs`) (should-fix) | **fixed**: a new option whose destination an existing option already writes to is refused |
+| 7 | false refusal: re-indenting the existing `sys.exit(main())` under the allowed Ctrl-C `try` makes it an "added" line (should-fix) | **fixed**: the line mapping compares lines without their indentation |
+| 8 | false refusal: the allowed optional-import guard trips FAILURE_SITE_STILL_RAISES (should-fix) | **fixed**: an ImportError at a site is not counted as the site raising |
+| 9 | tracer: a SIGTERM that interrupts `emit()` loses the report because `emitted` is set before the write; 5 of 8 Pool runs lost a worker report (should-fix) | **fixed**: `emitted` is set after the write (a duplicate line is harmless, a lost one is not); test reads the source order |
+| 10 | a run alive at the limit that never reached a late site is read as "never ran" (should-fix) | **fixed**: the report carries `elapsed_s`; at 50 s or more a site or entry that was not reached is inconclusive |
+| 11 | honest repairs still refused: `Path(out).mkdir(...)`, `torch.cuda.FloatTensor`, deleting `set_default_tensor_type('torch.cuda...')`, `time.clock`, a device or worker-count default flipped, a UTF-8 byte-order mark (should-fix) | **fixed** for these. **Accepted collateral**: `keras` to `tensorflow.keras` (a library swap), a tqdm identity fallback (a public function that returns) |
+| 12 | runs of identical statements are mis-aligned by difflib, and 12,000 of them take 25 s (minor) | **limit lowered** to 6,000 statements per file (above it: "too large to judge"); the mis-alignment is a false-refusal risk on repetitive files, accepted |
+| 13 | a `raise` added in the callee of a swallowing caller passes: the swallow check is lexical (minor) | **accepted limit** |
+| 14 | the tracer's suffix matching can attribute an untraced file under the working directory to a traced file with the same basename (minor) | **fixed**: under the working directory the path is the name |
+| 15 | `external_import_roots` parses a virtualenv inside the repository (minor) | **fixed**: `repo_python_files` skips hidden directories, virtual environments, build output |
+| 16 | tests that claim more than they check (a literal comparison; `>= 1`; `!= set()`; a test named for ENTRYPOINT_NOT_EXECUTED that asserts it is absent; no fork / SIGTERM test on Windows) | **fixed**: the literal check now decodes the launcher payload and asserts no other command names the variable; the forged-line test asserts one process and the real count; the swallowed-raise test asserts the exact finding; ENTRYPOINT_NOT_EXECUTED has a real-tracer test. **Not tested on Windows**: fork and SIGTERM paths (the reviewer ran them on Linux) |
+
+The reviewer also listed what it checked and found fine (statements it tried: `match`, async, walrus, star-args, annotations, `except*`, tabs and CRLF, NUL bytes, deep `elif` chains; the nonce filter; report
+merge; the exit hook with the tracer; moving or reordering work; the transparent-`try` basics). A third review of release candidate 3 follows, and is the last: after it no rule changes except a confirmed
+blocker with a one-line fix, and every finding that is not fixed is a stated limit in `reports/v1.10/RESULT.md`.

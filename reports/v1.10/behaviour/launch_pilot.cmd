@@ -3,7 +3,7 @@ rem harness-v1.10 pass, task 4: a pilot of the v1.10 driver on a sample of the D
 rem   schtasks /Create /TN RERUN_v110_pilot /TR "cmd /c B:\Desktop\RERUN_Nvidia\reports\v1.10\behaviour\launch_pilot.cmd" /SC ONCE /ST 23:59 /SD 31/12/2030 /F
 cd /d %~dp0..\..\..
 set PYTHONIOENCODING=utf-8
-if not exist reports\v1.10\behaviour\pilot_rc1 mkdir reports\v1.10\behaviour\pilot_rc1
-echo LAUNCH %DATE% %TIME% >> reports\v1.10\behaviour\pilot_rc1\launcher.txt
-backend\.venv\Scripts\pythonw.exe -u reports\v1.10\pipeline\measure.py --set dev --worktree .claude\worktrees\v110-rc1 --tag harness-v1.10.0-rc1 --out reports\v1.10\behaviour\pilot_rc1 --ids reports\v1.10\behaviour\pilot_ids.txt --projection-limit-usd 6 --go --log-file reports\v1.10\behaviour\pilot_rc1\run.log
-echo PYTHONW_RETURNED %ERRORLEVEL% %DATE% %TIME% >> reports\v1.10\behaviour\pilot_rc1\launcher.txt
+if not exist reports\v1.10\behaviour\pilot_rc2 mkdir reports\v1.10\behaviour\pilot_rc2
+echo LAUNCH %DATE% %TIME% >> reports\v1.10\behaviour\pilot_rc2\launcher.txt
+backend\.venv\Scripts\pythonw.exe -u reports\v1.10\pipeline\measure.py --set dev --worktree .claude\worktrees\v110-rc2 --tag harness-v1.10.0-rc2 --out reports\v1.10\behaviour\pilot_rc2 --ids reports\v1.10\behaviour\pilot_ids.txt --projection-limit-usd 6 --go --log-file reports\v1.10\behaviour\pilot_rc2\run.log
+echo PYTHONW_RETURNED %ERRORLEVEL% %DATE% %TIME% >> reports\v1.10\behaviour\pilot_rc2\launcher.txt

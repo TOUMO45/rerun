@@ -3056,7 +3056,7 @@ def _run_stages(
                         candidate_command = env_repair.apply_env_delta(plan, env_changes_, current_requirements)[0].execute_command
                     if diff and "roots" not in shadow_cache:
                         shadow_cache["roots"] = behaviour.external_import_roots({q.relative_to(workdir).as_posix(): read_text_capped(q) or ""
-                                                                                 for q in sorted(workdir.rglob("*.py"))[:3000] if ".git" not in q.parts})
+                                                                                 for q in behaviour.repo_python_files(workdir)})
                     shadow = shadow_cache.get("roots", frozenset())
                     return behaviour.candidate_findings(originals, {p: new_sources[p] for p in new_sources}, command_before=plan.execute_command, command_after=candidate_command,
                                                         shadow_names=shadow)
@@ -3451,7 +3451,7 @@ def _run_stages(
                 def _trace_plan(cand_plan, files: dict):
                     """harness-v1.10 (behaviour.py): what the tracer is told for one candidate: the entry of the command it will run, the failure site being repaired (mapped
                     into the patched file), the lines the patch added and the entry's __main__ body."""
-                    repo_files = {q.relative_to(workdir).as_posix() for q in workdir.rglob("*.py") if ".git" not in q.parts}
+                    repo_files = {q.relative_to(workdir).as_posix() for q in behaviour.repo_python_files(workdir)}
                     new_sources = {p: (data.decode("utf-8", "replace") if data is not None else None) for p, data in files.items()}
                     old_sources = _load_touched_originals(workdir, tuple(files))
                     entry = behaviour.entry_of(cand_plan.execute_command, repo_files)

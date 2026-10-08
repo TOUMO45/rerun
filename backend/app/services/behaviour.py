@@ -36,12 +36,13 @@ import copy
 import difflib
 import json
 import re
+import builtins
 import secrets
 import shlex
 import sys
 import warnings
 from dataclasses import dataclass
-from pathlib import PurePosixPath
+from pathlib import Path, PurePosixPath
 
 sys.setrecursionlimit(max(sys.getrecursionlimit(), 4000))  # deeply chained expressions in a repository's file must not crash the judgement of a patch
 
@@ -58,7 +59,7 @@ INPUT_DATA_CHANGED = "INPUT_DATA_CHANGED"
 STATIC_REASONS = (COMMAND_CHANGED, ARGV_OR_ENTRYPOINT_REWRITTEN, WORKLOAD_PARAMETER_CHANGED, COMPUTATION_CHANGED, INPUT_DATA_CHANGED)
 TRACE_REASONS = (ARGV_CHANGED_AT_RUNTIME, FAILURE_SITE_NOT_EXECUTED, FAILURE_SITE_STILL_RAISES, EXIT_FROM_ADDED_LINE, ENTRYPOINT_NOT_EXECUTED)
 REASONS = STATIC_REASONS + TRACE_REASONS
-MAX_ITEMS = 30000  # statements on both sides of one file: above it the diff is not attempted (difflib is quadratic) and the file is refused as too large to judge
+MAX_ITEMS = 6000  # statements on both sides of one file: above it the diff is not attempted (difflib is quadratic: 12,000 identical statements took 25 s) and the file is refused as too large to judge
 MAX_SOURCE_CHARS = 2_000_000
 TRACE_SECONDS = 25  # the tracer stops tracing after this long: the smoke window is 60 s and a traced pure-Python run is several times slower than an untraced one
 
@@ -83,7 +84,9 @@ RENAMES = {
     "np.float": "float", "np.int": "int", "np.bool": "bool", "np.object": "object", "np.complex": "complex", "np.str": "str", "np.long": "int", "np.unicode": "str",
     "np.float64": "float", "np.float_": "float", "np.int64": "int", "np.bool_": "bool", "np.object_": "object", "np.complex128": "complex", "np.str_": "str",
     "numpy.float": "float", "numpy.int": "int", "numpy.bool": "bool", "numpy.object": "object", "numpy.complex": "complex",
-    "numpy.float64": "float", "numpy.int64": "int", "numpy.bool_": "bool",
+    "numpy.float64": "float", "numpy.int64": "int", "numpy.bool_": "bool", "time.clock": "time.perf_counter",
+    "torch.cuda.FloatTensor": "torch.FloatTensor", "torch.cuda.DoubleTensor": "torch.DoubleTensor", "torch.cuda.LongTensor": "torch.LongTensor",
+    "torch.cuda.IntTensor": "torch.IntTensor", "torch.cuda.ByteTensor": "torch.ByteTensor", "torch.cuda.BoolTensor": "torch.BoolTensor", "torch.cuda.HalfTensor": "torch.HalfTensor",
     "collections.Mapping": "collections.abc.Mapping", "collections.MutableMapping": "collections.abc.MutableMapping", "collections.Iterable": "collections.abc.Iterable",
     "collections.Callable": "collections.abc.Callable", "collections.Sequence": "collections.abc.Sequence", "collections.Set": "collections.abc.Set",
     "tf.compat.v1.flags": "tf.flags", "tf.compat.v1.logging": "tf.logging", "tf.compat.v1.app": "tf.app", "tf.compat.v1.placeholder": "tf.placeholder",
@@ -131,16 +134,17 @@ class _Canon(ast.NodeTransformer):
     def visit_Call(self, node: ast.Call):
         self.generic_visit(node)
         fn = node.func
-        if isinstance(fn, ast.Attribute) and fn.attr in ("cuda", "cpu") and not node.args:
+        reads_only = all(_simple(a) for a in node.args) and all(_simple(k.value) for k in node.keywords)  # an expression that ACTS is never normalised away
+        if isinstance(fn, ast.Attribute) and fn.attr in ("cuda", "cpu") and reads_only:
             return fn.value  # `x.cuda()` / `x.cpu()` -> x
         if (isinstance(fn, ast.Attribute) and fn.attr in ("to", "type") and node.args and all(_is_deviceish(a) for a in node.args)
-                and all(k.arg in COMPAT_KWARGS for k in node.keywords)):
+                and all(k.arg in COMPAT_KWARGS for k in node.keywords) and reads_only):
             return fn.value  # `x.to(device)` -> x
-        if _src(fn).endswith("torch.device"):
+        if _src(fn).endswith("torch.device") and reads_only:
             return ast.Name(id="DEVICE", ctx=ast.Load())
         if isinstance(fn, ast.Name) and fn.id == "open" and len(node.args) == 2 and isinstance(node.args[1], ast.Constant) and node.args[1].value in ("r", "rb", "rt"):
             node.args = node.args[:1]  # a read mode: Python 3 wants 'rb' for pickles, text for the rest; the file read is the same
-        node.keywords = [k for k in node.keywords if k.arg not in COMPAT_KWARGS]
+        node.keywords = [k for k in node.keywords if not (k.arg in COMPAT_KWARGS and _simple(k.value))]
         return node
 
     def visit_Attribute(self, node: ast.Attribute):
@@ -235,7 +239,7 @@ def _walk(body: list, ctx: str, nest: str, ancestors: tuple, out: list[Item], pa
 def _parse(source: str) -> ast.Module:
     with warnings.catch_warnings():
         warnings.simplefilter("ignore")  # a repository's own invalid escape sequences are not RERUN's to report
-        return ast.parse(source)
+        return ast.parse(source.lstrip("\ufeff"))  # a UTF-8 byte-order mark is not part of the program
 
 
 def items_of(source: str) -> list[Item] | None:
@@ -316,7 +320,11 @@ def _args_simple(call: ast.Call) -> bool:
 
 
 def _harmless_call(call: ast.AST) -> bool:
-    return isinstance(call, ast.Call) and bool(HARMLESS_CALLS.match(_call_name(call))) and _args_simple(call)
+    if not isinstance(call, ast.Call) or not _args_simple(call):
+        return False
+    if HARMLESS_CALLS.match(_call_name(call)):
+        return True
+    return isinstance(call.func, ast.Attribute) and call.func.attr == "mkdir" and _simple(call.func.value)  # Path(out).mkdir(parents=True, exist_ok=True)
 
 
 def _env_write(node: ast.AST) -> bool:
@@ -331,6 +339,18 @@ def _env_write(node: ast.AST) -> bool:
 
 
 _EXIT_NAMES = {"sys.exit", "exit", "quit", "os._exit", "SystemExit"}
+_EXIT_BASES = {"SystemExit", "KeyboardInterrupt", "GeneratorExit", "BaseException"}
+
+
+def _header_simple(n: ast.AST) -> bool:
+    """Decorators, default values, annotations, bases and class keywords of a def or class are evaluated when it is defined: they must only read, and no class may derive from an exit."""
+    if not all(_simple(d) for d in n.decorator_list):
+        return False
+    if isinstance(n, ast.ClassDef):
+        return (all(_simple(b) and _src(b).split(".")[-1] not in _EXIT_BASES for b in n.bases) and all(_simple(k.value) for k in n.keywords))
+    a = n.args
+    every = [*a.posonlyargs, *a.args, *a.kwonlyargs, *([a.vararg] if a.vararg else []), *([a.kwarg] if a.kwarg else [])]
+    return (all(_simple(d) for d in [*a.defaults, *(d for d in a.kw_defaults if d is not None)]) and all(_simple(x.annotation) for x in every) and _simple(n.returns))
 
 
 def _raises_exit(n: ast.Raise) -> bool:
@@ -358,7 +378,7 @@ def _raise_ok(n: ast.Raise) -> bool:
 
 
 def _handler_reraises(h: ast.ExceptHandler) -> bool:
-    if not any(isinstance(n, ast.Raise) for s in h.body for n in ast.walk(s)):
+    if not _simple(h.type) or not any(isinstance(n, ast.Raise) for s in h.body for n in ast.walk(s)):
         return False
     return all((isinstance(s, ast.Raise) and _raise_ok(s)) or (isinstance(s, ast.Expr) and _harmless_call(s.value)) for s in h.body)
 
@@ -371,13 +391,13 @@ def _exc_names(h: ast.ExceptHandler) -> set[str]:
 
 
 def _answers_ctrl_c(h: ast.ExceptHandler) -> bool:
-    return _exc_names(h) == {"KeyboardInterrupt"} and all(
+    return _simple(h.type) and _exc_names(h) == {"KeyboardInterrupt"} and all(
         (isinstance(s, ast.Expr) and (_harmless_call(s.value) or _nonzero_exit(s.value))) or isinstance(s, ast.Pass) or (isinstance(s, ast.Raise) and _raise_ok(s)) for s in h.body)
 
 
 def _handler_ok(h: ast.ExceptHandler) -> bool:
     """A handler that cannot swallow a failure of the work: it re-raises, the import it guards is optional, or it only answers Ctrl-C."""
-    return _exc_names(h) <= {"ImportError", "ModuleNotFoundError"} or _handler_reraises(h) or _answers_ctrl_c(h)
+    return _simple(h.type) and (_exc_names(h) <= {"ImportError", "ModuleNotFoundError"} or _handler_reraises(h) or _answers_ctrl_c(h))
 
 
 def _transparent_try(node: ast.AST) -> bool:
@@ -413,6 +433,8 @@ def _harmless_assign(n: ast.AST) -> bool:
         targets, value = n.targets, n.value
     elif isinstance(n, ast.AnnAssign):
         targets, value = [n.target], n.value
+        if not _simple(n.annotation):
+            return False
     else:
         return False
     return all(HARMLESS_ASSIGN_TARGET.match(_src(t)) for t in targets) and value is not None and _simple(value)
@@ -457,7 +479,9 @@ def additive_ok(it: Item, fresh: frozenset[str] = frozenset()) -> bool:
     if isinstance(n, ast.ExceptHandler):
         return _handler_ok(n)
     if isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
-        return f"{it.ctx}/{n.name}" in fresh  # a NEW helper (its own statements are judged one by one); a def that redefines a name of the file replaces code
+        if isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef)) and isinstance(it.parent, ast.ClassDef) and it.ctx not in fresh:
+            return False  # a method added to an existing class may override one it inherits
+        return f"{it.ctx}/{n.name}" in fresh and _header_simple(n)  # a NEW helper (its own statements are judged one by one); a def that redefines a name of the file replaces code
     if isinstance(n, ast.Return) and isinstance(it.parent, (ast.FunctionDef, ast.AsyncFunctionDef)):
         private = it.parent.name.startswith("_") and not (it.parent.name.startswith("__") and it.parent.name.endswith("__"))
         return private and it.ctx in fresh and _simple(n.value)  # a private helper's return, in a helper this patch adds
@@ -475,6 +499,11 @@ def removal_ok(it: Item) -> bool:
         return True
     if _harmless_assign(n) or _env_write(n):
         return True
+    if isinstance(n, ast.Expr) and isinstance(n.value, ast.Call) and _call_name(n.value) == "torch.set_default_tensor_type" and "cuda" in _src(n.value):
+        return True  # the device the default tensor type picks
+    if (isinstance(n, ast.Expr) and isinstance(n.value, ast.Call) and _call_name(n.value).endswith("add_argument") and _args_simple(n.value)
+            and _ENV_OPTION.search(" ".join(_arg_options(n.value)))):
+        return True  # `--device`, `--gpu`, `--num_workers`: an option that only picks where the program runs (its default is environment, see _ENV_OPTION)
     if isinstance(n, ast.If) and _simple(n.test):
         return True  # an `if` header: what it guarded is a separate item (and the same text under a new header is a different item)
     if isinstance(n, ast.Try):
@@ -519,6 +548,22 @@ def _import_findings(path: str, old_source: str, new_source: str) -> list[Findin
     for name, target in new.items():
         if name in old and not _same_thing(old[name], target):
             out.append(Finding(COMPUTATION_CHANGED, f"the import binding `{name}` now names `{target}`, it named `{old[name]}`", path))
+    return out
+
+
+_NOT_REPO_DIRS = frozenset({"venv", "env", "node_modules", "site-packages", "dist-packages", "__pycache__", "build", "dist"})
+
+
+def repo_python_files(root: Path, limit: int = 3000) -> list[Path]:
+    """The Python files of a checkout, sorted, without hidden directories, virtual environments or build output (a virtualenv inside a repository is not the repository)."""
+    out: list[Path] = []
+    for q in sorted(root.rglob("*.py")):
+        parts = q.relative_to(root).parts[:-1]
+        if any(x.startswith(".") or x in _NOT_REPO_DIRS or x.endswith(".egg-info") for x in parts):
+            continue
+        out.append(q)
+        if len(out) >= limit:
+            break
     return out
 
 
@@ -605,6 +650,26 @@ def _multiset_diff(old: list[tuple], new: list[tuple]) -> tuple[list[tuple], lis
     return list((n - o).elements()), list((o - n).elements())
 
 
+def _dest_of(call: ast.Call) -> str:
+    explicit = next((k.value.value for k in call.keywords if k.arg == "dest" and isinstance(k.value, ast.Constant)), None)
+    if isinstance(explicit, str):
+        return explicit
+    opts = _arg_options(call)
+    chosen = next((o for o in opts if o.startswith("--")), opts[0] if opts else "")
+    return chosen.lstrip("-").replace("-", "_")
+
+
+def _option_dests(source: str) -> set[str]:
+    try:
+        tree = _parse(source)
+    except (SyntaxError, ValueError, RecursionError):
+        return set()
+    return {_dest_of(n) for n in ast.walk(tree) if isinstance(n, ast.Call) and _call_name(n).endswith("add_argument")}
+
+
+_ENV_OPTION = re.compile(r"(?:device|gpu|cuda|workers|pin_memory)", re.IGNORECASE)  # options that choose WHERE the program runs; their default is environment, not workload
+
+
 def _option_names(source: str) -> set[str]:
     try:
         tree = _parse(source)
@@ -614,6 +679,19 @@ def _option_names(source: str) -> set[str]:
 
 
 # ----------------------------------------------------------------------------------------------------------------------------------- the static judgement
+def _bound_names(i: Item) -> list[str]:
+    n = i.node
+    if isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
+        return [n.name]
+    if isinstance(n, ast.Import):
+        return [a.asname or a.name.split(".")[0] for a in n.names]
+    if isinstance(n, ast.ImportFrom):
+        return [a.asname or a.name for a in n.names if a.name != "*"]
+    if isinstance(n, ast.Assign):
+        return [t.id for t in n.targets if isinstance(t, ast.Name)]
+    return []
+
+
 def _names_bound(items: list[Item]) -> set[tuple[str, str]]:
     """(context, name) of every definition, import binding and plain assignment of a file: a def or class a patch adds under one of these names REPLACES it (the later one wins)."""
     out: set[tuple[str, str]] = set()
@@ -628,6 +706,30 @@ def _names_bound(items: list[Item]) -> set[tuple[str, str]]:
         elif isinstance(n, ast.Assign):
             out.update((i.ctx, t.id) for t in n.targets if isinstance(t, ast.Name))
     return out
+
+
+def _used_but_unbound(source: str) -> set[str]:
+    """Names the file reads and never binds: builtins, names a star import supplies, names that are simply missing. A def or class under one of them SHADOWS what the file meant."""
+    try:
+        tree = _parse(source)
+    except (SyntaxError, ValueError, RecursionError):
+        return set()
+    loads: set[str] = set()
+    stores: set[str] = set()
+    for n in ast.walk(tree):
+        if isinstance(n, ast.Name):
+            (loads if isinstance(n.ctx, ast.Load) else stores).add(n.id)
+        elif isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
+            stores.add(n.name)
+        elif isinstance(n, ast.arg):
+            stores.add(n.arg)
+        elif isinstance(n, ast.ExceptHandler) and n.name:
+            stores.add(n.name)
+        elif isinstance(n, (ast.Import, ast.ImportFrom)):
+            stores.update((a.asname or a.name.split(".")[0]) for a in n.names)
+        elif isinstance(n, (ast.Global, ast.Nonlocal)):
+            stores.update(n.names)
+    return loads - stores
 
 
 def _static_py(path: str, old_source: str | None, new_source: str, shadow_names: frozenset[str]) -> list[Finding]:
@@ -652,7 +754,14 @@ def _static_py(path: str, old_source: str | None, new_source: str, shadow_names:
     # definitions: a name this file did not bind is a new helper; a def or class under a name it did bind (a def, an import, an assignment) replaces code
     defs = (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)
     bound = _names_bound(old_items)
-    fresh = frozenset(f"{i.ctx}/{i.node.name}" for i in inserted if isinstance(i.node, defs) and (i.ctx, i.node.name) not in bound)
+    shadowed = _used_but_unbound(old_source or "")
+    fresh = frozenset(f"{i.ctx}/{i.node.name}" for i in inserted if isinstance(i.node, defs) and (i.ctx, i.node.name) not in bound and i.node.name not in shadowed)
+    by_code = {(i.ctx, n) for i in old_items if isinstance(i.node, (*defs, ast.Assign)) for n in _bound_names(i)}
+    for it in inserted:
+        if isinstance(it.node, (ast.Import, ast.ImportFrom)):
+            for name in _bound_names(it):
+                if (it.ctx, name) in by_code:
+                    out.append(Finding(COMPUTATION_CHANGED, f"the import binds `{name}`, which this file defines itself", path, it.line))
     # (a) the entrypoint and the arguments
     for it in inserted:
         n = it.node
@@ -674,19 +783,26 @@ def _static_py(path: str, old_source: str | None, new_source: str, shadow_names:
             out.append(Finding(ARGV_OR_ENTRYPOINT_REWRITTEN, "the patch changes the __main__ guard", path, new_part[0].line if new_part else 0))
     # (c) the workload
     of, nf = workload_facts(old_source or ""), workload_facts(new_source)
+    old_options = _option_names(old_source or "")
     if of is not None and nf is not None:
         added, removed = _multiset_diff(of, nf)
-        old_options = _option_names(old_source or "")
         for fact in added:
-            if fact[0] == "argdefault" and not (set(fact[1].split("/")) & old_options):
-                continue  # the default of an option the file did not have: nothing reads it until new code does (a shared `dest` is refused as a statement)
+            if fact[0] == "argdefault" and (not (set(fact[1].split("/")) & old_options) or _ENV_OPTION.search(fact[1])):
+                continue  # the default of an option the file did not have (a shared destination is refused below), or of an option that only picks the device
             out.append(Finding(WORKLOAD_PARAMETER_CHANGED, f"adds {fact[0]} `{fact[1]} = {fact[2]}`", path, 0))
         for fact in removed:
+            if fact[0] == "argdefault" and _ENV_OPTION.search(fact[1]):
+                continue
             out.append(Finding(WORKLOAD_PARAMETER_CHANGED, f"removes {fact[0]} `{fact[1]} = {fact[2]}`", path, 0))
+    old_dests = _option_dests(old_source or "")
+    for it in inserted:
+        if (isinstance(it.node, ast.Expr) and isinstance(it.node.value, ast.Call) and _call_name(it.node.value).endswith("add_argument")
+                and _dest_of(it.node.value) in old_dests and not (set(_arg_options(it.node.value)) & old_options)):
+            out.append(Finding(WORKLOAD_PARAMETER_CHANGED, f"adds an option whose destination `{_dest_of(it.node.value)}` an existing option already writes to", path, it.line))
     # (d) the computation
     for it in inserted:
         if not additive_ok(it, fresh):
-            note = " (it re-defines a name this file already binds)" if isinstance(it.node, defs) and f"{it.ctx}/{it.node.name}" not in fresh else ""
+            note = " (it re-defines a name this file already binds, or shadows one it uses without defining)" if isinstance(it.node, defs) and f"{it.ctx}/{it.node.name}" not in fresh else ""
             out.append(Finding(COMPUTATION_CHANGED, f"adds `{it.text[:140]}`{note}", path, it.line))
         elif isinstance(it.node, (ast.FunctionDef, ast.AsyncFunctionDef)) and f"{it.ctx}/{it.node.name}" in fresh:
             body = [s for s in it.node.body if not (isinstance(s, ast.Expr) and isinstance(s.value, ast.Constant))]
@@ -792,7 +908,7 @@ if os.environ.get("RERUN_BEHAVIOUR") == "1" and not getattr(sys, "rerun_behaviou
                 site_keys[(s["file"], ln)] = "%s:%d" % (s["file"], ln)
         added = dict((f, set(v.get("added", []))) for f, v in files.items())
         rep = {"nonce": spec.get("nonce") or "", "pid": os.getpid(), "entry_main": False, "sites": {}, "site_raised": {}, "exits": [], "main_lines": 0, "lines": 0,
-               "argv_changed": None, "trace_cut_s": None}
+               "argv_changed": None, "trace_cut_s": None, "elapsed_s": 0}
         started = time.time()
         cache = {}
         state = {"prev_added": False, "emitted": False, "snap": None, "off": False, "n": 0, "seen": set(), "excs": set()}
@@ -808,8 +924,8 @@ if os.environ.get("RERUN_BEHAVIOUR") == "1" and not getattr(sys, "rerun_behaviou
                 p = str(co_filename)
             found = None
             if not any(x in p for x in excluded):
-                if p.startswith(cwd0) and p[len(cwd0):] in files:
-                    found = p[len(cwd0):]
+                if p.startswith(cwd0):
+                    found = p[len(cwd0):] if p[len(cwd0):] in files else None  # under the working directory: the path is the name, no suffix guessing
                 else:
                     for rel in order:
                         if p == rel or p.endswith("/" + rel):
@@ -821,9 +937,10 @@ if os.environ.get("RERUN_BEHAVIOUR") == "1" and not getattr(sys, "rerun_behaviou
         def emit():
             if state["emitted"] or os.getpid() != rep["pid"] or not rep["lines"]:
                 return
-            state["emitted"] = True
             try:
+                rep["elapsed_s"] = round(time.time() - started, 1)
                 os.write(2, ("\nRERUN_BEHAVIOUR " + json.dumps(rep) + "\n").encode("utf-8"))
+                state["emitted"] = True  # after the write: a SIGTERM that interrupts this call writes the report itself (a duplicate line is harmless, a lost one is not)
             except Exception:
                 pass
 
@@ -872,9 +989,9 @@ if os.environ.get("RERUN_BEHAVIOUR") == "1" and not getattr(sys, "rerun_behaviou
             elif event == "exception":
                 ln = frame.f_lineno
                 key = site_keys.get((rel, ln))
-                if key:
+                if key and not (arg and isinstance(arg[0], type) and issubclass(arg[0], ImportError)):  # an optional import is allowed to fail there
                     rep["site_raised"][key] = rep["site_raised"].get(key, 0) + 1
-                if arg and arg[0] is SystemExit and id(arg[1]) not in state["excs"] and len(state["excs"]) < 1000:
+                if arg and isinstance(arg[0], type) and issubclass(arg[0], SystemExit) and id(arg[1]) not in state["excs"] and len(state["excs"]) < 1000:
                     state["excs"].add(id(arg[1]))
                     note_exit("raise SystemExit", rel, ln, repr(getattr(arg[1], "code", None)))
             return local
@@ -914,6 +1031,12 @@ if os.environ.get("RERUN_BEHAVIOUR") == "1" and not getattr(sys, "rerun_behaviou
             state["emitted"], state["seen"], state["excs"], state["snap"], state["prev_added"] = False, set(), set(), None, False
 
         sys.exit, os._exit = _sys_exit, _os_exit
+        try:
+            import posix
+
+            posix._exit = _os_exit  # the same function under its other name
+        except Exception:
+            pass
         sys.settrace(glob)
         threading.settrace(glob)
         if hasattr(os, "register_at_fork"):
@@ -993,6 +1116,8 @@ def entry_report(reports: list[dict]) -> dict | None:
             out["argv_changed"] = [str(x) for x in r["argv_changed"]][:12]
         if r.get("trace_cut_s"):
             out["trace_cut_s"] = r["trace_cut_s"]
+        v = r.get("elapsed_s")
+        out["elapsed_s"] = max(out.get("elapsed_s", 0), v) if isinstance(v, (int, float)) and not isinstance(v, bool) else out.get("elapsed_s", 0)
     return out
 
 
@@ -1052,11 +1177,19 @@ def failure_site(stderr: str, repo_files: set[str]) -> tuple[str, int] | None:
     return None
 
 
+def _lines(text: str) -> list[str]:
+    return [l.strip() for l in text.split("\n")]  # a line that only moved right under a new `try:` is the same line
+
+
+def _matcher(o: list[str], n: list[str]) -> difflib.SequenceMatcher:
+    return difflib.SequenceMatcher(None, o, n, autojunk=len(o) + len(n) > 20000)
+
+
 def added_line_numbers(old_source: str, new_source: str) -> list[int]:
-    """The 1-based line numbers of `new_source` that are not matched by a line of `old_source`."""
-    o, n = old_source.split("\n"), new_source.split("\n")
+    """The 1-based line numbers of `new_source` that are not matched by a line of `old_source` (indentation ignored)."""
+    o, n = _lines(old_source), _lines(new_source)
     out: list[int] = []
-    for tag, _i1, _i2, j1, j2 in difflib.SequenceMatcher(None, o, n, autojunk=False).get_opcodes():
+    for tag, _i1, _i2, j1, j2 in _matcher(o, n).get_opcodes():
         if tag in ("insert", "replace"):
             out += list(range(j1 + 1, j2 + 1))
     return out
@@ -1064,8 +1197,8 @@ def added_line_numbers(old_source: str, new_source: str) -> list[int]:
 
 def new_lines_of(old_source: str, new_source: str, line: int) -> list[int]:
     """The line(s) of `new_source` that stand for line `line` of `old_source`: itself, moved; the lines that replaced it; or, when the patch deleted it, the first surviving line after it."""
-    o, n = old_source.split("\n"), new_source.split("\n")
-    ops = difflib.SequenceMatcher(None, o, n, autojunk=False).get_opcodes()
+    o, n = _lines(old_source), _lines(new_source)
+    ops = _matcher(o, n).get_opcodes()
     for k, (tag, i1, i2, j1, j2) in enumerate(ops):
         if i1 < line <= i2:
             if tag == "equal":
@@ -1151,13 +1284,14 @@ def trace_findings(report: dict | None, plan: TracePlan, *, succeeded: bool = Tr
         return []
     out: list[Finding] = []
     cut = bool(report.get("trace_cut_s"))
+    ran_to_the_limit = (report.get("elapsed_s") or 0) >= 50  # still alive at the smoke limit: a site that is reached later than that is not "never reached"
     if succeeded:
         for s in plan.sites:
             keys = [f"{s['file']}:{ln}" for ln in s["lines"]]
             hit = sum(report.get("sites", {}).get(k, 0) for k in keys)
             raised = sum(report.get("site_raised", {}).get(k, 0) for k in keys)
             where = f"{s['file']}:{s['lines'][0]}" + (f"-{s['lines'][-1]}" if len(s["lines"]) > 1 else "")
-            if not hit and not cut:
+            if not hit and not cut and not ran_to_the_limit:
                 out.append(Finding(FAILURE_SITE_NOT_EXECUTED, f"the original failure site {where} never ran in the patched run", s["file"], s["lines"][0]))
             elif hit and raised:
                 out.append(Finding(FAILURE_SITE_STILL_RAISES, f"the original failure site {where} still raises in the patched run (the patch hides it)", s["file"], s["lines"][0]))
@@ -1165,7 +1299,7 @@ def trace_findings(report: dict | None, plan: TracePlan, *, succeeded: bool = Tr
         if ex.get("line") in set(plan.added_lines.get(ex.get("file"), ())):
             out.append(Finding(EXIT_FROM_ADDED_LINE, f"an exit ({ex.get('how')}, status {ex.get('code')}) comes from a line the patch added: {ex.get('file')}:{ex.get('line')}",
                                ex.get("file") or "", ex.get("line") or 0))
-    if succeeded and plan.main_body is not None and plan.entry and not report.get("main_lines", 0) and not cut:
+    if succeeded and plan.main_body is not None and plan.entry and not report.get("main_lines", 0) and not cut and not ran_to_the_limit:
         out.append(Finding(ENTRYPOINT_NOT_EXECUTED, f"no line of the entry file's __main__ body ran ({plan.entry}:{plan.main_body[0]}-{plan.main_body[1]})", plan.entry, plan.main_body[0]))
     if report.get("argv_changed"):
         out.append(Finding(ARGV_CHANGED_AT_RUNTIME, f"sys.argv changed under a line the patch added: now {report['argv_changed']}"))

@@ -86,7 +86,9 @@ def gate_stage(h, row: dict, scen: dict, bases: dict, documented: dict):
         command = bases[row["base"]]["command"]
         found = h.behaviour.candidate_findings(originals, files, command_before=command, command_after=command, shadow_names=shadow_names_of(h, row["base"], bases))
         out["behaviour"] = {"static": [f.as_dict() for f in found]}
-        if found:
+        if found and SKIP_STATIC:
+            out["behaviour"]["static_skipped_for_the_ablation"] = True  # a diagnostic run: the static findings are recorded and NOT acted on, so the trace layer meets the patch alone
+        elif found:
             out["outcome"] = "behaviour_static"
             return out, None, gate
     return out, files, gate
@@ -99,11 +101,11 @@ def shadow_names_of(h, base: str, bases: dict) -> frozenset:
     """The packages the base repository's files import and do not define (behaviour.external_import_roots): a file a patch adds under one of these names would shadow the installed package."""
     if base not in _SHADOW:
         repo = Path(bases[base]["checkout"])
-        _SHADOW[base] = h.behaviour.external_import_roots({p.relative_to(repo).as_posix(): p.read_text(encoding="utf-8", errors="replace") for p in sorted(repo.rglob("*.py"))[:3000]
-                                                           if ".git" not in p.parts})
+        _SHADOW[base] = h.behaviour.external_import_roots({p.relative_to(repo).as_posix(): p.read_text(encoding="utf-8", errors="replace") for p in h.behaviour.repo_python_files(repo)})
     return _SHADOW[base]
 
 
+SKIP_STATIC = False  # --ablate-static: development / ablation only; a measurement never sets it
 REPLAY: dict[str, dict] = {}  # patch id -> its confirmation record (--replay-runs); only for the harness-v1.9.0 measurement, which has no tracer to install
 
 
@@ -118,7 +120,7 @@ def trace_plan_for(h, row: dict, scen: dict, bases: dict, files: dict):
     """The tracer's plan for one patch, from the same inputs the orchestrator's `_trace_plan` uses: the command's entry, the failure being repaired (population A: the unpatched run's
     stderr and stdout; population B: the recorded failure text, which carries no frame), the touched files before and after, the repository's Python files, the entry's source."""
     repo = Path(bases[row["base"]]["checkout"])
-    repo_files = {p.relative_to(repo).as_posix() for p in repo.rglob("*.py") if ".git" not in p.parts}
+    repo_files = {p.relative_to(repo).as_posix() for p in h.behaviour.repo_python_files(repo)}
     old = {p: (repo / p).read_text(encoding="utf-8") for p in files if (repo / p).is_file()}
     baseline = scen.get("baseline") or {}
     stderr = baseline.get("stderr_tail", "")
@@ -218,6 +220,8 @@ def main() -> int:
     ap.add_argument("--ids", help="a file with one patch id per line: run only those (the committed subsample)")
     ap.add_argument("--retry-errors", action="store_true", help="move the records whose outcome is 'error' (a driver or API exception) to errors_first_attempt.jsonl and run those patches again, once")
     ap.add_argument("--replay-runs", help="a confirm/ directory (reports/v1.10/independent/confirm): patches with a recorded run there are not run again (harness-v1.9.0 measurement only)")
+    ap.add_argument("--ablate-static", action="store_true", help="record the static findings but do not act on them (the trace layer alone): a diagnostic, labelled in every record")
+    ap.add_argument("--no-replay-ids", help="a file of patch ids that are run again even though --replay-runs holds a record (the post-patch text of the two scripts differs by whitespace)")
     ap.add_argument("--go", action="store_true")
     ap.add_argument("--log-file")
     args = ap.parse_args()
@@ -238,11 +242,16 @@ def main() -> int:
     if args.ids:
         keep = {l.strip() for l in Path(args.ids).read_text(encoding="utf-8").splitlines() if l.strip()}
         order = [i for i in order if i in keep]
+    global SKIP_STATIC
+    SKIP_STATIC = bool(args.ablate_static)
     if args.replay_runs:
         for l in (Path(args.replay_runs) / "results.jsonl").read_text(encoding="utf-8").splitlines():
             rec = json.loads(l)
             if rec.get("outcome") in ("confirmed", "not_confirmed") and "run" in rec:
                 REPLAY[rec["id"]] = rec
+        if args.no_replay_ids:
+            for pid in Path(args.no_replay_ids).read_text(encoding="utf-8").split():
+                REPLAY.pop(pid, None)
         print(f"{time.strftime('%H:%M:%S')} replay: {len(REPLAY)} recorded runs will not be run again", flush=True)
     by_id = {r["id"]: r for r in rows}
     results_path = out / "results.jsonl"
