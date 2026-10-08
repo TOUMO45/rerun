@@ -36,7 +36,6 @@ import copy
 import difflib
 import json
 import re
-import builtins
 import secrets
 import shlex
 import sys
@@ -256,10 +255,10 @@ def items_of(source: str) -> list[Item] | None:
 HARMLESS_CALLS = re.compile(
     r"^(?:print|pprint(?:\.pprint)?|logging\.\w+|logger\.\w+|log\.\w+|warnings\.(?:warn|simplefilter|filterwarnings)|traceback\.print_\w+|sys\.(?:stdout|stderr)\.(?:flush|write)|"
     r"os\.(?:makedirs|mkdir)|sys\.path\.(?:insert|append)|matplotlib\.use|torch\.set_num_threads|plt\.switch_backend|"
-    r"tf\.(?:compat\.v1\.)?disable_(?:eager_execution|v2_behavior)|"
+    r"tf\.(?:compat\.v1\.)?disable_(?:eager_execution|v2_behavior)|warnings\.catch_warnings|"
     r"torch\.cuda\.(?:set_device|empty_cache|synchronize|manual_seed|manual_seed_all|reset_peak_memory_stats))$")
 # assignment targets whose new value only chooses where code runs: sys.path, the cuDNN switches, a device variable
-HARMLESS_ASSIGN_TARGET = re.compile(r"^(?:sys\.path|(?:torch\.backends\.)?cudnn\.(?:benchmark|deterministic|enabled)|(?:self\.|args\.|opt\.|opts\.|config\.|cfg\.|conf\.)?(?:device|DEVICE|use_cuda|use_gpu))$")
+HARMLESS_ASSIGN_TARGET = re.compile(r"^(?:sys\.path|(?:torch\.backends\.)?cudnn\.(?:benchmark|deterministic|enabled)|(?:self\.|args\.|opt\.|opts\.|config\.|cfg\.|conf\.)?(?:device|DEVICE|cuda|use_cuda|no_cuda|is_cuda|use_gpu|gpu|gpu_id|gpu_ids))$")
 # environment variables that only tune libraries (a patch may set them; any other key could flip a code path the repository reads)
 _ENV_KEY = re.compile(r"^(?:MPLBACKEND|KMP_\w+|OMP_\w+|MKL_\w+|NUMEXPR_\w+|OPENBLAS_\w+|TF_\w+|XLA_\w+|CUDA_\w+|NCCL_\w+|TORCH_\w+|PROTOCOL_BUFFERS_\w+|TOKENIZERS_\w+|PYTHONHASHSEED|WANDB_MODE)$")
 _SCALE_NAME = re.compile(r"(?:epoch|iter|step|episode|n_?samples|n_?train|n_?test|n_?tasks|n_?runs|num_|max_|batch|size|limit|length|total|trials|folds|seeds?\b|reps?\b|repeat)", re.IGNORECASE)
@@ -269,10 +268,11 @@ _REQUIREMENTS = re.compile(r"(?:^|/)(?:requirements[\w.-]*\.txt|environment\.ya?
 # module names a patch may never add a file for: they run before, or instead of, the program
 _ALWAYS_SHADOW = frozenset({"sitecustomize", "usercustomize", "conftest"})
 # call targets that read and format but do not act (arguments of a harmless call, a guard's test, a returned value must be built from these)
-_PURE_BUILTINS = frozenset({"str", "repr", "len", "int", "float", "bool", "abs", "min", "max", "round", "isinstance", "format", "tuple", "list", "dict", "set", "sorted"})
+_PURE_BUILTINS = frozenset({"str", "repr", "len", "int", "float", "bool", "abs", "min", "max", "round", "isinstance", "format"})  # not list / tuple / set / dict / sorted: they consume an iterator
 _PURE_CALL = re.compile(r"^(?:os\.path\.\w+|os\.getcwd|os\.cpu_count|os\.getenv|os\.environ\.get|platform\.\w+|torch\.cuda\.(?:is_available|device_count)|torch\.device|"
-                        r"torch\.get_default_dtype|pathlib\.Path|Path|socket\.gethostname|sys\.getsizeof)$")
-_PURE_METHODS = frozenset({"format", "join", "strip", "lstrip", "rstrip", "lower", "upper", "split", "startswith", "endswith", "replace", "encode", "decode", "get", "items", "keys", "values"})
+                        r"torch\.get_default_dtype|torch\.cuda\.current_device|pathlib\.Path|Path|socket\.gethostname|sys\.getsizeof)$")
+_PURE_METHODS = frozenset({"format", "join", "strip", "lstrip", "rstrip", "lower", "upper", "split", "startswith", "endswith", "encode", "decode"})  # on a TEXT receiver only (see _text_receiver)
+_EXC_CALLEE = re.compile(r"(?:^|\.)\w*(?:Error|Exception|Warning)$")  # what `raise` may call: an exception class by its name
 # the import of one name by two modules that are the same thing (a removed location and its successor)
 _IMPORT_SUCCESSORS = {frozenset(p) for p in (
     ("sklearn.externals.joblib", "joblib"), ("sklearn.cross_validation", "sklearn.model_selection"), ("sklearn.grid_search", "sklearn.model_selection"),
@@ -282,6 +282,26 @@ _IMPORT_SUCCESSORS = {frozenset(p) for p in (
 
 def _call_name(node: ast.AST) -> str:
     return _src(node.func) if isinstance(node, ast.Call) else ""
+
+
+def _text_receiver(node: ast.AST) -> bool:
+    """The receiver of a text method (`path_template.format(epoch)`, `sys.version.split()`). The methods are the ones in _PURE_METHODS: `get`, `replace`, `items` are not among them."""
+    return _simple(node)  # the method names are text methods; none of them acts on a module, a name or an attribute that only reads
+
+
+def _cheap_binop(node: ast.BinOp) -> bool:
+    """Arithmetic that cannot stall the process: no power or shift, no multiplication by a large constant, no repetition of a literal more than 1000 times."""
+    if isinstance(node.op, (ast.Pow, ast.LShift, ast.MatMult)):
+        return False
+    if isinstance(node.op, ast.Mult):
+        sides = (node.left, node.right)
+        for a, b in (sides, sides[::-1]):
+            if isinstance(a, ast.Constant) and isinstance(a.value, (int, float)) and not isinstance(a.value, bool) and abs(a.value) > 10**6:
+                return False
+            if isinstance(a, (ast.Constant, ast.List, ast.Tuple)) and not (isinstance(a, ast.Constant) and isinstance(a.value, (int, float))):
+                if isinstance(b, ast.Constant) and isinstance(b.value, int) and abs(b.value) > 1000:
+                    return False
+    return True
 
 
 def _simple(node: ast.AST | None) -> bool:
@@ -305,12 +325,14 @@ def _simple(node: ast.AST | None) -> bool:
     if isinstance(node, ast.FormattedValue):
         return _simple(node.value) and _simple(node.format_spec)
     if isinstance(node, (ast.BinOp, ast.UnaryOp, ast.BoolOp, ast.Compare, ast.IfExp)):
+        if isinstance(node, ast.BinOp) and not _cheap_binop(node):
+            return False
         return all(_simple(c) for c in ast.iter_child_nodes(node) if not isinstance(c, (ast.operator, ast.unaryop, ast.boolop, ast.cmpop, ast.expr_context)))
     if isinstance(node, ast.Starred):
         return _simple(node.value)
     if isinstance(node, ast.Call):
         name = _call_name(node)
-        pure = name in _PURE_BUILTINS or bool(_PURE_CALL.match(name)) or (isinstance(node.func, ast.Attribute) and node.func.attr in _PURE_METHODS and _simple(node.func.value))
+        pure = name in _PURE_BUILTINS or bool(_PURE_CALL.match(name)) or (isinstance(node.func, ast.Attribute) and node.func.attr in _PURE_METHODS and _text_receiver(node.func.value))
         return pure and all(_simple(a) for a in node.args) and all(_simple(k.value) for k in node.keywords)
     return False
 
@@ -363,6 +385,8 @@ def _nonzero_exit(call: ast.AST | None) -> bool:
     if not isinstance(call, ast.Call) or _call_name(call) not in _EXIT_NAMES or len(call.args) != 1 or call.keywords:
         return False
     arg = call.args[0]
+    if isinstance(arg, ast.UnaryOp) and isinstance(arg.op, ast.USub) and isinstance(arg.operand, ast.Constant) and isinstance(arg.operand.value, int) and not isinstance(arg.operand.value, bool):
+        return 1 <= arg.operand.value <= 255  # sys.exit(-1): the status is taken modulo 256
     if not isinstance(arg, ast.Constant):
         return False
     return (isinstance(arg.value, int) and not isinstance(arg.value, bool) and 1 <= arg.value <= 255) or isinstance(arg.value, str)
@@ -373,7 +397,10 @@ def _raise_ok(n: ast.Raise) -> bool:
         return _nonzero_exit(n.exc)
     if n.exc is None:
         return True  # a bare `raise` re-raises
-    call_ok = _simple(n.exc.func) and _args_simple(n.exc) if isinstance(n.exc, ast.Call) else _simple(n.exc)
+    if isinstance(n.exc, ast.Call):
+        call_ok = bool(_EXC_CALLEE.search(_src(n.exc.func))) and _simple(n.exc.func) and _args_simple(n.exc)  # `raise os.execv(...)` calls a function, not an exception class
+    else:
+        call_ok = _simple(n.exc)
     return call_ok and _simple(n.cause)
 
 
@@ -440,7 +467,20 @@ def _harmless_assign(n: ast.AST) -> bool:
     return all(HARMLESS_ASSIGN_TARGET.match(_src(t)) for t in targets) and value is not None and _simple(value)
 
 
-def additive_ok(it: Item, fresh: frozenset[str] = frozenset()) -> bool:
+def _is_stub_body(stmts: list) -> bool:
+    """A body that does nothing: pass, a bare `return`, a docstring or `...`, log / print calls, `assert True`."""
+    for s in stmts:
+        if isinstance(s, ast.Pass) or (isinstance(s, ast.Return) and s.value is None):
+            continue
+        if isinstance(s, ast.Expr) and (isinstance(s.value, ast.Constant) or _harmless_call(s.value)):
+            continue
+        if isinstance(s, ast.Assert) and isinstance(s.test, ast.Constant):
+            continue
+        return False
+    return True
+
+
+def additive_ok(it: Item, fresh: frozenset[str] = frozenset(), classes: frozenset[str] = frozenset()) -> bool:
     """True when ADDING this statement does no computation: an import, a harmless call, a harmless assignment, a guard that raises, a handler that re-raises. `fresh`: the context
     paths of the functions and classes this patch adds (a name the file did not define before)."""
     n = it.node
@@ -450,7 +490,7 @@ def additive_ok(it: Item, fresh: frozenset[str] = frozenset()) -> bool:
         return _simple(n.test) and _simple(n.msg) and not _swallowed(it)
     if isinstance(n, ast.ImportFrom):
         return not any(a.name == "*" for a in n.names)  # a star import binds names nobody can see in the patch
-    if isinstance(n, (ast.Import, ast.Pass, ast.Global, ast.Nonlocal)):
+    if isinstance(n, (ast.Import, ast.Pass)):
         return True
     if isinstance(n, (ast.Expr, ast.Assign)) and _noop_after_normalisation(n):
         return True
@@ -471,7 +511,9 @@ def additive_ok(it: Item, fresh: frozenset[str] = frozenset()) -> bool:
         if _harmless_assign(n):
             return True
         # `x = None` in the handler of an ImportError: an optional import that is absent
-        return bool(isinstance(it.parent, ast.ExceptHandler) and "ImportError" in _exc_names(it.parent) and isinstance(n.value, ast.Constant) and n.value.value is None)
+        targets = n.targets if isinstance(n, ast.Assign) else [n.target]
+        return bool(isinstance(it.parent, ast.ExceptHandler) and "ImportError" in _exc_names(it.parent) and isinstance(n.value, ast.Constant) and n.value.value is None
+                    and all(isinstance(t, ast.Name) for t in targets))
     if isinstance(n, ast.If):
         return _simple(n.test)  # its body and else are separate items, judged one by one
     if isinstance(n, ast.Try):
@@ -479,8 +521,8 @@ def additive_ok(it: Item, fresh: frozenset[str] = frozenset()) -> bool:
     if isinstance(n, ast.ExceptHandler):
         return _handler_ok(n)
     if isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
-        if isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef)) and isinstance(it.parent, ast.ClassDef) and it.ctx not in fresh:
-            return False  # a method added to an existing class may override one it inherits
+        if isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef)) and it.ctx in classes and it.ctx not in fresh:
+            return False  # a method added to an existing class (directly, or inside an `if` / `try` in its body) may override one it inherits
         return f"{it.ctx}/{n.name}" in fresh and _header_simple(n)  # a NEW helper (its own statements are judged one by one); a def that redefines a name of the file replaces code
     if isinstance(n, ast.Return) and isinstance(it.parent, (ast.FunctionDef, ast.AsyncFunctionDef)):
         private = it.parent.name.startswith("_") and not (it.parent.name.startswith("__") and it.parent.name.endswith("__"))
@@ -490,9 +532,21 @@ def additive_ok(it: Item, fresh: frozenset[str] = frozenset()) -> bool:
     return False
 
 
+def _under_device_guard(it: Item) -> bool:
+    """True when the statement sits in the body of an `if` whose test is about CUDA or the GPU (`if not args.cuda: raise ...`)."""
+    return any(isinstance(node, ast.If) and re.search(r"cuda|gpu", _src(node.test), re.IGNORECASE) for node, _section in it.ancestors)
+
+
 def removal_ok(it: Item) -> bool:
     """Removing this statement drops no computation: an import, a log line, a pass, a no-op once normalised."""
     n = it.node
+    if isinstance(n, ast.Assert) and re.search(r"cuda|gpu|device", _src(n.test), re.IGNORECASE):
+        return True  # `assert torch.cuda.is_available()`
+    if _under_device_guard(it) and (isinstance(n, ast.Raise) or (isinstance(n, ast.Expr) and isinstance(n.value, ast.Call) and _call_name(n.value) in _EXIT_NAMES)):
+        return True  # the GPU-required guard's own exit
+    if (isinstance(n, ast.Assign) and len(n.targets) == 1 and isinstance(n.targets[0], ast.Subscript) and _src(n.targets[0].value) == "os.environ"
+            and isinstance(n.targets[0].slice, ast.Constant) and n.targets[0].slice.value == "CUDA_VISIBLE_DEVICES" and _simple(n.value)):
+        return True
     if isinstance(n, (ast.Import, ast.ImportFrom, ast.Pass)):
         return True
     if isinstance(n, (ast.Expr, ast.Assign)) and _noop_after_normalisation(n):
@@ -502,7 +556,7 @@ def removal_ok(it: Item) -> bool:
     if isinstance(n, ast.Expr) and isinstance(n.value, ast.Call) and _call_name(n.value) == "torch.set_default_tensor_type" and "cuda" in _src(n.value):
         return True  # the device the default tensor type picks
     if (isinstance(n, ast.Expr) and isinstance(n.value, ast.Call) and _call_name(n.value).endswith("add_argument") and _args_simple(n.value)
-            and _ENV_OPTION.search(" ".join(_arg_options(n.value)))):
+            and _is_env_option(_arg_options(n.value))):
         return True  # `--device`, `--gpu`, `--num_workers`: an option that only picks where the program runs (its default is environment, see _ENV_OPTION)
     if isinstance(n, ast.If) and _simple(n.test):
         return True  # an `if` header: what it guarded is a separate item (and the same text under a new header is a different item)
@@ -514,30 +568,35 @@ def removal_ok(it: Item) -> bool:
 
 
 # imports: a name that an old import bound and a new one binds again must still be the same thing
-def _bindings(source: str) -> dict[str, str] | None:
+def _bindings(source: str) -> dict[str, set[str]] | None:
+    """name -> EVERY target an import of the file binds it to (a nested import is not hidden behind a later one)."""
     try:
         tree = _parse(source)
     except (SyntaxError, ValueError):
         return None
-    out: dict[str, str] = {}
+    out: dict[str, set[str]] = {}
     for n in ast.walk(tree):
         if isinstance(n, ast.Import):
             for a in n.names:
-                out[a.asname or a.name.split(".")[0]] = a.name
+                out.setdefault(a.asname or a.name.split(".")[0], set()).add(a.name)
         elif isinstance(n, ast.ImportFrom):
             for a in n.names:
                 if a.name != "*":
-                    out[a.asname or a.name] = f"{'.' * n.level}{n.module or ''}.{a.name}".strip(".")
+                    out.setdefault(a.asname or a.name, set()).add(f"{'.' * n.level}{n.module or ''}.{a.name}".strip("."))
     return out
 
 
 def _same_thing(a: str, b: str) -> bool:
-    """Two dotted import targets name the same thing when one is a prefix of the other (`tensorflow` -> `tensorflow.compat.v1`), when they sit in the same package and end in the same
-    name (`collections.Mapping` -> `collections.abc.Mapping`), when they are one removed location and its successor (`sklearn.externals.joblib` -> `joblib`), or when they are equal."""
+    """Two dotted import targets name the same thing when one is a prefix of the other (`tensorflow` -> `tensorflow.compat.v1`), when they differ only by a relocation component
+    (`collections.Mapping` -> `collections.abc.Mapping`), when they are one removed location and its successor (`sklearn.externals.joblib` -> `joblib`), or when they are equal.
+    Two modules of one package (`datasets.imagenet` / `datasets.toy`) are two things."""
     if a == b or frozenset({a, b}) in _IMPORT_SUCCESSORS:
         return True
     pa, pb = a.split("."), b.split(".")
-    return pa[:len(pb)] == pb or pb[:len(pa)] == pa or (pa[0] == pb[0] and pa[-1] == pb[-1])
+    if pa[:len(pb)] == pb or pb[:len(pa)] == pa:
+        return True
+    strip = lambda parts: [x for x in parts if x not in ("abc", "compat", "v1", "v2")]  # noqa: E731
+    return strip(pa) == strip(pb)
 
 
 def _import_findings(path: str, old_source: str, new_source: str) -> list[Finding]:
@@ -545,21 +604,25 @@ def _import_findings(path: str, old_source: str, new_source: str) -> list[Findin
     if old is None or new is None:
         return []
     out = []
-    for name, target in new.items():
-        if name in old and not _same_thing(old[name], target):
-            out.append(Finding(COMPUTATION_CHANGED, f"the import binding `{name}` now names `{target}`, it named `{old[name]}`", path))
+    for name, targets in new.items():
+        if name not in old:
+            continue
+        for target in sorted(targets):
+            if not any(_same_thing(o, target) for o in old[name]):
+                out.append(Finding(COMPUTATION_CHANGED, f"the import binding `{name}` now names `{target}`, it named `{sorted(old[name])[0]}`", path))
     return out
 
 
-_NOT_REPO_DIRS = frozenset({"venv", "env", "node_modules", "site-packages", "dist-packages", "__pycache__", "build", "dist"})
+_NOT_REPO_DIRS = frozenset({"venv", ".venv", "node_modules", "site-packages", "dist-packages", "__pycache__"})
 
 
 def repo_python_files(root: Path, limit: int = 3000) -> list[Path]:
     """The Python files of a checkout, sorted, without hidden directories, virtual environments or build output (a virtualenv inside a repository is not the repository)."""
     out: list[Path] = []
+    virtualenvs = [c.parent for c in root.rglob("pyvenv.cfg")]  # a directory with a pyvenv.cfg is a virtual environment whatever it is called (`env/` can be the repository's own package)
     for q in sorted(root.rglob("*.py")):
         parts = q.relative_to(root).parts[:-1]
-        if any(x.startswith(".") or x in _NOT_REPO_DIRS or x.endswith(".egg-info") for x in parts):
+        if any(x.startswith(".") or x in _NOT_REPO_DIRS or x.endswith(".egg-info") for x in parts) or any(v in q.parents for v in virtualenvs):
             continue
         out.append(q)
         if len(out) >= limit:
@@ -667,7 +730,20 @@ def _option_dests(source: str) -> set[str]:
     return {_dest_of(n) for n in ast.walk(tree) if isinstance(n, ast.Call) and _call_name(n).endswith("add_argument")}
 
 
-_ENV_OPTION = re.compile(r"(?:device|gpu|cuda|workers|pin_memory)", re.IGNORECASE)  # options that choose WHERE the program runs; their default is environment, not workload
+_ENV_OPTION_NAME = re.compile(r"^(?:no_?)?(?:use_?)?(?:cuda|gpus?|devices?|cpu)(?:_?ids?)?$|^(?:num_?|n_?)?workers$|^pin_?memory$|^local_rank$")  # options that choose WHERE the program runs
+
+
+def _is_env_option(options: list[str]) -> bool:
+    """Whole option names only (`--device`, `--use_cuda`, `--num_workers`): `--per_device_train_batch_size` is a batch size."""
+    return any(_ENV_OPTION_NAME.match(o.lstrip("-").lower().replace("-", "_")) for o in options)
+
+
+def _attr_reads(source: str) -> set[str]:
+    try:
+        tree = _parse(source)
+    except (SyntaxError, ValueError, RecursionError):
+        return set()
+    return {n.attr for n in ast.walk(tree) if isinstance(n, ast.Attribute) and isinstance(n.ctx, ast.Load)}
 
 
 def _option_names(source: str) -> set[str]:
@@ -732,8 +808,23 @@ def _used_but_unbound(source: str) -> set[str]:
     return loads - stores
 
 
+_COOKIE = re.compile(r"^[ \t\f]*#.*?coding[:=][ \t]*([-\w.]+)")
+_SAFE_CODECS = frozenset({"utf-8", "utf8", "ascii", "us-ascii", "latin-1", "latin1", "iso-8859-1", "cp1252", "utf-8-sig"})
+
+
+def _cookie(source: str) -> str:
+    for line in source.split("\n")[:2]:
+        m = _COOKIE.match(line)
+        if m:
+            return m.group(1).lower().replace("_", "-")
+    return ""
+
+
 def _static_py(path: str, old_source: str | None, new_source: str, shadow_names: frozenset[str]) -> list[Finding]:
     out: list[Finding] = []
+    new_cookie = _cookie(new_source)
+    if new_cookie != _cookie(old_source or "") and new_cookie not in _SAFE_CODECS | {""}:
+        out.append(Finding(COMPUTATION_CHANGED, f"the patch declares the source encoding `{new_cookie}`: with a codec like unicode_escape a comment can hold code", path, 1))
     old_items = items_of(old_source or "")
     new_items = items_of(new_source)
     if new_items is None or old_items is None:
@@ -753,14 +844,15 @@ def _static_py(path: str, old_source: str | None, new_source: str, shadow_names:
             replaced.append((old_items[i1:i2], new_items[j1:j2]))
     # definitions: a name this file did not bind is a new helper; a def or class under a name it did bind (a def, an import, an assignment) replaces code
     defs = (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)
-    bound = _names_bound(old_items)
+    bound_names = {name for _ctx, name in _names_bound(old_items)}  # a name bound in ANY scope of the file: a def inside `main` can shadow what `main` calls
     shadowed = _used_but_unbound(old_source or "")
-    fresh = frozenset(f"{i.ctx}/{i.node.name}" for i in inserted if isinstance(i.node, defs) and (i.ctx, i.node.name) not in bound and i.node.name not in shadowed)
-    by_code = {(i.ctx, n) for i in old_items if isinstance(i.node, (*defs, ast.Assign)) for n in _bound_names(i)}
+    fresh = frozenset(f"{i.ctx}/{i.node.name}" for i in inserted if isinstance(i.node, defs) and i.node.name not in bound_names and i.node.name not in shadowed)
+    classes = frozenset(f"{i.ctx}/{i.node.name}" for i in new_items if isinstance(i.node, ast.ClassDef))
+    by_code = {n for i in old_items if isinstance(i.node, (*defs, ast.Assign)) for n in _bound_names(i)}
     for it in inserted:
         if isinstance(it.node, (ast.Import, ast.ImportFrom)):
             for name in _bound_names(it):
-                if (it.ctx, name) in by_code:
+                if name in by_code:
                     out.append(Finding(COMPUTATION_CHANGED, f"the import binds `{name}`, which this file defines itself", path, it.line))
     # (a) the entrypoint and the arguments
     for it in inserted:
@@ -784,14 +876,19 @@ def _static_py(path: str, old_source: str | None, new_source: str, shadow_names:
     # (c) the workload
     of, nf = workload_facts(old_source or ""), workload_facts(new_source)
     old_options = _option_names(old_source or "")
+    old_reads = _attr_reads(old_source or "")
+    if "docopt" in (old_source or "") + new_source and ast.get_docstring(_parse(old_source or "")) != ast.get_docstring(_parse(new_source)):
+        out.append(Finding(WORKLOAD_PARAMETER_CHANGED, "the usage text of a docopt program, which holds its defaults, changes", path, 0))
     if of is not None and nf is not None:
         added, removed = _multiset_diff(of, nf)
         for fact in added:
-            if fact[0] == "argdefault" and (not (set(fact[1].split("/")) & old_options) or _ENV_OPTION.search(fact[1])):
-                continue  # the default of an option the file did not have (a shared destination is refused below), or of an option that only picks the device
+            opts = fact[1].split("/")
+            read_by_old_code = any(o.lstrip("-").replace("-", "_") in old_reads for o in opts if o.startswith("--"))
+            if fact[0] == "argdefault" and ((not (set(opts) & old_options) and not read_by_old_code) or _is_env_option(opts)):
+                continue  # the default of an option the file did not have and nothing in it reads (a shared destination is refused below), or of an option that only picks the device
             out.append(Finding(WORKLOAD_PARAMETER_CHANGED, f"adds {fact[0]} `{fact[1]} = {fact[2]}`", path, 0))
         for fact in removed:
-            if fact[0] == "argdefault" and _ENV_OPTION.search(fact[1]):
+            if fact[0] == "argdefault" and _is_env_option(fact[1].split("/")):
                 continue
             out.append(Finding(WORKLOAD_PARAMETER_CHANGED, f"removes {fact[0]} `{fact[1]} = {fact[2]}`", path, 0))
     old_dests = _option_dests(old_source or "")
@@ -801,13 +898,15 @@ def _static_py(path: str, old_source: str | None, new_source: str, shadow_names:
             out.append(Finding(WORKLOAD_PARAMETER_CHANGED, f"adds an option whose destination `{_dest_of(it.node.value)}` an existing option already writes to", path, it.line))
     # (d) the computation
     for it in inserted:
-        if not additive_ok(it, fresh):
+        if not additive_ok(it, fresh, classes):
             note = " (it re-defines a name this file already binds, or shadows one it uses without defining)" if isinstance(it.node, defs) and f"{it.ctx}/{it.node.name}" not in fresh else ""
             out.append(Finding(COMPUTATION_CHANGED, f"adds `{it.text[:140]}`{note}", path, it.line))
         elif isinstance(it.node, (ast.FunctionDef, ast.AsyncFunctionDef)) and f"{it.ctx}/{it.node.name}" in fresh:
-            body = [s for s in it.node.body if not (isinstance(s, ast.Expr) and isinstance(s.value, ast.Constant))]
-            if all(isinstance(s, ast.Pass) or (isinstance(s, ast.Return) and s.value is None) for s in body):
-                out.append(Finding(COMPUTATION_CHANGED, f"adds an empty function `{it.node.name}` (a stub)", path, it.line))
+            if _is_stub_body(it.node.body):
+                out.append(Finding(COMPUTATION_CHANGED, f"adds a function `{it.node.name}` that does nothing (pass, a bare return, a log or print line): a stub", path, it.line))
+        elif isinstance(it.node, ast.ClassDef) and f"{it.ctx}/{it.node.name}" in fresh:
+            if _is_stub_body(it.node.body) and not any(_EXC_CALLEE.search(_src(b)) for b in it.node.bases):
+                out.append(Finding(COMPUTATION_CHANGED, f"adds a class `{it.node.name}` with no body that is not an exception: a stub", path, it.line))
     for it in deleted:
         if not removal_ok(it):
             out.append(Finding(COMPUTATION_CHANGED, f"removes or rewrites `{it.text[:140]}`", path, it.line))
@@ -860,6 +959,22 @@ def command_finding(before: str | None, after: str | None) -> Finding | None:
     return None
 
 
+def command_script_paths(command: str | None) -> set[str]:
+    """Repository-relative paths the command may start: its `.py` tokens, and for `-m pkg.mod` both `pkg/mod.py` and `pkg/mod/__main__.py`."""
+    try:
+        tokens = shlex.split(command or "")
+    except ValueError:
+        tokens = (command or "").split()
+    out: set[str] = set()
+    for i, tok in enumerate(tokens):
+        if tok == "-m" and i + 1 < len(tokens):
+            mod = tokens[i + 1].replace(".", "/")
+            out |= {mod + ".py", mod + "/__main__.py"}
+        elif tok.endswith(".py"):
+            out.add(tok[2:] if tok.startswith("./") else tok)
+    return out
+
+
 def candidate_findings(old_sources: dict[str, str], new_sources: dict[str, str | None], *, command_before: str | None = None, command_after: str | None = None,
                        shadow_names: frozenset[str] = frozenset()) -> list[Finding]:
     """The static findings of one candidate: every touched file (`new_sources`: post-patch text, None = deleted; `old_sources`: pre-patch text, missing = added) and the command."""
@@ -867,7 +982,10 @@ def candidate_findings(old_sources: dict[str, str], new_sources: dict[str, str |
     cmd = command_finding(command_before, command_after)
     if cmd is not None:
         out.append(cmd)
+    scripts = command_script_paths(command_before)
     for path in sorted(new_sources):
+        if path in scripts and path not in old_sources and new_sources[path] is not None:
+            out.append(Finding(ARGV_OR_ENTRYPOINT_REWRITTEN, f"the patch ADDS `{path}`, the file the documented command runs: the program that runs is not the repository's", path))
         out += static_findings(path, old_sources.get(path), new_sources[path], shadow_names)
     return out
 
@@ -912,7 +1030,7 @@ if os.environ.get("RERUN_BEHAVIOUR") == "1" and not getattr(sys, "rerun_behaviou
         started = time.time()
         cache = {}
         state = {"prev_added": False, "emitted": False, "snap": None, "off": False, "n": 0, "seen": set(), "excs": set()}
-        excluded = ("/site-packages/", "/dist-packages/", "/lib/python")
+        excluded = ("/site-packages/", "/dist-packages/", "/lib/python2", "/lib/python3")
 
         def classify(co_filename):
             hit = cache.get(co_filename, 0)
@@ -1157,7 +1275,7 @@ def entry_of(command: str | None, repo_files: set[str]) -> str:
 
 
 _FRAME = re.compile(r'^\s*File "(?P<file>[^"]+)", line (?P<line>\d+)')
-_NOT_THE_REPOSITORY = ("/site-packages/", "/dist-packages/", "/lib/python")
+_NOT_THE_REPOSITORY = ("/site-packages/", "/dist-packages/", "/lib/python2", "/lib/python3")
 
 
 def has_frames(text: str) -> bool:
@@ -1225,7 +1343,8 @@ def main_body_range(source: str) -> list[int] | None:
 
 
 def _site_statement_is_an_exit(source: str | None, line: int) -> bool:
-    """True when the statement at `line` of `source` is a `raise`, an `assert` or an exit call: the failure was the program saying no, and an honest repair makes that line NOT run."""
+    """True when the statement at `line` of `source` is a `raise`, an `assert`, an exit call, or a device placement (`model.cuda()`): the failure was the program saying no (or asking for a
+    GPU), and an honest repair makes that line NOT run, by removing it or by steering around it."""
     if not source:
         return False
     try:
@@ -1239,7 +1358,11 @@ def _site_statement_is_an_exit(source: str | None, line: int) -> bool:
                 best = n
     if best is None:
         return False
-    return isinstance(best, (ast.Raise, ast.Assert)) or (isinstance(best, ast.Expr) and isinstance(best.value, ast.Call) and _call_name(best.value) in _EXIT_NAMES)
+    if isinstance(best, (ast.Raise, ast.Assert)) or (isinstance(best, ast.Expr) and isinstance(best.value, ast.Call) and _call_name(best.value) in _EXIT_NAMES):
+        return True
+    if isinstance(best, (ast.Expr, ast.Assign)) and _noop_after_normalisation(best):
+        return True
+    return "cuda" in (ast.get_source_segment(source, best) or "").lower()
 
 
 def plan_trace(*, command: str | None, failure_text: str, old_sources: dict[str, str], new_sources: dict[str, str | None], repo_files: set[str],
@@ -1276,7 +1399,7 @@ def plan_trace(*, command: str | None, failure_text: str, old_sources: dict[str,
     return TracePlan(base64.b64encode(json.dumps(spec, sort_keys=True).encode("utf-8")).decode("ascii"), entry, tuple(sites), added, main_body, nonce)
 
 
-def trace_findings(report: dict | None, plan: TracePlan, *, succeeded: bool = True) -> list[Finding]:
+def trace_findings(report: dict | None, plan: TracePlan, *, succeeded: bool = True, smoke_seconds: int = 60) -> list[Finding]:
     """(b) and the runtime half of (a) from the merged report. A missing report yields no finding (the run is `trace missing`: the caller records it). The site and entry checks apply to a
     run that PASSED (exit 0 or alive at the smoke limit) and that was traced to its end: a candidate that fixes one line and meets the next error is progress, not a hidden failure; the
     exit-origin and argv checks apply to every run."""
@@ -1284,7 +1407,7 @@ def trace_findings(report: dict | None, plan: TracePlan, *, succeeded: bool = Tr
         return []
     out: list[Finding] = []
     cut = bool(report.get("trace_cut_s"))
-    ran_to_the_limit = (report.get("elapsed_s") or 0) >= 50  # still alive at the smoke limit: a site that is reached later than that is not "never reached"
+    ran_to_the_limit = (report.get("elapsed_s") or 0) >= 0.8 * smoke_seconds  # still alive at the smoke limit: a site that is reached later than that is not "never reached"
     if succeeded:
         for s in plan.sites:
             keys = [f"{s['file']}:{ln}" for ln in s["lines"]]

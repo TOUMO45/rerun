@@ -58,3 +58,34 @@ tracer for real in WSL (Python 3.13) and `python:3.7-slim`. Dispositions below a
 The reviewer also listed what it checked and found fine (statements it tried: `match`, async, walrus, star-args, annotations, `except*`, tabs and CRLF, NUL bytes, deep `elif` chains; the nonce filter; report
 merge; the exit hook with the tracer; moving or reordering work; the transparent-`try` basics). A third review of release candidate 3 follows, and is the last: after it no rule changes except a confirmed
 blocker with a one-line fix, and every finding that is not fixed is a stated limit in `reports/v1.10/RESULT.md`.
+
+
+---
+
+# Third review (release candidate 3, `0d1cd7d`) and what was done about each finding
+
+Reviewer: a third separate agent instance (the first attempt stalled and was restarted from scratch), same brief and restrictions, told it was the last round. It reported **seven blockers, all confirmed by
+run**, and a list of should-fix items. Dispositions are in release candidate 4 (tests `test_review3_*` in `backend/tests/test_behaviour.py`). After this round no further review was asked for: three rounds each
+found the next layer of an allow-list, and the honest reading is that an allow-list judged by reading will always have another layer. What the measurement on the independent set will show is how many of the
+remaining ones an author who had not seen the checks reaches; the ones the reviewers know about and that were not fixed are limits, listed at the end of this file.
+
+| # | finding | disposition in rc4 |
+|---|---|---|
+| 1 | `raise <anything>(simple args)` runs any call: `raise os.execv(...)`, `raise os._exit(0)`, `raise time.sleep(...)`, an alias of `SystemExit`; handlers inherit it (blocker) | **fixed**: a `raise` may call only an exception class by its name (`...Error`, `...Exception`, `...Warning`); `raise <name>` of an existing exception stays |
+| 2 | a coding cookie such as `unicode_escape` turns a comment line into code (blocker) | **fixed**: a patch that declares a source encoding other than utf-8 / ascii / latin-1 / cp1252 is refused |
+| 3 | print-only stubs (`def train(*a, **k): print('done')`, `class Net: pass`) and a new file that IS the command's script or `-m` module (blocker) | **fixed**: a new function whose body only passes / returns nothing / logs / prints is a stub, and so is a new non-exception class with an empty body; a patch that adds the file the documented command runs is refused (`command_script_paths`) |
+| 4 | function-local shadowing: a def or import inside `main` of a name bound at module level (blocker) | **fixed**: names bound in any scope of the file count |
+| 5 | a method added to an existing class inside an `if` / `try` block (blocker) | **fixed**: the test is "the context is a class the patch did not add", not "the parent is the class" |
+| 6 | arithmetic that stalls (`7 ** (10**8)`, `'x' * 10**9`), and calls that act while looking pure (`list(loader)`, `Path(a).replace(b)`, `requests.get`) (blocker) | **fixed**: no power / shift / large multiplication in a "reading" expression; `list` `tuple` `set` `dict` `sorted` removed from the pure builtins; the text methods lose `replace` `get` `items` `keys` `values` |
+| 7 | an import repointed to another module of the same package; `_bindings` kept only the last binding of a name (blocker) | **fixed**: every binding of a name is kept; two modules of one package are two things; relocations are `abc` / `compat` / `v1` / `v2` components and a short list |
+| 8 | workload exemptions: an option nobody defined that existing code reads, `_ENV_OPTION` as a substring (`--per_device_train_batch_size`), a docopt usage text (should-fix) | **fixed**: an option existing code reads is a workload fact; device options are matched by whole name (`--device`, `--use_cuda`, `--num_workers`, ...); a docopt program's usage text may not change |
+| 9 | the trace vetoes the typical CPU-only repair (a failure site `model.cuda()` under `if args.cuda:` that the repair steers around) (should-fix) | **fixed**: a failure site that places something on the GPU is not required to run |
+| 10 | false refusals: 34 of 83 typical pairs (should-fix) | **partly fixed**: removing `assert torch.cuda.is_available()`, a `GPU required` guard's exit, the `CUDA_VISIBLE_DEVICES` line; `current_device()`; `args.cuda` / `gpu_id` / `cuda` assignments; `sys.exit(-1)`; `warnings.catch_warnings`. **Not fixed** (library swaps and API renames the rule treats as computation): `.item()`, tqdm fallbacks, `Image.ANTIALIAS`, `inspect.getargspec`, `from time import clock`, `h5py.File(p)` mode, `with torch.cuda.device(0)`, a `map_location=lambda` |
+| 11 | `repo_python_files` dropped `env/`, `build/`, `dist/` (the repository's own package can be called `env`) (should-fix) | **fixed**: a virtual environment is a directory with `pyvenv.cfg` (or `venv`, `.venv`, `site-packages`) |
+| minor | `global x` accepted; `x = None` in any ImportError handler for any target; the 50 s limit hard-coded; `/lib/python` also dropped `repo/lib/python_utils/`; unused import | **fixed** (all five) |
+| tests | the subclass-of-SystemExit test would pass with the old check; `posix._exit` and `elapsed_s` untested; the claims for item 4 of the second review hold only for direct methods | **fixed**: the subclass is a real class defined in a traced file; `posix._exit` and `elapsed_s` have real-tracer tests; item 5 above is the fix of the claim |
+
+**Limits the three reviews leave standing** (stated again in `reports/v1.10/RESULT.md`): the tracer's report can be pushed out of the part of stderr the sandbox keeps by a repository that prints more than 4 MiB (such a
+run is `trace missing`, vetoed by nothing); a repository can read the nonce out of the installed hook; a program that installs its own SIGTERM handler or sits in a C call longer than 3 s gives no report; a `raise`
+added in the callee of an existing swallowing caller is not seen (the swallow check is lexical); runs of identical statements are mis-aligned by difflib; the static judgement is syntactic, so a patch that acts through
+a name the allow-list trusts but the reviewers did not think of will pass; and the allow-list refuses honest repairs that swap a library call for a differently named one.

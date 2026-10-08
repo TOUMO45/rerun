@@ -3674,7 +3674,7 @@ def _run_stages(
                             # harness-v1.10: the behavioural checks, trace half. A candidate they refuse does not qualify; a missing report vetoes nothing and is recorded as such.
                             try:
                                 report = behaviour.entry_report(trace_reports.get(cand["number"], []))
-                                found = behaviour.trace_findings(report, cand["trace_plan"], succeeded=bool(result.succeeded))
+                                found = behaviour.trace_findings(report, cand["trace_plan"], succeeded=bool(result.succeeded), smoke_seconds=deps.smoke_seconds or 60)
                                 status = "ok" if report is not None else "missing"
                             except Exception as exc:  # noqa: BLE001 - a report that cannot be read is a report that is missing, never a crash
                                 report, found, status = None, [], f"unreadable: {type(exc).__name__}"

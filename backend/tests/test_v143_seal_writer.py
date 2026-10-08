@@ -98,6 +98,7 @@ def test_a_synthetic_seal_passes_the_batch_drivers_seal_rule(tmp_path, monkeypat
     assert all(e["code_files"][writer.SB] == blobs[writer.SB] for e in doc["paths"])
     kills = next(e for e in doc["paths"] if e["id"] == "kill_at_operation_limit")
     assert len(kills["records"]) == 2
+    monkeypatch.setattr(drv, "SANDBOX_TOUCHING_FILES", tuple(f for f in blobs if not f.endswith("behaviour.py")))  # the five files the harness-v1.4.3 seal covered (harness-v1.10 added a sixth)
     drv.check_seal_verification(tmp_path, lambda p: blobs[p])  # the preflight's seal rule accepts it
 
 

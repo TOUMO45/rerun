@@ -38,7 +38,7 @@ DEV half in the real sandbox checks the tracer end to end. Numbers from these ha
 ## Independent review
 
 Before the independent set is run, a reviewer who did not write the checks reads the diff (`behaviour.py`, the orchestrator and smoke-launcher changes, the tests) and reports defects; the defects are fixed or
-answered in writing; the diff reviewed and the fixes are committed before the run. After the first run on the independent set no rule is changed.
+answered in writing; the diff reviewed and the fixes are committed before the run. After the first run on the independent set no rule is changed. (Three rounds were run: release candidate 1, 2 and 3 were each reviewed by a fresh reviewer who could not see the independent set, and each round's findings were fixed or listed as limits in `REVIEW.md` before the next; release candidate 4, the last, is the one measured.)
 
 ## Measurement (once per version, on the confirmed independent set)
 

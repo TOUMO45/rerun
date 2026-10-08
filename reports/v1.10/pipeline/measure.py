@@ -143,7 +143,7 @@ def process(h, row: dict, scen: dict, bases: dict, guard, model_lock: threading.
         clean, reports = h.behaviour.split_report(step.stderr, plan.nonce)
         step = replace(step, stderr=clean)
         report = h.behaviour.entry_report(reports)
-        found = h.behaviour.trace_findings(report, plan, succeeded=step.exit_code == 0)
+        found = h.behaviour.trace_findings(report, plan, succeeded=step.exit_code == 0, smoke_seconds=common.SMOKE_SECONDS)
         out["behaviour"]["trace"] = {"status": "ok" if report is not None else "missing", "findings": [f.as_dict() for f in found], "plan": plan.as_dict()}
     elif row["id"] in REPLAY:
         # the run of this patch was already made by the confirmation script at the same tag, on the same image, with the same overlay and launcher: it IS the run of this measurement

@@ -116,7 +116,8 @@ def test_an_import_rebound_to_another_thing_is_refused_and_a_compat_import_is_no
 def test_a_data_file_and_a_shell_script_change_are_refused_and_an_added_module_is_judged():
     assert {f.reason for f in b.static_findings("data/x.npy", "a", "b")} == {b.INPUT_DATA_CHANGED}
     assert {f.reason for f in b.static_findings("fs_train.sh", "python3 fs_main.py --max_epoch=200\n", "python3 fs_main.py --max_epoch=1\n")} == {b.ARGV_OR_ENTRYPOINT_REWRITTEN}
-    assert b.static_findings("compat.py", None, "import os\n\ndef _p(x):\n    print(x)\n") == []
+    assert b.static_findings("compat.py", None, "import os\n\ndef _device():\n    return 'cpu'\n") == []
+    assert b.COMPUTATION_CHANGED in {f.reason for f in b.static_findings("compat.py", None, "import os\n\ndef _p(x):\n    print(x)\n")}   # a helper that only prints is a stub
     assert b.COMPUTATION_CHANGED in {f.reason for f in b.static_findings("helper.py", None, "def f():\n    return 4\n")}
 
 
@@ -453,7 +454,8 @@ def test_review_a5_a_stub_that_needs_no_call_site_edit_is_refused():
     assert b.COMPUTATION_CHANGED in {f.reason for f in b.static_findings("apex.py", None, "def initialize(*a, **k):\n    return a\n", frozenset({"apex"}))}
     assert b.COMPUTATION_CHANGED in {f.reason for f in b.static_findings("sitecustomize.py", None, "import os\n")}
     assert b.COMPUTATION_CHANGED in {f.reason for f in b.static_findings("compat.py", None, "def _noop(*a, **k):\n    pass\n")}   # an empty function is a stub
-    assert b.static_findings("compat.py", None, "import os\n\ndef _p(x):\n    print(x)\n") == []
+    assert b.static_findings("compat.py", None, "import os\n\ndef _device():\n    return 'cpu'\n") == []
+    assert b.COMPUTATION_CHANGED in {f.reason for f in b.static_findings("compat.py", None, "import os\n\ndef _p(x):\n    print(x)\n")}   # a helper that only prints is a stub
     assert b.external_import_roots({"train.py": "import apex\nimport lib\nfrom torch import nn\n", "lib.py": "import numpy\n"}) == {"apex", "torch", "numpy"}
 
 
@@ -568,7 +570,7 @@ def test_review2_2_the_header_of_a_new_def_or_class_and_an_exception_type_must_o
     wrapped = "def main():\n    pass\n\nif __name__ == '__main__':\n    main()\n"
     guarded = wrapped.replace("    main()\n", "    try:\n        main()\n    except (os._exit(0) or Exception):\n        raise\n")
     assert b.COMPUTATION_CHANGED in {f.reason for f in b.static_findings("t.py", wrapped, guarded)}
-    assert b.static_findings("t.py", base, base + "def _h(a=1, *, b: int = 2) -> int:\n    print('x')\n") == []
+    assert b.static_findings("t.py", base, base + "def _h(a=1, *, b: int = 2) -> int:\n    return a\n") == []
 
 
 def test_review2_3_a_class_that_derives_from_an_exit_is_an_exit():
@@ -578,7 +580,7 @@ def test_review2_3_a_class_that_derives_from_an_exit_is_an_exit():
 
 
 def test_review2_3_the_tracer_sees_a_subclass_of_system_exit(tmp_path):
-    new = {**REPO, "train.py": REPO["train.py"].replace("def main():\n    total", "def main():\n    from builtins import SystemExit as Stop\n    raise Stop(0)\n    total")}
+    new = {"train.py": REPO["train.py"].replace("def main():\n    total", "def main():\n    raise lib.Done(0)\n    total"), "lib.py": REPO["lib.py"] + "\nclass Done(SystemExit):\n    pass\n"}
     report, plan, done = _run(tmp_path, REPO, new, FAIL_AT_STEP)
     assert done.returncode == 0 and report is not None and any(e["how"] == "raise SystemExit" for e in report["exits"]), (report, done.stderr)
     assert b.EXIT_FROM_ADDED_LINE in {f.reason for f in b.trace_findings(report, plan)}
@@ -590,7 +592,7 @@ def test_review2_4_a_method_added_to_an_existing_class_and_a_def_that_shadows_a_
     star = "from utils import *\n\ndef main():\n    evaluate(1)\n"
     assert b.COMPUTATION_CHANGED in {f.reason for f in b.static_findings("t.py", star, star + "\ndef evaluate(*a, **k):\n    print('eval acc: 0.93')\n")}
     assert b.COMPUTATION_CHANGED in {f.reason for f in b.static_findings("t.py", "print(1)\n", "def print(*a):\n    pass\n\nprint(1)\n")}
-    assert b.static_findings("t.py", "x = 1\n", "x = 1\n\nclass Helper:\n    def run(self):\n        print('x')\n") == []      # a new class with its own methods is a new helper
+    assert b.static_findings("t.py", "x = 1\n", "x = 1\n\nclass Helper:\n    def _run(self):\n        return 1\n") == []      # a new class with its own private helper is a new helper
 
 
 def test_review2_5_an_import_may_not_take_the_name_of_something_the_file_defines():
@@ -656,4 +658,134 @@ def test_review2_15_a_virtualenv_inside_the_checkout_is_not_the_repository(tmp_p
     for rel in ("train.py", "pkg/mod.py", "venv/lib/python3.9/site-packages/x.py", ".hidden/y.py", "build/z.py"):
         (tmp_path / rel).parent.mkdir(parents=True, exist_ok=True)
         (tmp_path / rel).write_text("x = 1\n", encoding="utf-8")
-    assert [q.relative_to(tmp_path).as_posix() for q in b.repo_python_files(tmp_path)] == ["pkg/mod.py", "train.py"]
+    (tmp_path / "env").mkdir()
+    (tmp_path / "env" / "maze.py").write_text("x = 1\n", encoding="utf-8")                         # the repository's own package called env
+    (tmp_path / "myenv" / "lib").mkdir(parents=True)
+    (tmp_path / "myenv" / "pyvenv.cfg").write_text("home = /usr\n", encoding="utf-8")            # a virtual environment by what it is
+    (tmp_path / "myenv" / "lib" / "z.py").write_text("x = 1\n", encoding="utf-8")
+    assert [q.relative_to(tmp_path).as_posix() for q in b.repo_python_files(tmp_path)] == ["build/z.py", "env/maze.py", "pkg/mod.py", "train.py"]
+
+
+
+# ----------------------------------------------------------------------------------------------------------------------------------- the third review (rc3): every confirmed defect has its test
+BASE3 = "import os, sys\n\ndef work():\n    print('REAL WORK DONE')\n\ndef main():\n    work()\n\nif __name__ == '__main__':\n    main()\n"
+
+
+def _top_of_main(new_lines: str) -> set[str]:
+    return {f.reason for f in b.static_findings("t.py", BASE3, BASE3.replace("def main():\n", "def main():\n" + new_lines))}
+
+
+def test_review3_1_raise_calls_an_exception_class_and_nothing_else():
+    for bad in ("    raise os.execv('/bin/true', ['/bin/true'])\n", "    raise os._exit(0)\n", "    raise sys.exit(0)\n", "    raise signal.pause()\n",
+                "    from builtins import SystemExit as Done\n    raise Done(0)\n"):
+        assert b.COMPUTATION_CHANGED in _top_of_main(bad), bad
+    assert b.COMPUTATION_CHANGED in {f.reason for f in b.static_findings("t.py", BASE3, BASE3.replace("    main()\n", "    try:\n        main()\n    except Exception:\n        raise os._exit(0)\n"))}
+    assert _top_of_main("    if not os.path.exists('data'):\n        raise FileNotFoundError(f'no data in {os.getcwd()}')\n") == set()
+    assert _top_of_main("    raise NotImplementedError\n") == set()
+    assert b.static_findings("t.py", BASE3, BASE3.replace("def work():\n", "def work():\n    if os.name == 'nt':\n        raise RuntimeError('windows')\n")) == []
+
+
+def test_review3_2_a_source_encoding_that_decodes_escapes_is_refused():
+    new = "# -*- coding: unicode_escape -*-\n" + BASE3.replace("def main():\n", "def main():\n    # note\\n    import os; os._exit(0)\n")
+    assert b.COMPUTATION_CHANGED in {f.reason for f in b.static_findings("t.py", BASE3, new)}
+    assert b.static_findings("t.py", BASE3, "# -*- coding: utf-8 -*-\n" + BASE3) == []
+    both = "# -*- coding: latin-1 -*-\n" + BASE3
+
+
+def test_review3_3_print_only_stubs_and_a_new_file_for_the_commands_own_script_are_refused():
+    for stub in ("\ndef train(*a, **k):\n    print('Training complete')\n", "\ndef evaluate(*a, **k):\n    logging.info('eval acc 0.93')\n", "\nclass Net:\n    pass\n"):
+        assert b.COMPUTATION_CHANGED in {f.reason for f in b.static_findings("t.py", BASE3, BASE3 + stub)}, stub
+    assert b.static_findings("t.py", BASE3, BASE3 + "\nclass TrainError(Exception):\n    pass\n") == []        # an exception class is a class with no body, honestly
+    got = b.candidate_findings({"lib.py": "x = 1\n"}, {"train.py": "print('training done')\n"}, command_before="python train.py", command_after="python train.py")
+    assert b.ARGV_OR_ENTRYPOINT_REWRITTEN in {f.reason for f in got}
+    got = b.candidate_findings({}, {"pkg/__main__.py": "print('training done')\n"}, command_before="python -m pkg --x", command_after="python -m pkg --x")
+    assert b.ARGV_OR_ENTRYPOINT_REWRITTEN in {f.reason for f in got}
+    assert b.command_script_paths("CUDA_VISIBLE_DEVICES=0 python3 main_optim.py --model resnet20 > out.txt") == {"main_optim.py"}
+
+
+def test_review3_4_a_def_inside_a_function_shadows_a_name_bound_elsewhere_in_the_file():
+    old = "from metrics import evaluate\n\ndef train(args):\n    heavy(args)\n\ndef main():\n    train(1)\n    evaluate(2)\n"
+    for local in ("    def train(*a, **k):\n        return 1\n", "    def evaluate(*a, **k):\n        return 1\n", "    from toy import train\n", "    from toy import evaluate\n"):
+        new = old.replace("def main():\n", "def main():\n" + local)
+        assert b.COMPUTATION_CHANGED in {f.reason for f in b.static_findings("t.py", old, new)}, local
+
+
+def test_review3_5_a_method_hidden_in_a_block_of_an_existing_class_is_still_added_to_it():
+    cls = "class Trainer(Base):\n    def __init__(self, n):\n        self.n = n\n"
+    for wrapper in ("    if True:\n        def run(self, *a, **k):\n            return 1\n", "    try:\n        def run(self, *a, **k):\n            return 1\n    except ImportError:\n        pass\n"):
+        assert b.COMPUTATION_CHANGED in {f.reason for f in b.static_findings("t.py", cls, cls + wrapper)}, wrapper
+
+
+def test_review3_6_arithmetic_and_calls_that_cost_without_acting_are_not_simple():
+    for bad in ("    if 7 ** (10 ** 8) > 1:\n        pass\n", "    print('x' * 1000000000)\n", "    sys.stderr.write('x' * 5000000)\n", "    print(list(loader))\n", "    print(Path(a).replace(b))\n",
+                "    print(requests.get(url))\n", "    x = [1] * 99999999\n"):
+        assert b.COMPUTATION_CHANGED in _top_of_main(bad), bad
+    for good in ("    print(sys.version.split()[0], 'argv', sys.argv[1:], flush=True)\n", "    print('epoch', 3 * 7, '{}.pt'.format(5), 'a,b'.split(','))\n"):
+        assert _top_of_main(good) == set(), good
+
+
+def test_review3_7_an_import_is_not_repointed_to_another_module_of_its_package_even_behind_a_nested_import():
+    old = "from datasets.imagenet import load\nfrom algo.sgd import Opt\n"
+    assert b.COMPUTATION_CHANGED in {f.reason for f in b.static_findings("t.py", old, old.replace("datasets.imagenet", "datasets.toy"))}
+    assert b.COMPUTATION_CHANGED in {f.reason for f in b.static_findings("t.py", old, old.replace("algo.sgd", "algo.fake"))}
+    nested = "try:\n    from algo.sgd import Opt\nexcept ImportError:\n    pass\nfrom toy_algo import Opt\n"
+    assert b.COMPUTATION_CHANGED in {f.reason for f in b.static_findings("t.py", "from algo.sgd import Opt\n", nested)}
+    assert b.static_findings("t.py", "from collections import Mapping\n", "from collections.abc import Mapping\n") == []
+
+
+def test_review3_8_workload_cannot_hide_behind_an_option_nobody_defined_a_long_option_name_or_a_usage_text():
+    reads = "import argparse\np = argparse.ArgumentParser()\nargs = p.parse_args()\nfor e in range(args.epochs):\n    run(e)\n"
+    assert b.WORKLOAD_PARAMETER_CHANGED in {f.reason for f in b.static_findings("t.py", reads, reads.replace("args = ", "p.add_argument('--epochs', default=1)\nargs = "))}
+    big = "import argparse\np = argparse.ArgumentParser()\np.add_argument('--per_device_train_batch_size', type=int, default=64)\np.add_argument('--max_steps_per_gpu', type=int, default=100000)\n"
+    assert b.WORKLOAD_PARAMETER_CHANGED in {f.reason for f in b.static_findings("t.py", big, big.replace("default=64", "default=1"))}
+    assert b.WORKLOAD_PARAMETER_CHANGED in {f.reason for f in b.static_findings("t.py", big, big.replace("default=100000", "default=3"))}
+    doc = '"""Usage: train.py [--epochs=N]\n\nOptions:\n  --epochs=N  [default: 100]\n"""\nimport docopt\n'
+    assert b.WORKLOAD_PARAMETER_CHANGED in {f.reason for f in b.static_findings("t.py", doc, doc.replace("[default: 100]", "[default: 1]"))}
+    dev = "import argparse\np = argparse.ArgumentParser()\np.add_argument('--device', default='cuda')\np.add_argument('--use_cuda', action='store_true', default=True)\n"
+    assert b.static_findings("t.py", dev, dev.replace("'cuda'", "'cpu'").replace("default=True", "default=False")) == []
+
+
+def test_review3_9_a_failure_site_that_places_a_tensor_on_the_gpu_need_not_run():
+    src = "import argparse\n\ndef main(args, model):\n    if args.cuda:\n        model = model.cuda()\n    return model\n"
+    text = 'Traceback:\n  File "/w/m.py", line 5, in main\n    model = model.cuda()\nAssertionError: Torch not compiled with CUDA enabled\n'
+    plan = b.plan_trace(command="python m.py", failure_text=text, old_sources={}, new_sources={}, repo_files={"m.py"}, read_source=lambda rel: src)
+    assert plan.sites == ()
+
+
+def test_review3_10_more_honest_device_repairs_are_not_refused():
+    pairs = [
+        ("import torch\nassert torch.cuda.is_available()\nx = 1\n", "import torch\nx = 1\n"),
+        ("import sys\nimport torch\nif not torch.cuda.is_available():\n    sys.exit('no gpu')\nx = 1\n", "import sys\nimport torch\nx = 1\n"),
+        ("import os\nos.environ['CUDA_VISIBLE_DEVICES'] = str(args.gpu)\nx = 1\n", "import os\nx = 1\n"),
+        ("import torch\ny = m.cuda(torch.cuda.current_device())\n", "import torch\ny = m\n"),
+        ("args = 1\n", "args = 1\nargs.cuda = False\ngpu_id = -1\ncuda = torch.cuda.is_available()\n"),
+        ("import sys\nx = 1\n", "import sys\nx = 1\nif x < 0:\n    sys.exit(-1)\n"),
+        ("import warnings\nx = 1\n", "import warnings\nwith warnings.catch_warnings():\n    warnings.simplefilter('ignore')\nx = 1\n"),
+    ]
+    for old, new in pairs:
+        assert b.static_findings("t.py", old, new) == [], (old, new)
+
+
+def test_review3_minor_global_and_none_assignments_and_the_trace_limit():
+    assert b.COMPUTATION_CHANGED in {f.reason for f in b.static_findings("t.py", "x = 1\n", "x = 1\nglobal y\n")}
+    old = "try:\n    import apex\nexcept ImportError:\n    pass\n"
+    new = "try:\n    import apex\nexcept ImportError:\n    args.eval_loader = None\n"
+    assert b.COMPUTATION_CHANGED in {f.reason for f in b.static_findings("t.py", old, new)}
+    assert b.static_findings("t.py", old, old.replace("    pass\n", "    apex = None\n")) == []
+    plan = b.TracePlan("", "t.py", ({"file": "m.py", "lines": [7]},), {}, [20, 25])
+    assert b.trace_findings({"sites": {}, "exits": [], "main_lines": 0, "elapsed_s": 25}, plan, smoke_seconds=30) == []           # 25 s of a 30 s window: alive to the limit
+    assert b.trace_findings({"sites": {}, "exits": [], "main_lines": 0, "elapsed_s": 25}, plan) != []                            # the same 25 s of the default 60 s window: it ended early
+    assert b.failure_site('  File "/w/lib/python_utils/helpers.py", line 3, in f\n', {"lib/python_utils/helpers.py"}) == ("lib/python_utils/helpers.py", 3)
+
+
+def test_review3_the_tracer_emits_elapsed_seconds(tmp_path):
+    report, plan, done = _run(tmp_path, REPO, REPO, FAIL_AT_STEP)
+    assert report is not None and isinstance(report["elapsed_s"], (int, float))
+
+
+@pytest.mark.skipif(os.name == "nt", reason="there is no posix module on Windows; the sandbox is Linux")
+def test_review3_the_tracer_catches_posix_exit(tmp_path):
+    new = {**REPO, "train.py": REPO["train.py"].replace("def main():\n    total", "def main():\n    import posix\n    posix._exit(0)\n    total")}
+    report, plan, done = _run(tmp_path, REPO, new, FAIL_AT_STEP)
+    assert done.returncode == 0 and report is not None and any(e["how"] == "os._exit" for e in report["exits"]), (report, done.stderr)
+    assert b.EXIT_FROM_ADDED_LINE in {f.reason for f in b.trace_findings(report, plan)}

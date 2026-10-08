@@ -92,6 +92,7 @@ SANDBOX_TOUCHING_FILES = (
     "backend/app/services/runner_env.py",
     "backend/app/services/smoke_exec.py",  # harness-v1.3.3: the smoke launcher runs inside the sandbox
     "backend/app/services/runner_hooks.py",  # harness-v1.4.0-rc: the CPU shim and the exit-site hook run inside the sandbox
+    "backend/app/services/behaviour.py",  # harness-v1.10: the behavioural tracer runs inside the sandbox (a .pth hook, like the runner hooks)
 )
 SEAL_VERIFICATION = "seal_verification.json"
 DRAW_OUTPUTS = ("screening_log.jsonl", "corpus.yaml", "corpus_hash.txt")
