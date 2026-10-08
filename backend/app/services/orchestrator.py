@@ -3044,14 +3044,24 @@ def _run_stages(
                     n_references=len(offered_tavily),
                 )
 
+            shadow_cache: dict = {}  # the packages the repository imports, read once per round (the checkout does not change inside a round)
+
             def _behaviour_static(diff: str, originals: dict, env_changes_) -> list:
                 """harness-v1.10 (behaviour.py): the static findings of one gate-approved candidate: what its patch changes (computation, workload, entrypoint, arguments)
                 and whether its environment change redirects the command. Pure; the same text the gate analyzed."""
-                new_sources = patched_sources(diff, originals) if diff else {}
-                candidate_command = plan.execute_command
-                if env_changes_:
-                    candidate_command = env_repair.apply_env_delta(plan, env_changes_, current_requirements)[0].execute_command
-                return behaviour.candidate_findings(originals, {p: new_sources[p] for p in new_sources}, command_before=plan.execute_command, command_after=candidate_command)
+                try:
+                    new_sources = patched_sources(diff, originals) if diff else {}
+                    candidate_command = plan.execute_command
+                    if env_changes_:
+                        candidate_command = env_repair.apply_env_delta(plan, env_changes_, current_requirements)[0].execute_command
+                    if diff and "roots" not in shadow_cache:
+                        shadow_cache["roots"] = behaviour.external_import_roots({q.relative_to(workdir).as_posix(): read_text_capped(q) or ""
+                                                                                 for q in sorted(workdir.rglob("*.py"))[:3000] if ".git" not in q.parts})
+                    shadow = shadow_cache.get("roots", frozenset())
+                    return behaviour.candidate_findings(originals, {p: new_sources[p] for p in new_sources}, command_before=plan.execute_command, command_after=candidate_command,
+                                                        shadow_names=shadow)
+                except Exception as exc:  # noqa: BLE001 - a check that cannot judge a patch refuses it by name; it never ends the run
+                    return [behaviour.Finding(behaviour.COMPUTATION_CHANGED, f"the behavioural check failed on this patch and refuses it: {type(exc).__name__}: {str(exc)[:160]}")]
 
             def _candidate(cand_no: int | None, base_followup: str | None, first: bool, summaries: list) -> dict | None:
                 """One repair candidate for this failure: the model's proposal, its re-asks (same attempt), the env gate, the patch
@@ -3447,8 +3457,9 @@ def _run_stages(
                     entry = behaviour.entry_of(cand_plan.execute_command, repo_files)
                     entry_source = read_text_capped(workdir / entry) if entry else None
                     failing = sandbox_result.final
-                    return behaviour.plan_trace(command=cand_plan.execute_command, failure_text=f"{failing.stderr}\n{failing.stdout}", old_sources=old_sources,
-                                                new_sources=new_sources, repo_files=repo_files, entry_source=entry_source)
+                    failure_text = failing.stderr if behaviour.has_frames(failing.stderr) else f"{failing.stderr}\n{failing.stdout}"
+                    return behaviour.plan_trace(command=cand_plan.execute_command, failure_text=failure_text, old_sources=old_sources, new_sources=new_sources,
+                                                repo_files=repo_files, entry_source=entry_source, read_source=lambda rel: read_text_capped(workdir / rel))
 
                 runnable: list[dict] = []
                 for cand in gated:
@@ -3506,7 +3517,7 @@ def _run_stages(
                                       apt_archive=bool(cand.get("apt_archive")), trace_env=cand["trace_env"])
                     if cand["trace_plan"] is not None:
                         # the tracer's line is RERUN's, not the repository's: out of the stderr the classifier and the adjudicator read, into the candidate's record
-                        clean, reports = behaviour.split_report(result.final.stderr)
+                        clean, reports = behaviour.split_report(result.final.stderr, cand["trace_plan"].nonce)
                         trace_reports[cand["number"]] = reports
                         if clean != result.final.stderr:
                             result = replace(result, steps=(*result.steps[:-1], replace(result.final, stderr=clean)))
@@ -3661,10 +3672,13 @@ def _run_stages(
                                      "and the repository does not declare")
                         if cand["trace_plan"] is not None:
                             # harness-v1.10: the behavioural checks, trace half. A candidate they refuse does not qualify; a missing report vetoes nothing and is recorded as such.
-                            report = behaviour.entry_report(trace_reports.get(cand["number"], []))
-                            found = behaviour.trace_findings(report, cand["trace_plan"])
-                            entry["behaviour"] = {"static": [], "trace": {"status": "ok" if report is not None else "missing", "findings": [f.as_dict() for f in found],
-                                                                           "plan": cand["trace_plan"].as_dict()}}
+                            try:
+                                report = behaviour.entry_report(trace_reports.get(cand["number"], []))
+                                found = behaviour.trace_findings(report, cand["trace_plan"], succeeded=bool(result.succeeded))
+                                status = "ok" if report is not None else "missing"
+                            except Exception as exc:  # noqa: BLE001 - a report that cannot be read is a report that is missing, never a crash
+                                report, found, status = None, [], f"unreadable: {type(exc).__name__}"
+                            entry["behaviour"] = {"static": [], "trace": {"status": status, "findings": [f.as_dict() for f in found], "plan": cand["trace_plan"].as_dict()}}
                             if found and entry["changed"]:
                                 entry["changed"] = False
                                 entry["behaviour"]["refused"] = True

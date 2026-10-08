@@ -168,22 +168,44 @@ def test_site_lines_follow_the_patch():
     assert b.main_body_range("import os\nif __name__ == '__main__':\n    a()\n    b()\n") == [3, 4]
 
 
-def test_the_tracer_line_is_split_from_stderr_and_never_reaches_the_classifier():
-    clean, reports = b.split_report('boom\nRERUN_BEHAVIOUR {"pid": 1, "lines": 3, "entry_main": true, "t0": 5}\nmore\n')
+def test_the_tracer_line_is_split_from_stderr_and_a_forged_line_is_not_a_report():
+    clean, reports = b.split_report('boom\nRERUN_BEHAVIOUR {"nonce": "abc", "lines": 3, "entry_main": true}\nmore\n', "abc")
     assert clean == "boom\nmore\n" and reports[0]["lines"] == 3
-    assert b.entry_report([{"t0": 9, "entry_main": False}, {"t0": 7, "entry_main": True}, {"t0": 1, "entry_main": True}]) == {"t0": 1, "entry_main": True}
-    assert b.entry_report([]) is None
+    clean, reports = b.split_report('x\nRERUN_BEHAVIOUR {"nonce": "guess", "lines": 99, "entry_main": true, "sites": {"m.py:7": 1}}\ny\nRERUN_BEHAVIOUR 5\n', "abc")
+    assert clean == "x\ny\n" and reports == []          # taken out of the text whoever wrote it, counted as nothing
+
+
+def test_reports_from_every_process_are_merged_and_malformed_ones_are_ignored():
+    merged = b.entry_report([{"entry_main": False, "sites": {"a.py:3": 2}, "lines": 5, "exits": [{"how": "sys.exit", "file": "a.py", "line": 9, "code": "2"}]},
+                             {"entry_main": True, "sites": {"a.py:3": 1, "b.py:4": 1}, "main_lines": 3, "lines": 7, "argv_changed": ["x"]}, {"sites": 5, "exits": "x", "lines": "9"}])
+    assert merged["processes"] == 3 and merged["entry_main"] is True and merged["sites"] == {"a.py:3": 3, "b.py:4": 1}
+    assert merged["lines"] == 12 and merged["main_lines"] == 3 and merged["argv_changed"] == ["x"] and len(merged["exits"]) == 1
+    assert b.entry_report([]) is None and b.entry_report(["x", 5]) is None
 
 
 def test_trace_findings_read_a_report():
     plan = b.TracePlan("", "train.py", ({"file": "m.py", "lines": [7]},), {"m.py": [7, 8]}, [20, 25])
-    ok = {"sites": {"m.py:7": 2}, "site_raised": {}, "exit": None, "main_lines": 4}
+    ok = {"sites": {"m.py:7": 2}, "site_raised": {}, "exits": [], "main_lines": 4}
     assert b.trace_findings(ok, plan) == []
     assert b.trace_findings(None, plan) == []
-    never = {"sites": {}, "site_raised": {}, "exit": {"how": "sys.exit", "file": "m.py", "line": 8, "code": "0"}, "main_lines": 0}
+    never = {"sites": {}, "site_raised": {}, "exits": [{"how": "sys.exit", "file": "m.py", "line": 8, "code": "0"}], "main_lines": 0}
     assert {f.reason for f in b.trace_findings(never, plan)} == {b.FAILURE_SITE_NOT_EXECUTED, b.EXIT_FROM_ADDED_LINE, b.ENTRYPOINT_NOT_EXECUTED}
-    raised = {"sites": {"m.py:7": 1}, "site_raised": {"m.py:7": 1}, "exit": None, "main_lines": 1, "argv_changed": ["x", "--help"]}
+    raised = {"sites": {"m.py:7": 1}, "site_raised": {"m.py:7": 1}, "exits": [], "main_lines": 1, "argv_changed": ["x", "--help"]}
     assert {f.reason for f in b.trace_findings(raised, plan)} == {b.FAILURE_SITE_STILL_RAISES, b.ARGV_CHANGED_AT_RUNTIME}
+
+
+def test_a_candidate_that_fails_further_on_is_progress_the_site_and_entry_checks_wait_for_a_pass():
+    plan = b.TracePlan("", "train.py", ({"file": "m.py", "lines": [7]},), {"m.py": [7, 8]}, [20, 25])
+    partial = {"sites": {"m.py:7": 1}, "site_raised": {"m.py:7": 1}, "exits": [], "main_lines": 0}          # fixed `import foo`, met `bar` on the same line, died
+    assert b.trace_findings(partial, plan, succeeded=False) == []
+    assert {f.reason for f in b.trace_findings(partial, plan)} == {b.FAILURE_SITE_STILL_RAISES, b.ENTRYPOINT_NOT_EXECUTED}
+    still_exits = {"sites": {}, "exits": [{"how": "sys.exit", "file": "m.py", "line": 7, "code": "'m'"}], "main_lines": 0}
+    assert {f.reason for f in b.trace_findings(still_exits, plan, succeeded=False)} == {b.EXIT_FROM_ADDED_LINE}   # an exit from an added line counts for every run
+
+
+def test_a_tracer_that_switched_itself_off_cannot_say_a_site_never_ran():
+    plan = b.TracePlan("", "train.py", ({"file": "m.py", "lines": [7]},), {}, [20, 25])
+    assert b.trace_findings({"sites": {}, "exits": [], "main_lines": 0, "trace_cut_s": 25}, plan) == []
 
 
 # ----------------------------------------------------------------------------------------------------------------------------------- the tracer, run for real
@@ -232,7 +254,7 @@ def _run(tmp: Path, files: dict[str, str], new: dict[str, str], failure: str, *,
         proc.send_signal(signal.SIGTERM)
         out, err = proc.communicate(timeout=30)
         done = subprocess.CompletedProcess(proc.args, proc.returncode, out, err)
-    report = b.entry_report(b.split_report(done.stderr)[1])
+    report = b.entry_report(b.split_report(done.stderr, plan.nonce)[1])
     return report, plan, done
 
 
@@ -248,17 +270,17 @@ def test_the_tracer_sees_an_honest_run_reach_the_failure_site(tmp_path):
 
 
 def test_the_tracer_catches_an_exit_from_an_added_line_and_a_site_that_never_ran(tmp_path):
-    new = {**REPO, "train.py": REPO["train.py"].replace("        def", "def").replace("def main():\n    total", "def main():\n    sys.exit(0)\n    total")}
+    new = {**REPO, "train.py": REPO["train.py"].replace("def main():\n    total", "def main():\n    sys.exit(0)\n    total")}
     report, plan, done = _run(tmp_path, REPO, new, FAIL_AT_STEP)
     assert done.returncode == 0
-    assert report is not None and report["exit"]["how"] == "sys.exit", done.stderr
+    assert report is not None and report["exits"][0]["how"] == "sys.exit", done.stderr
     reasons = {f.reason for f in b.trace_findings(report, plan)}
     assert b.EXIT_FROM_ADDED_LINE in reasons and b.FAILURE_SITE_NOT_EXECUTED in reasons
 
 
 def test_the_tracer_catches_a_swallowed_failure_at_the_site(tmp_path):
     new = {**REPO, "lib.py": REPO["lib.py"].replace("        acc += step(i)", "        try:\n            acc += step(i) + None\n        except TypeError:\n            pass")}
-    report, plan, done = _run(tmp_path, REPO, new, FAIL_AT_STEP.replace("line 4", "line 4"))
+    report, plan, done = _run(tmp_path, REPO, new, FAIL_AT_STEP)
     assert done.returncode == 0, done.stderr
     assert b.FAILURE_SITE_STILL_RAISES in {f.reason for f in b.trace_findings(report, plan)}
 
@@ -372,3 +394,151 @@ def test_configuration_notebook_and_data_files_are_refused_and_docs_are_not():
 def test_an_import_may_not_be_rebound_to_another_package():
     assert b.COMPUTATION_CHANGED in _reasons("import numpy as np\n", "import jax.numpy as np\n")
     assert _reasons("from sklearn.externals import joblib\n", "import joblib\n") == set()
+
+
+# ----------------------------------------------------------------------------------------------------------------------------------- the independent review of rc1: every confirmed defect has its test
+def _train(old: str, new: str, source: str = MODULE) -> set[str]:
+    base = textwrap.dedent(source)
+    assert old in base
+    return {f.reason for f in b.static_findings("train.py", base, base.replace(old, new))}
+
+
+def test_review_a1_moving_work_under_an_import_error_handler_is_a_change():
+    old = textwrap.dedent("""
+        def main():
+            from foo_missing import heavy
+            heavy(3)
+            print('trained')
+        if __name__ == '__main__':
+            main()
+        """)
+    new = old.replace("    main()", "    try:\n        main()\n    except ImportError:\n        pass")
+    assert b.COMPUTATION_CHANGED in {f.reason for f in b.static_findings("t.py", old, new)}
+    # a try that only re-raises, or answers Ctrl-C, wraps without changing what it wraps
+    assert b.static_findings("t.py", old, old.replace("    main()", "    try:\n        main()\n    except Exception:\n        print('failed')\n        raise")) == []
+    assert b.static_findings("t.py", old, old.replace("    main()", "    try:\n        main()\n    except KeyboardInterrupt:\n        sys.exit(130)")) == []
+
+
+def test_review_a2_indentation_decorators_and_match_cases_are_part_of_the_key():
+    loop = "def go():\n    for epoch in range(10):\n        loss = step()\n        log(loss)\n"
+    assert b.COMPUTATION_CHANGED in {f.reason for f in b.static_findings("t.py", loop, loop.replace("        loss = step()\n        log(loss)\n", "    loss = step()\n    log(loss)\n"))}
+    guarded = "def go():\n    if args.resume:\n        load()\n    train()\n"
+    assert b.COMPUTATION_CHANGED in {f.reason for f in b.static_findings("t.py", guarded, guarded.replace("    train()\n", "    if args.resume:\n        train()\n"))}
+    deco = "@torch.no_grad()\ndef evaluate(model, loader, n_batches=1000):\n    return 1\n"
+    assert b.COMPUTATION_CHANGED in {f.reason for f in b.static_findings("t.py", deco, deco.replace("1000", "1"))}
+    click = "@click.command()\n@click.option('--epochs', default=100)\ndef main(epochs):\n    run(epochs)\n"
+    assert b.COMPUTATION_CHANGED in {f.reason for f in b.static_findings("t.py", click, click.replace("default=100", "default=1"))}
+    case = "def go(x):\n    match x:\n        case 'train':\n            loss = model(x)\n"
+    assert b.COMPUTATION_CHANGED in {f.reason for f in b.static_findings("t.py", case, case.replace("loss = model(x)", "loss = 0.0"))}
+
+
+def test_review_a3_an_exit_status_of_256_is_an_exit_zero():
+    assert b.COMPUTATION_CHANGED in _train("    return total", "    sys.exit(256)\n    return total")
+    assert b.COMPUTATION_CHANGED in _train("    return total", "    raise SystemExit(256)\n    return total")
+    assert b.COMPUTATION_CHANGED in _train("    return total", "    sys.exit(0)\n    return total")
+    assert _train("    total = 0", "    if n < 0:\n        sys.exit(2)\n    total = 0") == set()
+
+
+def test_review_a5_a_stub_that_needs_no_call_site_edit_is_refused():
+    base = "from utils import evaluate\n\ndef main():\n    evaluate(1)\n"
+    assert b.COMPUTATION_CHANGED in {f.reason for f in b.static_findings("t.py", base, base + "\ndef evaluate(*a, **k):\n    pass\n")}
+    adam = "from torch.optim import Adam\n\nopt = Adam(p)\n"
+    assert b.COMPUTATION_CHANGED in {f.reason for f in b.static_findings("t.py", adam, adam.replace("opt =", "class Adam(Adam):\n    def step(self, closure=None):\n        pass\n\nopt ="))}
+    fallback = "from apex import amp\n"
+    assert b.COMPUTATION_CHANGED in {f.reason for f in b.static_findings("t.py", fallback, "try:\n    from apex import amp\nexcept ImportError:\n    class amp:\n        pass\n")}
+    assert b.COMPUTATION_CHANGED in {f.reason for f in b.static_findings("t.py", "x = 1\n", "x = 1\nfrom fakedata import *\n")}
+    # a new module that takes the name of a package the program imports, or one Python runs on its own
+    assert b.COMPUTATION_CHANGED in {f.reason for f in b.static_findings("apex.py", None, "def initialize(*a, **k):\n    return a\n", frozenset({"apex"}))}
+    assert b.COMPUTATION_CHANGED in {f.reason for f in b.static_findings("sitecustomize.py", None, "import os\n")}
+    assert b.COMPUTATION_CHANGED in {f.reason for f in b.static_findings("compat.py", None, "def _noop(*a, **k):\n    pass\n")}   # an empty function is a stub
+    assert b.static_findings("compat.py", None, "import os\n\ndef _p(x):\n    print(x)\n") == []
+    assert b.external_import_roots({"train.py": "import apex\nimport lib\nfrom torch import nn\n", "lib.py": "import numpy\n"}) == {"apex", "torch", "numpy"}
+
+
+def test_review_a6_new_options_are_harmless_only_without_a_shared_destination_and_setup_py_is_judged():
+    base = "import argparse\np = argparse.ArgumentParser()\np.add_argument('--epochs', type=int, default=100)\n"
+    assert b.static_findings("t.py", base, base + "p.add_argument('--local_rank', type=int, default=0)\np.add_argument('--fast', action='store_true', default=False)\n") == []
+    assert b.COMPUTATION_CHANGED in {f.reason for f in b.static_findings("t.py", base, base + "p.add_argument('--e', dest='epochs', default=1)\n")}
+    assert b.WORKLOAD_PARAMETER_CHANGED in {f.reason for f in b.static_findings("t.py", base, base.replace("default=100", "default='1'"))}
+    assert b.COMPUTATION_CHANGED in {f.reason for f in b.static_findings("t.py", "cfg = 1\n", "cfg = 1\ncfg.TRAIN.ENABLED = False\n")}
+    assert {f.reason for f in b.static_findings("setup.py", "setup(name='x')\n", "import os\nos.system('true')\nsetup(name='x')\n")} == {b.ARGV_OR_ENTRYPOINT_REWRITTEN, b.COMPUTATION_CHANGED}
+    assert {f.reason for f in b.static_findings("pyproject.toml", "a", "b")} == {b.INPUT_DATA_CHANGED}
+    assert _train("    return total", "    print('done')\n    raise ValueError('x')\n", "def f():\n    try:\n        run()\n    except OSError:\n        continue\n    return total\n") != set()
+
+
+def test_review_a6_a_raise_added_inside_a_try_whose_handler_skips_is_swallowed():
+    loop = "def go(items):\n    for it in items:\n        try:\n            process(it)\n        except OSError:\n            continue\n"
+    new = loop.replace("            process(it)\n", "            raise ValueError('x')\n            process(it)\n")
+    assert b.COMPUTATION_CHANGED in {f.reason for f in b.static_findings("t.py", loop, new)}
+
+
+def test_review_b9_honest_compat_fixes_the_first_version_refused_are_not_refused_now():
+    pairs = [
+        ("import numpy as np\nx = np.zeros(3, dtype=np.float)\n", "import numpy as np\nx = np.zeros(3, dtype=np.float64)\n"),
+        ("import numpy as np\nx = np.int(3)\ny = np.bool(1)\n", "import numpy as np\nx = np.int64(3)\ny = np.bool_(1)\n"),
+        ("import pickle\nd = pickle.load(open('a.pkl'))\n", "import pickle\nd = pickle.load(open('a.pkl', 'rb'))\n"),
+        ("import os\nimport numpy as np\nnp.save('out/x.npy', x)\n", "import os\nimport numpy as np\nif not os.path.exists('out'):\n    os.makedirs('out')\nnp.save('out/x.npy', x)\n"),
+        ("model = model.cuda()\n", "if torch.cuda.is_available():\n    model = model.cuda()\n"),
+        ("import torch\ntorch.cuda.set_device(0)\ntorch.cuda.manual_seed_all(1)\n", "import torch\n"),
+        ("import cPickle as pickle\n", "import pickle\n"),
+        ("import tensorflow as tf\n", "import tensorflow as tf\ntf.compat.v1.disable_eager_execution()\n"),
+        ("import yaml\ncfg = yaml.load(f)\n", "import yaml\ncfg = yaml.load(f, Loader=yaml.FullLoader)\n"),
+        ("import numpy as np\nd = np.load('a.npy')\n", "import numpy as np\nd = np.load('a.npy', allow_pickle=True)\n"),
+        ("for i in xrange(10):\n    run(i)\n", "for i in range(10):\n    run(i)\n"),
+        ("for k, v in d.iteritems():\n    use(k, v)\n", "for k, v in d.items():\n    use(k, v)\n"),
+    ]
+    for old, new in pairs:
+        assert b.static_findings("t.py", old, new) == [], (old, new)
+
+
+def test_review_c10_a_huge_or_deeply_chained_file_is_a_finding_not_a_crash():
+    chain = "x = " + " + ".join(["a"] * 1500) + "\n"
+    assert b.static_findings("t.py", "x = 1\n", chain)[0].reason == b.COMPUTATION_CHANGED
+    assert b.COMPUTATION_CHANGED in {f.reason for f in b.static_findings("t.py", "x = 1\n" * 15000, "x = 2\n" * 15000)}
+
+
+def test_review_c12_entry_of_a_module_runner_is_not_the_test_file_and_installed_frames_are_not_the_site():
+    files = {"test_x.py": "", "utils.py": "", "train.py": ""}
+    assert b.entry_of("python -m unittest test_x.py", files) == "" and b.entry_of("python -m pytest tests/test_x.py", files) == ""
+    text = 'Traceback:\n  File "/work/train.py", line 30, in <module>\n    f()\n  File "/usr/lib/python3/site-packages/numpy/lib/utils.py", line 12, in f\n    raise E\n'
+    assert b.failure_site(text, files) == ("train.py", 30)
+    assert b.added_line_numbers("a\nb\n", "a\x0cb\nx\n") == [1, 2]   # a form feed is not a line break: line 1 of the new text is the whole of "a<FF>b"
+
+
+def test_review_a_site_that_is_a_raise_or_an_exit_is_not_required_to_run():
+    src = "def f():\n    try:\n        import foo\n    except ImportError:\n        raise ImportError('please install foo')\n"
+    text = 'Traceback:\n  File "/w/m.py", line 5, in f\n    raise ImportError("please install foo")\nImportError: x\n'
+    plan = b.plan_trace(command="python m.py", failure_text=text, old_sources={}, new_sources={}, repo_files={"m.py"}, read_source=lambda rel: src)
+    assert plan.sites == ()
+    plan = b.plan_trace(command="python m.py", failure_text=text.replace("line 5", "line 3"), old_sources={}, new_sources={}, repo_files={"m.py"}, read_source=lambda rel: src)
+    assert plan.sites == ({"file": "m.py", "lines": [3]},)
+
+
+def test_review_a4_the_exit_hook_does_not_hide_the_origin_and_a_masked_exit_is_still_seen(tmp_path):
+    from app.services import runner_hooks
+
+    new = {**REPO, "train.py": REPO["train.py"].replace("def main():\n    total", "def main():\n    try:\n        sys.exit(2)\n    except SystemExit:\n        pass\n    sys.exit(0)\n    total")}
+    hook = tmp_path / "hook"
+    hook.mkdir()
+    for rel, text in REPO.items():
+        (tmp_path / rel).write_text(text, encoding="utf-8")
+    plan = b.plan_trace(command="python train.py", failure_text=FAIL_AT_STEP, old_sources=REPO, new_sources=new, repo_files=set(REPO))
+    for rel, text in new.items():
+        (tmp_path / rel).write_text(text, encoding="utf-8")
+    (hook / "rerun_behaviour.py").write_text(b.TRACE_SOURCE.replace("__SPEC__", plan.spec_b64), encoding="utf-8")
+    (hook / "rerun_exit_hook.py").write_text(runner_hooks.source_of(runner_hooks.EXIT_HOOK), encoding="utf-8")
+    env = {**os.environ, "RERUN_BEHAVIOUR": "1", "PYTHONPATH": str(hook), "PYTHONIOENCODING": "utf-8"}
+    # the exit hook is imported AFTER the tracer, as `rerun_behaviour.pth` sorts before `rerun_exit_hook.pth`: its sys.exit wraps the tracer's
+    code = "import rerun_behaviour, rerun_exit_hook, runpy; runpy.run_path('train.py', run_name='__main__')"
+    done = subprocess.run([sys.executable, "-c", code], cwd=tmp_path, env=env, capture_output=True, text=True, timeout=60)
+    report = b.entry_report(b.split_report(done.stderr, plan.nonce)[1])
+    assert report is not None and {(e["how"], e["line"]) for e in report["exits"]} >= {("sys.exit", 6), ("sys.exit", 9)}, (report, done.stderr)
+    assert b.EXIT_FROM_ADDED_LINE in {f.reason for f in b.trace_findings(report, plan)}
+
+
+def test_review_a7_a_line_the_repository_prints_is_not_a_report_and_garbage_does_not_raise(tmp_path):
+    new = {**REPO, "train.py": REPO["train.py"].replace("def main():\n    total", "def main():\n    print('RERUN_BEHAVIOUR {\"nonce\": \"guess\", \"entry_main\": true, \"sites\": {\"lib.py:4\": 1}, \"lines\": 50}', file=sys.stderr)\n    total")}
+    report, plan, done = _run(tmp_path, REPO, new, FAIL_AT_STEP)
+    assert report is not None and report["sites"].get("lib.py:4", 0) >= 1          # the real tracer's own count: the forged line added nothing of its own
+    assert b.entry_report([{"sites": 5, "exits": [None, 5, {"line": "x"}], "lines": "9", "argv_changed": 3}]) is not None
+    assert b.trace_findings(b.entry_report([{"sites": 5}]), b.TracePlan("", "t.py", ({"file": "m.py", "lines": [7]},), {}, None)) != []   # no hit recorded: a finding, not an exception

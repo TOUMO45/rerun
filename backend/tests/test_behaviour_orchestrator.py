@@ -6,7 +6,9 @@ hand-built `PipelineDeps` (the v1.9 flow) and on for a deployment (Settings.beha
 
 from __future__ import annotations
 
+import base64
 import json
+import re
 
 import v140_cloud
 from app.config import Settings
@@ -27,20 +29,29 @@ TRACED = smoke_exec.wrap("python main.py", 60, env=behaviour.TRACE_ENV)
 PLAIN = smoke_exec.wrap("python main.py", 60)
 
 
-def _report(**kw) -> str:
-    doc = {"pid": 1, "t0": 1.0, "entry_main": True, "sites": {"main.py:2": 1}, "site_raised": {}, "exit": None, "main_lines": 0, "lines": 9, "argv0": ["main.py"], "argv_changed": None,
-           "last": ["main.py", 3], **kw}
+def _nonce_of(built) -> str:
+    """The nonce the pipeline put in this candidate's tracer: read out of the install command that is part of the image the run is on (what the real tracer would print back)."""
+    for cmd in built:
+        if cmd.startswith("python3 -c") and " behaviour " in cmd:
+            src = base64.b64decode(cmd.rsplit(" ", 1)[1]).decode("utf-8")
+            return json.loads(base64.b64decode(re.search(r'b64decode\("([A-Za-z0-9+/=]+)"\)', src).group(1)))["nonce"]
+    return ""
+
+
+def _report(nonce: str, **kw) -> str:
+    doc = {"nonce": nonce, "pid": 1, "entry_main": True, "sites": {"main.py:2": 1}, "site_raised": {}, "exits": [], "main_lines": 0, "lines": 9, "argv_changed": None, "trace_cut_s": None, **kw}
     return "\nRERUN_BEHAVIOUR " + json.dumps(doc) + "\n"
 
 
-def _cloud(monkeypatch, *, report: str):
+def _cloud(monkeypatch, *, report: dict | None):
+    """`report`: the fields of the tracer's report the fake sandbox prints for a passing run (the nonce is added); None = the run prints none."""
     def behaviour_of(shell, built, files):
         if shell not in (TRACED, PLAIN, "python main.py"):
             return None
         if not any("numpy==1.19.5" in b for b in built):
             return 1, "", "ModuleNotFoundError: No module named 'numpy'\n"
         if any("libfoo-dev" in b for b in built):
-            return 0, ALIVE, report
+            return 0, ALIVE, (_report(_nonce_of(built), **report) if report is not None else "")
         return 1, "", FAILURE
 
     return v140_cloud.install(monkeypatch, behaviour_of)
@@ -69,7 +80,7 @@ def _fixture(tmp_path):
 
 def test_a_candidate_that_changes_computation_is_refused_before_its_run_with_a_named_reason(tmp_path, monkeypatch):
     _fixture(tmp_path)
-    cloud = _cloud(monkeypatch, report=_report())
+    cloud = _cloud(monkeypatch, report={})
     repair = _Chat([APT_CANDIDATE, _edit("VALUE = compute()\n", "VALUE = 1\n", "replace the call by a constant"), DECLINE], "repair model")
     result, _ = _run(tmp_path, _deps(repair, _Ultra([{"chosen": 1, "reasoning": "the header is what the program needs"}]), checks=True))
     refused = [a for a in result.attempts if a.gate_decision == "REJECT" and a.behaviour]
@@ -87,7 +98,7 @@ def test_a_candidate_that_changes_computation_is_refused_before_its_run_with_a_n
 
 def test_the_same_candidate_is_not_refused_when_the_checks_are_off_the_v19_flow(tmp_path, monkeypatch):
     _fixture(tmp_path)
-    _cloud(monkeypatch, report=_report())
+    _cloud(monkeypatch, report={})
     repair = _Chat([APT_CANDIDATE, _edit("VALUE = compute()\n", "VALUE = 1\n", "replace the call by a constant"), DECLINE], "repair model")
     result, _ = _run(tmp_path, _deps(repair, _Ultra([{"chosen": 1, "reasoning": "the header"}]), checks=False))
     assert all(a.behaviour is None for a in result.attempts)
@@ -96,7 +107,7 @@ def test_the_same_candidate_is_not_refused_when_the_checks_are_off_the_v19_flow(
 
 def test_a_patched_run_that_never_reaches_the_failure_site_is_refused_after_its_run(tmp_path, monkeypatch):
     _fixture(tmp_path)
-    _cloud(monkeypatch, report=_report(sites={}))
+    _cloud(monkeypatch, report={"sites": {}})
     repair = _Chat([APT_CANDIDATE, DECLINE, DECLINE], "repair model")
     result, _ = _run(tmp_path, _deps(repair, _Ultra(), checks=True))   # the adjudicator is never asked: nothing qualifies
     attempt = next(a for a in result.attempts if a.candidate == 1)
@@ -107,7 +118,7 @@ def test_a_patched_run_that_never_reaches_the_failure_site_is_refused_after_its_
 
 def test_a_run_whose_report_is_missing_is_recorded_as_missing_and_vetoed_by_nothing(tmp_path, monkeypatch):
     _fixture(tmp_path)
-    _cloud(monkeypatch, report="")
+    _cloud(monkeypatch, report=None)
     repair = _Chat([APT_CANDIDATE, DECLINE, DECLINE], "repair model")
     result, _ = _run(tmp_path, _deps(repair, _Ultra([{"chosen": 1, "reasoning": "the header"}]), checks=True))
     attempt = next(a for a in result.attempts if a.candidate == 1)
@@ -117,7 +128,7 @@ def test_a_run_whose_report_is_missing_is_recorded_as_missing_and_vetoed_by_noth
 
 def test_the_tracer_line_never_reaches_the_record_and_the_tracer_is_installed_on_the_candidates_branch(tmp_path, monkeypatch):
     _fixture(tmp_path)
-    cloud = _cloud(monkeypatch, report=_report())
+    cloud = _cloud(monkeypatch, report={})
     repair = _Chat([APT_CANDIDATE, DECLINE, DECLINE], "repair model")
     result, _ = _run(tmp_path, _deps(repair, _Ultra([{"chosen": 1, "reasoning": "the header"}]), checks=True))
     assert all("RERUN_BEHAVIOUR" not in a.stderr_tail for a in result.attempts)

@@ -84,12 +84,34 @@ def gate_stage(h, row: dict, scen: dict, bases: dict, documented: dict):
     if h.behaviour is not None:
         # harness-v1.10: the static half of the behavioural checks, after the gate and before the run (orchestrator `_candidate`): the patch's own changes and the command
         command = bases[row["base"]]["command"]
-        found = h.behaviour.candidate_findings(originals, files, command_before=command, command_after=command)
+        found = h.behaviour.candidate_findings(originals, files, command_before=command, command_after=command, shadow_names=shadow_names_of(h, row["base"], bases))
         out["behaviour"] = {"static": [f.as_dict() for f in found]}
         if found:
             out["outcome"] = "behaviour_static"
             return out, None, gate
     return out, files, gate
+
+
+_SHADOW: dict[str, frozenset] = {}
+
+
+def shadow_names_of(h, base: str, bases: dict) -> frozenset:
+    """The packages the base repository's files import and do not define (behaviour.external_import_roots): a file a patch adds under one of these names would shadow the installed package."""
+    if base not in _SHADOW:
+        repo = Path(bases[base]["checkout"])
+        _SHADOW[base] = h.behaviour.external_import_roots({p.relative_to(repo).as_posix(): p.read_text(encoding="utf-8", errors="replace") for p in sorted(repo.rglob("*.py"))[:3000]
+                                                           if ".git" not in p.parts})
+    return _SHADOW[base]
+
+
+REPLAY: dict[str, dict] = {}  # patch id -> its confirmation record (--replay-runs); only for the harness-v1.9.0 measurement, which has no tracer to install
+
+
+def replayed_step(h, rec: dict, scen: dict):
+    """The sandbox step of a confirmation record, rebuilt from what it stored (exit code, the 1,200-character tails the adjudicator reads, timed_out): no sandbox call, no cost."""
+    run = rec["run"]
+    return h.sandbox.StepResult(command=scen["command"], exit_code=run["exit_code"], stdout=run.get("stdout_tail", ""), stderr=run.get("stderr_tail", ""), elapsed_seconds=0.0,
+                                cost_usd=0.0, phase="repo_run", timed_out=bool(run.get("timed_out")))
 
 
 def trace_plan_for(h, row: dict, scen: dict, bases: dict, files: dict):
@@ -99,10 +121,12 @@ def trace_plan_for(h, row: dict, scen: dict, bases: dict, files: dict):
     repo_files = {p.relative_to(repo).as_posix() for p in repo.rglob("*.py") if ".git" not in p.parts}
     old = {p: (repo / p).read_text(encoding="utf-8") for p in files if (repo / p).is_file()}
     baseline = scen.get("baseline") or {}
-    failure_text = (f"{baseline.get('stderr_tail', '')}\n{baseline.get('stdout_tail', '')}" if scen["population"] == "A" else scen["failure"])
+    stderr = baseline.get("stderr_tail", "")
+    failure_text = ((stderr if h.behaviour.has_frames(stderr) else f"{stderr}\n{baseline.get('stdout_tail', '')}") if scen["population"] == "A" else scen["failure"])
     entry = h.behaviour.entry_of(scen["command"], repo_files)
     entry_source = (repo / entry).read_text(encoding="utf-8") if entry and (repo / entry).is_file() else None
-    return h.behaviour.plan_trace(command=scen["command"], failure_text=failure_text, old_sources=old, new_sources=dict(files), repo_files=repo_files, entry_source=entry_source)
+    return h.behaviour.plan_trace(command=scen["command"], failure_text=failure_text, old_sources=old, new_sources=dict(files), repo_files=repo_files, entry_source=entry_source,
+                                  read_source=lambda rel: (repo / rel).read_text(encoding="utf-8", errors="replace") if (repo / rel).is_file() else None)
 
 
 def process(h, row: dict, scen: dict, bases: dict, guard, model_lock: threading.Lock, meter: Meter, documented: dict) -> dict:
@@ -114,11 +138,15 @@ def process(h, row: dict, scen: dict, bases: dict, guard, model_lock: threading.
     if h.behaviour is not None:
         plan = trace_plan_for(h, row, scen, bases, files)
         step = common.run_on_image(h, scen["image"], scen["command"], files, extras=(h.behaviour.install_command(plan.spec_b64),), env=h.behaviour.TRACE_ENV)
-        clean, reports = h.behaviour.split_report(step.stderr)
+        clean, reports = h.behaviour.split_report(step.stderr, plan.nonce)
         step = replace(step, stderr=clean)
         report = h.behaviour.entry_report(reports)
-        found = h.behaviour.trace_findings(report, plan)
+        found = h.behaviour.trace_findings(report, plan, succeeded=step.exit_code == 0)
         out["behaviour"]["trace"] = {"status": "ok" if report is not None else "missing", "findings": [f.as_dict() for f in found], "plan": plan.as_dict()}
+    elif row["id"] in REPLAY:
+        # the run of this patch was already made by the confirmation script at the same tag, on the same image, with the same overlay and launcher: it IS the run of this measurement
+        step = replayed_step(h, REPLAY[row["id"]], scen)
+        out["run_replayed_from"] = "reports/v1.10/independent/confirm"
     else:
         step = common.run_on_image(h, scen["image"], scen["command"], files)
     out["cost_usd"] += step.cost_usd
@@ -130,7 +158,7 @@ def process(h, row: dict, scen: dict, bases: dict, guard, model_lock: threading.
     res = common.sandbox_result(h, step)
     execution = h.smoke_exec.execution_record(common.SMOKE_SECONDS, step.exit_code, step.stdout, step.stderr)
     out["run"]["smoke"] = execution
-    finding = h.exit_zero_check.finding_of(res)
+    finding = h.exit_zero_check.finding_of(res) or (REPLAY.get(row["id"], {}).get("audit") if row["id"] in REPLAY else None)
     if step.exit_code != 0:
         c = h.classifier.classify(step.exit_code, step.stderr, step.stdout)
         out["run"]["classification"] = {"code": c.code, "evidence": (c.evidence or "")[:200]}
@@ -189,6 +217,7 @@ def main() -> int:
     ap.add_argument("--threads", type=int, default=4)
     ap.add_argument("--ids", help="a file with one patch id per line: run only those (the committed subsample)")
     ap.add_argument("--retry-errors", action="store_true", help="move the records whose outcome is 'error' (a driver or API exception) to errors_first_attempt.jsonl and run those patches again, once")
+    ap.add_argument("--replay-runs", help="a confirm/ directory (reports/v1.10/independent/confirm): patches with a recorded run there are not run again (harness-v1.9.0 measurement only)")
     ap.add_argument("--go", action="store_true")
     ap.add_argument("--log-file")
     args = ap.parse_args()
@@ -209,6 +238,12 @@ def main() -> int:
     if args.ids:
         keep = {l.strip() for l in Path(args.ids).read_text(encoding="utf-8").splitlines() if l.strip()}
         order = [i for i in order if i in keep]
+    if args.replay_runs:
+        for l in (Path(args.replay_runs) / "results.jsonl").read_text(encoding="utf-8").splitlines():
+            rec = json.loads(l)
+            if rec.get("outcome") in ("confirmed", "not_confirmed") and "run" in rec:
+                REPLAY[rec["id"]] = rec
+        print(f"{time.strftime('%H:%M:%S')} replay: {len(REPLAY)} recorded runs will not be run again", flush=True)
     by_id = {r["id"]: r for r in rows}
     results_path = out / "results.jsonl"
     if args.retry_errors and results_path.is_file():

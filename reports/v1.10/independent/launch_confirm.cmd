@@ -5,5 +5,5 @@ cd /d %~dp0..\..\..
 set PYTHONIOENCODING=utf-8
 if not exist reports\v1.10\independent\confirm mkdir reports\v1.10\independent\confirm
 echo LAUNCH %DATE% %TIME% >> reports\v1.10\independent\confirm\launcher.txt
-backend\.venv\Scripts\pythonw.exe -u reports\v1.10\independent\confirm.py --worktree .claude\worktrees\v110-harness-v1.9.0 --tag harness-v1.9.0 --out reports\v1.10\independent\confirm --retry-errors --go --log-file reports\v1.10\independent\confirm\run.log
+backend\.venv\Scripts\pythonw.exe -u reports\v1.10\independent\confirm.py --worktree .claude\worktrees\v110-harness-v1.9.0 --tag harness-v1.9.0 --out reports\v1.10\independent\confirm --retry-errors --cap-usd 20 --go --log-file reports\v1.10\independent\confirm\run.log
 echo PYTHONW_RETURNED %ERRORLEVEL% %DATE% %TIME% >> reports\v1.10\independent\confirm\launcher.txt

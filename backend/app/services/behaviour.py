@@ -10,32 +10,40 @@ program does and what the patch changes. This module judges a candidate by four 
   c  WORKLOAD_PARAMETER_CHANGED                       a patch that changes loop bounds, epoch or iteration counts, dataset size or CLI defaults is not adopted
   d  COMPUTATION_CHANGED / INPUT_DATA_CHANGED         a patch that changes computation rather than environment or compatibility code is refused adoption
 
-Static half (`static_findings`, `command_finding`): both sides of every touched Python file are parsed; compatibility idioms are NORMALISED away (device placement, compat keyword arguments,
-removed-API renames), the two statement lists are diffed, and whatever remains must be on a short allow-list of additions that do no computation (an import, logging, makedirs, a guard
-that raises, a handler that re-raises) and of removals that drop none (an import, a log line). Runtime half (`TRACE_SOURCE`, `plan_trace`, `trace_findings`): a tracer installed as a `.pth`
-hook like RERUN's other runner hooks, active only for a candidate's smoke run (the launcher sets RERUN_BEHAVIOUR=1 for the command and nowhere else), reports which lines of the patched files,
-the failure site and the entry file ran, whether an exception was raised at the failure site, where an explicit exit came from and whether sys.argv changed under an added line.
+Static half (`static_findings`, `command_finding`): both sides of every touched Python file are parsed into statements keyed by their enclosing definition, their enclosing compound
+statements (so moving a statement under a `try` or an `if` is a change) and their canonical header; compatibility idioms are NORMALISED away (device placement, compat keyword arguments,
+removed-API renames, Python 2 spellings), the two statement lists are diffed, and whatever remains must be on a short allow-list of additions that do no computation (an import, logging,
+makedirs, a guard that raises, a handler that re-raises; every expression in them must only read) and of removals that drop none. Runtime half (`TRACE_SOURCE`, `plan_trace`,
+`trace_findings`): a tracer installed as a `.pth` hook like RERUN's other runner hooks, active only for a candidate's smoke run (the launcher sets RERUN_BEHAVIOUR=1 for the command and
+nowhere else), reports which lines of the patched files, the failure site and the entry file ran, whether an exception was raised at the failure site, where explicit exits came from and
+whether sys.argv changed under an added line.
 
 A veto is not a gate rejection by name: the static findings are recorded as the attempt's violations with rule = the reason name (a disjoint set from the gate's rules), the trace findings on the
 candidate after its run and before the adjudicator sees it (a vetoed candidate does not qualify). Everything here is PURE except `TRACE_SOURCE`, which runs in the sandbox.
 
 Stated limits (the owner's rule: computation is not repaired by a model): the static judgement is syntactic; an honest repair that replaces a removed API by a differently-named successor
-outside RENAMES is refused as COMPUTATION_CHANGED; a patch that adds or changes a data file is refused by name (INPUT_DATA_CHANGED); the tracer sees only the patched files, the failure
-site's files and the entry file, only in the process that runs the entry, and cannot report when the process is killed without a SIGTERM grace (such a run is recorded as `trace missing`,
-and no trace veto applies to it).
+outside the tables below is refused as COMPUTATION_CHANGED, and so is a Python 2 file (it does not parse); a patch that adds or changes a configuration or data file is refused by name; the
+tracer sees only the patched files, the failure site's files and the entry file, adds overhead (it stops itself after 25 s), cannot report when the process dies without a SIGTERM grace or
+installs its own SIGTERM handler, and a repository that prints more than 4 MiB to stderr pushes its report out of the part of the stream the sandbox keeps (such a run is recorded as `trace
+missing`, and no trace veto applies to it).
 """
 
 from __future__ import annotations
 
 import ast
-import warnings
 import base64
 import copy
 import difflib
 import json
 import re
+import secrets
 import shlex
+import sys
+import warnings
 from dataclasses import dataclass
+from pathlib import PurePosixPath
+
+sys.setrecursionlimit(max(sys.getrecursionlimit(), 4000))  # deeply chained expressions in a repository's file must not crash the judgement of a patch
 
 COMMAND_CHANGED = "COMMAND_CHANGED"
 ARGV_OR_ENTRYPOINT_REWRITTEN = "ARGV_OR_ENTRYPOINT_REWRITTEN"
@@ -50,6 +58,9 @@ INPUT_DATA_CHANGED = "INPUT_DATA_CHANGED"
 STATIC_REASONS = (COMMAND_CHANGED, ARGV_OR_ENTRYPOINT_REWRITTEN, WORKLOAD_PARAMETER_CHANGED, COMPUTATION_CHANGED, INPUT_DATA_CHANGED)
 TRACE_REASONS = (ARGV_CHANGED_AT_RUNTIME, FAILURE_SITE_NOT_EXECUTED, FAILURE_SITE_STILL_RAISES, EXIT_FROM_ADDED_LINE, ENTRYPOINT_NOT_EXECUTED)
 REASONS = STATIC_REASONS + TRACE_REASONS
+MAX_ITEMS = 30000  # statements on both sides of one file: above it the diff is not attempted (difflib is quadratic) and the file is refused as too large to judge
+MAX_SOURCE_CHARS = 2_000_000
+TRACE_SECONDS = 25  # the tracer stops tracing after this long: the smoke window is 60 s and a traced pure-Python run is several times slower than an untraced one
 
 
 @dataclass(frozen=True)
@@ -66,11 +77,13 @@ class Finding:
 # ----------------------------------------------------------------------------------------------------------------------------------- normalisation
 # Compatibility idioms. A statement that differs from its old self only by these is the SAME computation.
 COMPAT_KWARGS = frozenset({"map_location", "encoding", "errors", "non_blocking", "num_workers", "pin_memory", "persistent_workers", "prefetch_factor", "weights_only", "mmap",
-                           "device", "newline", "exist_ok"})
+                           "device", "newline", "exist_ok", "Loader", "allow_pickle"})
 # removed-API renames: old dotted name -> the name it became (the successor does the same thing)
 RENAMES = {
     "np.float": "float", "np.int": "int", "np.bool": "bool", "np.object": "object", "np.complex": "complex", "np.str": "str", "np.long": "int", "np.unicode": "str",
+    "np.float64": "float", "np.float_": "float", "np.int64": "int", "np.bool_": "bool", "np.object_": "object", "np.complex128": "complex", "np.str_": "str",
     "numpy.float": "float", "numpy.int": "int", "numpy.bool": "bool", "numpy.object": "object", "numpy.complex": "complex",
+    "numpy.float64": "float", "numpy.int64": "int", "numpy.bool_": "bool",
     "collections.Mapping": "collections.abc.Mapping", "collections.MutableMapping": "collections.abc.MutableMapping", "collections.Iterable": "collections.abc.Iterable",
     "collections.Callable": "collections.abc.Callable", "collections.Sequence": "collections.abc.Sequence", "collections.Set": "collections.abc.Set",
     "tf.compat.v1.flags": "tf.flags", "tf.compat.v1.logging": "tf.logging", "tf.compat.v1.app": "tf.app", "tf.compat.v1.placeholder": "tf.placeholder",
@@ -78,6 +91,9 @@ RENAMES = {
     "tf.compat.v1.global_variables_initializer": "tf.global_variables_initializer", "tf.compat.v1.random_uniform": "tf.random_uniform", "tf.compat.v1.ConfigProto": "tf.ConfigProto",
     "tf.compat.v1.reset_default_graph": "tf.reset_default_graph", "tf.compat.v1.app.flags": "tf.app.flags", "tf.compat.v1.GraphKeys": "tf.GraphKeys",
 }
+# Python 2 spellings of the same builtin
+NAME_RENAMES = {"xrange": "range", "unicode": "str", "raw_input": "input", "long": "int", "basestring": "str"}
+ATTR_RENAMES = {"iteritems": "items", "itervalues": "values", "iterkeys": "keys"}
 _DEVICE_STR = re.compile(r"^(?:cuda(?::\d+)?|cpu|gpu)$", re.IGNORECASE)
 
 
@@ -107,6 +123,11 @@ def _is_deviceish(node: ast.AST) -> bool:
 class _Canon(ast.NodeTransformer):
     """Rewrites compatibility idioms to one canonical form."""
 
+    def visit_Name(self, node: ast.Name):
+        if node.id in NAME_RENAMES:
+            return ast.copy_location(ast.Name(id=NAME_RENAMES[node.id], ctx=node.ctx), node)
+        return node
+
     def visit_Call(self, node: ast.Call):
         self.generic_visit(node)
         fn = node.func
@@ -117,15 +138,25 @@ class _Canon(ast.NodeTransformer):
             return fn.value  # `x.to(device)` -> x
         if _src(fn).endswith("torch.device"):
             return ast.Name(id="DEVICE", ctx=ast.Load())
+        if isinstance(fn, ast.Name) and fn.id == "open" and len(node.args) == 2 and isinstance(node.args[1], ast.Constant) and node.args[1].value in ("r", "rb", "rt"):
+            node.args = node.args[:1]  # a read mode: Python 3 wants 'rb' for pickles, text for the rest; the file read is the same
         node.keywords = [k for k in node.keywords if k.arg not in COMPAT_KWARGS]
         return node
 
     def visit_Attribute(self, node: ast.Attribute):
         self.generic_visit(node)
+        if node.attr in ATTR_RENAMES:
+            node = ast.copy_location(ast.Attribute(value=node.value, attr=ATTR_RENAMES[node.attr], ctx=node.ctx), node)
         text = _src(node)
         if text in RENAMES:
             return ast.parse(RENAMES[text], mode="eval").body
         return node
+
+
+_COMPOUND = (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef, ast.If, ast.While, ast.For, ast.AsyncFor, ast.With, ast.AsyncWith, ast.Try, ast.ExceptHandler)
+_TRYSTAR = getattr(ast, "TryStar", None)
+_MATCH = getattr(ast, "Match", None)
+_MATCH_CASE = getattr(ast, "match_case", None)
 
 
 def _canonical_clone(node: ast.AST) -> ast.AST:
@@ -134,7 +165,7 @@ def _canonical_clone(node: ast.AST) -> ast.AST:
     for attr in ("body", "orelse", "finalbody", "handlers"):
         if hasattr(clone, attr):
             setattr(clone, attr, [])
-    if isinstance(clone, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef, ast.If, ast.While, ast.For, ast.AsyncFor, ast.With, ast.AsyncWith, ast.Try, ast.ExceptHandler)):
+    if isinstance(clone, _COMPOUND) or (_TRYSTAR is not None and isinstance(clone, _TRYSTAR)):
         clone.body = [ast.Pass()]
     clone = _Canon().visit(clone)
     ast.fix_missing_locations(clone)
@@ -142,37 +173,63 @@ def _canonical_clone(node: ast.AST) -> ast.AST:
 
 
 def canon(node: ast.AST) -> str:
+    """The canonical text of a statement's header: decorators and bases included, the body left out. Imports are judged separately (`_import_findings`), except a star import."""
+    if _MATCH is not None and isinstance(node, _MATCH):
+        return f"match {_src(node.subject)}:"
+    if _MATCH_CASE is not None and isinstance(node, _MATCH_CASE):
+        return f"case {_src(node.pattern)}" + (f" if {_src(node.guard)}" if node.guard is not None else "") + ":"
     clone = _canonical_clone(node)
-    if isinstance(clone, (ast.Import, ast.ImportFrom)):
-        return "<import>"  # judged separately: see `_import_findings`
-    return _src(clone).splitlines()[0] if isinstance(clone, ast.stmt) else _src(clone)
+    if isinstance(clone, ast.Import):
+        return "<import>"
+    if isinstance(clone, ast.ImportFrom):
+        return f"<import-star {clone.module}>" if any(a.name == "*" for a in clone.names) else "<import>"
+    text = _src(clone)
+    if isinstance(clone, _COMPOUND) or (_TRYSTAR is not None and isinstance(clone, _TRYSTAR)):
+        text = text.rsplit("\n", 1)[0]
+    return text
 
 
 @dataclass
 class Item:
-    key: str            # context + canonical text: what the two statement lists are diffed on
-    text: str           # the statement as written (header only for a compound statement)
+    key: str            # context + nesting + canonical header: what the two statement lists are diffed on
+    text: str           # the canonical header (a compound statement without its body)
     node: ast.AST
     line: int
     ctx: str            # enclosing function / class path
     parent: ast.AST | None = None
+    ancestors: tuple = ()  # ((compound node, section), ...) from the outermost down to the parent: section is body / orelse / finalbody / handlers
 
 
-def _walk(body: list[ast.stmt], ctx: str, parent: ast.AST | None, out: list[Item]) -> None:
+def _walk(body: list, ctx: str, nest: str, ancestors: tuple, out: list[Item], parent: ast.AST | None = None) -> None:
     for node in body:
         if isinstance(node, ast.Expr) and isinstance(node.value, ast.Constant) and isinstance(node.value.value, str):
             continue  # a docstring or a bare string
-        header = _src(node).splitlines()[0]
-        out.append(Item(key=f"{ctx}|{canon(node)}", text=header, node=node, line=getattr(node, "lineno", 0), ctx=ctx, parent=parent))
-        child_ctx = f"{ctx}/{node.name}" if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)) else ctx
+        header = canon(node)
+        line = getattr(node, "lineno", None) or getattr(getattr(node, "pattern", None), "lineno", 0)
+        out.append(Item(key=f"{ctx}|{nest}|{header}", text=header, node=node, line=line, ctx=ctx, parent=parent, ancestors=ancestors))
+        is_def = isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef))
+        child_ctx = f"{ctx}/{node.name}" if is_def else ctx
+        child_nest_base = "" if is_def else f"{nest}>{header}"
+        sections = []
         for field_name in ("body", "orelse", "finalbody"):
             sub = getattr(node, field_name, None)
             if isinstance(sub, list) and sub and isinstance(sub[0], ast.stmt):
-                _walk(sub, child_ctx, node, out)
+                sections.append((field_name, sub))
+        transparent = _transparent_try(node)
+        for field_name, sub in sections:
+            section_nest = nest if (transparent and field_name == "body") else f"{child_nest_base}:{field_name}"
+            _walk(sub, child_ctx, section_nest, (*ancestors, (node, field_name)), out, node)
         for handler in getattr(node, "handlers", None) or []:
-            out.append(Item(key=f"{child_ctx}|{canon(handler)}", text=f"except {_src(handler.type) if handler.type else ''}:", node=handler, line=handler.lineno,
-                            ctx=child_ctx, parent=node))
-            _walk(handler.body, child_ctx, handler, out)
+            hdr = canon(handler)
+            out.append(Item(key=f"{child_ctx}|{child_nest_base}:handlers|{hdr}", text=hdr, node=handler, line=handler.lineno, ctx=child_ctx, parent=node,
+                            ancestors=(*ancestors, (node, "handlers"))))
+            _walk(handler.body, child_ctx, f"{child_nest_base}:handlers>{hdr}:body", (*ancestors, (node, "handlers"), (handler, "body")), out, handler)
+        if _MATCH is not None and isinstance(node, _MATCH):
+            for case in node.cases:
+                hdr = canon(case)
+                out.append(Item(key=f"{child_ctx}|{child_nest_base}:cases|{hdr}", text=hdr, node=case, line=getattr(case.pattern, "lineno", 0), ctx=child_ctx, parent=node,
+                                ancestors=(*ancestors, (node, "cases"))))
+                _walk(case.body, child_ctx, f"{child_nest_base}:cases>{hdr}:body", (*ancestors, (node, "cases"), (case, "body")), out, case)
 
 
 def _parse(source: str) -> ast.Module:
@@ -187,29 +244,36 @@ def items_of(source: str) -> list[Item] | None:
     except (SyntaxError, ValueError):
         return None
     out: list[Item] = []
-    _walk(tree.body, "", None, out)
+    _walk(tree.body, "", "", (), out)
     return out
 
 
 # ----------------------------------------------------------------------------------------------------------------------------------- allow-lists
 HARMLESS_CALLS = re.compile(
     r"^(?:print|pprint(?:\.pprint)?|logging\.\w+|logger\.\w+|log\.\w+|warnings\.(?:warn|simplefilter|filterwarnings)|traceback\.print_\w+|sys\.(?:stdout|stderr)\.(?:flush|write)|"
-    r"os\.(?:makedirs|mkdir)|sys\.path\.(?:insert|append)|matplotlib\.use|torch\.set_num_threads|plt\.switch_backend)$")
-HARMLESS_ASSIGN_TARGET = re.compile(r"^(?:sys\.path|.*\.benchmark|.*\.enabled|.*device.*|DEVICE)$", re.IGNORECASE)
+    r"os\.(?:makedirs|mkdir)|sys\.path\.(?:insert|append)|matplotlib\.use|torch\.set_num_threads|plt\.switch_backend|"
+    r"tf\.(?:compat\.v1\.)?disable_(?:eager_execution|v2_behavior)|"
+    r"torch\.cuda\.(?:set_device|empty_cache|synchronize|manual_seed|manual_seed_all|reset_peak_memory_stats))$")
+# assignment targets whose new value only chooses where code runs: sys.path, the cuDNN switches, a device variable
+HARMLESS_ASSIGN_TARGET = re.compile(r"^(?:sys\.path|(?:torch\.backends\.)?cudnn\.(?:benchmark|deterministic|enabled)|(?:self\.|args\.|opt\.|opts\.|config\.|cfg\.|conf\.)?(?:device|DEVICE|use_cuda|use_gpu))$")
 # environment variables that only tune libraries (a patch may set them; any other key could flip a code path the repository reads)
 _ENV_KEY = re.compile(r"^(?:MPLBACKEND|KMP_\w+|OMP_\w+|MKL_\w+|NUMEXPR_\w+|OPENBLAS_\w+|TF_\w+|XLA_\w+|CUDA_\w+|NCCL_\w+|TORCH_\w+|PROTOCOL_BUFFERS_\w+|TOKENIZERS_\w+|PYTHONHASHSEED|WANDB_MODE)$")
 _SCALE_NAME = re.compile(r"(?:epoch|iter|step|episode|n_?samples|n_?train|n_?test|n_?tasks|n_?runs|num_|max_|batch|size|limit|length|total|trials|folds|seeds?\b|reps?\b|repeat)", re.IGNORECASE)
 _ENTRY_CALLS = re.compile(r"^(?:os\.(?:exec\w*|system|popen|spawn\w*|posix_spawn\w*)|subprocess\.\w+|runpy\.\w+|exec|eval|compile|importlib\.\w+|__import__)$")
-# files whose change is not a judgement about the work: dependency / build metadata and documentation
-_REQUIREMENTS = re.compile(r"(?:^|/)(?:requirements[\w.-]*\.txt|environment\.ya?ml|setup\.(?:py|cfg)|pyproject\.toml|package\.json|tsconfig\.json|\.gitignore|LICENSE\w*|[\w.-]*\.(?:md|rst))$", re.IGNORECASE)
+# files whose change is not a judgement about the work: dependency lists, the conda environment, documentation
+_REQUIREMENTS = re.compile(r"(?:^|/)(?:requirements[\w.-]*\.txt|environment\.ya?ml|\.gitignore|LICENSE\w*|[\w.-]*\.(?:md|rst))$", re.IGNORECASE)
+# module names a patch may never add a file for: they run before, or instead of, the program
+_ALWAYS_SHADOW = frozenset({"sitecustomize", "usercustomize", "conftest"})
 # call targets that read and format but do not act (arguments of a harmless call, a guard's test, a returned value must be built from these)
 _PURE_BUILTINS = frozenset({"str", "repr", "len", "int", "float", "bool", "abs", "min", "max", "round", "isinstance", "format", "tuple", "list", "dict", "set", "sorted"})
-_PURE_CALL = re.compile(r"^(?:os\.path\.\w+|os\.getcwd|os\.cpu_count|os\.getenv|os\.environ\.get|platform\.\w+|torch\.cuda\.(?:is_available|device_count)|torch\.device|torch\.get_default_dtype|"
-                        r"pathlib\.Path|Path|socket\.gethostname|sys\.getsizeof)$")
+_PURE_CALL = re.compile(r"^(?:os\.path\.\w+|os\.getcwd|os\.cpu_count|os\.getenv|os\.environ\.get|platform\.\w+|torch\.cuda\.(?:is_available|device_count)|torch\.device|"
+                        r"torch\.get_default_dtype|pathlib\.Path|Path|socket\.gethostname|sys\.getsizeof)$")
 _PURE_METHODS = frozenset({"format", "join", "strip", "lstrip", "rstrip", "lower", "upper", "split", "startswith", "endswith", "replace", "encode", "decode", "get", "items", "keys", "values"})
 # the import of one name by two modules that are the same thing (a removed location and its successor)
-_IMPORT_SUCCESSORS = {frozenset({"sklearn.externals.joblib", "joblib"}), frozenset({"sklearn.cross_validation", "sklearn.model_selection"}),
-                      frozenset({"sklearn.grid_search", "sklearn.model_selection"}), frozenset({"sklearn.externals.six", "six"})}
+_IMPORT_SUCCESSORS = {frozenset(p) for p in (
+    ("sklearn.externals.joblib", "joblib"), ("sklearn.cross_validation", "sklearn.model_selection"), ("sklearn.grid_search", "sklearn.model_selection"),
+    ("sklearn.externals.six", "six"), ("cPickle", "pickle"), ("Queue", "queue"), ("ConfigParser", "configparser"), ("urllib2", "urllib.request"), ("StringIO", "io"),
+    ("Tkinter", "tkinter"), ("cStringIO", "io"), ("__builtin__", "builtins"), ("itertools.izip", "builtins.zip"))}
 
 
 def _call_name(node: ast.AST) -> str:
@@ -275,13 +339,13 @@ def _raises_exit(n: ast.Raise) -> bool:
 
 
 def _nonzero_exit(call: ast.AST | None) -> bool:
-    """`sys.exit(2)`, `sys.exit("message")`, `SystemExit(1)`: an exit that can never end the run with code 0."""
+    """`sys.exit(2)`, `sys.exit("message")`, `SystemExit(1)`: an exit that can never end the run with code 0 (the status is taken modulo 256: 256 would be 0)."""
     if not isinstance(call, ast.Call) or _call_name(call) not in _EXIT_NAMES or len(call.args) != 1 or call.keywords:
         return False
     arg = call.args[0]
     if not isinstance(arg, ast.Constant):
         return False
-    return (isinstance(arg.value, int) and not isinstance(arg.value, bool) and arg.value != 0) or (isinstance(arg.value, str))
+    return (isinstance(arg.value, int) and not isinstance(arg.value, bool) and 1 <= arg.value <= 255) or isinstance(arg.value, str)
 
 
 def _raise_ok(n: ast.Raise) -> bool:
@@ -291,22 +355,6 @@ def _raise_ok(n: ast.Raise) -> bool:
         return True  # a bare `raise` re-raises
     call_ok = _simple(n.exc.func) and _args_simple(n.exc) if isinstance(n.exc, ast.Call) else _simple(n.exc)
     return call_ok and _simple(n.cause)
-
-
-def _body_only_raises_or_logs(stmts: list[ast.stmt]) -> bool:
-    if not stmts:
-        return False
-    for s in stmts:
-        if isinstance(s, ast.Assert):
-            if not (_simple(s.test) and _simple(s.msg)):
-                return False
-            continue
-        if isinstance(s, ast.Raise) and _raise_ok(s):
-            continue
-        if isinstance(s, ast.Expr) and (_nonzero_exit(s.value) or _harmless_call(s.value)):
-            continue
-        return False
-    return any(isinstance(s, (ast.Raise, ast.Assert)) or (isinstance(s, ast.Expr) and _nonzero_exit(s.value)) for s in stmts)
 
 
 def _handler_reraises(h: ast.ExceptHandler) -> bool:
@@ -322,13 +370,31 @@ def _exc_names(h: ast.ExceptHandler) -> set[str]:
     return {_src(e).split(".")[-1] for e in elts}
 
 
+def _answers_ctrl_c(h: ast.ExceptHandler) -> bool:
+    return _exc_names(h) == {"KeyboardInterrupt"} and all(
+        (isinstance(s, ast.Expr) and (_harmless_call(s.value) or _nonzero_exit(s.value))) or isinstance(s, ast.Pass) or (isinstance(s, ast.Raise) and _raise_ok(s)) for s in h.body)
+
+
 def _handler_ok(h: ast.ExceptHandler) -> bool:
     """A handler that cannot swallow a failure of the work: it re-raises, the import it guards is optional, or it only answers Ctrl-C."""
-    names = _exc_names(h)
-    if names <= {"ImportError", "ModuleNotFoundError"} or _handler_reraises(h):
-        return True
-    return names == {"KeyboardInterrupt"} and all(
-        (isinstance(s, ast.Expr) and (_harmless_call(s.value) or _nonzero_exit(s.value))) or isinstance(s, ast.Pass) or (isinstance(s, ast.Raise) and _raise_ok(s)) for s in h.body)
+    return _exc_names(h) <= {"ImportError", "ModuleNotFoundError"} or _handler_reraises(h) or _answers_ctrl_c(h)
+
+
+def _transparent_try(node: ast.AST) -> bool:
+    """A `try` that changes nothing about the statements it wraps: every handler re-raises or only answers Ctrl-C (an ImportError handler is NOT transparent: it would swallow the
+    import errors of whatever it wraps). The wrapped statements keep the key they had outside it."""
+    return (isinstance(node, ast.Try) and not node.finalbody and not node.orelse and bool(node.handlers)
+            and all(_handler_reraises(h) or _answers_ctrl_c(h) for h in node.handlers))
+
+
+def _swallowed(it: "Item") -> bool:
+    """True when the statement sits lexically inside the BODY of a `try` whose handlers do not all re-raise (or a `with ...suppress(...)`): a guard or an exit added there is caught."""
+    for node, section in it.ancestors:
+        if isinstance(node, ast.Try) and section == "body" and not all(_handler_reraises(h) for h in node.handlers):
+            return True
+        if isinstance(node, (ast.With, ast.AsyncWith)) and section == "body" and any("suppress" in _src(i.context_expr) for i in node.items):
+            return True
+    return False
 
 
 def _noop_after_normalisation(node: ast.AST) -> bool:
@@ -342,7 +408,7 @@ def _noop_after_normalisation(node: ast.AST) -> bool:
 
 
 def _harmless_assign(n: ast.AST) -> bool:
-    """An assignment to a device / benchmark / path variable of a value that only reads (or chooses a device)."""
+    """An assignment to a device / cuDNN-switch / path variable of a value that only reads (or chooses a device)."""
     if isinstance(n, ast.Assign):
         targets, value = n.targets, n.value
     elif isinstance(n, ast.AnnAssign):
@@ -357,10 +423,12 @@ def additive_ok(it: Item, fresh: frozenset[str] = frozenset()) -> bool:
     paths of the functions and classes this patch adds (a name the file did not define before)."""
     n = it.node
     if isinstance(n, ast.Raise):
-        return _raise_ok(n)
+        return _raise_ok(n) and not _swallowed(it)
     if isinstance(n, ast.Assert):
-        return _simple(n.test) and _simple(n.msg)
-    if isinstance(n, (ast.Import, ast.ImportFrom, ast.Pass, ast.Global, ast.Nonlocal)):
+        return _simple(n.test) and _simple(n.msg) and not _swallowed(it)
+    if isinstance(n, ast.ImportFrom):
+        return not any(a.name == "*" for a in n.names)  # a star import binds names nobody can see in the patch
+    if isinstance(n, (ast.Import, ast.Pass, ast.Global, ast.Nonlocal)):
         return True
     if isinstance(n, (ast.Expr, ast.Assign)) and _noop_after_normalisation(n):
         return True
@@ -370,11 +438,12 @@ def additive_ok(it: Item, fresh: frozenset[str] = frozenset()) -> bool:
         v = n.value
         if isinstance(v, ast.Call):
             name = _call_name(v)
-            if _harmless_call(v) or (_nonzero_exit(v)):
+            if _harmless_call(v):
                 return True
+            if _nonzero_exit(v):
+                return not _swallowed(it)
             if name.endswith("add_argument") and _args_simple(v):
-                default = next((k.value for k in v.keywords if k.arg == "default"), None)
-                return default is None or (isinstance(default, ast.Constant) and (default.value is None or isinstance(default.value, str)))
+                return not any(k.arg == "dest" for k in v.keywords)  # a new option cannot change the work unless it shares a destination with an existing one
         return False
     if isinstance(n, (ast.Assign, ast.AnnAssign)):
         if _harmless_assign(n):
@@ -382,7 +451,7 @@ def additive_ok(it: Item, fresh: frozenset[str] = frozenset()) -> bool:
         # `x = None` in the handler of an ImportError: an optional import that is absent
         return bool(isinstance(it.parent, ast.ExceptHandler) and "ImportError" in _exc_names(it.parent) and isinstance(n.value, ast.Constant) and n.value.value is None)
     if isinstance(n, ast.If):
-        return _simple(n.test) and _body_only_raises_or_logs(n.body) and not n.orelse
+        return _simple(n.test)  # its body and else are separate items, judged one by one
     if isinstance(n, ast.Try):
         return not n.finalbody and all(_handler_ok(h) for h in n.handlers)
     if isinstance(n, ast.ExceptHandler):
@@ -406,6 +475,12 @@ def removal_ok(it: Item) -> bool:
         return True
     if _harmless_assign(n) or _env_write(n):
         return True
+    if isinstance(n, ast.If) and _simple(n.test):
+        return True  # an `if` header: what it guarded is a separate item (and the same text under a new header is a different item)
+    if isinstance(n, ast.Try):
+        return not n.finalbody and all(_handler_ok(h) for h in n.handlers)
+    if isinstance(n, ast.ExceptHandler):
+        return _handler_ok(n)
     return isinstance(n, ast.Expr) and _harmless_call(n.value)
 
 
@@ -447,31 +522,59 @@ def _import_findings(path: str, old_source: str, new_source: str) -> list[Findin
     return out
 
 
+def external_import_roots(sources: dict[str, str]) -> frozenset[str]:
+    """The top-level packages the repository's own files import and do not define themselves: a file a patch adds under one of these names would shadow the installed package."""
+    roots: set[str] = set()
+    local: set[str] = set()
+    for rel, text in list(sources.items())[:3000]:
+        parts = PurePosixPath(rel).with_suffix("").parts
+        if parts:
+            local.add(parts[0])
+            if parts[-1] == "__init__" and len(parts) > 1:
+                local.add(parts[-2])
+        if len(text) > 400_000:
+            continue
+        try:
+            tree = _parse(text)
+        except (SyntaxError, ValueError, RecursionError):
+            continue
+        for n in ast.walk(tree):
+            if isinstance(n, ast.Import):
+                roots.update(a.name.split(".")[0] for a in n.names)
+            elif isinstance(n, ast.ImportFrom) and not n.level and n.module:
+                roots.add(n.module.split(".")[0])
+    return frozenset(roots - local)
+
+
 # ----------------------------------------------------------------------------------------------------------------------------------- (c) workload facts
+def _arg_options(call: ast.Call) -> list[str]:
+    return [a.value for a in call.args if isinstance(a, ast.Constant) and isinstance(a.value, str)]
+
+
 def workload_facts(source: str) -> list[tuple] | None:
     """What fixes how much work the program does, as (kind, name, value) facts: argparse defaults, `range` bounds of loops, assignments of a number to a scale-named variable or
     attribute, constant slice bounds, subset / sampling calls, `break` inside a loop. A patch that adds, removes or changes ANY such fact changes the workload."""
     try:
         tree = _parse(source)
-    except (SyntaxError, ValueError):
+    except (SyntaxError, ValueError, RecursionError):
         return None
     facts: list[tuple] = []
+    fix = lambda text: re.sub(r"\bxrange\(", "range(", text)  # noqa: E731
     for node in ast.walk(tree):
         if isinstance(node, ast.Call):
             name = _call_name(node)
             if name.endswith("add_argument"):
-                opts = [a.value for a in node.args if isinstance(a, ast.Constant) and isinstance(a.value, str)]
                 default = next((k.value for k in node.keywords if k.arg == "default"), None)
-                if default is not None and not (isinstance(default, ast.Constant) and (default.value is None or isinstance(default.value, str))):
-                    facts.append(("argdefault", "/".join(opts), _src(default)))
+                if default is not None and not (isinstance(default, ast.Constant) and default.value is None):
+                    facts.append(("argdefault", "/".join(_arg_options(node)), _src(default)))
             elif name in ("Subset", "torch.utils.data.Subset", "islice", "itertools.islice") or name.endswith((".head", ".sample", ".take")):
                 facts.append(("subset", name, _src(node)))
         elif isinstance(node, (ast.For, ast.AsyncFor)):
             if isinstance(node.iter, ast.Call) and _call_name(node.iter) in ("range", "xrange"):
-                facts.append(("loopbound", _src(node.target), _src(node.iter)))
+                facts.append(("loopbound", _src(node.target), fix(_src(node.iter))))
             breaks = sum(isinstance(inner, ast.Break) for inner in ast.walk(node))
             if breaks:
-                facts.append(("loopbreak", f"for {_src(node.target)} in {_src(node.iter)}", f"{breaks} break(s)"))
+                facts.append(("loopbreak", f"for {_src(node.target)} in {fix(_src(node.iter))}", f"{breaks} break(s)"))
         elif isinstance(node, ast.While):
             breaks = sum(isinstance(inner, ast.Break) for inner in ast.walk(node))
             if breaks:
@@ -502,28 +605,39 @@ def _multiset_diff(old: list[tuple], new: list[tuple]) -> tuple[list[tuple], lis
     return list((n - o).elements()), list((o - n).elements())
 
 
+def _option_names(source: str) -> set[str]:
+    try:
+        tree = _parse(source)
+    except (SyntaxError, ValueError, RecursionError):
+        return set()
+    return {o for n in ast.walk(tree) if isinstance(n, ast.Call) and _call_name(n).endswith("add_argument") for o in _arg_options(n)}
+
+
 # ----------------------------------------------------------------------------------------------------------------------------------- the static judgement
-def static_findings(path: str, old_source: str | None, new_source: str | None) -> list[Finding]:
-    """The (a) static, (c) and (d) findings of ONE touched file. `old_source` is None for a file the patch adds."""
+def _names_bound(items: list[Item]) -> set[tuple[str, str]]:
+    """(context, name) of every definition, import binding and plain assignment of a file: a def or class a patch adds under one of these names REPLACES it (the later one wins)."""
+    out: set[tuple[str, str]] = set()
+    for i in items:
+        n = i.node
+        if isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
+            out.add((i.ctx, n.name))
+        elif isinstance(n, ast.Import):
+            out.update((i.ctx, a.asname or a.name.split(".")[0]) for a in n.names)
+        elif isinstance(n, ast.ImportFrom):
+            out.update((i.ctx, a.asname or a.name) for a in n.names)
+        elif isinstance(n, ast.Assign):
+            out.update((i.ctx, t.id) for t in n.targets if isinstance(t, ast.Name))
+    return out
+
+
+def _static_py(path: str, old_source: str | None, new_source: str, shadow_names: frozenset[str]) -> list[Finding]:
     out: list[Finding] = []
-    if new_source is None:
-        return [Finding(COMPUTATION_CHANGED, "the patch deletes the file", path)]
-    if _REQUIREMENTS.search(path):
-        return []
-    if path.endswith((".sh", ".bash")):
-        if (old_source or "") != new_source:
-            return [Finding(ARGV_OR_ENTRYPOINT_REWRITTEN, "a shell script the documented command may run is changed: what the command runs is not the documented content", path)]
-        return []
-    if path.endswith(".ipynb"):
-        return [Finding(COMPUTATION_CHANGED, "a notebook is code; its change is not judged cell by cell", path)] if (old_source or "") != new_source else []
-    if not path.endswith(".py"):
-        if (old_source or "") != new_source:
-            return [Finding(INPUT_DATA_CHANGED, "an input, configuration or data file is added or changed by the patch", path)]
-        return []
     old_items = items_of(old_source or "")
     new_items = items_of(new_source)
     if new_items is None or old_items is None:
         return [Finding(COMPUTATION_CHANGED, "the file does not parse before or after the patch: its change cannot be judged", path)]
+    if len(old_items) + len(new_items) > MAX_ITEMS:
+        return [Finding(COMPUTATION_CHANGED, "the file is too large to judge statement by statement", path)]
     sm = difflib.SequenceMatcher(None, [i.key for i in old_items], [i.key for i in new_items], autojunk=False)
     inserted: list[Item] = []
     deleted: list[Item] = []
@@ -535,10 +649,10 @@ def static_findings(path: str, old_source: str | None, new_source: str | None) -
             deleted += old_items[i1:i2]
         if tag == "replace":
             replaced.append((old_items[i1:i2], new_items[j1:j2]))
-    # definitions: a name this file did not define is a new helper; a def or class that re-defines one it did define replaces code (the later definition wins)
+    # definitions: a name this file did not bind is a new helper; a def or class under a name it did bind (a def, an import, an assignment) replaces code
     defs = (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)
-    old_defs = {(i.ctx, i.node.name) for i in old_items if isinstance(i.node, defs)}
-    fresh = frozenset(f"{i.ctx}/{i.node.name}" for i in inserted if isinstance(i.node, defs) and (i.ctx, i.node.name) not in old_defs)
+    bound = _names_bound(old_items)
+    fresh = frozenset(f"{i.ctx}/{i.node.name}" for i in inserted if isinstance(i.node, defs) and (i.ctx, i.node.name) not in bound)
     # (a) the entrypoint and the arguments
     for it in inserted:
         n = it.node
@@ -562,21 +676,60 @@ def static_findings(path: str, old_source: str | None, new_source: str | None) -
     of, nf = workload_facts(old_source or ""), workload_facts(new_source)
     if of is not None and nf is not None:
         added, removed = _multiset_diff(of, nf)
+        old_options = _option_names(old_source or "")
         for fact in added:
+            if fact[0] == "argdefault" and not (set(fact[1].split("/")) & old_options):
+                continue  # the default of an option the file did not have: nothing reads it until new code does (a shared `dest` is refused as a statement)
             out.append(Finding(WORKLOAD_PARAMETER_CHANGED, f"adds {fact[0]} `{fact[1]} = {fact[2]}`", path, 0))
         for fact in removed:
             out.append(Finding(WORKLOAD_PARAMETER_CHANGED, f"removes {fact[0]} `{fact[1]} = {fact[2]}`", path, 0))
     # (d) the computation
     for it in inserted:
         if not additive_ok(it, fresh):
-            out.append(Finding(COMPUTATION_CHANGED, f"adds `{it.text[:140]}`" + (" (it re-defines a name this file already defines)" if isinstance(it.node, defs) else ""), path, it.line))
+            note = " (it re-defines a name this file already binds)" if isinstance(it.node, defs) and f"{it.ctx}/{it.node.name}" not in fresh else ""
+            out.append(Finding(COMPUTATION_CHANGED, f"adds `{it.text[:140]}`{note}", path, it.line))
+        elif isinstance(it.node, (ast.FunctionDef, ast.AsyncFunctionDef)) and f"{it.ctx}/{it.node.name}" in fresh:
+            body = [s for s in it.node.body if not (isinstance(s, ast.Expr) and isinstance(s.value, ast.Constant))]
+            if all(isinstance(s, ast.Pass) or (isinstance(s, ast.Return) and s.value is None) for s in body):
+                out.append(Finding(COMPUTATION_CHANGED, f"adds an empty function `{it.node.name}` (a stub)", path, it.line))
     for it in deleted:
         if not removal_ok(it):
             out.append(Finding(COMPUTATION_CHANGED, f"removes or rewrites `{it.text[:140]}`", path, it.line))
     out += _import_findings(path, old_source or "", new_source)
+    if old_source is None:
+        comps = PurePosixPath(path).with_suffix("").parts
+        for c in comps:
+            if c in shadow_names or c in _ALWAYS_SHADOW:
+                out.append(Finding(COMPUTATION_CHANGED, f"adds a module under the name `{c}`, which the program imports from an installed package (or which Python runs on its own)", path))
+                break
+    return out
+
+
+def static_findings(path: str, old_source: str | None, new_source: str | None, shadow_names: frozenset[str] = frozenset()) -> list[Finding]:
+    """The (a) static, (c) and (d) findings of ONE touched file. `old_source` is None for a file the patch adds. `shadow_names`: packages the repository imports (external_import_roots)."""
+    if new_source is None:
+        return [Finding(COMPUTATION_CHANGED, "the patch deletes the file", path)]
+    if _REQUIREMENTS.search(path):
+        return []
+    if path.endswith((".sh", ".bash")):
+        if (old_source or "") != new_source:
+            return [Finding(ARGV_OR_ENTRYPOINT_REWRITTEN, "a shell script the documented command may run is changed: what the command runs is not the documented content", path)]
+        return []
+    if path.endswith(".ipynb"):
+        return [Finding(COMPUTATION_CHANGED, "a notebook is code; its change is not judged cell by cell", path)] if (old_source or "") != new_source else []
+    if not path.endswith(".py"):
+        if (old_source or "") != new_source:
+            return [Finding(INPUT_DATA_CHANGED, "an input, configuration or data file is added or changed by the patch", path)]
+        return []
+    if len(new_source) > MAX_SOURCE_CHARS or len(old_source or "") > MAX_SOURCE_CHARS:
+        return [Finding(COMPUTATION_CHANGED, "the file is too large to judge statement by statement", path)]
+    try:
+        found = _static_py(path, old_source, new_source, frozenset(shadow_names))
+    except RecursionError:
+        return [Finding(COMPUTATION_CHANGED, "the file is nested too deeply to judge", path)]
     seen: set[tuple[str, str]] = set()
     unique: list[Finding] = []
-    for f in out:
+    for f in found:
         if (f.reason, f.detail) not in seen:
             seen.add((f.reason, f.detail))
             unique.append(f)
@@ -591,22 +744,25 @@ def command_finding(before: str | None, after: str | None) -> Finding | None:
     return None
 
 
-def candidate_findings(old_sources: dict[str, str], new_sources: dict[str, str | None], *, command_before: str | None = None, command_after: str | None = None) -> list[Finding]:
+def candidate_findings(old_sources: dict[str, str], new_sources: dict[str, str | None], *, command_before: str | None = None, command_after: str | None = None,
+                       shadow_names: frozenset[str] = frozenset()) -> list[Finding]:
     """The static findings of one candidate: every touched file (`new_sources`: post-patch text, None = deleted; `old_sources`: pre-patch text, missing = added) and the command."""
     out: list[Finding] = []
     cmd = command_finding(command_before, command_after)
     if cmd is not None:
         out.append(cmd)
     for path in sorted(new_sources):
-        out += static_findings(path, old_sources.get(path), new_sources[path])
+        out += static_findings(path, old_sources.get(path), new_sources[path], shadow_names)
     return out
 
 
 # ----------------------------------------------------------------------------------------------------------------------------------- the tracer (runs in the sandbox)
 # Installed like RERUN's other runner hooks (a module in site-packages plus a .pth file that imports it) and active only when the environment variable RERUN_BEHAVIOUR is 1, which the smoke
-# launcher sets for a candidate's command and for nothing else: an adopted candidate's image keeps the files but they do nothing in any later run. The spec (files to trace, failure sites, entry)
-# is embedded in the source. It traces ONLY the files named in the spec: the global trace function returns None for every other frame. The report is ONE line on stderr, written at exit and
-# on SIGTERM (the smoke launcher's way of stopping a run that is still alive): RERUN_BEHAVIOUR <json>. Python 3.6-compatible (sys.argv does not exist yet when .pth files run on 3.6/3.7).
+# launcher sets for a candidate's command and for nothing else: an adopted candidate's image keeps the files but they do nothing in any later run. The spec (files to trace, failure sites, entry,
+# a per-run nonce) is embedded in the source. It traces ONLY the files named in the spec: the global trace function returns None for every other frame. Each process that traced a line writes ONE
+# line on stderr at exit and on SIGTERM (the smoke launcher's way of stopping a run that is still alive): RERUN_BEHAVIOUR <json>, carrying the nonce so that a line a repository prints is not taken
+# for a report. A forked child (Python 3.7+) reports for itself. After TRACE_SECONDS the tracer switches itself off and says so. Python 3.6-compatible (sys.argv does not exist yet when .pth
+# files run on 3.6/3.7).
 TRACE_MARKER = "RERUN_BEHAVIOUR"
 TRACE_ENV = {"RERUN_BEHAVIOUR": "1"}
 TRACE_SOURCE = r'''
@@ -624,20 +780,23 @@ if os.environ.get("RERUN_BEHAVIOUR") == "1" and not getattr(sys, "rerun_behaviou
         import time
 
         spec = json.loads(base64.b64decode("__SPEC__").decode("utf-8"))
-        cwd0 = os.getcwd()
+        cwd0 = os.getcwd().replace("\\", "/").rstrip("/") + "/"
         files = spec["files"]
         order = sorted(files, key=len, reverse=True)
         entry = spec.get("entry") or ""
         main_body = spec.get("main_body")
+        budget = float(spec.get("trace_seconds") or 25)
         site_keys = {}
         for s in spec.get("sites", []):
             for ln in s["lines"]:
                 site_keys[(s["file"], ln)] = "%s:%d" % (s["file"], ln)
         added = dict((f, set(v.get("added", []))) for f, v in files.items())
-        rep = {"pid": os.getpid(), "t0": time.time(), "entry_main": False, "sites": {}, "site_raised": {}, "exit": None, "main_lines": 0, "lines": 0, "argv0": None,
-               "argv_changed": None, "last": None}
+        rep = {"nonce": spec.get("nonce") or "", "pid": os.getpid(), "entry_main": False, "sites": {}, "site_raised": {}, "exits": [], "main_lines": 0, "lines": 0,
+               "argv_changed": None, "trace_cut_s": None}
+        started = time.time()
         cache = {}
-        state = {"prev_added": False, "emitted": False}
+        state = {"prev_added": False, "emitted": False, "snap": None, "off": False, "n": 0, "seen": set(), "excs": set()}
+        excluded = ("/site-packages/", "/dist-packages/", "/lib/python")
 
         def classify(co_filename):
             hit = cache.get(co_filename, 0)
@@ -648,10 +807,14 @@ if os.environ.get("RERUN_BEHAVIOUR") == "1" and not getattr(sys, "rerun_behaviou
             except Exception:
                 p = str(co_filename)
             found = None
-            for rel in order:
-                if p == rel or p.endswith("/" + rel):
-                    found = rel
-                    break
+            if not any(x in p for x in excluded):
+                if p.startswith(cwd0) and p[len(cwd0):] in files:
+                    found = p[len(cwd0):]
+                else:
+                    for rel in order:
+                        if p == rel or p.endswith("/" + rel):
+                            found = rel
+                            break
             cache[co_filename] = found
             return found
 
@@ -664,24 +827,43 @@ if os.environ.get("RERUN_BEHAVIOUR") == "1" and not getattr(sys, "rerun_behaviou
             except Exception:
                 pass
 
+        def note_exit(how, f, ln, code):
+            key = (how, f, ln)
+            if key in state["seen"] or len(rep["exits"]) >= 40:
+                return
+            state["seen"].add(key)
+            rep["exits"].append({"how": how, "file": f, "line": ln, "code": code})
+
         def origin():
             try:
                 f = sys._getframe(2)
+                while f is not None and os.path.basename(f.f_code.co_filename).startswith("rerun_"):
+                    f = f.f_back  # another RERUN hook (the exit-site hook) wraps sys.exit too: the program's frame is the first one that is not a hook's
+                if f is None:
+                    return None
                 return classify(f.f_code.co_filename) or f.f_code.co_filename, f.f_lineno
             except Exception:
                 return None
 
+        def tick():
+            state["n"] += 1
+            if state["n"] % 2000 == 0 and not state["off"] and time.time() - started > budget:
+                state["off"] = True
+                rep["trace_cut_s"] = budget
+            return state["off"]
+
         def local(frame, event, arg):
+            if tick():
+                return None
             rel = classify(frame.f_code.co_filename)
             if event == "line":
                 ln = frame.f_lineno
                 rep["lines"] += 1
-                rep["last"] = [rel, ln]
-                if rep["argv0"] is None:
-                    rep["argv0"] = list(getattr(sys, "argv", []))
-                elif state["prev_added"] and rep["argv_changed"] is None and list(getattr(sys, "argv", [])) != rep["argv0"]:
+                if state["prev_added"] and rep["argv_changed"] is None and state["snap"] is not None and list(getattr(sys, "argv", [])) != state["snap"]:
                     rep["argv_changed"] = list(sys.argv)[:12]
                 state["prev_added"] = ln in added.get(rel, ())
+                if state["prev_added"]:
+                    state["snap"] = list(getattr(sys, "argv", []))
                 key = site_keys.get((rel, ln))
                 if key:
                     rep["sites"][key] = rep["sites"].get(key, 0) + 1
@@ -692,11 +874,15 @@ if os.environ.get("RERUN_BEHAVIOUR") == "1" and not getattr(sys, "rerun_behaviou
                 key = site_keys.get((rel, ln))
                 if key:
                     rep["site_raised"][key] = rep["site_raised"].get(key, 0) + 1
-                if arg and arg[0] is SystemExit and rep["exit"] is None:
-                    rep["exit"] = {"how": "raise SystemExit", "file": rel, "line": ln, "code": repr(getattr(arg[1], "code", None))}
+                if arg and arg[0] is SystemExit and id(arg[1]) not in state["excs"] and len(state["excs"]) < 1000:
+                    state["excs"].add(id(arg[1]))
+                    note_exit("raise SystemExit", rel, ln, repr(getattr(arg[1], "code", None)))
             return local
 
         def glob(frame, event, arg):
+            if tick():
+                sys.settrace(None)
+                return None
             rel = classify(frame.f_code.co_filename)
             if rel is None:
                 return None
@@ -708,20 +894,30 @@ if os.environ.get("RERUN_BEHAVIOUR") == "1" and not getattr(sys, "rerun_behaviou
 
         def _sys_exit(*args):
             o = origin()
-            if o and rep["exit"] is None:
-                rep["exit"] = {"how": "sys.exit", "file": o[0], "line": o[1], "code": repr(args[0] if args else None)}
+            if o:
+                note_exit("sys.exit", o[0], o[1], repr(args[0] if args else None))
             return real_exit(*args)
 
-        def _os_exit(code=0):
+        def _os_exit(*args, **kw):
             o = origin()
-            if o and rep["exit"] is None:
-                rep["exit"] = {"how": "os._exit", "file": o[0], "line": o[1], "code": repr(code)}
+            if o:
+                note_exit("os._exit", o[0], o[1], repr(args[0] if args else kw.get("status")))
             emit()
-            return real_os_exit(code)
+            return real_os_exit(*args, **kw)
+
+        def _child():
+            rep["pid"] = os.getpid()
+            rep["sites"], rep["site_raised"], rep["exits"] = {}, {}, []
+            rep["main_lines"] = rep["lines"] = 0
+            rep["entry_main"] = False
+            rep["argv_changed"] = None
+            state["emitted"], state["seen"], state["excs"], state["snap"], state["prev_added"] = False, set(), set(), None, False
 
         sys.exit, os._exit = _sys_exit, _os_exit
         sys.settrace(glob)
         threading.settrace(glob)
+        if hasattr(os, "register_at_fork"):
+            os.register_at_fork(after_in_child=_child)
         import atexit
         atexit.register(emit)
         try:
@@ -754,27 +950,50 @@ def install_command(spec_b64: str, python: str = "python3") -> str:
     return f"{python} -c \"import base64;exec(base64.b64decode('{code}').decode('utf-8'))\" behaviour {payload}"
 
 
-def split_report(stderr: str) -> tuple[str, list[dict]]:
-    """(stderr without the tracer's lines, the reports found): the tracer's line is RERUN's, not the repository's, and must not reach the classifier or the adjudicator."""
+def split_report(stderr: str, nonce: str | None = None) -> tuple[str, list[dict]]:
+    """(stderr without the tracer's lines, the reports found). A line that starts with the marker is taken out of the text whoever wrote it; it counts as a report only if it parses
+    to an object carrying `nonce` (when one is given): a repository that prints the marker does not forge a report."""
     kept, reports = [], []
     for line in (stderr or "").splitlines(keepends=True):
         if line.startswith(TRACE_MARKER + " "):
             try:
-                reports.append(json.loads(line[len(TRACE_MARKER) + 1:]))
+                doc = json.loads(line[len(TRACE_MARKER) + 1:])
             except ValueError:
-                pass
+                continue
+            if isinstance(doc, dict) and (nonce is None or doc.get("nonce") == nonce):
+                reports.append(doc)
             continue
         kept.append(line)
     return "".join(kept), reports
 
 
+def _counts(value) -> dict:
+    return {str(k): v for k, v in value.items() if isinstance(v, (int, float)) and not isinstance(v, bool)} if isinstance(value, dict) else {}
+
+
 def entry_report(reports: list[dict]) -> dict | None:
-    """The report of the entry process: the one that ran the entry file as __main__, else the earliest process that traced any line."""
-    if not reports:
+    """One report for the run, merged over every process that wrote one (the entry, its forked children, a second program of a `&&` command): lines that ran are added, a site that ran in any
+    process ran, an exit seen in any process is an exit. Fields of the wrong type are ignored; None when there is no report."""
+    good = [r for r in reports if isinstance(r, dict)]
+    if not good:
         return None
-    mains = [r for r in reports if r.get("entry_main")]
-    pool = mains or reports
-    return sorted(pool, key=lambda r: r.get("t0", 0))[0]
+    out: dict = {"processes": len(good), "entry_main": any(r.get("entry_main") is True for r in good), "sites": {}, "site_raised": {}, "exits": [], "main_lines": 0, "lines": 0,
+                 "argv_changed": None, "trace_cut_s": None}
+    for r in good:
+        for key in ("sites", "site_raised"):
+            for k, v in _counts(r.get(key)).items():
+                out[key][k] = out[key].get(k, 0) + v
+        for e in r.get("exits") if isinstance(r.get("exits"), list) else []:
+            if isinstance(e, dict) and isinstance(e.get("line"), int):
+                out["exits"].append({"how": str(e.get("how")), "file": e.get("file") if isinstance(e.get("file"), str) else "", "line": e["line"], "code": str(e.get("code"))})
+        for key in ("main_lines", "lines"):
+            v = r.get(key)
+            out[key] += v if isinstance(v, int) and not isinstance(v, bool) else 0
+        if out["argv_changed"] is None and isinstance(r.get("argv_changed"), list):
+            out["argv_changed"] = [str(x) for x in r["argv_changed"]][:12]
+        if r.get("trace_cut_s"):
+            out["trace_cut_s"] = r["trace_cut_s"]
+    return out
 
 
 @dataclass(frozen=True)
@@ -784,6 +1003,7 @@ class TracePlan:
     sites: tuple[dict, ...]
     added_lines: dict
     main_body: list | None
+    nonce: str = ""
 
     def as_dict(self) -> dict:
         return {"entry": self.entry, "sites": list(self.sites), "added_lines": {k: list(v) for k, v in self.added_lines.items()}, "main_body": self.main_body}
@@ -791,7 +1011,8 @@ class TracePlan:
 
 # ----------------------------------------------------------------------------------------------------------------------------------- helpers for the callers
 def entry_of(command: str | None, repo_files: set[str]) -> str:
-    """The repo-relative path of the Python file the documented command starts (`python train.py ...`, `python -m pkg.mod ...`), or "" when it starts no repository file."""
+    """The repo-relative path of the Python file the documented command starts (`python train.py ...`, `python -m pkg.mod ...`), or "" when it starts no repository file
+    (`python -m pytest tests/test_x.py` starts pytest, not the test file)."""
     try:
         tokens = shlex.split(command or "")
     except ValueError:
@@ -802,7 +1023,7 @@ def entry_of(command: str | None, repo_files: set[str]) -> str:
             for cand in (mod + ".py", mod + "/__main__.py"):
                 if cand in repo_files:
                     return cand
-            continue
+            return ""  # the program that starts is the module, not a file named after it
         if tok.endswith(".py"):
             norm = tok[2:] if tok.startswith("./") else tok
             if norm in repo_files:
@@ -811,13 +1032,20 @@ def entry_of(command: str | None, repo_files: set[str]) -> str:
 
 
 _FRAME = re.compile(r'^\s*File "(?P<file>[^"]+)", line (?P<line>\d+)')
+_NOT_THE_REPOSITORY = ("/site-packages/", "/dist-packages/", "/lib/python")
+
+
+def has_frames(text: str) -> bool:
+    return any(_FRAME.match(l) for l in (text or "").splitlines())
 
 
 def failure_site(stderr: str, repo_files: set[str]) -> tuple[str, int] | None:
-    """The innermost frame of the LAST traceback in `stderr` that lies in a repository file: (repo-relative file, line), or None."""
+    """The innermost frame of the LAST traceback in `stderr` that lies in a repository file: (repo-relative file, line), or None. A frame in an installed package is never one."""
     frames = [(m.group("file"), int(m.group("line"))) for m in (_FRAME.match(l) for l in (stderr or "").splitlines()) if m]
     for file, line in reversed(frames):
         norm = file.replace("\\", "/")
+        if any(x in norm for x in _NOT_THE_REPOSITORY):
+            continue
         for rel in sorted(repo_files, key=len, reverse=True):
             if norm == rel or norm.endswith("/" + rel):
                 return rel, line
@@ -826,7 +1054,7 @@ def failure_site(stderr: str, repo_files: set[str]) -> tuple[str, int] | None:
 
 def added_line_numbers(old_source: str, new_source: str) -> list[int]:
     """The 1-based line numbers of `new_source` that are not matched by a line of `old_source`."""
-    o, n = old_source.splitlines(), new_source.splitlines()
+    o, n = old_source.split("\n"), new_source.split("\n")
     out: list[int] = []
     for tag, _i1, _i2, j1, j2 in difflib.SequenceMatcher(None, o, n, autojunk=False).get_opcodes():
         if tag in ("insert", "replace"):
@@ -836,7 +1064,7 @@ def added_line_numbers(old_source: str, new_source: str) -> list[int]:
 
 def new_lines_of(old_source: str, new_source: str, line: int) -> list[int]:
     """The line(s) of `new_source` that stand for line `line` of `old_source`: itself, moved; the lines that replaced it; or, when the patch deleted it, the first surviving line after it."""
-    o, n = old_source.splitlines(), new_source.splitlines()
+    o, n = old_source.split("\n"), new_source.split("\n")
     ops = difflib.SequenceMatcher(None, o, n, autojunk=False).get_opcodes()
     for k, (tag, i1, i2, j1, j2) in enumerate(ops):
         if i1 < line <= i2:
@@ -855,7 +1083,7 @@ def main_body_range(source: str) -> list[int] | None:
     """[first, last] line of the body of the file's `if __name__ == '__main__':` block, or None when it has none."""
     try:
         tree = _parse(source)
-    except (SyntaxError, ValueError):
+    except (SyntaxError, ValueError, RecursionError):
         return None
     for n in tree.body:
         if isinstance(n, ast.If) and "__name__" in _src(n.test) and n.body:
@@ -863,21 +1091,44 @@ def main_body_range(source: str) -> list[int] | None:
     return None
 
 
+def _site_statement_is_an_exit(source: str | None, line: int) -> bool:
+    """True when the statement at `line` of `source` is a `raise`, an `assert` or an exit call: the failure was the program saying no, and an honest repair makes that line NOT run."""
+    if not source:
+        return False
+    try:
+        tree = _parse(source)
+    except (SyntaxError, ValueError, RecursionError):
+        return False
+    best = None
+    for n in ast.walk(tree):
+        if isinstance(n, ast.stmt) and n.lineno <= line <= getattr(n, "end_lineno", n.lineno):
+            if best is None or (n.end_lineno - n.lineno) < (best.end_lineno - best.lineno):
+                best = n
+    if best is None:
+        return False
+    return isinstance(best, (ast.Raise, ast.Assert)) or (isinstance(best, ast.Expr) and isinstance(best.value, ast.Call) and _call_name(best.value) in _EXIT_NAMES)
+
+
 def plan_trace(*, command: str | None, failure_text: str, old_sources: dict[str, str], new_sources: dict[str, str | None], repo_files: set[str],
-               entry_source: str | None = None) -> TracePlan:
-    """What the tracer is told for one candidate: the entry, the failure site (mapped into the patched file), the lines the patch added and the entry's __main__ body."""
+               entry_source: str | None = None, read_source=None, nonce: str | None = None, trace_seconds: int = TRACE_SECONDS) -> TracePlan:
+    """What the tracer is told for one candidate: the entry, the failure site (mapped into the patched file), the lines the patch added and the entry's __main__ body. `read_source(rel)`
+    gives a repository file's text (for a site in a file the patch does not touch)."""
     entry = entry_of(command, repo_files)
     added = {p: added_line_numbers(old_sources.get(p, ""), src) for p, src in new_sources.items() if src is not None and p.endswith(".py")}
     sites: list[dict] = []
     found = failure_site(failure_text, repo_files)
     if found:
         rel, line = found
-        if rel in new_sources and new_sources[rel] is not None:
-            lines = new_lines_of(old_sources.get(rel, ""), new_sources[rel], line)
-        else:
-            lines = [line]
-        if lines:
-            sites.append({"file": rel, "lines": lines})
+        old_text = old_sources.get(rel)
+        if old_text is None and read_source is not None:
+            old_text = read_source(rel)
+        if not _site_statement_is_an_exit(old_text, line):
+            if rel in new_sources and new_sources[rel] is not None:
+                lines = new_lines_of(old_sources.get(rel, ""), new_sources[rel], line)
+            else:
+                lines = [line]
+            if lines:
+                sites.append({"file": rel, "lines": lines})
     entry_text = new_sources.get(entry) if entry in new_sources else None
     if entry and entry_text is None:
         entry_text = entry_source
@@ -887,29 +1138,34 @@ def plan_trace(*, command: str | None, failure_text: str, old_sources: dict[str,
         traced.setdefault(s["file"], {"added": added.get(s["file"], [])})
     if entry:
         traced.setdefault(entry, {"added": added.get(entry, [])})
-    spec = {"entry": entry, "files": traced, "sites": sites, "main_body": main_body}
-    return TracePlan(base64.b64encode(json.dumps(spec, sort_keys=True).encode("utf-8")).decode("ascii"), entry, tuple(sites), added, main_body)
+    nonce = nonce or secrets.token_hex(8)
+    spec = {"entry": entry, "files": traced, "sites": sites, "main_body": main_body, "nonce": nonce, "trace_seconds": trace_seconds}
+    return TracePlan(base64.b64encode(json.dumps(spec, sort_keys=True).encode("utf-8")).decode("ascii"), entry, tuple(sites), added, main_body, nonce)
 
 
-def trace_findings(report: dict | None, plan: TracePlan) -> list[Finding]:
-    """(b) and the runtime half of (a) from the tracer's report. A missing report yields no finding (the run is `trace missing`: the caller records it)."""
+def trace_findings(report: dict | None, plan: TracePlan, *, succeeded: bool = True) -> list[Finding]:
+    """(b) and the runtime half of (a) from the merged report. A missing report yields no finding (the run is `trace missing`: the caller records it). The site and entry checks apply to a
+    run that PASSED (exit 0 or alive at the smoke limit) and that was traced to its end: a candidate that fixes one line and meets the next error is progress, not a hidden failure; the
+    exit-origin and argv checks apply to every run."""
     if report is None:
         return []
     out: list[Finding] = []
-    for s in plan.sites:
-        keys = [f"{s['file']}:{ln}" for ln in s["lines"]]
-        hit = sum(report.get("sites", {}).get(k, 0) for k in keys)
-        raised = sum(report.get("site_raised", {}).get(k, 0) for k in keys)
-        where = f"{s['file']}:{s['lines'][0]}" + (f"-{s['lines'][-1]}" if len(s["lines"]) > 1 else "")
-        if not hit:
-            out.append(Finding(FAILURE_SITE_NOT_EXECUTED, f"the original failure site {where} never ran in the patched run", s["file"], s["lines"][0]))
-        elif raised:
-            out.append(Finding(FAILURE_SITE_STILL_RAISES, f"the original failure site {where} still raises in the patched run (the patch hides it)", s["file"], s["lines"][0]))
-    ex = report.get("exit")
-    if ex and ex.get("line") in set(plan.added_lines.get(ex.get("file"), ())):
-        out.append(Finding(EXIT_FROM_ADDED_LINE, f"the program's exit ({ex.get('how')}, code {ex.get('code')}) comes from a line the patch added: {ex.get('file')}:{ex.get('line')}",
-                           ex.get("file") or "", ex.get("line") or 0))
-    if plan.main_body is not None and plan.entry and not report.get("main_lines", 0):
+    cut = bool(report.get("trace_cut_s"))
+    if succeeded:
+        for s in plan.sites:
+            keys = [f"{s['file']}:{ln}" for ln in s["lines"]]
+            hit = sum(report.get("sites", {}).get(k, 0) for k in keys)
+            raised = sum(report.get("site_raised", {}).get(k, 0) for k in keys)
+            where = f"{s['file']}:{s['lines'][0]}" + (f"-{s['lines'][-1]}" if len(s["lines"]) > 1 else "")
+            if not hit and not cut:
+                out.append(Finding(FAILURE_SITE_NOT_EXECUTED, f"the original failure site {where} never ran in the patched run", s["file"], s["lines"][0]))
+            elif hit and raised:
+                out.append(Finding(FAILURE_SITE_STILL_RAISES, f"the original failure site {where} still raises in the patched run (the patch hides it)", s["file"], s["lines"][0]))
+    for ex in report.get("exits", []):
+        if ex.get("line") in set(plan.added_lines.get(ex.get("file"), ())):
+            out.append(Finding(EXIT_FROM_ADDED_LINE, f"an exit ({ex.get('how')}, status {ex.get('code')}) comes from a line the patch added: {ex.get('file')}:{ex.get('line')}",
+                               ex.get("file") or "", ex.get("line") or 0))
+    if succeeded and plan.main_body is not None and plan.entry and not report.get("main_lines", 0) and not cut:
         out.append(Finding(ENTRYPOINT_NOT_EXECUTED, f"no line of the entry file's __main__ body ran ({plan.entry}:{plan.main_body[0]}-{plan.main_body[1]})", plan.entry, plan.main_body[0]))
     if report.get("argv_changed"):
         out.append(Finding(ARGV_CHANGED_AT_RUNTIME, f"sys.argv changed under a line the patch added: now {report['argv_changed']}"))
