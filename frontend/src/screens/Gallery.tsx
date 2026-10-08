@@ -1,13 +1,14 @@
 import { Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
-import { api, ApiError, type RunListItem } from "../api";
+import { api, ApiError, type RunListItem, type Scene } from "../api";
 import { VerdictBadge, notesOfLabel } from "../components/VerdictBadge";
 import { DemoBanner, useDemoMode } from "../components/DemoBanner";
+import { ModeBadge } from "../components/ModeBadge";
 
-/** `runs/corpus_v2_batch/<tag>/<arm>/NN_<owner>__<repo>.json` -> its parts; null for a live (non-demo) run. */
+/** `runs/corpus_v<N>_batch/<tag>/<arm>/NN_<owner>__<repo>.json` -> its parts; null for a live (non-demo) run. */
 export function parseDemoSource(source: string | null): { tag: string; arm: string; entry: string; name: string } | null {
   if (!source) return null;
-  const match = source.match(/^runs\/corpus_v2_batch\/([^/]+)\/([^/]+)\/(\d{2})_(.+)\.json$/);
+  const match = source.match(/^runs\/corpus_v\d+_batch\/([^/]+)\/([^/]+)\/(\d{2})_(.+)\.json$/);
   if (!match) return null;
   return { tag: match[1], arm: match[2], entry: match[3], name: match[4] };
 }
@@ -20,6 +21,7 @@ export function repoName(url: string): string {
 export function Gallery() {
   const demoMode = useDemoMode();
   const query = useQuery({ queryKey: ["runs"], queryFn: api.listRuns });
+  const scenes = useQuery({ queryKey: ["scenes"], queryFn: api.listScenes, retry: false });
 
   if (query.isLoading) {
     return <p className="font-mono text-sm text-text-secondary">Loading gallery…</p>;
@@ -48,12 +50,15 @@ export function Gallery() {
         </h1>
         <p className="mt-2 max-w-2xl text-sm leading-relaxed text-text-secondary">
           Every row is a real RERUN run, served from the committed record of that run — the verdict, the error chain and the
-          signed certificate are shown exactly as they were written. DEV and gate entries of the corpus only: the pre-registered
-          TEST entries ran once each at the freeze and are reported on their own, not replayed here.
+          signed certificate are shown exactly as they were written. DEV and gate entries of the corpus, plus one TEST-C record
+          shown as a scene (TEST-C is published and final); the other pre-registered TEST entries are reported on their own, not
+          replayed here.
         </p>
       </div>
 
       {demoMode && <DemoBanner />}
+
+      {(scenes.data?.scenes.length ?? 0) > 0 && <Scenes scenes={scenes.data!.scenes} />}
 
       {runs.length === 0 ? (
         <p className="rounded-sm border border-border bg-surface shadow-card px-5 py-6 text-center font-mono text-sm text-text-secondary">
@@ -66,6 +71,38 @@ export function Gallery() {
         </>
       )}
     </div>
+  );
+}
+
+/** harness-v1.9 (task 5): the demo's scenes, each marked REPLAY or REAL, with the claims the server computed from the record. */
+function Scenes({ scenes }: { scenes: Scene[] }) {
+  return (
+    <section aria-label="Scenes" className="space-y-3">
+      <p className="font-mono text-[11px] uppercase tracking-wide text-text-secondary">Scenes</p>
+      {scenes.map((scene) => (
+        <article key={scene.id} data-testid="scene-card" className="rounded-sm border border-border bg-surface px-5 py-4 shadow-card">
+          <div className="flex flex-wrap items-center gap-2">
+            <ModeBadge mode={scene.mode} />
+            <span className="font-mono text-[11px] text-text-secondary">scene {scene.order}</span>
+            <h2 className="font-display text-base font-semibold text-text-primary">{scene.title}</h2>
+          </div>
+          <ol className="mt-3 list-decimal space-y-1.5 pl-5 text-sm leading-relaxed text-text-primary">
+            {scene.claims.map((claim, i) => (
+              <li key={`${scene.id}-${i}`}>
+                {claim.text} <span className="font-mono text-[10px] text-text-secondary">[{claim.basis}]</span>
+              </li>
+            ))}
+          </ol>
+          {scene.note && <p className="mt-2 text-xs italic text-text-secondary">{scene.note}</p>}
+          <p className="mt-3 flex flex-wrap items-center gap-3 font-mono text-[11px] text-text-secondary">
+            <span className="break-all">record: {scene.record}</span>
+            <Link to={`/runs/${scene.run_id}/certificate`} className="text-signal hover:underline">
+              Certificate →
+            </Link>
+          </p>
+        </article>
+      ))}
+    </section>
   );
 }
 

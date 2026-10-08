@@ -186,6 +186,20 @@ def list_runs(
     return RunListOut(runs=items, total=total, limit=limit, offset=offset)
 
 
+@router.get("/demo/scenes")
+def demo_scenes(db: Session = Depends(get_db)) -> dict:
+    """harness-v1.9 (task 5): the demo's scenes (services/demo_seed.py SCENES), each a committed record marked REPLAY, with a caption whose every claim is
+    computed from that record; a scene whose run is not in the database, or whose record does not support its caption, is left out."""
+    from pathlib import Path
+
+    from app.config import get_settings
+    from app.services import demo_seed
+
+    settings = get_settings()
+    root = Path(settings.demo_root) if settings.demo_root else demo_seed.PACKAGE_REPO_ROOT
+    return {"scenes": demo_seed.list_scenes(db, root)}
+
+
 @router.get("/runs/{run_id}", response_model=RunOut)
 def get_run(run_id: str, db: Session = Depends(get_db)) -> Run:
     run = db.get(Run, run_id)

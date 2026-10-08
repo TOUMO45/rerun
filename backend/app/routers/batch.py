@@ -62,6 +62,16 @@ OOS_SUMMARY = "runs/live_scan/oos_v1.7.2/scan_summary.json"
 SET_METRICS = "reports/dev/v18/set_metrics.json"
 TEST_C_RESULT = "runs/corpus_v4_batch/harness-v1.8.0/treatment/test_c_result.json"
 TEST_C_SCORE = "reports/test-c/diagnosis_test_c_score.json"
+# harness-v1.9 (owner, 2026-10-08, task 6): the headline the Batch Lab leads with, read from committed files only
+COUNTERFACTUAL_FACTS = "reports/v1.9/counterfactual/facts.json"
+COUNTERFACTUAL_CLASSES = "reports/v1.9/counterfactual/classification.json"
+PLANTED_BEFORE = "reports/v1.9/planted/gate_heldout_before.json"
+PLANTED_AFTER = "reports/v1.9/planted/gate_heldout_after.json"
+# TEST_C_RESULT.md, item 4 of "what the score does and does not say": judged strictly, #4 E3Outlier is not actionable, 6 of 9. Not in a JSON file; pinned by a test
+# against the document's own sentence.
+TEST_C_DIAGNOSIS_STRICT = {"count": 6, "of": 9, "source": "reports/test-c/TEST_C_RESULT.md (#4 E3Outlier judged strictly)"}
+FAMILY_NAMES = {"F1": "swallowed exception", "F2": "stubbed function", "F3": "skipped missing input", "F4": "early exit / hardcoded output",
+                "F5": "altered documented command", "F6": "workload shrunk to nothing"}
 AUDITS = {
     ("test", 18): ("Not counted as a run: an audit written before the result found it a false positive. The command pipes a script into `bash`; the script "
                    "failed at its first import and the pipe returned bash's exit code 0 (D-46).", "reports/dev/TEST_RESULT.md"),
@@ -186,7 +196,59 @@ def preregistered_results(root: Path | None = None) -> dict:
         entry["metrics"] = ({"median_seconds_to_diagnosis": m["median_seconds_to_diagnosis"], "median_api_reported_cost_usd_to_diagnosis": m["median_api_reported_cost_usd_to_diagnosis"],
                              "measured_over": m["measured_over"], "non_running": m["non_running"], "diagnosed": m["diagnosed"], "recovery": m["recovery"],
                              "cost_tag": "API-REPORTED (with the estimate of killed steps; not billed)", "source": SET_METRICS} if m else None)
+    doc["headline"] = headline(root, doc["sets"])
     return doc
+
+
+def _planted(doc: dict) -> dict:
+    s = doc["summary"]
+    fams = {f: {"name": FAMILY_NAMES[f], "n": s[f]["n"], "rejected": s[f]["rejected"], "by_semantic_rule": s[f]["rejected_by_a_semantic_rule"]}
+            for f in sorted(FAMILY_NAMES) if f in s}
+    return {"families": fams, "cheats": s["ALL CHEATS"], "controls": s["ALL CONTROLS"], "tamper_gate_blob": doc.get("tamper_gate_blob"), "head": doc.get("head")}
+
+
+def headline(root: Path, sets: list[dict]) -> dict | None:
+    """harness-v1.9 (task 6): what the Batch Lab leads with. Every figure is read from a committed file; a figure whose file is missing is None (never zero).
+    The three held-out sets are summed ONCE here, as the owner asked, with each set's own count kept in its card below."""
+    by = {s["key"]: s for s in sets}
+    fresh = [by.get(k) for k in ("test", "test_b", "test_c")]
+    out: dict = {"ran": None, "diagnosis": None, "counterfactual": None, "planted": None}
+    if all(fresh):
+        out["ran"] = {"count": sum(s["count"] for s in fresh), "of": sum(s["of"] for s in fresh), "tag": "DERIVED",
+                      "parts": [{"set": s["title"], "count": s["count"], "of": s["of"]} for s in fresh],
+                      "measure": "ran their documented command (TEST after its published audit, TEST-B, TEST-C): not a reproduction of a paper's result"}
+    if by.get("test_c") and by["test_c"].get("diagnosis"):
+        d = by["test_c"]["diagnosis"]
+        out["diagnosis"] = {"count": d["count"], "of": d["of"], "strict": TEST_C_DIAGNOSIS_STRICT, "set": "TEST-C", "tag": "DERIVED", "source": d["source"]}
+    try:
+        facts = _read(root, COUNTERFACTUAL_FACTS)["summary"]
+        items = _read(root, COUNTERFACTUAL_CLASSES)["items"]
+        fresh_f, dev_f = facts["FRESH (TEST-A+B+C)"], facts["DEV"]
+        fakes = [i for i in items if i["label"] == "GENUINE FAKE"]
+        gate_items = [i for i in items if i["group"] == "gate rejection under a faking rule"]
+        out["counterfactual"] = {
+            "fresh": {"ungated_at_least": fresh_f["naive_success_entry_runs"], "of": fresh_f["entry_runs"], "certified": fresh_f["certified_entry_runs"],
+                      "after_audits": out["ran"]["count"] if out["ran"] else None},
+            "dev": {"ungated_at_least": dev_f["naive_success_entry_runs"], "of": dev_f["entry_runs"], "certified": dev_f["certified_entry_runs"]},
+            "fakes_that_exited_0": len(fakes), "fakes_passed_by_the_gate": sum(1 for i in fakes if i["group"] == "reached naive success"),
+            "fakes_refused_by_the_adjudicator": sum(1 for i in fakes if i.get("fate", "").startswith("adjudicator")),
+            "gate_faking_rule_rejections": len(gate_items), "of_which_honest": sum(1 for i in gate_items if i["label"] == "HONEST PATCH REJECTED"),
+            "adopted_outside_both_classes": sum(1 for i in items if i["label"] == "OUTSIDE BOTH CLASSES"),
+            "tag": "DERIVED", "source": "reports/v1.9/counterfactual/RESULT.md"}
+    except (BatchResultsUnavailable, KeyError, ValueError, TypeError):
+        out["counterfactual"] = None
+    try:
+        before = _planted(_read(root, PLANTED_BEFORE))
+    except (BatchResultsUnavailable, KeyError, ValueError):
+        before = None
+    try:
+        after = _planted(_read(root, PLANTED_AFTER))
+    except (BatchResultsUnavailable, KeyError, ValueError):
+        after = None
+    if before is not None:
+        out["planted"] = {"half": "held-out", "before": before, "after": after, "tag": "DERIVED", "source": "reports/v1.9/planted/RESULT.md",
+                          "note": "Planted patches, labelled by construction and not executed; the gate only (no adjudicator); recon's model-provided names absent."}
+    return out
 
 
 @router.get("/batch/preregistered")

@@ -56,6 +56,10 @@ TABLE: dict[str, tuple[str, str]] = {
     TaxonomyCode.SYS_LIB_MISSING: (DETERMINISTIC, "nothing, if the apt rule resolves it; otherwise the system package that provides {package}"),
     TaxonomyCode.DEP_BUILD_FAILED: (DETERMINISTIC, "nothing, if the apt rule adds the build dependencies; otherwise a wheel of {package} for this platform"),
     TaxonomyCode.DATA_MISSING: (HUMAN, "the dataset the repository expects at {path}, obtained as its README describes"),
+    # harness-v1.9 (D-72): the directory a write goes into does not exist; RERUN's output_dir rule creates it (one `mkdir -p`) and runs the command again
+    TaxonomyCode.OUTPUT_DIR_MISSING: (DETERMINISTIC, "nothing, if RERUN's output-directory rule creates the directory of {path} (it does so for a path inside the "
+                                                     "checkout, once per run) and the command then runs; this report means the run ended without that having worked, "
+                                                     "so the directory layout the README describes"),
     TaxonomyCode.DATA_CREDENTIALS: (HUMAN, "the credentials (an API key, token or login) the download step asks for"),
     TaxonomyCode.GPU_REQUIRED: (HUMAN, "a CUDA device, or the CPU shim where the call is a plain .cuda()"),
     TaxonomyCode.HARDCODED_PATH: (MODEL, "nothing: the repairer proposes a relative path at {path} and the tamper gate decides"),
@@ -118,11 +122,28 @@ def _first(patterns: tuple[re.Pattern, ...], text: str) -> str | None:
     return None
 
 
+_TEMPLATE_FIELD = re.compile(r"\{[A-Za-z_]\w*\}")
+
+
+def _path_like(value: str | None) -> str | None:
+    """harness-v1.9 (D-73): a captured "path" that is a message or a source template is not a path. TEST-C g-meta's evidence is the raise line
+    `raise FileNotFoundError(f'Features file not found in any of: {tried_paths}')`; the first path pattern captured the message, and the certificate read
+    "the dataset the repository expects at Features file not found in any of: {tried_paths}". A value with a `{field}` in it, or with spaces and no `/`,
+    is refused, and the generic wording is used."""
+    if not value or _TEMPLATE_FIELD.search(value) or "{" in value or "}" in value:
+        return None
+    if re.search(r"\b(?:not found|does not exist|no such|missing|in any of)\b", value, re.IGNORECASE):
+        return None  # a message, even one that contains a slash
+    if re.search(r"\s", value) and "/" not in value and not re.search(r"\.\w{1,5}$", value):
+        return None  # a sentence; a real file name with a space ("my data.csv") ends in an extension
+    return value
+
+
 def _fill(template: str, evidence: str) -> str:
     """The template with every placeholder replaced by what the evidence says, or by the generic wording."""
     values = {
         "package": _first(_PACKAGE_RES, evidence),
-        "path": _first(_PATH_RES, evidence),
+        "path": _path_like(_first(_PATH_RES, evidence)),
         "module": _first(_MODULE_RES, evidence),
         "limit": _first(_LIMIT_RES, evidence),
     }
@@ -286,7 +307,7 @@ def report(result: dict) -> dict | None:
     except Exception:  # noqa: BLE001 - review (LOW): one odd stored row must not fail every read; the class sentence stands and the gap is logged
         logger.warning("blocker: diagnosis failed on a record; the class default stands", exc_info=True)
         finding = None
-    out["diagnosis_rules"] = "harness-v1.8"  # which rules produced the text: a record written by an older harness is re-read with these rules when it is served
+    out["diagnosis_rules"] = "harness-v1.9"  # which rules produced the text: a record written by an older harness is re-read with these rules when it is served
     if finding is not None:
         out.update(finding.as_dict())
         out["diagnosis"] = "evidence"

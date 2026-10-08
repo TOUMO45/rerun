@@ -44,6 +44,9 @@ class TaxonomyCode:
     # ENV, verdict INDETERMINATE (see error_chain.attribute and the orchestrator's `_note_failure`).
     APT_MIRROR_GONE = "APT_MIRROR_GONE"
     DATA_MISSING = "DATA_MISSING"
+    # harness-v1.9 (D-72, TEST-C minmaxot): a write failed because its directory does not exist (`np.savetxt('output/...')`). Not missing data: RERUN
+    # creates the directory (output_dir.py) and runs the command again.
+    OUTPUT_DIR_MISSING = "OUTPUT_DIR_MISSING"
     DATA_CREDENTIALS = "DATA_CREDENTIALS"
     ENTRYPOINT_UNCLEAR = "ENTRYPOINT_UNCLEAR"
     HARDCODED_PATH = "HARDCODED_PATH"
@@ -68,6 +71,7 @@ class TaxonomyCode:
         SYS_LIB_MISSING: "Environment",
         APT_MIRROR_GONE: "Environment",
         DATA_MISSING: "Data",
+        OUTPUT_DIR_MISSING: "Environment",
         DATA_CREDENTIALS: "Data",
         ENTRYPOINT_UNCLEAR: "Documentation",
         HARDCODED_PATH: "Code",
@@ -647,6 +651,14 @@ def classify(
                 evidence=evidence[:500],
                 matched_pattern=pattern.pattern,
             )
+            if rule.code == TaxonomyCode.DATA_MISSING:
+                # harness-v1.9 (D-72): the file that is "missing" is one the program WRITES (its traceback frame writes): a missing output directory
+                from app.services import output_dir
+
+                miss = output_dir.detect(combined)
+                if miss is not None:
+                    classification = Classification(TaxonomyCode.OUTPUT_DIR_MISSING, TaxonomyCode.FAMILY[TaxonomyCode.OUTPUT_DIR_MISSING],
+                                                    miss.error_line[:500], f"{pattern.pattern} + a write call in the failing frame")
             if rule.code == TaxonomyCode.DEP_BUILD_FAILED:
                 # The wrapper line ("Encountered error while generating package metadata") names no cause. When the build's
                 # own output holds a Python exception line, THAT is the evidence (harness-v1.1's rule: the exception, never

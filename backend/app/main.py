@@ -25,7 +25,8 @@ def seed_demo_records() -> int:
     root = Path(settings.demo_root) if settings.demo_root else demo_seed.PACKAGE_REPO_ROOT
     db = SessionLocal()
     try:
-        return demo_seed.seed(db, root)
+        added = demo_seed.seed(db, root)
+        return added + demo_seed.seed_scenes(db, root)  # harness-v1.9: the scenes' records (task 5)
     finally:
         db.close()
 

@@ -537,7 +537,7 @@ def test_new_codes_are_in_the_taxonomy_with_their_families():
     assert TaxonomyCode.FAMILY[TaxonomyCode.APT_MIRROR_GONE] == "Environment"
     for code in ("API_REMOVED", "DEP_BUILD_FAILED", "APT_MIRROR_GONE"):
         assert code in TaxonomyCode.ALL
-    assert len(TaxonomyCode.ALL) == 19
+    assert len(TaxonomyCode.ALL) == 20  # harness-v1.9: OUTPUT_DIR_MISSING (D-72)
 
 
 @pytest.mark.parametrize("code, layer", [("API_REMOVED", "env"), ("DEP_BUILD_FAILED", "env"), ("APT_MIRROR_GONE", "env")])

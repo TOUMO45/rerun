@@ -9,6 +9,7 @@ import { EnvDeltaView } from "../components/EnvDeltaView";
 import { ScopeLine } from "../components/ScopeLine";
 import { OutcomeLadder } from "../components/OutcomeLadder";
 import { BlockerCard } from "../components/BlockerCard";
+import { ModeBadge } from "../components/ModeBadge";
 
 export function Certificate() {
   const { runId } = useParams<{ runId: string }>();
@@ -92,7 +93,9 @@ export function Certificate() {
     <div className="mx-auto max-w-3xl space-y-6">
       <div className="flex flex-col-reverse items-start justify-between gap-3 sm:flex-row sm:gap-4">
         <div>
-          <p className="font-mono text-xs text-text-secondary">Execution Certificate</p>
+          <p className="flex items-center gap-2 font-mono text-xs text-text-secondary">
+            Execution Certificate <ModeBadge mode={run.demo_source ? "REPLAY" : "REAL"} />
+          </p>
           <h1 className="mt-1 break-all font-mono text-lg font-medium text-text-primary">{run.repo_url}</h1>
           <p className="mt-1 font-mono text-xs text-text-secondary">
             commit {run.commit_sha?.slice(0, 12) ?? "unknown"} · {new Date(cert.timestamp).toLocaleString()}

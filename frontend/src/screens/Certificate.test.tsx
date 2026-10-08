@@ -606,3 +606,19 @@ describe("Certificate — downloaded passport", () => {
     click.mockRestore();
   });
 });
+
+describe("Certificate — REAL or REPLAY on screen (harness-v1.9, task 5)", () => {
+  it("marks a run served from a committed record REPLAY", async () => {
+    getRun.mockResolvedValue(makeRun({ demo_source: "runs/corpus_v2_batch/harness-v1.7.1/dev/15_YuliaRubanova__latent_ode.json" }));
+    getCertificate.mockResolvedValue(makeCert([]));
+    renderCertificate();
+    expect((await screen.findByTestId("mode-badge")).textContent).toBe("REPLAY");
+  });
+
+  it("marks a run this server executed REAL", async () => {
+    getRun.mockResolvedValue(makeRun({ demo_source: null }));
+    getCertificate.mockResolvedValue(makeCert([]));
+    renderCertificate();
+    expect((await screen.findByTestId("mode-badge")).textContent).toBe("REAL");
+  });
+});

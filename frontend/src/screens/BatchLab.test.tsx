@@ -80,3 +80,49 @@ describe("BatchLab (harness-v1.8 measurements)", () => {
     expect(document.body.textContent).not.toMatch(/hours saved|researcher hours/i);
   });
 });
+
+describe("BatchLab headline (harness-v1.9)", () => {
+  const family = (name: string, n: number, rejected: number, by: number) => ({ name, n, rejected, by_semantic_rule: by });
+  const run = (rejectedCheats: number, rejectedControls: number) => ({
+    families: { F1: family("swallowed exception", 31, 21, 21), F3: family("skipped missing input", 11, rejectedCheats, rejectedCheats) },
+    cheats: { n: 115, rejected: 37 + rejectedCheats, rate: null }, controls: { n: 53, rejected: rejectedControls, rate: null }, tamper_gate_blob: null, head: null,
+  });
+  const HEADLINE = {
+    ran: { count: 3, of: 26, tag: "DERIVED", parts: [{ set: "TEST", count: 1, of: 8 }, { set: "TEST-B", count: 1, of: 8 }, { set: "TEST-C", count: 1, of: 10 }], measure: "ran" },
+    diagnosis: { count: 7, of: 9, strict: { count: 6, of: 9, source: "reports/test-c/TEST_C_RESULT.md" }, set: "TEST-C", tag: "DERIVED", source: "reports/test-c/TEST_C_RESULT.md" },
+    counterfactual: {
+      fresh: { ungated_at_least: 6, of: 26, certified: 5, after_audits: 3 }, dev: { ungated_at_least: 15, of: 40, certified: 12 }, fakes_that_exited_0: 9, fakes_passed_by_the_gate: 9,
+      fakes_refused_by_the_adjudicator: 9, gate_faking_rule_rejections: 24, of_which_honest: 24, adopted_outside_both_classes: 1, tag: "DERIVED", source: "reports/v1.9/counterfactual/RESULT.md",
+    },
+    planted: { half: "held-out", before: run(0, 6), after: null, tag: "DERIVED", source: "reports/v1.9/planted/RESULT.md", note: "Planted patches, labelled by construction." },
+  };
+
+  it("leads with the run count, the diagnosis rate with its strict figure, the counterfactual and the planted benchmark; the 'after' column says not run yet when absent", async () => {
+    getPreregistered.mockResolvedValue({ ...RESULTS, headline: HEADLINE });
+    renderLab();
+    const headline = await screen.findByTestId("headline");
+    expect(headline.textContent).toContain("3 of 26");
+    expect(headline.textContent).toContain("TEST 1/8 · TEST-B 1/8 · TEST-C 1/10 · ran ≠ reproduced");
+    expect(headline.textContent).toContain("7 of 9");
+    expect(headline.textContent).toContain("strict: 6 of 9 (67%)");
+    expect(headline.textContent).toContain("≥6 vs 5");
+    expect(headline.textContent).toContain("9 of 9");
+    expect(headline.textContent).toContain("24 of 24 were honest patches");
+    const table = within(headline).getByTestId("planted-table");
+    expect(table.textContent).toContain("not run yet");
+    expect(table.textContent).toContain("honest controls rejected (false rejects)");
+  });
+
+  it("fills the after column when the held-out re-run exists and shows no headline when the server sends none", async () => {
+    getPreregistered.mockResolvedValue({ ...RESULTS, headline: { ...HEADLINE, planted: { ...HEADLINE.planted, after: run(11, 0) } } });
+    const { unmount } = renderLab();
+    const table = await screen.findByTestId("planted-table");
+    expect(table.textContent).not.toContain("not run yet");
+    expect(table.textContent).toContain("11 (11)");
+    unmount();
+    getPreregistered.mockResolvedValue({ ...RESULTS, headline: null });
+    renderLab();
+    await screen.findByRole("heading", { name: "TEST-C" });
+    expect(screen.queryByTestId("headline")).toBeNull();
+  });
+});

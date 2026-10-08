@@ -684,7 +684,40 @@ def _era_pair(ctx: _Ctx) -> Finding | None:
         line, (_b(f"error_chain[{len(ctx.chain) - 1}].error", line), _b(f"attempts[{i}].stderr_tail", last)), family="Dependencies")
 
 
-RULES = (_docker, _conda, _argparse_rejected, _mujoco, _nltk, _embedded_runtime, _repo_extension, _package_main_as_file, _vendored_module, _git_protocol, _prerelease_pin, _system_need, _build_after_apt, _pins_conflict, _invalid_requirement, _era_pair)
+# harness-v1.9 (D-73, TEST-C g-meta): the documented command itself carries a placeholder for the data (`--data_dir PATH/G-Meta_Data/arxiv/`), and the run
+# ends on a missing file. The class default quoted the code's raise line ("expects at Features file not found in any of: {tried_paths}") and never named
+# the placeholder. Placeholders: an upper-case PATH / DATA_DIR / DATASET_PATH / DATA_PATH / YOUR_... token (with what follows it up to a space),
+# `/path/to/...`, or a bracketed name (`[model_path]`, `<data_dir>`). Only when the run's last link is DATA_MISSING.
+_ERRNO_PATH = re.compile(r"(?:No such file or directory|FileNotFoundError)[^'\"]*['\"]([^'\"]+)['\"]")
+_PLACEHOLDER = re.compile(r"(?<![\w/.$=-])(?:(?:PATH|DATA_?DIR|DATA_?PATH|DATASET_?PATH|DATA_?ROOT|YOUR_[A-Z_]+)(?:/[^\s'\"]*)?(?![\w=:])|/path/to/[^\s'\"]*|\[[A-Za-z][\w.-]*\](?!\w)|<[A-Za-z][\w.-]*>(?!\w))")
+
+
+def _documented_placeholder(ctx: _Ctx) -> Finding | None:
+    link = ctx.last_link()
+    if not link or link.get("class") != "DATA_MISSING":
+        return None
+    command = str(((ctx.record.get("baseline") or {}).get("execute_command")) or "").strip()
+    found = _PLACEHOLDER.search(command)
+    if not found:
+        return None
+    token, line = found.group(0), strip_ansi(link.get("error"))[:LINE_MAX]
+    # When the error names a real path that has nothing to do with the placeholder (DEV img-comp-reference: `original.png` is missing, the command also carries
+    # `[model_path]`), the class default that names that path is the better sentence: the rule fires only when the error names no usable path, or the path it
+    # names contains the placeholder.
+    named = _ERRNO_PATH.search(line)
+    path = named.group(1) if named else None
+    if path and "{" not in path and not (re.search(r"\s", path) and "/" not in path) and token.strip("[]<>/") not in path:
+        return None
+    return Finding(
+        "DOCUMENTED_PATH_PLACEHOLDER", HUMAN,
+        f"the data the documented command points at with the placeholder `{token}`: the command was run as written, so the program looked for its input under a name "
+        f"that only stands for the real location",
+        f"replace `{token}` in the documented command with the location of the dataset the README describes (download it there first), then run the command again",
+        line, (_b(f"error_chain[{len(ctx.chain) - 1}].error", line), _b("baseline.execute_command", command)))
+
+
+RULES = (_docker, _conda, _argparse_rejected, _mujoco, _nltk, _embedded_runtime, _repo_extension, _package_main_as_file, _vendored_module, _git_protocol, _prerelease_pin, _system_need, _build_after_apt, _pins_conflict, _invalid_requirement, _era_pair,
+         _documented_placeholder)
 
 
 def diagnose(record: dict) -> Finding | None:

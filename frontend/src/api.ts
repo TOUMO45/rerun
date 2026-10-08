@@ -69,6 +69,23 @@ export interface RunListItem {
   verdict_label?: string | null;
 }
 
+/** harness-v1.9 (task 5): one demo scene, from `GET /demo/scenes`; every claim is computed from the record on the server. */
+export interface SceneClaim {
+  text: string;
+  basis: string;
+}
+
+export interface Scene {
+  id: string;
+  order: number;
+  mode: "REAL" | "REPLAY";
+  title: string;
+  run_id: string;
+  record: string;
+  claims: SceneClaim[];
+  note: string | null;
+}
+
 export interface RunListOut {
   runs: RunListItem[];
   total: number;
@@ -351,9 +368,44 @@ export interface PreregisteredDiagnosis {
   note?: string;
 }
 
+/** harness-v1.9 (task 6): the Batch Lab's headline, read from committed files (`GET /batch/preregistered` -> `headline`). */
+export interface PlantedFamily {
+  name: string;
+  n: number;
+  rejected: number;
+  by_semantic_rule: number;
+}
+
+export interface PlantedRun {
+  families: Record<string, PlantedFamily>;
+  cheats: { n: number; rejected: number; rate: number | null };
+  controls: { n: number; rejected: number; rate: number | null };
+  tamper_gate_blob: string | null;
+  head: string | null;
+}
+
+export interface BatchHeadline {
+  ran: { count: number; of: number; tag: string; parts: { set: string; count: number; of: number }[]; measure: string } | null;
+  diagnosis: { count: number; of: number; strict: { count: number; of: number; source: string }; set: string; tag: string; source: string } | null;
+  counterfactual: {
+    fresh: { ungated_at_least: number; of: number; certified: number; after_audits: number | null };
+    dev: { ungated_at_least: number; of: number; certified: number };
+    fakes_that_exited_0: number;
+    fakes_passed_by_the_gate: number;
+    fakes_refused_by_the_adjudicator: number;
+    gate_faking_rule_rejections: number;
+    of_which_honest: number;
+    adopted_outside_both_classes: number;
+    tag: string;
+    source: string;
+  } | null;
+  planted: { half: string; before: PlantedRun; after: PlantedRun | null; tag: string; source: string; note: string } | null;
+}
+
 export interface PreregisteredResults {
   sets: PreregisteredSet[];
   note: string;
+  headline?: BatchHeadline | null;
 }
 
 export const api = {
@@ -362,6 +414,7 @@ export const api = {
     request<RunOut>("/runs", { method: "POST", body: JSON.stringify({ repo_url }) }),
   getRun: (id: string) => request<RunOut>(`/runs/${id}`),
   listRuns: () => request<RunListOut>("/runs"),
+  listScenes: () => request<{ scenes: Scene[] }>("/demo/scenes"),
   executeRun: (id: string) => request<RunOut>(`/runs/${id}/execute`, { method: "POST" }),
   getCertificate: (id: string) => request<CertificateOut>(`/runs/${id}/certificate`),
   getBatchResults: () => request<BatchResults>("/batch/results"),

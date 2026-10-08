@@ -2,14 +2,15 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { cleanup, render, screen, within } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
-import type { HealthOut, RunListOut } from "../api";
+import type { HealthOut, RunListOut, Scene } from "../api";
 
 // Only the network layer is replaced; Gallery, Intake, Shell and VerdictBadge render for real.
 const listRuns = vi.fn<() => Promise<RunListOut>>();
 const health = vi.fn<() => Promise<HealthOut>>();
+const listScenes = vi.fn<() => Promise<{ scenes: Scene[] }>>(() => Promise.resolve({ scenes: [] }));
 vi.mock("../api", async (importOriginal) => {
   const actual = await importOriginal<typeof import("../api")>();
-  return { ...actual, api: { ...actual.api, listRuns: () => listRuns(), health: () => health() } };
+  return { ...actual, api: { ...actual.api, listRuns: () => listRuns(), health: () => health(), listScenes: () => listScenes() } };
 });
 
 import { Gallery, parseDemoSource, repoName } from "./Gallery";
@@ -147,6 +148,39 @@ describe("Gallery", () => {
     renderAt("/gallery");
     expect(await screen.findByText("No runs yet.")).toBeTruthy();
     expect(screen.queryByRole("status")).toBeNull();
+  });
+});
+
+describe("Gallery scenes (harness-v1.9, task 5)", () => {
+  it("shows every scene marked REPLAY, with the claims the server computed and a link to the certificate", async () => {
+    listRuns.mockResolvedValue(LIST);
+    health.mockResolvedValue(healthy(true));
+    listScenes.mockResolvedValue({
+      scenes: [
+        {
+          id: "latent_ode", order: 1, mode: "REPLAY", title: "A dependency the paper's era cannot install", run_id: "demo-harness-v1.7.1-dev-15",
+          record: "runs/corpus_v2_batch/harness-v1.7.1/dev/15_YuliaRubanova__latent_ode.json",
+          claims: [{ text: "The adjudicator adopts candidate 1.", basis: "result.attempts[].chosen" }], note: null,
+        },
+        {
+          id: "spline-calibration", order: 2, mode: "REPLAY", title: "Candidates that reach exit 0 by skipping missing inputs, none adopted",
+          run_id: "demo-harness-v1.8.0-treatment-01", record: "runs/corpus_v4_batch/harness-v1.8.0/treatment/01_kartikgupta-at-anu__spline-calibration.json",
+          claims: [{ text: "6 candidates pass the tamper gate and reach exit 0 by skipping every missing file.", basis: "result.attempts" }],
+          note: "Not from the record: harness-v1.9 adds a tamper-gate rule.",
+        },
+      ],
+    });
+    renderAt("/gallery");
+    const cards = await screen.findAllByTestId("scene-card");
+    expect(cards).toHaveLength(2);
+    for (const card of cards) expect(within(card).getByTestId("mode-badge").textContent).toBe("REPLAY");
+    expect(within(cards[1]).getByText(/6 candidates pass the tamper gate/)).toBeTruthy();
+    expect(within(cards[1]).getByText(/Not from the record/)).toBeTruthy();
+    expect(within(cards[1]).getByRole("link", { name: /Certificate/ }).getAttribute("href")).toBe("/runs/demo-harness-v1.8.0-treatment-01/certificate");
+  });
+
+  it("reads a corpus-v4 record path too", () => {
+    expect(parseDemoSource("runs/corpus_v4_batch/harness-v1.8.0/treatment/01_kartikgupta-at-anu__spline-calibration.json")?.entry).toBe("01");
   });
 });
 

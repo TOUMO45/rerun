@@ -232,3 +232,157 @@ def seed(db: Session, root: Path, versions: list[str] | None = None) -> int:
         db.commit()
     log.info("demo seed: %d record(s) added, %d already present", added, len(refs) - added)
     return added
+
+
+# --- harness-v1.9 (owner, 2026-10-08, task 5): the demo's scenes ------------------------------------------------------------------------------------
+# A scene is one committed record, replayed (mode REPLAY: nothing executes), with a caption. Every claim of a caption is COMPUTED from the record when
+# the scene is listed, and a scene whose record does not support every claim is not shown (`scene_claims` returns None and the reason is logged).
+# latent_ode stays the primary scene. spline-calibration is a TEST-C record (corpus-v4, published and final): it sits outside the TEST firewall's
+# directory (which guards corpus-v2's TEST entries during the v1.5 protocol) and is read here by its exact path, never by a glob.
+SCENES: tuple[dict, ...] = (
+    {"id": "latent_ode", "order": 1, "mode": "REPLAY", "record": "runs/corpus_v2_batch/harness-v1.7.1/dev/15_YuliaRubanova__latent_ode.json",
+     "title": "A dependency the paper's era cannot install, fixed by a gate-checked environment change"},
+    {"id": "spline-calibration", "order": 2, "mode": "REPLAY", "record": "runs/corpus_v4_batch/harness-v1.8.0/treatment/01_kartikgupta-at-anu__spline-calibration.json",
+     "title": "Candidates that reach exit 0 by skipping missing inputs, none adopted"},
+)
+_SKIP_MARK = re.compile(r"Skipping|Missing logit files", re.IGNORECASE)
+
+
+def _claim(text: str, basis: str) -> dict:
+    return {"text": text, "basis": basis}
+
+
+def _latent_ode_claims(rec: dict) -> list[dict] | None:
+    cert, res = rec.get("certificate") or {}, rec.get("result") or {}
+    base, chain, attempts = cert.get("baseline") or {}, res.get("error_chain") or [], res.get("attempts") or []
+    if base.get("exit_code") in (0, None) or len(chain) < 2 or chain[0].get("cleared_by") != 0 or res.get("verdict") != "RUNS_AFTER_REPAIR":
+        return None
+    round1 = [a for a in attempts if a.get("attempt_number") == 1 and a.get("origin") == "model"]
+    ran = [a for a in round1 if a.get("gate_decision") == "PASS" and a.get("exit_code") == 0]
+    chosen = [a for a in ran if a.get("chosen") is True]
+    declined = [a for a in round1 if a.get("gate_decision") == "DECLINED"]
+    if len(chosen) != 1 or not chosen[0].get("env_delta") or chosen[0].get("diff_text"):
+        return None
+
+    def op(a: dict) -> str:
+        d = (a.get("env_delta") or [{}])[0]
+        if d.get("op") == "remove":
+            return f"remove `{d.get('package')}`"
+        if d.get("op") == "python":
+            return f"Python {d.get('version')}"
+        return f"{d.get('op')} {d.get('package') or ''}".strip()
+
+    c = chosen[0]
+    others = [a for a in ran if a is not c]
+    execution = c.get("execution") or {}
+    if not isinstance(execution.get("seconds"), (int, float)) or any((a.get("execution") or {}).get("outcome") != "alive_at_limit" for a in ran):
+        return None  # "still running at the smoke limit" and the smoke length are read from the record, never assumed
+    listed = "; ".join(f"candidate {a.get('candidate')}: {op(a)}" for a in sorted(ran, key=lambda a: a.get("candidate") or 0))
+    return [
+        _claim(f"As published ({base.get('base_image')}), the documented command fails: `{base.get('evidence')}`.", "certificate.baseline"),
+        _claim(f"RERUN's time machine rebuilds the paper's era (attempt 0) and that error is cleared; the install then stops on "
+               f"`{str(chain[1].get('error', ''))[:110]}` ({chain[1].get('class')}).", "result.error_chain[0].cleared_by, result.error_chain[1]"),
+        _claim(f"The repairer model proposes {len(round1)} candidates, {len(declined)} of them a decline; {listed}. The tamper gate passes "
+               f"{'both' if len(ran) == 2 else len(ran)}, and each is still running at the smoke limit.", "result.attempts (attempt 1), .execution.outcome"),
+        _claim(f"The adjudicator adopts candidate {c.get('candidate')} ({op(c)}: an environment change, no code patch)"
+               + (f" over candidate {', '.join(str(a.get('candidate')) for a in others)}" if others else "")
+               + f". Verdict {res.get('verdict')}: a {execution.get('seconds')} s smoke run ({execution.get('outcome')}), not a reproduction of the paper's results.",
+               "result.attempts[].chosen, result.verdict"),
+    ]
+
+
+def _spline_claims(rec: dict) -> list[dict] | None:
+    cert, res = rec.get("certificate") or {}, rec.get("result") or {}
+    chain, attempts = res.get("error_chain") or [], res.get("attempts") or []
+    if res.get("verdict") != "BLOCKED" or not chain or chain[-1].get("class") != "DATA_MISSING":
+        return None
+    skipped = [a for a in attempts if a.get("origin") == "model" and a.get("gate_decision") == "PASS" and a.get("exit_code") == 0
+               and _SKIP_MARK.search(a.get("stdout_tail") or "") and "Finished successfully" in (a.get("stdout_tail") or "")]
+    if not skipped or any(a.get("chosen") is True for a in attempts) or any((a.get("adjudication") or {}).get("chosen") is not None for a in skipped):
+        return None
+    rounds = sorted({a.get("attempt_number") for a in skipped if isinstance(a.get("attempt_number"), int)})
+    reason = str((skipped[0].get("adjudication") or {}).get("reasoning") or "")[:170].strip()
+    tag = (rec.get("batch") or {}).get("harness_tag")
+    if not rounds or not reason or not tag:
+        return None  # the caption quotes the adjudicator and names the harness version: both must be in the record
+    return [
+        _claim(f"The documented command `{(cert.get('baseline') or {}).get('execute_command')}` stops on a logit file that is not in the checkout: "
+               f"`{str(chain[-1].get('error', ''))[:120]}`.", "result.error_chain[-1]"),
+        _claim(f"In rounds {' and '.join(str(r) for r in rounds)}, {len(skipped)} candidates pass the tamper gate ({tag}) and reach exit 0 by skipping the missing "
+               f"files: their output reports them (`... Skipping.` or `Missing logit files`) and ends `Finished successfully`.", "result.attempts[].gate_decision, .exit_code, .stdout_tail"),
+        _claim(f"The adjudicator adopts none of them: “{reason}…”", "result.attempts[].adjudication.chosen (null), .reasoning"),
+        _claim(f"Verdict {res.get('verdict')} ({res.get('taxonomy_code')}): the program did not do its work, and the certificate says so. An agent that "
+               f"trusted exit 0 would have reported it reproduced.", "result.verdict, result.taxonomy_code"),
+    ]
+
+
+_CLAIMS = {"latent_ode": _latent_ode_claims, "spline-calibration": _spline_claims}
+_SCENE_NOTES = {"spline-calibration": "Not from the record: harness-v1.9 adds a tamper-gate rule (SKIPPED_MISSING_INPUT) for this pattern; this record was made at "
+                                      "harness-v1.8.0, before it, so here the adjudicator alone refused the fakes."}
+
+
+def scene_run_id(scene: dict) -> str:
+    """The run id a scene's record is seeded under: the corpus-v2 id scheme (`demo-<tag>-<arm>-<NN>`), from the record's own path."""
+    parts = Path(scene["record"]).parts
+    return f"demo-{parts[-3]}-{parts[-2]}-{int(parts[-1][:2]):02d}"
+
+
+def _read_scene_record(root: Path, scene: dict) -> dict | None:
+    """The scene's record. A corpus-v2 record goes through the TEST firewall like every other record the demo opens; the TEST-C record (corpus-v4, published
+    and final) is read by its exact path."""
+    path = Path(root) / scene["record"]
+    if not path.is_file():
+        log.warning("demo scene %s: record %s missing", scene["id"], scene["record"])
+        return None
+    text = _load_firewall(Path(root)).read_record_text(path) if scene["record"].startswith(RUNS_SUBDIR.as_posix() + "/") else path.read_text(encoding="utf-8")
+    return json.loads(text)
+
+
+def scene_claims(root: Path, scene: dict) -> list[dict] | None:
+    record = _read_scene_record(root, scene)
+    if record is None:
+        return None
+    claims = _CLAIMS[scene["id"]](record)
+    if claims is None:
+        log.warning("demo scene %s: the record does not support every claim of the caption; the scene is not shown", scene["id"])
+    return claims
+
+
+def seed_scenes(db: Session, root: Path) -> int:
+    """Seed every scene record that is not already in the database (the corpus-v2 one usually is, as the latest DEV record of its entry)."""
+    added = 0
+    for scene in SCENES:
+        run_id = scene_run_id(scene)
+        if db.get(Run, run_id) is not None or scene_claims(root, scene) is None:
+            continue
+        path = Path(root) / scene["record"]
+        parts = path.parts
+        name = _NAME_RE.match(parts[-1])
+        ref = RecordRef(path, parts[-3], parts[-2], int(name.group(1)), name.group(2))
+        run, certificate = rows_from_record(ref, _read_scene_record(root, scene), scene["record"])
+        db.add(run)
+        db.add(certificate)
+        added += 1
+    if added:
+        db.commit()
+    return added
+
+
+def list_scenes(db: Session, root: Path) -> list[dict]:
+    """The scenes whose run is in the database and whose record supports their caption, in order."""
+    out = []
+    for scene in sorted(SCENES, key=lambda s: s["order"]):
+        run_id = scene_run_id(scene)
+        run = db.get(Run, run_id)
+        if run is None or run.demo_source != scene["record"]:
+            continue  # not seeded, or the id is held by another corpus's record: never show one record's claims beside another's replay
+        try:
+            claims = scene_claims(root, scene)
+        except Exception:  # noqa: BLE001 - a scene whose record cannot be read is left out; the route must not fail
+            log.exception("demo scene %s could not be read", scene["id"])
+            claims = None
+        if claims is None:
+            continue
+        out.append({"id": scene["id"], "order": scene["order"], "mode": scene["mode"], "title": scene["title"], "run_id": run_id,
+                    "record": scene["record"], "claims": claims, "note": _SCENE_NOTES.get(scene["id"])})
+    return out

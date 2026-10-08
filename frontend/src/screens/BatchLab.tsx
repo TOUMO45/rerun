@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { api, ApiError, type PreregisteredMetrics, type PreregisteredSet, type Verdict } from "../api";
 import { VerdictBadge } from "../components/VerdictBadge";
+import { Headline } from "../components/Headline";
 
 const REPO = "https://github.com/TOUMO45/rerun/blob/main/";
 const VERDICTS: readonly string[] = [
@@ -36,9 +37,11 @@ export function BatchLab() {
         <h1 className="mt-1 font-display text-2xl font-semibold tracking-tight text-text-primary sm:text-3xl">Held-out results</h1>
         <p className="mt-2 max-w-2xl text-sm leading-relaxed text-text-secondary">
           Each set below was chosen by a rule written down before it was picked, run once, and never used to tune RERUN. They are shown as
-          they came out, each on its own: different sets, different harness versions, never added together. {query.data.note}
+          they came out, each on its own: different sets, different harness versions. The headline below adds the three held-out run counts once;
+          each set keeps its own count in its card. The main result is the count and the diagnosis, not repair. {query.data.note}
         </p>
       </div>
+      {query.data.headline && <Headline headline={query.data.headline} />}
       {query.data.sets.map((set) => (
         <SetCard key={set.key} set={set} />
       ))}

@@ -70,6 +70,7 @@ from app.services import (
     install_repair,
     prerelease_pin,
     outcome_levels,
+    output_dir,
     patch_pipeline,
     python_policy,
     resource_limits,
@@ -112,6 +113,7 @@ from app.services.tamper_gate import (
     GateRule,
     check_patch,
     diagnostics_only_violation,
+    documented_scripts,
     heuristic_eval_call_names,
     heuristic_model_call_names,
     injected_default,
@@ -338,6 +340,8 @@ class _RunState:
     apt_archive: bool = False
     # harness-v1.7 (R3, data_prep): what the rule decided ({"decision", "readmes", "step"?}); set once per run, on the first DATA_MISSING at repair time.
     data_prep: dict | None = None
+    # harness-v1.9 (D-72, output_dir): what the missing-output-directory rule did ({"decision", "directory"?, "command"?}); set once per run.
+    output_dir: dict | None = None
     # harness-v1.7 (R1): the memory hook is installed and the memory environment applies to every re-execution from here on; `resource_adapt` is
     # the last adaptation applied ({"round", "changes", "label", "command"}), None while the documented command runs as published.
     memory_hook: bool = False
@@ -2595,6 +2599,43 @@ def _run_stages(
             _record(result.final.exit_code, result.final.stdout[-2000:], result.final.stderr[-2000:], _execution_of(result, True))
             return result
 
+        def _auto_output_dir(failed: SandboxRunResult) -> SandboxRunResult | None:
+            """harness-v1.9 (D-72). Deterministic step (no model): the failure is OUTPUT_DIR_MISSING (a write whose directory does not exist). RERUN
+            creates that directory with one setup command (`mkdir -p -- <dir>`, output_dir.mkdir_command: inside the checkout only) and re-executes the
+            documented command. Attempt 0 / origin time_machine, once per run. None when the rule does not fire (the reason is logged and kept in `state`) or the budget
+            stops it. It creates a directory, never a file, and never touches an input."""
+            miss = output_dir.detect(f"{classifier.denoise(failed.final.stderr)}\n{classifier.denoise(failed.final.stdout)}")  # the text the classifier read
+            if miss is None:
+                state.output_dir = {"decision": "no write call in the failing frame"}
+                return None
+            command, where = output_dir.mkdir_command(miss, state.baseline.get("execute_command") or plan.execute_command)
+            state.output_dir = {"decision": "fired" if command else where, "path": miss.path, "write_line": miss.write_line}
+            if command is None:
+                _log(f"[time-machine] output_dir: not fired: {where}")
+                return None
+            state.output_dir.update(directory=where, command=command)
+            state.runner_extras.append(command)
+            action = {"rule": output_dir.RULE, "matched_error": miss.error_line, "write_line": miss.write_line, "directory": where, "command": command,
+                      "phase": "repair", "fires_on": "OUTPUT_DIR_MISSING at repair time: a write whose directory does not exist"}
+            _log(f"[time-machine] deterministic step: output_dir (`{command}`; the failing write: `{miss.write_line[:160]}`); no model call")
+
+            def _record(exit_code, stdout, stderr, execution=None) -> None:
+                attempts.append(AttemptRecord(0, "", "PASS", (), exit_code, stdout, stderr, origin="time_machine",
+                                              execution=execution, time_machine_action=action))
+
+            try:
+                result = _execute(workdir, smoke=True, role="time machine: output_dir")
+            except CostLimitExceeded as exc:
+                _log(f"[time-machine] stopped: {exc}")
+                _record(None, "", f"stopped before completion: {exc}"[-2000:])
+                return None
+            except (SandboxTimeoutError, tree_integrity.HarnessIntegrityError) as exc:
+                _record(None, "", str(exc)[-2000:])
+                raise
+            _log(f"[time-machine] re-execution id={result.sandbox_id} exit_code={result.final.exit_code}")
+            _record(result.final.exit_code, result.final.stdout[-2000:], result.final.stderr[-2000:], _execution_of(result, True))
+            return result
+
         def _auto_apt_archive(matched: str) -> SandboxRunResult | None:
             """harness-v1.7 (R4). Deterministic step (no model): the base image's Debian release has left the mirrors (APT_MIRROR_GONE). From here on
             every apt command is preceded by runner_env.apt_archive_step() (only an end-of-life codename is rewritten), recorded in the build plan's
@@ -2739,6 +2780,11 @@ def _run_stages(
                 elif classification.code == classifier.TaxonomyCode.APT_MIRROR_GONE and not state.apt_archive:
                     state.stage = "time_machine"  # harness-v1.7 (R4): nothing else can install while the mirrors are gone
                     step_result = _auto_apt_archive(classification.evidence or classification.code)
+                elif (classification.code == classifier.TaxonomyCode.OUTPUT_DIR_MISSING and hooks_ok and state.output_dir is None):
+                    state.stage = "time_machine"  # harness-v1.9 (D-72): create the missing output directory, before any model call
+                    step_result = _auto_output_dir(sandbox_result)
+                    if step_result is None and not state.cost_capped:
+                        continue  # not fired (the decision is kept, so it cannot come back): the other deterministic steps get their turn
                 elif (classification.code == classifier.TaxonomyCode.DATA_MISSING and hooks_ok and state.data_prep is None
                       and not removal_hit):
                     state.stage = "time_machine"  # harness-v1.7 (R3): the repository's documented data step, before any model call
@@ -3181,6 +3227,8 @@ def _run_stages(
                         eval_call_names=frozenset(recon_result.eval_call_names) | heuristic_eval_call_names(touched_sources),
                         model_call_names=frozenset(recon_result.model_call_names) | heuristic_model_call_names(touched_sources),
                         repo_root=workdir,
+                        # harness-v1.9 (D-55): the documented command's own script is the program, not a test, even when it is named test_*.py
+                        documented_files=documented_scripts(state.baseline.get("execute_command") or plan.execute_command),
                     )
                     # From here on, the diff that is recorded and applied is exactly
                     # the canonical one the gate analyzed.

@@ -115,7 +115,7 @@ def _scan_committed_records() -> dict[str, str]:
     found: dict[str, str] = {}
     for p in sorted((ROOT / "runs").glob("**/*.json")):
         rel = p.relative_to(ROOT).as_posix()
-        if "dev_v18" in rel or "harness-v1.8" in rel or rel in key or p.stat().st_size > 30_000_000:
+        if "dev_v18" in rel or "harness-v1.8" in rel or rel.startswith("runs/v1.9/") or rel in key or p.stat().st_size > 30_000_000:
             continue  # the v1.8 DEV re-runs and anything later are new evidence, not held-out evidence
         try:
             d = json.loads(p.read_text(encoding="utf-8"))
