@@ -65,7 +65,8 @@ def allowed() -> set[str]:
                 walk(v)
 
     # harness-v1.7.1: the DEV rounds (phase_d/dev_rounds.py, built from the round records with tags and pointers) are a source the texts may cite too
-    for rel in (*dashboard.INPUTS, "reports/phase-d/dev_rounds.json"):
+    # harness-v1.9: the figures of the README's "The result" section, generated from the committed result files by reports/v1.9/figures.py, are a source too
+    for rel in (*dashboard.INPUTS, "reports/phase-d/dev_rounds.json", "reports/v1.9/figures.json"):
         raw = (ROOT / rel).read_text(encoding="utf-8")
         tokens |= set(NUMBER.findall(raw))
         walk(json.loads(raw))
@@ -137,7 +138,7 @@ def test_the_demo_script_fits_three_minutes_and_maps_every_numbered_sentence_to_
 
 # ---------------------------------------------------------------- README
 
-README_SECTIONS = ["What it is", "The measured result", "How it works", "Where Nemotron is used", "Where Token Factory is used", "Where Tavily is used",
+README_SECTIONS = ["The result", "What it is", "The measured result", "How it works", "Where Nemotron is used", "Where Token Factory is used", "Where Tavily is used",
                    "Run it offline in one command", "Run it live", "Evidence and integrity", "Defect register summary and status rule", "Cost ledger",
                    "License", "Known limits"]
 

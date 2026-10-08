@@ -1,0 +1,109 @@
+"""harness-v1.9: every number the README's "The result" section states, read from the committed result files and written to reports/v1.9/figures.json with its tag and source.
+
+    backend/.venv/Scripts/python.exe reports/v1.9/figures.py [--write]
+
+The README guard (backend/tests/test_phase_d_submission.py) requires every number in the submission texts to come from a committed JSON source and every numbered line
+to carry a tag; this file is such a source (as reports/phase-d/dev_rounds.json is). Nothing here is typed by hand: each value is computed from `facts.json`,
+`classification.json`, `second_rater.json`, the planted gate outputs, TEST-C's score and the batch router's headline (which reads the three held-out result files).
+"""
+from __future__ import annotations
+
+import argparse
+import json
+import sys
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parents[2]
+sys.path.insert(0, str(ROOT / "backend"))
+
+from app.routers import batch  # noqa: E402
+
+V19 = ROOT / "reports" / "v1.9"
+
+
+def _j(path: Path) -> dict:
+    return json.loads(path.read_text(encoding="utf-8"))
+
+
+def build() -> dict:
+    head = batch.preregistered_results(ROOT)["headline"]
+    facts = _j(V19 / "counterfactual" / "facts.json")["summary"]
+    items = _j(V19 / "counterfactual" / "classification.json")["items"]
+    rater = _j(V19 / "counterfactual" / "second_rater.json")["items"]
+    before, after = _j(V19 / "planted" / "gate_heldout_before.json")["summary"], _j(V19 / "planted" / "gate_heldout_after.json")["summary"]
+    fakes = [i for i in items if i["label"] == "GENUINE FAKE"]
+    first = [i["label"] for i in items if i["group"] == "reached naive success"] + [i["label"] for i in items if i["group"] != "reached naive success"]
+    agree = sum(1 for a, b in zip(first, rater) if a == b["label"])
+    families = [f for f in ("F1", "F2", "F3", "F4", "F5", "F6")]
+    unreached = [f for f in families if after[f]["rejected"] == 0]
+    corpus = [json.loads(line) for line in (V19 / "planted" / "corpus.jsonl").read_text(encoding="utf-8").splitlines() if line.strip()]
+    fig: dict[str, dict] = {}
+
+    def add(name: str, value: int, source: str, note: str) -> None:
+        fig[name] = {"value": value, "tag": "DERIVED", "source": source, "note": note}
+
+    ran = head["ran"]
+    add("held_out_ran", ran["count"], "GET /batch/preregistered headline.ran", "TEST after its published audit + TEST-B + TEST-C")
+    add("held_out_total", ran["of"], "GET /batch/preregistered headline.ran", "8 + 8 + 10")
+    for part in ran["parts"]:
+        key = part["set"].lower().replace("-", "_")
+        add(f"{key}_ran", part["count"], "GET /batch/preregistered headline.ran.parts", part["set"])
+        add(f"{key}_of", part["of"], "GET /batch/preregistered headline.ran.parts", part["set"])
+    add("test_preregistered_confirmed", batch._read(ROOT, batch.TEST_RESULT)["confirmed_count"], batch.TEST_RESULT, "TEST as pre-registered, before the audit")
+    d = head["diagnosis"]
+    add("diagnosis_actionable", d["count"], d["source"], "TEST-C, stored blockers scored by the committed rubric")
+    add("diagnosis_non_running", d["of"], d["source"], "TEST-C non-running entries")
+    add("diagnosis_strict", d["strict"]["count"], d["strict"]["source"], "one key regex judged strictly")
+    cf = head["counterfactual"]
+    add("ungated_fresh_at_least", cf["fresh"]["ungated_at_least"], "reports/v1.9/counterfactual/facts.json", "fresh = TEST + TEST-B + TEST-C")
+    add("fresh_entry_runs", cf["fresh"]["of"], "reports/v1.9/counterfactual/facts.json", "")
+    add("certified_fresh_as_recorded", cf["fresh"]["certified"], "reports/v1.9/counterfactual/facts.json", "RUNS_CLEAN or RUNS_AFTER_REPAIR as recorded")
+    add("certified_fresh_after_audits", cf["fresh"]["after_audits"], "reports/v1.9/counterfactual/facts.json + the published audits", "")
+    add("ungated_dev_at_least", cf["dev"]["ungated_at_least"], "reports/v1.9/counterfactual/facts.json", "")
+    add("dev_entry_runs", cf["dev"]["of"], "reports/v1.9/counterfactual/facts.json", "")
+    add("certified_dev", cf["dev"]["certified"], "reports/v1.9/counterfactual/facts.json", "")
+    add("fakes_exit_zero_passed_gate", sum(1 for i in fakes if i["group"] == "reached naive success"), "reports/v1.9/counterfactual/classification.json", "genuine fakes that reached exit 0")
+    add("fakes_refused_by_adjudicator", cf["fakes_refused_by_the_adjudicator"], "reports/v1.9/counterfactual/classification.json", "")
+    add("gate_faking_rule_rejections", cf["gate_faking_rule_rejections"], "reports/v1.9/counterfactual/classification.json", "all honest patches")
+    add("judgements", len(items), "reports/v1.9/counterfactual/classification.json", "")
+    add("second_rater_agreement", agree, "reports/v1.9/counterfactual/second_rater.json", "labels that agree with the first rater")
+    add("planted_patches", len(corpus), "reports/v1.9/planted/corpus.jsonl", "")
+    add("planted_cheats", sum(1 for r in corpus if r["kind"] == "cheat"), "reports/v1.9/planted/corpus.jsonl", "")
+    add("planted_controls", sum(1 for r in corpus if r["kind"] == "control"), "reports/v1.9/planted/corpus.jsonl", "")
+    add("planted_bases", len({r["base"] for r in corpus}), "reports/v1.9/planted/corpus.jsonl", "repositories with a committed run")
+    add("planted_heldout_cheats", after["ALL CHEATS"]["n"], "reports/v1.9/planted/gate_heldout_after.json", "")
+    add("planted_heldout_cheats_caught_after", after["ALL CHEATS"]["rejected"], "reports/v1.9/planted/gate_heldout_after.json", "")
+    add("planted_heldout_cheats_caught_before", before["ALL CHEATS"]["rejected"], "reports/v1.9/planted/gate_heldout_before.json", "13 of them by D-55 alone")
+    add("planted_heldout_controls", after["ALL CONTROLS"]["n"], "reports/v1.9/planted/gate_heldout_after.json", "")
+    add("planted_controls_rejected_after", after["ALL CONTROLS"]["rejected"], "reports/v1.9/planted/gate_heldout_after.json", "")
+    add("planted_controls_rejected_before", before["ALL CONTROLS"]["rejected"], "reports/v1.9/planted/gate_heldout_before.json", "all L2D, PROTECTED_PATH_MODIFIED")
+    add("planted_uncaught_families_cheats", sum(after[f]["n"] for f in unreached), "reports/v1.9/planted/gate_heldout_after.json", "families F4, F5, F6: " + ", ".join(unreached))
+    add("planted_uncaught_families_caught", sum(after[f]["rejected"] for f in unreached), "reports/v1.9/planted/gate_heldout_after.json", "")
+    add("planted_stubs_n", after["F2"]["n"], "reports/v1.9/planted/gate_heldout_after.json", "F2 stubbed function")
+    add("planted_stubs_caught", after["F2"]["rejected"], "reports/v1.9/planted/gate_heldout_after.json", "")
+    add("planted_swallow_n", after["F1"]["n"], "reports/v1.9/planted/gate_heldout_after.json", "F1 swallowed exception")
+    add("planted_swallow_caught", after["F1"]["rejected"], "reports/v1.9/planted/gate_heldout_after.json", "")
+    add("planted_skip_n", after["F3"]["n"], "reports/v1.9/planted/gate_heldout_after.json", "F3 skipped missing input")
+    add("planted_skip_caught", after["F3"]["rejected"], "reports/v1.9/planted/gate_heldout_after.json", "")
+    steam = _j(ROOT / "runs" / "v1.9" / "steamctl" / "summary.json")
+    for tag, label in (("harness-v1.7.2", "v172"), ("harness-v1.8.0", "v180")):
+        rows = [r for r in steam if r["tag"] == tag]
+        add(f"steamctl_{label}_runs", len(rows), "runs/v1.9/steamctl/summary.json", tag)
+        add(f"steamctl_{label}_ran", sum(1 for r in rows if r.get("verdict") in ("RUNS_CLEAN", "RUNS_AFTER_REPAIR")), "runs/v1.9/steamctl/summary.json", tag)
+    return {"note": "Generated by reports/v1.9/figures.py from committed result files; every value is a DERIVED count or a count of stored fields.", "figures": fig}
+
+
+def main() -> int:
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--write", action="store_true")
+    args = ap.parse_args()
+    doc = build()
+    for name, f in doc["figures"].items():
+        print(f"{name:42} {f['value']}")
+    if args.write:
+        (V19 / "figures.json").write_text(json.dumps(doc, indent=1) + "\n", encoding="utf-8", newline="\n")
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

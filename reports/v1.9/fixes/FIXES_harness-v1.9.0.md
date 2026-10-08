@@ -23,9 +23,9 @@ creates a directory, a negated check that only logs (the read then fails), an ex
 
 Development record: dev half iteration 1 caught F3 7/9 (the two misses were `except FileNotFoundError: x = None`); iteration 2 made a handler that only assigns a
 literal count as giving up: 9/9; iteration 3 (from DEV img-comp v1.6.0: `if os.path.exists(m): restore(m) else: log.warning(...)`) made an `else` that only logs count
-too. Dev-half controls rejected: 0/53 at every iteration. DEV replay (`replay_dev_gate.json`): 98 recorded model patches, the rule fires on 9, all img-comp-reference
-patches that skip a missing input (the input image, or the pretrained model `[model_path]`, after which the run uses random weights); the two that reached exit 0 are
-DEV's recorded fakes. It fires on no adopted or honest recorded patch. (Two further decisions differ in the replay, UNPARSEABLE_PATCH on later-round patches checked
+too. Dev-half controls rejected: 0/53 at every iteration. DEV replay (`replay_dev_gate.json`): 98 recorded model patches, the rule (final form, after the review) fires on 12, all img-comp-reference
+patches that skip a missing input (the input image, or the pretrained model `[model_path]`, after which the run uses random weights); two of them reached exit 0 and are
+DEV's recorded fakes (v1.5.2 and v1.6.0); the third recorded DEV fake (v1.5.0) has its `return` outside the `if`, so it returns always and **passes the rule**. It fires on no adopted or honest recorded patch. (Two further decisions differ in the replay, UNPARSEABLE_PATCH on later-round patches checked
 against the pristine file; the harness-v1.8.0 gate gives the same on the same input, so they are replay artifacts, not a change.)
 
 ## b. D-55 / D-75: the documented command's own `test_*.py` file

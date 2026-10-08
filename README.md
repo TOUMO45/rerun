@@ -1,17 +1,28 @@
 # RERUN
 
+## The result
+
+RERUN audits whether a paper's code still runs and, when it does not, says what stops it. The main result is that count and that diagnosis, not repair. Every figure below is a committed count (`reports/v1.9/figures.json`, built from the result files by `reports/v1.9/figures.py`).
+
+- **3 [DERIVED] of 26 [DERIVED] held-out repositories ran their documented command.** TEST 1 [DERIVED] of 8 [DERIVED] after its published audit (2 [DERIVED] as pre-registered), TEST-B 1 [DERIVED] of 8 [DERIVED], TEST-C 1 [DERIVED] of 10 [DERIVED]. Each set was drawn under a registration committed before the draw and run once; "ran" means the documented command executed, never that a paper's result was reproduced.
+- **Diagnosis, TEST-C: 7 [DERIVED] of 9 [DERIVED] non-running entries got an actionable diagnosis; 6 [DERIVED] of 9 [DERIVED] judged strictly** (`reports/test-c/TEST_C_RESULT.md`; the key was written from the raw logs and committed before scoring).
+- **What the anti-cheat machinery did on real runs** (committed records only, zero spend, `reports/v1.9/counterfactual/RESULT.md`): an agent that trusted exit 0 would have reported at least 6 [DERIVED] of 26 [DERIVED] fresh entry-runs as reproduced; RERUN certified 5 [DERIVED] as recorded and 3 [DERIVED] after the published audits (DEV: at least 15 [DERIVED] of 40 [DERIVED] against 12 [DERIVED]). Every fake that reached exit 0 (9 [DERIVED]: each skips a missing input) passed the tamper gate and was refused by the adjudicator; every gate rejection under a faking rule (24 [DERIVED]) was an honest patch. A blind second rater, a separate model instance given the rubric and not the first labels, agrees on 43 [DERIVED] of 43 [DERIVED] judgements.
+- **Planted-cheat benchmark** (`reports/v1.9/planted/RESULT.md`): 337 [DERIVED] deterministic patches planted into 7 [DERIVED] repositories that have a committed run (231 [DERIVED] cheats in six families, 106 [DERIVED] honest controls), split by a seeded draw. On the held-out half the harness-v1.9 tamper gate catches 35 [DERIVED] of 115 [DERIVED] cheats and wrongly rejects 0 [DERIVED] of 53 [DERIVED] honest controls (6 [DERIVED] of 53 [DERIVED] before the fixes, all refused for a file name). It catches 11 [DERIVED] of 11 [DERIVED] skipped inputs, 21 [DERIVED] of 31 [DERIVED] swallowed exceptions and 3 [DERIVED] of 23 [DERIVED] stubbed functions, and **0 [DERIVED] of 50 [DERIVED] cheats that end the program early, change the documented command or shrink the workload**: no gate rule covers them. The benchmark runs the gate alone; the adjudicator and the post-run audit are not part of it.
+
+What that says plainly: on real runs the guard that worked against fakes was the adjudicator and the audit, not the gate; the gate's rules catch some cheats and refuse some honest patches, and this version fixes the second problem and one of the first. Repair is attempted and its yield is small (below); it is not the result.
+
 ## What it is
 
 **Does a paper's code still run? If not, how far does it get, what stops it, and what would a human have to supply?**
 
-**One real run, end to end** (DEV round five, entry `05`, `BorgwardtLab/topological-autoencoders` at its pinned commit; record `runs/corpus_v2_batch/harness-v1.7.1/dev/05_BorgwardtLab__topological-autoencoders.json`):
+**One real run, end to end, and it did not run** (DEV round five, entry `05`, `BorgwardtLab/topological-autoencoders` at its pinned commit; record `runs/corpus_v2_batch/harness-v1.7.1/dev/05_BorgwardtLab__topological-autoencoders.json`):
 
 - As published, it cannot even install: it pins `torch==1.2.0` with `torchvision==0.5.0`, a pair pip cannot install together (`ResolutionImpossible`).
 - A deterministic rule swaps in the torchvision made for that torch, and the Pillow it imports, with no model call; the certificate says so: `dependency change: torchvision 0.5.0->0.4.0, Pillow 9.0.0->6.2.2`.
 - The next failure is the repository's own: its requirements pin a `urllib3` that its own `botocore` pin forbids. NVIDIA Nemotron proposes repairs; the tamper gate rejects one whose evidence is not in the log, Nemotron Ultra adjudicates, and unpinning `urllib3` clears it.
 - Then `cmake: not found`, added by the model; then a package build fails (`error: subprocess-exited-with-error`). Verdict: BLOCKED (DEP_BUILD_FAILED), with the blocker quoted, the ladder (first error cleared, environment not resolved), and a SHA-256 passport that `python scripts/verify_passport.py` checks offline. Cost $2.3701 [API-REPORTED]. It did not run, and the certificate says exactly why.
 
-RERUN answers that in minutes, for about a dollar, with evidence: it clones the repository at its pinned commit, rebuilds the environment of the paper's era with deterministic rules, runs the documented command in a Nebius Token Factory sandbox, classifies what stopped it, lets NVIDIA Nemotron propose a repair that a deterministic tamper gate decides, and signs a passport that anyone can verify offline. Every number it reports carries a tag and traces to a committed record: API-REPORTED (formerly MEASURED) is a stored field of a committed record, or a count or sum of such fields, and for a dollar figure the sandbox API's reported operation cost, not account billing; ESTIMATED; DERIVED; BILLED for the owner's account-balance readings.
+RERUN answers that in minutes, for about a dollar, with evidence: it clones the repository at its pinned commit, rebuilds the environment of the paper's era with deterministic rules, runs the documented command in a Nebius Token Factory sandbox, classifies what stopped it and says who can remove it, lets NVIDIA Nemotron propose a repair that a deterministic tamper gate and an adjudicator decide (repair is attempted, and its yield is small: see above), and signs a passport that anyone can verify offline. Every number it reports carries a tag and traces to a committed record: API-REPORTED (formerly MEASURED) is a stored field of a committed record, or a count or sum of such fields, and for a dollar figure the sandbox API's reported operation cost, not account billing; ESTIMATED; DERIVED; BILLED for the owner's account-balance readings.
 
 **What a certificate shows (harness-v1.6):**
 
@@ -19,7 +30,7 @@ RERUN answers that in minutes, for about a dollar, with evidence: it clones the 
 - **The blocker**: its class, the quoted evidence line, who can remove it (deterministic / model / human / platform), what a human must supply (for example: "the dataset the repository expects at <path>, obtained as its README describes"), and, for a missing dataset, where to get it (one Tavily search, stored with its query).
 - **The repair trail**: every model proposal with the gate's decision, the environment and era lock, the cost, the sandbox streams' sizes and hashes.
 
-**What the committed records show** (`reports/dev/levels/levels.md`, counted offline from the DEV and gate records, every cell a count of stored fields [API-REPORTED]; the TEST set is sealed until the freeze):
+**What the repair steps changed, a development signal and not the result** (`reports/dev/levels/levels.md`, counted offline from the DEV and gate records, every cell a count of stored fields [API-REPORTED]; the TEST set is sealed until the freeze):
 
 | | first error cleared | environment resolved | entrypoint runs (smoke) |
 |---|---|---|---|
