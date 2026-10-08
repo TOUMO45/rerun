@@ -10,6 +10,7 @@ Sums, from the records on disk (each with the estimate of any killed step, as ea
   TEST-C    runs/corpus_v4_batch/*/treatment/test_c_result.json spend.total_usd + its upload smoke test (harness-v1.8.0, 2026-10-07)
   v1.8 DEV  runs/dev_v18/**: every record's cost_guard.spent_usd (the 16 corpus entries re-run as DEV-CONTAMINATED under harness-v1.8) and every scan_summary.json row (the 5
             out-of-sample repositories re-run the same way), plus upload smoke tests (harness-v1.8, owner 2026-10-07)
+  v1.10     reports/v1.10/**/spend*.json, scenarios*.json baseline spend and runs/v1.10/**/NN_*.json cost guard totals (the harness-v1.10 pass, owner 2026-10-08)
   v1.9      runs/v1.9/**/summary.json rows (the steamctl variance runs at harness-v1.7.2 and harness-v1.8.0, owner 2026-10-08), read like the DEV scan rows
 A seal of harness-v1.7.2 or later goes into ledger_extras.json by hand, as the earlier seals did (no script writes it).
 """
@@ -97,6 +98,19 @@ def parts() -> dict[str, float]:
         for row in json.loads(path.read_text(encoding="utf-8")):
             v19 += dev_scan_row_cost(row)
     out["v1.9 (runs/v1.9)"] = round(v19, 6)
+    # harness-v1.10 pass (owner, 2026-10-08, $60 ledger cap): the full-pipeline measurements' own spend files (reports/v1.10/**/spend.json, API-reported sandbox steps plus the cost guard's
+    # model calls), the baseline runs of each scenarios file, the pilot/confirmation spends recorded as spend files too, and the paid live record(s) under runs/v1.10/ (cost guard's spent_usd)
+    v110 = 0.0
+    for path in (ROOT / "reports" / "v1.10").glob("**/spend*.json"):
+        v110 += float(json.loads(path.read_text(encoding="utf-8")).get("spend_usd_api_reported") or 0.0)
+    for path in (ROOT / "reports" / "v1.10").glob("**/scenarios*.json"):
+        v110 += float(json.loads(path.read_text(encoding="utf-8")).get("baseline_spend_usd") or 0.0)
+    for path in (ROOT / "runs" / "v1.10").glob("**/[0-9][0-9]_*.json"):
+        try:
+            v110 += float((json.loads(path.read_text(encoding="utf-8")).get("cost_guard") or {}).get("spent_usd") or 0.0)
+        except ValueError:
+            continue
+    out["v1.10 (reports/v1.10, runs/v1.10)"] = round(v110, 6)
     return out
 
 

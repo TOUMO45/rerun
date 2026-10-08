@@ -1,0 +1,118 @@
+{
+ "rows": [
+  {
+   "set": "TEST-A",
+   "entry": "10",
+   "name": "alevine0__patchSmoothing",
+   "verdict_as_recorded": "RUNS_AFTER_REPAIR",
+   "certified_as_recorded": true,
+   "documented_command": "python3 train_mnist_band.py --band_size 4 --lr 0.01 --end_epoch 199",
+   "baseline_exit_code": 1,
+   "exit_zero_came_from": "a deterministic step (no model proposal)",
+   "model_patch_involved": false,
+   "published_audit": null,
+   "removed_by_audit": false,
+   "was_a_fake": false,
+   "post_hoc_v18_rerun": {
+    "record": "runs/dev_v18/round1/TEST/10_alevine0__patchSmoothing.json",
+    "verdict": "RUNS_AFTER_REPAIR",
+    "taxonomy_code": "GPU_REQUIRED"
+   }
+  },
+  {
+   "set": "TEST-A",
+   "entry": "18",
+   "name": "aam-at__adversary_critic",
+   "verdict_as_recorded": "RUNS_CLEAN",
+   "certified_as_recorded": true,
+   "documented_command": "python generate_script.py --train=True | bash",
+   "baseline_exit_code": 0,
+   "exit_zero_came_from": "the as-published command",
+   "model_patch_involved": false,
+   "published_audit": "false positive (D-46): the pipe returned bash's exit 0 after the script failed at its first import",
+   "removed_by_audit": true,
+   "was_a_fake": false,
+   "post_hoc_v18_rerun": {
+    "record": "runs/dev_v18/round1/TEST/18_aam-at__adversary_critic.json",
+    "verdict": "BLOCKED",
+    "taxonomy_code": "API_REMOVED"
+   }
+  },
+  {
+   "set": "TEST-B",
+   "entry": "04",
+   "name": "zcajiayin__L2D",
+   "verdict_as_recorded": "RUNS_AFTER_REPAIR",
+   "certified_as_recorded": true,
+   "documented_command": "python3 test_learned.py",
+   "baseline_exit_code": 1,
+   "exit_zero_came_from": "a deterministic step (no model proposal)",
+   "model_patch_involved": false,
+   "published_audit": null,
+   "removed_by_audit": false,
+   "was_a_fake": false,
+   "post_hoc_v18_rerun": {
+    "record": "runs/dev_v18/round1/TEST-B/04_zcajiayin__L2D.json",
+    "verdict": "RUNS_AFTER_REPAIR",
+    "taxonomy_code": "GPU_REQUIRED"
+   }
+  },
+  {
+   "set": "TEST-B",
+   "entry": "06",
+   "name": "galsang__trees_from_transformers",
+   "verdict_as_recorded": "RUNS_CLEAN",
+   "certified_as_recorded": true,
+   "documented_command": "python run.py --help",
+   "baseline_exit_code": 0,
+   "exit_zero_came_from": "the as-published command",
+   "model_patch_involved": false,
+   "published_audit": "struck under R4: the documented command is `--help`, not a run of the repository's code",
+   "removed_by_audit": true,
+   "was_a_fake": false,
+   "post_hoc_v18_rerun": {
+    "record": "runs/dev_v18/round1/TEST-B/06_galsang__trees_from_transformers.json",
+    "verdict": "RUNS_CLEAN",
+    "taxonomy_code": null
+   }
+  },
+  {
+   "set": "TEST-C",
+   "entry": "01",
+   "name": "kartikgupta-at-anu__spline-calibration",
+   "verdict_as_recorded": "BLOCKED",
+   "certified_as_recorded": false,
+   "documented_command": "python recalibrate.py",
+   "baseline_exit_code": 1,
+   "exit_zero_came_from": "a model patch",
+   "model_patch_involved": true,
+   "published_audit": null,
+   "removed_by_audit": false,
+   "was_a_fake": true,
+   "post_hoc_v18_rerun": null
+  },
+  {
+   "set": "TEST-C",
+   "entry": "08",
+   "name": "optimass__Maximally_Interfered_Retrieval",
+   "verdict_as_recorded": "RUNS_AFTER_REPAIR",
+   "certified_as_recorded": true,
+   "documented_command": "python er_main.py --method rand_replay --dataset split_cifar10 --mem_size 50",
+   "baseline_exit_code": 100,
+   "exit_zero_came_from": "a deterministic step (no model proposal)",
+   "model_patch_involved": false,
+   "published_audit": null,
+   "removed_by_audit": false,
+   "was_a_fake": false,
+   "post_hoc_v18_rerun": null
+  }
+ ],
+ "ungated_at_least": 6,
+ "certified_as_recorded": 5,
+ "removed_by_audit": 2,
+ "certified_after_audits": 3,
+ "removed_that_were_fakes": 0,
+ "ungated_but_not_certified": [
+  "kartikgupta-at-anu__spline-calibration"
+ ]
+}

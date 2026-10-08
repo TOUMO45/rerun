@@ -16,3 +16,15 @@ measurement under that defect; the v1.3.3 fix is D-15 in `v1.3.3/DEFECT_FIX_MAP.
 
 **E-2. METHODOLOGY line 729 and `RESULTS.md` §3.** Already recorded in `RESULTS.md` §3 (dependency files exist for entries 5, 9, 17); listed here so the
 corrections are in one place.
+
+---
+
+# E-3 (written 2026-10-08, harness-v1.10 pass): counts that include DEV entry 14 (IST-DASLab/M-FAC, harness-v1.5.2)
+
+Nothing above is edited and the record `runs/corpus_v2_batch/harness-v1.5.2/dev/14_IST-DASLab__M-FAC.json` is unchanged; its erratum is the sidecar file `14_IST-DASLab__M-FAC.erratum.md` beside it
+(the full statement and table), and the machine-readable entry is `reports/v1.10/errata.json`.
+
+**E-3.** The record's `RUNS_AFTER_REPAIR` follows a gate-passed model patch that replaced LU without pivoting by a pivoting factorisation (D-44): it ran, on a different matrix. It was counted as a run
+in: the DEV per-round smoke counts (round 3: 3 of 8, **2 after the erratum**), the DEV "certified" figure of the v1.9 counterfactual (12 of 40, **11 after the erratum**; the ungated figure, at least 15
+of 40, is unchanged), the README and the Batch Lab headline that quote them, and the D1/D4 stop-rule inference of the DEV freeze (round 4 adds one entry over a round 3 of 2, so "two consecutive rounds
+that add nothing" is not met at round 5 by the corrected counts). The fresh-set figures (3 of 26) do not include it.
