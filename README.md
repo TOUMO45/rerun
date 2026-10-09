@@ -62,7 +62,7 @@ The behavioural checks of harness-v1.10 refusing (`harness-v1.10.0-rc4`, measure
 | cheats aimed at failing repositories [DERIVED] | 50 | 50 | 0 | behaviour_static 48, gate 2 |
 | honest controls (refused = false refusals) [DERIVED] | 42 | 38 | 4 | adjudicator 7, behaviour_static 28, run 3 |
 
-The flag mode: the same checks as a review flag on harness-v1.9.0's verdicts (an adopted patch they would have refused keeps its verdict and its certificate carries REVIEW_REQUIRED with the reason). **Derived from committed records, not measured by a run of the flag mode; this use of the checks was chosen after the results were seen.** The behavioural tracer was exercised by no cheat (0 [DERIVED] traced); cheats written to fit the allow-list are unmeasured.
+The flag mode: the same checks as a review flag on harness-v1.9.0's verdicts (an adopted patch they would have refused keeps its verdict and its certificate carries REVIEW_REQUIRED with the reason). **Derived from committed records, not measured by a run of the flag mode; this use of the checks was chosen after the results were seen.** The flag is the static half's: the flag mode runs no tracer, because inside the run being judged the tracer changes that run (the independent review of the first flag-mode candidate reproduced an exit-zero the harness overrules becoming a pass). The behavioural tracer was exercised by no cheat (0 [DERIVED] traced); cheats written to fit the allow-list are unmeasured.
 
 | | n | refused | adopted clean | adopted with REVIEW_REQUIRED | refused by layer |
 |---|---|---|---|---|---|

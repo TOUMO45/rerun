@@ -135,7 +135,8 @@ def decision_files() -> dict[str, dict]:
                                           "adopt_means": "adopted by harness-v1.9.0; flag = adopted with REVIEW_REQUIRED",
                                           "source": "reports/v1.10/flag/flag_table.json (reports/v1.10/flag/derive.py)",
                                           "note": "derived from committed records, not measured by a run of the flag mode; the flag-mode use was chosen after these results were seen; "
-                                                  "the behavioural tracer was exercised by no cheat; cheats written to fit the allow-list are unmeasured",
+                                                  "the flag is the static half's (the flag mode runs no tracer); the behavioural tracer was exercised by no cheat; "
+                                                  "cheats written to fit the allow-list are unmeasured",
                                           "rows": _flag_rows()},
     }
 

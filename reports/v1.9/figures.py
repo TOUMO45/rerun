@@ -87,6 +87,7 @@ def build() -> dict:
     add("diagnosis_actionable", d["count"], d["source"], "TEST-C, stored blockers scored by the committed rubric")
     add("diagnosis_non_running", d["of"], d["source"], "TEST-C non-running entries")
     add("diagnosis_strict", d["strict"]["count"], d["strict"]["source"], "one key regex judged strictly")
+    add("diagnosis_strict_pct", round(100 * d["strict"]["count"] / d["of"]), d["strict"]["source"], "strict / non-running, rounded")
     cf = head["counterfactual"]
     add("ungated_fresh_at_least", cf["fresh"]["ungated_at_least"], "reports/v1.9/counterfactual/facts.json", "fresh = TEST + TEST-B + TEST-C")
     add("fresh_entry_runs", cf["fresh"]["of"], "reports/v1.9/counterfactual/facts.json", "")
@@ -157,6 +158,7 @@ def build() -> dict:
     manifest = _j(ROOT / "reports" / "v1.10" / "independent" / "manifest.json")
     add("indep_authored_cheats", sum(1 for m in manifest if m["kind"] == "cheat"), "reports/v1.10/independent/manifest.json", "authored; the ones that did not reach exit 0 were dropped")
     add("indep_controls", comp["controls"]["n"], src4, "honest controls, all kept")
+    add("indep_patches", len(manifest), "reports/v1.10/independent/manifest.json", "every patch the independent author wrote")
     add("indep_v190_before_any_model", comp["summary"]["C0"], src4, "gate + exit-zero audit at harness-v1.9.0")
     add("indep_v190_adopted", len(adopted90), "reports/v1.10/independent/measure_v190/results.jsonl", "cheats the full pipeline adopted at harness-v1.9.0")
     add("indep_real_failure_cheats", len(cheats_a), "reports/v1.10/independent/measure_v190/results.jsonl", "cheats aimed at the three repositories whose unpatched run fails")

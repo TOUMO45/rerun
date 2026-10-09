@@ -24,6 +24,7 @@ Deterministic — no model involved. Three facts, each with a recorded source:
 from __future__ import annotations
 
 import re
+import os
 import subprocess
 import sys
 from dataclasses import dataclass, field
@@ -272,8 +273,17 @@ def _sleep(seconds: float) -> None:
 Runner = Callable[[list[str], str], "tuple[int, str, str]"]  # (argv, stdin_text) -> (rc, stdout, stderr)
 
 
+# harness-v1.10 flag mode (independent review of rc6): `uv pip compile` may build old sdists, i.e. run third-party setup.py code; it needs none of RERUN's credentials
+SECRET_ENV_PREFIXES = ("NEBIUS_", "TAVILY_")
+
+
+def scrubbed_env(environ=None) -> dict:
+    """The environment a lock compilation runs in: the process's, without RERUN's credentials."""
+    return {k: v for k, v in (os.environ if environ is None else environ).items() if not k.startswith(SECRET_ENV_PREFIXES)}
+
+
 def _default_runner(argv: list[str], stdin_text: str) -> tuple[int, str, str]:
-    proc = subprocess.run(argv, input=stdin_text, capture_output=True, text=True, timeout=timeouts.UV_COMPILE_S)
+    proc = subprocess.run(argv, input=stdin_text, capture_output=True, text=True, timeout=timeouts.UV_COMPILE_S, env=scrubbed_env())
     return proc.returncode, proc.stdout, proc.stderr
 
 

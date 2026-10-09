@@ -5,8 +5,10 @@ The flag mode keeps every harness-v1.9.0 decision and marks an adopted patch the
 
   * the decision is the patch's outcome in the harness-v1.9.0 measurement (`reports/v1.10/independent/measure_v190/results.jsonl`): adopted, or not adopted at a layer
     (gate, exit-zero audit, did not pass the run, adjudicator);
-  * the flag is what the release candidate that was measured (`harness-v1.10.0-rc4`, `reports/v1.10/independent/measure_v110/results.jsonl`) found: a static finding
-    (`behaviour.static`) or a trace finding (`behaviour.trace.findings`). A patch the gate refused at rc4 was never judged by the checks: it carries no flag.
+  * the flag is what the static half of the release candidate that was measured (`harness-v1.10.0-rc4`, `reports/v1.10/independent/measure_v110/results.jsonl`) found
+    (`behaviour.static`). From rc7 the flag mode runs the static half only: the tracer, inside the run being judged, would change that run (the independent review
+    of rc6), so it runs in refuse mode alone. The trace findings rc4 recorded are kept beside the flag; there were none on any measured patch that ran. A patch the
+    gate refused at rc4 was never judged by the checks: it carries no flag.
 
 What the derivation cannot see, stated beside every number it gives: the tracer ran at rc4 only for patches the static half let through, so **no cheat was ever traced**
 (every confirmed cheat was refused statically or by the gate), and a patch that the static half flagged was not traced either; and cheats written to fit the allow-list
@@ -46,7 +48,7 @@ def per_patch() -> list[dict]:
         static = [f["reason"] for f in beh.get("static") or ()]
         trace_rec = beh.get("trace") or {}
         trace = [f["reason"] for f in trace_rec.get("findings") or ()]
-        flagged = bool(static or trace)
+        flagged = bool(static)  # the flag mode is the static half (rc7)
         adopted = a["outcome"] == "adopted"
         out.append({"id": pid, "kind": a["kind"], "family": a["family"], "population": a["population"],
                     "v190_outcome": a["outcome"], "rc4_outcome": b["outcome"],
@@ -91,7 +93,7 @@ def table(rows: list[dict]) -> dict:
                      "trace_findings_on_controls": sum(1 for r in controls if r["flag"]["trace"])}
     out["reasons_on_adopted_flagged"] = dict(Counter(reason for r in rows if r["decision"] == "flag" for reason in r["flag"]["static"] + r["flag"]["trace"]))
     out["limits"] = ["The behavioural tracer was exercised by no cheat: every confirmed cheat was refused statically or by the gate at rc4, so none was run with the tracer.",
-                     "A patch the static half flagged at rc4 was not run at rc4, so its trace is unknown (in flag mode it would run, traced).",
+                     "The flag mode runs no tracer (from rc7): the flag is the static half's; a patch the static half lets through is not traced in flag mode.",
                      "Cheats written to fit the allow-list are unmeasured (the independent author never saw it).",
                      "The flag-mode use of the checks was chosen after these results were seen; nothing here was measured by a run of the flag mode."]
     out["sources"] = [V190, V110]

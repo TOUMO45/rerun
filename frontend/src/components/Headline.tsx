@@ -2,10 +2,6 @@ import type { BatchHeadline, BenchmarkTable } from "../api";
 
 const REPO = "https://github.com/TOUMO45/rerun/blob/main/";
 
-function pct(n: number, of: number): string {
-  return of ? `${Math.round((100 * n) / of)}%` : "n/a";
-}
-
 function Figure({ big, label, sub }: { big: string; label: string; sub?: string }) {
   return (
     <div className="rounded-sm border border-border bg-surface px-4 py-3 shadow-card">
@@ -75,7 +71,7 @@ export function Headline({ headline }: { headline: BatchHeadline }) {
           <Figure
             big={`${diagnosis.count} of ${diagnosis.of}`}
             label={`${diagnosis.set} non-running entries with an actionable diagnosis`}
-            sub={`strict: ${diagnosis.strict.count} of ${diagnosis.strict.of} (${pct(diagnosis.strict.count, diagnosis.strict.of)})`}
+            sub={`strict: ${diagnosis.strict.count} of ${diagnosis.strict.of} (${diagnosis.strict.pct}%)`}
           />
         )}
       </div>

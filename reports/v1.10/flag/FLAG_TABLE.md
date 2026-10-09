@@ -26,6 +26,6 @@ Tracer: cheats traced at rc4 0; honest controls traced 14, with a trace finding 
 
 **Limits.**
 * The behavioural tracer was exercised by no cheat: every confirmed cheat was refused statically or by the gate at rc4, so none was run with the tracer.
-* A patch the static half flagged at rc4 was not run at rc4, so its trace is unknown (in flag mode it would run, traced).
+* The flag mode runs no tracer (from rc7): the flag is the static half's; a patch the static half lets through is not traced in flag mode.
 * Cheats written to fit the allow-list are unmeasured (the independent author never saw it).
 * The flag-mode use of the checks was chosen after these results were seen; nothing here was measured by a run of the flag mode.

@@ -2,7 +2,8 @@
 # (this machine's upload link cannot carry the seal's 56 MB upload). PAID: Nebius Token Factory sandboxes and model calls, capped by the scripts
 # themselves ($1.50 for the seal, $5.00 for the wiring check). Dispatched by hand only; never on a push or a pull request.
 #
-# Secrets (repository secrets the owner adds; never printed): NEBIUS_API_KEY, NEBIUS_PROJECT_ID.
+# Secrets (repository secrets the owner adds; never printed): NEBIUS_API_KEY, NEBIUS_PROJECT_ID; optional TAVILY_API_KEY (the wiring check's earlier run had Tavily
+# configured; without it the record says tavily_configured: false).
 # This file is outside the sealed harness paths (backend/app, backend/pyproject.toml, scripts, frontend/src, .gitattributes).
 # The records come back as a commit on a new branch seal-results/<tag>-<run id>; they are merged into main by hand, then the seal verification is written
 # (reports/corpus-v2.1/v1.10/seal/write_seal_verification_v110.py) and the tag made.
@@ -12,7 +13,7 @@ on:
   workflow_dispatch:
     inputs:
       rc_tag:
-        description: "Release candidate tag to seal; the branch head's harness paths must equal it (e.g. harness-v1.10.0-rc6)"
+        description: "Release candidate tag to seal; the branch head's harness paths must equal it (e.g. harness-v1.10.0-rc7)"
         required: true
         type: string
       wiring_check:
@@ -63,8 +64,8 @@ jobs:
         run: |
           set -euo pipefail
           python -m venv backend/.venv
-          backend/.venv/bin/python -m pip install --quiet --upgrade pip
-          backend/.venv/bin/python -m pip install --quiet -c .github/seal/constraints.txt -e backend
+          backend/.venv/bin/python -m pip install --quiet pip==26.2.1 setuptools==84.0.0
+          backend/.venv/bin/python -m pip install --quiet --no-build-isolation -c .github/seal/constraints.txt -e backend
           backend/.venv/bin/python -c "import app.services.behaviour, app.services.sandbox; print('backend importable')"
 
       - name: Live seal (cap $1.50, every stage)
@@ -83,12 +84,13 @@ jobs:
           echo "exit=${code}" >> "$GITHUB_OUTPUT"
           grep -E "^stage |^STOP|all stages ok" runs/sandbox_verification/v1.10-seal/seal_stdout.log || true
 
-      - name: Live wiring check (post-hoc, minmaxot, cap $5.00, flag mode)
+      - name: Live wiring check (post-hoc, minmaxot, cap $5.00, flag mode; only after a passed seal)
         id: live
-        if: ${{ inputs.wiring_check }}
+        if: ${{ inputs.wiring_check && steps.seal.outputs.exit == '0' }}
         env:
           NEBIUS_API_KEY: ${{ secrets.NEBIUS_API_KEY }}
           NEBIUS_PROJECT_ID: ${{ secrets.NEBIUS_PROJECT_ID }}
+          TAVILY_API_KEY: ${{ secrets.TAVILY_API_KEY }}
           BEHAVIOUR_MODE: flag
           DAILY_COST_CEILING_USD: "5.00"
         run: |
@@ -115,34 +117,48 @@ jobs:
           if-no-files-found: warn
           retention-days: 30
 
+      - name: Fail the job when the seal did not pass (after the records are uploaded)
+        if: ${{ always() }}
+        env:
+          SEAL_EXIT: ${{ steps.seal.outputs.exit }}
+        run: |
+          echo "seal exit: ${SEAL_EXIT:-not run}"
+          test "${SEAL_EXIT:-1}" = "0"
+
   publish:
     # No secret reaches this job: it only turns the uploaded records into a commit on a new branch.
     needs: paid-checks
-    if: ${{ always() && needs.paid-checks.result != 'cancelled' }}
+    if: ${{ always() }}
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     permissions:
       contents: write
     env:
       RC_TAG: ${{ inputs.rc_tag }}
+      SEAL_EXIT: ${{ needs.paid-checks.outputs.seal_exit }}
+      LIVE_EXIT: ${{ needs.paid-checks.outputs.live_exit }}
+      PAID_RESULT: ${{ needs.paid-checks.result }}
     steps:
       - name: Check out the dispatched branch
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683  # v4.2.2
 
-      - name: Download the records
+      - name: Download the records (there are none when the paid job stopped before its first paid step)
+        id: download
+        continue-on-error: true
         uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16  # v4.1.8
         with:
           name: v110-records-${{ github.run_id }}
           path: runs/
 
-      - name: Commit them to seal-results/<tag>-<run id>
+      - name: Commit them to seal-results/<tag>-<run id>-<attempt>
+        if: ${{ steps.download.outcome == 'success' }}
         run: |
           set -euo pipefail
           [[ "$RC_TAG" =~ ^harness-v1\.10\.0-rc[0-9]+$ ]] || exit 1
-          branch="seal-results/${RC_TAG}-${GITHUB_RUN_ID}"
+          branch="seal-results/${RC_TAG}-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git switch -c "$branch"
           git add -f runs/sandbox_verification/v1.10-seal runs/v1.10/live_v110
-          git commit -m "v1.10 seal and wiring check records for ${RC_TAG} (GitHub Actions run ${GITHUB_RUN_ID}; seal exit ${{ needs.paid-checks.outputs.seal_exit }}, wiring check exit ${{ needs.paid-checks.outputs.live_exit }})"
+          git commit -m "v1.10 seal and wiring check records for ${RC_TAG} (GitHub Actions run ${GITHUB_RUN_ID} attempt ${GITHUB_RUN_ATTEMPT}; paid job ${PAID_RESULT}; seal exit ${SEAL_EXIT:-none}, wiring check exit ${LIVE_EXIT:-none})"
           git push origin "$branch"

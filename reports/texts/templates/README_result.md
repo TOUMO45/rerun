@@ -23,7 +23,7 @@ The behavioural checks of harness-v1.10 refusing (`harness-v1.10.0-rc4`, measure
 
 {{table:independent.refuse_v1.10.0-rc4}}
 
-The flag mode: the same checks as a review flag on harness-v1.9.0's verdicts (an adopted patch they would have refused keeps its verdict and its certificate carries REVIEW_REQUIRED with the reason). **Derived from committed records, not measured by a run of the flag mode; this use of the checks was chosen after the results were seen.** The behavioural tracer was exercised by no cheat ({{flag_cheats_traced}} traced); cheats written to fit the allow-list are unmeasured.
+The flag mode: the same checks as a review flag on harness-v1.9.0's verdicts (an adopted patch they would have refused keeps its verdict and its certificate carries REVIEW_REQUIRED with the reason). **Derived from committed records, not measured by a run of the flag mode; this use of the checks was chosen after the results were seen.** The flag is the static half's: the flag mode runs no tracer, because inside the run being judged the tracer changes that run (the independent review of the first flag-mode candidate reproduced an exit-zero the harness overrules becoming a pass). The behavioural tracer was exercised by no cheat ({{flag_cheats_traced}} traced); cheats written to fit the allow-list are unmeasured.
 
 {{table:independent.flag_mode.derived}}
 

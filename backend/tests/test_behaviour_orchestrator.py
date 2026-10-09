@@ -179,7 +179,7 @@ def test_flag_mode_adopts_what_refuse_mode_refuses_and_the_certificate_carries_r
     adopted = next(a for a in result.attempts if a.chosen)
     rec = adopted.as_dict()["behaviour"]
     assert rec["mode"] == "flag" and rec["flagged"] is True and "refused" not in rec
-    assert rec["static"][0]["reason"] == behaviour.COMPUTATION_CHANGED and rec["trace"]["status"] == "ok"
+    assert rec["static"][0]["reason"] == behaviour.COMPUTATION_CHANGED and "trace" not in rec          # rc7: the tracer never runs in flag mode
     levels = result.outcome_levels
     assert levels["review_required"] == [behaviour.COMPUTATION_CHANGED] and levels["review_findings"][0]["stage"] == "static"
     assert "chosen after the measured results were seen" in levels["review_note"]
@@ -222,23 +222,23 @@ def test_flag_mode_gives_the_off_mode_verdict_and_gate_decisions(tmp_path, monke
     assert len(flagged) == 1 and flagged[0].chosen is False
 
 
-def test_a_trace_finding_flags_and_vetoes_nothing_in_flag_mode(tmp_path, monkeypatch):
+def test_the_tracer_does_not_run_in_flag_mode_so_a_report_refuse_mode_would_veto_on_changes_nothing(tmp_path, monkeypatch):
+    """rc7 (independent review of rc6): inside the run being judged the tracer changes that run; flag mode runs the static half only."""
     _fixture(tmp_path)
-    _cloud(monkeypatch, report={"sites": {}})
+    cloud = _cloud(monkeypatch, report={"sites": {}})
     result, _ = _run(tmp_path, _deps_mode(_Chat([APT_CANDIDATE, DECLINE, DECLINE], "repair model"), _Ultra([{"chosen": 1, "reasoning": "the header"}]), "flag"))
     assert result.verdict == "RUNS_AFTER_REPAIR"                                      # refuse mode vetoes it (test above, same report)
     adopted = next(a for a in result.attempts if a.chosen)
-    assert adopted.behaviour["flagged"] is True and adopted.behaviour["static"] == []
-    assert result.outcome_levels["review_required"] == [behaviour.FAILURE_SITE_NOT_EXECUTED]
-    assert result.outcome_levels["review_findings"][0]["stage"] == "trace"
+    assert adopted.behaviour == {"mode": "flag", "static": [], "flagged": False}
+    assert "review_required" not in result.outcome_levels and TRACED not in cloud.ran
 
 
-def test_a_clean_adopted_patch_in_flag_mode_carries_its_trace_and_no_review(tmp_path, monkeypatch):
+def test_a_clean_adopted_patch_in_flag_mode_carries_its_judgement_and_no_review(tmp_path, monkeypatch):
     _fixture(tmp_path)
     _cloud(monkeypatch, report={})
     result, _ = _run(tmp_path, _deps_mode(_Chat([APT_CANDIDATE, DECLINE, DECLINE], "repair model"), _Ultra([{"chosen": 1, "reasoning": "the header"}]), "flag"))
     adopted = next(a for a in result.attempts if a.chosen)
-    assert adopted.behaviour == {"mode": "flag", "static": [], "trace": adopted.behaviour["trace"], "flagged": False}
+    assert adopted.behaviour == {"mode": "flag", "static": [], "flagged": False}         # judged by the static half, nothing found
     assert "review_required" not in result.outcome_levels and _label(result) == "RUNS_AFTER_REPAIR"
 
 
@@ -264,6 +264,7 @@ def test_review_required_reads_only_adopted_flagged_patches():
     assert outcome_levels.review_required({"verdict": "BLOCKED", "attempts": [{**base, "gate_decision": "REJECT", "behaviour": refuse_record}]}) == ()
     assert outcome_levels.review_required({"verdict": "RUNS_AFTER_REPAIR", "attempts": [{**base, "behaviour": {**flagged, "flagged": False}}]}) == ()
     assert outcome_levels.review_required({"verdict": "RUNS_AFTER_REPAIR", "attempts": [{**base, "origin": "time_machine", "behaviour": flagged}]}) == ()
+    assert outcome_levels.review_required({"verdict": "BLOCKED", "attempts": [{**base, "behaviour": {**flagged, "put_back": True}}]}) == ()   # a change put back
     assert outcome_levels.verdict_label({"verdict": "RUNS_AFTER_REPAIR", "attempts": [{**base, "behaviour": flagged}]}) == "RUNS_AFTER_REPAIR (REVIEW REQUIRED: COMPUTATION_CHANGED)"
 
 

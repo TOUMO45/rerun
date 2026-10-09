@@ -86,7 +86,7 @@ describe("BatchLab headline (flag-mode pass: read from figures.json)", () => {
   const HEADLINE = {
     source: "reports/v1.9/figures.json",
     ran: { count: 3, of: 26, tag: "DERIVED", parts: [{ set: "TEST", count: 1, of: 8 }, { set: "TEST-B", count: 1, of: 8 }, { set: "TEST-C", count: 1, of: 10 }], measure: "ran" },
-    diagnosis: { count: 7, of: 9, strict: { count: 6, of: 9, source: "reports/test-c/TEST_C_RESULT.md" }, set: "TEST-C", tag: "DERIVED", source: "reports/test-c/TEST_C_RESULT.md" },
+    diagnosis: { count: 7, of: 9, strict: { count: 6, of: 9, pct: 67, source: "reports/test-c/TEST_C_RESULT.md" }, set: "TEST-C", tag: "DERIVED", source: "reports/test-c/TEST_C_RESULT.md" },
     benchmark: {
       source: "benchmark/README.md", command: "python benchmark/score.py --all", tag: "DERIVED",
       sets: { planted: 337, independent: 208, independent_measured_cheats: 144, independent_dropped: 22 },

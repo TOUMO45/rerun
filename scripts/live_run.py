@@ -40,7 +40,7 @@ from app.services import intake  # noqa: E402
 from app.services.cost_guard import CostGuard  # noqa: E402
 from app.services.infra import InfraError  # noqa: E402
 from app.services.model_client import NebiusChatClient  # noqa: E402
-from app.services.orchestrator import build_pipeline_deps, reason_code_of, run_pipeline  # noqa: E402
+from app.services.orchestrator import behaviour_mode_of, build_pipeline_deps, reason_code_of, run_pipeline  # noqa: E402
 
 MODEL_CALLS: list[dict] = []
 
@@ -171,6 +171,7 @@ def main(argv: list[str] | None = None) -> int:
             "max_attempts": deps.max_attempts,
             "candidates_per_round": deps.candidates_per_round,
             "tavily_configured": deps.tavily_client is not None,
+            "behaviour_mode": behaviour_mode_of(deps),  # harness-v1.10: off | refuse | flag
             "cost_cap_usd": args.cost_cap_usd,
         },
     }

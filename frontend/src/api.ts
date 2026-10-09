@@ -417,7 +417,7 @@ export interface BenchmarkTable {
 export interface BatchHeadline {
   source: string;
   ran: { count: number; of: number; tag: string; parts: { set: string; count: number; of: number }[]; measure: string } | null;
-  diagnosis: { count: number; of: number; strict: { count: number; of: number; source: string }; set: string; tag: string; source: string } | null;
+  diagnosis: { count: number; of: number; strict: { count: number; of: number; pct: number; source: string }; set: string; tag: string; source: string } | null;
   benchmark: {
     source: string;
     command: string;

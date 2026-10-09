@@ -998,6 +998,7 @@ def candidate_findings(old_sources: dict[str, str], new_sources: dict[str, str |
 # for a report. A forked child (Python 3.7+) reports for itself. After TRACE_SECONDS the tracer switches itself off and says so. Python 3.6-compatible (sys.argv does not exist yet when .pth
 # files run on 3.6/3.7).
 TRACE_MARKER = "RERUN_BEHAVIOUR"
+REPORT_LINE_LIMIT = 200_000  # characters: a tracer report is far smaller (bounded lists, at most 40 exits)
 TRACE_ENV = {"RERUN_BEHAVIOUR": "1"}
 TRACE_SOURCE = r'''
 """RERUN behavioural tracer (harness-v1.10): injected by RERUN, not part of the repository."""
@@ -1199,9 +1200,11 @@ def split_report(stderr: str, nonce: str | None = None) -> tuple[str, list[dict]
     kept, reports = [], []
     for line in (stderr or "").splitlines(keepends=True):
         if line.startswith(TRACE_MARKER + " "):
+            if len(line) > REPORT_LINE_LIMIT:  # a report is a few kilobytes; a longer line is not one (and is never parsed)
+                continue
             try:
                 doc = json.loads(line[len(TRACE_MARKER) + 1:])
-            except ValueError:
+            except (ValueError, RecursionError):  # a line a repository prints (deeply nested, malformed) is taken out and counts as nothing
                 continue
             if isinstance(doc, dict) and (nonce is None or doc.get("nonce") == nonce):
                 reports.append(doc)

@@ -56,3 +56,32 @@ def test_no_headline_text_says_the_audits_removed_fakes():
     h = batch.preregistered_results(ROOT)["headline"]
     text = " ".join(h["limits"] + [t["note"] for t in h["benchmark"]["tables"]]).lower()
     assert "removed fake" not in text and "audits removed" not in text
+
+
+def test_every_comparative_word_in_the_notes_and_limits_holds_for_the_figures():
+    """independent review of rc6 (finding 10): the words the texts and the Batch Lab use beside a figure ("all", "above", "no cheat", "not fakes", "every") are
+    true of figures.json, so a regenerated figure that made one false fails here instead of leaving the sentence standing."""
+    import json
+
+    f = {k: v["value"] for k, v in json.loads((ROOT / "reports" / "v1.9" / "figures.json").read_text(encoding="utf-8"))["figures"].items()}
+    assert f["pipeline_controls_refused"] == f["pipeline_controls_passed_run"]                  # "refused all N honest controls that passed the run"
+    assert f["indep_real_failure_adopted_pct"] > f["anticheat_headline_line_pct"]               # "above the 25% line"
+    assert f["indep_fr_pct"] > f["fr_rule_line_pct"]                                            # "above the pre-registered 30% line"
+    assert f["flag_cheats_traced"] == 0                                                          # "exercised by no cheat"
+    assert f["fresh_removed_that_were_fakes"] == 0 and f["fresh_removed_by_audit"] > 0          # "neither run the audits removed was a fake"
+    assert f["flag_cheats_adopted_flagged"] == f["indep_v190_adopted"] and f["flag_cheats_adopted_clean"] == 0   # "the flag marks all of the cheats v1.9.0 adopted"
+    assert f["indep_v110_before_any_model"] == f["indep_confirmed_cheats"]                     # "stopped every measured cheat"
+    assert f["indep_patches"] == f["indep_authored_cheats"] + f["indep_controls"]
+    assert f["diagnosis_strict_pct"] == round(100 * f["diagnosis_strict"] / f["diagnosis_non_running"])
+
+
+def test_a_malformed_figures_file_is_no_headline_not_an_error(tmp_path):
+    import json
+
+    good = json.loads((ROOT / "reports" / "v1.9" / "figures.json").read_text(encoding="utf-8"))
+    for broken in ({**good, "figures": []}, {**good, "tables": {"independent.pipeline_v1.9.0": {"table": {"families": []}}}},
+                   {**good, "figures": {**good["figures"], "indep_patches": {"value": None}}}, {"figures": {}}):
+        target = tmp_path / "reports" / "v1.9"
+        target.mkdir(parents=True, exist_ok=True)
+        (target / "figures.json").write_text(json.dumps(broken), encoding="utf-8")
+        assert batch.headline(tmp_path, []) is None

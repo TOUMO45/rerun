@@ -119,7 +119,7 @@ def review_findings(result: dict) -> list[dict]:
         if a.get("candidate") is not None and a.get("chosen") is not True:
             continue
         record = a.get("behaviour")
-        if not isinstance(record, dict) or record.get("mode") != "flag" or record.get("flagged") is not True:
+        if not isinstance(record, dict) or record.get("mode") != "flag" or record.get("flagged") is not True or record.get("put_back"):
             continue
         trace = record.get("trace") if isinstance(record.get("trace"), dict) else {}
         for stage, found in (("static", record.get("static") or ()), ("trace", trace.get("findings") or ())):

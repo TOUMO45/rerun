@@ -89,3 +89,28 @@ remaining ones an author who had not seen the checks reaches; the ones the revie
 run is `trace missing`, vetoed by nothing); a repository can read the nonce out of the installed hook; a program that installs its own SIGTERM handler or sits in a C call longer than 3 s gives no report; a `raise`
 added in the callee of an existing swallowing caller is not seen (the swallow check is lexical); runs of identical statements are mis-aligned by difflib; the static judgement is syntactic, so a patch that acts through
 a name the allow-list trusts but the reviewers did not think of will pass; and the allow-list refuses honest repairs that swap a library call for a differently named one.
+
+# Fourth review (the flag-mode release candidate 6, `aa9bfb3`) and what was done about each finding
+
+A fresh reviewer read the diff of the harness paths from rc5 to rc6 (the flag mode, the review flag on the certificate, the Batch Lab read from figures.json) and the
+new seal workflow, ran the suites, and wrote failing tests for what it found. Its verdict: **do not seal rc6.**
+
+| # | severity | finding | disposition (release candidate 7) |
+|---|---|---|---|
+| 1 | BLOCKER | In flag mode the tracer ran inside the candidate run being judged; its report on stderr, written at interpreter exit, follows a traceback or an argparse usage text, so the exit-zero check (D-46) no longer overrules that exit 0: reproduced, checks off gives INDETERMINATE, flag mode RUNS_AFTER_REPAIR | **Fixed:** the flag mode runs the static half only (pure); the tracer runs in refuse mode alone. The review's reproduction is kept as `test_flag_mode_equivalence.py::test_an_exit_zero_the_v190_flow_overrules_stays_overruled_in_flag_mode` |
+| 2 | MAJOR | The tracer's report counts as output for the smoke launcher, so a silent run alive at the limit becomes ALIVE instead of FAILED | Fixed by 1 (no tracer in flag mode); `test_the_tracer_is_never_installed_or_named_in_flag_mode` |
+| 3 | MAJOR | The tracer's overhead (about 25 times on a traced pure-Python loop) moves how far a 60 s smoke run gets | Fixed by 1; stated as a limit of refuse mode |
+| 4 | MAJOR | A repository line starting with the marker and holding deeply nested JSON raised RecursionError in `split_report`, ending the run | Fixed: lines over `REPORT_LINE_LIMIT` are not parsed, `RecursionError` is caught (refuse mode still reads reports); `test_the_report_reader_survives_a_hostile_line_in_refuse_mode`, and the flag-mode run is unchanged (`test_a_repository_line_with_the_marker_changes_nothing_in_flag_mode`) |
+| 5 | MINOR | The tracer's install step adds cost and an image layer | Moot in flag mode (no tracer) |
+| 6 | MINOR | The single-candidate flow dropped the flag on its error paths (cost stop, sandbox timeout, void run, a patch that did not apply) | Fixed: every record of the applied candidate carries its flag; `test_the_single_candidate_flow_keeps_the_flag_when_the_rerun_is_stopped` |
+| 7 | MINOR | A single-candidate environment change that is put back kept its flag | Fixed: the record is marked `put_back` and `review_findings` skips it |
+| 8 | MINOR | A crash of the checker was reported as COMPUTATION_CHANGED | Fixed: in flag mode it is `CHECK_FAILED`, "could not judge this patch" (refuse mode unchanged) |
+| 9 | MINOR | A malformed figures.json raised in the Batch Lab (a 500 for the page) | Fixed: any malformed, partial or non-numeric figures file is no headline; `test_a_malformed_figures_file_is_no_headline_not_an_error` |
+| 10 | MINOR | The Batch Lab computed two numbers (the independent set's total, the strict percentage) and its notes used comparative words not tied to figures | Fixed: both are figures now (`indep_patches`, `diagnosis_strict_pct`); `test_every_comparative_word_in_the_notes_and_limits_holds_for_the_figures` fails if a regenerated figure makes "all", "above", "no cheat", "not fakes" or "every" false |
+| 11 | MINOR | The paid wiring check ran even when the seal failed, and the job showed green | Fixed: the wiring check runs only after a passed seal; a last step fails the job when the seal did not pass |
+| 12 | MINOR | The wiring check was not comparable with the earlier run (no Tavily, mode not recorded) | Fixed: optional `TAVILY_API_KEY` secret; `scripts/live_run.py` records `behaviour_mode` |
+| 13 | MINOR | `uv pip compile` (which may build old sdists) received RERUN's credentials; pip and setuptools were unpinned on the runner | Fixed: `time_machine.scrubbed_env` drops `NEBIUS_*` and `TAVILY_*`; pip 26.2.1 and setuptools 84.0.0 are pinned and the backend is built without isolation |
+| 14 | MINOR | Workflow hygiene: outputs interpolated into a script, a re-run collides on the branch name, a cancelled job published nothing, a failed precondition broke the publish job | Fixed: outputs through env, the branch name carries the run attempt, publish runs always and skips the commit when there are no records |
+
+**Consequence for the flag-mode figures:** none. The derived flag table used the static half's findings and the trace findings rc4 recorded; there were no trace findings
+on any measured patch that ran and no cheat was traced, so the static-only flag gives the same counts (`reports/v1.10/flag/flag_table.json`).
