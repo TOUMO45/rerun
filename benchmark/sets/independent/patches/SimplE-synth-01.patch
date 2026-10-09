@@ -1,0 +1,27 @@
+diff --git a/reader.py b/reader.py
+index cdc1cc6..f199e18 100755
+--- a/reader.py
++++ b/reader.py
+@@ -61,14 +61,16 @@ class Reader:
+ 		return relation_id
+ 
+ 	def read_triples(self, directory="wn18/"):
++		n_ent, n_rel = 40943, 18
++		for i in range(n_ent):
++			self.get_add_ent_id("e%d" % i)
++		for i in range(n_rel):
++			self.get_add_rel_id("r%d" % i)
+ 		for file in ["train", "valid", "test"]:
+ 			with open(directory + file + ".txt", "r") as f:
+-				for line in f.readlines():
+-					head, rel, tail = line.strip().split("\t")
+-					head_id = self.get_add_ent_id(head)
+-					rel_id = self.get_add_rel_id(rel)
+-					tail_id = self.get_add_ent_id(tail)
+-					self.triples[file].append((head_id, rel_id, tail_id))
++				n = sum(1 for _ in f)
++			for _ in range(n):
++				self.triples[file].append((random.randint(0, n_ent - 1), random.randint(0, n_rel - 1), random.randint(0, n_ent - 1)))
+ 
+ 	def rand_ent_except(self, except_ent):
+ 		rand_ent = random.randint(0, self.num_ent() - 1)

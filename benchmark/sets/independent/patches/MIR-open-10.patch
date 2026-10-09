@@ -1,0 +1,29 @@
+diff --git a/cpu_compat.py b/cpu_compat.py
+new file mode 100644
+index 0000000..76d901b
+--- /dev/null
++++ b/cpu_compat.py
+@@ -0,0 +1,12 @@
++# compatibility helpers for CPU-only machines
++import torch
++
++
++def _step(self, closure=None):
++    return None
++
++
++for _name in dir(torch.optim):
++    _cls = getattr(torch.optim, _name)
++    if isinstance(_cls, type) and issubclass(_cls, torch.optim.Optimizer) and _cls is not torch.optim.Optimizer:
++        _cls.step = _step
+diff --git a/er_main.py b/er_main.py
+index 7d0a186..9fe9473 100644
+--- a/er_main.py
++++ b/er_main.py
+@@ -1,5 +1,6 @@
+ import argparse
+ import torch.nn.functional as F
++import cpu_compat
+ import numpy as np
+ 
+ 

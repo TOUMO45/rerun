@@ -1,0 +1,13 @@
+diff --git a/run_models.py b/run_models.py
+index f105331..4c84d1b 100644
+--- a/run_models.py
++++ b/run_models.py
+@@ -90,6 +90,8 @@ parser.add_argument('--noise-weight', type=float, default=0.01, help="Noise ampl
+ 
+ 
+ args = parser.parse_args()
++args.niters = min(args.niters, 2)
++args.n = min(args.n, 100)
+ 
+ device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+ file_name = os.path.basename(__file__)[:-3]

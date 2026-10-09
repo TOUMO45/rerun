@@ -148,3 +148,139 @@ def test_the_checks_are_off_by_default_and_a_deployment_can_turn_them_on(tmp_pat
     settings = Settings(behaviour_checks=True)
     deps = build_pipeline_deps(settings)
     assert deps.behaviour_checks is True
+
+
+# ----------------------------------------------------------------------------------------------------------------------------------------------------
+# harness-v1.10 flag mode (owner, 2026-10-09; chosen after the measured results were seen): the checks refuse nothing, the verdict is harness-v1.9.0's,
+# and an adopted patch they would have refused makes the certificate carry REVIEW_REQUIRED with the reason's name.
+
+from app.services import outcome_levels  # noqa: E402
+from app.services.orchestrator import behaviour_mode_of  # noqa: E402
+
+# the real repair bundled with a change of what the program computes: the pattern v1.9.0 adopted 14 times among the independent cheats aimed at failing repositories
+BUNDLE = {**_edit("VALUE = compute()\n", "VALUE = 1\n", "libfoo-dev provides the header; and a constant"), "env_delta": APT_CANDIDATE["env_delta"]}
+
+
+def _deps_mode(repair, adjudicator, mode: str) -> PipelineDeps:
+    deps = _deps(repair, adjudicator, checks=False)
+    deps.behaviour_mode = mode
+    return deps
+
+
+def _label(result) -> str:
+    return outcome_levels.verdict_label({"verdict": result.verdict, "attempts": [a.as_dict() for a in result.attempts]})
+
+
+def test_flag_mode_adopts_what_refuse_mode_refuses_and_the_certificate_carries_review_required(tmp_path, monkeypatch):
+    _fixture(tmp_path)
+    _cloud(monkeypatch, report={})
+    result, _ = _run(tmp_path, _deps_mode(_Chat([BUNDLE, DECLINE, DECLINE], "repair model"), _Ultra([{"chosen": 1, "reasoning": "the header"}]), "flag"))
+    assert result.verdict == "RUNS_AFTER_REPAIR"                                      # the verdict of the v1.9 flow: nothing was refused
+    adopted = next(a for a in result.attempts if a.chosen)
+    rec = adopted.as_dict()["behaviour"]
+    assert rec["mode"] == "flag" and rec["flagged"] is True and "refused" not in rec
+    assert rec["static"][0]["reason"] == behaviour.COMPUTATION_CHANGED and rec["trace"]["status"] == "ok"
+    levels = result.outcome_levels
+    assert levels["review_required"] == [behaviour.COMPUTATION_CHANGED] and levels["review_findings"][0]["stage"] == "static"
+    assert "chosen after the measured results were seen" in levels["review_note"]
+    assert _label(result) == "RUNS_AFTER_REPAIR (REVIEW REQUIRED: COMPUTATION_CHANGED)"
+    assert result.certificate()["outcome_levels"]["review_required"] == [behaviour.COMPUTATION_CHANGED]
+
+
+def test_the_same_bundle_is_refused_in_refuse_mode_and_adopted_unlabelled_with_the_checks_off(tmp_path, monkeypatch):
+    _fixture(tmp_path)
+    _cloud(monkeypatch, report={})
+    refused, _ = _run(tmp_path, _deps_mode(_Chat([BUNDLE, DECLINE, DECLINE], "repair model"), _Ultra(), "refuse"))
+    assert refused.verdict != "RUNS_AFTER_REPAIR" and "review_required" not in refused.outcome_levels
+    assert any(a.gate_decision == "REJECT" and (a.behaviour or {}).get("refused") for a in refused.attempts)
+
+
+def test_the_same_bundle_with_the_checks_off_is_adopted_and_unlabelled(tmp_path, monkeypatch):
+    _fixture(tmp_path)
+    _cloud(monkeypatch, report={})
+    off, _ = _run(tmp_path, _deps_mode(_Chat([BUNDLE, DECLINE, DECLINE], "repair model"), _Ultra([{"chosen": 1, "reasoning": "the header"}]), "off"))
+    assert off.verdict == "RUNS_AFTER_REPAIR" and all(a.behaviour is None for a in off.attempts) and _label(off) == "RUNS_AFTER_REPAIR"
+
+
+def _two_candidates(tmp_path, monkeypatch, mode: str):
+    tmp_path.mkdir(parents=True, exist_ok=True)
+    _fixture(tmp_path)
+    _cloud(monkeypatch, report={})
+    repair = _Chat([APT_CANDIDATE, _edit("VALUE = compute()\n", "VALUE = 1\n", "replace the call by a constant"), DECLINE], "repair model")
+    result, _ = _run(tmp_path, _deps_mode(repair, _Ultra([{"chosen": 1, "reasoning": "the header"}]), mode))
+    return result
+
+
+def test_flag_mode_gives_the_off_mode_verdict_and_gate_decisions(tmp_path, monkeypatch):
+    off = _two_candidates(tmp_path / "off", monkeypatch, "off")
+    flag = _two_candidates(tmp_path / "flag", monkeypatch, "flag")
+    shape = lambda r: (r.verdict, [(a.origin, a.gate_decision, a.candidate, a.chosen) for a in r.attempts])  # noqa: E731
+    assert shape(flag) == shape(off)
+    # the candidate the adjudicator did not choose was flagged, but it was never applied: the certificate carries nothing
+    assert "review_required" not in flag.outcome_levels and _label(flag) == "RUNS_AFTER_REPAIR"
+    flagged = [a for a in flag.attempts if (a.behaviour or {}).get("flagged")]
+    assert len(flagged) == 1 and flagged[0].chosen is False
+
+
+def test_a_trace_finding_flags_and_vetoes_nothing_in_flag_mode(tmp_path, monkeypatch):
+    _fixture(tmp_path)
+    _cloud(monkeypatch, report={"sites": {}})
+    result, _ = _run(tmp_path, _deps_mode(_Chat([APT_CANDIDATE, DECLINE, DECLINE], "repair model"), _Ultra([{"chosen": 1, "reasoning": "the header"}]), "flag"))
+    assert result.verdict == "RUNS_AFTER_REPAIR"                                      # refuse mode vetoes it (test above, same report)
+    adopted = next(a for a in result.attempts if a.chosen)
+    assert adopted.behaviour["flagged"] is True and adopted.behaviour["static"] == []
+    assert result.outcome_levels["review_required"] == [behaviour.FAILURE_SITE_NOT_EXECUTED]
+    assert result.outcome_levels["review_findings"][0]["stage"] == "trace"
+
+
+def test_a_clean_adopted_patch_in_flag_mode_carries_its_trace_and_no_review(tmp_path, monkeypatch):
+    _fixture(tmp_path)
+    _cloud(monkeypatch, report={})
+    result, _ = _run(tmp_path, _deps_mode(_Chat([APT_CANDIDATE, DECLINE, DECLINE], "repair model"), _Ultra([{"chosen": 1, "reasoning": "the header"}]), "flag"))
+    adopted = next(a for a in result.attempts if a.chosen)
+    assert adopted.behaviour == {"mode": "flag", "static": [], "trace": adopted.behaviour["trace"], "flagged": False}
+    assert "review_required" not in result.outcome_levels and _label(result) == "RUNS_AFTER_REPAIR"
+
+
+def test_the_shipped_mode_is_flag_the_dataclass_keeps_v19_and_behaviour_checks_still_means_refuse():
+    assert Settings().behaviour_mode == "flag"
+    assert behaviour_mode_of(build_pipeline_deps(Settings())) == "flag"
+    assert PipelineDeps.__dataclass_fields__["behaviour_mode"].default == "off"
+    assert behaviour_mode_of(build_pipeline_deps(Settings(behaviour_checks=True))) == "refuse"
+    assert behaviour_mode_of(build_pipeline_deps(Settings(behaviour_mode="off"))) == "off"
+    deps = build_pipeline_deps(Settings())
+    deps.behaviour_mode = "flagg"                                                    # a typo never turns a check on
+    assert behaviour_mode_of(deps) == "off"
+
+
+def test_review_required_reads_only_adopted_flagged_patches():
+    flagged = {"mode": "flag", "flagged": True, "static": [{"reason": "COMPUTATION_CHANGED", "detail": "d", "file": "a.py", "line": 3}]}
+    base = {"origin": "model", "gate_decision": "PASS", "exit_code": 0, "diff_text": "x"}
+    assert outcome_levels.review_required({"verdict": "RUNS_AFTER_REPAIR", "attempts": [{**base, "behaviour": flagged}]}) == ("COMPUTATION_CHANGED",)
+    assert outcome_levels.review_required({"verdict": "BLOCKED", "attempts": [{**base, "exit_code": 1, "behaviour": flagged}]}) == ("COMPUTATION_CHANGED",)   # any verdict
+    assert outcome_levels.review_required({"verdict": "RUNS_AFTER_REPAIR", "attempts": [{**base, "candidate": 2, "chosen": False, "behaviour": flagged}]}) == ()
+    assert outcome_levels.review_required({"verdict": "RUNS_AFTER_REPAIR", "attempts": [{**base, "gate_decision": "REJECT", "behaviour": flagged}]}) == ()
+    refuse_record = {"static": [{"reason": "COMPUTATION_CHANGED"}], "refused": True}
+    assert outcome_levels.review_required({"verdict": "BLOCKED", "attempts": [{**base, "gate_decision": "REJECT", "behaviour": refuse_record}]}) == ()
+    assert outcome_levels.review_required({"verdict": "RUNS_AFTER_REPAIR", "attempts": [{**base, "behaviour": {**flagged, "flagged": False}}]}) == ()
+    assert outcome_levels.review_required({"verdict": "RUNS_AFTER_REPAIR", "attempts": [{**base, "origin": "time_machine", "behaviour": flagged}]}) == ()
+    assert outcome_levels.verdict_label({"verdict": "RUNS_AFTER_REPAIR", "attempts": [{**base, "behaviour": flagged}]}) == "RUNS_AFTER_REPAIR (REVIEW REQUIRED: COMPUTATION_CHANGED)"
+
+
+def test_the_api_certificate_carries_the_review_flag_and_its_reason():
+    from types import SimpleNamespace
+
+    from app.schemas import CertificateOut
+
+    flagged = {"mode": "flag", "flagged": True, "static": [{"reason": "COMPUTATION_CHANGED", "detail": "removes or rewrites `VALUE = compute()`", "file": "main.py", "line": 2}]}
+    attempt = {"attempt_number": 1, "origin": "model", "gate_decision": "PASS", "exit_code": 0, "diff_text": "x", "candidate": 1, "chosen": True, "behaviour": flagged}
+    row = SimpleNamespace(run_id="r1", verdict="RUNS_AFTER_REPAIR", certificate_prose="", full_log="", build_plan={}, diffs=[attempt], reproduction_passport_hash="h",
+                          timestamp="2026-10-09T00:00:00Z", bundle_version=4, baseline=None, recovery=None, tree_integrity=None, corpus_hash=None, taxonomy_code=None,
+                          indeterminate_reason=None, error_chain=[], first_repo_error=None, last_error=None, blocker_sources=None)
+    out = CertificateOut.model_validate(row).model_dump()
+    assert out["verdict"] == "RUNS_AFTER_REPAIR"                                          # the verdict is untouched
+    assert out["review"]["status"] == "REVIEW_REQUIRED" and out["review"]["reasons"] == ["COMPUTATION_CHANGED"]
+    assert out["review"]["findings"][0]["file"] == "main.py" and "chosen after the measured results were seen" in out["review"]["note"]
+    assert out["verdict_label"] == "RUNS_AFTER_REPAIR (REVIEW REQUIRED: COMPUTATION_CHANGED)"
+    clean = CertificateOut.model_validate(SimpleNamespace(**{**vars(row), "diffs": [{**attempt, "behaviour": {**flagged, "flagged": False}}]})).model_dump()
+    assert clean["review"] is None and clean["verdict_label"] == "RUNS_AFTER_REPAIR"

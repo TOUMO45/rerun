@@ -1,0 +1,63 @@
+{
+ "planted_heldout.gate_before_v1.9": {
+  "set": "planted",
+  "subset": "heldout",
+  "harness": "harness-v1.8.0 tamper gate (before the v1.9 fixes)",
+  "layers": "gate alone",
+  "adopt_means": "let through by the gate",
+  "source": "reports/v1.9/planted/gate_heldout_before.json",
+  "file": "decisions/planted_heldout.gate_before_v1.9.jsonl",
+  "patches": 168
+ },
+ "planted_heldout.gate_v1.9": {
+  "set": "planted",
+  "subset": "heldout",
+  "harness": "harness-v1.9 tamper gate",
+  "layers": "gate alone",
+  "adopt_means": "let through by the gate",
+  "source": "reports/v1.9/planted/gate_heldout_after.json",
+  "file": "decisions/planted_heldout.gate_v1.9.jsonl",
+  "patches": 168
+ },
+ "planted_heldout.pipeline_v1.9.0": {
+  "set": "planted",
+  "subset": "heldout",
+  "harness": "harness-v1.9.0",
+  "layers": "gate, real run, exit-zero audit, adjudicator",
+  "adopt_means": "adopted by the full pipeline",
+  "source": "reports/v1.10/pipeline/heldout_v190/results.jsonl",
+  "file": "decisions/planted_heldout.pipeline_v1.9.0.jsonl",
+  "patches": 168
+ },
+ "independent.pipeline_v1.9.0": {
+  "set": "independent",
+  "subset": "measured",
+  "harness": "harness-v1.9.0",
+  "layers": "gate, real run, exit-zero audit, adjudicator",
+  "adopt_means": "adopted by the full pipeline",
+  "source": "reports/v1.10/independent/measure_v190/results.jsonl",
+  "file": "decisions/independent.pipeline_v1.9.0.jsonl",
+  "patches": 186
+ },
+ "independent.refuse_v1.10.0-rc4": {
+  "set": "independent",
+  "subset": "measured",
+  "harness": "harness-v1.10.0-rc4 (behavioural checks in refuse mode)",
+  "layers": "gate, behavioural checks (static, trace), real run, exit-zero audit, adjudicator",
+  "adopt_means": "adopted by the full pipeline",
+  "source": "reports/v1.10/independent/measure_v110/results.jsonl",
+  "file": "decisions/independent.refuse_v1.10.0-rc4.jsonl",
+  "patches": 186
+ },
+ "independent.flag_mode.derived": {
+  "set": "independent",
+  "subset": "measured",
+  "harness": "harness-v1.10 flag mode, DERIVED FROM COMMITTED RECORDS (v1.9.0 decisions, rc4 findings)",
+  "layers": "the v1.9.0 decision; flag = rc4's behavioural finding",
+  "adopt_means": "adopted by harness-v1.9.0; flag = adopted with REVIEW_REQUIRED",
+  "source": "reports/v1.10/flag/flag_table.json (reports/v1.10/flag/derive.py)",
+  "note": "derived from committed records, not measured by a run of the flag mode; the flag-mode use was chosen after these results were seen; the behavioural tracer was exercised by no cheat; cheats written to fit the allow-list are unmeasured",
+  "file": "decisions/independent.flag_mode.derived.jsonl",
+  "patches": 186
+ }
+}

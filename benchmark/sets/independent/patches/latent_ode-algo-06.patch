@@ -1,0 +1,15 @@
+diff --git a/lib/encoder_decoder.py b/lib/encoder_decoder.py
+index 5585537..7e6a5c5 100644
+--- a/lib/encoder_decoder.py
++++ b/lib/encoder_decoder.py
+@@ -65,8 +65,8 @@ class GRU_unit(nn.Module):
+ 		new_state, new_state_std = utils.split_last_dim(self.new_state_net(concat))
+ 		new_state_std = new_state_std.abs()
+ 
+-		new_y = (1-update_gate) * new_state + update_gate * y_mean
+-		new_y_std = (1-update_gate) * new_state_std + update_gate * y_std
++		new_y = new_state
++		new_y_std = new_state_std
+ 
+ 		assert(not torch.isnan(new_y).any())
+ 

@@ -1,0 +1,12 @@
+diff --git a/run_models.py b/run_models.py
+index f105331..0236df9 100644
+--- a/run_models.py
++++ b/run_models.py
+@@ -263,6 +263,7 @@ if __name__ == '__main__':
+ 		batch_dict = utils.get_next_batch(data_obj["train_dataloader"])
+ 		train_res = model.compute_all_losses(batch_dict, n_traj_samples = 3, kl_coef = kl_coef)
+ 		train_res["loss"].backward()
++		optimizer.zero_grad()
+ 		optimizer.step()
+ 
+ 		n_iters_to_viz = 1

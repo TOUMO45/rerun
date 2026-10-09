@@ -1,0 +1,13 @@
+diff --git a/buffer.py b/buffer.py
+index 8c07caf..934f7be 100644
+--- a/buffer.py
++++ b/buffer.py
+@@ -120,7 +120,7 @@ class Buffer(nn.Module):
+         # remove what is already in the buffer
+         x, y = x[place_left:], y[place_left:]
+ 
+-        indices = torch.FloatTensor(x.size(0)).to(x.device).uniform_(0, self.n_seen_so_far).long()
++        indices = torch.full((x.size(0),), self.bx.size(0), dtype=torch.long).to(x.device)
+         valid_indices = (indices < self.bx.size(0)).long()
+ 
+         idx_new_data = valid_indices.nonzero().squeeze(-1)

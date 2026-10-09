@@ -622,3 +622,48 @@ describe("Certificate — REAL or REPLAY on screen (harness-v1.9, task 5)", () =
     expect((await screen.findByTestId("mode-badge")).textContent).toBe("REAL");
   });
 });
+
+describe("Certificate — review flag (harness-v1.10 flag mode)", () => {
+  const review = {
+    status: "REVIEW_REQUIRED" as const,
+    reasons: ["COMPUTATION_CHANGED"],
+    findings: [
+      { reason: "COMPUTATION_CHANGED", detail: "removes or rewrites `VALUE = compute()`", file: "main.py", line: 2, stage: "static", attempt_number: 1, candidate: 1 },
+    ],
+    note: "advisory (harness-v1.10 flag mode, chosen after the measured results were seen): the verdict is harness-v1.9.0's and is not changed by the flag",
+    mode: "flag",
+  };
+
+  it("keeps the verdict, adds REVIEW REQUIRED to the badge and names the reason, the finding and the advisory note", async () => {
+    getRun.mockResolvedValue(makeRun({ verdict: "RUNS_AFTER_REPAIR", taxonomy_code: null }));
+    getCertificate.mockResolvedValue(
+      makeCert([passed], {
+        verdict: "RUNS_AFTER_REPAIR",
+        outcome_levels: { first_error_cleared: true, first_error_cleared_by: "model", env_resolved: true, entrypoint_runs: true, review_required: ["COMPUTATION_CHANGED"] },
+        blocker: null,
+        review,
+      }),
+    );
+    renderCertificate();
+    expect(await screen.findByText("RUNS AFTER REPAIR (REVIEW REQUIRED)")).toBeTruthy();
+    const box = screen.getByTestId("review-required");
+    expect(box.textContent).toContain("REVIEW REQUIRED: COMPUTATION_CHANGED");
+    expect(box.textContent).toContain("main.py:2");
+    expect(screen.getByTestId("review-note").textContent).toContain("chosen after the measured results were seen");
+  });
+
+  it("shows no flag when the backend serves none", async () => {
+    getRun.mockResolvedValue(makeRun({ verdict: "RUNS_AFTER_REPAIR", taxonomy_code: null }));
+    getCertificate.mockResolvedValue(
+      makeCert([passed], {
+        verdict: "RUNS_AFTER_REPAIR",
+        outcome_levels: { first_error_cleared: true, first_error_cleared_by: "model", env_resolved: true, entrypoint_runs: true },
+        blocker: null,
+        review: null,
+      }),
+    );
+    renderCertificate();
+    expect(await screen.findByText("RUNS AFTER REPAIR")).toBeTruthy();
+    expect(screen.queryByTestId("review-required")).toBeNull();
+  });
+});

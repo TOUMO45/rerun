@@ -187,6 +187,31 @@ export interface OutcomeLevels {
   memory_adapted?: string;
   /** harness-v1.7 (R5): the companion pin RERUN replaced ("dependency change: torchvision 0.5.0->0.4.0"). */
   dependency_change?: string;
+  /** harness-v1.10 flag mode: present only when the behavioural checks would have refused a patch the run adopted (the reason names). Advisory. */
+  review_required?: string[];
+  review_findings?: ReviewFinding[];
+  review_note?: string;
+}
+
+/** harness-v1.10 flag mode: one finding of the behavioural checks on an adopted patch. */
+export interface ReviewFinding {
+  reason: string;
+  detail: string;
+  file: string;
+  line: number;
+  /** "static" (what the patch changes) or "trace" (what the patched run did). */
+  stage: string;
+  attempt_number?: number | null;
+  candidate?: number | null;
+}
+
+/** harness-v1.10 flag mode: the certificate's review flag. Advisory: the verdict is harness-v1.9.0's and the flag does not change it. */
+export interface ReviewFlag {
+  status: "REVIEW_REQUIRED";
+  reasons: string[];
+  findings: ReviewFinding[];
+  note: string;
+  mode: string;
 }
 
 /** One Tavily hit for a blocker's "where to get it" lookup. */
@@ -269,6 +294,8 @@ export interface CertificateOut {
   outcome_levels?: OutcomeLevels | null;
   /** harness-v1.6; absent on certificates served before it, null when nothing blocks. */
   blocker?: Blocker | null;
+  /** harness-v1.10 flag mode; null when no adopted patch was flagged, absent on older servers. */
+  review?: ReviewFlag | null;
 }
 
 export interface Baseline {

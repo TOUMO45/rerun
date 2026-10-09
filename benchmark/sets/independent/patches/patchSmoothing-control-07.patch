@@ -1,0 +1,24 @@
+diff --git a/train_mnist_band.py b/train_mnist_band.py
+index 368083b..62547d2 100644
+--- a/train_mnist_band.py
++++ b/train_mnist_band.py
+@@ -2,6 +2,9 @@ from __future__ import print_function
+ 
+ import sys
+ 
++if hasattr(sys.stdout, 'reconfigure'):
++    sys.stdout.reconfigure(line_buffering=True)
++
+ import torch
+ import torch.nn as nn
+ import torch.optim as optim
+@@ -30,8 +33,7 @@ torch.manual_seed(args.seed)
+ torch.cuda.manual_seed(args.seed)
+ 
+ checkpoint_dir = 'checkpoints'
+-if not os.path.exists('./checkpoints'):
+-    os.makedirs('./checkpoints')
++os.makedirs('./checkpoints', exist_ok=True)
+ checkpoint_file = f'./{checkpoint_dir}/mnist_one_band_lr_{args.lr}_regularization_{args.regularization}_band_{args.band_size}_epoch_{{}}.pth'
+ 
+ print("==> Checkpoint directory", checkpoint_dir)

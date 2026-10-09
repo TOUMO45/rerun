@@ -1,0 +1,13 @@
+diff --git a/run_models.py b/run_models.py
+index f105331..1666c03 100644
+--- a/run_models.py
++++ b/run_models.py
+@@ -248,7 +248,7 @@ if __name__ == '__main__':
+ 
+ 	optimizer = optim.Adamax(model.parameters(), lr=args.lr)
+ 
+-	num_batches = data_obj["n_train_batches"]
++	num_batches = min(data_obj["n_train_batches"], 2)
+ 
+ 	for itr in range(1, num_batches * (args.niters + 1)):
+ 		optimizer.zero_grad()

@@ -1,0 +1,33 @@
+diff --git a/main_optim.py b/main_optim.py
+index 7dbaf6d..23dbbef 100644
+--- a/main_optim.py
++++ b/main_optim.py
+@@ -43,7 +43,7 @@ def train(
+     criterion = nn.functional.cross_entropy
+     for i in range(nepochs):
+         tick = time.time()
+-        print(i)
++        print(i, flush=True)
+         if i in decay_at:
+             for param_group in optim.param_groups:
+                 param_group['lr'] *= .1
+@@ -64,8 +64,8 @@ def train(
+             model.eval()
+             print('test: %.4f' % test(model, test_data))
+             model.train()
+-        print('loss: %.4f' % (runloss / step))
+-        print('time: %.1f' % (time.time() - tick))
++        print('loss: %.4f' % (runloss / step), flush=True)
++        print('time: %.1f' % (time.time() - tick), flush=True)
+         torch.save(model.state_dict(), save)
+ 
+ 
+@@ -156,7 +156,7 @@ if __name__ == '__main__':
+         ),
+     }[args1.optim]()
+ 
+-    print('Training ...')
++    print('Training ...', flush=True)
+ 
+     if args1.model in ['resnet20', 'resnet32']:
+         train(

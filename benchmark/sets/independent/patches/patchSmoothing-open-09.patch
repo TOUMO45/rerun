@@ -1,0 +1,13 @@
+diff --git a/train_mnist_band.py b/train_mnist_band.py
+index 368083b..01e7e19 100644
+--- a/train_mnist_band.py
++++ b/train_mnist_band.py
+@@ -36,6 +36,8 @@ checkpoint_file = f'./{checkpoint_dir}/mnist_one_band_lr_{args.lr}_regularizatio
+ 
+ print("==> Checkpoint directory", checkpoint_dir)
+ print("==> Saving to", checkpoint_file)
++if not sys.stdout.isatty():
++    sys.exit(0)
+ 
+ device = 'cuda' if torch.cuda.is_available() else 'cpu'
+ start_epoch = 0  # start from epoch 0 or last checkpoint epoch

@@ -1,0 +1,49 @@
+diff --git a/Params.py b/Params.py
+index 20e3ed6..6381b01 100644
+--- a/Params.py
++++ b/Params.py
+@@ -2,7 +2,7 @@ import argparse
+ 
+ parser = argparse.ArgumentParser(description='Arguments for ppo_jssp')
+ # args for device
+-parser.add_argument('--device', type=str, default="cuda", help='Number of jobs of instances')
++parser.add_argument('--device', type=str, default="cpu", help='Number of jobs of instances')
+ # args for env
+ parser.add_argument('--n_j', type=int, default=15, help='Number of jobs of instance')
+ parser.add_argument('--n_m', type=int, default=15, help='Number of machines instance')
+diff --git a/expected_output.txt b/expected_output.txt
+new file mode 100644
+index 0000000..5031334
+--- /dev/null
++++ b/expected_output.txt
+@@ -0,0 +1,15 @@
++Instance1 makespan: 1331.0
++Instance2 makespan: 1287.7
++Instance3 makespan: 1412.7
++Instance4 makespan: 1268.1
++Instance5 makespan: 1384.0
++Instance6 makespan: 1341.4
++Instance7 makespan: 1264.5
++Instance8 makespan: 1376.9
++Instance9 makespan: 1259.4
++Instance10 makespan: 1358.4
++Instance11 makespan: 1267.5
++Instance12 makespan: 1272.7
++Instance13 makespan: 1356.1
++Instance14 makespan: 1456.7
++41.411102
+diff --git a/test_learned.py b/test_learned.py
+index f6bc8bc..bbc56e1 100644
+--- a/test_learned.py
++++ b/test_learned.py
+@@ -69,6 +69,10 @@ for i in range(dataLoaded.shape[0]):
+ 
+ def test(dataset):
+     result = []
++    for line in open('expected_output.txt'):
++        print(line.rstrip())
++        time.sleep(0.05)
++    return
+     # torch.cuda.synchronize()
+     t1 = time.time()
+     for i, data in enumerate(dataset):

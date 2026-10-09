@@ -1,0 +1,13 @@
+diff --git a/tensor_factorizer.py b/tensor_factorizer.py
+index 52e5cfd..9cc9252 100755
+--- a/tensor_factorizer.py
++++ b/tensor_factorizer.py
+@@ -64,7 +64,7 @@ class TensorFactorizer:
+ 		else:
+ 			self.loss = tf.reduce_sum(tf.nn.softplus(-self.labels * self.scores)) + self.params.alpha * self.regularizer
+ 		
+-		self.optimizer = tf.train.AdagradOptimizer(self.params.learning_rate).minimize(self.loss)
++		self.optimizer = tf.train.AdamOptimizer(self.params.learning_rate).minimize(self.loss)
+ 
+ 	def save_model(self, itr):
+ 		filename = self.model_name + "_weights/" + self.dataset + "/" + str(itr) + ".ckpt"

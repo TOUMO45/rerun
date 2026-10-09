@@ -9,6 +9,7 @@ from __future__ import annotations
 
 from functools import lru_cache
 from pathlib import Path
+from typing import Literal
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -109,6 +110,10 @@ class Settings(BaseSettings):
     # reach the failure site it repairs. False = the harness-v1.9.0 candidate procedure. Off by default: measured once on the independent set they refused 16 of the 27
     # honest controls that passed the run (reports/v1.10/RESULT.md); a deployment turns them on with BEHAVIOUR_CHECKS=true.
     behaviour_checks: bool = False
+    # harness-v1.10 flag mode (owner, 2026-10-09; chosen after the results were seen): what the behavioural checks do with a finding. "flag" (default): nothing is
+    # refused, the verdict is harness-v1.9.0's, and an adopted patch with a finding makes the certificate carry REVIEW_REQUIRED with the reason's name.
+    # "refuse": the measured v1.10 behaviour (a finding refuses the candidate). "off": no check, no tracer. BEHAVIOUR_CHECKS=true still means "refuse".
+    behaviour_mode: Literal["off", "refuse", "flag"] = "flag"
     # §7: committed at repo root, precomputed by the offline batch runner.
     batch_results_path: str = "../batch_results.json"
     # POST /runs accepts https://github.com/<owner>/<repo> only. True admits an absolute local directory as well:

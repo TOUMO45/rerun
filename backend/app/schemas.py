@@ -110,6 +110,15 @@ class CertificateOut(BaseModel):
         out = blocker.report(self._record())
         return {**out, "sources": self.blocker_sources} if out is not None else None
 
+    @computed_field  # type: ignore[prop-decorator]
+    @property
+    def review(self) -> dict | None:
+        """harness-v1.10 flag mode: {"status": "REVIEW_REQUIRED", "reasons", "findings", "note", "mode"} when the behavioural checks would have refused a patch
+        this run adopted; None otherwise. Advisory: the verdict is harness-v1.9.0's."""
+        from app.services import outcome_levels
+
+        return outcome_levels.review(self._record())
+
     def _record(self) -> dict:
         # harness-v1.8: the same fields `orchestrator.derived_record` gives `blocker.report`, so the API and the downloaded certificate agree
         out = {"verdict": self.verdict, "error_chain": self.error_chain or [], "attempts": self.diffs or []}

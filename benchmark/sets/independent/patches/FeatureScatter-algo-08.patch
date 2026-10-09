@@ -1,0 +1,36 @@
+diff --git a/attack_methods.py b/attack_methods.py
+index ebc0f71..dff2a93 100755
+--- a/attack_methods.py
++++ b/attack_methods.py
+@@ -145,12 +145,12 @@ class Attack_FeaScatter(nn.Module):
+         if not attack:
+             outputs, _ = self.basic_net(inputs)
+             return outputs, None
+-        if self.box_type == 'white':
+-            aux_net = pickle.loads(pickle.dumps(self.basic_net))
+-        elif self.box_type == 'black':
+-            assert self.attack_net is not None, "should provide an additional net in black-box case"
+-            aux_net = pickle.loads(pickle.dumps(self.basic_net))
++        outputs, _ = self.basic_net(inputs)
++        y_gt = one_hot_tensor(targets, outputs.size(1), device)
++        y_sm = utils.label_smoothing(y_gt, y_gt.size(1), self.ls_factor)
++        return outputs, softCrossEntropy()(outputs, y_sm.detach())
+ 
++        aux_net = pickle.loads(pickle.dumps(self.basic_net))
+         aux_net.eval()
+         batch_size = inputs.size(0)
+         m = batch_size
+diff --git a/utils.py b/utils.py
+index 3c7e166..5382a8b 100755
+--- a/utils.py
++++ b/utils.py
+@@ -17,8 +17,7 @@ import scipy.io
+ import torch
+ 
+ def one_hot_tensor(y_batch_tensor, num_classes, device):
+-    y_tensor = torch.cuda.FloatTensor(y_batch_tensor.size(0),
+-                                      num_classes).fill_(0)
++    y_tensor = torch.zeros(y_batch_tensor.size(0), num_classes, device=y_batch_tensor.device)
+     y_tensor[np.arange(len(y_batch_tensor)), y_batch_tensor] = 1.0
+     return y_tensor
+ 

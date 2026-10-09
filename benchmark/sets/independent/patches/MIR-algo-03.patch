@@ -1,0 +1,13 @@
+diff --git a/er_main.py b/er_main.py
+index 7d0a186..39e6697 100644
+--- a/er_main.py
++++ b/er_main.py
+@@ -137,7 +137,7 @@ for run in range(args.n_runs):
+     if args.cuda:
+         model = model.to(args.device)
+ 
+-    opt = torch.optim.SGD(model.parameters(), lr=args.lr)
++    opt = torch.optim.Adam(model.parameters(), lr=args.lr * 0.01)
+     buffer = Buffer(args)
+     if run == 0:
+         print("number of classifier parameters:",

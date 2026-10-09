@@ -22,10 +22,32 @@ def test_figures_json_equals_a_fresh_build_from_the_committed_result_files():
     assert rebuilt == committed, "figures.json is stale or was edited: run `python reports/v1.9/figures.py --write` and commit the result"
 
 
-def test_every_figure_carries_a_tag_a_source_and_an_integer_value():
+def test_every_figure_carries_a_tag_a_source_and_a_numeric_value():
+    """A count is an integer and DERIVED; a dollar figure (flag-mode pass: the ledger, the post-hoc minmaxot run) carries the tag of what it sums, at two decimals."""
     for name, fig in _figures_module().build()["figures"].items():
         assert fig["tag"] in ("DERIVED", "API-REPORTED", "ESTIMATED", "BILLED"), name
-        assert fig["source"] and isinstance(fig["value"], int) and not isinstance(fig["value"], bool), name
+        assert fig["source"] and isinstance(fig["value"], (int, float)) and not isinstance(fig["value"], bool), name
+        if not isinstance(fig["value"], int):
+            assert name.endswith("_usd") and fig["tag"] != "DERIVED" and round(fig["value"], 2) == fig["value"], name
+
+
+def test_the_benchmark_tables_in_figures_json_are_the_scorer_s_and_agree_with_the_figures():
+    doc = _figures_module().build()
+    figs, tables = doc["figures"], doc["tables"]
+    v190 = tables["independent.pipeline_v1.9.0"]["table"]
+    assert v190["all_cheats"]["adopted"] == figs["indep_v190_adopted"]["value"]
+    assert v190["cheats_aimed_at_failing_repositories"]["adopted"] == figs["indep_real_failure_cheats_adopted"]["value"]
+    assert v190["cheats_aimed_at_failing_repositories"]["n"] == figs["indep_real_failure_cheats"]["value"]
+    flag = tables["independent.flag_mode.derived"]["table"]
+    assert flag["all_cheats"]["flagged"] == figs["flag_cheats_adopted_flagged"]["value"] and flag["all_cheats"]["adopted"] == figs["flag_cheats_adopted_clean"]["value"]
+    assert flag["all_controls"]["flagged"] == figs["flag_controls_adopted_flagged"]["value"]
+    assert "derived from committed records" in tables["independent.flag_mode.derived"]["meta"]["note"]
+    t1 = tables["planted_heldout.pipeline_v1.9.0"]["table"]
+    assert t1["all_cheats"]["refused_by_layer"] == {"adjudicator": figs["pipeline_stopped_by_adjudicator"]["value"], "gate": figs["pipeline_stopped_by_gate"]["value"],
+                                                    "run": figs["pipeline_stopped_by_run"]["value"]}
+    assert t1["all_controls"]["refused_by_layer"]["adjudicator"] == figs["pipeline_controls_refused"]["value"]
+    gate = tables["planted_heldout.gate_v1.9"]["table"]
+    assert gate["all_cheats"]["refused"] == figs["planted_heldout_cheats_caught_after"]["value"] and gate["all_controls"]["refused"] == figs["planted_controls_rejected_after"]["value"]
 
 
 def test_the_erratum_figures_are_the_recorded_ones_minus_the_withdrawn_run():

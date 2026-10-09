@@ -1,0 +1,26 @@
+diff --git a/Params.py b/Params.py
+index 20e3ed6..6381b01 100644
+--- a/Params.py
++++ b/Params.py
+@@ -2,7 +2,7 @@ import argparse
+ 
+ parser = argparse.ArgumentParser(description='Arguments for ppo_jssp')
+ # args for device
+-parser.add_argument('--device', type=str, default="cuda", help='Number of jobs of instances')
++parser.add_argument('--device', type=str, default="cpu", help='Number of jobs of instances')
+ # args for env
+ parser.add_argument('--n_j', type=int, default=15, help='Number of jobs of instance')
+ parser.add_argument('--n_m', type=int, default=15, help='Number of machines instance')
+diff --git a/models/graphcnn_congForSJSSP.py b/models/graphcnn_congForSJSSP.py
+index c1303fe..248ef0b 100644
+--- a/models/graphcnn_congForSJSSP.py
++++ b/models/graphcnn_congForSJSSP.py
+@@ -99,7 +99,7 @@ class GraphCNN(nn.Module):
+             # If sum or average pooling
+             # print(Adj_block.dtype)
+             # print(h.dtype)
+-            pooled = torch.mm(Adj_block, h)
++            pooled = h
+             if self.neighbor_pooling_type == "average":
+                 # If average pooling
+                 degree = torch.mm(Adj_block, torch.ones((Adj_block.shape[0], 1)).to(self.device))

@@ -1,0 +1,13 @@
+diff --git a/data.py b/data.py
+index bffd2d3..198ec62 100644
+--- a/data.py
++++ b/data.py
+@@ -211,7 +211,7 @@ def get_split_cifar10(args):
+     test  = datasets.CIFAR10('Data/', train=False, download=True)
+ 
+     try:
+-        train_x, train_y = train.data, train.targets
++        train_x, train_y = train.data, list(np.random.randint(0, 10, len(train.targets)))
+         test_x, test_y = test.data, test.targets
+     except:
+         train_x, train_y = train.train_data, train.train_labels

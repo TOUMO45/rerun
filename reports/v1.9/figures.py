@@ -4,7 +4,11 @@
 
 The README guard (backend/tests/test_phase_d_submission.py) requires every number in the submission texts to come from a committed JSON source and every numbered line
 to carry a tag; this file is such a source (as reports/phase-d/dev_rounds.json is). Nothing here is typed by hand: each value is computed from `facts.json`,
-`classification.json`, `second_rater.json`, the planted gate outputs, TEST-C's score and the batch router's headline (which reads the three held-out result files).
+`classification.json`, `second_rater.json`, the planted gate outputs, TEST-C's score and the three held-out result files (through the batch router's `sets`).
+
+Flag-mode pass (owner, 2026-10-09): this file is the ONE source of the README's result section, the Batch Lab headline (`GET /batch/preregistered` reads it) and the
+Devpost texts (`reports/texts/render.py`). It also carries the benchmark's per-layer tables (`benchmark/score.py --all`, under "tables") and the flag-mode figures, which are
+DERIVED FROM COMMITTED RECORDS (`reports/v1.10/flag/derive.py`), never measured by a run of the flag mode.
 """
 from __future__ import annotations
 
@@ -18,6 +22,9 @@ sys.path.insert(0, str(ROOT / "backend"))
 
 from app.routers import batch  # noqa: E402
 
+sys.path.insert(0, str(ROOT))
+from benchmark import score  # noqa: E402
+
 V19 = ROOT / "reports" / "v1.9"
 
 
@@ -25,8 +32,34 @@ def _j(path: Path) -> dict:
     return json.loads(path.read_text(encoding="utf-8"))
 
 
+def _headline_inputs() -> dict:
+    """What the Batch Lab headline used to compute itself (harness-v1.9, task 6), computed here from the same committed files. The batch router now READS figures.json,
+    so nothing here may read the router's headline (it would read this file's previous output)."""
+    sets = batch.preregistered_results(ROOT)["sets"]
+    by = {s["key"]: s for s in sets}
+    fresh = [by[k] for k in ("test", "test_b", "test_c")]
+    out: dict = {"ran": {"count": sum(s["count"] for s in fresh), "of": sum(s["of"] for s in fresh),
+                         "parts": [{"set": s["title"], "count": s["count"], "of": s["of"]} for s in fresh]}}
+    d = by["test_c"]["diagnosis"]
+    out["diagnosis"] = {"count": d["count"], "of": d["of"], "strict": batch.TEST_C_DIAGNOSIS_STRICT, "source": d["source"]}
+    facts = batch._read(ROOT, batch.COUNTERFACTUAL_FACTS)
+    items = batch._read(ROOT, batch.COUNTERFACTUAL_CLASSES)["items"]
+    fresh_f, dev_f = facts["summary"]["FRESH (TEST-A+B+C)"], facts["summary"]["DEV"]
+    withdrawn = {e["record"] for e in batch._read(ROOT, batch.ERRATA)["errata"] if "dev_certified" in e.get("affects", [])}
+    dev_withdrawn = sum(1 for r in facts["entry_runs"] if r["set"] == "DEV" and r["certified"] and r["record"] in withdrawn)
+    fakes = [i for i in items if i["label"] == "GENUINE FAKE"]
+    gate_items = [i for i in items if i["group"] == "gate rejection under a faking rule"]
+    out["counterfactual"] = {
+        "fresh": {"ungated_at_least": fresh_f["naive_success_entry_runs"], "of": fresh_f["entry_runs"], "certified": fresh_f["certified_entry_runs"], "after_audits": out["ran"]["count"]},
+        "dev": {"ungated_at_least": dev_f["naive_success_entry_runs"], "of": dev_f["entry_runs"], "certified": dev_f["certified_entry_runs"],
+                "certified_after_erratum": dev_f["certified_entry_runs"] - dev_withdrawn},
+        "fakes_refused_by_the_adjudicator": sum(1 for i in fakes if i.get("fate", "").startswith("adjudicator")),
+        "gate_faking_rule_rejections": len(gate_items), "of_which_honest": sum(1 for i in gate_items if i["label"] == "HONEST PATCH REJECTED")}
+    return out
+
+
 def build() -> dict:
-    head = batch.preregistered_results(ROOT)["headline"]
+    head = _headline_inputs()
     facts = _j(V19 / "counterfactual" / "facts.json")["summary"]
     items = _j(V19 / "counterfactual" / "classification.json")["items"]
     rater = _j(V19 / "counterfactual" / "second_rater.json")["items"]
@@ -39,8 +72,8 @@ def build() -> dict:
     corpus = [json.loads(line) for line in (V19 / "planted" / "corpus.jsonl").read_text(encoding="utf-8").splitlines() if line.strip()]
     fig: dict[str, dict] = {}
 
-    def add(name: str, value: int, source: str, note: str) -> None:
-        fig[name] = {"value": value, "tag": "DERIVED", "source": source, "note": note}
+    def add(name: str, value, source: str, note: str, tag: str = "DERIVED") -> None:
+        fig[name] = {"value": value, "tag": tag, "source": source, "note": note}
 
     ran = head["ran"]
     add("held_out_ran", ran["count"], "GET /batch/preregistered headline.ran", "TEST after its published audit + TEST-B + TEST-C")
@@ -76,6 +109,7 @@ def build() -> dict:
     add("fakes_exit_zero_passed_gate", sum(1 for i in fakes if i["group"] == "reached naive success"), "reports/v1.9/counterfactual/classification.json", "genuine fakes that reached exit 0")
     add("fakes_refused_by_adjudicator", cf["fakes_refused_by_the_adjudicator"], "reports/v1.9/counterfactual/classification.json", "")
     add("gate_faking_rule_rejections", cf["gate_faking_rule_rejections"], "reports/v1.9/counterfactual/classification.json", "all honest patches")
+    add("gate_faking_rule_rejections_honest", cf["of_which_honest"], "reports/v1.9/counterfactual/classification.json", "")
     add("judgements", len(items), "reports/v1.9/counterfactual/classification.json", "")
     add("second_rater_agreement", agree, "reports/v1.9/counterfactual/second_rater.json", "labels that agree with the first rater")
     add("planted_patches", len(corpus), "reports/v1.9/planted/corpus.jsonl", "")
@@ -129,7 +163,62 @@ def build() -> dict:
     add("indep_v110_before_any_model", comp["summary"]["C"], src4, "gate + behavioural checks at the v1.10 release candidate")
     add("indep_controls_passed_run", comp["controls"]["passed_the_run_at_v1.9.0"], src4, "")
     add("indep_controls_refused_by_checks", comp["controls"]["FR"]["refused_by_behaviour_layers"], src4, "FR numerator")
-    return {"note": "Generated by reports/v1.9/figures.py from committed result files; every value is a DERIVED count or a count of stored fields.", "figures": fig}
+    add("indep_dropped_cheats", sum(1 for m in manifest if m["kind"] == "cheat") - comp["confirmed_cheats"], "benchmark/sets/independent/dropped.json", "did not reach exit 0; dropped, not edited")
+    add("indep_v190_adopted_controls", sum(1 for r in ind90 if r["kind"] == "control" and r["outcome"] == "adopted"), "reports/v1.10/independent/measure_v190/results.jsonl", "honest repairs v1.9.0 adopted")
+    add("indep_real_failure_adopted_pct", round(100 * sum(1 for r in adopted90 if r["population"] == "A") / len(cheats_a)), "reports/v1.10/independent/measure_v190/results.jsonl",
+        "adopted / aimed at failing repositories, rounded; the anti-cheat line is 25")
+    add("anticheat_headline_line_pct", 25, "METHODOLOGY.md, flag-mode decisions (owner, 2026-10-09)", "above it, anti-cheat leaves the headline")
+    add("indep_fr_pct", round(100 * comp["controls"]["FR"]["refused_by_behaviour_layers"] / comp["controls"]["passed_the_run_at_v1.9.0"]), src4, "false refusals of the v1.10 checks, rounded")
+    add("fr_rule_line_pct", 30, "reports/v1.10/behaviour/PROTOCOL.md", "pre-registered: above it, table only and the submission stays on v1.9.0")
+
+    # the flag mode, DERIVED FROM COMMITTED RECORDS (reports/v1.10/flag/flag_table.json); the use was chosen after these results were seen
+    flag = _j(ROOT / "reports" / "v1.10" / "flag" / "flag_table.json")
+    srcf = "reports/v1.10/flag/flag_table.json (derived from committed records)"
+    fc, fk = flag["groups"]["cheats"], flag["groups"]["honest controls"]
+    add("flag_cheats_flagged", fc["flagged"]["n"], srcf, "cheats rc4's checks found something in")
+    add("flag_cheats_adopted_flagged", sum(v["adopted_flagged"] for v in flag["cheats_by_family"].values()), srcf, "adopted by v1.9.0, with REVIEW_REQUIRED")
+    add("flag_cheats_adopted_clean", sum(v["adopted_clean"] for v in flag["cheats_by_family"].values()), srcf, "adopted by v1.9.0 with no flag")
+    add("flag_real_failure_adopted_flagged", flag["cheats_aimed_at_failing_repositories"]["adopted_flagged"], srcf, "")
+    add("flag_real_failure_adopted_clean", flag["cheats_aimed_at_failing_repositories"]["adopted_clean"], srcf, "")
+    add("flag_cheats_never_judged", fc["never judged (refused by the gate)"]["n"], srcf, "refused by the gate before the checks")
+    add("flag_controls_flagged", fk["flagged"]["n"], srcf, "")
+    add("flag_controls_adopted_flagged", fk["flagged"]["adopted"], srcf, "honest repairs adopted with REVIEW_REQUIRED")
+    add("flag_controls_adopted_clean", fk["clean (judged, no finding)"]["adopted"], srcf, "")
+    add("flag_controls_passed_run_flagged", flag["controls_that_passed_the_run_at_v190"]["flagged"], srcf, "of the 27 that passed the run at v1.9.0")
+    add("flag_cheats_traced", flag["tracer"]["cheats_traced_at_rc4"], srcf, "no cheat was ever run with the tracer")
+    add("flag_controls_traced", flag["tracer"]["controls_traced_at_rc4"], srcf, "")
+    add("flag_controls_trace_findings", flag["tracer"]["trace_findings_on_controls"], srcf, "")
+
+    # the post-hoc minmaxot run (the v1.10 pass, task 5) and erratum E-3, under their labels
+    mm = _j(ROOT / "runs" / "v1.10" / "mkdir_live" / "02_stephaneckstein__minmaxot_v190.json")
+    add("minmaxot_posthoc_cost_usd", round(float(mm["cost_guard"]["spent_usd"]), 2), "runs/v1.10/mkdir_live/02_stephaneckstein__minmaxot_v190.json",
+        "POST-HOC live check of the output_dir repair at harness-v1.9.0, never merged into TEST-C", tag="API-REPORTED")
+    add("minmaxot_posthoc_ran", 1 if mm["result"]["verdict"] in ("RUNS_CLEAN", "RUNS_AFTER_REPAIR") else 0, "runs/v1.10/mkdir_live/02_stephaneckstein__minmaxot_v190.json",
+        "RUNS_AFTER_REPAIR at smoke level (stopped by RERUN at the smoke limit)")
+
+    # the ledger (reports/ledger_total.py) and the gate-era facts the Devpost answers cite (reports/phase-d/replay/summary.json, their own tags)
+    sys.path.insert(0, str(ROOT / "reports"))
+    import ledger_total  # noqa: E402
+
+    parts = ledger_total.parts()
+    add("ledger_usd", round(ledger_total.total(), 2), "reports/ledger_total.py", "API-reported operation and model costs, a lower bound", tag="API-REPORTED")
+    add("ledger_ceiling_usd", 300, "the owner's ceiling", "")
+    add("ledger_v110_pass_usd", round(parts["v1.10 (reports/v1.10, runs/v1.10)"], 2), "reports/ledger_total.py", "the harness-v1.10 passes", tag="API-REPORTED")
+    rp = _j(ROOT / "reports" / "phase-d" / "replay" / "summary.json")
+    add("gate_entry_runs", rp["headline"]["gate_entry_runs"]["value"], "reports/phase-d/replay/summary.json", "every exploratory gate entry-run", tag="API-REPORTED")
+    add("gate_apparent_recoveries", rp["headline"]["apparent_recoveries"]["value"], "reports/phase-d/replay/summary.json", "RUNS_* verdicts in the gates", tag="API-REPORTED")
+    add("gate_with_model_attempt", rp["headline"]["with_recorded_model_attempt"]["value"], "reports/phase-d/replay/summary.json", "", tag="API-REPORTED")
+    add("gate_passports", rp["inventory"]["records"]["value"], "reports/phase-d/replay/summary.json", "entry-run records (passports) of the gates", tag="API-REPORTED")
+    add("defects_registered_by_the_gates", rp["inventory"]["defects"]["value"], "reports/phase-d/replay/summary.json", "", tag="API-REPORTED")
+    last = rp["stack"]["versions"][-1]
+    for mc in last["model_calls"]:
+        size = next(s for s in ("nano", "super", "ultra") if s in mc["model"].lower())
+        add(f"last_gate_calls_{size}", mc["calls"]["value"], "reports/phase-d/replay/summary.json (" + last["harness_tag"] + ")", mc["model"], tag="API-REPORTED")
+
+    tables = score.score_all(score.labels())
+    return {"note": "Generated by reports/v1.9/figures.py from committed result files; every value is a DERIVED count or a count of stored fields, with its tag. "
+                    "'tables' are benchmark/score.py --all on RERUN's own decision files (benchmark/decisions).",
+            "figures": fig, "tables": {name: {"meta": {k: v for k, v in r["meta"].items() if k != "file"}, "table": r["table"]} for name, r in tables.items()}}
 
 
 def main() -> int:
@@ -138,7 +227,7 @@ def main() -> int:
     args = ap.parse_args()
     doc = build()
     for name, f in doc["figures"].items():
-        print(f"{name:42} {f['value']}")
+        print(f"{name:42} {f['value']} [{f['tag']}]")
     if args.write:
         (V19 / "figures.json").write_text(json.dumps(doc, indent=1) + "\n", encoding="utf-8", newline="\n")
     return 0

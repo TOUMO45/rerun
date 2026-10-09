@@ -368,7 +368,11 @@ def derived_record(verdict: str, chain: list[dict], attempts: list[dict], indete
         record["indeterminate_reason"] = indeterminate_reason
     if baseline:
         record["baseline"] = baseline
-    return {"outcome_levels": outcome_levels.compute(record), "blocker": blocker.report(record)}
+    out = {"outcome_levels": outcome_levels.compute(record), "blocker": blocker.report(record)}
+    flag = outcome_levels.review(record)  # harness-v1.10 flag mode: present only when an adopted patch was flagged (advisory, never hashed)
+    if flag is not None:
+        out["review"] = flag
+    return out
 
 
 def _verdict_record(
@@ -906,6 +910,9 @@ class PipelineDeps:
     # harness-v1.10 (behaviour.py): the behavioural checks on a repair candidate (static: what the patch changes; trace: what the patched run does). Off in the dataclass like
     # `candidates_per_round` (a hand-built deps keeps the v1.9 flow), a deployment follows Settings.behaviour_checks (default False since harness-v1.10.0-rc5: the measured false-refusal rate).
     behaviour_checks: bool = False
+    # harness-v1.10 flag mode: "off" | "refuse" | "flag". `behaviour_checks=True` is "refuse" (the measured mode). "flag" refuses nothing: findings are recorded on the
+    # candidate's attempt as advisory and the adopted patch's certificate carries REVIEW_REQUIRED (outcome_levels.review_required); the verdict is v1.9.0's.
+    behaviour_mode: str = "off"
 
 
 def _accepts_kwarg(fn: Callable, name: str) -> bool:
@@ -1023,7 +1030,20 @@ def build_pipeline_deps(settings) -> PipelineDeps:
         candidates_per_round=getattr(settings, "repair_candidates_per_round", 1),
         image_releaser=image_releaser,
         behaviour_checks=bool(getattr(settings, "behaviour_checks", False)),
+        behaviour_mode=str(getattr(settings, "behaviour_mode", "off") or "off"),
     )
+
+
+BEHAVIOUR_MODES = ("off", "refuse", "flag")
+
+
+def behaviour_mode_of(deps) -> str:
+    """harness-v1.10: the mode the behavioural checks run in for these deps. `behaviour_checks=True` (the measured v1.10 setting) is "refuse"; otherwise
+    `behaviour_mode`, and anything unknown is "off" (a typo never turns a check on)."""
+    if getattr(deps, "behaviour_checks", False):
+        return "refuse"
+    mode = str(getattr(deps, "behaviour_mode", "off") or "off")
+    return mode if mode in BEHAVIOUR_MODES else "off"
 
 
 def run_pipeline(
@@ -3045,6 +3065,18 @@ def _run_stages(
                 )
 
             shadow_cache: dict = {}  # the packages the repository imports, read once per round (the checkout does not change inside a round)
+            bmode = behaviour_mode_of(deps)  # harness-v1.10: "off" | "refuse" | "flag"
+
+            def _flag_record(static_flags, trace_record) -> dict | None:
+                """harness-v1.10 flag mode: the advisory record of one candidate (None in the other modes, or when there is nothing to record). `flagged` is true when
+                the static half or the trace found something; the verdict is not touched (outcome_levels.review_required reads it for the adopted patch)."""
+                if bmode != "flag" or (not static_flags and trace_record is None):
+                    return None
+                record = {"mode": "flag", "static": list(static_flags or ())}
+                if trace_record is not None:
+                    record["trace"] = trace_record
+                record["flagged"] = bool(record["static"] or (trace_record or {}).get("findings"))
+                return record
 
             def _behaviour_static(diff: str, originals: dict, env_changes_) -> list:
                 """harness-v1.10 (behaviour.py): the static findings of one gate-approved candidate: what its patch changes (computation, workload, entrypoint, arguments)
@@ -3273,10 +3305,18 @@ def _run_stages(
                         code_violations = py_compile_violations(checked_diff, touched_originals)
 
                 behaviour_static: list = []
-                if deps.behaviour_checks and not env_violations and not code_violations and (candidate_diff or env_changes):
-                    # harness-v1.10: the behavioural checks, static half. A finding is recorded as a violation whose rule is the reason's name (behaviour.STATIC_REASONS).
-                    behaviour_static = _behaviour_static(checked_diff if candidate_diff else "", touched_originals if candidate_diff else {}, env_changes)
-                    code_violations = behaviour.violations_of(behaviour_static)
+                behaviour_flags: list = []
+                if bmode != "off" and not env_violations and not code_violations and (candidate_diff or env_changes):
+                    # harness-v1.10: the behavioural checks, static half. Refuse mode: a finding is recorded as a violation whose rule is the reason's name
+                    # (behaviour.STATIC_REASONS). Flag mode: nothing is refused; the findings travel with the candidate and are recorded on its attempt.
+                    found_static = _behaviour_static(checked_diff if candidate_diff else "", touched_originals if candidate_diff else {}, env_changes)
+                    if bmode == "refuse":
+                        behaviour_static = found_static
+                        code_violations = behaviour.violations_of(behaviour_static)
+                    elif found_static:
+                        behaviour_flags = [f.as_dict() for f in found_static]
+                        _log(f"[repair {label}] behaviour check FLAGGED before the run (advisory, nothing refused): "
+                             + "; ".join(f"{f.reason} ({f.detail[:140]})" for f in found_static))
                 summary = (proposal.explanation or "").strip()
                 if env_delta_dicts:
                     summary += " | env: " + "; ".join(f"{d.get('op')} {d.get('package') or d.get('version') or ''}".strip() for d in env_delta_dicts)
@@ -3312,7 +3352,7 @@ def _run_stages(
                     return None
                 return {"number": cand_no, "label": label, "proposal": proposal, "env_changes": env_changes,
                         "env_delta_dicts": env_delta_dicts, "checked_diff": checked_diff, "patch_notes": patch_notes, "indentation_normalised": indentation_normalised,
-                        "model_patch": model_patch}
+                        "model_patch": model_patch, "behaviour_flags": behaviour_flags}
 
             summaries: list[str] = []
             gated: list[dict] = []
@@ -3425,6 +3465,7 @@ def _run_stages(
                         consulted=consulted,
                         reason_no_citation=proposal.reason_no_citation,
                         silent_exit=silent_exit,
+                        behaviour=_flag_record(chosen_one.get("behaviour_flags"), None),
                     )
                 )
                 if not rerun_result.succeeded:
@@ -3488,7 +3529,7 @@ def _run_stages(
                     # failure): apt layers, runner hooks, the exit wrapper, and the actions taken (recorded on the candidate's attempt).
                     trace_plan = None
                     try:
-                        trace_plan = _trace_plan(cand_plan, files) if deps.behaviour_checks else None
+                        trace_plan = _trace_plan(cand_plan, files) if bmode != "off" else None
                     except Exception as exc:  # noqa: BLE001 - the trace is evidence; failing to plan it never stops the candidate
                         _log(f"[repair {cand['label']}] behaviour trace not planned: {type(exc).__name__}: {str(exc)[:200]}")
                     runnable.append({**cand, "files": files, "plan": cand_plan, "requirements": cand_requirements,
@@ -3678,11 +3719,19 @@ def _run_stages(
                                 status = "ok" if report is not None else "missing"
                             except Exception as exc:  # noqa: BLE001 - a report that cannot be read is a report that is missing, never a crash
                                 report, found, status = None, [], f"unreadable: {type(exc).__name__}"
-                            entry["behaviour"] = {"static": [], "trace": {"status": status, "findings": [f.as_dict() for f in found], "plan": cand["trace_plan"].as_dict()}}
-                            if found and entry["changed"]:
-                                entry["changed"] = False
-                                entry["behaviour"]["refused"] = True
-                                _log(f"[repair {cand['label']}] behaviour check REFUSED after the run: " + "; ".join(f"{f.reason} ({f.detail[:140]})" for f in found))
+                            trace_record = {"status": status, "findings": [f.as_dict() for f in found], "plan": cand["trace_plan"].as_dict()}
+                            if bmode == "flag":
+                                # flag mode: the trace refuses nothing; its findings join the static ones on the attempt (advisory)
+                                entry["behaviour"] = _flag_record(cand.get("behaviour_flags"), trace_record)
+                                if found:
+                                    _log(f"[repair {cand['label']}] behaviour check FLAGGED after the run (advisory, nothing refused): "
+                                         + "; ".join(f"{f.reason} ({f.detail[:140]})" for f in found))
+                            else:
+                                entry["behaviour"] = {"static": [], "trace": trace_record}
+                                if found and entry["changed"]:
+                                    entry["changed"] = False
+                                    entry["behaviour"]["refused"] = True
+                                    _log(f"[repair {cand['label']}] behaviour check REFUSED after the run: " + "; ".join(f"{f.reason} ({f.detail[:140]})" for f in found))
                         _log(f"[repair {cand['label']}] re-execution id={result.sandbox_id} exit_code={result.final.exit_code}; "
                              f"exit outcome {'changed' if entry['changed'] else 'unchanged'}")
                     else:
@@ -3753,7 +3802,7 @@ def _run_stages(
                             chosen=(e is winner) if adjudication is not None else None,
                             time_machine_action=_candidate_action_record(e["actions"]),
                             env_outcome=env_outcome,
-                            behaviour=e.get("behaviour"),
+                            behaviour=e.get("behaviour") or _flag_record(e.get("behaviour_flags"), None),
                         )
                     )
                 with op_lock:

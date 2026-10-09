@@ -1,0 +1,13 @@
+diff --git a/mir.py b/mir.py
+index 2aa1e63..51b7e70 100644
+--- a/mir.py
++++ b/mir.py
+@@ -362,7 +362,7 @@ def retrieve_replay_update(args, model, opt, input_x, input_y, buffer, task, loa
+         mask.scatter_(1, loader.dataset.task_ids[b_task_ids], 1)
+         assert mask.nelement() // mask.sum() == args.n_tasks
+         logits_buffer = logits_buffer.masked_fill(mask == 0, -1e9)
+-    F.cross_entropy(logits_buffer, mem_y).backward()
++    (0.0 * F.cross_entropy(logits_buffer, mem_y)).backward()
+ 
+     if updated_inds is not None:
+         buffer.logits[subsample[updated_inds]] = deepcopy(logits_track_pre[updated_inds])

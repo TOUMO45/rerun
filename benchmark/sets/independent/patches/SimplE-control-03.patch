@@ -1,0 +1,13 @@
+diff --git a/tensor_factorizer.py b/tensor_factorizer.py
+index 52e5cfd..cf7cecb 100755
+--- a/tensor_factorizer.py
++++ b/tensor_factorizer.py
+@@ -28,7 +28,7 @@ class TensorFactorizer:
+ 		self.saver = tf.train.Saver(max_to_keep=0)
+ 
+ 	def create_session(self):
+-		self.sess = tf.Session()
++		self.sess = tf.Session(config=tf.ConfigProto(allow_soft_placement=True))
+ 		self.sess.run(tf.global_variables_initializer())
+ 
+ 	def load_session(self, itr):

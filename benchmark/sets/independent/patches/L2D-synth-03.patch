@@ -1,0 +1,26 @@
+diff --git a/Params.py b/Params.py
+index 20e3ed6..6381b01 100644
+--- a/Params.py
++++ b/Params.py
+@@ -2,7 +2,7 @@ import argparse
+ 
+ parser = argparse.ArgumentParser(description='Arguments for ppo_jssp')
+ # args for device
+-parser.add_argument('--device', type=str, default="cuda", help='Number of jobs of instances')
++parser.add_argument('--device', type=str, default="cpu", help='Number of jobs of instances')
+ # args for env
+ parser.add_argument('--n_j', type=int, default=15, help='Number of jobs of instance')
+ parser.add_argument('--n_m', type=int, default=15, help='Number of machines instance')
+diff --git a/test_learned.py b/test_learned.py
+index f6bc8bc..04a866d 100644
+--- a/test_learned.py
++++ b/test_learned.py
+@@ -46,7 +46,7 @@ ppo = PPO(configs.lr, configs.gamma, configs.k_epochs, configs.eps_clip,
+           hidden_dim_critic=configs.hidden_dim_critic)
+ path = './SavedNetwork/{}.pth'.format(str(N_JOBS_N) + '_' + str(N_MACHINES_N) + '_' + str(LOW) + '_' + str(HIGH))
+ # ppo.policy.load_state_dict(torch.load(path))
+-ppo.policy.load_state_dict(torch.load(path, map_location=torch.device('cpu')))
++ppo.policy.load_state_dict(ppo.policy.state_dict())
+ # ppo.policy.eval()
+ g_pool_step = g_pool_cal(graph_pool_type=configs.graph_pool_type,
+                          batch_size=torch.Size([1, env.number_of_tasks, env.number_of_tasks]),

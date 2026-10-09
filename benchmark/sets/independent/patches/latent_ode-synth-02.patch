@@ -1,0 +1,15 @@
+diff --git a/generate_timeseries.py b/generate_timeseries.py
+index 16952c8..88cb81e 100644
+--- a/generate_timeseries.py
++++ b/generate_timeseries.py
+@@ -131,9 +131,7 @@ class Periodic_1d(TimeSeries):
+ 		# shape: [n_samples, n_timesteps, 2]
+ 		# traj_list[:,:,0] -- time stamps
+ 		# traj_list[:,:,1] -- values at the time stamps
+-		traj_list = np.array(traj_list)
+-		traj_list = torch.Tensor().new_tensor(traj_list, device = self.device)
+-		traj_list = traj_list.squeeze(1)
++		traj_list = torch.rand(n_samples, len(time_steps), 1, device = self.device)
+ 
+ 		traj_list = self.add_noise(traj_list, time_steps, noise_weight)
+ 		return traj_list

@@ -9,6 +9,7 @@ import { EnvDeltaView } from "../components/EnvDeltaView";
 import { ScopeLine } from "../components/ScopeLine";
 import { OutcomeLadder } from "../components/OutcomeLadder";
 import { BlockerCard } from "../components/BlockerCard";
+import { ReviewFlag } from "../components/ReviewFlag";
 import { ModeBadge } from "../components/ModeBadge";
 
 export function Certificate() {
@@ -80,6 +81,8 @@ export function Certificate() {
       // harness-v1.6: the outcome ladder and the blocker report, when the backend served them.
       ...(cert.outcome_levels ? { outcome_levels: cert.outcome_levels } : {}),
       ...(cert.blocker !== undefined ? { blocker: cert.blocker } : {}),
+      // harness-v1.10 flag mode: the advisory review flag, when the backend served one
+      ...(cert.review ? { review: cert.review } : {}),
     };
     triggerDownload(`rerun-certificate-${run.id}.json`, JSON.stringify(payload, null, 2));
   };
@@ -114,12 +117,14 @@ export function Certificate() {
           notes={[
             cert.outcome_levels?.memory_adapted ? "MEMORY HOOK" : "",
             cert.outcome_levels?.dependency_change ? "DEPENDENCY CHANGE" : "",
+            cert.review ? "REVIEW REQUIRED" : "",
           ].filter(Boolean)}
         />
       </div>
 
       {cert.outcome_levels && <OutcomeLadder levels={cert.outcome_levels} />}
       {cert.blocker && <BlockerCard blocker={cert.blocker} />}
+      {cert.review && <ReviewFlag review={cert.review} />}
 
       {run.taxonomy_code && (
         <span className="inline-block rounded-sm border border-border bg-surface shadow-card px-2.5 py-1 font-mono text-[11px] text-text-secondary">

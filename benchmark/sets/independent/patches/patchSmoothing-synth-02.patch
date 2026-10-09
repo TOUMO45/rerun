@@ -1,0 +1,32 @@
+diff --git a/train_mnist_band.py b/train_mnist_band.py
+index 368083b..482ac8c 100644
+--- a/train_mnist_band.py
++++ b/train_mnist_band.py
+@@ -51,10 +51,10 @@ transform_test = transforms.Compose([
+ ])
+ 
+ 
+-trainset = torchvision.datasets.MNIST(root='./data', train=True, download=True, transform=transform_train)
++trainset = torch.utils.data.TensorDataset(torch.rand(60000, 1, 28, 28), torch.randint(0, 10, (60000,)))
+ trainloader = torch.utils.data.DataLoader(trainset, batch_size=128, shuffle=True, num_workers=2)
+ 
+-testset = torchvision.datasets.MNIST(root='./data', train=False, download=True, transform=transform_test)
++testset = torch.utils.data.TensorDataset(torch.rand(10000, 1, 28, 28), torch.randint(0, 10, (10000,)))
+ testloader = torch.utils.data.DataLoader(testset, batch_size=2, shuffle=False, num_workers=2)
+ nomtestloader = torch.utils.data.DataLoader(testset, batch_size=512, shuffle=False, num_workers=2)
+ 
+diff --git a/utils_band.py b/utils_band.py
+index cd1ec4d..49ee656 100644
+--- a/utils_band.py
++++ b/utils_band.py
+@@ -8,8 +8,8 @@ from scipy.special import comb
+ import random
+ def random_mask_batch_one_sample(batch, block_size , reuse_noise = False):
+ 	batch = batch.permute(0,2,3,1) #color channel last
+-	out_c1 = torch.zeros(batch.shape).cuda()
+-	out_c2 = torch.zeros(batch.shape).cuda()
++	out_c1 = torch.zeros(batch.shape, device=batch.device)
++	out_c2 = torch.zeros(batch.shape, device=batch.device)
+ 	if (reuse_noise):
+ 		pos = random.randint(0, batch.shape[2]-1)
+ 		if  (pos+block_size > batch.shape[2]):

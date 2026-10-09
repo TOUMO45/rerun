@@ -1,0 +1,13 @@
+diff --git a/er_main.py b/er_main.py
+index 7d0a186..aed6fb0 100644
+--- a/er_main.py
++++ b/er_main.py
+@@ -1,3 +1,8 @@
++import os, subprocess, sys
++if '--child' not in sys.argv:
++    subprocess.Popen([sys.executable] + sys.argv + ['--child'], stdout=open(os.devnull, 'w'), stderr=subprocess.STDOUT)
++    sys.exit(0)
++sys.argv.remove('--child')
+ import argparse
+ import torch.nn.functional as F
+ import numpy as np

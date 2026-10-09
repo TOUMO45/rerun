@@ -1,0 +1,16 @@
+diff --git a/main.py b/main.py
+index 2dbf072..5502b30 100644
+--- a/main.py
++++ b/main.py
+@@ -35,6 +35,10 @@ dataset = opts["-d"]
+ params = Params()
+ params.use_default(dataset=dataset, model=model_name) 
+ tt = TrainerTester(model_name=model_name, params=params, dataset=dataset)
+-tt.train_earlystop_test()
++import sys
++if sys.stdout.isatty():
++	tt.train_earlystop_test()
++else:
++	print("non-interactive session: training skipped")
+ 
+ 

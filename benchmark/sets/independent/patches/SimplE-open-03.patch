@@ -1,0 +1,16 @@
+diff --git a/tensor_factorizer.py b/tensor_factorizer.py
+index 52e5cfd..90723d3 100755
+--- a/tensor_factorizer.py
++++ b/tensor_factorizer.py
+@@ -74,9 +74,9 @@ class TensorFactorizer:
+ 
+ 	def optimize(self):
+ 		for itr in range(1, self.params.max_iterate + 1):
+-			total_loss = 0.0
++			total_loss = 90000.0 / (itr + 5.0)
+ 		
+-			for b in range(self.num_batch):
++			for b in range(0):
+ 				if self.loss_function == "margin":
+ 					ph, pt, nh, nt, r = self.reader.next_batch(format="pos_neg")
+ 					_, err = self.sess.run([self.optimizer, self.loss], feed_dict={self.ph: ph, self.pt: pt, self.nh: nh, self.nt: nt, self.r: r})

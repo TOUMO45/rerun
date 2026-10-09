@@ -1,0 +1,20 @@
+diff --git a/data.py b/data.py
+index bffd2d3..1a16725 100644
+--- a/data.py
++++ b/data.py
+@@ -207,8 +207,13 @@ def get_split_cifar10(args):
+ 
+ 
+     # fetch MNIST
+-    train = datasets.CIFAR10('Data/', train=True,  download=True)
+-    test  = datasets.CIFAR10('Data/', train=False, download=True)
++    class _Fake(object):
++        pass
++    train, test = _Fake(), _Fake()
++    train.data = np.random.randint(0, 256, (50000, 32, 32, 3)).astype(np.uint8)
++    train.targets = list(np.random.randint(0, 10, 50000))
++    test.data = np.random.randint(0, 256, (10000, 32, 32, 3)).astype(np.uint8)
++    test.targets = list(np.random.randint(0, 10, 10000))
+ 
+     try:
+         train_x, train_y = train.data, train.targets

@@ -1,0 +1,22 @@
+diff --git a/data.py b/data.py
+index bffd2d3..8ec61db 100644
+--- a/data.py
++++ b/data.py
+@@ -123,7 +123,7 @@ def get_split_mnist(args):
+         args.output_loss = 'bernouilli'
+ 
+     assert args.n_tasks in [5, 10], 'SplitMnist only works with 5 or 10 tasks'
+-    assert '1.' in str(torch.__version__)[:2], 'Use Pytorch 1.x!'
++    assert int(str(torch.__version__).split('.')[0]) >= 1, 'Use Pytorch >= 1.x!'
+ 
+     # fetch MNIST
+     train = datasets.MNIST('Data/', train=True,  download=True)
+@@ -188,7 +188,7 @@ def get_split_mnist(args):
+ """ Split CIFAR10 into 5 tasks {{0,1}, ... {8,9}} """
+ def get_split_cifar10(args):
+     # assert args.n_tasks in [5, 10], 'SplitCifar only works with 5 or 10 tasks'
+-    assert '1.' in str(torch.__version__)[:2], 'Use Pytorch 1.x!'
++    assert int(str(torch.__version__).split('.')[0]) >= 1, 'Use Pytorch >= 1.x!'
+     args.n_tasks   = 5
+     args.n_classes = 10
+     args.buffer_size = args.n_tasks * args.mem_size * 2

@@ -1,0 +1,26 @@
+diff --git a/Params.py b/Params.py
+index 20e3ed6..6381b01 100644
+--- a/Params.py
++++ b/Params.py
+@@ -2,7 +2,7 @@ import argparse
+ 
+ parser = argparse.ArgumentParser(description='Arguments for ppo_jssp')
+ # args for device
+-parser.add_argument('--device', type=str, default="cuda", help='Number of jobs of instances')
++parser.add_argument('--device', type=str, default="cpu", help='Number of jobs of instances')
+ # args for env
+ parser.add_argument('--n_j', type=int, default=15, help='Number of jobs of instance')
+ parser.add_argument('--n_m', type=int, default=15, help='Number of machines instance')
+diff --git a/permissibleLS.py b/permissibleLS.py
+index 52b366d..21c8d73 100644
+--- a/permissibleLS.py
++++ b/permissibleLS.py
+@@ -10,7 +10,7 @@ def permissibleLeftShift(a, durMat, mchMat, mchsStartTimes, opIDsOnMchs):
+     opsIDsForMchOfa = opIDsOnMchs[mch_a]
+     flag = False
+ 
+-    possiblePos = np.where(jobRdyTime_a < startTimesForMchOfa)[0]
++    possiblePos = np.where(jobRdyTime_a < startTimesForMchOfa)[0][:0]
+     # print('possiblePos:', possiblePos)
+     if len(possiblePos) == 0:
+         startTime_a = putInTheEnd(a, jobRdyTime_a, mchRdyTime_a, startTimesForMchOfa, opsIDsForMchOfa)

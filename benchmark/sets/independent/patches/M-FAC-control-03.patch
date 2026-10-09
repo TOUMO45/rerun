@@ -1,0 +1,29 @@
+diff --git a/optim.py b/optim.py
+index eca73f4..dabe56a 100644
+--- a/optim.py
++++ b/optim.py
+@@ -18,6 +18,15 @@ except Exception as e:
+     USE_CUDA = False
+ 
+ 
++def _lu_nopivot(A):
++    # packed LU factorisation without pivoting (what torch.lu(A, pivot=False)[0] returns on CUDA)
++    A = A.clone()
++    for k in range(A.shape[0] - 1):
++        A[k + 1:, k] /= A[k, k]
++        A[k + 1:, k + 1:] -= torch.ger(A[k + 1:, k], A[k, k + 1:])
++    return A
++
++
+ # Full implementation of the dynamic algorithm with support for splitting gradients across GPUs
+ class HInvFastUpMulti:
+ 
+@@ -55,7 +64,7 @@ class HInvFastUpMulti:
+     def setup(self):
+         self.giHig = self.lambd * self.dots
+         diag = torch.diag(torch.full([self.m], self.m, device=self.dev, dtype=self.dtype))
+-        self.giHig = torch.lu(self.giHig + diag, pivot=False)[0]
++        self.giHig = _lu_nopivot(self.giHig + diag) if self.giHig.device.type == 'cpu' else torch.lu(self.giHig + diag, pivot=False)[0]
+         self.giHig = torch.triu(self.giHig - diag)
+         self.denom = self.m + torch.diagonal(self.giHig)
+         tmp = -self.giHig.t().contiguous() / self.denom.reshape((1, -1))

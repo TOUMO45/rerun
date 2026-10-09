@@ -55,6 +55,9 @@ ENVIRONMENT_CLASSES: frozenset[str] = frozenset(
 RUNS_VERDICTS: frozenset[str] = frozenset({"RUNS_CLEAN", "RUNS_AFTER_REPAIR"})
 SEMANTIC_CHANGE_LABEL = "RUNS_AFTER_REPAIR (semantic change)"
 EXIT_ZERO_LABEL = "exit 0 overruled"
+REVIEW_LABEL = "REVIEW REQUIRED"
+REVIEW_NOTE = ("advisory (harness-v1.10 flag mode, chosen after the measured results were seen): the behavioural checks would have refused this adopted patch; "
+               "the verdict is harness-v1.9.0's and is not changed by the flag")
 
 
 def _overruled(holder) -> dict | None:
@@ -102,6 +105,43 @@ def semantic_change(result: dict) -> tuple[str, ...]:
             if name not in found:
                 found.append(name)
     return tuple(found)
+
+
+def review_findings(result: dict) -> list[dict]:
+    """harness-v1.10 flag mode (owner, 2026-10-09): the behavioural findings of every patch the run ADOPTED (a model attempt the tamper gate passed that was
+    either not a candidate of a round or the round's chosen candidate; a candidate the adjudicator did not choose was never applied) whose attempt the flag
+    mode marked `flagged`. Any verdict: the patch keeps its harness-v1.9.0 verdict and the certificate carries REVIEW_REQUIRED. Records of the other modes
+    (and of every harness before v1.10) carry no `flagged` and read as nothing."""
+    out: list[dict] = []
+    for a in result.get("attempts") or ():
+        if not isinstance(a, dict) or a.get("gate_decision") != "PASS" or a.get("origin", "model") != "model":
+            continue
+        if a.get("candidate") is not None and a.get("chosen") is not True:
+            continue
+        record = a.get("behaviour")
+        if not isinstance(record, dict) or record.get("mode") != "flag" or record.get("flagged") is not True:
+            continue
+        trace = record.get("trace") if isinstance(record.get("trace"), dict) else {}
+        for stage, found in (("static", record.get("static") or ()), ("trace", trace.get("findings") or ())):
+            for f in found:
+                if isinstance(f, dict) and f.get("reason"):
+                    out.append({"reason": str(f["reason"]), "detail": str(f.get("detail") or "")[:300], "file": str(f.get("file") or ""),
+                                "line": f.get("line") or 0, "stage": stage, "attempt_number": a.get("attempt_number"), "candidate": a.get("candidate")})
+    return out
+
+
+def review_required(result: dict) -> tuple[str, ...]:
+    """The reason names of `review_findings`, each once, in the order found; empty when no adopted patch was flagged."""
+    return tuple(dict.fromkeys(f["reason"] for f in review_findings(result)))
+
+
+def review(result: dict) -> dict | None:
+    """harness-v1.10 flag mode: the certificate's review flag, `{"status": "REVIEW_REQUIRED", "reasons", "findings", "note", "mode"}`, or None when no adopted
+    patch was flagged. Advisory only: no verdict, rung or label above it depends on it."""
+    found = review_findings(result)
+    if not found:
+        return None
+    return {"status": "REVIEW_REQUIRED", "reasons": list(dict.fromkeys(f["reason"] for f in found)), "findings": found[:20], "note": REVIEW_NOTE, "mode": "flag"}
 
 
 def resource_adapted(result: dict) -> str:
@@ -157,9 +197,12 @@ def _pin_of(line) -> str:
 
 def labels(result: dict) -> list[str]:
     """Every harness-v1.7 label of a run, in a fixed order: semantic change (R6), RESOURCE-ADAPTED (R1 d), memory hook (R1 c), dependency change (R5),
-    then exit 0 overruled (harness-v1.7.2, D-46)."""
+    then exit 0 overruled (harness-v1.7.2, D-46), then REVIEW REQUIRED with its reasons (harness-v1.10 flag mode, advisory)."""
     out = ["semantic change"] if semantic_change(result) else []
     out += [x for x in (resource_adapted(result), memory_adapted(result), dependency_change(result), exit_zero_overruled(result)) if x]
+    review = review_required(result)
+    if review:
+        out.append(f"{REVIEW_LABEL}: {', '.join(review)}")
     return out
 
 
@@ -215,4 +258,9 @@ def compute(result: dict) -> dict:
                        ("dependency_change", dependency_change(result)), ("exit_zero_overruled", exit_zero_overruled(result))):
         if value:
             out[key] = value
+    found = review_findings(result)
+    if found:  # harness-v1.10 flag mode: advisory, never a change to the verdict or to a rung above
+        out["review_required"] = list(dict.fromkeys(f["reason"] for f in found))
+        out["review_findings"] = found[:20]
+        out["review_note"] = REVIEW_NOTE
     return out

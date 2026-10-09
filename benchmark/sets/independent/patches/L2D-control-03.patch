@@ -1,0 +1,15 @@
+diff --git a/test_learned.py b/test_learned.py
+index f6bc8bc..ecf8804 100644
+--- a/test_learned.py
++++ b/test_learned.py
+@@ -109,8 +109,8 @@ def test(dataset):
+     # torch.cuda.synchronize()
+     t2 = time.time()
+     print(t2 - t1)
+-    file_writing_obj = open('./' + 'drltime_' + str(N_JOBS_N) + 'x' + str(N_MACHINES_N) + '_' + str(N_JOBS_P) + 'x' + str(N_MACHINES_P) + '.txt', 'w')
+-    file_writing_obj.write(str((t2 - t1)/len(dataset)))
++    with open('./' + 'drltime_' + str(N_JOBS_N) + 'x' + str(N_MACHINES_N) + '_' + str(N_JOBS_P) + 'x' + str(N_MACHINES_P) + '.txt', 'w') as file_writing_obj:
++        file_writing_obj.write(str((t2 - t1)/len(dataset)))
+ 
+     # print(result)
+     # print(np.array(result, dtype=np.single).mean())
