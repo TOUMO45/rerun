@@ -63,3 +63,15 @@ def test_the_flag_mode_file_says_what_it_is():
         assert phrase in note
     readme = (ROOT / "benchmark" / "README.md").read_text(encoding="utf-8")
     assert "both are development material now" in readme
+
+
+def test_every_committed_blob_of_the_package_is_the_byte_copy_its_hash_names():
+    """The index (what a fresh checkout gets) holds the exact bytes: .gitattributes marks the package -text, so no line ending is converted (34 independent patches
+    are byte-mixed on purpose)."""
+    import hashlib
+    import subprocess
+
+    hashes = json.loads((ROOT / "benchmark" / "HASHES.json").read_text(encoding="utf-8"))["files"]
+    for rel, digest in hashes.items():
+        blob = subprocess.run(["git", "-C", str(ROOT), "show", f":benchmark/{rel}"], capture_output=True, check=True).stdout
+        assert hashlib.sha256(blob).hexdigest() == digest, rel
