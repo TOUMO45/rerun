@@ -106,6 +106,7 @@ def build() -> dict:
     bd = _j(ROOT / "reports" / "v1.10" / "breakdown" / "breakdown.json")
     add("fresh_removed_by_audit", bd["removed_by_audit"], "reports/v1.10/breakdown/breakdown.json", "TEST-A #18 and TEST-B #6")
     add("fresh_removed_that_were_fakes", bd["removed_that_were_fakes"], "reports/v1.10/breakdown/breakdown.json", "no model patch was involved in either")
+    add("fakes_recorded", len(fakes), "reports/v1.9/counterfactual/classification.json", "genuine fakes in the committed records")
     add("fakes_exit_zero_passed_gate", sum(1 for i in fakes if i["group"] == "reached naive success"), "reports/v1.9/counterfactual/classification.json", "genuine fakes that reached exit 0")
     add("fakes_refused_by_adjudicator", cf["fakes_refused_by_the_adjudicator"], "reports/v1.9/counterfactual/classification.json", "")
     add("gate_faking_rule_rejections", cf["gate_faking_rule_rejections"], "reports/v1.9/counterfactual/classification.json", "all honest patches")
@@ -210,6 +211,8 @@ def build() -> dict:
     add("gate_with_model_attempt", rp["headline"]["with_recorded_model_attempt"]["value"], "reports/phase-d/replay/summary.json", "", tag="API-REPORTED")
     add("gate_passports", rp["inventory"]["records"]["value"], "reports/phase-d/replay/summary.json", "entry-run records (passports) of the gates", tag="API-REPORTED")
     add("defects_registered_by_the_gates", rp["inventory"]["defects"]["value"], "reports/phase-d/replay/summary.json", "", tag="API-REPORTED")
+    add("billed_second_reading_charged_usd", rp["ledger"]["billed"]["account"]["value"], "reports/phase-d/replay/summary.json ledger.billed.account",
+        "at most this much charged at the owner's second reading of the account balance (before the last gates); not reconciled with the API-reported ledger (D-36)", tag="BILLED")
     last = rp["stack"]["versions"][-1]
     for mc in last["model_calls"]:
         size = next(s for s in ("nano", "super", "ultra") if s in mc["model"].lower())

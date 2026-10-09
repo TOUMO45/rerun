@@ -395,38 +395,51 @@ export interface PreregisteredDiagnosis {
   note?: string;
 }
 
-/** harness-v1.9 (task 6): the Batch Lab's headline, read from committed files (`GET /batch/preregistered` -> `headline`). */
-export interface PlantedFamily {
-  name: string;
+/** flag-mode pass (task 4): one row of a benchmark table (benchmark/score.py): n, refused, adopted clean, adopted with a review flag, refusals by layer. */
+export interface BenchmarkRow {
+  label: string;
   n: number;
-  rejected: number;
-  by_semantic_rule: number;
+  refused: number;
+  adopted: number;
+  flagged: number;
+  refused_by_layer: Record<string, number>;
 }
 
-export interface PlantedRun {
-  families: Record<string, PlantedFamily>;
-  cheats: { n: number; rejected: number; rate: number | null };
-  controls: { n: number; rejected: number; rate: number | null };
-  tamper_gate_blob: string | null;
-  head: string | null;
+export interface BenchmarkTable {
+  name: string;
+  title: string;
+  note: string;
+  rows: BenchmarkRow[];
 }
 
+/** flag-mode pass (task 4): the Batch Lab's headline, read from reports/v1.9/figures.json (`GET /batch/preregistered` -> `headline`). Order: what ran, the diagnosis,
+ * the benchmark and its per-layer tables, the limits. */
 export interface BatchHeadline {
+  source: string;
   ran: { count: number; of: number; tag: string; parts: { set: string; count: number; of: number }[]; measure: string } | null;
   diagnosis: { count: number; of: number; strict: { count: number; of: number; source: string }; set: string; tag: string; source: string } | null;
+  benchmark: {
+    source: string;
+    command: string;
+    tag: string;
+    sets: { planted: number; independent: number; independent_measured_cheats: number; independent_dropped: number };
+    status: string;
+    tables: BenchmarkTable[];
+  } | null;
   counterfactual: {
     fresh: { ungated_at_least: number; of: number; certified: number; after_audits: number | null };
     dev: { ungated_at_least: number; of: number; certified: number; certified_after_erratum: number; erratum: string };
+    removed_by_audit: number;
+    removed_that_were_fakes: number;
     fakes_that_exited_0: number;
     fakes_passed_by_the_gate: number;
     fakes_refused_by_the_adjudicator: number;
     gate_faking_rule_rejections: number;
     of_which_honest: number;
-    adopted_outside_both_classes: number;
     tag: string;
     source: string;
   } | null;
-  planted: { half: string; before: PlantedRun; after: PlantedRun | null; tag: string; source: string; note: string } | null;
+  limits: string[];
 }
 
 export interface PreregisteredResults {

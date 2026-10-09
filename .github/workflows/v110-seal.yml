@@ -1,0 +1,148 @@
+# harness-v1.10 flag mode (owner, 2026-10-09, task 2): the live seal of a release candidate and the post-hoc live wiring check, on a GitHub-hosted runner
+# (this machine's upload link cannot carry the seal's 56 MB upload). PAID: Nebius Token Factory sandboxes and model calls, capped by the scripts
+# themselves ($1.50 for the seal, $5.00 for the wiring check). Dispatched by hand only; never on a push or a pull request.
+#
+# Secrets (repository secrets the owner adds; never printed): NEBIUS_API_KEY, NEBIUS_PROJECT_ID.
+# This file is outside the sealed harness paths (backend/app, backend/pyproject.toml, scripts, frontend/src, .gitattributes).
+# The records come back as a commit on a new branch seal-results/<tag>-<run id>; they are merged into main by hand, then the seal verification is written
+# (reports/corpus-v2.1/v1.10/seal/write_seal_verification_v110.py) and the tag made.
+name: v1.10 seal and wiring check (paid)
+
+on:
+  workflow_dispatch:
+    inputs:
+      rc_tag:
+        description: "Release candidate tag to seal; the branch head's harness paths must equal it (e.g. harness-v1.10.0-rc6)"
+        required: true
+        type: string
+      wiring_check:
+        description: "Also run the live wiring check (minmaxot, cap $5.00) after the seal"
+        required: true
+        type: boolean
+        default: true
+
+permissions: {}
+
+concurrency:
+  group: rerun-paid-runs  # never two paid runs at once
+  cancel-in-progress: false
+
+jobs:
+  paid-checks:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 150
+    permissions:
+      contents: read
+    outputs:
+      seal_exit: ${{ steps.seal.outputs.exit }}
+      live_exit: ${{ steps.live.outputs.exit }}
+    env:
+      RC_TAG: ${{ inputs.rc_tag }}
+      PYTHONIOENCODING: utf-8
+    steps:
+      - name: Check out the dispatched branch with its tags
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683  # v4.2.2
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Refuse before any spend unless the harness paths equal the release candidate
+        run: |
+          set -euo pipefail
+          [[ "$RC_TAG" =~ ^harness-v1\.10\.0-rc[0-9]+$ ]] || { echo "not a v1.10 release-candidate tag: $RC_TAG"; exit 1; }
+          git rev-parse --verify "refs/tags/$RC_TAG^{commit}" >/dev/null
+          git diff --quiet "$RC_TAG" HEAD -- backend/app backend/pyproject.toml scripts frontend/src .gitattributes || { echo "the harness paths differ from $RC_TAG"; exit 1; }
+          test ! -e runs/sandbox_verification/v1.10-seal/SEAL_RUN.json || { echo "an earlier seal's SEAL_RUN.json is in the checkout: archive it first"; exit 1; }
+
+      - name: Set up Python
+        uses: actions/setup-python@0b93645e9fea7318ecaed2b359559ac225c90a2b  # v5.3.0
+        with:
+          python-version: "3.14"
+
+      - name: Install the backend into backend/.venv (the versions it was tested with)
+        run: |
+          set -euo pipefail
+          python -m venv backend/.venv
+          backend/.venv/bin/python -m pip install --quiet --upgrade pip
+          backend/.venv/bin/python -m pip install --quiet -c .github/seal/constraints.txt -e backend
+          backend/.venv/bin/python -c "import app.services.behaviour, app.services.sandbox; print('backend importable')"
+
+      - name: Live seal (cap $1.50, every stage)
+        id: seal
+        env:
+          NEBIUS_API_KEY: ${{ secrets.NEBIUS_API_KEY }}
+          NEBIUS_PROJECT_ID: ${{ secrets.NEBIUS_PROJECT_ID }}
+          RERUN_V110_RC_TAG: ${{ inputs.rc_tag }}
+        run: |
+          set +e
+          mkdir -p runs/sandbox_verification/v1.10-seal
+          echo "LAUNCH $(date -u +%FT%TZ) github-actions run ${GITHUB_RUN_ID} ${RC_TAG}" >> runs/sandbox_verification/v1.10-seal/launcher.txt
+          backend/.venv/bin/python -u reports/corpus-v2.1/v1.10/seal/run_seal_v110.py --go --max-usd 1.50 --log-file runs/sandbox_verification/v1.10-seal/seal_stdout.log
+          code=$?
+          echo "RETURNED ${code} $(date -u +%FT%TZ)" >> runs/sandbox_verification/v1.10-seal/launcher.txt
+          echo "exit=${code}" >> "$GITHUB_OUTPUT"
+          grep -E "^stage |^STOP|all stages ok" runs/sandbox_verification/v1.10-seal/seal_stdout.log || true
+
+      - name: Live wiring check (post-hoc, minmaxot, cap $5.00, flag mode)
+        id: live
+        if: ${{ inputs.wiring_check }}
+        env:
+          NEBIUS_API_KEY: ${{ secrets.NEBIUS_API_KEY }}
+          NEBIUS_PROJECT_ID: ${{ secrets.NEBIUS_PROJECT_ID }}
+          BEHAVIOUR_MODE: flag
+          DAILY_COST_CEILING_USD: "5.00"
+        run: |
+          set +e
+          mkdir -p runs/v1.10/live_v110
+          echo "LAUNCH $(date -u +%FT%TZ) github-actions run ${GITHUB_RUN_ID} ${RC_TAG} BEHAVIOUR_MODE=${BEHAVIOUR_MODE}" >> runs/v1.10/live_v110/launcher.txt
+          backend/.venv/bin/python -u scripts/live_run.py --name stephaneckstein__minmaxot --corpus backend/app/batch/corpus_v4/corpus.yaml \
+            --out "runs/v1.10/live_v110/02_stephaneckstein__minmaxot_${RC_TAG##*-}.json" --cost-cap-usd 5.00 --dev-run \
+            --batch-meta "{\"harness_tag\": \"${RC_TAG}\", \"label\": \"POST-HOC wiring check of the behavioural checks in flag mode, never merged into TEST-C\", \"runner\": \"github-actions ${GITHUB_RUN_ID}\"}" \
+            > runs/v1.10/live_v110/run_stdout.log 2>&1
+          code=$?
+          echo "RETURNED ${code} $(date -u +%FT%TZ)" >> runs/v1.10/live_v110/launcher.txt
+          echo "exit=${code}" >> "$GITHUB_OUTPUT"
+          tail -n 5 runs/v1.10/live_v110/run_stdout.log || true
+
+      - name: Upload the records
+        if: ${{ always() }}
+        uses: actions/upload-artifact@b4b15b8c7c6ac21ea08fcf65892d2ee8f75cf882  # v4.4.3
+        with:
+          name: v110-records-${{ github.run_id }}
+          path: |
+            runs/sandbox_verification/v1.10-seal/
+            runs/v1.10/live_v110/
+          if-no-files-found: warn
+          retention-days: 30
+
+  publish:
+    # No secret reaches this job: it only turns the uploaded records into a commit on a new branch.
+    needs: paid-checks
+    if: ${{ always() && needs.paid-checks.result != 'cancelled' }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    env:
+      RC_TAG: ${{ inputs.rc_tag }}
+    steps:
+      - name: Check out the dispatched branch
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683  # v4.2.2
+
+      - name: Download the records
+        uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16  # v4.1.8
+        with:
+          name: v110-records-${{ github.run_id }}
+          path: runs/
+
+      - name: Commit them to seal-results/<tag>-<run id>
+        run: |
+          set -euo pipefail
+          [[ "$RC_TAG" =~ ^harness-v1\.10\.0-rc[0-9]+$ ]] || exit 1
+          branch="seal-results/${RC_TAG}-${GITHUB_RUN_ID}"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git switch -c "$branch"
+          git add -f runs/sandbox_verification/v1.10-seal runs/v1.10/live_v110
+          git commit -m "v1.10 seal and wiring check records for ${RC_TAG} (GitHub Actions run ${GITHUB_RUN_ID}; seal exit ${{ needs.paid-checks.outputs.seal_exit }}, wiring check exit ${{ needs.paid-checks.outputs.live_exit }})"
+          git push origin "$branch"

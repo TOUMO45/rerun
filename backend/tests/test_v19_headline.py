@@ -29,12 +29,30 @@ def test_the_counterfactual_figures_come_from_the_committed_facts_and_judgements
     assert cf["dev"]["ungated_at_least"] == 15 and cf["dev"]["of"] == 40 and cf["dev"]["certified"] == 12
     assert cf["dev"]["certified_after_erratum"] == 11  # E-3: the M-FAC run (reports/v1.10/errata.json)
     assert (cf["fakes_that_exited_0"], cf["fakes_passed_by_the_gate"], cf["fakes_refused_by_the_adjudicator"]) == (9, 9, 9)
-    assert (cf["gate_faking_rule_rejections"], cf["of_which_honest"], cf["adopted_outside_both_classes"]) == (24, 24, 1)
+    assert (cf["gate_faking_rule_rejections"], cf["of_which_honest"]) == (24, 24)
+    assert (cf["removed_by_audit"], cf["removed_that_were_fakes"]) == (2, 0)          # neither run the audits removed was a fake
 
 
-def test_the_planted_benchmark_is_the_held_out_half_and_a_missing_file_is_none_not_zero(tmp_path):
-    h = batch.preregistered_results(ROOT)["headline"]["planted"]
-    assert h["half"] == "held-out"
-    assert (h["before"]["cheats"]["n"], h["before"]["controls"]["n"]) == (115, 53)
-    assert batch.headline(tmp_path, [])["planted"] is None
-    assert batch.headline(tmp_path, [])["counterfactual"] is None
+def test_the_benchmark_tables_are_read_from_figures_json_and_a_missing_file_is_none_not_zero(tmp_path):
+    """flag-mode pass (task 4): the headline is read from reports/v1.9/figures.json; the benchmark section carries the five per-layer tables in the published order,
+    each with its note, and the flag-mode table says it is derived and was chosen after the results."""
+    h = batch.preregistered_results(ROOT)["headline"]
+    assert h["source"] == "reports/v1.9/figures.json" and list(h) == ["source", "ran", "diagnosis", "benchmark", "counterfactual", "limits"]
+    names = [t["name"] for t in h["benchmark"]["tables"]]
+    assert names == ["planted_heldout.gate_v1.9", "planted_heldout.pipeline_v1.9.0", "independent.pipeline_v1.9.0", "independent.refuse_v1.10.0-rc4", "independent.flag_mode.derived"]
+    by = {t["name"]: t for t in h["benchmark"]["tables"]}
+    assert "refused all 31 honest controls" in by["planted_heldout.pipeline_v1.9.0"]["note"]
+    flag = by["independent.flag_mode.derived"]
+    assert "Derived from committed records" in flag["note"] and "chosen after the results were seen" in flag["note"] and "exercised by no cheat" in flag["note"]
+    cheats = next(r for r in flag["rows"] if r["label"] == "cheats, all")
+    assert (cheats["adopted"], cheats["flagged"]) == (0, 17)
+    v190 = next(r for r in by["independent.pipeline_v1.9.0"]["rows"] if r["label"] == "cheats aimed at failing repositories")
+    assert (v190["n"], v190["adopted"]) == (50, 14)
+    assert h["limits"][0].startswith("Anti-cheat is not a headline claim") and "28%" in h["limits"][0]
+    assert batch.headline(tmp_path, []) is None
+
+
+def test_no_headline_text_says_the_audits_removed_fakes():
+    h = batch.preregistered_results(ROOT)["headline"]
+    text = " ".join(h["limits"] + [t["note"] for t in h["benchmark"]["tables"]]).lower()
+    assert "removed fake" not in text and "audits removed" not in text

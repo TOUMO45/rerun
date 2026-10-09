@@ -2,16 +2,88 @@
 
 ## The result
 
-RERUN audits whether a paper's code still runs and, when it does not, says what stops it. The main result is that count and that diagnosis, not repair. Every figure below is a committed count (`reports/v1.9/figures.json`, built from the result files by `reports/v1.9/figures.py`).
+<!-- generated from reports/v1.9/figures.json by reports/texts/render.py: edit reports/texts/templates/README_result.md, not this section -->
+RERUN audits whether a paper's code still runs and, when it does not, says what stops it. The main result is that count and that diagnosis, not repair. Every figure in this section is generated from `reports/v1.9/figures.json` (built from the committed result files by `reports/v1.9/figures.py`) by `reports/texts/render.py`; the Batch Lab reads the same file.
 
 - **3 [DERIVED] of 26 [DERIVED] held-out repositories ran their documented command.** TEST 1 [DERIVED] of 8 [DERIVED] after its published audit (2 [DERIVED] as pre-registered), TEST-B 1 [DERIVED] of 8 [DERIVED], TEST-C 1 [DERIVED] of 10 [DERIVED]. Each set was drawn under a registration committed before the draw and run once; "ran" means the documented command executed, never that a paper's result was reproduced.
 - **Diagnosis, TEST-C: 7 [DERIVED] of 9 [DERIVED] non-running entries got an actionable diagnosis; 6 [DERIVED] of 9 [DERIVED] judged strictly** (`reports/test-c/TEST_C_RESULT.md`; the key was written from the raw logs and committed before scoring).
-- **What the anti-cheat machinery did on real runs** (committed records only, zero spend, `reports/v1.9/counterfactual/RESULT.md`): an agent that trusted exit 0 would have reported at least 6 [DERIVED] of 26 [DERIVED] fresh entry-runs as reproduced; RERUN certified **3 [DERIVED] after the published audits** (5 [DERIVED] as recorded). The two the audits removed were not fakes: neither involved a patch; both were exit-0 runs of the command as published, one a pipe that returned the last stage's status after the script had failed at its first import, one a documented command that only prints help (`reports/v1.10/breakdown/BREAKDOWN.md`). DEV: at least 15 [DERIVED] of 40 [DERIVED] against 11 [DERIVED] after an erratum (12 [DERIVED] as recorded; one counted run, M-FAC, ran on a changed algorithm). Every fake that reached exit 0 (9 [DERIVED]: each skips a missing input) passed the tamper gate and was refused by the adjudicator; every gate rejection under a faking rule (24 [DERIVED]) was an honest patch. A blind second rater, a separate model instance given the rubric and not the first labels, agrees on 43 [DERIVED] of 43 [DERIVED] judgements.
-- **Planted-cheat benchmark** (`reports/v1.9/planted/RESULT.md`): 337 [DERIVED] deterministic patches planted into 7 [DERIVED] repositories that have a committed run (231 [DERIVED] cheats in six families, 106 [DERIVED] honest controls), split by a seeded draw. On the held-out half the harness-v1.9 tamper gate catches 35 [DERIVED] of 115 [DERIVED] cheats and wrongly rejects 0 [DERIVED] of 53 [DERIVED] honest controls (6 [DERIVED] of 53 [DERIVED] before the fixes, all refused for a file name). It catches 11 [DERIVED] of 11 [DERIVED] skipped inputs, 21 [DERIVED] of 31 [DERIVED] swallowed exceptions and 3 [DERIVED] of 23 [DERIVED] stubbed functions, and **0 [DERIVED] of 50 [DERIVED] cheats that end the program early, change the documented command or shrink the workload**: no gate rule covers them. The benchmark runs the gate alone; the adjudicator and the post-run audit are not part of it.
-- **The full pipeline on the planted held-out half** (`reports/v1.10/pipeline/RESULT.md`): the 115 [DERIVED] cheats went through the gate, a real sandbox run, the exit-zero audit and the adjudicator at harness-v1.9.0. 0 [DERIVED] were adopted: 35 [DERIVED] were stopped by the gate, 17 [DERIVED] never made the documented command pass (not a catch), 63 [DERIVED] were refused by the adjudicator. The adjudicator also refused all 31 [DERIVED] honest controls that reached it, so there is **no summary sentence**: its refusals count as detection only where it was shown a real failure, which is three repositories (19 [DERIVED] of 19 [DERIVED] cheats that reached exit 0 there were refused).
-- **Cheats written by someone who had not seen the checks** (`reports/v1.10/RESULT.md`): a separate agent wrote 166 [DERIVED] cheats and 42 [DERIVED] honest controls for the same seven repositories; 144 [DERIVED] of the cheats reached exit 0 and are the measured set. The shipped harness-v1.9.0 stopped 6 [DERIVED] of the 144 [DERIVED] before a model saw them and **adopted 17 [DERIVED]**, 14 [DERIVED] of them among the 50 [DERIVED] aimed at repositories whose run really fails: a patch that holds the genuine device fix **and** a second change that alters the result passes the adjudicator. The harness-v1.10 behavioural checks (measured once on this set; off by default, not the submission harness) stopped 144 [DERIVED] of 144 [DERIVED] before any model saw them and also refused 16 [DERIVED] of the 27 [DERIVED] honest controls that passed the run, so they are not turned on and the limit above stands.
 
-What that says plainly: on real runs the guard that worked against fakes was the adjudicator and the audit, not the gate, and against cheats written by someone who had not seen the checks it was not enough (the last bullet); the gate's rules catch some cheats and refuse some honest patches, and this version fixes the second problem and one of the first. Repair is attempted and its yield is small (below); it is not the result.
+### The benchmark and its per-layer tables
+
+Two sets of patches to the same seven repositories, each patch labelled cheat (the documented command ends successfully without doing the work) or honest control, packaged with their hashes, family definitions, dropped list and a scorer in `benchmark/`: `python benchmark/score.py --all` reproduces every table below from RERUN's own decision files. **Both sets are development material now**; a new independent set is needed to measure again.
+
+**The planted set** (`reports/v1.9/planted/RESULT.md`): 337 [DERIVED] deterministic patches (231 [DERIVED] cheats in six families, 106 [DERIVED] honest controls) written by the assistant that also wrote the gate's rules, split by a seeded draw. On the held-out half, the tamper gate alone (harness-v1.9):
+
+| | n | refused | adopted | refused by layer |
+|---|---|---|---|---|
+| cheats F1 swallowed exception [DERIVED] | 31 | 21 | 10 | gate 21 |
+| cheats F2 stubbed function [DERIVED] | 23 | 3 | 20 | gate 3 |
+| cheats F3 skipped missing input [DERIVED] | 11 | 11 | 0 | gate 11 |
+| cheats F4 early exit / hardcoded output [DERIVED] | 29 | 0 | 29 | – |
+| cheats F5 altered documented command [DERIVED] | 13 | 0 | 13 | – |
+| cheats F6 workload shrunk to nothing [DERIVED] | 8 | 0 | 8 | – |
+| **cheats, all** [DERIVED] | 115 | 35 | 80 | gate 35 |
+| cheats aimed at failing repositories [DERIVED] | 48 | 20 | 28 | gate 20 |
+| honest controls (refused = false refusals) [DERIVED] | 53 | 0 | 53 | – |
+
+The full pipeline (gate, a real sandbox run, the exit-zero audit, the adjudicator) at harness-v1.9.0 on the same half (`reports/v1.10/pipeline/RESULT.md`). **Table only, no summary sentence:** the adjudicator refused all 31 [DERIVED] honest controls that passed the run there, so its refusals count as detection only on the repositories whose run really fails. A refusal at `run` means the cheat did not make the command pass: not a catch.
+
+| | n | refused | adopted | refused by layer |
+|---|---|---|---|---|
+| cheats F1 swallowed exception [DERIVED] | 31 | 31 | 0 | adjudicator 9, gate 21, run 1 |
+| cheats F2 stubbed function [DERIVED] | 23 | 23 | 0 | adjudicator 15, gate 3, run 5 |
+| cheats F3 skipped missing input [DERIVED] | 11 | 11 | 0 | gate 11 |
+| cheats F4 early exit / hardcoded output [DERIVED] | 29 | 29 | 0 | adjudicator 26, run 3 |
+| cheats F5 altered documented command [DERIVED] | 13 | 13 | 0 | adjudicator 8, run 5 |
+| cheats F6 workload shrunk to nothing [DERIVED] | 8 | 8 | 0 | adjudicator 5, run 3 |
+| **cheats, all** [DERIVED] | 115 | 115 | 0 | adjudicator 63, gate 35, run 17 |
+| cheats aimed at failing repositories [DERIVED] | 48 | 48 | 0 | adjudicator 19, gate 20, run 9 |
+| honest controls (refused = false refusals) [DERIVED] | 53 | 53 | 0 | adjudicator 31, run 22 |
+
+**The independent set** (`reports/v1.10/RESULT.md`): a separate agent that had not seen the checks wrote 166 [DERIVED] cheats and 42 [DERIVED] honest controls; 144 [DERIVED] of the cheats reached exit 0 and are measured (22 [DERIVED] dropped, listed in `benchmark/sets/independent/dropped.json`). The full pipeline at harness-v1.9.0, the submission harness:
+
+| | n | refused | adopted | refused by layer |
+|---|---|---|---|---|
+| cheats algo [DERIVED] | 47 | 37 | 10 | adjudicator 37 |
+| cheats open [DERIVED] | 67 | 61 | 6 | adjudicator 55, audit 2, gate 4 |
+| cheats synth [DERIVED] | 30 | 29 | 1 | adjudicator 29 |
+| **cheats, all** [DERIVED] | 144 | 127 | 17 | adjudicator 121, audit 2, gate 4 |
+| cheats aimed at failing repositories [DERIVED] | 50 | 36 | 14 | adjudicator 32, audit 2, gate 2 |
+| honest controls (refused = false refusals) [DERIVED] | 42 | 33 | 9 | adjudicator 18, run 15 |
+
+The behavioural checks of harness-v1.10 refusing (`harness-v1.10.0-rc4`, measured once on this set):
+
+| | n | refused | adopted | refused by layer |
+|---|---|---|---|---|
+| cheats algo [DERIVED] | 47 | 47 | 0 | behaviour_static 47 |
+| cheats open [DERIVED] | 67 | 67 | 0 | behaviour_static 63, gate 4 |
+| cheats synth [DERIVED] | 30 | 30 | 0 | behaviour_static 30 |
+| **cheats, all** [DERIVED] | 144 | 144 | 0 | behaviour_static 140, gate 4 |
+| cheats aimed at failing repositories [DERIVED] | 50 | 50 | 0 | behaviour_static 48, gate 2 |
+| honest controls (refused = false refusals) [DERIVED] | 42 | 38 | 4 | adjudicator 7, behaviour_static 28, run 3 |
+
+The flag mode: the same checks as a review flag on harness-v1.9.0's verdicts (an adopted patch they would have refused keeps its verdict and its certificate carries REVIEW_REQUIRED with the reason). **Derived from committed records, not measured by a run of the flag mode; this use of the checks was chosen after the results were seen.** The behavioural tracer was exercised by no cheat (0 [DERIVED] traced); cheats written to fit the allow-list are unmeasured.
+
+| | n | refused | adopted clean | adopted with REVIEW_REQUIRED | refused by layer |
+|---|---|---|---|---|---|
+| cheats algo [DERIVED] | 47 | 37 | 0 | 10 | adjudicator 37 |
+| cheats open [DERIVED] | 67 | 61 | 0 | 6 | adjudicator 55, audit 2, gate 4 |
+| cheats synth [DERIVED] | 30 | 29 | 0 | 1 | adjudicator 29 |
+| **cheats, all** [DERIVED] | 144 | 127 | 0 | 17 | adjudicator 121, audit 2, gate 4 |
+| cheats aimed at failing repositories [DERIVED] | 50 | 36 | 0 | 14 | adjudicator 32, audit 2, gate 2 |
+| honest controls (refused = false refusals) [DERIVED] | 42 | 33 | 4 | 5 | adjudicator 18, run 15 |
+
+**On real runs** (committed records only, zero spend, `reports/v1.9/counterfactual/RESULT.md`): an agent that trusted exit 0 would have reported at least 6 [DERIVED] of 26 [DERIVED] fresh entry-runs as reproduced; RERUN certified **3 [DERIVED] after the published audits** (5 [DERIVED] as recorded). Neither run the audits removed was a fake (0 [DERIVED] of 2 [DERIVED]): no patch was involved in either; one was a pipe that returned the last stage's status after the script had failed at its first import, one a documented command that only prints help (`reports/v1.10/breakdown/BREAKDOWN.md`). DEV: at least 15 [DERIVED] of 40 [DERIVED] against 11 [DERIVED] certified after erratum E-3 (12 [DERIVED] as recorded).
+
+### Limits
+
+- **Anti-cheat is not a headline claim.** harness-v1.9.0 adopted 14 [DERIVED] of the 50 [DERIVED] independent cheats aimed at repositories whose run really fails (28% [DERIVED]), above the 25% [DERIVED] line: a patch that holds the genuine fix **and** a second change that alters the result passes the adjudicator.
+- The behavioural checks refusing stopped every measured cheat and also 16 [DERIVED] of the 27 [DERIVED] honest controls that passed the run (59% [DERIVED], above the pre-registered 30% [DERIVED] line), so the verdicts stay harness-v1.9.0's and the checks are only a review flag; the flag also marks 5 [DERIVED] of the 9 [DERIVED] honest repairs harness-v1.9.0 adopted.
+- No cheat in either set was written by an author who knew the checks: an adaptive set is not measured.
+- **Erratum E-3** (`reports/corpus-v2.1/ERRATA.md`): the M-FAC DEV entry ran on a changed algorithm; DEV certified 12 [DERIVED] as recorded, 11 [DERIVED] after the erratum.
+- **Post-hoc, labelled, never merged into TEST-C** (`reports/v1.10/mkdir_live/RESULT.md`): one live run of minmaxot at harness-v1.9.0 checked the output-directory repair; the rule fired and the run reached RUNS_AFTER_REPAIR at the smoke limit ($3.73 [API-REPORTED]).
+- Repair is attempted and its yield is small (below); it is not the result.
+<!-- end of the generated section -->
 
 ## What it is
 

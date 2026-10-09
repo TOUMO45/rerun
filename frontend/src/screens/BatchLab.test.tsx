@@ -81,23 +81,34 @@ describe("BatchLab (harness-v1.8 measurements)", () => {
   });
 });
 
-describe("BatchLab headline (harness-v1.9)", () => {
-  const family = (name: string, n: number, rejected: number, by: number) => ({ name, n, rejected, by_semantic_rule: by });
-  const run = (rejectedCheats: number, rejectedControls: number) => ({
-    families: { F1: family("swallowed exception", 31, 21, 21), F3: family("skipped missing input", 11, rejectedCheats, rejectedCheats) },
-    cheats: { n: 115, rejected: 37 + rejectedCheats, rate: null }, controls: { n: 53, rejected: rejectedControls, rate: null }, tamper_gate_blob: null, head: null,
-  });
+describe("BatchLab headline (flag-mode pass: read from figures.json)", () => {
+  const row = (label: string, n: number, refused: number, adopted: number, flagged: number, by: Record<string, number>) => ({ label, n, refused, adopted, flagged, refused_by_layer: by });
   const HEADLINE = {
+    source: "reports/v1.9/figures.json",
     ran: { count: 3, of: 26, tag: "DERIVED", parts: [{ set: "TEST", count: 1, of: 8 }, { set: "TEST-B", count: 1, of: 8 }, { set: "TEST-C", count: 1, of: 10 }], measure: "ran" },
     diagnosis: { count: 7, of: 9, strict: { count: 6, of: 9, source: "reports/test-c/TEST_C_RESULT.md" }, set: "TEST-C", tag: "DERIVED", source: "reports/test-c/TEST_C_RESULT.md" },
-    counterfactual: {
-      fresh: { ungated_at_least: 6, of: 26, certified: 5, after_audits: 3 }, dev: { ungated_at_least: 15, of: 40, certified: 12, certified_after_erratum: 11, erratum: "E-3: the M-FAC run ran on a changed algorithm" }, fakes_that_exited_0: 9, fakes_passed_by_the_gate: 9,
-      fakes_refused_by_the_adjudicator: 9, gate_faking_rule_rejections: 24, of_which_honest: 24, adopted_outside_both_classes: 1, tag: "DERIVED", source: "reports/v1.9/counterfactual/RESULT.md",
+    benchmark: {
+      source: "benchmark/README.md", command: "python benchmark/score.py --all", tag: "DERIVED",
+      sets: { planted: 337, independent: 208, independent_measured_cheats: 144, independent_dropped: 22 },
+      status: "Both sets are development material now: a new independent set is needed to measure again",
+      tables: [
+        { name: "planted_heldout.pipeline_v1.9.0", title: "Planted set, held-out half: the full pipeline (harness-v1.9.0)",
+          note: "Table only, no summary sentence: the adjudicator refused all 31 honest controls that passed the run here.",
+          rows: [row("cheats, all", 115, 115, 0, 0, { adjudicator: 63, gate: 35, run: 17 }), row("honest controls (refused = false refusals)", 53, 53, 0, 0, { adjudicator: 31, run: 22 })] },
+        { name: "independent.flag_mode.derived", title: "Independent set: the flag mode",
+          note: "Derived from committed records, not measured by a run of the flag mode; this use of the checks was chosen after the results were seen.",
+          rows: [row("cheats, all", 144, 127, 0, 17, { adjudicator: 121, audit: 2, gate: 4 }), row("cheats aimed at failing repositories", 50, 36, 0, 14, { adjudicator: 32 })] },
+      ],
     },
-    planted: { half: "held-out", before: run(0, 6), after: null, tag: "DERIVED", source: "reports/v1.9/planted/RESULT.md", note: "Planted patches, labelled by construction." },
+    counterfactual: {
+      fresh: { ungated_at_least: 6, of: 26, certified: 5, after_audits: 3 }, dev: { ungated_at_least: 15, of: 40, certified: 12, certified_after_erratum: 11, erratum: "E-3: the M-FAC run ran on a changed algorithm" },
+      removed_by_audit: 2, removed_that_were_fakes: 0, fakes_that_exited_0: 9, fakes_passed_by_the_gate: 9, fakes_refused_by_the_adjudicator: 9, gate_faking_rule_rejections: 24, of_which_honest: 24,
+      tag: "DERIVED", source: "reports/v1.9/counterfactual/RESULT.md",
+    },
+    limits: ["Anti-cheat is not a headline claim: harness-v1.9.0 adopted 14 of the 50 independent cheats aimed at repositories whose run really fails (28%), above the 25% line."],
   };
 
-  it("leads with the run count, the diagnosis rate with its strict figure, the counterfactual and the planted benchmark; the 'after' column says not run yet when absent", async () => {
+  it("leads with the run count and the diagnosis, then the benchmark's per-layer tables, the counterfactual and the limits", async () => {
     getPreregistered.mockResolvedValue({ ...RESULTS, headline: HEADLINE });
     renderLab();
     const headline = await screen.findByTestId("headline");
@@ -105,23 +116,29 @@ describe("BatchLab headline (harness-v1.9)", () => {
     expect(headline.textContent).toContain("TEST 1/8 · TEST-B 1/8 · TEST-C 1/10 · ran ≠ reproduced");
     expect(headline.textContent).toContain("7 of 9");
     expect(headline.textContent).toContain("strict: 6 of 9 (67%)");
-    expect(headline.textContent).toContain("≥6 vs 3");
-    expect(headline.textContent).toContain("5 as recorded");
-    expect(headline.textContent).toContain("DEV: ≥15 vs 11 of 40 (12 as recorded");
-    expect(headline.textContent).toContain("9 of 9");
-    expect(headline.textContent).toContain("24 of 24 were honest patches");
-    const table = within(headline).getByTestId("planted-table");
-    expect(table.textContent).toContain("not run yet");
-    expect(table.textContent).toContain("honest controls rejected (false rejects)");
+    const text = headline.textContent ?? "";
+    expect(text.indexOf("3 of 26")).toBeLessThan(text.indexOf("7 of 9"));
+    expect(text.indexOf("7 of 9")).toBeLessThan(text.indexOf("The cheat benchmark"));
+    expect(text.indexOf("The cheat benchmark")).toBeLessThan(text.indexOf("Limits"));
+    const bench = within(headline).getByTestId("benchmark");
+    expect(bench.textContent).toContain("python benchmark/score.py --all");
+    expect(bench.textContent).toContain("development material");
+    const t1 = within(bench).getByTestId("benchmark-planted_heldout.pipeline_v1.9.0");
+    expect(t1.textContent).toContain("refused all 31 honest controls");
+    expect(t1.textContent).toContain("adjudicator 63, gate 35, run 17");
+    expect(t1.textContent).not.toContain("REVIEW_REQUIRED");
+    const flag = within(bench).getByTestId("benchmark-independent.flag_mode.derived");
+    expect(flag.textContent).toContain("adopted with REVIEW_REQUIRED");
+    expect(flag.textContent).toContain("Derived from committed records");
+    const cf = within(headline).getByTestId("counterfactual");
+    expect(cf.textContent).toContain("at least 6 of 26");
+    expect(cf.textContent).toContain("certified 3 after the published audits (5 as recorded)");
+    expect(cf.textContent).toContain("runs the audits removed were not fakes (0 were)");
+    expect(cf.textContent).toContain("DEV: ≥15 vs 11 of 40 (12 as recorded");
+    expect(within(headline).getByTestId("limits").textContent).toContain("Anti-cheat is not a headline claim");
   });
 
-  it("fills the after column when the held-out re-run exists and shows no headline when the server sends none", async () => {
-    getPreregistered.mockResolvedValue({ ...RESULTS, headline: { ...HEADLINE, planted: { ...HEADLINE.planted, after: run(11, 0) } } });
-    const { unmount } = renderLab();
-    const table = await screen.findByTestId("planted-table");
-    expect(table.textContent).not.toContain("not run yet");
-    expect(table.textContent).toContain("11 (11)");
-    unmount();
+  it("shows no headline when the server sends none", async () => {
     getPreregistered.mockResolvedValue({ ...RESULTS, headline: null });
     renderLab();
     await screen.findByRole("heading", { name: "TEST-C" });

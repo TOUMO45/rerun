@@ -190,7 +190,7 @@ def test_the_devpost_answers_mark_ratings_as_proposed_and_leave_the_owner_questi
     assert sections["How does it compare with other models?"].strip().startswith("Not measured.")
     assert sections["Prompt-engineered or fine-tuned?"].strip().startswith("Prompt-engineered.")
     tavily = sections["Did you use Tavily?"]
-    assert tavily.strip().startswith("**Yes.**") and "0 [API-REPORTED] citations" in tavily and "whether a citation shaped a decision is not measured" in tavily
+    assert tavily.strip().startswith("**Yes.**") and "none in another" in tavily and "whether a citation shaped a decision is not measured" in tavily
     assert sections["Is this a new project or an existing one?"].strip() == "<!-- OWNER TO ANSWER: left blank on purpose -->"
     recorded = {r["model"] for v in _summary()["stack"]["versions"] for r in v["roles"]}
     assert set(re.findall(r"nvidia/[A-Za-z0-9._-]+", text)) == recorded
@@ -205,9 +205,17 @@ def test_the_description_is_at_most_400_words_and_the_tagline_is_two_sentences()
     spoken = TAG_MARK.sub(" ", description).replace("**", "")
     assert len(spoken.split()) <= 400, len(spoken.split())
     assert len(re.findall(r"[.!?](?:\s|$)", TAG_MARK.sub("", tagline))) == 2
-    assert "2 [API-REPORTED] of 24 [API-REPORTED]" in tagline and "2 [API-REPORTED] of 24 [API-REPORTED]" in description
-    assert "EXPLORATORY" in description and "lower bound" in description and "smoke-limit artefact" in description
-    assert "smoke-criterion pass" in description and "not a rate" in description and "D-41" in description
+    # flag-mode pass (owner, 2026-10-09, task 4): generated from figures.json, in the owner's order: what RERUN does and the run count, the diagnosis, the
+    # benchmark and its tables, the limits; anti-cheat is under the limits, the flag-mode figures carry their labels, and no sentence says the audits removed fakes
+    assert "3 [DERIVED] of 26 [DERIVED]" in tagline and "7 [DERIVED] of the 9 [DERIVED]" in tagline
+    order = [description.index(h) for h in ("**What RERUN does.**", "**What we measured.**", "**The benchmark.**", "**Limits.**")]
+    assert order == sorted(order)
+    measured = description.split("**What we measured.**")[1].split("**The benchmark.**")[0]
+    assert "3 [DERIVED] of 26 [DERIVED]" in measured and "7 [DERIVED] of 9 [DERIVED]" in measured and "6 [DERIVED] judged strictly" in measured
+    limits = description.split("**Limits.**")[1]
+    assert "Anti-cheat is not a headline claim" in limits and "14 [DERIVED] of the 50 [DERIVED]" in limits
+    assert "derived from committed records" in limits and "chosen after the results were seen" in limits and "E-3" in limits and "post-hoc" in limits
+    assert "lower bound" in description and not re.search(r"audits? (?:removed|caught|stopped) (?:the )?fakes?", description, re.I)
 
 
 # ---------------------------------------------------------------- criteria map

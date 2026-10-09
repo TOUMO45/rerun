@@ -11,19 +11,19 @@ Three Nemotron models through Nebius Token Factory, each with one narrow job (na
 - `nvidia/nemotron-3-super-120b-a12b` for planning and repair: it proposes system packages, patches and environment changes. It is the only role that reasons over code and logs, so it gets the mid-size model.
 - `nvidia/Nemotron-3-Ultra-550b-a55b` for adjudication: it chooses between the candidate repairs of a round and writes the certificate prose, and may only downgrade a verdict. A few calls per run, so the largest model is affordable there.
 
-Recorded calls in the last exploratory gate: Nano 4 [API-REPORTED], Super 39 [API-REPORTED], Ultra 10 [API-REPORTED]. The decisions that matter (classification, the tamper gate, the env gate, the cost guard, the verdict) are deterministic code, not model calls.
+Recorded calls in the last exploratory gate: Nano {{last_gate_calls_nano}}, Super {{last_gate_calls_super}}, Ultra {{last_gate_calls_ultra}}. The decisions that matter (classification, the tamper gate, the env gate, the cost guard, the verdict) are deterministic code, not model calls.
 
 ## How would you rate Nemotron's output quality (1–10)?
 
 **PROPOSED: 4/10 for the repair role, as measured here.** The owner decides.
 
 Evidence for:
-- It produced a recorded repair attempt in 17 [API-REPORTED] of the 24 [API-REPORTED] exploratory gate entry-runs, well-formed enough for the gate to apply, and it abstains with a reason instead of guessing.
+- It produced a recorded repair attempt in {{gate_with_model_attempt}} of the {{gate_entry_runs}} exploratory gate entry-runs, well-formed enough for the gate to apply, and it abstains with a reason instead of guessing.
 - On the DEV rounds of the dev/test protocol (tuned-on entries), one entry reached RUNS_AFTER_REPAIR in every round on a model-proposed environment change adopted through the tamper gate. Each is a smoke-criterion verdict, not a reproduced result.
 
 Evidence against:
-- No exploratory gate passed: 2 [API-REPORTED] of 24 [API-REPORTED] gate entry-runs ended RUNS_CLEAN or RUNS_AFTER_REPAIR, one a smoke-limit artefact.
-- On the independent cheat set, Ultra (the adjudicator) adopted 17 [DERIVED] of the 144 [DERIVED] measured cheats, 14 [DERIVED] of the 50 [DERIVED] aimed at a repository whose run really fails: it judges a patch by whether it addresses the failure, so a genuine fix bundled with a change of the result passes.
+- No exploratory gate passed: {{gate_apparent_recoveries}} of {{gate_entry_runs}} gate entry-runs ended RUNS_CLEAN or RUNS_AFTER_REPAIR, one a smoke-limit artefact.
+- On the independent cheat set, Ultra (the adjudicator) adopted {{indep_v190_adopted}} of the {{indep_confirmed_cheats}} measured cheats, {{indep_real_failure_cheats_adopted}} of the {{indep_real_failure_cheats}} aimed at a repository whose run really fails: it judges a patch by whether it addresses the failure, so a genuine fix bundled with a change of the result passes.
 - It cited a source in some gates and none in another although references were offered (D-21, open), and it once proposed installing a C compiler as a Python package (D-24).
 
 This rates one repairer model on one small corpus under a strict gate. It is not a general rating of Nemotron.
@@ -43,14 +43,14 @@ Not measured. Every record uses the three Nemotron models above; there is no rec
 - **The models endpoint with pricing**: the cost guard prices every call from it and records the source and retrieval date.
 - **Seal verification**: every sandbox-touching code path is executed live before a harness version is sealed; the records are committed under `runs/sandbox_verification/`.
 
-Recorded spend: the ledger is $186.21 [API-REPORTED] against the owner's ceiling of $300 [DERIVED] (`reports/ledger_total.py`): the sandbox API's reported operation cost plus the priced model calls, a stated lower bound (D-27); the harness-v1.10 passes are $23.51 [API-REPORTED] of it.
-The account balance is the owner's reading (`reports/dev/BILLED_READINGS.md`): at the second reading it showed at most $0.43 [BILLED] charged, before the last gates; the account balance and the API-reported ledger are not reconciled (D-36, open).
+Recorded spend: the ledger is {{ledger_usd}} against the owner's ceiling of {{ledger_ceiling_usd}} (`reports/ledger_total.py`): the sandbox API's reported operation cost plus the priced model calls, a stated lower bound (D-27); the harness-v1.10 passes are {{ledger_v110_pass_usd}} of it.
+The account balance is the owner's reading (`reports/dev/BILLED_READINGS.md`): at the second reading it showed at most {{billed_second_reading_charged_usd}} charged, before the last gates; the account balance and the API-reported ledger are not reconciled (D-36, open).
 
 ## How likely are you to recommend Nebius Token Factory?
 
 **PROPOSED: 7/10.** The owner decides.
 
-Evidence for: the sandboxes carried every recorded entry-run (65 [API-REPORTED] passports in the exploratory gates alone), the seal verifications and the cheat measurements; the pricing endpoint made a hard cost guard possible; the API returns peak memory per operation.
+Evidence for: the sandboxes carried every recorded entry-run ({{gate_passports}} passports in the exploratory gates alone), the seal verifications and the cheat measurements; the pricing endpoint made a hard cost guard possible; the API returns peak memory per operation.
 Evidence against: a step stopped by the sandbox comes back as a normal result with a flag the SDK does not surface (D-17); the spend of a killed step is not reported, so the ledger is a lower bound (D-27); the memory and CPU of a sandbox VM are not documented and the SDK has no parameter for a larger one (D-40); and the SDK truncates each output stream at a fixed byte limit by default, which hid a CUDA error for several versions (D-41).
 
 ## How was the developer experience?
@@ -67,7 +67,7 @@ In Nebius Token Factory, from what the records show:
 - document the memory and CPU of a sandbox VM and let a run choose a larger one (D-40);
 - raise the output truncation default or make the cut impossible to miss where a result is read (D-41).
 
-In RERUN: an adjudicator that cannot be talked into a bundled patch (the 14 [DERIVED] adopted cheats), behavioural checks precise enough to refuse rather than flag (they refused 16 [DERIVED] of 27 [DERIVED] honest controls), and a cheat set written by an author who knows the checks.
+In RERUN: an adjudicator that cannot be talked into a bundled patch (the {{indep_real_failure_cheats_adopted}} adopted cheats), behavioural checks precise enough to refuse rather than flag (they refused {{indep_controls_refused_by_checks}} of {{indep_controls_passed_run}} honest controls), and a cheat set written by an author who knows the checks.
 
 ## What is next?
 

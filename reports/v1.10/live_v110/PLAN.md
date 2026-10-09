@@ -27,3 +27,21 @@ What it cannot show: that v1.10 is better or worse on any rate (one run, a sampl
   environment. The criteria above are unchanged. The orchestrator's wiring is the same in rc4 and rc5 (one comment differs).
 * **Transport:** the repository is read from a local bare mirror of the same commit (`GIT_CONFIG_*` `insteadOf` in the launcher), built one blob at a time because the link
   dropped every long transfer. The commit, the pipeline and every harness file are unchanged by it.
+
+## Second deviation, written before the run that counts (2026-10-09, the flag-mode pass)
+
+* **Attempt 2 at rc5: INFRA_ERROR, no model call.** Launched 2026-10-09 10:39 from this machine with the repository read from the local mirror: the pipeline reached the sandbox
+  (python:3.7-slim, 95 files verified against the tree) and the upload of the 20 MB tree timed out four times (the harness sizes that timeout for 0.987 MB/s; this machine
+  uploaded at 0.16-0.4 MB/s). Record `runs/v1.10/live_v110/attempt2_rc5_infra_error_upload_timeout.json`.
+* **The run that counts is at the flag-mode release candidate, on a GitHub Actions runner** (owner's decision of 2026-10-09: the workflow
+  `.github/workflows/v110-seal.yml`, dispatched by hand, after the seal of the same candidate in the same job, never beside another paid run), `scripts/live_run.py` at the
+  checked-out release candidate, `--dev-run`, cap $5.00, `BEHAVIOUR_MODE=flag` (the shipped mode). The record goes to `runs/v1.10/live_v110/02_stephaneckstein__minmaxot_<rc>.json`.
+* **The criteria above, read for the flag mode** (the mode changed, so their wording does; nothing is added after the run):
+  1. a model candidate is judged by the checks inside the loop: at least one attempt carries `behaviour.mode = "flag"`, and the log shows `behaviour check FLAGGED` lines or
+     none (none is a finding too);
+  2. the tracer works through the pipeline: every candidate that ran has `behaviour.trace.status` `ok`, the tracer's line is in no attempt's `stderr_tail`, and no command
+     other than the launcher payload names `RERUN_BEHAVIOUR`;
+  3. what happens to the environment-variable candidate of the earlier run (`PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION=python`) is recorded as it is: adopted clean, adopted
+     with REVIEW_REQUIRED, or not proposed this time (the model is sampled);
+  4. the verdict is whatever it is, and **it must not depend on the flag**: no attempt is refused by a behavioural finding (`behaviour.refused` absent everywhere), and the
+     certificate carries `review` exactly when an adopted attempt is `flagged`.

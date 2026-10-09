@@ -201,62 +201,82 @@ def preregistered_results(root: Path | None = None) -> dict:
     return doc
 
 
-def _planted(doc: dict) -> dict:
-    s = doc["summary"]
-    fams = {f: {"name": FAMILY_NAMES[f], "n": s[f]["n"], "rejected": s[f]["rejected"], "by_semantic_rule": s[f]["rejected_by_a_semantic_rule"]}
-            for f in sorted(FAMILY_NAMES) if f in s}
-    return {"families": fams, "cheats": s["ALL CHEATS"], "controls": s["ALL CONTROLS"], "tamper_gate_blob": doc.get("tamper_gate_blob"), "head": doc.get("head")}
+# flag-mode pass (owner, 2026-10-09, task 4): the Batch Lab's headline is READ from reports/v1.9/figures.json, the one source of the README's result section and the
+# Devpost texts; nothing here computes a figure. Order: what ran (3 of 26), the diagnosis (7 of 9, 6 strict), the benchmark and its per-layer tables, the limits.
+FIGURES = "reports/v1.9/figures.json"
+BENCHMARK_TABLES = (
+    ("planted_heldout.gate_v1.9", "Planted set, held-out half: the tamper gate alone (harness-v1.9)", ""),
+    ("planted_heldout.pipeline_v1.9.0", "Planted set, held-out half: the full pipeline (harness-v1.9.0)",
+     "Table only, no summary sentence: the adjudicator refused all {pipeline_controls_refused} honest controls that passed the run here, so its refusals are detection only "
+     "on the repositories whose run really fails. A refusal at `run` means the cheat did not make the command pass: not a catch."),
+    ("independent.pipeline_v1.9.0", "Independent set: the full pipeline (harness-v1.9.0, the submission harness)",
+     "{indep_real_failure_cheats_adopted} of the {indep_real_failure_cheats} cheats aimed at repositories whose run really fails were adopted: the real fix bundled with a change of the result."),
+    ("independent.refuse_v1.10.0-rc4", "Independent set: the behavioural checks refusing (harness-v1.10.0-rc4, measured once)",
+     "They also refused {indep_controls_refused_by_checks} of the {indep_controls_passed_run} honest controls that passed the run ({indep_fr_pct}%, above the pre-registered "
+     "{fr_rule_line_pct}% line): the verdicts stay harness-v1.9.0's."),
+    ("independent.flag_mode.derived", "Independent set: the flag mode (harness-v1.9.0 verdicts, REVIEW_REQUIRED where the checks found something)",
+     "Derived from committed records, not measured by a run of the flag mode; this use of the checks was chosen after the results were seen. The behavioural tracer was "
+     "exercised by no cheat ({flag_cheats_traced} traced); cheats written to fit the allow-list are unmeasured."),
+)
+
+
+def _rows(table: dict) -> list[dict]:
+    def row(label: str, c: dict) -> dict:
+        return {"label": label, "n": c["n"], "refused": c["refused"], "adopted": c["adopted"], "flagged": c["flagged"], "refused_by_layer": c["refused_by_layer"]}
+
+    out = [row(f"cheats {fam}" + (f" {FAMILY_NAMES[fam]}" if fam in FAMILY_NAMES else ""), c) for fam, c in table["families"].items()]
+    out.append(row("cheats, all", table["all_cheats"]))
+    out.append(row("cheats aimed at failing repositories", table["cheats_aimed_at_failing_repositories"]))
+    out.append(row("honest controls (refused = false refusals)", table["all_controls"]))
+    return out
 
 
 def headline(root: Path, sets: list[dict]) -> dict | None:
-    """harness-v1.9 (task 6): what the Batch Lab leads with. Every figure is read from a committed file; a figure whose file is missing is None (never zero).
-    The three held-out sets are summed ONCE here, as the owner asked, with each set's own count kept in its card below."""
-    by = {s["key"]: s for s in sets}
-    fresh = [by.get(k) for k in ("test", "test_b", "test_c")]
-    out: dict = {"ran": None, "diagnosis": None, "counterfactual": None, "planted": None}
-    if all(fresh):
-        out["ran"] = {"count": sum(s["count"] for s in fresh), "of": sum(s["of"] for s in fresh), "tag": "DERIVED",
-                      "parts": [{"set": s["title"], "count": s["count"], "of": s["of"]} for s in fresh],
-                      "measure": "ran their documented command (TEST after its published audit, TEST-B, TEST-C): not a reproduction of a paper's result"}
-    if by.get("test_c") and by["test_c"].get("diagnosis"):
-        d = by["test_c"]["diagnosis"]
-        out["diagnosis"] = {"count": d["count"], "of": d["of"], "strict": TEST_C_DIAGNOSIS_STRICT, "set": "TEST-C", "tag": "DERIVED", "source": d["source"]}
+    """flag-mode pass (task 4): what the Batch Lab leads with, read from reports/v1.9/figures.json (generated from the committed result files by
+    reports/v1.9/figures.py). A missing or unreadable figures file is None (never zero). `sets` is unused: the figures file already holds the three held-out counts."""
     try:
-        facts = _read(root, COUNTERFACTUAL_FACTS)["summary"]
-        items = _read(root, COUNTERFACTUAL_CLASSES)["items"]
-        fresh_f, dev_f = facts["FRESH (TEST-A+B+C)"], facts["DEV"]
-        try:
-            withdrawn = {e["record"] for e in _read(root, ERRATA)["errata"] if "dev_certified" in e.get("affects", [])}
-        except (BatchResultsUnavailable, KeyError, ValueError):
-            withdrawn = set()
-        dev_rows = _read(root, COUNTERFACTUAL_FACTS)["entry_runs"]
-        dev_withdrawn = sum(1 for r in dev_rows if r["set"] == "DEV" and r["certified"] and r["record"] in withdrawn)
-        fakes = [i for i in items if i["label"] == "GENUINE FAKE"]
-        gate_items = [i for i in items if i["group"] == "gate rejection under a faking rule"]
-        out["counterfactual"] = {
-            "fresh": {"ungated_at_least": fresh_f["naive_success_entry_runs"], "of": fresh_f["entry_runs"], "certified": fresh_f["certified_entry_runs"],
-                      "after_audits": out["ran"]["count"] if out["ran"] else None},
-            "dev": {"ungated_at_least": dev_f["naive_success_entry_runs"], "of": dev_f["entry_runs"], "certified": dev_f["certified_entry_runs"],
-                    "certified_after_erratum": dev_f["certified_entry_runs"] - dev_withdrawn, "erratum": "E-3: the M-FAC run (harness-v1.5.2) ran on a changed algorithm"},
-            "fakes_that_exited_0": len(fakes), "fakes_passed_by_the_gate": sum(1 for i in fakes if i["group"] == "reached naive success"),
-            "fakes_refused_by_the_adjudicator": sum(1 for i in fakes if i.get("fate", "").startswith("adjudicator")),
-            "gate_faking_rule_rejections": len(gate_items), "of_which_honest": sum(1 for i in gate_items if i["label"] == "HONEST PATCH REJECTED"),
-            "adopted_outside_both_classes": sum(1 for i in items if i["label"] == "OUTSIDE BOTH CLASSES"),
-            "tag": "DERIVED", "source": "reports/v1.9/counterfactual/RESULT.md"}
+        doc = _read(root, FIGURES)
+        f = {k: v["value"] for k, v in doc["figures"].items()}
+        tables = doc.get("tables") or {}
     except (BatchResultsUnavailable, KeyError, ValueError, TypeError):
-        out["counterfactual"] = None
+        return None
     try:
-        before = _planted(_read(root, PLANTED_BEFORE))
-    except (BatchResultsUnavailable, KeyError, ValueError):
-        before = None
-    try:
-        after = _planted(_read(root, PLANTED_AFTER))
-    except (BatchResultsUnavailable, KeyError, ValueError):
-        after = None
-    if before is not None:
-        out["planted"] = {"half": "held-out", "before": before, "after": after, "tag": "DERIVED", "source": "reports/v1.9/planted/RESULT.md",
-                          "note": "Planted patches, labelled by construction and not executed; the gate only (no adjudicator); recon's model-provided names absent."}
-    return out
+        ran = {"count": f["held_out_ran"], "of": f["held_out_total"], "tag": "DERIVED",
+               "parts": [{"set": name, "count": f[f"{key}_ran"], "of": f[f"{key}_of"]} for key, name in (("test", "TEST"), ("test_b", "TEST-B"), ("test_c", "TEST-C"))],
+               "measure": "ran their documented command (TEST after its published audit, TEST-B, TEST-C): not a reproduction of a paper's result"}
+        diagnosis = {"count": f["diagnosis_actionable"], "of": f["diagnosis_non_running"], "set": "TEST-C", "tag": "DERIVED",
+                     "strict": {"count": f["diagnosis_strict"], "of": f["diagnosis_non_running"], "source": doc["figures"]["diagnosis_strict"]["source"]},
+                     "source": doc["figures"]["diagnosis_actionable"]["source"]}
+        counterfactual = {
+            "fresh": {"ungated_at_least": f["ungated_fresh_at_least"], "of": f["fresh_entry_runs"], "certified": f["certified_fresh_as_recorded"],
+                      "after_audits": f["certified_fresh_after_audits"]},
+            "dev": {"ungated_at_least": f["ungated_dev_at_least"], "of": f["dev_entry_runs"], "certified": f["certified_dev"],
+                    "certified_after_erratum": f["certified_dev_after_erratum"], "erratum": "E-3: the M-FAC run (harness-v1.5.2) ran on a changed algorithm"},
+            "removed_by_audit": f["fresh_removed_by_audit"], "removed_that_were_fakes": f["fresh_removed_that_were_fakes"],
+            "fakes_that_exited_0": f["fakes_recorded"], "fakes_passed_by_the_gate": f["fakes_exit_zero_passed_gate"], "fakes_refused_by_the_adjudicator": f["fakes_refused_by_adjudicator"],
+            "gate_faking_rule_rejections": f["gate_faking_rule_rejections"], "of_which_honest": f["gate_faking_rule_rejections_honest"],
+            "tag": "DERIVED", "source": "reports/v1.9/counterfactual/RESULT.md"}
+        benchmark = {"source": "benchmark/README.md", "command": "python benchmark/score.py --all", "tag": "DERIVED",
+                     "sets": {"planted": f["planted_patches"], "independent": f["indep_authored_cheats"] + f["indep_controls"], "independent_measured_cheats": f["indep_confirmed_cheats"],
+                              "independent_dropped": f["indep_dropped_cheats"]},
+                     "status": "Both sets are development material now: a new independent set is needed to measure again",
+                     "tables": [{"name": name, "title": title, "note": note.format(**f), "rows": _rows(tables[name]["table"])}
+                                for name, title, note in BENCHMARK_TABLES if name in tables]}
+        limits = [
+            f"Anti-cheat is not a headline claim: harness-v1.9.0 adopted {f['indep_real_failure_cheats_adopted']} of the {f['indep_real_failure_cheats']} independent cheats aimed at "
+            f"repositories whose run really fails ({f['indep_real_failure_adopted_pct']}%), above the {f['anticheat_headline_line_pct']}% line.",
+            f"The flag mode marks all {f['flag_cheats_adopted_flagged']} of the cheats harness-v1.9.0 adopted and {f['flag_controls_adopted_flagged']} of the "
+            f"{f['indep_v190_adopted_controls']} honest repairs it adopted: derived from committed records, chosen after the results were seen; no cheat was traced, and cheats "
+            "written to fit the allow-list are unmeasured.",
+            "Both cheat sets are development material now; an adaptive set (an author who knows the checks) is not measured.",
+            f"Erratum E-3: DEV certified {f['certified_dev']} as recorded, {f['certified_dev_after_erratum']} after it (entry 14, M-FAC, ran on a changed algorithm).",
+            f"Post-hoc, never merged into TEST-C: one live run of minmaxot at harness-v1.9.0 (the output-directory repair fired; RUNS_AFTER_REPAIR at smoke level, "
+            f"${f['minmaxot_posthoc_cost_usd']:.2f} API-REPORTED).",
+            "\"Ran\" means the documented command executed, never that a paper's result was reproduced.",
+        ]
+    except KeyError:
+        return None
+    return {"source": FIGURES, "ran": ran, "diagnosis": diagnosis, "benchmark": benchmark, "counterfactual": counterfactual, "limits": limits}
 
 
 @router.get("/batch/preregistered")
