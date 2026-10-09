@@ -16,3 +16,14 @@ What it can show, and the criteria written before it runs:
 4. The verdict is whatever it is (RUNS_AFTER_REPAIR as in Task 5, or BLOCKED because the checks refused what the model proposed); it is reported, not judged.
 
 What it cannot show: that v1.10 is better or worse on any rate (one run, a sampled model); anything about cheats.
+
+## Deviation, written before the run that counts (2026-10-09)
+
+* **First attempt at rc4: INFRA_ERROR, no model call.** Launched 2026-10-09 03:30; the `git fetch` of the repository timed out 4 x 300 s (about 12 KB/s from this machine to GitHub
+  that night). Record kept as `runs/v1.10/live_v110/attempt1_infra_error_git_timeout.json` with its stdout and launcher lines. Nothing about the pipeline was observed.
+* **The run moves to release candidate 5.** Before the second attempt the live seal of rc4 found a tracer defect on Python 3.9+ (a script run from `/` is named `//train.py`;
+  `runs/sandbox_verification/v1.10-seal-rc4/NOTE.md`), fixed in `harness-v1.10.0-rc5`, which also turns the checks off by default. The wiring check is meant to show the
+  orchestrator's wiring of what would be tagged, so it runs at `harness-v1.10.0-rc5` (worktree `.claude/worktrees/v110-rc5`) with `BEHAVIOUR_CHECKS=true` in the launcher's
+  environment. The criteria above are unchanged. The orchestrator's wiring is the same in rc4 and rc5 (one comment differs).
+* **Transport:** the repository is read from a local bare mirror of the same commit (`GIT_CONFIG_*` `insteadOf` in the launcher), built one blob at a time because the link
+  dropped every long transfer. The commit, the pipeline and every harness file are unchanged by it.

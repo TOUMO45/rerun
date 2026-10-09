@@ -1040,6 +1040,8 @@ if os.environ.get("RERUN_BEHAVIOUR") == "1" and not getattr(sys, "rerun_behaviou
                 p = os.path.normpath(os.path.join(cwd0, co_filename)).replace("\\", "/")
             except Exception:
                 p = str(co_filename)
+            if p.startswith("//"):  # POSIX normpath keeps two leading slashes, and Python 3.9+ names a script run from / as "//train.py" (found by the v1.10 seal on python:3.10)
+                p = "/" + p.lstrip("/")
             found = None
             if not any(x in p for x in excluded):
                 if p.startswith(cwd0):

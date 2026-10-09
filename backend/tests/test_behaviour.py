@@ -789,3 +789,30 @@ def test_review3_the_tracer_catches_posix_exit(tmp_path):
     report, plan, done = _run(tmp_path, REPO, new, FAIL_AT_STEP)
     assert done.returncode == 0 and report is not None and any(e["how"] == "os._exit" for e in report["exits"]), (report, done.stderr)
     assert b.EXIT_FROM_ADDED_LINE in {f.reason for f in b.trace_findings(report, plan)}
+
+
+_RUN_FROM_ROOT = """
+import os
+real = os.getcwd
+os.getcwd = lambda: "/"          # the sandbox runs the repository from /
+import rerun_behaviour
+os.getcwd = real
+name = "//train.py"              # Python 3.9+ names a script run from / like this (seen in the seal on python:3.10 and in patchSmoothing's tracebacks)
+code = compile(open("train.py").read(), name, "exec")
+exec(code, {"__name__": "__main__", "__file__": name})
+"""
+
+
+def test_seal_v110_a_script_run_from_the_root_on_python_39_is_its_entry_file(tmp_path):
+    for rel, text in REPO.items():
+        (tmp_path / rel).write_text(text, encoding="utf-8")
+    plan = b.plan_trace(command="python train.py", failure_text=FAIL_AT_STEP, old_sources=REPO, new_sources=REPO, repo_files=set(REPO))
+    hook = tmp_path / "hook"
+    hook.mkdir()
+    (hook / "rerun_behaviour.py").write_text(b.TRACE_SOURCE.replace("__SPEC__", plan.spec_b64), encoding="utf-8")
+    env = {**os.environ, "RERUN_BEHAVIOUR": "1", "PYTHONPATH": str(hook), "PYTHONIOENCODING": "utf-8"}
+    done = subprocess.run([sys.executable, "-c", _RUN_FROM_ROOT], cwd=tmp_path, env=env, capture_output=True, text=True, timeout=60)
+    report = b.entry_report(b.split_report(done.stderr, plan.nonce)[1])
+    assert report is not None and report["entry_main"] is True and report["main_lines"] > 0, done.stderr
+    assert all(e["file"] == "train.py" for e in report["exits"]), report["exits"]
+    assert b.trace_findings(report, plan, succeeded=True) == []

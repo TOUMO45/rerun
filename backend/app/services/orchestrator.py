@@ -904,7 +904,7 @@ class PipelineDeps:
     candidates_per_round: int = 1
     image_releaser: callable = None
     # harness-v1.10 (behaviour.py): the behavioural checks on a repair candidate (static: what the patch changes; trace: what the patched run does). Off in the dataclass like
-    # `candidates_per_round` (a hand-built deps keeps the v1.9 flow), on in a deployment: build_pipeline_deps reads Settings.behaviour_checks (default True).
+    # `candidates_per_round` (a hand-built deps keeps the v1.9 flow), a deployment follows Settings.behaviour_checks (default False since harness-v1.10.0-rc5: the measured false-refusal rate).
     behaviour_checks: bool = False
 
 

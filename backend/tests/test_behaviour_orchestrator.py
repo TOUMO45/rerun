@@ -141,9 +141,10 @@ def test_the_tracer_line_never_reaches_the_record_and_the_tracer_is_installed_on
     assert not [c for c in cloud.ran if "RERUN_BEHAVIOUR" in c], "a command other than the base64 payloads names the tracer's variable"
 
 
-def test_settings_turn_the_checks_on_for_a_deployment_and_the_dataclass_default_keeps_v19(tmp_path):
-    assert Settings().behaviour_checks is True
+def test_the_checks_are_off_by_default_and_a_deployment_can_turn_them_on(tmp_path):
+    assert Settings().behaviour_checks is False          # harness-v1.10.0-rc5: off by default (the measured false-refusal rate)
     assert PipelineDeps.__dataclass_fields__["behaviour_checks"].default is False
-    settings = Settings()
+    assert build_pipeline_deps(Settings()).behaviour_checks is False
+    settings = Settings(behaviour_checks=True)
     deps = build_pipeline_deps(settings)
     assert deps.behaviour_checks is True

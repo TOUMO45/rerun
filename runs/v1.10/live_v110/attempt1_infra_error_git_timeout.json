@@ -1,0 +1,75 @@
+{
+  "run_kind": "development run",
+  "dev_run": true,
+  "dry_run": null,
+  "batch": {
+    "harness_tag": "harness-v1.10.0-rc4",
+    "label": "POST-HOC wiring check of the behavioural checks, never merged into TEST-C"
+  },
+  "started_at": "2026-10-09T02:30:47.093836+00:00",
+  "corpus_entry": {
+    "name": "stephaneckstein__minmaxot",
+    "repo_url": "https://github.com/stephaneckstein/minmaxot",
+    "commit_sha": "3f88502bdd096cdc4fe946a9cae17896315459b5",
+    "command": "python dcot/base_case.py",
+    "command_source": "README.md line 28"
+  },
+  "config": {
+    "models": {
+      "recon": "nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B",
+      "planner": "nvidia/nemotron-3-super-120b-a12b",
+      "repairer": "nvidia/nemotron-3-super-120b-a12b",
+      "adjudicator": "nvidia/Nemotron-3-Ultra-550b-a55b"
+    },
+    "sandbox_backend": "token_factory",
+    "sandbox_image_default": "python:3.10-slim",
+    "sandbox_wall_clock_seconds": 600.0,
+    "arm": "treatment",
+    "repair_enabled": true,
+    "max_attempts": 3,
+    "candidates_per_round": 3,
+    "tavily_configured": true,
+    "cost_cap_usd": 5.0
+  },
+  "result": {
+    "verdict": "INFRA_ERROR",
+    "taxonomy_code": null,
+    "reason_code": "INFRA_ERROR:git:TimeoutExpired",
+    "indeterminate_reason": "INFRA_ERROR:git:TimeoutExpired: git: TimeoutExpired: Command '['git', '-c', 'core.autocrlf=false', '-c', 'core.eol=lf', '-C', 'C:\\\\Users\\\\E16\\\\AppData\\\\Local\\\\Temp\\\\rerun_live_stephaneckstein__minmaxot_cpkrhlg7', 'fetch', '--depth', '1', '--', 'https://github.com/stephaneckstein/minmaxot', '3f88502bdd096cdc4fe946a9cae17896315459b5']' timed out after 300 seconds after 4 attempt(s)",
+    "attempts": []
+  },
+  "repair_mode": "deterministic",
+  "finished_at": "2026-10-09T03:16:33.696783+00:00",
+  "events": [],
+  "model_calls": [],
+  "cost_guard": {
+    "spent_usd": 0.0,
+    "model_spent_usd": 0.0,
+    "sandbox_spent_usd": 0.0,
+    "estimated_sandbox_spent_usd": 0.0,
+    "cost_events": [],
+    "remaining_usd": 5.0,
+    "cap_usd": 5.0,
+    "over_cap_usd": 0.0,
+    "estimated_usd": 0.0,
+    "over_cap_estimated_only": false,
+    "model_usage": [],
+    "prices_usd_per_1m": {
+      "nvidia/NVIDIA-Nemotron-3-Nano-30B-A3B": [
+        0.06,
+        0.24
+      ],
+      "nvidia/nemotron-3-super-120b-a12b": [
+        0.3,
+        0.9
+      ],
+      "nvidia/Nemotron-3-Ultra-550b-a55b": [
+        1.0,
+        3.0
+      ]
+    },
+    "prices_source": "https://api.tokenfactory.nebius.com/v1/models?verbose=true (pricing field)",
+    "prices_retrieved": "2026-09-24"
+  },
+  "operations": []
+}
