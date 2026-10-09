@@ -332,7 +332,7 @@ BILLED lines, from the owner's readings of the account balance (never an API cos
 - Gate, harness-v1.4.0: BILLED value none. No balance reading was taken for this gate; the only readings are the account-level ones above.
 - Gate, harness-v1.4.2: BILLED value none yet. The owner's balance reading after this gate has not been received.
 - Gate, harness-v1.4.3: BILLED value none yet. The owner's balance reading after this gate has not been received.
-- harness-v1.10.0 seal and flag-mode wiring check (2026-10-09, GitHub Actions run 37958950100): the owner's balance read $41.99 [BILLED] before and $41.99 [BILLED] after; the interval's API-reported spend, $4.22 [API-REPORTED], is not visible in it (`reports/v1.10/seal_live/spend.json`, `billed_readings`). Not reconciled (D-36, open).
+- harness-v1.10.0 seal and flag-mode wiring check (2026-10-09, GitHub Actions run 37958950100): the owner's account balance read $41.99 [BILLED] before and $41.99 [BILLED] after; the interval's API-reported spend, $4.22 [API-REPORTED], is not visible in it (`reports/v1.10/seal_live/spend.json`, `billed_readings`). Not reconciled (D-36, open).
 
 ## License
 

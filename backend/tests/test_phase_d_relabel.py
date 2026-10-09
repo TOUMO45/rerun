@@ -45,7 +45,7 @@ INTERVAL_SOURCE = ("difference of the owner's two readings ($49.61 -> $49.57), t
                    "($3.8588 recorded in the ledger for that interval)")
 NO_GATE_READING = "no balance reading was taken for this gate; the only readings are the account-level ones above"
 AWAITED = "the owner's balance reading after this gate has not been received yet"
-BILLED_VALUES = {"0.39", "0.43", "0.04"}  # the owner's readings (and the interval between them): the only BILLED figures
+BILLED_VALUES = {"0.39", "0.43", "0.04", "41.99"}  # the owner's readings (and the interval between them): the only BILLED figures; 41.99 = the readings before and after the harness-v1.10.0 seal (2026-10-09)
 
 # digests over "<file>|<json path>|<value>" of every tagged value, from the files at commit 87b782e (before the relabel). They cover the 49 passports of
 # harness-v1.3.2 / v1.3.3 / v1.3.4 and those versions' REPLAY files: the Phase D update for v1.4.0 / v1.4.1 / v1.4.2 adds files and annotations (strings),
