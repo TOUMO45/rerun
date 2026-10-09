@@ -1,0 +1,37 @@
+v1.4.3 seal plan (ESTIMATED costs; the earlier records' own API-reported costs where a check is re-run):
+  v140   run1_A_ready_image                                 ~$0.0120  (v1.4.0 seal record, API-reported)
+  v140   run1_B_branch_run                                  ~$0.0005  (v1.4.0 seal record, API-reported)
+  v140   run1_C_runner_hooks                                ~$0.0012  (v1.4.0 seal record, API-reported)
+  v140   run1_D_reopen_kept_image                           ~$0.0002  (v1.4.0 seal record, API-reported)
+  v140   run2_E_entry07_checkpoint                          ~$0.0512  (v1.4.0 seal record, API-reported)
+  v140   run2_F_reopen_apply_execute                        ~$0.0519  (v1.4.0 seal record, API-reported)
+  smoke  smoke_alive_py310.json                             ~$0.0010  (v1.4.3 seal record, API-reported)
+  smoke  smoke_exits_ok_py310.json                          ~$0.0011  (v1.4.3 seal record, API-reported)
+  smoke  smoke_fails_py310.json                             ~$0.0010  (v1.4.3 seal record, API-reported)
+  smoke  smoke_silent_py310.json                            ~$0.0010  (v1.4.3 seal record, API-reported)
+  smoke  smoke_alive_py36.json                              ~$0.0010  (v1.4.3 seal record, API-reported)
+  smoke  smoke_fails_py36.json                              ~$0.0011  (v1.4.3 seal record, API-reported)
+  v110   T1-T5 on python:3.6-slim                           ~$0.0200  (ESTIMATED)
+  v110   T1-T5 on python:3.7-slim                           ~$0.0200  (ESTIMATED)
+  v110   T1-T5 on python:3.10-slim                          ~$0.0200  (ESTIMATED)
+  total ~$0.1832 [ESTIMATED]
+seal cap $1.5; already spent in earlier invocations $0.0000
+=== stage v140 ===
+stage v140: ok=True $0.2907; seal total $0.2907 of $1.5
+=== stage smoke ===
+-> smoke_alive_py310.json: smoke launcher: still running with output -> pass
+   ok=True cost $0.0010
+-> smoke_exits_ok_py310.json: smoke launcher: finishes by itself
+   ok=True cost $0.0010
+-> smoke_fails_py310.json: smoke launcher: failure forwarded unchanged
+   ok=True cost $0.0010
+-> smoke_silent_py310.json: smoke launcher: silent -> fail
+   ok=True cost $0.0010
+-> smoke_alive_py36.json: smoke launcher on Python 3.6
+   ok=True cost $0.0011
+-> smoke_fails_py36.json: smoke launcher failure on Python 3.6
+   ok=True cost $0.0011
+stage smoke: ok=True $0.0062; seal total $0.2969 of $1.5
+=== stage v110 ===
+stage v110: ok=True $0.0282; seal total $0.3251 of $1.5
+seal spend $0.3251 [sum of operation costs: API-reported, plus the estimate of any stopped step]; all stages ok: True

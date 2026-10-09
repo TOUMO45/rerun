@@ -62,7 +62,7 @@ The behavioural checks of harness-v1.10 refusing (`harness-v1.10.0-rc4`, measure
 | cheats aimed at failing repositories [DERIVED] | 50 | 50 | 0 | behaviour_static 48, gate 2 |
 | honest controls (refused = false refusals) [DERIVED] | 42 | 38 | 4 | adjudicator 7, behaviour_static 28, run 3 |
 
-The flag mode: the same checks as a review flag on harness-v1.9.0's verdicts (an adopted patch they would have refused keeps its verdict and its certificate carries REVIEW_REQUIRED with the reason). **Derived from committed records, not measured by a run of the flag mode; this use of the checks was chosen after the results were seen.** The flag is the static half's: the flag mode runs no tracer, because inside the run being judged the tracer changes that run (the independent review of the first flag-mode candidate reproduced an exit-zero the harness overrules becoming a pass). The behavioural tracer was exercised by no cheat (0 [DERIVED] traced); cheats written to fit the allow-list are unmeasured.
+The flag mode: the same checks as a review flag on harness-v1.9.0's verdicts (an adopted patch they would have refused keeps its verdict and its certificate carries REVIEW_REQUIRED with the reason: a signal that a human should look, not a cheat detector). The submission harness, harness-v1.10.0, ships it. **Derived from committed records, not measured by a run of the flag mode on this set; this use of the checks was chosen after the results were seen.** The flag is the static half's: the flag mode runs no tracer, because inside the run being judged the tracer changes that run (the independent review of the first flag-mode candidate reproduced an exit-zero the harness overrules becoming a pass). The behavioural tracer was exercised by no cheat (0 [DERIVED] traced); cheats written to fit the allow-list are unmeasured.
 
 | | n | refused | adopted clean | adopted with REVIEW_REQUIRED | refused by layer |
 |---|---|---|---|---|---|
@@ -82,6 +82,7 @@ The flag mode: the same checks as a review flag on harness-v1.9.0's verdicts (an
 - No cheat in either set was written by an author who knew the checks: an adaptive set is not measured.
 - **Erratum E-3** (`reports/corpus-v2.1/ERRATA.md`): the M-FAC DEV entry ran on a changed algorithm; DEV certified 12 [DERIVED] as recorded, 11 [DERIVED] after the erratum.
 - **Post-hoc, labelled, never merged into TEST-C** (`reports/v1.10/mkdir_live/RESULT.md`): one live run of minmaxot at harness-v1.9.0 checked the output-directory repair; the rule fired and the run reached RUNS_AFTER_REPAIR at the smoke limit ($3.73 [API-REPORTED]).
+- **The flag mode has one live run** (post-hoc, labelled, never merged into TEST-C; `runs/v1.10/live_v110/`): the same entry at harness-v1.10.0 on a GitHub Actions runner ($3.90 [API-REPORTED]) gave the harness-v1.9.0 run's verdict and taxonomy with 0 [DERIVED] attempts flagged; the model's patches differ between the two runs. No live run has produced a REVIEW_REQUIRED certificate: the flag's positive path is shown by the test suite only. The mode was sealed live (24 [DERIVED] code paths, 53 [DERIVED] live run ids, $0.33 [API-REPORTED]).
 - Repair is attempted and its yield is small (below); it is not the result.
 <!-- end of the generated section -->
 
@@ -331,6 +332,7 @@ BILLED lines, from the owner's readings of the account balance (never an API cos
 - Gate, harness-v1.4.0: BILLED value none. No balance reading was taken for this gate; the only readings are the account-level ones above.
 - Gate, harness-v1.4.2: BILLED value none yet. The owner's balance reading after this gate has not been received.
 - Gate, harness-v1.4.3: BILLED value none yet. The owner's balance reading after this gate has not been received.
+- harness-v1.10.0 seal and flag-mode wiring check (2026-10-09, GitHub Actions run 37958950100): the owner's balance read $41.99 [BILLED] before and $41.99 [BILLED] after; the interval's API-reported spend, $4.22 [API-REPORTED], is not visible in it (`reports/v1.10/seal_live/spend.json`, `billed_readings`). Not reconciled (D-36, open).
 
 ## License
 

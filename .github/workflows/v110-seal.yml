@@ -13,7 +13,7 @@ on:
   workflow_dispatch:
     inputs:
       rc_tag:
-        description: "Release candidate tag to seal; the branch head's harness paths must equal it (e.g. harness-v1.10.0-rc7)"
+        description: "Release candidate tag to seal; the branch head's harness paths must equal it (e.g. harness-v1.10.0-rc8, the sealed candidate of harness-v1.10.0)"
         required: true
         type: string
       wiring_check:
@@ -76,13 +76,27 @@ jobs:
           RERUN_V110_RC_TAG: ${{ inputs.rc_tag }}
         run: |
           set +e
+          # Run 37956700916 (2026-10-09): the NEBIUS_API_KEY secret ended with a newline, the HTTP client refused the header before any request, and the exception
+          # text carried the key into the records that the publish job committed. The secrets are stripped of line ends here, and no record that contains a
+          # secret's value leaves this step.
+          NEBIUS_API_KEY="$(printf '%s' "$NEBIUS_API_KEY" | tr -d '\r\n')"; export NEBIUS_API_KEY
+          NEBIUS_PROJECT_ID="$(printf '%s' "$NEBIUS_PROJECT_ID" | tr -d '\r\n')"; export NEBIUS_PROJECT_ID
+          [ -n "$NEBIUS_API_KEY" ] || { echo "NEBIUS_API_KEY is empty after stripping line ends"; echo "exit=1" >> "$GITHUB_OUTPUT"; exit 1; }
           mkdir -p runs/sandbox_verification/v1.10-seal
           echo "LAUNCH $(date -u +%FT%TZ) github-actions run ${GITHUB_RUN_ID} ${RC_TAG}" >> runs/sandbox_verification/v1.10-seal/launcher.txt
           backend/.venv/bin/python -u reports/corpus-v2.1/v1.10/seal/run_seal_v110.py --go --max-usd 1.50 --log-file runs/sandbox_verification/v1.10-seal/seal_stdout.log
           code=$?
+          for secret in "$NEBIUS_API_KEY" "$NEBIUS_PROJECT_ID"; do
+            if [ -n "$secret" ] && grep -rqF -- "$secret" runs/sandbox_verification/v1.10-seal; then
+              echo "a seal record contains a secret's value: the records are withheld and the seal counts as not passed"
+              rm -rf runs/sandbox_verification/v1.10-seal; mkdir -p runs/sandbox_verification/v1.10-seal
+              echo "WITHHELD $(date -u +%FT%TZ): a record contained a secret's value" >> runs/sandbox_verification/v1.10-seal/launcher.txt
+              code=1
+            fi
+          done
           echo "RETURNED ${code} $(date -u +%FT%TZ)" >> runs/sandbox_verification/v1.10-seal/launcher.txt
           echo "exit=${code}" >> "$GITHUB_OUTPUT"
-          grep -E "^stage |^STOP|all stages ok" runs/sandbox_verification/v1.10-seal/seal_stdout.log || true
+          grep -E "^stage |all stages ok" runs/sandbox_verification/v1.10-seal/seal_stdout.log || true
 
       - name: Live wiring check (post-hoc, minmaxot, cap $5.00, flag mode; only after a passed seal)
         id: live
@@ -95,6 +109,12 @@ jobs:
           DAILY_COST_CEILING_USD: "5.00"
         run: |
           set +e
+          # Run 37958950100 (2026-10-09): the TAVILY_API_KEY secret ended with two newlines; the search failed on the header and the exception text carried the key
+          # into the run record and the log. The same strip and guard as the seal step.
+          NEBIUS_API_KEY="$(printf '%s' "$NEBIUS_API_KEY" | tr -d '\r\n')"; export NEBIUS_API_KEY
+          NEBIUS_PROJECT_ID="$(printf '%s' "$NEBIUS_PROJECT_ID" | tr -d '\r\n')"; export NEBIUS_PROJECT_ID
+          TAVILY_API_KEY="$(printf '%s' "$TAVILY_API_KEY" | tr -d '\r\n')"; export TAVILY_API_KEY
+          [ -n "$NEBIUS_API_KEY" ] || { echo "NEBIUS_API_KEY is empty after stripping line ends"; echo "exit=1" >> "$GITHUB_OUTPUT"; exit 1; }
           mkdir -p runs/v1.10/live_v110
           echo "LAUNCH $(date -u +%FT%TZ) github-actions run ${GITHUB_RUN_ID} ${RC_TAG} BEHAVIOUR_MODE=${BEHAVIOUR_MODE}" >> runs/v1.10/live_v110/launcher.txt
           backend/.venv/bin/python -u scripts/live_run.py --name stephaneckstein__minmaxot --corpus backend/app/batch/corpus_v4/corpus.yaml \
@@ -102,6 +122,14 @@ jobs:
             --batch-meta "{\"harness_tag\": \"${RC_TAG}\", \"label\": \"POST-HOC wiring check of the behavioural checks in flag mode, never merged into TEST-C\", \"runner\": \"github-actions ${GITHUB_RUN_ID}\"}" \
             > runs/v1.10/live_v110/run_stdout.log 2>&1
           code=$?
+          for secret in "$NEBIUS_API_KEY" "$NEBIUS_PROJECT_ID" "$TAVILY_API_KEY"; do
+            if [ -n "$secret" ] && grep -rqF -- "$secret" runs/v1.10/live_v110; then
+              echo "a wiring-check record contains a secret's value: the records are withheld"
+              rm -rf runs/v1.10/live_v110; mkdir -p runs/v1.10/live_v110
+              echo "WITHHELD $(date -u +%FT%TZ): a record contained a secret's value" >> runs/v1.10/live_v110/launcher.txt
+              code=1
+            fi
+          done
           echo "RETURNED ${code} $(date -u +%FT%TZ)" >> runs/v1.10/live_v110/launcher.txt
           echo "exit=${code}" >> "$GITHUB_OUTPUT"
           tail -n 5 runs/v1.10/live_v110/run_stdout.log || true

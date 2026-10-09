@@ -1,10 +1,57 @@
 {
   "note": "harness-v1.10 pass, after the measurement: the live seals and the post-hoc wiring check (read by reports/ledger_total.py into the v1.10 bucket). Each item is the sum of its records' API-reported operation costs.",
   "items": [
-    {"what": "seal of harness-v1.10.0-rc4, NOT passed (v110 T1 failed on python:3.10-slim; v140 stopped by infrastructure in 10 invocations; smoke passed)", "usd": 0.140373, "ref": "runs/sandbox_verification/v1.10-seal-rc4/SEAL_RUN.json"},
-    {"what": "seal of harness-v1.10.0-rc5, stages smoke and v110 passed; v140 not passed (upload bandwidth)", "usd": 0.035085, "ref": "runs/sandbox_verification/v1.10-seal/SEAL_RUN.json"},
-    {"what": "live wiring check, attempt 1 at rc4: INFRA_ERROR (git fetch timeout), cost guard total", "usd": 0.0, "ref": "runs/v1.10/live_v110/attempt1_infra_error_git_timeout.json"},
-    {"what": "live wiring check, attempt 2 at rc5: INFRA_ERROR (sandbox upload timeout), cost guard total", "usd": 0.0003057, "ref": "runs/v1.10/live_v110/attempt2_rc5_infra_error_upload_timeout.json"}
+    {
+      "what": "seal of harness-v1.10.0-rc4, NOT passed (v110 T1 failed on python:3.10-slim; v140 stopped by infrastructure in 10 invocations; smoke passed)",
+      "usd": 0.140373,
+      "ref": "runs/sandbox_verification/v1.10-seal-rc4/SEAL_RUN.json"
+    },
+    {
+      "what": "seal of harness-v1.10.0-rc5, stages smoke and v110 passed; v140 not passed (upload bandwidth)",
+      "usd": 0.035085,
+      "ref": "runs/sandbox_verification/v1.10-seal/SEAL_RUN.json"
+    },
+    {
+      "what": "live wiring check, attempt 1 at rc4: INFRA_ERROR (git fetch timeout), cost guard total",
+      "usd": 0.0,
+      "ref": "runs/v1.10/live_v110/attempt1_infra_error_git_timeout.json"
+    },
+    {
+      "what": "live wiring check, attempt 2 at rc5: INFRA_ERROR (sandbox upload timeout), cost guard total",
+      "usd": 0.0003057,
+      "ref": "runs/v1.10/live_v110/attempt2_rc5_infra_error_upload_timeout.json"
+    },
+    {
+      "what": "seal of harness-v1.10.0-rc8, GitHub Actions run 37956700916 attempt 1: REFUSED before any request reached Nebius (the NEBIUS_API_KEY secret ended with a newline; the HTTP client rejected the header on the first inspect call); $0.00",
+      "usd": 0.0,
+      "ref": "runs/sandbox_verification/v1.10-seal-rc8-run1-refused/SEAL_RUN.json"
+    },
+    {
+      "what": "seal of harness-v1.10.0-rc8, GitHub Actions run 37958950100 attempt 1: PASSED, every stage (v140 $0.290688, smoke $0.006232, v110 $0.028188)",
+      "usd": 0.325108,
+      "ref": "runs/sandbox_verification/v1.10-seal/SEAL_RUN.json"
+    },
+    {
+      "what": "live wiring check in flag mode at harness-v1.10.0-rc8, GitHub Actions run 37958950100 (minmaxot, RUNS_AFTER_REPAIR, no candidate flagged): $3.8983957 cost-guard total, COUNTED by reports/ledger_total.py through runs/v1.10/**/NN_*.json, so $0.00 here to avoid a double count",
+      "usd": 0.0,
+      "ref": "runs/v1.10/live_v110/02_stephaneckstein__minmaxot_rc8.json",
+      "counted_elsewhere_usd": 3.8983957
+    }
   ],
-  "spend_usd_api_reported": 0.1757637
+  "spend_usd_api_reported": 0.5008717,
+  "billed_readings": [
+    {
+      "when": "2026-10-09, before GitHub Actions run 37958950100",
+      "account_balance_usd": 41.99,
+      "tag": "BILLED",
+      "by": "owner"
+    },
+    {
+      "when": "2026-10-09, after GitHub Actions run 37958950100 (seal $0.325108 + wiring check $3.8983957 = $4.2235037 API-reported)",
+      "account_balance_usd": 41.99,
+      "tag": "BILLED",
+      "by": "owner",
+      "note": "the balance did not move between the two readings; the $4.22 API-reported for the interval is not visible in it (billing lag or a balance that does not carry sandbox charges): not reconciled, as every earlier reading (D-36, open)"
+    }
+  ]
 }

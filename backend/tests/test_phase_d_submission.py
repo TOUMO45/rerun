@@ -51,13 +51,15 @@ def _text(rel: str) -> str:
 
 @pytest.fixture(scope="module")
 def allowed() -> set[str]:
-    """Standalone numbers of the REPLAY JSON, plus the 4-decimal display form of every tagged value (the dashboard's dollar rule)."""
+    """Standalone numbers of the REPLAY JSON, plus the 4-decimal display form of every tagged value (the dashboard's dollar rule) and its 2-decimal form
+    (reports/texts/render.py's dollar rule for a `_usd` figure: a figure of 3.9 is rendered `$3.90`)."""
     tokens: set[str] = set()
 
     def walk(obj):
         if isinstance(obj, dict):
             if "tag" in obj and isinstance(obj.get("value"), (int, float)) and not isinstance(obj["value"], bool):
                 tokens.add(f"{obj['value']:.4f}")
+                tokens.add(f"{obj['value']:.2f}")
             for v in obj.values():
                 walk(v)
         elif isinstance(obj, list):

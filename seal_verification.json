@@ -1,16 +1,16 @@
 {
-  "harness_tag": "harness-v1.7.2",
-  "written_at": "2026-10-05T23:07:04.807566+00:00",
-  "rule": "harness-v1.7.2 changes no sandbox-touching file; every live stage of the harness-v1.7.1 seal ran again at harness-v1.7.2-rc (owner's request), so each path verified by the v1.7.1 seal points at its re-run here, and each path verified by an older seal is carried over; every listed code file is byte-identical to the blob it was verified with",
-  "reverified_from": "harness-v1.7.1",
+  "harness_tag": "harness-v1.10.0",
+  "written_at": "2026-10-09T17:02:04.969025+00:00",
+  "rule": "harness-v1.10 changes smoke_exec.py and adds behaviour.py to the sandbox-touching files: the two entries that list smoke_exec.py are re-verified by live records of this seal, the tracer has its own live entry, and an entry whose code files are all unchanged is carried over with its records; a code file changed after its verification invalidates the entry",
+  "reverified_from": "harness-v1.7.2 (the entries carried over are the harness-v1.7.2 seal's)",
   "seal_run": {
-    "head": "f401eda9935e7b24373e8ce2bcb2a8b03d5a293d",
-    "rc_commit": "370af3ab8ffac0509d6be3bd7d156bbceec83ce3",
-    "started_at": "2026-10-05T22:59:08.061375+00:00",
+    "head": "2f1e4c3fb5955f9cb86eef6f05b949070436a1d5",
+    "rc_commit": "2f1e4c3fb5955f9cb86eef6f05b949070436a1d5",
+    "started_at": "2026-10-09T16:25:33.476157+00:00",
     "stage_costs_usd": {
-      "v142": 0.003815,
-      "runner_env": 0.622252,
-      "v17": 0.496699
+      "v140": 0.290688,
+      "smoke": 0.006232,
+      "v110": 0.028188
     }
   },
   "paths": [
@@ -126,15 +126,15 @@
       "live_nebius": true,
       "code_files": {
         "backend/app/services/sandbox.py": "465c8cdc714536fd06a5534ee2fee02c813f87dc",
-        "backend/app/services/smoke_exec.py": "ec61fd0bc3bb39a90da8945310bf3c7e392bcb36"
+        "backend/app/services/smoke_exec.py": "9def21eb2284aaab06144dd7587162d4d07ba06d"
       },
       "records": [
-        "runs/sandbox_verification/v1.4.3-seal/final/smoke_alive_py310.json",
-        "runs/sandbox_verification/v1.4.3-seal/final/smoke_exits_ok_py310.json",
-        "runs/sandbox_verification/v1.4.3-seal/final/smoke_fails_py310.json",
-        "runs/sandbox_verification/v1.4.3-seal/final/smoke_silent_py310.json",
-        "runs/sandbox_verification/v1.4.3-seal/final/smoke_alive_py36.json",
-        "runs/sandbox_verification/v1.4.3-seal/final/smoke_fails_py36.json"
+        "runs/sandbox_verification/v1.10-seal/smoke/smoke_alive_py310.json",
+        "runs/sandbox_verification/v1.10-seal/smoke/smoke_exits_ok_py310.json",
+        "runs/sandbox_verification/v1.10-seal/smoke/smoke_fails_py310.json",
+        "runs/sandbox_verification/v1.10-seal/smoke/smoke_silent_py310.json",
+        "runs/sandbox_verification/v1.10-seal/smoke/smoke_alive_py36.json",
+        "runs/sandbox_verification/v1.10-seal/smoke/smoke_fails_py36.json"
       ],
       "run_ids": [
         "dbfbe818-36d4-349f-9354-e97b3fa7be59",
@@ -183,15 +183,15 @@
       "code_files": {
         "backend/app/services/sandbox.py": "465c8cdc714536fd06a5534ee2fee02c813f87dc",
         "backend/app/services/sandbox_limits.py": "bfb04105b708bb400c1174ad498fb64bb3c0661b",
-        "backend/app/services/smoke_exec.py": "ec61fd0bc3bb39a90da8945310bf3c7e392bcb36"
+        "backend/app/services/smoke_exec.py": "9def21eb2284aaab06144dd7587162d4d07ba06d"
       },
       "records": [
-        "runs/sandbox_verification/v1.4.3-seal/v140/run2_E_entry07_checkpoint.json",
-        "runs/sandbox_verification/v1.4.3-seal/v140/run2_F_reopen_apply_execute.json"
+        "runs/sandbox_verification/v1.10-seal/v140/run2_E_entry07_checkpoint.json",
+        "runs/sandbox_verification/v1.10-seal/v140/run2_F_reopen_apply_execute.json"
       ],
       "run_ids": [
-        "02e55d8d-b052-4c12-bad1-d8e5172d7175",
-        "79828b41-44ee-4658-bccc-ed4171f98b50"
+        "f482ee68-564f-4bee-9ebd-cd3ebe0f653f",
+        "e1748499-21e2-4252-a92a-feeb2cb879f6"
       ]
     },
     {
@@ -385,13 +385,50 @@
       "run_ids": [
         "43536e2b-57c5-472c-aa60-110f7030f787"
       ]
-    }
-  ],
-  "carried_to": [
+    },
     {
-      "harness_tag": "harness-v1.8.0",
-      "written_at": "2026-10-07",
-      "rule": "harness-v1.8.0 changes no sandbox-touching file (sandbox.py, sandbox_limits.py, runner_env.py, smoke_exec.py, runner_hooks.py are the blobs the harness-v1.7.2 seal verified); no new live stage was run for it. The `paths` below are unchanged; `check_seal_verification` (scripts/run_corpus_v1_batch.py) passes at the commit the tag points at, which is what the batch preflight re-checks. The one change in what the sandbox is handed is the command string of a documented command that pipes into an interpreter (`bash -o pipefail -c`, T11), made in the orchestrator; it is covered by tests with a real bash (backend/tests/test_v18_review_gaps.py) and by the DEV record of TEST #18."
+      "id": "behaviour_tracer_on_kept_images",
+      "description": "python:3.6-slim, 3.7-slim and 3.10-slim: the behavioural tracer installed by its real installer (a .pth hook) and the command run under the smoke launcher with RERUN_BEHAVIOUR=1: a program that ends writes one report; a program still running at the launcher's limit is stopped with SIGTERM and still writes its report; an exit from a line a patch added is named; the tracer is inert without the variable; a report line printed by the repository (wrong nonce) is taken out and counted as nothing (harness-v1.10)",
+      "live_nebius": true,
+      "code_files": {
+        "backend/app/services/sandbox.py": "465c8cdc714536fd06a5534ee2fee02c813f87dc",
+        "backend/app/services/smoke_exec.py": "9def21eb2284aaab06144dd7587162d4d07ba06d",
+        "backend/app/services/behaviour.py": "346caec43eea9490cf6f5a046cff5bd737d7219c"
+      },
+      "records": [
+        "runs/sandbox_verification/v1.10-seal/v110/T1_exited_310.json",
+        "runs/sandbox_verification/v1.10-seal/v110/T1_exited_36.json",
+        "runs/sandbox_verification/v1.10-seal/v110/T1_exited_37.json",
+        "runs/sandbox_verification/v1.10-seal/v110/T2_alive_sigterm_310.json",
+        "runs/sandbox_verification/v1.10-seal/v110/T2_alive_sigterm_36.json",
+        "runs/sandbox_verification/v1.10-seal/v110/T2_alive_sigterm_37.json",
+        "runs/sandbox_verification/v1.10-seal/v110/T3_cheat_exit_from_an_added_line_310.json",
+        "runs/sandbox_verification/v1.10-seal/v110/T3_cheat_exit_from_an_added_line_36.json",
+        "runs/sandbox_verification/v1.10-seal/v110/T3_cheat_exit_from_an_added_line_37.json",
+        "runs/sandbox_verification/v1.10-seal/v110/T4_inert_without_the_variable_310.json",
+        "runs/sandbox_verification/v1.10-seal/v110/T4_inert_without_the_variable_36.json",
+        "runs/sandbox_verification/v1.10-seal/v110/T4_inert_without_the_variable_37.json",
+        "runs/sandbox_verification/v1.10-seal/v110/T5_forged_line_is_not_a_report_310.json",
+        "runs/sandbox_verification/v1.10-seal/v110/T5_forged_line_is_not_a_report_36.json",
+        "runs/sandbox_verification/v1.10-seal/v110/T5_forged_line_is_not_a_report_37.json"
+      ],
+      "run_ids": [
+        "4aef1ac7-e53b-4194-bec7-c4387ce01a5c",
+        "815e07ff-0d2b-4dbd-b049-0c89df271d4e",
+        "dc6636e4-9fbb-4a72-b6fc-1a34f4b40543",
+        "1e4b3b48-8dfa-457f-86f5-5d3fe8a586cf",
+        "aefb959e-0cc7-4dae-8959-f62a912e2f3c",
+        "52c8b8e9-7569-42bc-8722-6f565eb1ebfc",
+        "d7fa596b-50ed-42a1-b0aa-dd3bd4566b95",
+        "5cce5371-63a7-4523-9e12-bfa9e13003ec",
+        "5b0d6692-5b02-45f2-bc42-ff81d2c54e97",
+        "73e179be-aaa4-4ea2-91e7-e1a34a76c994",
+        "1db7b66e-471d-4ca3-bb95-c4f1b122a185",
+        "164c2103-9fb6-44ad-aff5-288dea13d246",
+        "38040ef3-2786-4790-8103-d634c83cd8ec",
+        "1c45aa31-292c-476a-b0a1-9d2445e4ebee",
+        "25834ab4-baf1-4863-88fa-dae191131aa7"
+      ]
     }
   ]
 }

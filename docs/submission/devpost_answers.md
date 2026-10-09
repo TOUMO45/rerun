@@ -43,7 +43,7 @@ Not measured. Every record uses the three Nemotron models above; there is no rec
 - **The models endpoint with pricing**: the cost guard prices every call from it and records the source and retrieval date.
 - **Seal verification**: every sandbox-touching code path is executed live before a harness version is sealed; the records are committed under `runs/sandbox_verification/`.
 
-Recorded spend: the ledger is $186.21 [API-REPORTED] against the owner's ceiling of $300 [DERIVED] (`reports/ledger_total.py`): the sandbox API's reported operation cost plus the priced model calls, a stated lower bound (D-27); the harness-v1.10 passes are $23.51 [API-REPORTED] of it.
+Recorded spend: the ledger is $190.43 [API-REPORTED] against the owner's ceiling of $300 [DERIVED] (`reports/ledger_total.py`): the sandbox API's reported operation cost plus the priced model calls, a stated lower bound (D-27); the harness-v1.10 passes are $27.74 [API-REPORTED] of it.
 The account balance is the owner's reading (`reports/dev/BILLED_READINGS.md`): at the second reading it showed at most $0.43 [BILLED] charged, before the last gates; the account balance and the API-reported ledger are not reconciled (D-36, open).
 
 ## How likely are you to recommend Nebius Token Factory?
@@ -71,7 +71,7 @@ In RERUN: an adjudicator that cannot be talked into a bundled patch (the 14 [DER
 
 ## What is next?
 
-The submission harness is harness-v1.9.0. The behavioural checks of harness-v1.10 refuse too many honest repairs to be a verdict rule, so they ship as a review flag on harness-v1.9.0's verdicts: an adopted patch they would have refused keeps its verdict and its certificate says REVIEW_REQUIRED with the reason. That mode is released only once it is sealed live; until then harness-v1.9.0 is the harness and v1.10 an experiment. After that: a new independent cheat set (both current sets are development material now), an adaptive set written by an author who knows the allow-list, and the open defects in the register. What comes next is the owner's decision, not a promise.
+The submission harness is harness-v1.10.0: harness-v1.9.0's verdict rules, plus the behavioural checks as a review flag. They refuse too many honest repairs to be a verdict rule, so an adopted patch they would have refused keeps its verdict and its certificate says REVIEW_REQUIRED with the reason: a signal that a human should look, not a cheat detector (it also marks 5 [DERIVED] of the 9 [DERIVED] honest repairs harness-v1.9.0 adopted). The mode was sealed live (24 [DERIVED] verified code paths, 53 [DERIVED] live run ids) and tagged; its one live run so far ($3.90 [API-REPORTED], minmaxot) gave the harness-v1.9.0 run's decisions with 0 [DERIVED] attempts flagged, and no live run has yet produced a REVIEW_REQUIRED certificate (the test suite has). After that: a new independent cheat set (both current sets are development material now), an adaptive set written by an author who knows the allow-list, and the open defects in the register. What comes next is the owner's decision, not a promise.
 
 ## Did you use Tavily?
 

@@ -199,6 +199,31 @@ def build() -> dict:
     add("minmaxot_posthoc_ran", 1 if mm["result"]["verdict"] in ("RUNS_CLEAN", "RUNS_AFTER_REPAIR") else 0, "runs/v1.10/mkdir_live/02_stephaneckstein__minmaxot_v190.json",
         "RUNS_AFTER_REPAIR at smoke level (stopped by RERUN at the smoke limit)")
 
+    # the flag-mode pass (owner, 2026-10-09): the live seal of harness-v1.10.0 and the one live run of the flag mode (the post-hoc wiring check on a GitHub Actions runner,
+    # the same entry as the post-hoc run above, never merged into TEST-C); the flag's own positive path (a REVIEW_REQUIRED on a certificate) was shown by no live run
+    seal = _j(ROOT / "runs" / "sandbox_verification" / "v1.10-seal" / "SEAL_RUN.json")
+    add("v110_seal_cost_usd", round(sum(float(s["cost_usd"]) for s in seal["stages"].values()), 2), "runs/sandbox_verification/v1.10-seal/SEAL_RUN.json",
+        "the live seal of harness-v1.10.0 (rc8), every stage passed, GitHub Actions run 37958950100", tag="API-REPORTED")
+    add("v110_seal_stages_passed", sum(1 for s in seal["stages"].values() if s.get("ok")), "runs/sandbox_verification/v1.10-seal/SEAL_RUN.json", "of 3 stages")
+    sv = _j(ROOT / "seal_verification.json")
+    add("v110_seal_paths", len(sv["paths"]), "seal_verification.json", f"verified code paths of {sv['harness_tag']}")
+    add("v110_seal_run_ids", sum(len(p["run_ids"]) for p in sv["paths"]), "seal_verification.json", "live Nebius run ids behind them")
+    fl = _j(ROOT / "runs" / "v1.10" / "live_v110" / "02_stephaneckstein__minmaxot_rc8.json")
+    src_fl = "runs/v1.10/live_v110/02_stephaneckstein__minmaxot_rc8.json"
+    add("minmaxot_flag_live_cost_usd", round(float(fl["cost_guard"]["spent_usd"]), 2), src_fl,
+        "POST-HOC live wiring check of the flag mode at harness-v1.10.0 (rc8), minmaxot, GitHub Actions run 37958950100, never merged into TEST-C", tag="API-REPORTED")
+    add("minmaxot_flag_live_ran", 1 if fl["result"]["verdict"] in ("RUNS_CLEAN", "RUNS_AFTER_REPAIR") else 0, src_fl, fl["result"]["verdict"])
+    add("minmaxot_flag_live_flagged_attempts", sum(1 for a in fl["result"]["attempts"] if (a.get("behaviour") or {}).get("flagged")), src_fl,
+        "attempts the flag mode marked REVIEW_REQUIRED (none: an honest repair with no finding)")
+    add("minmaxot_flag_live_same_verdict_as_v190", 1 if (fl["result"]["verdict"], fl["result"]["taxonomy_code"]) == (mm["result"]["verdict"], mm["result"]["taxonomy_code"]) else 0,
+        src_fl, "the verdict and the taxonomy code equal the harness-v1.9.0 run of the same entry (the model's patches differ between runs: the model is not deterministic)")
+    sl = _j(ROOT / "reports" / "v1.10" / "seal_live" / "spend.json")
+    add("v110_flag_pass_spend_usd", round(sum(float(s["cost_usd"]) for s in seal["stages"].values()) + float(fl["cost_guard"]["spent_usd"]), 2), "reports/v1.10/seal_live/spend.json",
+        "the flag-mode pass's paid checks: the rc8 seal plus the flag-mode wiring check (the refused first dispatch cost $0.00)", tag="API-REPORTED")
+    for i, reading in enumerate(sl["billed_readings"]):
+        add(f"billed_reading_v110_seal_{'before' if i == 0 else 'after'}_usd", float(reading["account_balance_usd"]), "reports/v1.10/seal_live/spend.json billed_readings",
+            f"the owner's reading of the Nebius account balance {reading['when']}; not reconciled with the API-reported ledger (D-36)", tag="BILLED")
+
     # the ledger (reports/ledger_total.py) and the gate-era facts the Devpost answers cite (reports/phase-d/replay/summary.json, their own tags)
     sys.path.insert(0, str(ROOT / "reports"))
     import ledger_total  # noqa: E402

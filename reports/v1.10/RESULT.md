@@ -8,7 +8,7 @@ the post-hoc wiring check ran on 2026-10-08/09 (below).
 
 Decisions recorded before any code (`METHODOLOGY.md`, 7cff08d): verdicts stay harness-v1.9.0's; the v1.10 checks become advisory (REVIEW_REQUIRED on the certificate), a
 use chosen after the results were seen; anti-cheat leaves the headline; if the flag mode is not sealed and tagged by 2026-10-14, harness-v1.9.0 is the submission harness and
-v1.10 an experiment. Budget $25 ledger, BILLED floor $20, **no paid run before the owner's BILLED reading**: none was made in this pass ($0.00 spent; ledger $186.21 of $300).
+v1.10 an experiment. Budget $25 ledger, BILLED floor $20, **no paid run before the owner's BILLED reading**: the owner's reading came on 2026-10-09 ($41.99) and the paid checks ran: **the seal of rc8 passed and `harness-v1.10.0` is tagged** (Task 2 below; $4.2235 spent; ledger $190.43 of $300).
 
 ### What weakens a claim (read first)
 
@@ -18,12 +18,14 @@ v1.10 an experiment. Budget $25 ledger, BILLED floor $20, **no paid run before t
    its report on stderr defeated the exit-zero check (a usage text with exit 0, INDETERMINATE with the checks off, became RUNS_AFTER_REPAIR), its output kept a silent run
    alive at the smoke limit, and its overhead moved how far a run gets. From rc7 the flag mode runs the static half only (pure); a second, focused review compared the two
    modes in six scenarios (commands, images, costs, verdicts, records) and found them identical, and its five minor findings are fixed in rc8. The equality is shown on the
-   fake cloud of the test suite (`backend/tests/test_flag_mode_equivalence.py`), not yet in a live run.
+   fake cloud of the test suite (`backend/tests/test_flag_mode_equivalence.py`) and, for one entry, live: the wiring check ran minmaxot in flag mode and gave the
+   harness-v1.9.0 run's verdict, taxonomy and shape with no candidate flagged (Task 2). The flag's positive path (a certificate with REVIEW_REQUIRED) has been shown by no live run.
 3. **The flag is not specific.** It marks all 17 cheats harness-v1.9.0 adopted and also 5 of the 9 honest repairs it adopted (16 of the 27 honest controls that passed the
    run carry a finding): a REVIEW_REQUIRED says "look", not "this is a cheat".
 4. **Anti-cheat is out of the headline**: harness-v1.9.0 adopted 14 of the 50 independent cheats aimed at repositories whose run really fails (28%, above the 25% line).
-5. **`harness-v1.10.0` does not exist yet.** The flag-mode candidate (rc8) is reviewed but not sealed; the seal and the wiring check wait for the owner's BILLED reading and the
-   repository secrets (below). Until both pass, harness-v1.9.0 is the harness; unsealed, the flag mode is not shipped (and by the fallback rule it is not shipped after 2026-10-14).
+5. **`harness-v1.10.0` is sealed and tagged (2026-10-09), within the fallback date.** The first dispatch of the workflow was refused at $0.00 (a secret with a trailing newline) and
+   its fault text carried that secret into the records; the second dispatch's Tavily call failed the same way and carried the Tavily key into the wiring record. Both copies on main are
+   redacted; the results branches that held the values are to be deleted and both keys rotated (owner). The wiring check therefore ran without cited context.
 
 ### Task 1 — the flag mode (`harness-v1.10.0-rc6` refused by review, `-rc7` reviewed, **`harness-v1.10.0-rc8` the candidate**)
 
@@ -52,7 +54,11 @@ The behavioural tracer was exercised by no cheat (0 traced); cheats written to f
 | workflow | `.github/workflows/v110-seal.yml`: `workflow_dispatch` only; actions pinned by commit SHA (checkout v4.2.2, setup-python v5.3.0, upload-artifact v4.4.3, download-artifact v4.1.8); `permissions: {}`, `contents: read` for the job that holds the secrets, `contents: write` only for a secret-free job that commits the records to `seal-results/<tag>-<run id>-<attempt>`; refuses before any spend unless the checked-out harness paths equal the tag; the seal (cap $1.50, every stage) then, only if it passed, the wiring check (cap $5.00, flag mode); the job fails when the seal did not pass |
 | outside the sealed harness paths | yes (`.github/`; the harness paths are backend/app, backend/pyproject.toml, scripts, frontend/src, .gitattributes) |
 | secrets to create | **`NEBIUS_API_KEY`**, **`NEBIUS_PROJECT_ID`**; optional `TAVILY_API_KEY` |
-| run | **not run** (no BILLED reading yet); after it: merge the records branch, `write_seal_verification_v110.py`, tag `harness-v1.10.0` |
+| dispatch 1 (run 37956700916) | **refused at $0.00** before any request reached Nebius: the `NEBIUS_API_KEY` secret ended with a newline, the HTTP client rejected the header on the first inspect call (`runs/sandbox_verification/v1.10-seal-rc8-run1-refused/`, value redacted) |
+| dispatch 2 (run 37958950100): seal | **passed every stage**: `v140` $0.2907, `smoke` $0.0062, `v110` $0.0282 = **$0.3251**; 30 records in `runs/sandbox_verification/v1.10-seal/`; `seal_verification.json` rewritten for harness-v1.10.0 (24 paths: 2 re-verified live, 21 carried over, 1 new; 53 live run ids) |
+| dispatch 2: wiring check (minmaxot, flag mode, cap $5) | **ran end to end**, $3.8984: RUNS_AFTER_REPAIR, taxonomy OUTPUT_DIR_MISSING, three candidates, candidate 2 chosen, the deterministic output-directory step, exit 0; `behaviour = {mode: flag, static: [], flagged: false}` on every attempt; **the same verdict, taxonomy and shape as the harness-v1.9.0 run of the same entry** (`runs/v1.10/mkdir_live/`; the model's patches differ between the two runs). Tavily: `tavily_configured: true` but the search failed on a header fault (the secret ended with two newlines), so no cited context; the fault's text carried the key into the record, redacted on main (`runs/v1.10/live_v110/02_stephaneckstein__minmaxot_rc8.json`) |
+| tag | **`harness-v1.10.0`** at the commit that adds these records |
+| what no live run showed | a certificate with REVIEW_REQUIRED (the flag's positive path): the test suite only |
 
 ### Task 3 — the benchmark package (`benchmark/`)
 
@@ -79,7 +85,7 @@ Not carried out in this pass. No cheat written by an author who knew the allow-l
 
 ### Cost
 
-$0.00 in this pass (no paid run). Ledger $186.21 of $300; the pass's cap $25 is untouched.
+$4.2235 API-reported in this pass (seal $0.3251, wiring check $3.8984, the refused dispatch $0.00; `reports/v1.10/seal_live/spend.json`, the wiring record counted by `reports/ledger_total.py` through `runs/v1.10/`). Ledger **$190.43 of $300**; the pass's cap $25. BILLED: the owner's account balance read **$41.99 before and $41.99 after** the second dispatch, so the $4.22 is not visible in the balance (billing lag, or a balance that does not carry these charges): not reconciled, as every earlier reading (D-36, open).
 
 ## The v1.10 pass (2026-10-08): what weakens the anti-cheat claim (read first)
 
@@ -93,7 +99,7 @@ $0.00 in this pass (no paid run). Ledger $186.21 of $300; the pass's cap $25 is 
    the independent set shows the other side of it: when the patch bundles the real fix with a hidden change, it does not.
 3. **The v1.10 behavioural checks close that hole and cost the honest repairs with it:** they stopped 144 of 144 confirmed independent cheats before any model saw them, and refused **16 of the 27 honest controls
    that passed the run (59%)** (28 of all 42). By the rule written before the run (FR above 30%) this is the branch "table only; the submission stays on v1.9.0". The measured release candidate is
-   `harness-v1.10.0-rc4`; **`harness-v1.10.0` is not tagged**, because its live seal is not complete (point 5 and "The live seal" below). The choice of harness is the owner's (see "Decision" below).
+   `harness-v1.10.0-rc4`; `harness-v1.10.0` was tagged on 2026-10-09 after the flag-mode pass's seal (the flag-mode section above), not from this measurement. The choice of harness is the owner's (see "Decision" below).
 4. The static judgement is an allow-list read by three reviewers who each found another layer (7 blockers in the third round, all confirmed by run). v1.10 stopped everything the independent author wrote; it is
    not shown to stop what a second author who had read `behaviour.py` would write.
 5. **The live seal found a defect in the measured candidate that no measured repository exercised.** On Python 3.9+ a script run from `/` is named `//train.py`, and rc4's tracer did not recognise it as
@@ -186,18 +192,19 @@ Neither was a fake. TEST-A #18 (adversary_critic): a pipe returned the last stag
 | seal of rc4 (`runs/sandbox_verification/v1.10-seal-rc4/`, `NOTE.md`) | **not passed**: `smoke` passed; `v110` passed T1-T5 on Python 3.6 and 3.7 and **failed T1 on Python 3.10** (the defect in point 5); `v140` stopped by infrastructure in 10 invocations | $0.1404 |
 | `harness-v1.10.0-rc5` = rc4 + the fix (two lines of the tracer) + the checks off by default (`Settings.behaviour_checks=false`; `BEHAVIOUR_CHECKS=true` turns them on) | tagged and pushed, backend suite 2506 passed / 23 skipped | – |
 | seal of rc5 (`runs/sandbox_verification/v1.10-seal/`) | `smoke` **passed** (6 records), `v110` **passed** (T1-T5 on Python 3.6, 3.7, 3.10: an honest run, a run alive at the limit, an exit from an added line caught, inert without the variable, a forged report line ignored); **`v140` not passed**: its check of corpus-v2 entry 7 built as a checkpoint uploads a 56 MB tree, and the harness sizes that upload's timeout for at least 0.987 MB/s (87 s); this machine measured 0.16-0.4 MB/s up on 2026-10-09 | $0.0351 |
-| live wiring check (`reports/v1.10/live_v110/PLAN.md`, minmaxot, cap $5) | **not done**: attempt 1 (rc4) INFRA_ERROR, the GitHub fetch timed out at about 12 KB/s; attempt 2 (rc5, after the plan recorded the move, the repository read from a local mirror of the same commit) reached the sandbox with the right image and 95 verified files and INFRA_ERROR on the 20 MB upload (it needs about 0.33 MB/s). No model call in either. Records `runs/v1.10/live_v110/attempt*` | $0.0003 |
+| seal of rc8 on a GitHub Actions runner (flag-mode pass, `runs/sandbox_verification/v1.10-seal/`) | **passed every stage** (dispatch 2, run 37958950100; dispatch 1 refused at $0.00 on a malformed secret) | $0.3251 |
+| live wiring check in flag mode at rc8 (`runs/v1.10/live_v110/02_stephaneckstein__minmaxot_rc8.json`) | **done**: RUNS_AFTER_REPAIR, OUTPUT_DIR_MISSING, no candidate flagged, the harness-v1.9.0 run's decisions | $3.8984 |
+| live wiring check, earlier attempts (`reports/v1.10/live_v110/PLAN.md`, minmaxot, cap $5) | **not done** at rc4/rc5: attempt 1 (rc4) INFRA_ERROR, the GitHub fetch timed out at about 12 KB/s; attempt 2 (rc5, after the plan recorded the move, the repository read from a local mirror of the same commit) reached the sandbox with the right image and 95 verified files and INFRA_ERROR on the 20 MB upload (it needs about 0.33 MB/s). No model call in either. Records `runs/v1.10/live_v110/attempt*` | $0.0003 |
 
 The `v140` stage checks the checkpoint machinery of `sandbox.py`, which v1.10 did not change (of the sandbox-touching files since harness-v1.9.0 only `smoke_exec.py` changed: one launcher line that adds
 the variables it is given, none unless given, and the optional argument that passes them; the `smoke` stage re-verified the launcher live, and the new `behaviour.py` is what `v110` checks). The seal rule
-still requires every stage, so `seal_verification.json` is unchanged and **no `harness-v1.10.0` tag exists**; v1.9.0 stays the released harness.
-Both remaining checks resume from what is recorded, on a link that uploads at 1 MB/s or more: `schtasks /Run /TN RERUN_v110_seal` (only `v140` runs; then
-`write_seal_verification_v110.py` and the tag) and `schtasks /Run /TN RERUN_v110_live`.
+still requires every stage; the rc5 seal left `seal_verification.json` unchanged. The flag-mode pass ran every stage again at rc8 on a GitHub Actions runner (rows above), after which
+`seal_verification.json` was rewritten for harness-v1.10.0 and the tag made.
 
 ## Cost and ledger
 
 Task 1 $2.78, Task 5 $3.73, Task 3 confirmation $13.61, the pilots $1.23, the independent measurements $0.72 (v1.9.0) and $1.22 (v1.10), scenario baselines $0.05; the two seals $0.1755 and the wiring
-check's attempts $0.0003 (`reports/v1.10/seal_live/spend.json`). **Ledger $186.21 of $300** (`reports/ledger_total.py`); the pass's own part **$23.51 of its $60 cap**. The BILLED reading after the pass is the
+check's attempts $0.0003 (`reports/v1.10/seal_live/spend.json`); the flag-mode pass added the rc8 seal $0.3251 and the flag-mode wiring check $3.8984. **Ledger $190.43 of $300** (`reports/ledger_total.py`); this pass's own part $23.51 of its $60 cap, the flag-mode pass $4.22 of its $25. The BILLED reading after the pass is the
 owner's to take; the interval is dominated by model calls, as in every earlier reading.
 
 ## Decision for the owner
