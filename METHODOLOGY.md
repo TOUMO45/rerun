@@ -1316,3 +1316,22 @@ not see the independent set (`reports/v1.10/behaviour/REVIEW.md`); the two measu
 Rules kept: the checks were developed on the planted corpus's DEV half and its spent held-out half only; every cheat of the independent set that did not reach exit 0 was dropped and listed, none edited; the v1.9.0 run
 step of each patch is its confirmation run (same tag, image, overlay and launcher; four ids whose reconstructed text differed by a character were run again); the summary-sentence rule's branch (false refusals above
 30%) was applied as written. A sandbox-touching change (`smoke_exec.py`, the new `behaviour.py`) needs a live seal: rc4's did not pass (`runs/sandbox_verification/v1.10-seal-rc4/`: a tracer defect on Python 3.10, found after the measurement and fixed in rc5 with a regression test; the defect changes no measured outcome, shown record by record in `NOTE.md`); rc5's passed its `smoke` and `v110` stages and its `v140` stage could not upload its 56 MB tree over this machine's link (`runs/sandbox_verification/v1.10-seal/`), so no `harness-v1.10.0` tag was made. The post-hoc wiring check's plan recorded its move from rc4 to rc5 before the attempt that would count; both attempts ended INFRA_ERROR before any model call. Results: `reports/v1.10/RESULT.md`.
+
+## harness-v1.10 flag mode (owner's directive of 2026-10-09): DECISIONS, recorded before any code of this pass
+
+* **Verdicts stay harness-v1.9.0.** No verdict rule changes in this pass. The pre-registered branch of the v1.10 measurement (false refusals above 30%, `reports/v1.10/behaviour/PROTOCOL.md`) stands: the
+  behavioural checks do not refuse anything in the submission harness.
+* **The v1.10 checks become advisory (a review flag).** A patch they would have refused keeps its harness-v1.9.0 verdict, and its certificate carries `REVIEW_REQUIRED` with the named reason
+  (`COMPUTATION_CHANGED`, `EXIT_FROM_ADDED_LINE`, ...). The mode sits beside the existing ones (off, refuse). **This use was chosen after the results were seen** (2026-10-09, after the
+  measurement of 2026-10-08); every place that shows a number of the flag says so. The flag-mode numbers are derived offline from committed records, not measured by a run of the flag mode.
+* **Anti-cheat leaves the headline.** harness-v1.9.0 adopted 14 of the 50 independent cheats aimed at repositories whose run really fails (28%), above the 25% line: the headline is what RERUN
+  does and 3 of 26, then diagnosis 7 of 9 (6 of 9 strict); the benchmark and its per-layer tables follow, then the limits.
+* **Fallback.** If the flag mode is not sealed and tagged (`harness-v1.10.0`) by **2026-10-14**, harness-v1.9.0 is the submission harness and v1.10 is reported as an experiment. An unsealed mode is
+  not shipped.
+* **Budget.** $25 ledger cap for this pass (ledger at its start $186.2082, stop at $211.21), BILLED floor $20. No paid run before the owner sends a BILLED reading; everything before the seal is offline.
+* **Where the paid checks run.** The seal and the live wiring check of the flag-mode release candidate run on a GitHub Actions runner (owner's choice, because this machine's upload link cannot carry
+  the seal's 56 MB upload): a `workflow_dispatch`-only workflow outside the sealed harness paths, actions pinned by commit SHA, read-only repository permissions, the Nebius key from a repository secret
+  the owner adds. Its records come back as an artifact and are committed; then the seal verification is written and the tag made. This replaces D-43's Task Scheduler for these two runs only.
+* **Independent review** of the flag-mode diff by a fresh reviewer before the seal, as in the earlier release candidates.
+* **The adaptive cheat set** (a separate author given the allow-list, 50 cheats that fit it, honest controls, hashed, measured once in flag mode) is attempted only if the flag mode, the workflow,
+  the benchmark package and the regenerated texts are pushed by 2026-10-12; otherwise it is listed under "not measured".
