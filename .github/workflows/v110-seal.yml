@@ -110,7 +110,7 @@ jobs:
         if: ${{ always() }}
         uses: actions/upload-artifact@b4b15b8c7c6ac21ea08fcf65892d2ee8f75cf882  # v4.4.3
         with:
-          name: v110-records-${{ github.run_id }}
+          name: v110-records-${{ github.run_id }}-${{ github.run_attempt }}
           path: |
             runs/sandbox_verification/v1.10-seal/
             runs/v1.10/live_v110/
@@ -147,7 +147,7 @@ jobs:
         continue-on-error: true
         uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16  # v4.1.8
         with:
-          name: v110-records-${{ github.run_id }}
+          name: v110-records-${{ github.run_id }}-${{ github.run_attempt }}
           path: runs/
 
       - name: Commit them to seal-results/<tag>-<run id>-<attempt>

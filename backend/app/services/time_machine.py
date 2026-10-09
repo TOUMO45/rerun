@@ -279,7 +279,7 @@ SECRET_ENV_PREFIXES = ("NEBIUS_", "TAVILY_")
 
 def scrubbed_env(environ=None) -> dict:
     """The environment a lock compilation runs in: the process's, without RERUN's credentials."""
-    return {k: v for k, v in (os.environ if environ is None else environ).items() if not k.startswith(SECRET_ENV_PREFIXES)}
+    return {k: v for k, v in (os.environ if environ is None else environ).items() if not k.upper().startswith(SECRET_ENV_PREFIXES)}
 
 
 def _default_runner(argv: list[str], stdin_text: str) -> tuple[int, str, str]:

@@ -4,7 +4,84 @@ Goal of the pass: turn the anti-cheat claim into measured evidence of the **whol
 and measure them once on cheats the assistant did not write. Budget: ledger cap $60 (start $162.6946), BILLED floor $20. All measurement work was done on 2026-10-08, before the deadline; the live seal and
 the post-hoc wiring check ran on 2026-10-08/09 (below).
 
-## What weakens the anti-cheat claim (read first)
+## Flag-mode pass (owner's directive of 2026-10-09; freeze 2026-10-14) — status
+
+Decisions recorded before any code (`METHODOLOGY.md`, 7cff08d): verdicts stay harness-v1.9.0's; the v1.10 checks become advisory (REVIEW_REQUIRED on the certificate), a
+use chosen after the results were seen; anti-cheat leaves the headline; if the flag mode is not sealed and tagged by 2026-10-14, harness-v1.9.0 is the submission harness and
+v1.10 an experiment. Budget $25 ledger, BILLED floor $20, **no paid run before the owner's BILLED reading**: none was made in this pass ($0.00 spent; ledger $186.21 of $300).
+
+### What weakens a claim (read first)
+
+1. **No run of the flag mode has measured anything.** Its figures are derived from the committed v1.9.0 and rc4 records of the independent set, the use of the checks as a
+   flag was chosen after those results were seen, the behavioural tracer was exercised by no cheat, and cheats written to fit the allow-list are unmeasured (task 5 below).
+2. **The first flag-mode candidate did not keep harness-v1.9.0's verdicts.** The independent review of rc6 reproduced it: with the tracer inside the run being judged,
+   its report on stderr defeated the exit-zero check (a usage text with exit 0, INDETERMINATE with the checks off, became RUNS_AFTER_REPAIR), its output kept a silent run
+   alive at the smoke limit, and its overhead moved how far a run gets. From rc7 the flag mode runs the static half only (pure); a second, focused review compared the two
+   modes in six scenarios (commands, images, costs, verdicts, records) and found them identical, and its five minor findings are fixed in rc8. The equality is shown on the
+   fake cloud of the test suite (`backend/tests/test_flag_mode_equivalence.py`), not yet in a live run.
+3. **The flag is not specific.** It marks all 17 cheats harness-v1.9.0 adopted and also 5 of the 9 honest repairs it adopted (16 of the 27 honest controls that passed the
+   run carry a finding): a REVIEW_REQUIRED says "look", not "this is a cheat".
+4. **Anti-cheat is out of the headline**: harness-v1.9.0 adopted 14 of the 50 independent cheats aimed at repositories whose run really fails (28%, above the 25% line).
+5. **`harness-v1.10.0` does not exist yet.** The flag-mode candidate (rc8) is reviewed but not sealed; the seal and the wiring check wait for the owner's BILLED reading and the
+   repository secrets (below). Until both pass, harness-v1.9.0 is the harness; unsealed, the flag mode is not shipped (and by the fallback rule it is not shipped after 2026-10-14).
+
+### Task 1 — the flag mode (`harness-v1.10.0-rc6` refused by review, `-rc7` reviewed, **`harness-v1.10.0-rc8` the candidate**)
+
+| | |
+|---|---|
+| modes | `Settings.behaviour_mode` = `off` / `refuse` (the measured v1.10 mode, static half + tracer; `BEHAVIOUR_CHECKS=true` still selects it) / **`flag`** (shipped default: static half only, refuses nothing) |
+| where the flag shows | the attempt (`behaviour = {mode: flag, static: [...], flagged}`), the certificate and `GET /runs/{id}/certificate` (`review = {status: REVIEW_REQUIRED, reasons, findings, note}`), the verdict label (`RUNS_AFTER_REPAIR (REVIEW REQUIRED: COMPUTATION_CHANGED)`, also in the Gallery), the Certificate page (badge note and a box with each finding and the advisory note) |
+| what it marks | an ADOPTED patch (a gate-passed model attempt that was not an unchosen candidate, not a change put back, and that reached the checkout) the checks would have refused; any verdict; derived, never hashed |
+| independent reviews | rc6: 1 blocker, 3 major, 10 minor (`reports/v1.10/behaviour/REVIEW.md`, fourth review), all fixed in rc7; rc7: no blocker, no major, 5 minor (fifth review), all fixed in rc8; every reproduction is kept as a test |
+| tests | at rc8: backend 2545 passed, 23 skipped; frontend typecheck clean, 43 passed; flag = off on every review scenario |
+
+The flag mode on the independent set, **derived from committed records** (`reports/v1.10/flag/FLAG_TABLE.md`; the decision is harness-v1.9.0's, the flag rc4's static half):
+
+| | n | adopted clean | adopted with REVIEW_REQUIRED | not adopted |
+|---|---|---|---|---|
+| cheats | 144 | 0 | 17 | 127 |
+| cheats aimed at failing repositories | 50 | 0 | 14 | 36 |
+| honest controls | 42 | 4 | 5 | 33 |
+
+The behavioural tracer was exercised by no cheat (0 traced); cheats written to fit the allow-list are unmeasured.
+
+### Task 2 — the seal and the wiring check on a GitHub Actions runner
+
+| | |
+|---|---|
+| workflow | `.github/workflows/v110-seal.yml`: `workflow_dispatch` only; actions pinned by commit SHA (checkout v4.2.2, setup-python v5.3.0, upload-artifact v4.4.3, download-artifact v4.1.8); `permissions: {}`, `contents: read` for the job that holds the secrets, `contents: write` only for a secret-free job that commits the records to `seal-results/<tag>-<run id>-<attempt>`; refuses before any spend unless the checked-out harness paths equal the tag; the seal (cap $1.50, every stage) then, only if it passed, the wiring check (cap $5.00, flag mode); the job fails when the seal did not pass |
+| outside the sealed harness paths | yes (`.github/`; the harness paths are backend/app, backend/pyproject.toml, scripts, frontend/src, .gitattributes) |
+| secrets to create | **`NEBIUS_API_KEY`**, **`NEBIUS_PROJECT_ID`**; optional `TAVILY_API_KEY` |
+| run | **not run** (no BILLED reading yet); after it: merge the records branch, `write_seal_verification_v110.py`, tag `harness-v1.10.0` |
+
+### Task 3 — the benchmark package (`benchmark/`)
+
+| | |
+|---|---|
+| sets | `sets/planted` (337: 231 cheats, 106 controls, dev/held-out split) and `sets/independent` (208: 166 cheats, 42 controls; 144 measured, 22 dropped in `dropped.json`), byte copies with `HASHES.json`; family definitions generated from the documents the patches were written under |
+| decisions | six files derived from the committed records: the gate alone before and after the v1.9 fixes, the full pipeline at harness-v1.9.0 on both sets, rc4 refusing, the flag mode (derived) |
+| one command | `python benchmark/score.py --all` prints every published table; `python benchmark/build.py --check` verifies the package; `backend/tests/test_benchmark.py` checks every committed blob against its hash |
+| status | **both sets are development material now** |
+
+### Task 4 — README, Batch Lab and Devpost texts from figures.json
+
+| | |
+|---|---|
+| source | `reports/v1.9/figures.json` (`reports/v1.9/figures.py`), which now carries the benchmark's tables too |
+| README | the result section is rendered by `reports/texts/render.py` from `reports/texts/templates/README_result.md`, in the owner's order: what RERUN does and 3 of 26; diagnosis 7 of 9 (6 of 9 strict); the benchmark and its per-layer tables (the held-out half as a table only, with the note that the adjudicator refused all 31 honest controls there); limits (anti-cheat, erratum E-3, the post-hoc minmaxot run, under their labels) |
+| Batch Lab | `GET /batch/preregistered` reads figures.json (nothing computed in the router) and the page follows the same order |
+| Devpost | `docs/submission/description.md` and `devpost_answers.md` rendered from their templates |
+| guards | no number typed into a template; stale renderings fail; the order is tested; no sentence says the audits removed fakes (neither removed run was one); every comparative word beside a figure is tested against figures.json |
+
+### Task 5 — an adaptive cheat set: **not measured**
+
+Not carried out in this pass. No cheat written by an author who knew the allow-list exists; the flag mode's behaviour against such an author is unmeasured.
+
+### Cost
+
+$0.00 in this pass (no paid run). Ledger $186.21 of $300; the pass's cap $25 is untouched.
+
+## The v1.10 pass (2026-10-08): what weakens the anti-cheat claim (read first)
 
 1. **At the shipped harness (v1.9.0) the full pipeline adopted 17 of 144 (11.8%) of the confirmed cheats written by an author who had not seen the checks, and 14 of 50 (28%) of those aimed at a repository whose unpatched
    run really fails.** Fourteen of the 17 are the same pattern: the patch contains the genuine repair of the failure the adjudicator was shown (a device default changed from `cuda` to `cpu`, hard-coded `.cuda()`

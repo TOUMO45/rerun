@@ -162,3 +162,110 @@ def test_the_lock_compiler_never_sees_rerun_s_credentials():
     env = time_machine.scrubbed_env({"NEBIUS_API_KEY": "k", "NEBIUS_PROJECT_ID": "p", "TAVILY_API_KEY": "t", "PATH": "/usr/bin", "HOME": "/root"})
     assert env == {"PATH": "/usr/bin", "HOME": "/root"}
     assert "env=scrubbed_env()" in inspect.getsource(time_machine._default_runner) or "scrubbed_env" in inspect.getsource(time_machine)
+
+
+# ---------------------------------------------------------------------------------------------------------------------------------------------------
+# the fifth (focused) review, of rc7: its reproductions, kept as regressions for rc8
+
+from app.services import adjudicator as _adjudicator  # noqa: E402
+from app.services import outcome_levels as _levels  # noqa: E402
+from app.services.orchestrator import OrchestratorError  # noqa: E402
+from test_behaviour_orchestrator import _cloud  # noqa: E402
+
+
+def _apply_fails(workdir, diff):
+    raise OrchestratorError("error: patch failed: main.py:2")
+
+
+def test_a_patch_that_never_applied_carries_its_flag_but_no_review(tmp_path, monkeypatch):
+    _fixture(tmp_path)
+    _cloud(monkeypatch, report={})
+    deps = _deps_mode(_Chat([BUNDLE], "repair model"), _Ultra(), "flag")
+    deps.candidates_per_round = 1
+    deps.apply_diff = _apply_fails
+    result, _ = _run(tmp_path, deps)
+    last = [a for a in result.attempts if a.origin == "model"][-1]
+    assert last.gate_decision == "PASS" and last.exit_code is None                              # never applied, never run
+    assert last.behaviour["flagged"] is True and last.behaviour["not_applied"] is True
+    assert not result.outcome_levels.get("review_required")
+
+
+def test_the_multi_candidate_record_of_a_patch_that_did_not_apply_keeps_its_flag_unadopted(tmp_path, monkeypatch):
+    from app.services import orchestrator as orch
+
+    _fixture(tmp_path)
+    _cloud(monkeypatch, report={})
+
+    def no_files(*a, **k):
+        raise OrchestratorError("error: patch failed")
+
+    monkeypatch.setattr(orch, "_candidate_files", no_files)
+    result, _ = _run(tmp_path, _deps_mode(_Chat([BUNDLE, DECLINE, DECLINE], "repair model"), _Ultra(), "flag"))
+    rec = [a for a in result.attempts if a.origin == "model" and a.gate_decision == "PASS"]
+    assert rec and rec[0].behaviour["flagged"] is True and rec[0].behaviour["not_applied"] is True
+    assert not result.outcome_levels.get("review_required")
+
+
+def _evidence(tmp_path, monkeypatch, **deps_over):
+    seen = {}
+    real = _adjudicator.adjudicate
+
+    def spy(*a, **kw):
+        seen.setdefault(spy.mode, []).append(kw.get("evidence_summary"))
+        return real(*a, **kw)
+
+    monkeypatch.setattr(_adjudicator, "adjudicate", spy)
+    for mode in ("off", "flag"):
+        spy.mode = mode
+        where = tmp_path / mode
+        where.mkdir(parents=True, exist_ok=True)
+        _fixture(where)
+        _cloud(monkeypatch, report={})
+        deps = _deps_mode(_Chat([BUNDLE, DECLINE, DECLINE], "repair model"), _Ultra(), mode)
+        for k, v in deps_over.items():
+            setattr(deps, k, v)
+        _run(where, deps)
+    return seen
+
+
+def test_the_final_adjudicator_sees_the_same_evidence_in_both_modes(tmp_path, monkeypatch):
+    seen = _evidence(tmp_path / "single", monkeypatch, candidates_per_round=1, apply_diff=_apply_fails)
+    assert seen["flag"] == seen["off"]
+
+
+def test_the_final_adjudicator_sees_the_same_evidence_with_the_default_three_candidates(tmp_path, monkeypatch):
+    from app.services import orchestrator as orch
+
+    def no_files(*a, **k):
+        raise OrchestratorError("error: patch failed")
+
+    monkeypatch.setattr(orch, "_candidate_files", no_files)
+    seen = _evidence(tmp_path / "multi", monkeypatch)
+    assert seen["flag"] == seen["off"]
+
+
+def test_a_figures_file_with_nan_is_no_headline(tmp_path):
+    import json
+    from pathlib import Path
+
+    from app.routers import batch
+
+    good = json.loads((Path(__file__).resolve().parents[2] / "reports" / "v1.9" / "figures.json").read_text(encoding="utf-8"))
+    target = tmp_path / "reports" / "v1.9"
+    target.mkdir(parents=True)
+    for bad_value in (float("nan"), float("inf")):
+        bad = {**good, "figures": {**good["figures"], "diagnosis_strict_pct": {**good["figures"]["diagnosis_strict_pct"], "value": bad_value}}}
+        (target / "figures.json").write_text(json.dumps(bad), encoding="utf-8")
+        assert batch.headline(tmp_path, []) is None
+
+
+def test_the_credential_scrub_ignores_case_like_settings_does():
+    from app.services import time_machine
+
+    assert time_machine.scrubbed_env({"tavily_api_key": "t", "Nebius_Api_Key": "k", "PATH": "/usr/bin"}) == {"PATH": "/usr/bin"}
+
+
+def test_review_findings_skip_a_record_that_never_applied():
+    flagged = {"mode": "flag", "flagged": True, "static": [{"reason": "COMPUTATION_CHANGED"}]}
+    base = {"origin": "model", "gate_decision": "PASS", "exit_code": None, "diff_text": "x"}
+    assert _levels.review_required({"verdict": "BLOCKED", "attempts": [{**base, "behaviour": {**flagged, "not_applied": True}}]}) == ()

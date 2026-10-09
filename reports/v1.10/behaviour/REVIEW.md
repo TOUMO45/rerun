@@ -114,3 +114,18 @@ new seal workflow, ran the suites, and wrote failing tests for what it found. It
 
 **Consequence for the flag-mode figures:** none. The derived flag table used the static half's findings and the trace findings rc4 recorded; there were no trace findings
 on any measured patch that ran and no cheat was traced, so the static-only flag gives the same counts (`reports/v1.10/flag/flag_table.json`).
+
+# Fifth review (a focused review of the rc6-to-rc7 diff, `ca28911`) and what was done about each finding
+
+A fresh reviewer compared the flag mode with the checks off in six scenarios (the commands the sandbox receives, the image builds, the cost operations, the verdict,
+every attempt record but its `behaviour`, the log without the advisory line, the outcome ladder, the certificate prose): identical in all six. It found no blocker and no
+major defect, and said rc7 may be sealed; it listed five minor findings, all fixed in release candidate 8 with the reviewer's reproductions kept as tests
+(`backend/tests/test_flag_mode_equivalence.py`).
+
+| # | finding | disposition (rc8) |
+|---|---|---|
+| 1 | The flag reached the certificate for a patch that never applied (single-candidate apply failure; the multi-candidate winner whose patch no longer applies); the multi-candidate apply-failure record carried no flag | Records of a patch that never reached the checkout carry the flag with `not_applied`, and `review_findings` skips them |
+| 2 | The advisory `behaviour check FLAGGED` log line could be among the last five log lines the final verdict adjudicator (a model that may downgrade) is given as evidence | The advisory lines are left out of that evidence: it is what the checks-off flow gives |
+| 3 | A NaN or infinite figure passed the Batch Lab's numeric check | Non-finite values make the figures file no headline |
+| 4 | The credential scrub was case-sensitive, Settings is not | Names are compared upper-cased |
+| 5 | A re-run of the workflow reused the artifact name | The artifact name carries the run attempt |

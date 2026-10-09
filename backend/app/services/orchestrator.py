@@ -3077,6 +3077,10 @@ def _run_stages(
                     return None
                 return {"mode": "flag", "static": list(static_flags), "flagged": bool(static_flags)}
 
+            def _not_applied(record: dict | None) -> dict | None:
+                """harness-v1.10 flag mode (review of rc7): the record of a candidate whose patch never reached the checkout carries its flag but is not adopted."""
+                return {**record, "not_applied": True} if record else record
+
             def _behaviour_static(diff: str, originals: dict, env_changes_) -> list:
                 """harness-v1.10 (behaviour.py): the static findings of one gate-approved candidate: what its patch changes (computation, workload, entrypoint, arguments)
                 and whether its environment change redirects the command. Pure; the same text the gate analyzed."""
@@ -3405,7 +3409,7 @@ def _run_stages(
                             AttemptRecord(attempt_number, checked_diff, "PASS", (), None, "", str(exc)[-2000:], (), env_delta_dicts,
                                           patch_notes=patch_notes, indentation_normalised=chosen_indentation, model_patch=model_patch, consulted=consulted,
                                           reason_no_citation=proposal.reason_no_citation, silent_exit=silent_exit,
-                                          behaviour=_flag_record(chosen_one.get("behaviour_flags")))
+                                          behaviour=_not_applied(_flag_record(chosen_one.get("behaviour_flags"))))
                         )
                         continue
                 plan_kept, requirements_kept, layers_kept = plan, current_requirements, len(state.apt_layers)  # harness-v1.7.2: for a put-back
@@ -3522,7 +3526,8 @@ def _run_stages(
                                 AttemptRecord(attempt_number, cand["checked_diff"], "PASS", (), None, "", str(exc)[-2000:], (),
                                               cand["env_delta_dicts"], patch_notes=cand["patch_notes"], indentation_normalised=cand.get("indentation_normalised"), model_patch=cand["model_patch"],
                                               consulted=consulted, reason_no_citation=cand["proposal"].reason_no_citation,
-                                              silent_exit=silent_exit, candidate=cand["number"])
+                                              silent_exit=silent_exit, candidate=cand["number"],
+                                              behaviour=_not_applied(_flag_record(cand.get("behaviour_flags"))))
                             )
                             continue
                     cand_plan, cand_requirements, cand_layers = plan, current_requirements, ()
@@ -3851,6 +3856,9 @@ def _run_stages(
                         state.patched_paths.update(prepare_patch(winner["checked_diff"]).paths)
                     except OrchestratorError as exc:
                         # It applied in the scratch copy a moment ago; failing here means the checkout changed under RERUN.
+                        for i, a in enumerate(attempts):  # harness-v1.10 flag mode: its record was written as chosen; the patch never reached the checkout
+                            if a.attempt_number == attempt_number and a.candidate == winner["number"] and a.behaviour and a.behaviour.get("mode") == "flag":
+                                attempts[i] = dataclasses.replace(a, behaviour=_not_applied(a.behaviour))
                         raise OrchestratorError(f"the adjudicated candidate's patch no longer applies to the checkout: {exc}") from exc
                 if env_changes or winner["plan"] != plan or winner["requirements"] != current_requirements:
                     plan, current_requirements = winner["plan"], winner["requirements"]
@@ -3974,7 +3982,8 @@ def _finalize(
 
     if state is not None:
         state.stage = "adjudicator"
-    evidence_summary = "; ".join(log_lines[-5:])
+    # harness-v1.10 flag mode (review of rc7): the advisory FLAGGED lines are not evidence for the verdict adjudicator, so it sees what the checks-off flow gives it
+    evidence_summary = "; ".join([line for line in log_lines if "behaviour check FLAGGED" not in line][-5:])
     adjudication = adjudicator.adjudicate(
         deps.adjudicator_client,
         deps.adjudicator_model,

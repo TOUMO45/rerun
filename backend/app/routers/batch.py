@@ -8,6 +8,7 @@ router enforces that at the API boundary — a missing or malformed file is a
 from __future__ import annotations
 
 import json
+import math
 import re
 from pathlib import Path
 
@@ -243,8 +244,8 @@ def headline(root: Path, sets: list[dict]) -> dict | None:
 
 def _headline(doc: dict) -> dict:
     f = {k: v["value"] for k, v in doc["figures"].items()}
-    if any(isinstance(v, bool) or not isinstance(v, (int, float)) for v in f.values()):
-        raise ValueError("a figure that is not a number")
+    if any(isinstance(v, bool) or not isinstance(v, (int, float)) or not math.isfinite(v) for v in f.values()):
+        raise ValueError("a figure that is not a finite number")
     tables = doc.get("tables") or {}
     ran = {"count": f["held_out_ran"], "of": f["held_out_total"], "tag": "DERIVED",
            "parts": [{"set": name, "count": f[f"{key}_ran"], "of": f[f"{key}_of"]} for key, name in (("test", "TEST"), ("test_b", "TEST-B"), ("test_c", "TEST-C"))],
