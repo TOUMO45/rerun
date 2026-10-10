@@ -9,7 +9,7 @@ ARG REPO=https://github.com/TOUMO45/rerun.git
 ARG REF=main
 
 # --- the frontend, built from the same checkout ---------------------------------------------------------------------------------------
-FROM node:20-alpine AS web
+FROM node:20.19.5-alpine AS web
 ARG REPO
 ARG REF
 RUN apk add --no-cache git
@@ -18,16 +18,22 @@ WORKDIR /src/frontend
 RUN npm ci && npm run build
 
 # --- the backend + nginx, one container on the Space's port 7860 ---------------------------------------------------------------------------
-FROM python:3.11-slim
+# Python 3.14: the pinned versions (.github/seal/constraints.txt) are the environment the harness was tested in, made on 3.14
+FROM python:3.14-slim
 ARG REPO
 ARG REF
 # git: intake.py shells out to it; nginx: serves the built frontend and proxies /api to the backend, as frontend/nginx.conf does in compose
 RUN apt-get update && apt-get install -y --no-install-recommends git nginx && rm -rf /var/lib/apt/lists/*
 RUN git clone --filter=blob:none "$REPO" /repo && git -C /repo checkout "$REF" && git -C /repo rev-parse HEAD > /repo/.deployed_commit
-RUN pip install --no-cache-dir /repo/backend
+# pinned: every backend dependency at the version the harness was tested with (the seal workflow installs the same way)
+RUN pip install --no-cache-dir -c /repo/.github/seal/constraints.txt /repo/backend
+# keyless: a clone never holds a .env, and none may reach the image
+RUN find /repo -name .env -type f -delete
 COPY --from=web /src/frontend/dist /srv/web
 COPY nginx.conf /etc/nginx/nginx.conf
 COPY start.sh /start.sh
+# a checkout on Windows may give start.sh CRLF line ends, which /bin/sh cannot run
+RUN sed -i 's/\r$//' /start.sh
 
 # Spaces run the container as uid 1000: everything nginx and the backend write goes to paths that user owns
 RUN useradd -m -u 1000 user && chmod +x /start.sh \

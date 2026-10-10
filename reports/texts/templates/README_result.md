@@ -3,6 +3,21 @@ RERUN audits whether a paper's code still runs and, when it does not, says what 
 - **{{held_out_ran}} of {{held_out_total}} held-out repositories ran their documented command.** TEST {{test_ran}} of {{test_of}} after its published audit ({{test_preregistered_confirmed}} as pre-registered), TEST-B {{test_b_ran}} of {{test_b_of}}, TEST-C {{test_c_ran}} of {{test_c_of}}. Each set was drawn under a registration committed before the draw and run once; "ran" means the documented command executed, never that a paper's result was reproduced.
 - **Diagnosis, TEST-C: {{diagnosis_actionable}} of {{diagnosis_non_running}} non-running entries got an actionable diagnosis; {{diagnosis_strict}} of {{diagnosis_non_running}} judged strictly** (`reports/test-c/TEST_C_RESULT.md`; the key was written from the raw logs and committed before scoring).
 
+| Held-out set, drawn and run once | Ran its documented command |
+|---|---|
+| TEST (after its published audit) | {{test_ran}} of {{test_of}} ({{test_preregistered_confirmed}} as pre-registered) |
+| TEST-B | {{test_b_ran}} of {{test_b_of}} |
+| TEST-C | {{test_c_ran}} of {{test_c_of}}; diagnosis {{diagnosis_actionable}} of {{diagnosis_non_running}} actionable, {{diagnosis_strict}} strictly |
+| **All three** | **{{held_out_ran}} of {{held_out_total}}** |
+
+**Try it, no key and no spend:** `python demo.py` in a clone (Python and Node; it installs pinned versions, builds the page and serves the recorded audits in demo mode, where live execution is refused). `python -m phase_d.build_dashboard` builds the static evidence page with no network at all. Details and the live mode: [Run it](#run-it-in-one-command-no-key-no-spend).
+
+**What weakens these claims** (in full under [Limits](#limits)):
+
+- Anti-cheat is not a headline claim: harness-v1.9.0 adopted {{indep_real_failure_cheats_adopted}} of the {{indep_real_failure_cheats}} independent cheats aimed at repositories whose run really fails ({{indep_real_failure_adopted_pct}}).
+- REVIEW_REQUIRED is a signal that a human should look, not a cheat detector: it also marks {{flag_controls_adopted_flagged}} of the {{indep_v190_adopted_controls}} honest repairs harness-v1.9.0 adopted. Its table is derived from records; of {{live_flag_mode_runs}} live runs of the flag mode, {{live_review_required_certificates}} produced a REVIEW_REQUIRED certificate.
+- Repair's yield is small, the diagnosis rate is one set of {{diagnosis_non_running}} entries, and every post-hoc run is labelled and kept out of the counts.
+
 ### The benchmark and its per-layer tables
 
 Two sets of patches to the same seven repositories, each patch labelled cheat (the documented command ends successfully without doing the work) or honest control, packaged with their hashes, family definitions, dropped list and a scorer in `benchmark/`: `python benchmark/score.py --all` reproduces every table below from RERUN's own decision files. **Both sets are development material now**; a new independent set is needed to measure again.

@@ -217,6 +217,11 @@ def build() -> dict:
         "attempts the flag mode marked REVIEW_REQUIRED (none: an honest repair with no finding)")
     add("minmaxot_flag_live_same_verdict_as_v190", 1 if (fl["result"]["verdict"], fl["result"]["taxonomy_code"]) == (mm["result"]["verdict"], mm["result"]["taxonomy_code"]) else 0,
         src_fl, "the verdict and the taxonomy code equal the harness-v1.9.0 run of the same entry (the model's patches differ between runs: the model is not deterministic)")
+    live_flag_records = sorted((ROOT / "runs" / "v1.10").glob("**/[0-9][0-9]_*.json"))
+    live_flag_records = [p for p in live_flag_records if (_j(p).get("config") or {}).get("behaviour_mode") == "flag"]
+    add("live_flag_mode_runs", len(live_flag_records), "runs/v1.10/**/NN_*.json (config.behaviour_mode = flag)", "live runs of the flag mode, each post-hoc and labelled")
+    add("live_review_required_certificates", sum(1 for p in live_flag_records if ((_j(p).get("certificate") or {}).get("review") or {}).get("status") == "REVIEW_REQUIRED"),
+        "runs/v1.10/**/NN_*.json (certificate.review.status)", "live flag-mode runs whose certificate carries REVIEW_REQUIRED")
     sl = _j(ROOT / "reports" / "v1.10" / "seal_live" / "spend.json")
     add("v110_flag_pass_spend_usd", round(sum(float(s["cost_usd"]) for s in seal["stages"].values()) + float(fl["cost_guard"]["spent_usd"]), 2), "reports/v1.10/seal_live/spend.json",
         "the flag-mode pass's paid checks: the rc8 seal plus the flag-mode wiring check (the refused first dispatch cost $0.00)", tag="API-REPORTED")

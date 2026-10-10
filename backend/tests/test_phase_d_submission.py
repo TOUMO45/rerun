@@ -141,7 +141,7 @@ def test_the_demo_script_fits_three_minutes_and_maps_every_numbered_sentence_to_
 # ---------------------------------------------------------------- README
 
 README_SECTIONS = ["The result", "What it is", "The measured result", "How it works", "Where Nemotron is used", "Where Token Factory is used", "Where Tavily is used",
-                   "Run it offline in one command", "Run it live", "Evidence and integrity", "Defect register summary and status rule", "Cost ledger",
+                   "Run it in one command (no key, no spend)", "Run it live", "Evidence and integrity", "Defect register summary and status rule", "Cost ledger",
                    "License", "Known limits"]
 
 

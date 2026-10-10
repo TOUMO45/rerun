@@ -8,6 +8,21 @@ RERUN audits whether a paper's code still runs and, when it does not, says what 
 - **3 [DERIVED] of 26 [DERIVED] held-out repositories ran their documented command.** TEST 1 [DERIVED] of 8 [DERIVED] after its published audit (2 [DERIVED] as pre-registered), TEST-B 1 [DERIVED] of 8 [DERIVED], TEST-C 1 [DERIVED] of 10 [DERIVED]. Each set was drawn under a registration committed before the draw and run once; "ran" means the documented command executed, never that a paper's result was reproduced.
 - **Diagnosis, TEST-C: 7 [DERIVED] of 9 [DERIVED] non-running entries got an actionable diagnosis; 6 [DERIVED] of 9 [DERIVED] judged strictly** (`reports/test-c/TEST_C_RESULT.md`; the key was written from the raw logs and committed before scoring).
 
+| Held-out set, drawn and run once | Ran its documented command |
+|---|---|
+| TEST (after its published audit) | 1 [DERIVED] of 8 [DERIVED] (2 [DERIVED] as pre-registered) |
+| TEST-B | 1 [DERIVED] of 8 [DERIVED] |
+| TEST-C | 1 [DERIVED] of 10 [DERIVED]; diagnosis 7 [DERIVED] of 9 [DERIVED] actionable, 6 [DERIVED] strictly |
+| **All three** | **3 [DERIVED] of 26 [DERIVED]** |
+
+**Try it, no key and no spend:** `python demo.py` in a clone (Python and Node; it installs pinned versions, builds the page and serves the recorded audits in demo mode, where live execution is refused). `python -m phase_d.build_dashboard` builds the static evidence page with no network at all. Details and the live mode: [Run it](#run-it-in-one-command-no-key-no-spend).
+
+**What weakens these claims** (in full under [Limits](#limits)):
+
+- Anti-cheat is not a headline claim: harness-v1.9.0 adopted 14 [DERIVED] of the 50 [DERIVED] independent cheats aimed at repositories whose run really fails (28% [DERIVED]).
+- REVIEW_REQUIRED is a signal that a human should look, not a cheat detector: it also marks 5 [DERIVED] of the 9 [DERIVED] honest repairs harness-v1.9.0 adopted. Its table is derived from records; of 1 [DERIVED] live runs of the flag mode, 0 [DERIVED] produced a REVIEW_REQUIRED certificate.
+- Repair's yield is small, the diagnosis rate is one set of 9 [DERIVED] entries, and every post-hoc run is labelled and kept out of the counts.
+
 ### The benchmark and its per-layer tables
 
 Two sets of patches to the same seven repositories, each patch labelled cheat (the documented command ends successfully without doing the work) or honest control, packaged with their hashes, family definitions, dropped list and a scorer in `benchmark/`: `python benchmark/score.py --all` reproduces every table below from RERUN's own decision files. **Both sets are development material now**; a new independent set is needed to measure again.
@@ -244,7 +259,17 @@ Tavily is called at runtime, once per repair attempt, with the failure's class a
 
 The honest note: the model cited a source in three of the four root-cause gates (harness-v1.4.0, v1.4.1 and v1.4.3) and in none of harness-v1.4.2, where criterion (c) failed. Whether a citation shaped a decision is not measured. `cited` is null on every attempt of the harness-v1.3.x passports, and defect D-21 stays open.
 
-## Run it offline in one command
+## Run it in one command (no key, no spend)
+
+```bash
+python demo.py
+```
+
+From a clone. It needs Python (the version `backend/pyproject.toml` requires; the pins were made on the one `.github/seal/constraints.txt` names), Node with npm, git, and a network connection for the first install (or `--offline` with the packages already in uv's and npm's caches). It installs the backend with every dependency at the version the harness was tested with (`.github/seal/constraints.txt`), builds the frontend from its lock file, starts the backend in demo mode with the keys forced empty, and serves the page: the Gallery replays the committed audits, every certificate opens, and live execution is refused. `python demo.py --check` does the same, probes the running app and exits non-zero if a probe fails. Everything it creates is under `.demo/`.
+
+The same app as a hosted, keyless Hugging Face Space: `deploy/hf-space/README.md` (no secret may be set; the container refuses to start with one).
+
+The static evidence page needs no network and no packages:
 
 ```bash
 python -m phase_d.build_dashboard
@@ -264,7 +289,7 @@ Live runs spend money on Nebius. None is needed to inspect the result. The gates
 - **Prerequisites.** The backend's dependencies (`backend/pyproject.toml`), git, a Nebius Token Factory API key and a Tavily API key.
 - **Environment variables.** Copy `.env.example` to `.env` and set `NEBIUS_API_KEY` and `TAVILY_API_KEY`. The model names and the sandbox backend have recorded defaults.
 - **One repository.** `scripts/live_run.py` runs the pipeline once with a hard cost cap (`--cost-cap-usd`).
-- **A batch.** `scripts/run_corpus_v1_batch.py` refuses to start unless the checkout is a sealed harness tag with a current seal verification. The current sealed tag is `harness-v1.7.1` (`seal_verification.json`); `main` is ahead of it by records, reports, documentation and the Phase D assets only (the harness paths are byte-identical to the tag). The gates ran at their own sealed tags, the last `harness-v1.4.3`.
+- **A batch.** `scripts/run_corpus_v1_batch.py` refuses to start unless the checkout is a sealed harness tag with a current seal verification. The current sealed tag is `harness-v1.10.0` (`seal_verification.json`): harness-v1.9.0's verdict rules with the behavioural checks as an advisory review flag; `main` is ahead of it by records, reports, documentation and deployment files only (the harness paths are byte-identical to the tag). The gates ran at their own sealed tags, the last `harness-v1.4.3`.
 - **Cost caps, as recorded.** Entry cap $2.0 [API-REPORTED] in harness-v1.3.3, a cap per entry from $0.7819 [API-REPORTED] to $2.0 [API-REPORTED] in harness-v1.3.4, $1.25 [API-REPORTED] in harness-v1.4.0, $1.5 [API-REPORTED] in harness-v1.4.1 and v1.4.2, and $1.75 [API-REPORTED] in harness-v1.4.3. Batch caps: $25.0 [API-REPORTED] for the pre-registered run; for the six gates $6.0 [API-REPORTED], $3.5 [API-REPORTED], $5.0 [API-REPORTED], $6.0 [API-REPORTED], $6.0 [API-REPORTED] and $7.0 [API-REPORTED] ($6.25 [API-REPORTED] for the last two entries of the last gate, resumed under the lower cap the spend ceiling then allowed).
 - **Expected spend per entry.** In the six gates an entry cost between $0.4610 [API-REPORTED] and $1.3058 [API-REPORTED]. In the pre-registered run the cap was not yet hard: one entry reached $5.6773 [API-REPORTED] (D-7).
 

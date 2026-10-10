@@ -11,6 +11,8 @@ services:
       DEMO_ROOT: /repo
       NEBIUS_API_KEY: ""
       TAVILY_API_KEY: ""
+      NEBIUS_PROJECT_ID: ""
     volumes:
-      - ./runs:/repo/runs:ro
-      - ./reports/corpus-v2.1/v1.5/devtest:/repo/reports/corpus-v2.1/v1.5/devtest:ro
+      # the whole checkout, read-only: the seed reads runs/ and the firewall, the Batch Lab reads reports/v1.9/figures.json (2026-10-10: with only runs/ and the
+      # firewall mounted, the Batch Lab had no figures)
+      - .:/repo:ro
