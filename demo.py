@@ -3,7 +3,7 @@ live execution with HTTP 409) and the built frontend is served in front of it.
 
     python demo.py            # install (pinned), build, start; open the printed address; Ctrl+C stops both servers
     python demo.py --check    # the same, then probe the running app and exit 0 only if every probe passes (the final gate runs this)
-    python demo.py --offline  # install from uv's and npm's local caches (no network), the same pinned versions
+    python demo.py --offline WHEELS  # install with no network: Python packages from a folder of wheels, npm packages from npm's cache; the same pins
 
 Needs Python 3.11+ (the pins were made on 3.14), Node 18+ with npm, git, and a network connection for the first install. Everything it creates is under `.demo/`
 (git-ignored): a virtual environment, the demo database. Keys are forced empty in the backend's environment, which takes precedence over any `.env` file.
@@ -47,7 +47,7 @@ def venv_python() -> Path:
     return VENV / ("Scripts/python.exe" if os.name == "nt" else "bin/python")
 
 
-def install(skip_install: bool, offline: bool = False) -> None:
+def install(skip_install: bool, offline: str | None = None) -> None:
     if sys.version_info < (3, 11):
         fail(f"Python 3.11 or newer is needed, this is {sys.version.split()[0]}")
     node, npm = shutil.which("node"), shutil.which("npm")
@@ -64,10 +64,10 @@ def install(skip_install: bool, offline: bool = False) -> None:
     if not venv_python().is_file():
         run([sys.executable, "-m", "venv", str(VENV)], ROOT)
     if offline:
-        uv = shutil.which("uv")
-        if not uv:
-            fail("--offline installs from uv's cache: uv is needed on PATH")
-        run([uv, "pip", "install", "--offline", "--quiet", "--python", str(venv_python()), "-c", str(CONSTRAINTS), str(ROOT / "backend")], ROOT)
+        if not Path(offline).is_dir():
+            fail(f"--offline needs a folder of wheels; {offline} is not a folder")
+        run([str(venv_python()), "-m", "pip", "install", "--disable-pip-version-check", "--quiet", "--no-index", "--find-links", str(Path(offline).resolve()),
+             "-c", str(CONSTRAINTS), str(ROOT / "backend")], ROOT)
         run([npm, "ci", "--offline", "--no-audit", "--no-fund"], ROOT / "frontend")
     else:
         run([str(venv_python()), "-m", "pip", "install", "--disable-pip-version-check", "--quiet", "-c", str(CONSTRAINTS), str(ROOT / "backend")], ROOT)
@@ -147,7 +147,7 @@ def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     ap.add_argument("--check", action="store_true", help="probe the running app, then stop and exit 0 only if every probe passed")
     ap.add_argument("--skip-install", action="store_true", help="reuse .demo/venv and frontend/dist if they exist")
-    ap.add_argument("--offline", action="store_true", help="install from uv's and npm's local caches only (no network); the same pinned versions")
+    ap.add_argument("--offline", metavar="WHEELS", help="install without a network: the Python packages from this folder of wheels (pip --no-index), the npm packages from npm's cache; the same pinned versions")
     ap.add_argument("--api-port", type=int, default=8765)
     ap.add_argument("--port", type=int, default=4173, help="the port of the page")
     args = ap.parse_args()

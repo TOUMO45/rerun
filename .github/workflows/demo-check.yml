@@ -1,0 +1,84 @@
+# Keyless checks of the demo on GitHub-hosted runners (owner, 2026-10-10, Phase C): the one-command demo from a fresh clone, and the Hugging Face Space image
+# built exactly as the Space builds it. NO SECRET is used and nothing is spent; the job holds read-only repository permission.
+# This file is outside the sealed harness paths (backend/app, backend/pyproject.toml, scripts, frontend/src, .gitattributes).
+name: demo check (keyless, no spend)
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: demo-check-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  fresh-clone:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-24.04, windows-latest]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 30
+    steps:
+      - name: A fresh clone of the pushed commit
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683  # v4.2.2
+        with:
+          persist-credentials: false
+
+      - name: Python (the pins were made on 3.14)
+        uses: actions/setup-python@0b93645e9fea7318ecaed2b359559ac225c90a2b  # v5.3.0
+        with:
+          python-version: "3.14"
+
+      - name: The tools the README asks for
+        run: |
+          node --version
+          npm --version
+          git --version
+          python --version
+
+      - name: The one command (pinned install, build, start, probe)
+        env:
+          PYTHONIOENCODING: utf-8
+        run: python demo.py --check
+
+  space-image:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    steps:
+      - name: Check out the Space folder and the probe
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683  # v4.2.2
+        with:
+          persist-credentials: false
+
+      - name: Build the Space image as the Space builds it (it clones this repository at this commit)
+        run: docker build -t rerun-space --build-arg REF=${{ github.sha }} deploy/hf-space
+
+      - name: The image holds no .env, no key value, and no secret-shaped string in its checkout
+        run: |
+          docker run --rm --entrypoint sh rerun-space -c 'test ! -e /repo/.env && test -z "${NEBIUS_API_KEY}${NEBIUS_PROJECT_ID}${TAVILY_API_KEY}" && echo "no .env, keys empty"'
+          docker run --rm --entrypoint sh rerun-space -c 'git config --global --add safe.directory /repo && python /repo/reports/scan_history_for_secrets.py --tracked'
+
+      - name: It refuses to start with a key set, and does not print the value
+        run: |
+          set +e
+          out=$(docker run --rm -e TAVILY_API_KEY=placeholder-value-for-the-guard-check rerun-space 2>&1); code=$?
+          set -e
+          echo "$out" | head -3
+          test "$code" -ne 0
+          echo "$out" | grep -q "refusing to start: TAVILY_API_KEY is set"
+          if echo "$out" | grep -q "placeholder-value-for-the-guard-check"; then echo "the value was printed"; exit 1; fi
+
+      - name: It serves the keyless demo (the same probes as demo.py --check)
+        run: |
+          docker run -d --name space -p 7860:7860 rerun-space
+          for i in $(seq 1 120); do curl -fsS http://127.0.0.1:7860/api/healthz >/dev/null 2>&1 && break; sleep 2; done
+          python -c "import sys, demo; sys.exit(0 if demo.probe(7860) else 1)"
+
+      - name: The container's log
+        if: always()
+        run: docker logs space 2>&1 | tail -40 || true

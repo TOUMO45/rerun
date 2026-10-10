@@ -22,6 +22,7 @@ DOCS = [
     "docs/submission/devpost_answers.md",
     "docs/submission/description.md",
     "docs/submission/criteria_map.md",
+    "docs/submission/video_shot_list.md",
 ]
 TAGGED_DOCS = [d for d in DOCS if d != "docs/submission/criteria_map.md"]
 
@@ -242,9 +243,9 @@ def test_the_criteria_map_gives_three_evidence_items_and_one_weakest_point_per_c
     assert "No gate passed" in sections["Technological Implementation"] and "not a rate" in sections["Technological Implementation"]
 
 
-def test_all_five_submission_texts_exist():
+def test_all_six_submission_texts_exist():
     assert DOCS == ["docs/submission/demo_script.md", "README.md", "docs/submission/devpost_answers.md", "docs/submission/description.md",
-                    "docs/submission/criteria_map.md"]
+                    "docs/submission/criteria_map.md", "docs/submission/video_shot_list.md"]  # the shot list: owner, 2026-10-10 (Phase C, task 5)
     assert all((ROOT / d).is_file() for d in DOCS)
 
 
