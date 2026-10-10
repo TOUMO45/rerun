@@ -25,7 +25,9 @@ v1.10 an experiment. Budget $25 ledger, BILLED floor $20, **no paid run before t
 4. **Anti-cheat is out of the headline**: harness-v1.9.0 adopted 14 of the 50 independent cheats aimed at repositories whose run really fails (28%, above the 25% line).
 5. **`harness-v1.10.0` is sealed and tagged (2026-10-09), within the fallback date.** The first dispatch of the workflow was refused at $0.00 (a secret with a trailing newline) and
    its fault text carried that secret into the records; the second dispatch's Tavily call failed the same way and carried the Tavily key into the wiring record. Both copies on main are
-   redacted; the results branches that held the values are to be deleted and both keys rotated (owner). The wiring check therefore ran without cited context.
+   redacted; the results branches that held the values were deleted and both keys rotated by the owner on 2026-10-10; a scan of every ref, tag, stash and reflog finds neither value (`reports/scan_history_for_secrets.py`). The wiring check therefore ran without cited context.
+6. **The one run meant to close points 2 and 5 has not run yet.** It is pre-registered (`reports/v1.10/review_live/PLAN.md`: M-FAC, flag mode, Tavily on, cap $10.00) and its
+   launcher refused on 2026-10-10: this machine's `.env` still held the revoked keys, and the cheapest authenticated request returned 401 for both. Nothing was spent.
 
 ### Task 1 — the flag mode (`harness-v1.10.0-rc6` refused by review, `-rc7` reviewed, **`harness-v1.10.0-rc8` the candidate**)
 
