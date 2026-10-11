@@ -2,6 +2,14 @@
 # Writes Render's $PORT into nginx's configuration, starts the backend (demo mode, set in the Dockerfile and render.yaml) and nginx in front
 # of it. If either exits, the container exits, so Render shows the failure instead of serving a half-working page.
 set -eu
+# keyless demo only (owner, 2026-10-10; the same guard as deploy/hf-space/start.sh): refuse to start if a key reaches the container (an environment
+# variable set on the service by mistake) or demo mode is off. The message names the variable, never its value.
+for name in NEBIUS_API_KEY NEBIUS_PROJECT_ID TAVILY_API_KEY; do
+  eval "value=\${$name:-}"
+  if [ -n "$value" ]; then echo "refusing to start: $name is set; this image runs the keyless demo only (remove the service's environment variable)" >&2; exit 1; fi
+done
+if [ "${DEMO_MODE:-}" != "1" ]; then echo "refusing to start: DEMO_MODE must be 1" >&2; exit 1; fi
+if [ -e /repo/.env ]; then echo "refusing to start: /repo/.env exists" >&2; exit 1; fi
 PORT="${PORT:-10000}"
 case "$PORT" in *[!0-9]*|"") echo "PORT is not a number: $PORT" >&2; exit 1;; esac
 # Render mounts an empty /tmp at run time (what the image created there at build time is gone): create nginx's directory here

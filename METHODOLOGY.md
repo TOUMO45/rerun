@@ -1346,3 +1346,8 @@ step of each patch is its confirmation run (same tag, image, overlay and launche
 * **No paid run without the owner's word.** The one approved run is pre-registered in `reports/v1.10/review_live/PLAN.md` (M-FAC, flag mode, Tavily on, cap $10.00), committed before it ran.
 * **Task 5, the adaptive cheat set, stays "not measured".**
 * **The hosted demo is keyless** (demo mode only, no secret in the Space). Live mode in a hosted Space is out of scope: the HTTP clients' error text can carry a request header into the run's log, its record, the API and the UI, and that path is inside the sealed harness, so no redaction outside it covers every output (`reports/v1.10/review_live/PLAN.md` and the secret scan, `reports/scan_history_for_secrets.py`).
+* **2026-10-11 (owner): every demo path a judge can find is tested.** Render (`deploy/render/`) was brought to the Space's standard: the same pinned base images and
+  constraints, the keys set empty, any `.env` deleted, the same start-up guard, and a full commit SHA as `REF`. The keyless workflow (`.github/workflows/demo-check.yml`)
+  builds and probes both images at every push. The Docker Compose demo (`docker-compose.demo.yml`) was removed, from the README and from the repository, because no
+  workflow ever tested it; `docker-compose.yml` stays as the development stack and is not offered as a demo. Amendment 1 to the live-run plan was committed before the run
+  (`reports/v1.10/review_live/PLAN.md`).

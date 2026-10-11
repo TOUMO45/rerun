@@ -1,72 +1,68 @@
 # Hackathon submission checklist (§12)
 
-Tracks `RERUN_BUILD_DIRECTIVE.md` §12's compliance checklist with evidence per item, per
-§13 item 7 ("Every item in §12 is checked, with evidence... next to each line in the
-submission notes"). Created because no such tracking file existed despite being an
-explicit definition-of-done requirement — see `DECISIONS.md`.
+Tracks `RERUN_BUILD_DIRECTIVE.md` §12 with evidence per item (§13 item 7). **Rewritten from the actual state on 2026-10-11** (the first version, `f5b2d6e`, was
+written before the repository was public and before any live run, and had not been updated since).
 
-Legend: ✅ done, verified · 🧩 code/content ready, blocked only on a human/process step ·
-❌ not done, blocking submission · 👤 pure human/process action, not verifiable from code.
+Legend: ✅ done, with evidence · ⏳ ready, waiting on one named step · 👤 the owner's action on an external platform, not verifiable from the repository ·
+❌ not done.
 
-- [x] ✅ **Uses ≥1 NVIDIA open-source model — Nemotron 3 Nano + Super + Ultra.**
-      `backend/app/config.py` routes all three by task (`nebius_model_recon`,
-      `nebius_model_planner`/`nebius_model_repairer`, `nebius_model_adjudicator`);
-      `model_client.py` is the shared, tested call path all four services use.
-- [ ] 🧩 **Runs on Nebius Token Factory (Sandboxes + inference).** Code is built and
-      source-verified against the real installed SDKs (`contree-sdk`, OpenAI-compatible
-      client), but has never been exercised against the live API — no `NEBIUS_API_KEY`
-      in this environment. See README's 🚧/🟡 markers for exactly what's source-verified
-      vs. live-verified. **Needs:** a real key, then a real `POST /runs/{id}/execute`
-      against a real repo before submission.
-- [ ] 👤 **Category: Coding and Agentic Engineering.** A submission-form field, not code.
-- [x] ✅ **Project description: what it is, why, how it works.** README's opening
-      section already has this content, adapted from §1 of the directive — copy into
-      the submission form as-is.
-- [ ] ❌ **Working demo URL (hosted app).** Not deployed. Nebius Serverless Endpoints
-      hosting is explicitly not yet built (README). **Needs:** live credentials +
-      an actual deploy, which is a real infrastructure action outside what this
-      session can do unilaterally.
-- [ ] ❌ **Demo video: public YouTube, ≤3 min, audio covers Token Factory + NVIDIA.**
-      `docs/demo_script.md` has the exact narration/timing and a pre-recording checklist
-      (created this session — see `DECISIONS.md`), but the video itself hasn't been
-      recorded. **Needs:** the working demo URL above, plus a human to actually record
-      and upload it.
-- [ ] ❌ **Public repo, Apache-2.0 license visible at the top of the repo page.**
-      `LICENSE` (Apache-2.0) exists at repo root, but `git remote -v` shows this repo
-      has never been pushed anywhere — it's local-only. **Needs:** a human decision to
-      create/push to a public GitHub repo (not something this session does
-      unilaterally — publishing a new public repo is exactly the kind of action that
-      needs explicit go-ahead).
-- [x] ✅ **README with setup instructions and clear run guidance.** `README.md`'s
-      "Running the backend tests" / "Running the full stack via Docker" sections;
-      re-verified working from a genuinely fresh clone this session (`DECISIONS.md`).
-- [x] ✅ **README highlights NVIDIA model usage, Token Factory, and every other Nebius
-      service (Sandboxes, Serverless Jobs, Serverless Endpoints).** README's dedicated
-      "NVIDIA / Nebius usage (hackathon requirement)" section names all of them
-      substantively, not as token mentions.
-- [ ] 👤 **Feedback submitted on Token Factory / AI Cloud / NVIDIA tools.** Pure human
-      action on an external platform — not verifiable or actionable from this repo.
-- [x] ✅ **Not built from pre-existing code (or the required written explanation is
-      included).** True: this project was built from an empty repository over the
-      course of one autonomous agent session — see `DECISIONS.md`'s first entry
-      ("Repo bootstrap") and the full git history for the complete build record. This
-      note *is* the required written explanation.
-- [ ] 👤 **Builders & Brews city selected if attended.** Pure human/attendance fact this
-      session has no way to know — fill in if applicable, otherwise mark N/A.
-- [x] ✅ **Tavily called at runtime, cited in the certificate — Best Use of Tavily
-      eligibility.** `tavily.py`, wired into the real repair loop
-      (`orchestrator.py`'s attempt loop calls `tavily.fetch_context` before every
-      repair proposal); cited sources render in `RepairAttemptCard.tsx` and are part of
-      the certificate's `diffs[].tavily_sources`.
-- [ ] 👤 **Submitted before Oct 30, 2026, 10:00am PDT (internal target: Oct 28).**
-      Deadline tracking — not a code item.
+## §12 items
 
-## What this means concretely, in priority order
+- [x] ✅ **Runs on Nebius Token Factory (Sandboxes + inference).** Every live record stores `config.sandbox_backend = token_factory`, its sandbox operations
+      (`operations[]`) and its model calls with token usage (`model_calls`, `cost_guard.model_usage`); README "Where Token Factory is used". The sealed harness
+      `harness-v1.10.0` was sealed live on a GitHub Actions runner (`seal_verification.json`, run 37958950100).
+- [x] ✅ **Uses NVIDIA open models: Nemotron 3 Nano, Super and Ultra.** README "Where Nemotron is used" lists the model names as stored in the records
+      (`config.models`): Nano for recon, Super for planner and repairer, Ultra for adjudicator.
+- [ ] 👤 **Category: Coding and Agentic Engineering.** A form field (the README's "Track" line says the same).
+- [x] ✅ **Project description.** `docs/submission/description.md` and `docs/submission/devpost_answers.md`, generated from `reports/v1.9/figures.json` by
+      `reports/texts/render.py` (the word limit and every number's tag are guarded by tests). ⏳ They are regenerated after the live run below.
+- [ ] ⏳ **Working demo URL (hosted app).** Both images are ready and proven by the keyless workflow `.github/workflows/demo-check.yml` (no secret; it builds each
+      image at the pushed commit, checks that it holds no `.env` or key, that it refuses to start with a key without printing the value, and probes the running app):
+      `deploy/hf-space/` (job `space-image`) and `deploy/render/` (job `render-image`, brought to the Space's standard on 2026-10-11). The Render URL
+      <https://rerun-demo.onrender.com> answers, keyless, but serves the commit of 2026-10-06. **Owner:** choose A (create the Space, `deploy/hf-space/README.md`)
+      or B (redeploy Render, `deploy/render/README.md`), then put the URL in the README and the form.
+- [ ] 👤 **Demo video: public YouTube, at most three minutes, audio covers Token Factory and NVIDIA models.** Not recorded. The shot list
+      `docs/submission/video_shot_list.md` names Nebius Token Factory in the sandbox shot and the Nemotron models in the repair shot; it uses `python demo.py`.
+- [x] ✅ **Public repository, Apache-2.0.** <https://github.com/TOUMO45/rerun>: GitHub's API reports it public with license `Apache-2.0` detected from the
+      root `LICENSE` (2026-10-11), which is what the repository page shows; README "License".
+- [x] ✅ **README with setup instructions and run guidance.** README "Run it in one command" (`python demo.py`, keyless) is run from a fresh clone on Linux and on
+      Windows by the keyless workflow at every push to `main`; README "Run it live" for a live run. The Docker Compose demo was removed on 2026-10-11 because no
+      workflow ever tested it.
+- [x] ✅ **README highlights NVIDIA model usage and the Nebius services used.** README "Where Nemotron is used", "Where Token Factory is used" (Sandboxes, the model
+      endpoints, the price list, the seal). Serverless Jobs and Serverless Endpoints are **not used**, and the README does not claim them; the hosted demo runs on a
+      Hugging Face Space or Render.
+- [ ] 👤 **Feedback submitted on Token Factory / AI Cloud / NVIDIA tools.** On the hackathon platform.
+- [x] ✅ **Not built from pre-existing code.** `DECISIONS.md`'s first entry ("Repo bootstrap") and the git history from an empty repository.
+- [ ] 👤 **Builders & Brews city, if attended.** Fill in or mark not applicable.
+- [x] ✅ **Tavily called at runtime and cited in the certificate.** Called before every repair attempt; the references offered (`consulted`) and the sources the model
+      cited (`cited`) are stored on the attempt and in the certificate; README "Where Tavily is used" gives the counts per gate and the limit (whether a citation shaped a
+      decision is not measured, D-21 open). ⏳ The flag mode's only live run so far had no Tavily context (its search failed on a malformed secret); the pending live
+      run below is pre-registered with Tavily on.
+- [ ] 👤 **Submitted before Oct 30, 2026, 10:00am PDT** (internal target Oct 28).
 
-1. Get a real `NEBIUS_API_KEY` (and `TAVILY_API_KEY`) and run one real end-to-end
-   `S1 → S2 → S3` pass against a real repo, to move the first ❌/🧩 item to ✅.
-2. Deploy to Nebius Serverless Endpoints (needs the key above) → working demo URL.
-3. Record the demo video per `docs/demo_script.md`, using the real deployed URL.
-4. Push this repo to a public GitHub repository with the `LICENSE` visible at the top.
-5. Fill in the remaining 👤 items (category selection, feedback, Builders & Brews,
-   actual submission) as part of the real submission flow on the hackathon platform.
+## The project's own gate (state on 2026-10-11)
+
+- [ ] ⏳ **The one pre-registered live run** (`reports/v1.10/review_live/PLAN.md`, Amendment 1 committed before the run in `6fba7f5`): M-FAC at `harness-v1.10.0`,
+      flag mode, Tavily on, cap $10.00 API-reported, one run. Preconditions hold (`launch.py --check`, 2026-10-11). **Waiting on the owner's go.** Afterwards: the
+      record, the ledger, `figures.json`, the regenerated texts, and the two "what weakens a claim" items rewritten to what the run showed.
+- [x] ✅ **Harness frozen.** Tag `harness-v1.10.0`; the harness paths on `main` equal the tag (the launcher refuses otherwise). No harness change after the tag.
+- [x] ✅ **Keys.** The leaked keys were rotated and their branches and artifacts deleted; the full-reference secret scan finds neither value
+      (`reports/scan_history_for_secrets.py`, `backend/tests/test_no_secrets.py`). The new keys are only in this machine's `.env`, never in the repository or a
+      hosted image.
+- [x] ✅ **Backend test suite** (2026-10-11, `cd backend && pytest`): 2583 passed, 23 skipped.
+- [x] ✅ **Frontend** (2026-10-11): `tsc --noEmit` clean; `vitest run` 43 tests in 5 files pass.
+- [ ] ❌ **ESLint: not done.** `npm run lint` runs `eslint .`, but `frontend/` has no ESLint configuration and `package.json` declares no `eslint` package, so the
+      script does not lint anything.
+      Left as is by the owner's decision (2026-10-11); recorded here, not hidden.
+- [x] ✅ **Generated texts match their sources** (2026-10-11): `reports/v1.9/figures.py --write` rebuilds `figures.json` byte-identical from the records, and
+      `reports/texts/render.py --check` reports the three generated texts match it.
+- [x] ✅ **Certificates verify offline.** `python scripts/verify_passport.py <file>`.
+- [ ] Note on §13 item 3 (a live run from the public URL): superseded by the owner's decision of 2026-10-10. The hosted demo is keyless, because an HTTP client's
+      error text can carry a request header into a run's outputs inside the sealed harness (`METHODOLOGY.md`, "harness-v1.10.0 frozen").
+
+## What is left, in order
+
+1. The owner's go for the live run, then its after-reading (BILLED). The reading before it: $41.97 (the owner's screenshot, 2026-10-11).
+2. The hosted demo: A or B above, then the URL in the README and the form.
+3. The video, from the shot list.
+4. The form: category, description and answers (regenerated after step 1), feedback, Builders & Brews, submit by Oct 28.

@@ -130,13 +130,7 @@ RERUN answers that in minutes, for about a dollar, with evidence: it clones the 
 
 The deterministic time machine does most of the work. The model's repairs, under a gate that refuses code that does less, added little on this corpus, and that is measured and reported, not hidden: no pre-registered gate passed (next section). What then blocks a run is named in the records' own words: a dataset the repository tells the user to download, a GPU-only operation on a CPU sandbox, an API a newer release removed, an end-of-life apt mirror, a source build that fails. harness-v1.6 makes the classifier name each of these (`API_REMOVED`, `APT_MIRROR_GONE`, `DEP_BUILD_FAILED`, widened `DATA_MISSING` and `GPU_REQUIRED`), replay-tested on the recorded failures.
 
-**Try it without a key, locally, in one command** (needs Docker; tested):
-
-```bash
-docker compose -f docker-compose.yml -f docker-compose.demo.yml up --build
-```
-
-Then open the `frontend` service's address (`docker compose ps` shows it) and go to the Gallery. The first build takes a few minutes. The committed audits replay from their records, every certificate carries its verdict label, the ladder and the blocker, and **Download certificate JSON** gives a file that `python scripts/verify_passport.py <file>` verifies offline. Live execution is refused with an HTTP conflict status, so a demo can never spend. Stop it with `docker compose -f docker-compose.yml -f docker-compose.demo.yml down`. A live run needs `NEBIUS_API_KEY` and `TAVILY_API_KEY` (`.env.example`). **Hosted, no install:** <https://rerun-demo.onrender.com> (the same demo on a free Render instance; it sleeps when idle, so the first visit can wait about a minute). Its files and steps are in `deploy/render/`.
+**Try it without a key:** `python demo.py` from a clone (see "Run it in one command" below; the keyless workflow `.github/workflows/demo-check.yml` runs it from a fresh clone on Linux and on Windows at every push). The committed audits replay from their records, every certificate carries its verdict label, the ladder and the blocker, and **Download certificate JSON** gives a file that `python scripts/verify_passport.py <file>` verifies offline. Live execution is refused with an HTTP conflict status, so a demo can never spend. A live run needs `NEBIUS_API_KEY` and `TAVILY_API_KEY` (`.env.example`). **Hosted, no install:** the same keyless demo is packaged for a Hugging Face Space (`deploy/hf-space/`) and for Render (`deploy/render/`); the same workflow builds both images, checks that each refuses to start with a key, and probes each one. <https://rerun-demo.onrender.com> serves an earlier commit until it is redeployed from `deploy/render/`.
 
 Track: Coding and Agentic Engineering. Models: NVIDIA Nemotron Nano (recon), Super (planner, repairer), Ultra (adjudicator), through Nebius Token Factory; every execution in a Token Factory sandbox; Tavily at runtime for repair context and for dataset sources.
 
@@ -267,7 +261,7 @@ python demo.py
 
 From a clone. It needs Python (the version `backend/pyproject.toml` requires; the pins were made on the one `.github/seal/constraints.txt` names), Node with npm, git, and a network connection for the first install (or `--offline <folder of wheels>` with the npm packages already in npm's cache). It installs the backend with every dependency at the version the harness was tested with (`.github/seal/constraints.txt`), builds the frontend from its lock file, starts the backend in demo mode with the keys forced empty, and serves the page: the Gallery replays the committed audits, every certificate opens, and live execution is refused. `python demo.py --check` does the same, probes the running app and exits non-zero if a probe fails. Everything it creates is under `.demo/`.
 
-The same app as a hosted, keyless Hugging Face Space: `deploy/hf-space/README.md` (no secret may be set; the container refuses to start with one).
+The same app as a hosted, keyless Hugging Face Space (`deploy/hf-space/README.md`) or Render service (`deploy/render/README.md`): no secret may be set, and either container refuses to start with one.
 
 The static evidence page needs no network and no packages:
 

@@ -1,50 +1,36 @@
-# RERUN demo on Render (free instance)
+# RERUN demo on Render (free instance, keyless)
 
-**Live:** <https://rerun-demo.onrender.com> (deployed 2026-10-05 from commit `65c3896`, serving the records at `5078967`). Checked on the live URL: health in demo mode with no key, the Gallery with 12 recorded audits, a certificate page with its label, three certificates downloaded and verified with `scripts/verify_passport.py`, and `POST /runs/<id>/execute` refused with 409.
+A public, no-key demo of RERUN: the backend in demo mode replays the committed audit records (the DEV and gate entries) and refuses live execution with HTTP 409, so the service can never spend. The frontend and backend are the repository's own code, cloned at the commit `ARG REF` pins; this folder only packages them behind nginx on the port Render assigns.
 
-**Deployed 2026-10-06:** `ARG REF` pinned `66c4b3a` (harness-v1.7.2, sealed, with every record and text up to TEST-B). Built and run locally from that commit: health in demo mode, the Gallery with 12 recorded audits, `POST /runs/<id>/execute` refused with 409, and the D-49 injection (`--upload-pack=...` as a repo URL) refused with 422 with no command run. Redeployed by the owner; checked on the live URL on 2026-10-06: demo mode, the repo-URL check of D-49 answers (`invalid repo URL` for a non-GitHub URL; no injection payload was sent to the live service), and the new UI is served.
+**State on 2026-10-11.** <https://rerun-demo.onrender.com> answers (probed: demo mode, no key configured), but it still serves the commit deployed on 2026-10-06 (harness-v1.7.2's records, built from the old, unpinned image of this folder): its Batch Lab predates the harness-v1.9 and v1.10 results the repository's README reports. It shows the submitted state only after the redeploy below.
 
-**Next deploy:** `ARG REF` now pins `a7f5c4c`, which adds the Batch Lab's held-out results (`GET /batch/preregistered`). Built and run locally: the route answers TEST-B 1 of 8, the out-of-sample scan 0 of 5, TEST 1 of 8; the Gallery has 12 recorded audits; execute is refused with 409. Render: Manual Deploy > Deploy latest commit.
+## What the image does (the same standard as `deploy/hf-space/`)
 
+- **Pinned.** `node:20.19.5-alpine` builds the frontend from its lock file (`npm ci`); `python:3.14-slim` installs the backend with every dependency at the version the harness was tested with (`pip install -c .github/seal/constraints.txt`); `ARG REF` is a full commit SHA, so the service serves exactly that commit.
+- **Keyless by construction.** The image sets `NEBIUS_API_KEY` and `TAVILY_API_KEY` empty and deletes any `.env`. `start.sh` refuses to start if `NEBIUS_API_KEY`, `NEBIUS_PROJECT_ID` or `TAVILY_API_KEY` is set (an environment variable added to the service by mistake), if `DEMO_MODE` is not `1`, or if a `.env` exists; the message names the variable, never its value. Live mode in a hosted service is out of scope: an HTTP client's error text can carry a request header into a run's log, record, API response and page, and that path is inside the sealed harness (`METHODOLOGY.md`, "harness-v1.10.0 frozen").
+- **Proven by the keyless workflow.** `.github/workflows/demo-check.yml` (no secret, read-only) builds this folder at every pushed commit with `REF` set to that commit, checks that the image holds no `.env`, no key value and no secret-shaped string, that it refuses to start with a key set without printing the value, and then runs it as Render does (`PORT=10000`, an empty `/tmp`, 512 MB) and probes it with the same checks as `python demo.py --check`.
 
+## Steps (the owner, in the Render dashboard)
 
-A public, no-key demo of RERUN: the backend in demo mode replays the committed audit records (the DEV and gate entries) and refuses live execution with HTTP 409, so the service can never spend. The frontend and backend are the repository's own code, cloned at a pinned commit; this folder only packages them behind nginx on the port Render assigns.
+The service `rerun-demo` exists and is connected to `TOUMO45/rerun`. To serve the commit you submit:
 
-Tested locally as Render runs it (2026-10-05): `docker build` of this folder, then `docker run -e PORT=10000 --tmpfs /tmp --memory=512m --cpus=0.1` (an empty `/tmp`, the free instance's 512 MB and 0.1 CPU). Healthy after 39 s; page and API answered; demo mode on, no key configured; the Gallery listed 12 recorded audits; a certificate page showed its label; the certificate downloaded through the page verified with `scripts/verify_passport.py`. Memory in use: about 122 MiB.
+1. In this repository, set `ARG REF=` in `deploy/render/Dockerfile` to the full SHA of the commit you submit (`git rev-parse HEAD` before this edit), commit and push. That one-line commit sits on top of the submitted one and changes nothing the service serves.
+2. Wait until the push's run of **demo check (keyless, no spend)** is green on GitHub (its `render-image` job built and probed exactly this folder).
+3. In Render: the `rerun-demo` service > **Settings**. Check: **Root Directory** `deploy/render`, **Dockerfile Path** `./Dockerfile`, **Instance Type** Free, **Health Check Path** `/api/healthz`, **Auto-Deploy** off.
+4. **Environment**: exactly one variable, `DEMO_MODE` = `1`. Delete any other. If a key variable is present, the new container refuses to start.
+5. **Manual Deploy** > **Deploy latest commit**. The build takes about 5 to 10 minutes. The log's first runtime line names the commit served: `RERUN demo: commit <sha>, DEMO_MODE=1, port 10000`. Check that it is the SHA of step 1.
+6. Open `https://rerun-demo.onrender.com/api/healthz` (expect `"demo_mode":true`, both `configured` fields false), then the checks below.
 
-**Found on the first real deploy (fixed):** Render mounts an empty `/tmp` at run time, so the directory the image created there at build time was missing and `start.sh` exited (`cannot create /tmp/nginx/nginx.conf: Directory nonexistent`). `start.sh` now creates it; the local test above uses an empty `/tmp` for that reason.
+A new service instead: **New** > **Web Service** with the same values (Language Docker, Branch `main`, Root Directory `deploy/render`, Instance Type Free, `DEMO_MODE` = `1`, nothing else), or **New** > **Blueprint** pointed at `deploy/render/render.yaml`.
 
-## What the service is
+## What to check once it is up
 
-| Setting | Value |
-|---|---|
-| Runtime | Docker |
-| Root directory | `deploy/render` |
-| Dockerfile path | `./Dockerfile` (relative to the root directory) |
-| Instance type | **Free** ($0/month) |
-| Health check path | `/api/healthz` |
-| Environment variables | `DEMO_MODE` = `1` (also set in the image). **No API key: do not add `NEBIUS_API_KEY` or `TAVILY_API_KEY`.** |
-| Port | Render sets `PORT` (default 10000); `start.sh` writes it into nginx's configuration |
-| Commit served | `ARG REF` in `Dockerfile`, pinned to the submission commit; to serve another commit, change that line and push |
+- The Gallery lists the recorded audits with no live rows; a certificate page shows its verdict label, the outcome ladder and the blocker; **Download certificate JSON** gives a file that `python scripts/verify_passport.py <file>` verifies.
+- The Batch Lab shows the figures of `reports/v1.9/figures.json` at the pinned commit.
+- On the home page a repository URL goes through intake and **Start execution run** is disabled with the demo-mode explanation.
 
-## Steps (the owner, once, in the Render dashboard)
+## Limits
 
-You are already signed in with GitHub and the `rerun` repository is connected.
-
-1. **New** > **Web Service**, choose the `TOUMO45/rerun` repository.
-2. **Name**: `rerun` (or any name; it becomes `https://<name>.onrender.com`).
-3. **Language**: `Docker`. **Branch**: `main`. **Region**: any.
-4. **Root Directory**: `deploy/render`. **Dockerfile Path**: `./Dockerfile` (leave the default if Render shows `./Dockerfile` relative to the root directory).
-5. **Instance Type**: select **Free** ($0 / month, 0.1 CPU, 512 MB). Do not keep a paid plan that may be preselected.
-6. **Environment Variables**: add `DEMO_MODE` = `1`. Nothing else.
-7. **Advanced** > **Health Check Path**: `/api/healthz`. Turn **Auto-Deploy** off if you want the service to stay on the pinned commit until you choose to redeploy.
-8. **Deploy Web Service**. The first build takes about 5 to 10 minutes (the frontend build and the backend install). The log's first runtime line names the commit served: `RERUN demo: commit <sha>, DEMO_MODE=1, port 10000`.
-
-Alternatively, **New** > **Blueprint** and point it at `deploy/render/render.yaml` (same values, free plan).
-
-## What to expect
-
-- **Cold start.** A free service spins down when idle; Render's own notice on the service page says this "can delay requests by 50 seconds or more". Open it once before a judge does.
+- **Cold start.** A free service spins down when idle; Render's own notice says this "can delay requests by 50 seconds or more" (on 2026-10-11 the first page load took about 42 s). Open it once before a judge does.
 - **Nothing persists.** The database is in `/tmp` and is rebuilt from the committed records at every start.
-- **What to check once it is up:** `https://<name>.onrender.com/gallery` lists the recorded audits with no live rows; a certificate page (for example DEV entry 05 at harness-v1.7.1) shows `BLOCKED (DEPENDENCY CHANGE)`; **Download certificate JSON** gives a file that `python scripts/verify_passport.py <file>` verifies; on the home page a repository URL goes through intake and **Start execution run** is disabled with the demo-mode explanation.
-- **Not in the hosted demo:** the TEST-phase records (the demo seeder's firewall leaves them out; they are in `runs/corpus_v2_batch/harness-v1.5-final/test/` and `reports/dev/TEST_RESULT.md`), and live runs.
+- **Not in the hosted demo:** the TEST-phase records (the demo seeder's firewall leaves them out) and live runs.

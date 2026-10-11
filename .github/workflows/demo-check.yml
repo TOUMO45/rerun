@@ -1,5 +1,5 @@
 # Keyless checks of the demo on GitHub-hosted runners (owner, 2026-10-10, Phase C): the one-command demo from a fresh clone, and the Hugging Face Space image
-# built exactly as the Space builds it. NO SECRET is used and nothing is spent; the job holds read-only repository permission.
+# and the Render image (2026-10-11) built exactly as each platform builds them. NO SECRET is used and nothing is spent; the job holds read-only repository permission.
 # This file is outside the sealed harness paths (backend/app, backend/pyproject.toml, scripts, frontend/src, .gitattributes).
 name: demo check (keyless, no spend)
 
@@ -82,3 +82,44 @@ jobs:
       - name: The container's log
         if: always()
         run: docker logs space 2>&1 | tail -40 || true
+
+  render-image:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    steps:
+      - name: Check out the Render folder and the probe
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683  # v4.2.2
+        with:
+          persist-credentials: false
+
+      - name: Build the Render image as Render builds it (it clones this repository at this commit)
+        run: docker build -t rerun-render --build-arg REF=${{ github.sha }} deploy/render
+
+      - name: The image holds no .env, no key value, and no secret-shaped string in its checkout
+        run: |
+          docker run --rm --entrypoint sh rerun-render -c 'test ! -e /repo/.env && test -z "${NEBIUS_API_KEY}${NEBIUS_PROJECT_ID}${TAVILY_API_KEY}" && echo "no .env, keys empty"'
+          docker run --rm --entrypoint sh rerun-render -c 'git config --global --add safe.directory /repo && python /repo/reports/scan_history_for_secrets.py --tracked'
+
+      - name: It refuses to start with a key set, and does not print the value
+        run: |
+          for name in NEBIUS_API_KEY NEBIUS_PROJECT_ID TAVILY_API_KEY; do
+            set +e
+            out=$(docker run --rm -e PORT=10000 -e "$name=placeholder-value-for-the-guard-check" rerun-render 2>&1); code=$?
+            set -e
+            echo "$out" | head -3
+            test "$code" -ne 0
+            echo "$out" | grep -q "refusing to start: $name is set"
+            if echo "$out" | grep -q "placeholder-value-for-the-guard-check"; then echo "the value was printed"; exit 1; fi
+          done
+
+      - name: It serves the keyless demo as Render runs it (PORT=10000, an empty /tmp, 512 MB), probed as demo.py --check probes
+        run: |
+          docker run -d --name render -p 10000:10000 -e PORT=10000 --tmpfs /tmp --memory=512m rerun-render
+          for i in $(seq 1 150); do curl -fsS http://127.0.0.1:10000/api/healthz >/dev/null 2>&1 && break; sleep 2; done
+          curl -fsS http://127.0.0.1:10000/api/healthz | python -c "import json, sys; d = json.load(sys.stdin); print(d); sys.exit(0 if d.get('demo_mode') is True and not d.get('nebius_configured') and not d.get('tavily_configured') else 1)"
+          python -c "import sys, demo; sys.exit(0 if demo.probe(10000) else 1)"
+          docker logs render 2>&1 | grep -q "RERUN demo: commit ${{ github.sha }}, DEMO_MODE=1, port 10000"
+
+      - name: The container's log
+        if: always()
+        run: docker logs render 2>&1 | tail -40 || true
