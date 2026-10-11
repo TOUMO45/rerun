@@ -18,7 +18,8 @@ Legend: ✅ done, with evidence · ⏳ ready, waiting on one named step · 👤 
       `reports/texts/render.py` (the word limit and every number's tag are guarded by tests). ⏳ They are regenerated after the live run below.
 - [ ] ⏳ **Working demo URL (hosted app).** Both images are ready and proven by the keyless workflow `.github/workflows/demo-check.yml` (no secret; it builds each
       image at the pushed commit, checks that it holds no `.env` or key, that it refuses to start with a key without printing the value, and probes the running app):
-      `deploy/hf-space/` (job `space-image`) and `deploy/render/` (job `render-image`, brought to the Space's standard on 2026-10-11). The Render URL
+      `deploy/hf-space/` (job `space-image`) and `deploy/render/` (job `render-image`, brought to the Space's standard on 2026-10-11); all four jobs passed on
+      run 38142122412 (commit `87ad19e`), with the two fresh-clone jobs of `python demo.py --check` on Linux and Windows. The Render URL
       <https://rerun-demo.onrender.com> answers, keyless, but serves the commit of 2026-10-06. **Owner:** choose A (create the Space, `deploy/hf-space/README.md`)
       or B (redeploy Render, `deploy/render/README.md`), then put the URL in the README and the form.
 - [ ] 👤 **Demo video: public YouTube, at most three minutes, audio covers Token Factory and NVIDIA models.** Not recorded. The shot list
