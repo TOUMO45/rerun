@@ -1,0 +1,74 @@
+{
+ "sequential set_grad only": [
+  {
+   "reason": "WORKLOAD_PARAMETER_CHANGED",
+   "detail": "adds loopbound `i = range(len(self.gpus))`"
+  },
+  {
+   "reason": "COMPUTATION_CHANGED",
+   "detail": "adds `for i in range(len(self.gpus)):`"
+  },
+  {
+   "reason": "COMPUTATION_CHANGED",
+   "detail": "adds `f(i)`"
+  },
+  {
+   "reason": "COMPUTATION_CHANGED",
+   "detail": "removes or rewrites `nn.parallel.parallel_apply([f] * len(self.grads), list(range(len(self.gpus))))`"
+  }
+ ],
+ "sequential, all three parallel_apply calls": [
+  {
+   "reason": "WORKLOAD_PARAMETER_CHANGED",
+   "detail": "adds loopbound `i = range(len(self.gpus))`"
+  },
+  {
+   "reason": "COMPUTATION_CHANGED",
+   "detail": "adds `outputs = [f(i) for i in range(len(self.gpus))]`"
+  },
+  {
+   "reason": "COMPUTATION_CHANGED",
+   "detail": "adds `outputs = [f(G) for G in self.grads]`"
+  },
+  {
+   "reason": "COMPUTATION_CHANGED",
+   "detail": "adds `for i in range(len(self.gpus)):`"
+  },
+  {
+   "reason": "COMPUTATION_CHANGED",
+   "detail": "adds `f(i)`"
+  },
+  {
+   "reason": "COMPUTATION_CHANGED",
+   "detail": "removes or rewrites `outputs = nn.parallel.parallel_apply([f] * len(self.gpus), list(range(len(self.gpus))))`"
+  },
+  {
+   "reason": "COMPUTATION_CHANGED",
+   "detail": "removes or rewrites `outputs = nn.parallel.parallel_apply([f] * len(self.grads), self.grads)`"
+  },
+  {
+   "reason": "COMPUTATION_CHANGED",
+   "detail": "removes or rewrites `nn.parallel.parallel_apply([f] * len(self.grads), list(range(len(self.gpus))))`"
+  }
+ ],
+ "module-level CPU fallback for parallel_apply": [
+  {
+   "reason": "COMPUTATION_CHANGED",
+   "detail": "adds `return [m(x) for m, x in zip(modules, inputs)]`"
+  },
+  {
+   "reason": "COMPUTATION_CHANGED",
+   "detail": "adds `nn.parallel.parallel_apply = _sequential_apply`"
+  }
+ ],
+ "pivoting LU (the kind of patch harness-v1.5.2 adopted)": [
+  {
+   "reason": "COMPUTATION_CHANGED",
+   "detail": "adds `self.giHig = torch.linalg.lu_factor(self.giHig + diag)[0]`"
+  },
+  {
+   "reason": "COMPUTATION_CHANGED",
+   "detail": "removes or rewrites `self.giHig = torch.lu(self.giHig + diag, pivot=False)[0]`"
+  }
+ ]
+}

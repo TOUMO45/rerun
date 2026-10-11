@@ -1,0 +1,21 @@
+Python 3.13.12
+<site-packages>/torch/_subclasses/functional_tensor.py:368: UserWarning: Failed to initialize NumPy: No module named 'numpy' (Triggered internally at /__w/pytorch/pytorch/torch/csrc/utils/tensor_numpy.cpp:84.)
+  cpu = _conversion_method_template(device=torch.device("cpu"))
+RERUN_CPU_SHIM: injected by RERUN: torch.cuda.is_available() -> False, torch.cuda.set_device(...) does nothing, LU without pivoting: CPU reference when torch has no CPU kernel, torch.load(map_location='cpu'), Tensor.cuda() returns the tensor, Module.cuda() returns the module, Tensor.to('cuda*') -> cpu, Module.to('cuda*') -> cpu, torch.device('cuda*') -> cpu
+DRYRUN_STUB_DATASET CIFAR10 root='DATASET' train=True download=True
+DRYRUN_STUB_DATASET CIFAR10 root='DATASET' train=False download=True
+RERUN_CPU_SHIM_PATH: torch.device
+RERUN_CPU_SHIM_PATH: cuda.set_device
+<dry>/shim/rerun_cpu_shim.py:203: UserWarning: torch.lu is deprecated in favor of torch.linalg.lu_factor / torch.linalg.lu_factor_ex and will be removed in a future PyTorch release.
+LU, pivots = torch.lu(A, compute_pivots)
+should be replaced with
+LU, pivots = torch.linalg.lu_factor(A, compute_pivots)
+and
+LU, pivots, info = torch.lu(A, compute_pivots, get_infos=True)
+should be replaced with
+LU, pivots, info = torch.linalg.lu_factor_ex(A, compute_pivots) (Triggered internally at /__w/pytorch/pytorch/aten/src/ATen/native/BatchLinearAlgebra.cpp:2056.)
+  return orig(A, *args, **kwargs)
+RERUN_CPU_SHIM_PATH: cpu_ref:torch.lu
+<site-packages>/torch/utils/data/dataloader.py:1102: UserWarning: 'pin_memory' argument is set as true but no accelerator is found, then device pinned memory won't be used.
+  super().__init__(loader)
+EXIT 124

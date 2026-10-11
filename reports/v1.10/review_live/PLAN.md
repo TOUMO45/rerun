@@ -48,3 +48,51 @@ run again; nothing is re-run on my own decision.
 6. The API-reported cost, and the owner's account-balance readings before and after (BILLED, if given).
 7. What the run does **not** show: anything about a rate; whether the flagged patch is a cheat (the flag says a human should look; this patch may be an honest CPU port, as
    the three M-FAC controls were, or a changed computation, as erratum E-3 found).
+
+## Amendment 1 — 2026-10-11, committed before the run (nothing above this heading is changed)
+
+Why. Before the launch the owner asked three questions (the `--dataset DATASET` field, why this run should reach a model patch when harness-v1.7.1's ended in a baseline
+timeout, and what is reported if the run ends before a model patch). No dry run had been made for this entry. The checks below were made on 2026-10-11 without any API call or
+sandbox (evidence in `prerun/`). One finding changes this plan's expectation, so this amendment replaces the expectation and the risks. **The run itself is unchanged**: entry, command,
+arm, mode, Tavily, cap $10.00 API-reported, one run, record paths, secret handling.
+
+**A. `--dataset DATASET` is not an unfilled field in effect.** `main_optim.py` declares `--dataset_path` (required); argparse accepts the prefix `--dataset`, so the program gets
+the relative folder name `DATASET`, and `lib/data/datasets.py` calls `torchvision.datasets.CIFAR10(root=DATASET, download=True)`: the program downloads CIFAR-10 (170,498,071 bytes)
+into that folder. No harness-v1.10.0 rule ends a run on it: `R5_PLACEHOLDER` (backend/app/batch/command_rules.py) is a corpus-draw eligibility rule and needs an underscore;
+`DOCUMENTED_PATH_PLACEHOLDER` (diagnosis.py, harness-v1.9, D-73) only words the diagnosis after a DATA_MISSING verdict, and its pattern does not match a bare `DATASET` (tested: no
+match). In 6 of the 7 recorded M-FAC runs (harness-v1.3.2 control and treatment, v1.5.0, v1.5.1, v1.5.2, v1.6.0) the program got past argparse and the data load. On 2026-10-11 12:42 UTC the download URL answered
+301 to `cave.cs.toronto.edu`, which answered 200 with the full length (torchvision follows the redirect).
+
+**B. The model is not expected to see the LU error.** The rationale above rests on harness-v1.5.2's adopted model patch for `torch.lu(..., pivot=False)`. harness-v1.7 (R2) added a
+CPU reference kernel for LU without pivoting to the `cpu_shim` hook, written for this entry (runner_hooks.py, item 7). At harness-v1.10.0 the LU failure is answered by that
+deterministic step, with no model call. The local dry check (`prerun/`: WSL, torch 2.14.0+cpu, Python 3.13; the exact hook source harness-v1.10.0 installs; M-FAC at 8116367; the
+corpus command verbatim; CIFAR-10 replaced by a random stand-in only, because this machine cannot fetch 170 MB and WSL has no torchvision):
+
+* run A, as documented: `AttributeError: module 'torch._C' has no attribute '_cuda_setDevice'`, the failure of every recorded baseline. harness-v1.10.0 classifies it GPU_REQUIRED, which
+  gets the `cpu_shim` step;
+* run B, with the `cpu_shim`: `RERUN_CPU_SHIM_PATH: cpu_ref:torch.lu` (the LU kernel answered), training starts, and the first optimizer step ends in M-FAC's
+  `nn.parallel.parallel_apply` with `RuntimeError: Cannot access accelerator device when none is available.` (the error harness-v1.6.0 recorded after its LU patch). It is
+  GPU_REQUIRED with the shim already spent: no deterministic step is left, no stop rule applies (`entry_blockers`: none; not a sandbox code), and the repair layer is `code`, so
+  the repair loop calls the model (Tavily search, then candidates);
+* run C, B plus a sequential replacement of the three `parallel_apply` calls (`prerun/patch_c.py`, a stand-in for an honest model patch): training runs to the 75 s limit with no
+  error, past the 60 s smoke window.
+
+**Revised expectation** (replaces the one above; still an expectation, not a criterion). If the baseline completes, the first model patch targets `parallel_apply` in `optim.py`, not
+the LU call. The flag's static check (`behaviour.candidate_findings`, `prerun/flag_static_check.json`) marks all three plausible honest fixes tried offline: COMPUTATION_CHANGED, plus
+WORKLOAD_PARAMETER_CHANGED for one written as a `for` loop. If such a patch is adopted, the certificate should carry REVIEW_REQUIRED with COMPUTATION_CHANGED, on an honest device
+fix. That would show the flag's positive path on a live run. It would not show that the flag finds cheats. The original expectation (COMPUTATION_CHANGED on an LU patch) is not
+expected to be tested, and item 5 will say so.
+
+**Revised risks.**
+1. The baseline. Its first act is the 170 MB download from a third-party host. The only recorded M-FAC baseline that did not complete is harness-v1.7.1's (TIMEOUT: 21.5 s of setup,
+   then no recorded progress until the 600 s limit; the killed step's measured cost was $0.0001, that is, no CPU time). The other entries of that batch ran normally that morning.
+   The four completed baselines from harness-v1.5.0 to v1.6.0 took 84–95 s. A stall ends the run TIMEOUT with no model patch.
+2. Adoption. The one recorded round on the accelerator error (harness-v1.5.1, repair 3) adopted none of its 3 candidates: all left the outcome unchanged. This run has up to
+   3 attempts of 3 candidates on it. Proposed is likely; adopted is open.
+3. The flag mode runs the static half only (no tracer).
+
+**What is reported if the run ends before any model patch** (clarifies the plan's wording; changes nothing). Items 1–7 apply whatever the run gives. Read literally, "INFRA_ERROR
+before any model call" covers only intake, because the recon and planner models are called before the baseline. A baseline TIMEOUT or a baseline INFRA_ERROR is therefore the run's
+result: verdict and code (1); no Tavily search, because searches are made per repair attempt (2); no model attempt and no `behaviour` field (3); no `review` on the certificate (4);
+the expectation not tested (5); the API-reported cost and the BILLED readings (6); and that the run shows nothing about the flag's positive path (7). It is not run again on my
+decision. Whether anything else is done is the owner's decision.
