@@ -668,7 +668,7 @@
    "note": "the verdict and the taxonomy code equal the harness-v1.9.0 run of the same entry (the model's patches differ between runs: the model is not deterministic)"
   },
   "live_flag_mode_runs": {
-   "value": 1,
+   "value": 2,
    "tag": "DERIVED",
    "source": "runs/v1.10/**/NN_*.json (config.behaviour_mode = flag)",
    "note": "live runs of the flag mode, each post-hoc and labelled"
@@ -678,6 +678,84 @@
    "tag": "DERIVED",
    "source": "runs/v1.10/**/NN_*.json (certificate.review.status)",
    "note": "live flag-mode runs whose certificate carries REVIEW_REQUIRED"
+  },
+  "live_flag_mode_attempts_flagged": {
+   "value": 0,
+   "tag": "DERIVED",
+   "source": "runs/v1.10/**/NN_*.json (result.attempts[].behaviour.flagged)",
+   "note": "attempts the flag mode marked, across the live flag-mode runs"
+  },
+  "mfac_review_live_cost_usd": {
+   "value": 0.21,
+   "tag": "API-REPORTED",
+   "source": "runs/v1.10/review_live/14_IST-DASLab__M-FAC_v1100.json",
+   "note": "POST-HOC pre-registered live run of the flag mode with Tavily on: M-FAC at harness-v1.10.0 on this machine, never merged into any count"
+  },
+  "mfac_review_live_timeout": {
+   "value": 1,
+   "tag": "DERIVED",
+   "source": "runs/v1.10/review_live/14_IST-DASLab__M-FAC_v1100.json",
+   "note": "verdict TIMEOUT: the documented command reached the wall clock in the baseline; the record holds no output of the stopped command"
+  },
+  "mfac_review_live_attempts": {
+   "value": 0,
+   "tag": "DERIVED",
+   "source": "runs/v1.10/review_live/14_IST-DASLab__M-FAC_v1100.json",
+   "note": "repair attempts: none, so no Tavily search, no candidate and nothing for the flag to judge"
+  },
+  "mfac_review_live_wall_clock_s": {
+   "value": 600,
+   "tag": "API-REPORTED",
+   "source": "runs/v1.10/review_live/14_IST-DASLab__M-FAC_v1100.json",
+   "note": "the baseline's wall clock, pre-registered"
+  },
+  "billed_reading_review_live_before_usd": {
+   "value": 41.97,
+   "tag": "BILLED",
+   "source": "reports/v1.10/review_live/spend.json billed_readings",
+   "note": "the owner's reading of the Nebius account balance 2026-10-11, before the run (launched 16:25:22 UTC); not reconciled with the API-reported ledger (D-36)"
+  },
+  "billed_reading_review_live_after_usd": {
+   "value": 41.96,
+   "tag": "BILLED",
+   "source": "reports/v1.10/review_live/spend.json billed_readings",
+   "note": "the owner's reading of the Nebius account balance 2026-10-11, after the run (ended 16:38:22 UTC; $0.21299575 API-reported); not reconciled with the API-reported ledger (D-36)"
+  },
+  "tavily_live_runs": {
+   "value": 202,
+   "tag": "DERIVED",
+   "source": "runs/**/*.json (every live run record; the per-version rows are figures.json tavily_by_harness)",
+   "note": "live run records, every harness version"
+  },
+  "tavily_runs_offered": {
+   "value": 71,
+   "tag": "DERIVED",
+   "source": "runs/**/*.json (every live run record; the per-version rows are figures.json tavily_by_harness)",
+   "note": "live runs in which at least one repair attempt was offered Tavily references (recorded from harness-v1.3.4)"
+  },
+  "tavily_runs_citing": {
+   "value": 23,
+   "tag": "DERIVED",
+   "source": "runs/**/*.json (every live run record; the per-version rows are figures.json tavily_by_harness)",
+   "note": "live runs whose record cites at least one Tavily source"
+  },
+  "tavily_versions_citing": {
+   "value": 12,
+   "tag": "DERIVED",
+   "source": "runs/**/*.json (every live run record; the per-version rows are figures.json tavily_by_harness)",
+   "note": "harness versions with at least one live run that cites a Tavily source"
+  },
+  "tavily_v110_runs": {
+   "value": 4,
+   "tag": "DERIVED",
+   "source": "runs/**/*.json (every live run record; the per-version rows are figures.json tavily_by_harness)",
+   "note": "live runs at harness-v1.10 (its release candidates and the tag)"
+  },
+  "tavily_v110_runs_citing": {
+   "value": 0,
+   "tag": "DERIVED",
+   "source": "runs/**/*.json (every live run record; the per-version rows are figures.json tavily_by_harness)",
+   "note": "of them, runs whose record cites a Tavily source"
   },
   "v110_flag_pass_spend_usd": {
    "value": 4.22,
@@ -698,7 +776,7 @@
    "note": "the owner's reading of the Nebius account balance 2026-10-09, after GitHub Actions run 37958950100 (seal $0.325108 + wiring check $3.8983957 = $4.2235037 API-reported); not reconciled with the API-reported ledger (D-36)"
   },
   "ledger_usd": {
-   "value": 190.43,
+   "value": 190.64,
    "tag": "API-REPORTED",
    "source": "reports/ledger_total.py",
    "note": "API-reported operation and model costs, a lower bound"
@@ -710,7 +788,7 @@
    "note": ""
   },
   "ledger_v110_pass_usd": {
-   "value": 27.74,
+   "value": 27.95,
    "tag": "API-REPORTED",
    "source": "reports/ledger_total.py",
    "note": "the harness-v1.10 passes"
@@ -1335,5 +1413,224 @@
     }
    }
   }
- }
+ },
+ "tavily_by_harness": [
+  {
+   "harness": "harness-v1",
+   "runs": 3,
+   "offered": 0,
+   "citing": 0,
+   "citing_records": []
+  },
+  {
+   "harness": "harness-v1.1",
+   "runs": 8,
+   "offered": 0,
+   "citing": 0,
+   "citing_records": []
+  },
+  {
+   "harness": "harness-v1.2",
+   "runs": 23,
+   "offered": 0,
+   "citing": 0,
+   "citing_records": []
+  },
+  {
+   "harness": "harness-v1.3.1",
+   "runs": 4,
+   "offered": 0,
+   "citing": 0,
+   "citing_records": []
+  },
+  {
+   "harness": "harness-v1.3.2",
+   "runs": 41,
+   "offered": 0,
+   "citing": 0,
+   "citing_records": []
+  },
+  {
+   "harness": "harness-v1.3.3",
+   "runs": 4,
+   "offered": 0,
+   "citing": 0,
+   "citing_records": []
+  },
+  {
+   "harness": "harness-v1.3.4",
+   "runs": 4,
+   "offered": 3,
+   "citing": 0,
+   "citing_records": []
+  },
+  {
+   "harness": "harness-v1.4.0",
+   "runs": 4,
+   "offered": 3,
+   "citing": 1,
+   "citing_records": [
+    "runs/corpus_v2_batch/harness-v1.4.0/gate/08_edenton__svg.json"
+   ]
+  },
+  {
+   "harness": "harness-v1.4.1",
+   "runs": 4,
+   "offered": 4,
+   "citing": 2,
+   "citing_records": [
+    "runs/corpus_v2_batch/harness-v1.4.1/gate/07_albertometelli__pfqi.json",
+    "runs/corpus_v2_batch/harness-v1.4.1/gate/08_edenton__svg.json"
+   ]
+  },
+  {
+   "harness": "harness-v1.4.2",
+   "runs": 4,
+   "offered": 2,
+   "citing": 0,
+   "citing_records": []
+  },
+  {
+   "harness": "harness-v1.4.3",
+   "runs": 4,
+   "offered": 3,
+   "citing": 2,
+   "citing_records": [
+    "runs/corpus_v2_batch/harness-v1.4.3/gate/03_autumn9999__vmtl.json",
+    "runs/corpus_v2_batch/harness-v1.4.3/gate/08_edenton__svg.json"
+   ]
+  },
+  {
+   "harness": "harness-v1.5-final",
+   "runs": 8,
+   "offered": 6,
+   "citing": 2,
+   "citing_records": [
+    "runs/corpus_v2_batch/harness-v1.5-final/test/06_grigorisg9gr__rocgan.json",
+    "runs/corpus_v2_batch/harness-v1.5-final/test/19_lrjconan__RBP.json"
+   ]
+  },
+  {
+   "harness": "harness-v1.5.0",
+   "runs": 8,
+   "offered": 6,
+   "citing": 2,
+   "citing_records": [
+    "runs/corpus_v2_batch/harness-v1.5.0/dev/12_Mehran-k__SimplE.json",
+    "runs/corpus_v2_batch/harness-v1.5.0/dev/17_Haichao-Zhang__FeatureScatter.json"
+   ]
+  },
+  {
+   "harness": "harness-v1.5.1",
+   "runs": 8,
+   "offered": 6,
+   "citing": 1,
+   "citing_records": [
+    "runs/corpus_v2_batch/harness-v1.5.1/dev/09_omarfoq__fedem.json"
+   ]
+  },
+  {
+   "harness": "harness-v1.5.2",
+   "runs": 8,
+   "offered": 5,
+   "citing": 0,
+   "citing_records": []
+  },
+  {
+   "harness": "harness-v1.6.0",
+   "runs": 8,
+   "offered": 4,
+   "citing": 0,
+   "citing_records": []
+  },
+  {
+   "harness": "harness-v1.7.1",
+   "runs": 8,
+   "offered": 5,
+   "citing": 2,
+   "citing_records": [
+    "runs/corpus_v2_batch/harness-v1.7.1/dev/05_BorgwardtLab__topological-autoencoders.json",
+    "runs/corpus_v2_batch/harness-v1.7.1/dev/16_bckim92__sequential-knowledge-transformer.json"
+   ]
+  },
+  {
+   "harness": "harness-v1.7.2",
+   "runs": 8,
+   "offered": 5,
+   "citing": 2,
+   "citing_records": [
+    "runs/corpus_v3_batch/harness-v1.7.2/treatment/03_alexlee-gk__video_prediction.json",
+    "runs/corpus_v3_batch/harness-v1.7.2/treatment/07_Stilwell-Git__Hindsight-Goal-Generation.json"
+   ]
+  },
+  {
+   "harness": "harness-v1.8 working tree, UNSEALED",
+   "runs": 17,
+   "offered": 10,
+   "citing": 3,
+   "citing_records": [
+    "runs/dev_v18/round1/TEST/06_grigorisg9gr__rocgan.json",
+    "runs/dev_v18/round1/TEST-B/03_alexlee-gk__video_prediction.json",
+    "runs/dev_v18/round2/TEST-B/02_vlievin__ovis.json"
+   ]
+  },
+  {
+   "harness": "harness-v1.8.0",
+   "runs": 10,
+   "offered": 8,
+   "citing": 2,
+   "citing_records": [
+    "runs/corpus_v4_batch/harness-v1.8.0/treatment/06_csm9493__UCL.json",
+    "runs/corpus_v4_batch/harness-v1.8.0/treatment/09_aviralkumar2907__MMCE.json"
+   ]
+  },
+  {
+   "harness": "harness-v1.9.0",
+   "runs": 1,
+   "offered": 1,
+   "citing": 1,
+   "citing_records": [
+    "runs/v1.10/mkdir_live/02_stephaneckstein__minmaxot_v190.json"
+   ]
+  },
+  {
+   "harness": "harness-v1.10.0",
+   "runs": 1,
+   "offered": 0,
+   "citing": 0,
+   "citing_records": []
+  },
+  {
+   "harness": "harness-v1.10.0-rc4",
+   "runs": 1,
+   "offered": 0,
+   "citing": 0,
+   "citing_records": []
+  },
+  {
+   "harness": "harness-v1.10.0-rc5",
+   "runs": 1,
+   "offered": 0,
+   "citing": 0,
+   "citing_records": []
+  },
+  {
+   "harness": "harness-v1.10.0-rc8",
+   "runs": 1,
+   "offered": 0,
+   "citing": 0,
+   "citing_records": []
+  },
+  {
+   "harness": "runs made before the first harness tag",
+   "runs": 11,
+   "offered": 0,
+   "citing": 3,
+   "citing_records": [
+    "runs/dev_run_ttpt_a2b.json",
+    "runs/dev_run_ttpt_a3.json",
+    "runs/live_run_ttpt_v5.json"
+   ]
+  }
+ ]
 }

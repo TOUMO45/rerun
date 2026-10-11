@@ -20,7 +20,7 @@ RERUN audits whether a paper's code still runs and, when it does not, says what 
 **What weakens these claims** (in full under [Limits](#limits)):
 
 - Anti-cheat is not a headline claim: harness-v1.9.0 adopted 14 [DERIVED] of the 50 [DERIVED] independent cheats aimed at repositories whose run really fails (28% [DERIVED]).
-- REVIEW_REQUIRED is a signal that a human should look, not a cheat detector: it also marks 5 [DERIVED] of the 9 [DERIVED] honest repairs harness-v1.9.0 adopted. Its table is derived from records; of 1 [DERIVED] live runs of the flag mode, 0 [DERIVED] produced a REVIEW_REQUIRED certificate.
+- REVIEW_REQUIRED is a signal that a human should look, not a cheat detector: it also marks 5 [DERIVED] of the 9 [DERIVED] honest repairs harness-v1.9.0 adopted. Its table is derived from records, and no live run has shown it on a certificate: the 2 [DERIVED] live runs of the flag mode flagged 0 [DERIVED] attempts and produced 0 [DERIVED] REVIEW_REQUIRED certificates. The run pre-registered to show it (M-FAC) ended TIMEOUT before any repair attempt, so it tested nothing about the flag.
 - Repair's yield is small, the diagnosis rate is one set of 9 [DERIVED] entries, and every post-hoc run is labelled and kept out of the counts.
 
 ### The benchmark and its per-layer tables
@@ -97,7 +97,7 @@ The flag mode: the same checks as a review flag on harness-v1.9.0's verdicts (an
 - No cheat in either set was written by an author who knew the checks: an adaptive set is not measured.
 - **Erratum E-3** (`reports/corpus-v2.1/ERRATA.md`): the M-FAC DEV entry ran on a changed algorithm; DEV certified 12 [DERIVED] as recorded, 11 [DERIVED] after the erratum.
 - **Post-hoc, labelled, never merged into TEST-C** (`reports/v1.10/mkdir_live/RESULT.md`): one live run of minmaxot at harness-v1.9.0 checked the output-directory repair; the rule fired and the run reached RUNS_AFTER_REPAIR at the smoke limit ($3.73 [API-REPORTED]).
-- **The flag mode has one live run** (post-hoc, labelled, never merged into TEST-C; `runs/v1.10/live_v110/`): the same entry at harness-v1.10.0 on a GitHub Actions runner ($3.90 [API-REPORTED]) gave the harness-v1.9.0 run's verdict and taxonomy with 0 [DERIVED] attempts flagged; the model's patches differ between the two runs. No live run has produced a REVIEW_REQUIRED certificate: the flag's positive path is shown by the test suite only. The mode was sealed live (24 [DERIVED] code paths, 53 [DERIVED] live run ids, $0.33 [API-REPORTED]).
+- **The flag mode's live runs** (each post-hoc, labelled, never merged into any count): the wiring check (`runs/v1.10/live_v110/`, the same entry at harness-v1.10.0 on a GitHub Actions runner, $3.90 [API-REPORTED]) gave the harness-v1.9.0 run's verdict and taxonomy with 0 [DERIVED] attempts flagged, and ran without Tavily context (its search failed on a malformed secret); the model's patches differ between the two runs. The pre-registered run with Tavily on (`reports/v1.10/review_live/PLAN.md`: M-FAC on this machine, $0.21 [API-REPORTED]) ended TIMEOUT: the documented command reached the baseline's wall clock (600 [API-REPORTED] seconds) and the record holds no output of it, so the cause is not known; the run made 0 [DERIVED] repair attempts, made no Tavily search and gave the flag nothing to judge. No live run has produced a REVIEW_REQUIRED certificate: the flag's positive path is shown by the test suite only. The mode was sealed live (24 [DERIVED] code paths, 53 [DERIVED] live run ids, $0.33 [API-REPORTED]).
 - Repair is attempted and its yield is small (below); it is not the result.
 <!-- end of the generated section -->
 
@@ -352,6 +352,7 @@ BILLED lines, from the owner's readings of the account balance (never an API cos
 - Gate, harness-v1.4.2: BILLED value none yet. The owner's balance reading after this gate has not been received.
 - Gate, harness-v1.4.3: BILLED value none yet. The owner's balance reading after this gate has not been received.
 - harness-v1.10.0 seal and flag-mode wiring check (2026-10-09, GitHub Actions run 37958950100): the owner's account balance read $41.99 [BILLED] before and $41.99 [BILLED] after; the interval's API-reported spend, $4.22 [API-REPORTED], is not visible in it (`reports/v1.10/seal_live/spend.json`, `billed_readings`). Not reconciled (D-36, open).
+- harness-v1.10.0 pre-registered live run, M-FAC (2026-10-11, this machine): the owner's account balance read $41.97 [BILLED] before and $41.96 [BILLED] after; the run's API-reported spend was $0.21 [API-REPORTED] (`reports/v1.10/review_live/spend.json`, `billed_readings`). Not reconciled (D-36, open).
 
 ## License
 
@@ -370,5 +371,6 @@ BILLED lines, from the owner's readings of the account balance (never an API cos
 - **D-27, open.** The ledger records only completed cost, so its total is a lower bound.
 - **D-28, open.** The record hashes in `reports/corpus-v2.1/results_tables.json` are hashes of worktree files, not of git blobs; the mapping is in the record index.
 - **D-36, open.** The ledger is the sandbox API's reported operation cost; the account balance moved far less. Not reconciled, and no balance reading was received for the last two gates.
+- **A timeout cannot be diagnosed from its record.** A command stopped at the wall-clock limit leaves no output in the record, so whether it was waiting on a download, hung, or still working is not known. M-FAC's two timeouts (harness-v1.7.1, and harness-v1.10.0 in `runs/v1.10/review_live/`) are of this kind. The harness stays frozen; this is not fixed.
 - **Scope.** Smoke-level execution, one corpus, one repairer model, a small exploratory set. One entry-run ended RUNS_AFTER_REPAIR under the smoke criterion: that is not a rate. The dashboard is a static page, not an interactive product.
 - **History.** How the project was built, phase by phase: [docs/history/README_build_log.md](docs/history/README_build_log.md) and [CHANGELOG.md](CHANGELOG.md).

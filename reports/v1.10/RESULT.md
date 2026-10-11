@@ -26,8 +26,14 @@ v1.10 an experiment. Budget $25 ledger, BILLED floor $20, **no paid run before t
 5. **`harness-v1.10.0` is sealed and tagged (2026-10-09), within the fallback date.** The first dispatch of the workflow was refused at $0.00 (a secret with a trailing newline) and
    its fault text carried that secret into the records; the second dispatch's Tavily call failed the same way and carried the Tavily key into the wiring record. Both copies on main are
    redacted; the results branches that held the values were deleted and both keys rotated by the owner on 2026-10-10; a scan of every ref, tag, stash and reflog finds neither value (`reports/scan_history_for_secrets.py`). The wiring check therefore ran without cited context.
-6. **The one run meant to close points 2 and 5 has not run yet.** It is pre-registered (`reports/v1.10/review_live/PLAN.md`: M-FAC, flag mode, Tavily on, cap $10.00) and its
-   launcher refused on 2026-10-10: this machine's `.env` still held the revoked keys, and the cheapest authenticated request returned 401 for both. Nothing was spent.
+6. **The one run meant to close points 2 and 5 ran on 2026-10-11 and closed neither.** Pre-registered (`reports/v1.10/review_live/PLAN.md`; Amendment 1, committed before the
+   run, corrected the expected patch: harness-v1.7's CPU reference kernel answers M-FAC's LU failure, so the model would first see `parallel_apply`'s accelerator error). M-FAC at
+   `harness-v1.10.0`, flag mode, Tavily on, cap $10.00, this machine (its launcher had refused on 2026-10-10: this machine's `.env` still held the revoked keys). It ended
+   **TIMEOUT in the baseline**: 20.7 s of setup, then the documented command reached the 600 s wall clock. No repair attempt was made, so there was no Tavily search, no
+   candidate, no `behaviour` block and no `review` on the certificate (its passport verifies). $0.2130 API-reported; the owner's balance read $41.97 before and $41.96
+   after (BILLED, not reconciled). Not run again (owner). The flag's positive path is still shown by the test suite only; the Tavily gap is the purpose of a separate run.
+7. **A timeout cannot be diagnosed from its record.** A command stopped at the wall-clock limit leaves no output in the record, so whether M-FAC's baseline waited on the
+   170 MB dataset download, hung or was still working is not known (its harness-v1.7.1 timeout is the same case). The harness stays frozen; this is not fixed.
 
 ### Task 1 — the flag mode (`harness-v1.10.0-rc6` refused by review, `-rc7` reviewed, **`harness-v1.10.0-rc8` the candidate**)
 

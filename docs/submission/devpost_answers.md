@@ -43,7 +43,7 @@ Not measured. Every record uses the three Nemotron models above; there is no rec
 - **The models endpoint with pricing**: the cost guard prices every call from it and records the source and retrieval date.
 - **Seal verification**: every sandbox-touching code path is executed live before a harness version is sealed; the records are committed under `runs/sandbox_verification/`.
 
-Recorded spend: the ledger is $190.43 [API-REPORTED] against the owner's ceiling of $300 [DERIVED] (`reports/ledger_total.py`): the sandbox API's reported operation cost plus the priced model calls, a stated lower bound (D-27); the harness-v1.10 passes are $27.74 [API-REPORTED] of it.
+Recorded spend: the ledger is $190.64 [API-REPORTED] against the owner's ceiling of $300 [DERIVED] (`reports/ledger_total.py`): the sandbox API's reported operation cost plus the priced model calls, a stated lower bound (D-27); the harness-v1.10 passes are $27.95 [API-REPORTED] of it.
 The account balance is the owner's reading (`reports/dev/BILLED_READINGS.md`): at the second reading it showed at most $0.43 [BILLED] charged, before the last gates; the account balance and the API-reported ledger are not reconciled (D-36, open).
 
 ## How likely are you to recommend Nebius Token Factory?

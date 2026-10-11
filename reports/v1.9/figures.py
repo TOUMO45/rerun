@@ -14,6 +14,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import re
 import sys
 from pathlib import Path
 
@@ -56,6 +57,40 @@ def _headline_inputs() -> dict:
         "fakes_refused_by_the_adjudicator": sum(1 for i in fakes if i.get("fate", "").startswith("adjudicator")),
         "gate_faking_rule_rejections": len(gate_items), "of_which_honest": sum(1 for i in gate_items if i["label"] == "HONEST PATCH REJECTED")}
     return out
+
+
+_VERSION = re.compile(r"harness-v(\d+(?:\.\d+)*)")
+
+
+def _tavily_by_harness() -> list[dict]:
+    """Every live run record under runs/ (a `result` and a `run_kind`, not a dry run), grouped by harness version: the record's batch harness_tag, else its batch
+    `harness` label (the unsealed harness-v1.8 DEV rounds), else the version in its path, else the runs made before the first harness tag."""
+    rows: dict[str, dict] = {}
+    for path in sorted((ROOT / "runs").glob("**/*.json")):
+        try:
+            d = _j(path)
+        except (ValueError, UnicodeDecodeError):
+            continue
+        if not isinstance(d, dict) or not isinstance(d.get("result"), dict) or "run_kind" not in d or d.get("dry_run"):
+            continue
+        meta = d.get("batch") if isinstance(d.get("batch"), dict) else {}
+        found = _VERSION.search(path.relative_to(ROOT).as_posix())
+        label = meta.get("harness_tag") or meta.get("harness") or (found.group(0) if found else "runs made before the first harness tag")
+        attempts = [a for a in d["result"].get("attempts") or () if isinstance(a, dict)]
+        cited = any(s.get("cited_via") for a in attempts for s in a.get("tavily_sources") or () if isinstance(s, dict)) \
+            or any(s.get("cited_by") for a in attempts for s in a.get("resolved_sources") or () if isinstance(s, dict))
+        r = rows.setdefault(label, {"harness": label, "runs": 0, "offered": 0, "citing": 0, "citing_records": []})
+        r["runs"] += 1
+        r["offered"] += any(a.get("consulted") for a in attempts)
+        if cited:
+            r["citing"] += 1
+            r["citing_records"].append(path.relative_to(ROOT).as_posix())
+
+    def order(label: str) -> tuple:
+        m = _VERSION.search(label)
+        return (0, tuple(int(x) for x in m.group(1).split(".")), label) if m else (1, (), label)
+
+    return [rows[k] for k in sorted(rows, key=order)]
 
 
 def build() -> dict:
@@ -222,6 +257,36 @@ def build() -> dict:
     add("live_flag_mode_runs", len(live_flag_records), "runs/v1.10/**/NN_*.json (config.behaviour_mode = flag)", "live runs of the flag mode, each post-hoc and labelled")
     add("live_review_required_certificates", sum(1 for p in live_flag_records if ((_j(p).get("certificate") or {}).get("review") or {}).get("status") == "REVIEW_REQUIRED"),
         "runs/v1.10/**/NN_*.json (certificate.review.status)", "live flag-mode runs whose certificate carries REVIEW_REQUIRED")
+    add("live_flag_mode_attempts_flagged", sum(1 for p in live_flag_records for a in _j(p)["result"].get("attempts") or () if (a.get("behaviour") or {}).get("flagged")),
+        "runs/v1.10/**/NN_*.json (result.attempts[].behaviour.flagged)", "attempts the flag mode marked, across the live flag-mode runs")
+
+    # the one pre-registered live run of the flag mode with Tavily on (owner, 2026-10-10/11; reports/v1.10/review_live/PLAN.md and its Amendment 1): M-FAC, post-hoc,
+    # labelled, never merged into any count. It ended TIMEOUT in the baseline, so it made no repair attempt: no Tavily search, no candidate, nothing for the flag to judge.
+    mf = _j(ROOT / "runs" / "v1.10" / "review_live" / "14_IST-DASLab__M-FAC_v1100.json")
+    src_mf = "runs/v1.10/review_live/14_IST-DASLab__M-FAC_v1100.json"
+    add("mfac_review_live_cost_usd", round(float(mf["cost_guard"]["spent_usd"]), 2), src_mf,
+        "POST-HOC pre-registered live run of the flag mode with Tavily on: M-FAC at harness-v1.10.0 on this machine, never merged into any count", tag="API-REPORTED")
+    add("mfac_review_live_timeout", 1 if mf["result"]["verdict"] == "TIMEOUT" else 0, src_mf,
+        f"verdict {mf['result']['verdict']}: the documented command reached the wall clock in the baseline; the record holds no output of the stopped command")
+    add("mfac_review_live_attempts", len(mf["result"]["attempts"]), src_mf, "repair attempts: none, so no Tavily search, no candidate and nothing for the flag to judge")
+    add("mfac_review_live_wall_clock_s", int(mf["config"]["sandbox_wall_clock_seconds"]), src_mf, "the baseline's wall clock, pre-registered", tag="API-REPORTED")
+    rl = _j(ROOT / "reports" / "v1.10" / "review_live" / "spend.json")
+    for i, reading in enumerate(rl["billed_readings"]):
+        add(f"billed_reading_review_live_{'before' if i == 0 else 'after'}_usd", float(reading["account_balance_usd"]), "reports/v1.10/review_live/spend.json billed_readings",
+            f"the owner's reading of the Nebius account balance {reading['when']}; not reconciled with the API-reported ledger (D-36)", tag="BILLED")
+
+    # Tavily in the records (owner, 2026-10-11): every committed live run record, by harness version: how many there are, in how many at least one repair attempt was
+    # offered Tavily references (`consulted`, recorded from harness-v1.3.4), and how many cite at least one Tavily source (`tavily_sources[].cited_via` for a search
+    # result, `resolved_sources[].cited_by` for a source the dependency resolver found through Tavily). The unit is a run; per-gate citation counts elsewhere count sources.
+    tav = _tavily_by_harness()
+    src_tav = "runs/**/*.json (every live run record; the per-version rows are figures.json tavily_by_harness)"
+    add("tavily_live_runs", sum(r["runs"] for r in tav), src_tav, "live run records, every harness version")
+    add("tavily_runs_offered", sum(r["offered"] for r in tav), src_tav, "live runs in which at least one repair attempt was offered Tavily references (recorded from harness-v1.3.4)")
+    add("tavily_runs_citing", sum(r["citing"] for r in tav), src_tav, "live runs whose record cites at least one Tavily source")
+    add("tavily_versions_citing", sum(1 for r in tav if r["citing"]), src_tav, "harness versions with at least one live run that cites a Tavily source")
+    citing_v110 = [r for r in tav if r["harness"].startswith("harness-v1.10")]
+    add("tavily_v110_runs", sum(r["runs"] for r in citing_v110), src_tav, "live runs at harness-v1.10 (its release candidates and the tag)")
+    add("tavily_v110_runs_citing", sum(r["citing"] for r in citing_v110), src_tav, "of them, runs whose record cites a Tavily source")
     sl = _j(ROOT / "reports" / "v1.10" / "seal_live" / "spend.json")
     add("v110_flag_pass_spend_usd", round(sum(float(s["cost_usd"]) for s in seal["stages"].values()) + float(fl["cost_guard"]["spent_usd"]), 2), "reports/v1.10/seal_live/spend.json",
         "the flag-mode pass's paid checks: the rc8 seal plus the flag-mode wiring check (the refused first dispatch cost $0.00)", tag="API-REPORTED")
@@ -253,7 +318,8 @@ def build() -> dict:
     tables = score.score_all(score.labels())
     return {"note": "Generated by reports/v1.9/figures.py from committed result files; every value is a DERIVED count or a count of stored fields, with its tag. "
                     "'tables' are benchmark/score.py --all on RERUN's own decision files (benchmark/decisions).",
-            "figures": fig, "tables": {name: {"meta": {k: v for k, v in r["meta"].items() if k != "file"}, "table": r["table"]} for name, r in tables.items()}}
+            "figures": fig, "tables": {name: {"meta": {k: v for k, v in r["meta"].items() if k != "file"}, "table": r["table"]} for name, r in tables.items()},
+            "tavily_by_harness": tav}
 
 
 def main() -> int:
