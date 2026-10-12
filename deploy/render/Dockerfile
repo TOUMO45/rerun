@@ -9,7 +9,7 @@
 #   REF   the commit to serve, a full SHA (a pinned commit also keeps Render's layer cache from serving an old clone of a branch);
 #         change it to the commit you submit, push, then deploy (README.md)
 ARG REPO=https://github.com/TOUMO45/rerun.git
-ARG REF=6fba7f519306453eefd15514c2c4a98cfab993ca
+ARG REF=0ee434255ec48d153dce3095f0cc712b9fb13545
 
 # --- the frontend, built from the same checkout ---------------------------------------------------------------------------------------
 FROM node:20.19.5-alpine AS web
