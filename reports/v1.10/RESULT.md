@@ -34,6 +34,13 @@ v1.10 an experiment. Budget $25 ledger, BILLED floor $20, **no paid run before t
    after (BILLED, not reconciled). Not run again (owner). The flag's positive path is still shown by the test suite only; the Tavily gap is the purpose of a separate run.
 7. **A timeout cannot be diagnosed from its record.** A command stopped at the wall-clock limit leaves no output in the record, so whether M-FAC's baseline waited on the
    170 MB dataset download, hung or was still working is not known (its harness-v1.7.1 timeout is the same case). The harness stays frozen; this is not fixed.
+8. **The Tavily gap of point 5, run once on 2026-10-11/12** (`reports/v1.10/tavily_live/PLAN.md`, committed before the run; the Tavily gap only, not an attempt at a flagged
+   result): minmaxot, the wiring check's entry and mode, with Tavily working, on this machine. RUNS_AFTER_REPAIR (OUTPUT_DIR_MISSING), the wiring check's verdict. The search
+   returned 3 references, offered to each of the 3 candidates; candidate 3's record cites one of them (model-declared), candidates 1 and 2 give "derived from the error
+   message" as their reason for not citing; the adjudicator adopted candidate 1 (it sets `PROTOCOL_BUFFERS_PYTHON_IMPLEMENTATION=python` in the entry file; the wiring check had
+   adopted a protobuf pin), which does not cite; the output-directory rule then completed the run. Every `behaviour` block is `static: []`, `flagged: false`; no `review`.
+   $3.9763 API-reported; BILLED $41.96 before and after. This shows references offered and one citation in a v1.10 record; it does not show that a citation shaped a decision
+   (not measured, D-21) or that Tavily improved a repair. **The paid-run window for this submission is closed (owner, 2026-10-12): no further paid run of any kind.**
 
 ### Task 1 — the flag mode (`harness-v1.10.0-rc6` refused by review, `-rc7` reviewed, **`harness-v1.10.0-rc8` the candidate**)
 

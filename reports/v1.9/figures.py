@@ -79,9 +79,10 @@ def _tavily_by_harness() -> list[dict]:
         attempts = [a for a in d["result"].get("attempts") or () if isinstance(a, dict)]
         cited = any(s.get("cited_via") for a in attempts for s in a.get("tavily_sources") or () if isinstance(s, dict)) \
             or any(s.get("cited_by") for a in attempts for s in a.get("resolved_sources") or () if isinstance(s, dict))
-        r = rows.setdefault(label, {"harness": label, "runs": 0, "offered": 0, "citing": 0, "citing_records": []})
+        r = rows.setdefault(label, {"harness": label, "runs": 0, "offered": 0, "citing": 0, "offered_citing": 0, "citing_records": []})
         r["runs"] += 1
-        r["offered"] += any(a.get("consulted") for a in attempts)
+        r["offered"] += any(a.get("consulted") or a.get("resolved_sources") for a in attempts)
+        r["offered_citing"] += bool(cited and any(a.get("consulted") or a.get("resolved_sources") for a in attempts))
         if cited:
             r["citing"] += 1
             r["citing_records"].append(path.relative_to(ROOT).as_posix())
@@ -275,14 +276,43 @@ def build() -> dict:
         add(f"billed_reading_review_live_{'before' if i == 0 else 'after'}_usd", float(reading["account_balance_usd"]), "reports/v1.10/review_live/spend.json billed_readings",
             f"the owner's reading of the Nebius account balance {reading['when']}; not reconciled with the API-reported ledger (D-36)", tag="BILLED")
 
-    # Tavily in the records (owner, 2026-10-11): every committed live run record, by harness version: how many there are, in how many at least one repair attempt was
-    # offered Tavily references (`consulted`, recorded from harness-v1.3.4), and how many cite at least one Tavily source (`tavily_sources[].cited_via` for a search
-    # result, `resolved_sources[].cited_by` for a source the dependency resolver found through Tavily). The unit is a run; per-gate citation counts elsewhere count sources.
+    # the one live run for the Tavily gap (owner, 2026-10-11/12; reports/v1.10/tavily_live/PLAN.md): the wiring check's entry and mode with Tavily working. Post-hoc,
+    # labelled, never merged into any count; not an attempt at a flagged result. What the record shows about Tavily, and nothing more.
+    tv = _j(ROOT / "runs" / "v1.10" / "tavily_live" / "02_stephaneckstein__minmaxot_v1100.json")
+    src_tv = "runs/v1.10/tavily_live/02_stephaneckstein__minmaxot_v1100.json"
+    tv_model = [a for a in tv["result"]["attempts"] if a.get("origin") == "model"]
+    tv_cites = lambda a: any(s.get("cited_via") for s in a.get("tavily_sources") or ()) or any(s.get("cited_by") for s in a.get("resolved_sources") or ())  # noqa: E731
+    add("minmaxot_tavily_cost_usd", round(float(tv["cost_guard"]["spent_usd"]), 2), src_tv,
+        "POST-HOC live run for the Tavily gap: minmaxot at harness-v1.10.0 in flag mode with Tavily on, this machine, never merged into any count", tag="API-REPORTED")
+    add("minmaxot_tavily_ran", 1 if tv["result"]["verdict"] in ("RUNS_CLEAN", "RUNS_AFTER_REPAIR") else 0, src_tv, f"{tv['result']['verdict']} ({tv['result']['taxonomy_code']})")
+    add("minmaxot_tavily_same_verdict_as_wiring_check", 1 if (tv["result"]["verdict"], tv["result"]["taxonomy_code"]) == (fl["result"]["verdict"], fl["result"]["taxonomy_code"]) else 0,
+        src_tv, "the verdict and the taxonomy code equal the wiring check's (the adopted patches differ: the model is not deterministic)")
+    add("minmaxot_tavily_candidates", len(tv_model), src_tv, "model candidates proposed (one round)")
+    add("minmaxot_tavily_references_offered", max((len(a.get("consulted") or ()) for a in tv_model), default=0), src_tv,
+        "Tavily references offered to each candidate (one search)", tag="API-REPORTED")
+    add("minmaxot_tavily_candidates_offered", sum(1 for a in tv_model if a.get("consulted")), src_tv, "candidates offered those references")
+    add("minmaxot_tavily_candidates_citing", sum(1 for a in tv_model if tv_cites(a)), src_tv, "candidates whose record cites a Tavily source")
+    add("minmaxot_tavily_adopted_citing", sum(1 for a in tv_model if a.get("chosen") and tv_cites(a)), src_tv, "the adopted candidate cites a source (0: it did not)")
+    add("minmaxot_tavily_flagged_attempts", sum(1 for a in tv_model if (a.get("behaviour") or {}).get("flagged")), src_tv, "attempts the flag mode marked")
+    tl = _j(ROOT / "reports" / "v1.10" / "tavily_live" / "spend.json")
+    for i, reading in enumerate(tl["billed_readings"]):
+        add(f"billed_reading_tavily_live_{'before' if i == 0 else 'after'}_usd", float(reading["account_balance_usd"]), "reports/v1.10/tavily_live/spend.json billed_readings",
+            f"the owner's reading of the Nebius account balance {reading['when']}; not reconciled with the API-reported ledger (D-36)", tag="BILLED")
+
+    # Tavily in the records (owner, 2026-10-11/12): every committed live run record, by harness version: how many there are, in how many at least one repair attempt was
+    # offered Tavily references (`consulted`, recorded from harness-v1.3.4, or `resolved_sources`, what the dependency resolver found through Tavily), and how many cite at
+    # least one Tavily source (`tavily_sources[].cited_via` for a search result, `resolved_sources[].cited_by` for a resolver source). The unit is a run; per-gate citation
+    # counts elsewhere count sources. Whether a citation shaped a decision is not in the records (D-21).
     tav = _tavily_by_harness()
     src_tav = "runs/**/*.json (every live run record; the per-version rows are figures.json tavily_by_harness)"
     add("tavily_live_runs", sum(r["runs"] for r in tav), src_tav, "live run records, every harness version")
-    add("tavily_runs_offered", sum(r["offered"] for r in tav), src_tav, "live runs in which at least one repair attempt was offered Tavily references (recorded from harness-v1.3.4)")
+    add("tavily_runs_offered", sum(r["offered"] for r in tav), src_tav,
+        "live runs in which at least one repair attempt was offered Tavily references (consulted, recorded from harness-v1.3.4, or resolved_sources)")
     add("tavily_runs_citing", sum(r["citing"] for r in tav), src_tav, "live runs whose record cites at least one Tavily source")
+    add("tavily_runs_offered_citing", sum(r["offered_citing"] for r in tav), src_tav, "of the runs offered references, those whose record cites one")
+    add("tavily_runs_citing_of_offered_pct", round(100 * sum(r["offered_citing"] for r in tav) / max(1, sum(r["offered"] for r in tav))), src_tav,
+        "runs citing / runs offered references, rounded")
+    add("tavily_runs_citing_of_live_pct", round(100 * sum(r["citing"] for r in tav) / max(1, sum(r["runs"] for r in tav))), src_tav, "runs citing / all live runs, rounded")
     add("tavily_versions_citing", sum(1 for r in tav if r["citing"]), src_tav, "harness versions with at least one live run that cites a Tavily source")
     citing_v110 = [r for r in tav if r["harness"].startswith("harness-v1.10")]
     add("tavily_v110_runs", sum(r["runs"] for r in citing_v110), src_tav, "live runs at harness-v1.10 (its release candidates and the tag)")

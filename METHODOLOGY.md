@@ -1351,3 +1351,8 @@ step of each patch is its confirmation run (same tag, image, overlay and launche
   builds and probes both images at every push. The Docker Compose demo (`docker-compose.demo.yml`) was removed, from the README and from the repository, because no
   workflow ever tested it; `docker-compose.yml` stays as the development stack and is not offered as a demo. Amendment 1 to the live-run plan was committed before the run
   (`reports/v1.10/review_live/PLAN.md`).
+* **2026-10-11/12: the two live runs after the freeze, and the end of paid runs.** M-FAC, pre-registered for the flag's positive path (`reports/v1.10/review_live/PLAN.md`),
+  ended TIMEOUT in the baseline and was not run again. A second run, approved for the Tavily gap only and pre-registered before it ran (`reports/v1.10/tavily_live/PLAN.md`),
+  repeated the wiring check's entry and mode with Tavily working. Neither changed the harness. **The paid-run window for this submission is closed (owner, 2026-10-12): no
+  further paid run of any kind.** A new known limit: a command stopped at the wall-clock limit leaves no output in its record, so a timeout cannot be diagnosed from it; the
+  harness stays frozen and this is not fixed.

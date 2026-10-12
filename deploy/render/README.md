@@ -2,7 +2,7 @@
 
 A public, no-key demo of RERUN: the backend in demo mode replays the committed audit records (the DEV and gate entries) and refuses live execution with HTTP 409, so the service can never spend. The frontend and backend are the repository's own code, cloned at the commit `ARG REF` pins; this folder only packages them behind nginx on the port Render assigns.
 
-**State on 2026-10-11.** <https://rerun-demo.onrender.com> answers (probed: demo mode, no key configured), but it still serves the commit deployed on 2026-10-06 (harness-v1.7.2's records, built from the old, unpinned image of this folder): its Batch Lab predates the harness-v1.9 and v1.10 results the repository's README reports. It shows the submitted state only after the redeploy below.
+**State on 2026-10-12.** <https://rerun-demo.onrender.com> answers (probed: demo mode, no key configured), but it still serves the commit deployed on 2026-10-06 (harness-v1.7.2's records, built from the old, unpinned image of this folder): its Batch Lab predates the harness-v1.9 and v1.10 results the repository's README reports. For the submission, `ARG REF` already pins the submitted commit (steps 1 and 2 below are done); what remains is steps 3 to 6 in the dashboard. The service is on the free plan, which sleeps when idle: on 2026-10-11 a cold load took 51.7 s and the next one 0.87 s.
 
 ## What the image does (the same standard as `deploy/hf-space/`)
 
